@@ -2,6 +2,7 @@ body {
     font-family: Arial, Helvetica, sans-serif;
     background: #272422;
     color: #ddd;
+    margin: 0;
 }
 
 * {
@@ -9,9 +10,10 @@ body {
 }
 
 #midisettings {
-    max-width: 900px;
     margin: 0 auto;
     text-align: center;
+    background-color: #333;
+    padding: 5px;
 }
 
 .zone {
