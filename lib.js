@@ -1,0 +1,420 @@
+'use strict';
+
+/**
+ * DOM utilities
+ */
+let DOM = {
+  /**
+   * Returns first matching element for selector string or selector itself if it's no string.
+   * @param {*} selector
+   */
+  element: function(selector) {
+    if (typeof selector === 'string') {
+      return document.querySelector(selector);
+    } else {
+      return selector;
+    }
+  },
+  /**
+   * Find elements within rootElement. Applies optional handler function for each element.
+   * @param {object} rootElement
+   * @param {string} selector
+   * @param {function} handler
+   */
+  find: function(rootElement, selector, handler) {
+    const list = rootElement.querySelectorAll(selector);
+    if (handler) {
+      for (let i = 0; i < list.length; i++) {
+        handler(list[i]);
+      }
+    }
+    return list;
+  },
+  /**
+   * Returns list of all elements matching selector. Applies optional handler function for each element.
+   * @param {*} selector
+   * @param {function} handler
+   */
+  all: function(selector, handler) {
+    let list = [];
+    if (selector) {
+      if (typeof selector === 'string') {
+        list = document.querySelectorAll(selector);
+      } else if (selector.tagName) {
+        list = [selector];
+      } else {
+        list = selector.length ? Array.from(selector) : [selector];
+      }
+    }
+    if (handler) {
+      for (let i = 0; i < list.length; i++) {
+        handler(list[i]);
+      }
+    }
+    return list;
+  },
+  /**
+   * Attaches event listener function to all elements matching selector.
+   * @param {*} selector
+   * @param {string} eventName
+   * @param {function} handler
+   */
+  on: function(selector, eventName, handler) {
+    DOM.all(selector, function(el) {
+      el.addEventListener(eventName, handler);
+    });
+  },
+  /**
+   * Attaches event listener function to all elements matching selector only within rootElement.
+   * @param {object} rootElement
+   * @param {string} selector
+   * @param {string} eventName
+   * @param {function} handler
+   */
+  attachInside: function(rootElement, selector, eventName, handler) {
+    DOM.find(rootElement, selector, function(el) {
+      DOM.on(el, eventName, handler);
+    });
+  },
+  /**
+   * Clears content of all elements matching selector.
+   * @param {*} selector
+   */
+  empty: function(selector) {
+    DOM.all(selector, function(el) {
+      while (el.firstChild) {
+        el.removeChild(el.firstChild);
+      }
+    });
+  },
+  /**
+   * Sets style.display = 'none' for all matching elements.
+   * @param {*} selector
+   */
+  hide: function(selector) {
+    DOM.all(selector, function(el) {
+      el.style.display = 'none';
+    });
+  },
+  /**
+   * Sets style.display = 'block' for all matching elements.
+   * @param {*} selector
+   */
+  show: function(selector) {
+    DOM.all(selector, function(el) {
+      el.style.display = 'block';
+    });
+  },
+  /**
+   * Removes style class 'visible' from all matching elements.
+   * @param {*} selector
+   */
+  unvisible: function(selector) {
+    DOM.removeClass(selector, 'visible');
+  },
+  /**
+   * Adds style class 'visible' to all matching elements.
+   * @param {*} selector
+   */
+  visible: function(selector) {
+    DOM.addClass(selector, 'visible');
+  },
+  /**
+   * Adds style class to all matching elements.
+   * @param {*} selector
+   * @param {string} className
+   */
+  addClass: function(selector, className) {
+    DOM.all(selector, function(el) {
+      el.classList.add(className);
+    });
+  },
+  /**
+   * Removes style class from all matching elements.
+   * @param {*} selector
+   * @param {string} className
+   */
+  removeClass: function(selector, className) {
+    if (className) {
+      DOM.all(selector, function(el) {
+        el.classList.remove(className);
+      });
+    } else {
+      DOM.all(selector, function(el) {
+        el.className = '';
+      });
+    }
+  },
+  /**
+   * Adds HTML to matching element at given position.
+   * @param {*} selector
+   * @param {string} position ['beforebegin', 'afterbegin', 'beforeend', 'afterend']
+   * @param {string} html
+   */
+  addHTML: function(selector, position, html) {
+    let element = DOM.element(selector);
+    element.insertAdjacentHTML(position, html);
+    return element;
+  },
+  /**
+   * Returns attribute value of first element in parent chain containing this attribute.
+   * @param {object} el
+   * @param {string} attrname
+   */
+  ancestorAttribute: function(el, attrname) {
+    let element = el;
+    let attrValue = null;
+    while (element && !(attrValue = element.getAttribute(attrname))) {
+      element = element.parentElement;
+    }
+    return attrValue;
+  }
+};
+
+/**
+ * Message box/dialog handler
+ */
+function _MBox() {
+  const self = this;
+  self.initialized = false;
+  document.addEventListener('DOMContentLoaded', function() {
+    // create message box html
+    DOM.addHTML(
+      'body',
+      'beforeend',
+      '<div id="mbox" class="msgbox"><button class="x close">Close</button><h2></h2><div class="msg"></div><div class="buttons"><button class="ok">OK</button><button class="x">Cancel</button></div></div>'
+    );
+    self._element = DOM.element('#mbox');
+    DOM.on('#mbox button.x', 'click', function(el) {
+      self.hide();
+      if (self.cancelCallback) self.cancelCallback();
+    });
+    DOM.on('#mbox', 'click', function(ev) {
+      ev.stopPropagation();
+    });
+    DOM.addHTML(
+      'body',
+      'beforeend',
+      '<div id="mboxtemp" class="msgbox"><button class="x close">Close</button><h2></h2><div class="msg"></div></div>'
+    );
+    self._elementTemp = DOM.element('#mboxtemp');
+    DOM.on('#mboxtemp button.x', 'click', function() {
+      self.hideTemp();
+      if (self.cancelCallback) self.cancelCallback();
+    });
+    DOM.on('#mboxtemp', 'click', function(ev) {
+      ev.stopPropagation();
+    });
+    self.initialized = true;
+  });
+}
+
+
+
+/**
+ * Web MIDI interface handler
+ */
+function MIDI(completeHandler, eventHandler) {
+  console.log('MIDI: Initializing...');
+  const self = this;
+  self.midiAccess = null;
+  self.deviceIdIn = null;
+  self.deviceIdOut = null;
+  self.knownInputIds = {};
+  self.knownOutputIds = {};
+  let select_in = DOM.element('#midiInDeviceId');
+  let select_out = DOM.element('#midiOutDeviceId');
+  const optionNoDevice = '<option value="">(No devices)</option>';
+  const knownPorts = {};
+
+  let trueReported = false;
+
+  const reportStatus = function(available, msg) {
+    if (completeHandler) {
+      if ((available && !trueReported) || !available) {
+        trueReported = available;
+        completeHandler(available, msg);
+      }
+    } else {
+      if (available) {
+        MBox.hide();
+      } else {
+        MBox.show(STR.midictrl.title_error, msg, { type: 'error' });
+      }
+    }
+  };
+
+  const onMIDISuccess = function(midiAccess) {
+    console.log('MIDI ready!');
+    self.midiAccess = midiAccess;
+    listInputsAndOutputs();
+    selectDevices();
+    self.midiAccess.onstatechange = onStateChange;
+  };
+  const onMIDIFailure = function(msg) {
+    console.log('MIDI: Failed to get MIDI access - ' + msg);
+    reportStatus(false, STR.midictrl.nomidi);
+  };
+  const onStateChange = function(e) {
+    const port = e.port;
+    const state = e.port.state;
+    if (state === 'disconnected') {
+      knownPorts[port.id] = false;
+      listInputsAndOutputs();
+      selectDevices();
+    } else if (state === 'connected') {
+      if (!knownPorts[port.id]) {
+        listInputsAndOutputs();
+        selectDevices();
+      }
+    }
+  };
+  const listInputsAndOutputs = function() {
+    let selectedIn = null;
+    let selectedOut = null;
+    let countIn = 0;
+    let countOut = 0;
+    DOM.empty(select_in);
+    for (let entry of self.midiAccess.inputs) {
+      let input = entry[1];
+      if (!knownPorts[input.id]) {
+        console.log('MIDI: Input device', input.name, input.manufacturer, input.state);
+      }
+      knownPorts[input.id] = true;
+      if (input.id == localStorage.getItem('midiInId')) {
+        selectedIn = input.id;
+      }
+      DOM.addHTML(
+        select_in,
+        'beforeend',
+        `<option value="${input.id}">${input.name}</option>`
+      );
+      countIn++;
+    }
+    DOM.empty(select_out);
+    for (let entry of self.midiAccess.outputs) {
+      let output = entry[1];
+      if (!knownPorts[output.id]) {
+        console.log('MIDI: Output device', output.name, output.manufacturer, output.state);
+      }
+      knownPorts[output.id] = true;
+      if (output.id == localStorage.getItem('midiOutId')) {
+        selectedOut = output.id;
+      }
+      DOM.addHTML(
+        select_out,
+        'beforeend',
+        `<option value="${output.id}">${output.name}</option>`
+      );
+      countOut++;
+    }
+    if (selectedIn) {
+      select_in.value = selectedIn;
+    }
+    if (selectedOut) {
+      select_out.value = selectedOut;
+    }
+    console.log('MIDI: ', countIn, 'inputs,', countOut, 'outputs');
+    if (countIn == 0 || countOut == 0) {
+      let message;
+      if (countIn > 0 && countOut == 0) {
+        message = STR.midictrl.nooutputs;
+        DOM.addHTML(select_out, 'beforeend', optionNoDevice);
+      } else if (countIn == 0 && countOut > 0) {
+        message = STR.midictrl.noinputs;
+        DOM.addHTML(select_in, 'beforeend', optionNoDevice);
+      } else {
+        message = STR.midictrl.nodevices;
+        DOM.addHTML(select_out, 'beforeend', optionNoDevice);
+        DOM.addHTML(select_in, 'beforeend', optionNoDevice);
+      }
+      reportStatus(
+        false,
+        message
+      );
+    } else {
+      reportStatus(true);
+    }
+  };
+  function onMIDIMessage(event) {
+    if ((event[0] & 0xf0) != 0xf0) { // only channel messages for now
+      eventHandler(event, self.deviceOut);
+    }
+  }
+  function selectDevices() {
+    self.deviceIdIn = DOM.find(select_in, 'option:checked')[0].value;
+    self.deviceIdOut = DOM.find(select_out, 'option:checked')[0].value;
+    self.deviceIn = self.midiAccess.inputs.get(self.deviceIdIn);
+    self.deviceOut = self.midiAccess.outputs.get(self.deviceIdOut);
+    localStorage.setItem('midiInId', self.deviceIdIn);
+    localStorage.setItem('midiOutId', self.deviceIdOut);
+    if (self.deviceIn) {
+      self.midiAccess.inputs.forEach(function(entry) {
+        entry.onmidimessage = undefined;
+      });
+      self.deviceIn.onmidimessage = onMIDIMessage;
+    } else {
+      console.log('MIDI: No input device selected!');
+    }
+  }
+  // go ahead, start midi
+  let list = [select_in, select_out];
+  list.forEach(function(el) {
+    el.addEventListener('change', selectDevices);
+  });
+  if ('function' === typeof window.navigator.requestMIDIAccess) {
+    console.log('MIDI: System has MIDI support.');
+    navigator
+      .requestMIDIAccess({ sysex: true })
+      .then(onMIDISuccess, onMIDIFailure);
+  } else {
+    console.log('MIDI: System has *no* MIDI support.');
+    reportStatus(false, 'Sorry, browser has no MIDI support.');
+    DOM.addClass('#midisettings', 'unsupported');
+    DOM.all('#midisettings select', function(el) {
+      el.disabled = 'disabled';
+    });
+  }
+}
+
+MIDI.prototype.hasOutput = function() {
+  return typeof this.deviceOut !== 'undefined';
+};
+
+MIDI.prototype.hasInput = function() {
+  return typeof this.deviceIn !== 'undefined';
+};
+
+function toHex(d, pad) {
+  return ('0000' + Number(d).toString(16)).slice(pad ? -pad : -2).toUpperCase();
+}
+function toBinary(d, pad) {
+  return ('0000000000000000' + Number(d).toString(2))
+    .slice(pad ? -pad : -2)
+    .toUpperCase();
+}
+
+function hslToRgb(h, s, l){
+    var r, g, b;
+
+    if(s == 0){
+        r = g = b = l; // achromatic
+    }else{
+        var hue2rgb = function hue2rgb(p, q, t){
+            if(t < 0) t += 1;
+            if(t > 1) t -= 1;
+            if(t < 1/6) return p + (q - p) * 6 * t;
+            if(t < 1/2) return q;
+            if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+            return p;
+        }
+
+        var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        var p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1/3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1/3);
+    }
+
+    return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+}

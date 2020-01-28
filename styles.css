@@ -1,0 +1,149 @@
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #272422;
+    color: #ddd;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+#midisettings {
+    max-width: 900px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.zone {
+    background-color: #444;
+    margin: 1.5em auto;
+    padding: .5em;
+    border-radius: 8px;
+    width: 900px;
+    color: #fff;
+}
+
+.zone.disabled {
+    background-color: #444!important;
+    color: #000;
+    opacity: .3;
+}
+
+
+.channels {
+    text-align: center;
+}
+
+.ch {
+    display: inline-block;
+    padding-top: .75em;
+    height: 38px;
+    width: 5%;
+    margin-right: .7%;
+    text-align: center;
+    background-color: rgba(255,255,255,.15);
+    cursor: pointer;
+    border-radius: 8px;
+}
+.ch.selected {
+    background-color: rgba(0,0,0,.25);
+    color: #fff;
+}
+
+.settings {
+    text-align: center;
+    color: rgba(255,255,255,.3);
+    font-size: .85em;
+}
+
+.check, .val {
+    margin-right: 1em;
+}
+
+.check {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 5px;
+    border: 1px solid rgba(0,0,0,.4);
+    cursor: pointer;
+}
+
+.check.selected {
+    background-color: rgba(0,0,0,.25);
+    
+}
+
+.val {
+    display: inline-block;
+}
+
+.circle {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 1px solid rgba(0,0,0,.4);
+    border-radius: 50%;
+    cursor: pointer;
+    vertical-align: top;
+}
+
+.circle.selected {
+    background-color: rgba(0,0,0,.25);
+}
+
+.range {
+    position: relative;
+    height: 40px;
+    cursor: pointer;
+    width: 90%;
+    margin: .5em auto;
+    border: 2px solid rgba(0,0,0,.2);
+    overflow: hidden;
+}
+
+.marker {
+    position: absolute;
+    top: 0;
+    width: 32px;
+    height: 24px;
+    font-size: .85em;
+    padding: 3px 0 0 0;
+    background-color: rgba(0,0,0,.25);
+    text-align: center;
+}
+
+.marker.hover {
+    background-color: rgba(255,255,255,.2);
+}
+
+.join {
+    position: absolute;
+    top: 0;
+    height: 24px;
+    background-color: rgba(0,0,0,.25);
+}
+
+.oct {
+    position: absolute;
+    top: 0;
+    background-color: rgba(0,0,0,.2);
+    width: 1px;
+    bottom: 0;
+}
+
+.key {
+    position: absolute;
+    bottom: 0;
+    height: 8px;
+    width: 4px;
+    margin-left: -1px;
+    background-color: #fff;
+}
+
+.check:hover,
+.circle:hover {
+    border-color: #ccc;
+}
+.ch:hover {
+    outline: 1px solid #ccc;
+}
