@@ -40,9 +40,9 @@ app.on('ready', createWindow)
 app.on('window-all-closed', () => {
   // Unter macOS ist es üblich, für Apps und ihre Menu Bar
   // aktiv zu bleiben, bis der Nutzer explizit mit Cmd + Q die App beendet.
-  if (process.platform !== 'darwin') {
+  
     app.quit()
-  }
+  
 })
 
 app.on('activate', () => {
