@@ -4,11 +4,15 @@
   "description": "",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "pack:osx": "electron-packager . --out=dist/osx --platform=darwin --arch=x64",
+    "pack:win32": "electron-packager . --out=dist/win --platform=win32 --arch=ia32",
+    "build": "npm run pack:osx && npm run pack:win32"
   },
-  "author": "",
+  "author": "Peter Witzel",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^7.1.10"
+    "electron": "^7.1.10",
+    "electron-packager": "^14.2.0"
   }
 }
