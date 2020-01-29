@@ -5,9 +5,8 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "pack:osx": "electron-packager . --out=dist/osx --platform=darwin --arch=x64",
-    "pack:win32": "electron-packager . --out=dist/win --platform=win32 --arch=ia32",
-    "build": "npm run pack:osx && npm run pack:win32"
+    "pack:osx": "electron-packager . --out=dist/osx --platform=darwin --arch=x64 --icon=assets/zoner1024.icns --overwrite --ignore='assets'",
+    "build": "npm run pack:osx"
   },
   "author": "Peter Witzel",
   "license": "ISC",
