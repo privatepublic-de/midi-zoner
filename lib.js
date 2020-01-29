@@ -301,8 +301,6 @@ function MIDI(completeHandler, eventHandler) {
     self.deviceIdOut = DOM.find(select_out, 'option:checked')[0].value;
     self.deviceIn = self.midiAccess.inputs.get(self.deviceIdIn);
     self.deviceOut = self.midiAccess.outputs.get(self.deviceIdOut);
-    localStorage.setItem('midiInId', self.deviceIdIn);
-    localStorage.setItem('midiOutId', self.deviceIdOut);
     if (self.deviceIn) {
       self.midiAccess.inputs.forEach(function(entry) {
         entry.onmidimessage = undefined;
@@ -315,7 +313,11 @@ function MIDI(completeHandler, eventHandler) {
   // go ahead, start midi
   let list = [select_in, select_out];
   list.forEach(function(el) {
-    el.addEventListener('change', selectDevices);
+    el.addEventListener('change', ()=>{   
+      selectDevices();
+      localStorage.setItem('midiInId', self.deviceIdIn);
+      localStorage.setItem('midiOutId', self.deviceIdOut);
+    });
   });
   if ('function' === typeof window.navigator.requestMIDIAccess) {
     console.log('MIDI: System has MIDI support.');
