@@ -16,6 +16,10 @@ body {
     padding: 5px;
 }
 
+#midisettings label {
+    margin-left: 1em;
+}
+
 .zone {
     background-color: #444;
     margin: 1.5em auto;
