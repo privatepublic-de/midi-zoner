@@ -184,6 +184,7 @@ function renderZones() {
             <div class="range" data-hover="${index}:range" data-action="${index}:range">
                 ${octavemarkers}
                 <span class="join"></span>
+                <span class="current"></span>
                 <span class="marker low">C-1</span>
                 <span class="marker high">G9</span>
             </div>
@@ -219,12 +220,15 @@ function renderZones() {
 
 function renderMarkersForZone(index, tempLo, tempHigh) {
   const low = tempLo!=undefined ? tempLo : zones.list[index].low;
-  const high = tempHigh!=undefined ? tempHigh : zones.list[index].high
+  const high = tempHigh!=undefined ? tempHigh : zones.list[index].high;
   let xlow = (low / 127.0);
   let xhi = (high / 127.0);
+  let xclow = (zones.list[index].low / 127.0);
+  let xchi = (zones.list[index].high / 127.0);
   const markerlow = DOM.element(`#zone${index} .marker.low`);
   const markerhigh = DOM.element(`#zone${index} .marker.high`);
   const join = DOM.element(`#zone${index} .join`);
+  const current = DOM.element(`#zone${index} .current`);
   const width = DOM.element(`#zone${index} .range`).offsetWidth;
   const xpad = 0.75/127.0 * width;
   markerlow.style.left = `${xlow * width}px`;
@@ -233,6 +237,8 @@ function renderMarkersForZone(index, tempLo, tempHigh) {
   markerhigh.innerHTML = NOTENAMES[high % 12] + (parseInt(high / 12) - 1);
   join.style.left = `${xlow * width}px`;
   join.style.right = `${(width-xhi*width-xpad)}px`;
+  current.style.left = `${xclow * width}px`;
+  current.style.right = `${(width-xchi*width-xpad)}px`;
   let ocount = 0;
   DOM.all(`#zone${index} .range .oct`, e => {
     ocount++;
