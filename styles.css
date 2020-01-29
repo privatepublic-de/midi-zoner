@@ -29,6 +29,10 @@ body {
     color: #fff;
 }
 
+.zone, .zone * {
+    user-select: none;
+}
+
 .zone.disabled {
     background-color: #444!important;
     color: #000;
@@ -123,6 +127,14 @@ body {
     text-align: center;
     transition: 200ms left, 200ms right;
 }
+
+.marker.low {
+    top: 0;
+}
+.marker.high {
+    top: 16px;
+}
+
 
 .marker.hover {
     background-color: rgba(0,0,0,.25);

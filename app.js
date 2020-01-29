@@ -77,6 +77,8 @@ function dispatchEventForZones(event, midiOutDevice) {
   });
 }
 
+const catchedMarker = [ 0, 0, 0, 0];
+
 function actionHandler(ev) {
   const e = ev.currentTarget;
   const action = e.getAttribute('data-action');
@@ -87,13 +89,13 @@ function actionHandler(ev) {
     case 'range':
       let num = parseInt(((ev.clientX - e.offsetLeft) / (e.offsetWidth)) * 128);
       if (num > 127) num = 127;
-      const middle = zone.low + (zone.high - zone.low) / 2;
-      if (num < middle) {
+      if (catchedMarker[zoneindex]<0) {
         zone.low = num;
       } else {
         zone.high = num;
       }
       renderMarkersForZone(zoneindex);
+      catchedMarker[zoneindex] = 0;
       break;
     case 'ch':
       let number = parseInt(params[2]);
@@ -126,9 +128,18 @@ function hoverHandler(ev) {
     case 'range':
       let num = parseInt(((ev.clientX - e.offsetLeft) / (e.offsetWidth)) * 128);
       if (num > 127) num = 127;
-      const middle = zone.low + (zone.high - zone.low) / 2;
+      const middle = zone.low + (zone.high - zone.low) / 2;     
+      if (catchedMarker[zoneindex] === 0) {
+        catchedMarker[zoneindex] = num<middle?-1:1;
+      }
+      if (catchedMarker[zoneindex]<0 && num > zone.high) {
+        catchedMarker[zoneindex] = 1;
+      }
+      if (catchedMarker[zoneindex]>0 && num < zone.low) {
+        catchedMarker[zoneindex] = -1;
+      }
       let tempLow, tempHigh;
-      if (num < middle) {
+      if (catchedMarker[zoneindex]<0) {
         tempLow = num;
       } else {
         tempHigh = num;
@@ -144,7 +155,20 @@ function hoverOutHandler(ev) {
   const action = e.getAttribute('data-hover');
   const params = action.split(':');
   const zoneindex = params[0];
+  catchedMarker[zoneindex] = 0;
   renderMarkersForZone(zoneindex);
+}
+
+function dblClickHandler(ev) {
+  const e = ev.currentTarget;
+  const action = e.getAttribute('data-action');
+  const params = action.split(':');
+  const zoneindex = params[0];
+  zones.list[zoneindex].high = 127;
+  zones.list[zoneindex].low = 0;
+  catchedMarker[zoneindex] = 0;
+  renderMarkersForZone(zoneindex);
+  saveZones();
 }
 
 function renderZones() {
@@ -189,6 +213,7 @@ function renderZones() {
   DOM.all('*[data-hover]').forEach(e => {
     e.addEventListener('mousemove', hoverHandler);
     e.addEventListener('mouseleave', hoverOutHandler);
+    e.addEventListener('dblclick', dblClickHandler);
   });
 }
 
@@ -288,7 +313,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (midiavailable) {
         console.log('MIDI available');
       } else {
-        alert(message);
+        console.log(message);
       }
     }
     , dispatchEventForZones
