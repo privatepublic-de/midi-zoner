@@ -156,7 +156,7 @@ function renderZones() {
     }
     const octavemarkers = '<span class="oct"></span><span class="oct"></span><span class="oct"></span><span class="oct"></span><span class="oct"></span><span class="oct"></span><span class="oct"></span><span class="oct"></span><span class="oct"></span><span class="oct"></span>';
     let html = `<section class="zone" id="zone${index}">
-            <div class="channels"><div class="ch enabled" data-action="${index}:enabled">ON</div>${channelselectors}</div>
+            <div class="channels"><div class="ch enabled" data-action="${index}:enabled" title="Mute Zone">on</div>${channelselectors}</div>
             <div class="range" data-hover="${index}:range" data-action="${index}:range">
                 ${octavemarkers}
                 <span class="join"></span>
@@ -212,6 +212,7 @@ function renderMarkersForZone(index, tempLo, tempHigh) {
   DOM.all(`#zone${index} .range .oct`, e => {
     ocount++;
     e.style.left = `${ocount * 12 / 127.0 * width}px`;
+    e.innerHTML = ocount-1;
   });
   if (tempLo!=undefined) {
     DOM.addClass(markerlow, 'hover');

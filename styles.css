@@ -51,6 +51,11 @@ body {
     cursor: pointer;
     border-radius: 8px;
 }
+
+.ch.no15 {
+    margin-right: 0;
+}
+
 .ch.selected {
     background-color: rgba(0,0,0,.25);
     color: #fff;
@@ -76,7 +81,6 @@ body {
 
 .check.selected {
     background-color: rgba(0,0,0,.25);
-    
 }
 
 .val {
@@ -87,10 +91,11 @@ body {
     display: inline-block;
     width: 16px;
     height: 16px;
-    border: 1px solid rgba(0,0,0,.4);
+    border: 1px solid rgba(0,0,0,.6);
     border-radius: 50%;
     cursor: pointer;
     vertical-align: top;
+    margin: 0 2px;
 }
 
 .circle.selected {
@@ -101,31 +106,32 @@ body {
     position: relative;
     height: 40px;
     cursor: pointer;
-    width: 90%;
+    width: 96%;
     margin: .5em auto;
     border: 2px solid rgba(0,0,0,.2);
     overflow: hidden;
+    border-radius: 6px;
 }
 
 .marker {
     position: absolute;
-    top: 0;
+    top: 7px;
     width: 32px;
     height: 24px;
     font-size: .85em;
     padding: 3px 0 0 0;
-    background-color: rgba(0,0,0,.25);
     text-align: center;
+    transition: 200ms left, 200ms right;
 }
 
 .marker.hover {
-    background-color: rgba(255,255,255,.2);
+    background-color: rgba(0,0,0,.25);
 }
 
 .join {
     position: absolute;
     top: 0;
-    height: 24px;
+    height: 40px;
     background-color: rgba(0,0,0,.25);
 }
 
@@ -133,8 +139,11 @@ body {
     position: absolute;
     top: 0;
     background-color: rgba(0,0,0,.2);
+    color: rgba(255,255,255,.2);
     width: 1px;
     bottom: 0;
+    font-size: .65em;
+    text-indent: 4px;
 }
 
 .key {
@@ -148,8 +157,9 @@ body {
 
 .check:hover,
 .circle:hover {
-    border-color: #ccc;
+    /* border-color: #ccc; */
+    background-color: rgba(255,255,255,.25);
 }
 .ch:hover {
-    outline: 1px solid #ccc;
+    background-color: rgba(0,0,0,.25);
 }
