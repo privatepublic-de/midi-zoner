@@ -171,45 +171,6 @@ let DOM = {
   }
 };
 
-/**
- * Message box/dialog handler
- */
-function _MBox() {
-  const self = this;
-  self.initialized = false;
-  document.addEventListener('DOMContentLoaded', function() {
-    // create message box html
-    DOM.addHTML(
-      'body',
-      'beforeend',
-      '<div id="mbox" class="msgbox"><button class="x close">Close</button><h2></h2><div class="msg"></div><div class="buttons"><button class="ok">OK</button><button class="x">Cancel</button></div></div>'
-    );
-    self._element = DOM.element('#mbox');
-    DOM.on('#mbox button.x', 'click', function(el) {
-      self.hide();
-      if (self.cancelCallback) self.cancelCallback();
-    });
-    DOM.on('#mbox', 'click', function(ev) {
-      ev.stopPropagation();
-    });
-    DOM.addHTML(
-      'body',
-      'beforeend',
-      '<div id="mboxtemp" class="msgbox"><button class="x close">Close</button><h2></h2><div class="msg"></div></div>'
-    );
-    self._elementTemp = DOM.element('#mboxtemp');
-    DOM.on('#mboxtemp button.x', 'click', function() {
-      self.hideTemp();
-      if (self.cancelCallback) self.cancelCallback();
-    });
-    DOM.on('#mboxtemp', 'click', function(ev) {
-      ev.stopPropagation();
-    });
-    self.initialized = true;
-  });
-}
-
-
 
 /**
  * Web MIDI interface handler
@@ -235,13 +196,7 @@ function MIDI(completeHandler, eventHandler) {
         trueReported = available;
         completeHandler(available, msg);
       }
-    } else {
-      if (available) {
-        MBox.hide();
-      } else {
-        MBox.show(STR.midictrl.title_error, msg, { type: 'error' });
-      }
-    }
+    } 
   };
 
   const onMIDISuccess = function(midiAccess) {
@@ -253,7 +208,7 @@ function MIDI(completeHandler, eventHandler) {
   };
   const onMIDIFailure = function(msg) {
     console.log('MIDI: Failed to get MIDI access - ' + msg);
-    reportStatus(false, STR.midictrl.nomidi);
+    reportStatus(false, 'No MIDI available');
   };
   const onStateChange = function(e) {
     const port = e.port;
@@ -318,13 +273,13 @@ function MIDI(completeHandler, eventHandler) {
     if (countIn == 0 || countOut == 0) {
       let message;
       if (countIn > 0 && countOut == 0) {
-        message = STR.midictrl.nooutputs;
+        message = 'No MIDI output devices';
         DOM.addHTML(select_out, 'beforeend', optionNoDevice);
       } else if (countIn == 0 && countOut > 0) {
-        message = STR.midictrl.noinputs;
+        message = 'No MIDI input devices';
         DOM.addHTML(select_in, 'beforeend', optionNoDevice);
       } else {
-        message = STR.midictrl.nodevices;
+        message = 'No MIDI devices';
         DOM.addHTML(select_out, 'beforeend', optionNoDevice);
         DOM.addHTML(select_in, 'beforeend', optionNoDevice);
       }
