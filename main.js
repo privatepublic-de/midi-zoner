@@ -7,6 +7,7 @@ function createWindow () {
   win = new BrowserWindow({
     width: 950,
     height: 700,
+    icon: __dirname + '/res/zoner.png',
     webPreferences: {
       nodeIntegration: true
     }
