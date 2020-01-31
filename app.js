@@ -51,7 +51,7 @@ function dispatchEventForZones(event, midiOutDevice) {
           if (event.data[1] == 0x01 && !zone.mod) { // no mod wheel
             return;
           }
-          if (!zone.cc) { // no ccs in general
+          if (!zone.cc && event.data[1] != 0x40 && event.data[1] != 0x01) { // no ccs in general
             return;
           }
           const outevent = new Uint8Array(event.data);
