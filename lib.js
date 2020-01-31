@@ -185,6 +185,7 @@ function MIDI(completeHandler, eventHandler) {
   self.knownOutputIds = {};
   let select_in = DOM.element('#midiInDeviceId');
   let select_out = DOM.element('#midiOutDeviceId');
+  DOM.element('#midiPanic').addEventListener('click', ()=> { self.panic() });
   const optionNoDevice = '<option value="">(No devices)</option>';
   const knownPorts = {};
 
@@ -341,6 +342,23 @@ MIDI.prototype.hasOutput = function() {
 MIDI.prototype.hasInput = function() {
   return typeof this.deviceIn !== 'undefined';
 };
+
+MIDI.prototype.panic = function() {
+  if (this.hasOutput) {
+    for (var i=0; i<16; i++) {
+      const msg = new Uint8Array(3);
+      msg[0] = 0xb0 + i;
+      msg[2] = 0;
+      msg[1] = 120; // all sound off
+      this.deviceOut.send(msg);
+      msg[1] = 122; // all notes off
+      this.deviceOut.send(msg);
+      msg[1] = 123; // reset controllers
+      this.deviceOut.send(msg);
+    }
+    console.log('MIDI: Panic. Sent CC 120, 122, 123 to all channels');
+  }
+}
 
 function toHex(d, pad) {
   return ('0000' + Number(d).toString(16)).slice(pad ? -pad : -2).toUpperCase();
