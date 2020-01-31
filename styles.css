@@ -74,14 +74,15 @@ body {
     color: #fff;
 }
 .ch.enabled.selected {
-    background-color: rgba(255,255,255,.15);
+    background-color: rgba(0,0,0,.1);
 }
 .ch.solo {
     margin-right: 2%;
+    background-color: rgba(0,0,0,.1);
 }
 
 .ch.solo.selected {
-    background-color: rgba(0,128,0,.15);
+    background-color: rgba(0,196,0,.4);
 }
 
 .settings {
