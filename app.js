@@ -2,11 +2,12 @@ const NOTENAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', '
 
 const zones = {
   list: [
-    { channel: 0, enabled: true, programchange: false, low: 0, high: 127, octave: 0, fixedvel: false, mod: true, sustain: true, cc: true, pitchbend: true },
-    { channel: 1, enabled: true, programchange: false, low: 0, high: 127, octave: 0, fixedvel: false, mod: true, sustain: true, cc: true, pitchbend: true },
-    { channel: 3, enabled: true, programchange: false, low: 0, high: 127, octave: 0, fixedvel: false, mod: true, sustain: true, cc: true, pitchbend: true },
-    { channel: 4, enabled: true, programchange: false, low: 0, high: 127, octave: 0, fixedvel: false, mod: true, sustain: true, cc: true, pitchbend: true }
-  ]
+    { channel: 0, enabled: true, solo: false, programchange: false, low: 0, high: 127, octave: 0, fixedvel: false, mod: true, sustain: true, cc: true, pitchbend: true },
+    { channel: 1, enabled: true, solo: false, programchange: false, low: 0, high: 127, octave: 0, fixedvel: false, mod: true, sustain: true, cc: true, pitchbend: true },
+    { channel: 3, enabled: true, solo: false, programchange: false, low: 0, high: 127, octave: 0, fixedvel: false, mod: true, sustain: true, cc: true, pitchbend: true },
+    { channel: 4, enabled: true, solo: false, programchange: false, low: 0, high: 127, octave: 0, fixedvel: false, mod: true, sustain: true, cc: true, pitchbend: true }
+  ],
+  solocount: 0
 };
 
 function saveZones() {
@@ -22,7 +23,7 @@ function loadZones() {
 
 function dispatchEventForZones(event, midiOutDevice) {
   zones.list.forEach( (zone, index) => {
-    if (zone.enabled) {
+    if (zone.enabled && (zones.solocount===0 || zone.solo)) {
       const msgtype = (event.data[0] & 0xf0);
       switch (msgtype) {
         case 0x80: // note off
@@ -113,6 +114,15 @@ function actionHandler(ev) {
     case 'programchange':
       zone[params[1]] = !zone[params[1]];
       break;
+    case 'solo':
+      zone.solo = !zone.solo;
+      if (zone.solo) {
+        zones.solocount++;
+      } else {
+        zones.solocount --;
+      }
+      updateValuesForAllZones();
+      break;
   }
   updateValuesForZone(zoneindex);
   saveZones();
@@ -180,7 +190,7 @@ function renderZones() {
     }
     const octavemarkers = '<span class="oct"></span><span class="oct"></span><span class="oct"></span><span class="oct"></span><span class="oct"></span><span class="oct"></span><span class="oct"></span><span class="oct"></span><span class="oct"></span><span class="oct"></span>';
     let html = `<section class="zone" id="zone${index}">
-            <div class="channels"><div class="ch enabled" data-action="${index}:enabled" title="Mute Zone">on</div>${channelselectors}</div>
+            <div class="channels"><div class="ch enabled" data-action="${index}:enabled" title="Mute Zone">M</div><div class="ch solo" data-action="${index}:solo" title="Solo Zone">S</div>${channelselectors}</div>
             <div class="range" data-hover="${index}:range" data-action="${index}:range">
                 ${octavemarkers}
                 <span class="join"></span>
@@ -269,11 +279,17 @@ function updateKeyForZone(index, key, on) {
   }
 }
 
+function updateValuesForAllZones() {
+  for (let i=0;i<zones.list.length;i++) {
+    updateValuesForZone(i);
+  }
+}
+
 function updateValuesForZone(index) {
   const zone = zones.list[index];
   DOM.removeClass(`#zone${index} *[data-action]`, 'selected');
   DOM.addClass(`#zone${index} .no${zone.channel}`, 'selected');
-  if (zone.enabled) {
+    if (zone.enabled && (zones.solocount===0 || zone.solo)) {
     DOM.removeClass(`#zone${index}`, 'disabled');
     const rgb = hslToRgb(zone.channel/16, .4, .3);
     DOM.element(`#zone${index}`).style.backgroundColor = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;    
@@ -298,6 +314,9 @@ function updateValuesForZone(index) {
   }
   if (zone.enabled) {
     DOM.addClass(`#zone${index} .ch.enabled`, 'selected');
+  }
+  if (zone.solo) {
+    DOM.addClass(`#zone${index} .ch.solo`, 'selected');
   }
   if (zone.programchange) {
     DOM.addClass(`#zone${index} .check.programchange`, 'selected');
