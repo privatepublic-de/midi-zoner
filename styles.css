@@ -20,6 +20,15 @@ body {
     margin-left: 1em;
 }
 
+#midiPanic {
+    margin-left: 1em;
+    border: none;
+    background: #464048;
+    color: #686868;
+    cursor: pointer;
+    border-radius: 6px;
+}
+
 .zone {
     background-color: #444;
     margin: 1.5em auto;

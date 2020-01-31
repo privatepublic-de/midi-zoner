@@ -351,9 +351,9 @@ MIDI.prototype.panic = function() {
       msg[2] = 0;
       msg[1] = 120; // all sound off
       this.deviceOut.send(msg);
-      msg[1] = 122; // all notes off
+      msg[1] = 121; // reset controllers
       this.deviceOut.send(msg);
-      msg[1] = 123; // reset controllers
+      msg[1] = 123; // all notes off
       this.deviceOut.send(msg);
     }
     console.log('MIDI: Panic. Sent CC 120, 122, 123 to all channels');
