@@ -40,7 +40,7 @@ function dispatchEventForZones(event, midiOutDevice) {
               outevent[1] = key;
               outevent[2] = velo;
               midiOutDevice.send(outevent);
-              setTimeout(()=>{ updateKeyForZone(index, key, (msgtype!=0x80 && velo>0) )},0);
+              setTimeout(()=>{ updateKeyForZone(index, event.data[1], (msgtype!=0x80 && velo>0) )},0);
             }
           }
           break;
