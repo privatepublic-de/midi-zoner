@@ -22,6 +22,7 @@ body {
 }
 
 #midisettings {
+    position: relative;
     margin: 0 auto;
     text-align: center;
     background-color: #333;
@@ -53,10 +54,16 @@ body {
 #midisettings #allSoloOff {
     background: #485048;
     color: #000;
+    margin-left: 2em;
 }
 
 #midiPanic {
     margin-left: 1em;
+}
+
+#midisettings .left {
+    position: absolute;
+    left: 3em;
 }
 
 .padded {
