@@ -38,23 +38,27 @@ body {
     width: 160px;
 }
 
-#midisettings button {
+#midisettings button,
+#midisettings a {
+    display: inline-block;
     border: none;
     background: #464048;
     color: #777;
     cursor: pointer;
-    border-radius: 6px;
+    border-radius: 4px;
 }
 
 #midisettings #allMuteOff {
-    background: #504848;
-    color: #000;
+    background: #555;
+    color: #333;
+    width: 38px;
+    margin-right: 4px;
 }
 
 #midisettings #allSoloOff {
-    background: #485048;
-    color: #000;
-    margin-left: 2em;
+    background: #555;
+    color: #333;
+    width: 38px;
 }
 
 #midiPanic {
@@ -63,7 +67,7 @@ body {
 
 #midisettings .left {
     position: absolute;
-    left: 3em;
+    left: 23px;
 }
 
 .padded {
@@ -114,7 +118,6 @@ body {
 
 
 .channels {
-    text-align: center;
     max-width: 900px;
 }
 
@@ -122,8 +125,8 @@ body {
     display: inline-block;
     padding-top: .7em;
     height: 38px;
-    width: 4.85%;
-    margin-right: .5%;
+    width: 38px;
+    margin-right: 4px;
     text-align: center;
     background-color: rgba(255,255,255,.15);
     cursor: pointer;
@@ -222,7 +225,7 @@ body {
     position: relative;
     height: 40px;
     cursor: pointer;
-    width: 97%;
+    width: 100%;
     margin: .5em auto;
     border: 2px solid rgba(0,0,0,.2);
     overflow: hidden;
