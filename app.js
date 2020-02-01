@@ -112,18 +112,27 @@ function actionHandler(ev) {
     case 'mod':
     case 'fixedvel':
     case 'pitchbend':
-    case 'enabled':
     case 'programchange':
       zone[params[1]] = !zone[params[1]];
       break;
-    case 'solo':
-      zone.solo = !zone.solo;
+    case 'enabled':
+      zone.enabled = !zone.enabled
       if (zone.solo) {
-        zones.solocount++;
-      } else {
-        zones.solocount --;
+        zone.solo = false;
+        zones.solocount--;
+        updateValuesForAllZones();
+      };
+      break;
+    case 'solo':
+      if (zone.enabled) {
+        zone.solo = !zone.solo;
+        if (zone.solo) {
+          zones.solocount++;
+        } else {
+          zones.solocount --;
+        }
+        updateValuesForAllZones();
       }
-      updateValuesForAllZones();
       break;
     case 'delete':
       if (confirm('Sure?')) {
@@ -364,6 +373,25 @@ function createNewZone() {
   DOM.element(`#zone${zones.list.length-1}`).scrollIntoView();
 }
 
+function allMuteOff() {
+  for (var i=0;i<zones.list.length;i++) {
+    const zone = zones.list[i];
+    zone.enabled = true;
+  }
+  updateValuesForAllZones();
+  saveZones();
+}
+
+function allSoloOff() {
+  for (var i=0;i<zones.list.length;i++) {
+    const zone = zones.list[i];
+    zone.solo = false;
+  }
+  zones.solocount = 0;
+  updateValuesForAllZones();
+  saveZones();
+}
+
 document.addEventListener('DOMContentLoaded', function () {
   loadZones();
   renderZones();
@@ -379,4 +407,6 @@ document.addEventListener('DOMContentLoaded', function () {
   );
   window.addEventListener('resize', renderMarkersForAllZones);
   DOM.element('#newzone').addEventListener('click', createNewZone);
+  DOM.element('#allMuteOff').addEventListener('click', allMuteOff)
+  DOM.element('#allSoloOff').addEventListener('click', allSoloOff);
 });

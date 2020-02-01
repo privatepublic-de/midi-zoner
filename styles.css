@@ -37,13 +37,26 @@ body {
     width: 160px;
 }
 
-#midiPanic {
-    margin-left: 1em;
+#midisettings button {
     border: none;
     background: #464048;
-    color: #686868;
+    color: #777;
     cursor: pointer;
     border-radius: 6px;
+}
+
+#midisettings #allMuteOff {
+    background: #504848;
+    color: #000;
+}
+
+#midisettings #allSoloOff {
+    background: #485048;
+    color: #000;
+}
+
+#midiPanic {
+    margin-left: 1em;
 }
 
 .padded {
@@ -53,6 +66,7 @@ body {
 #tools {
     width: 100%;
     margin: 1.5em auto;
+    padding-bottom: 1em;
 }
 
 #newzone {
