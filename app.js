@@ -355,6 +355,7 @@ function createNewZone() {
   zones.list.push(zonetemplate);
   saveZones();
   renderZones();
+  DOM.element(`#zone${zones.list.length-1}`).scrollIntoView();
 }
 
 document.addEventListener('DOMContentLoaded', function () {
