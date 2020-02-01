@@ -268,12 +268,23 @@ function renderMarkersForZone(index, tempLo, tempHigh) {
 }
 
 function updateKeyForZone(index, key, on) {
+  const transp = zones.list[index].octave*12;
   const range = DOM.element(`#zone${index} .range`);
   const width = range.offsetWidth;
   const id = `key${index}_${key}`;
   const x = key / 127.0 * width;
+  const isTransposed = (transp!=0);
+  if (isTransposed) {
+    const id2 = `key${index}_${(key+transp)}`;
+    if (on) {
+      const x2 = (key+transp) / 127.0 * width;
+      DOM.addHTML(range, 'beforeend', `<span class='key' data-key="${id2}" style='left:${x2}px'></span>`);
+    } else {
+      DOM.all(`*[data-key="${id2}"]`).forEach(e=>e.remove());
+    }  
+  }
   if (on) {
-    DOM.addHTML(range, 'beforeend', `<span class='key' data-key="${id}" style='left:${x}px'></span>`);
+    DOM.addHTML(range, 'beforeend', `<span class='key ${isTransposed?'transp':''}' data-key="${id}" style='left:${x}px'></span>`);
   } else {
     DOM.all(`*[data-key="${id}"]`).forEach(e=>e.remove());
   }
