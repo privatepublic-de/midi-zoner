@@ -22,12 +22,17 @@ body {
 }
 
 #midisettings {
-    position: relative;
-    margin: 0 auto;
+    position: fixed;
+    z-index: 2;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 32px;
     text-align: center;
     background-color: #333;
     padding: 5px;
     font-size: .85em;
+    box-shadow: 0 2px 5px #272422;
 }
 
 #midisettings label {
@@ -71,7 +76,7 @@ body {
 }
 
 .padded {
-    padding: 0 1em;
+    padding: 24px 1em 0 1em;
 }
 
 #tools {
