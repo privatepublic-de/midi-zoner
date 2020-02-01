@@ -1,5 +1,7 @@
 const NOTENAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
+const zonetemplate = { channel: 0, enabled: true, solo: false, programchange: false, low: 0, high: 127, octave: 0, fixedvel: false, mod: true, sustain: true, cc: true, pitchbend: true };
+
 const zones = {
   list: [
     { channel: 0, enabled: true, solo: false, programchange: false, low: 0, high: 127, octave: 0, fixedvel: false, mod: true, sustain: true, cc: true, pitchbend: true },
@@ -123,6 +125,13 @@ function actionHandler(ev) {
       }
       updateValuesForAllZones();
       break;
+    case 'delete':
+      if (confirm('Sure?')) {
+        zones.list.splice(zoneindex, 1);
+        renderZones();
+        saveZones();
+      }
+      break;
   }
   updateValuesForZone(zoneindex);
   saveZones();
@@ -199,6 +208,7 @@ function renderZones() {
                 <span class="marker high">G9</span>
             </div>
             <div class="settings">
+                <div class="delzone" data-action="${index}:delete">X</div>
                 <div class="val">Oct 
                     <a class="circle" data-action="${index}:octave:-2"></a> 
                     <a class="circle" data-action="${index}:octave:-1"></a> 
@@ -341,6 +351,12 @@ function updateValuesForZone(index) {
 
 }
 
+function createNewZone() {
+  zones.list.push(zonetemplate);
+  saveZones();
+  renderZones();
+}
+
 document.addEventListener('DOMContentLoaded', function () {
   loadZones();
   renderZones();
@@ -354,4 +370,5 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     , dispatchEventForZones
   );
+  DOM.element('#newzone').addEventListener('click', createNewZone);
 });

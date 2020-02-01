@@ -3,7 +3,7 @@ const { app, BrowserWindow } = electron;
 const settings = require("electron-settings");
 
 const minWidth = 950;
-const minHeight = 720;
+const minHeight = 730;
 
 let win
 
@@ -15,7 +15,7 @@ function createWindow () {
     width: rect?rect.width:minWidth,
     height: rect?rect.height:minHeight,
     minWidth: minWidth,
-    minHeight: minHeight,
+    minHeight: 200,
     autoHideMenuBar: true,
     icon: __dirname + '/res/zoner.png',
     webPreferences: {
