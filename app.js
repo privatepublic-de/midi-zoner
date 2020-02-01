@@ -199,6 +199,7 @@ function renderZones() {
     }
     const octavemarkers = '<span class="oct"></span><span class="oct"></span><span class="oct"></span><span class="oct"></span><span class="oct"></span><span class="oct"></span><span class="oct"></span><span class="oct"></span><span class="oct"></span><span class="oct"></span>';
     let html = `<section class="zone" id="zone${index}">
+            <div class="delzone" data-action="${index}:delete" title="Remove zone">✕</div>
             <div class="channels"><div class="ch enabled" data-action="${index}:enabled" title="Mute Zone">M</div><div class="ch solo" data-action="${index}:solo" title="Solo Zone">S</div>${channelselectors}</div>
             <div class="range" data-hover="${index}:range" data-action="${index}:range">
                 ${octavemarkers}
@@ -208,7 +209,6 @@ function renderZones() {
                 <span class="marker high">G9</span>
             </div>
             <div class="settings">
-                <div class="delzone" data-action="${index}:delete">X</div>
                 <div class="val">Oct 
                     <a class="circle" data-action="${index}:octave:-2"></a> 
                     <a class="circle" data-action="${index}:octave:-1"></a> 
@@ -236,6 +236,12 @@ function renderZones() {
     e.addEventListener('mouseleave', hoverOutHandler);
     e.addEventListener('dblclick', dblClickHandler);
   });
+}
+
+function renderMarkersForAllZones() {
+  for (let i=0;i<zones.list.length;i++) {
+    renderMarkersForZone(i);
+  }
 }
 
 function renderMarkersForZone(index, tempLo, tempHigh) {
@@ -371,5 +377,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     , dispatchEventForZones
   );
+  window.addEventListener('resize', renderMarkersForAllZones);
   DOM.element('#newzone').addEventListener('click', createNewZone);
 });
