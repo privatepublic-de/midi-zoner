@@ -1,3 +1,5 @@
+let scrollIntoView = require('scroll-into-view');
+
 const NOTENAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
 const zonetemplate = { channel: 0, enabled: true, solo: false, programchange: false, low: 0, high: 127, octave: 0, fixedvel: false, mod: true, sustain: true, cc: true, pitchbend: true };
@@ -370,7 +372,10 @@ function createNewZone() {
   zones.list.push(zonetemplate);
   saveZones();
   renderZones();
-  DOM.element(`#zone${zones.list.length-1}`).scrollIntoView();
+  scrollIntoView(DOM.element(`#zone${zones.list.length-1}`), {
+    time: 500,
+    align: { top: 1 }
+  });
 }
 
 function allMuteOff() {
