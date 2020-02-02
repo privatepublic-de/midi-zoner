@@ -161,6 +161,9 @@ body {
 .ch.solo.selected {
     background-color: rgba(0,196,0,.4);
 }
+.ch.solo.selected:hover {
+    background-color: rgba(0,196,0,.7)!important;
+}
 
 .settings {
     text-align: center;
