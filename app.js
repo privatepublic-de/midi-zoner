@@ -1,3 +1,4 @@
+const { ipcRenderer } = require('electron');
 const NOTENAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
 const zonetemplate = { channel: 0, enabled: true, solo: false, programchange: false, low: 0, high: 127, octave: 0, fixedvel: false, mod: true, sustain: true, cc: true, pitchbend: true };
@@ -409,4 +410,5 @@ document.addEventListener('DOMContentLoaded', function () {
   DOM.element('#newzone').addEventListener('click', createNewZone);
   DOM.element('#allMuteOff').addEventListener('click', allMuteOff)
   DOM.element('#allSoloOff').addEventListener('click', allSoloOff);
+  ipcRenderer.send('show', true);
 });

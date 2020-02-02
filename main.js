@@ -1,5 +1,5 @@
 const electron = require("electron");
-const { app, BrowserWindow } = electron;
+const { app, BrowserWindow, ipcMain } = electron;
 const settings = require("electron-settings");
 
 const minWidth = 950;
@@ -17,10 +17,12 @@ function createWindow () {
     minWidth: minWidth,
     minHeight: 200,
     autoHideMenuBar: true,
+    backgroundColor: '#000000',
     icon: __dirname + '/res/zoner.png',
     webPreferences: {
       nodeIntegration: true
-    }
+    },
+    show: false
   })
   win.loadFile('index.html')
   // win.webContents.openDevTools()
@@ -33,6 +35,10 @@ function createWindow () {
     win = null
   })
 }
+
+ipcMain.on("show", ()=>{
+  win.show();
+})
 
 app.on('ready', createWindow)
 
