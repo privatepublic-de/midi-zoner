@@ -10,7 +10,9 @@ const zones = {
     { channel: 3, enabled: true, solo: false, programchange: false, low: 0, high: 127, octave: 0, fixedvel: false, mod: true, sustain: true, cc: true, pitchbend: true },
     { channel: 4, enabled: true, solo: false, programchange: false, low: 0, high: 127, octave: 0, fixedvel: false, mod: true, sustain: true, cc: true, pitchbend: true }
   ],
-  solocount: 0
+  solocount: 0,
+  inChannel: 0,
+  inChannelExclusive: true
 };
 
 function saveZones() {
@@ -25,65 +27,72 @@ function loadZones() {
 }
 
 function dispatchEventForZones(event, midiOutDevice) {
-  zones.list.forEach( (zone, index) => {
-    if (zone.enabled && (zones.solocount===0 || zone.solo)) {
-      const msgtype = (event.data[0] & 0xf0);
-      switch (msgtype) {
-        case 0x80: // note off
-        case 0x90: // note on
-          let key = event.data[1];
-          let velo = event.data[2];
-          if (key >= zone.low && key <= zone.high) {
-            key = key + zone.octave * 12;
-            if (key>=0 && key<=127) {
-              if (zone.fixedvel && velo > 0) {
-                velo = 127;
+  if ((event.data[0] & 0x0f) === zones.inChannel) {
+    zones.list.forEach( (zone, index) => {
+      if (zone.enabled && (zones.solocount===0 || zone.solo)) {
+        const msgtype = (event.data[0] & 0xf0);
+        switch (msgtype) {
+          case 0x80: // note off
+          case 0x90: // note on
+            let key = event.data[1];
+            let velo = event.data[2];
+            if (key >= zone.low && key <= zone.high) {
+              key = key + zone.octave * 12;
+              if (key>=0 && key<=127) {
+                if (zone.fixedvel && velo > 0) {
+                  velo = 127;
+                }
+                const outevent = new Uint8Array(event.data);
+                outevent[0] = msgtype + zone.channel;
+                outevent[1] = key;
+                outevent[2] = velo;
+                midiOutDevice.send(outevent);
+                setTimeout(()=>{ updateKeyForZone(index, event.data[1], (msgtype!=0x80 && velo>0) )},0);
               }
+            }
+            break;
+          case 0xb0: // cc
+            if (event.data[1] == 0x40 && !zone.sustain) { // no sustain pedal
+              return;
+            } 
+            if (event.data[1] == 0x01 && !zone.mod) { // no mod wheel
+              return;
+            }
+            if (!zone.cc && event.data[1] != 0x40 && event.data[1] != 0x01) { // no ccs in general
+              return;
+            }
+            const outevent = new Uint8Array(event.data);
+            outevent[0] = msgtype + zone.channel;
+            midiOutDevice.send(outevent);
+            break;
+          case 0xe0: // pitch bend
+            if (zone.pitchbend) {
               const outevent = new Uint8Array(event.data);
               outevent[0] = msgtype + zone.channel;
-              outevent[1] = key;
-              outevent[2] = velo;
               midiOutDevice.send(outevent);
-              setTimeout(()=>{ updateKeyForZone(index, event.data[1], (msgtype!=0x80 && velo>0) )},0);
             }
-          }
-          break;
-        case 0xb0: // cc
-          if (event.data[1] == 0x40 && !zone.sustain) { // no sustain pedal
-            return;
-          } 
-          if (event.data[1] == 0x01 && !zone.mod) { // no mod wheel
-            return;
-          }
-          if (!zone.cc && event.data[1] != 0x40 && event.data[1] != 0x01) { // no ccs in general
-            return;
-          }
-          const outevent = new Uint8Array(event.data);
-          outevent[0] = msgtype + zone.channel;
-          midiOutDevice.send(outevent);
-          break;
-        case 0xe0: // pitch bend
-          if (zone.pitchbend) {
-            const outevent = new Uint8Array(event.data);
-            outevent[0] = msgtype + zone.channel;
-            midiOutDevice.send(outevent);
-          }
-          break;
-        case 0xc0: // prgm change
-          if (zone.programchange) {
-            const outevent = new Uint8Array(event.data);
-            outevent[0] = msgtype + zone.channel;
-            midiOutDevice.send(outevent);
-          }
-          break;
-        default: {
-            const outevent = new Uint8Array(event.data);
-            outevent[0] = msgtype + zone.channel;
-            midiOutDevice.send(outevent);
-          }
+            break;
+          case 0xc0: // prgm change
+            if (zone.programchange) {
+              const outevent = new Uint8Array(event.data);
+              outevent[0] = msgtype + zone.channel;
+              midiOutDevice.send(outevent);
+            }
+            break;
+          default: {
+              const outevent = new Uint8Array(event.data);
+              outevent[0] = msgtype + zone.channel;
+              midiOutDevice.send(outevent);
+            }
+        }
       }
+    });
+  } else {
+    // msg from other channel
+    if (!zones.inChannelExclusive) {
+      midiOutDevice.send(event.data);
     }
-  });
+  }
 }
 
 const catchedMarker = [ 0, 0, 0, 0];
@@ -415,5 +424,16 @@ document.addEventListener('DOMContentLoaded', function () {
   DOM.element('#newzone').addEventListener('click', createNewZone);
   DOM.element('#allMuteOff').addEventListener('click', allMuteOff)
   DOM.element('#allSoloOff').addEventListener('click', allSoloOff);
+  DOM.element('#midiInChannel').selectedIndex = zones.inChannel;
+  DOM.element('#midiInChannel').addEventListener('change', (e)=>{
+    zones.inChannel = e.target.selectedIndex;
+    saveZones();
+  });
+  DOM.element('#inChannelExclusive').checked = zones.inChannelExclusive;
+  DOM.element('#inChannelExclusive').addEventListener('change', (e)=>{
+    zones.inChannelExclusive = e.target.checked;
+    saveZones();
+    console.log(zones);
+  });
   ipcRenderer.send('show', true);
 });

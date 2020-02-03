@@ -46,6 +46,9 @@ body {
 #midisettings select {
     width: 160px;
 }
+select#midiInChannel {
+    width: auto;
+}
 
 #midisettings button,
 #midisettings a {
