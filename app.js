@@ -76,6 +76,11 @@ function dispatchEventForZones(event, midiOutDevice) {
             midiOutDevice.send(outevent);
           }
           break;
+        default: {
+            const outevent = new Uint8Array(event.data);
+            outevent[0] = msgtype + zone.channel;
+            midiOutDevice.send(outevent);
+          }
       }
     }
   });
