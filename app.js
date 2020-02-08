@@ -19,7 +19,7 @@ const zonetemplate = {
   arp_enabled: false,
   arp_direction: 0,
   arp_octaves: 0,
-  arp_division: 5, // TODO
+  arp_division: 6,
   arp_gatelength: .5,
   arp_repeat: 0,
   arp_velocity: 0, // 0 = as played
@@ -295,7 +295,7 @@ function renderZones() {
                 <div class="check fixedvel" data-action="${index}:fixedvel">Fixed Vel</div>
             </div>
             <div class="arp-settings">
-                ARPEGGIATOR:
+                <span class="arpanchor"></span>
                 <div class="check arp_hold" data-action="${index}:arp_hold">Hold</div>
                 <div class="drop-down">
                   <select class="arp_direction" data-change="${index}:arp_direction">
@@ -319,21 +319,21 @@ function renderZones() {
                 <div class="drop-down">
                   Notes
                   <select class="arp_division" data-change="${index}:arp_division">
-                    <option class="emph">1/1</option>
+                    <option>1/1 --</option>
                     <option>1/2.</option>
                     <option>1/1t</option>
-                    <option class="emph">1/2</option>
+                    <option>1/2 --</option>
                     <option>1/4.</option>
                     <option>1/2t</option>
-                    <option class="emph">1/4</option>
+                    <option>1/4 --</option>
                     <option>1/8.</option>
                     <option>1/4t</option>
-                    <option class="emph">1/8</option>
+                    <option>1/8 --</option>
                     <option>1/16.</option>
                     <option>1/8t</option>
-                    <option class="emph">1/16</option>
+                    <option>1/16 --</option>
                     <option>1/32.</option>
-                    <option class="emph">1/32</option>
+                    <option>1/32 --</option>
                   </select>
                 </div>
             </div>

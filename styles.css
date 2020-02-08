@@ -194,12 +194,22 @@ select#midiInChannel {
 }
 
 .arp-settings {
+    position: relative;
     margin-top: 1em;
-    padding-left: .5em;
-    padding-bottom: .5em;
-    border-bottom: 1px solid rgba(255,255,255,.3);
+    padding: .5em;
+    background-color: rgba(0,0,0,.15);
+    border-radius: 4px;
     display: none;
     text-align: left;
+}
+
+.arp-settings .arpanchor {
+    position: absolute;
+    width: 40px;
+    height: 14px;
+    left: 18px;
+    background-color: rgba(0,0,0,.15);
+    top: -14px;
 }
 
 .arp-enabled .arp-settings {
@@ -280,9 +290,10 @@ select#midiInChannel {
     outline: none;
 }
 
-.drop-down select option.emph {
-    padding: 5px 0;
+.drop-down select option {
+    background-color: #333;
 }
+
 
 .range {
     position: relative;
@@ -363,8 +374,13 @@ select#midiInChannel {
 .check:hover,
 .circle:hover {
     /* border-color: #ccc; */
-    background-color: rgba(255,255,255,.25);
+    background-color: rgba(255,255,255,.1);
 }
+
+.check.selected:hover {
+    background-color: rgba(0,0,0,.5);
+}
+
 .ch:hover {
     background-color: rgba(0,0,0,.25)!important;
 }
