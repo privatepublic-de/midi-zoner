@@ -11,31 +11,41 @@
 <body>
     <section id="midisettings">
             <div class="left"><a id="allMuteOff" title="Un-mute all">M</a><a id="allSoloOff" title="Un-solo all">S</a></div>
-            <label for="midiInDeviceId">MIDI In:</label>
-            <select id="midiInDeviceId" tabindex="-1"><option>(No devices)</option></select>
-            <select id="midiInChannel" tabindex="-1">
-                <option>Ch 1</option>
-                <option>Ch 2</option>
-                <option>Ch 3</option>
-                <option>Ch 4</option>
-                <option>Ch 5</option>
-                <option>Ch 6</option>
-                <option>Ch 7</option>
-                <option>Ch 8</option>
-                <option>Ch 9</option>
-                <option>Ch 10</option>
-                <option>Ch 11</option>
-                <option>Ch 12</option>
-                <option>Ch 13</option>
-                <option>Ch 14</option>
-                <option>Ch 15</option>
-                <option>Ch 16</option>
-            </select>
-            <label for="inChannelExclusive" title="Messages from other channels are ignored, not forwarded">Exclusive</label>
-            <input id="inChannelExclusive" type="checkbox" />
-            <label for="midiOutDeviceId" tabindex="-1">Out:</label>
-            <select id="midiOutDeviceId" tabindex="-1"><option>(No devices)</option></select>
-            <button id="midiPanic">Panic</button>
+            <div>
+                <label for="midiInDeviceId">MIDI In:</label>
+                <select id="midiInDeviceId" tabindex="-1"><option>(No devices)</option></select>
+                <select id="midiInChannel" tabindex="-1">
+                    <option>Ch 1</option>
+                    <option>Ch 2</option>
+                    <option>Ch 3</option>
+                    <option>Ch 4</option>
+                    <option>Ch 5</option>
+                    <option>Ch 6</option>
+                    <option>Ch 7</option>
+                    <option>Ch 8</option>
+                    <option>Ch 9</option>
+                    <option>Ch 10</option>
+                    <option>Ch 11</option>
+                    <option>Ch 12</option>
+                    <option>Ch 13</option>
+                    <option>Ch 14</option>
+                    <option>Ch 15</option>
+                    <option>Ch 16</option>
+                </select>
+                <label for="inChannelExclusive" title="Messages from other channels are ignored, not forwarded">Exclusive</label>
+                <input id="inChannelExclusive" type="checkbox" />
+                <label for="midiOutDeviceId" tabindex="-1">Out:</label>
+                <select id="midiOutDeviceId" tabindex="-1"><option>(No devices)</option></select>
+                <label for="sendClock" title="Send internal clock to MIDI-Out device">Send clock</label>
+                <input id="sendClock" type="checkbox" />
+                <button id="midiPanic">Panic</button>
+            </div>
+            <div style="margin-top: .5em">
+                Clock:
+                <select id="midiClockInDeviceId" tabindex="-1"><option>INTERNAL</option></select>
+                <label>BPM: <span id="displayBPM" style="display:inline-block;width:3em">130</span></label>
+                <input id="inputBPM" style="width:300px;vertical-align:bottom;" type="range" min="20" max="240" step="1" />
+            </div>
     </section>
     <div class="padded">
         <section id="zones"></section>

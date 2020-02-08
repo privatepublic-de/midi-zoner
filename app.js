@@ -1,19 +1,46 @@
 const { ipcRenderer } = require('electron');
+const objectAssignDeep = require(`object-assign-deep`);
+
 const NOTENAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
-const zonetemplate = { channel: 0, enabled: true, solo: false, programchange: false, low: 0, high: 127, octave: 0, fixedvel: false, mod: true, sustain: true, cc: true, pitchbend: true };
+const zonetemplate = {
+  channel: 0,
+  enabled: true,
+  solo: false,
+  programchange: false,
+  low: 0,
+  high: 127,
+  octave: 0,
+  fixedvel: false,
+  mod: true,
+  sustain: true,
+  cc: true,
+  pitchbend: true,
+  arp_enabled: false,
+  arp_direction: 0,
+  arp_octaves: 0,
+  arp_division: 5, // TODO
+  arp_gatelength: .5,
+  arp_repeat: 0,
+  arp_velocity: 0, // 0 = as played
+  arp_hold: false
+};
 
 const zones = {
   list: [
-    { channel: 0, enabled: true, solo: false, programchange: false, low: 0, high: 127, octave: 0, fixedvel: false, mod: true, sustain: true, cc: true, pitchbend: true },
-    { channel: 1, enabled: true, solo: false, programchange: false, low: 0, high: 127, octave: 0, fixedvel: false, mod: true, sustain: true, cc: true, pitchbend: true },
-    { channel: 3, enabled: true, solo: false, programchange: false, low: 0, high: 127, octave: 0, fixedvel: false, mod: true, sustain: true, cc: true, pitchbend: true },
-    { channel: 4, enabled: true, solo: false, programchange: false, low: 0, high: 127, octave: 0, fixedvel: false, mod: true, sustain: true, cc: true, pitchbend: true }
+    objectAssignDeep.noMutate(zonetemplate, {channel: 0}),
+    objectAssignDeep.noMutate(zonetemplate, {channel: 1}),
+    objectAssignDeep.noMutate(zonetemplate, {channel: 2}),
+    objectAssignDeep.noMutate(zonetemplate, {channel: 3})
   ],
   solocount: 0,
   inChannel: 0,
   inChannelExclusive: true
 };
+
+const activeNotes = { /* midiNoteNum: velocity */};
+
+const DIV_TICKS = [ 96, 72, 64, 48, 36, 32, 24, 18, 16, 12, 9, 8, 6, 4, 3 ]; // 24ppq
 
 function saveZones() {
   localStorage.setItem('zones', JSON.stringify(zones));
@@ -22,15 +49,26 @@ function saveZones() {
 function loadZones() {
   const stored = localStorage.getItem('zones');
   if (stored) {
-    Object.assign(zones, JSON.parse(stored));
+    objectAssignDeep(zones, JSON.parse(stored));
+    for (let i=0; i<zones.list.length; i++) {
+      zones.list[i] = objectAssignDeep.noMutate(zonetemplate, zones.list[i]); // ensure availability of new properties 
+    }
+    console.log(zones);
   }
 }
 
-function dispatchEventForZones(event, midiOutDevice) {
+function midiEventHandler(event, midiOutDevice) {
   if ((event.data[0] & 0x0f) === zones.inChannel) {
+    const msgtype = (event.data[0] & 0xf0);
+    const noteOn = (msgtype==0x90 && event.data[2]>0);
+    const noteOff = msgtype==0x80 || (msgtype==0x90 && event.data[2]===0);
+    if (noteOn) {
+      activeNotes[event.data[1]] = event.data[2];
+    } else if (noteOff) {
+      delete activeNotes[event.data[1]];
+    }
     zones.list.forEach( (zone, index) => {
       if (zone.enabled && (zones.solocount===0 || zone.solo)) {
-        const msgtype = (event.data[0] & 0xf0);
         switch (msgtype) {
           case 0x80: // note off
           case 0x90: // note on
@@ -47,7 +85,7 @@ function dispatchEventForZones(event, midiOutDevice) {
                 outevent[1] = key;
                 outevent[2] = velo;
                 midiOutDevice.send(outevent);
-                setTimeout(()=>{ updateKeyForZone(index, event.data[1], (msgtype!=0x80 && velo>0) )},0);
+                setTimeout(()=>{ updateKeyForZone(index, event.data[1], noteOn)},0);
               }
             }
             break;
@@ -99,7 +137,7 @@ const catchedMarker = [ 0, 0, 0, 0];
 
 function actionHandler(ev) {
   const e = ev.currentTarget;
-  const action = e.getAttribute('data-action');
+  const action = e.getAttribute('data-action') || e.getAttribute('data-change') ;
   const params = action.split(':');
   const zoneindex = params[0];
   const zone = zones.list[zoneindex];
@@ -128,7 +166,15 @@ function actionHandler(ev) {
     case 'fixedvel':
     case 'pitchbend':
     case 'programchange':
+    case 'arp_enabled':
+    case 'arp_hold':
+    case 'arp_repeat':  
       zone[params[1]] = !zone[params[1]];
+      break;
+    case 'arp_direction':
+    case 'arp_octaves':
+    case 'arp_division':
+      zone[params[1]] = e.selectedIndex;
       break;
     case 'enabled':
       zone.enabled = !zone.enabled
@@ -233,6 +279,7 @@ function renderZones() {
                 <span class="marker high">G9</span>
             </div>
             <div class="settings">
+                <div class="check arp_enabled" data-action="${index}:arp_enabled">ARP</div>
                 <div class="val">Oct 
                     <a class="circle" data-action="${index}:octave:-2"></a> 
                     <a class="circle" data-action="${index}:octave:-1"></a> 
@@ -247,6 +294,49 @@ function renderZones() {
                 <div class="check programchange" data-action="${index}:programchange">PRGM</div>
                 <div class="check fixedvel" data-action="${index}:fixedvel">Fixed Vel</div>
             </div>
+            <div class="arp-settings">
+                ARPEGGIATOR:
+                <div class="check arp_hold" data-action="${index}:arp_hold">Hold</div>
+                <div class="drop-down">
+                  <select class="arp_direction" data-change="${index}:arp_direction">
+                    <option>UP</option>
+                    <option>DOWN</option>
+                    <option>UP/DOWN</option>
+                    <option>RANDOM</option>
+                    <option>ORDER</option>
+                  </select>
+                </div>
+                <div class="drop-down">
+                  Octaves
+                  <select class="arp_octaves" data-change="${index}:arp_octaves">
+                    <option>0</option>
+                    <option>1</option>
+                    <option>2</option>
+                    <option>3</option>
+                  </select>
+                </div>
+                <div class="check arp_repeat" data-action="${index}:arp_repeat">Repeat</div>
+                <div class="drop-down">
+                  Notes
+                  <select class="arp_division" data-change="${index}:arp_division">
+                    <option class="emph">1/1</option>
+                    <option>1/2.</option>
+                    <option>1/1t</option>
+                    <option class="emph">1/2</option>
+                    <option>1/4.</option>
+                    <option>1/2t</option>
+                    <option class="emph">1/4</option>
+                    <option>1/8.</option>
+                    <option>1/4t</option>
+                    <option class="emph">1/8</option>
+                    <option>1/16.</option>
+                    <option>1/8t</option>
+                    <option class="emph">1/16</option>
+                    <option>1/32.</option>
+                    <option class="emph">1/32</option>
+                  </select>
+                </div>
+            </div>
         </section>`;
     DOM.addHTML('#zones', 'beforeend', html);
     renderMarkersForZone(index);
@@ -254,6 +344,9 @@ function renderZones() {
   });
   DOM.all('*[data-action]').forEach(e => {
     e.addEventListener('click', actionHandler);
+  });
+  DOM.all('*[data-change]').forEach(e => {
+    e.addEventListener('change', actionHandler);
   });
   DOM.all('*[data-hover]').forEach(e => {
     e.addEventListener('mousemove', hoverHandler);
@@ -348,29 +441,31 @@ function updateValuesForZone(index) {
     DOM.addClass(`#zone${index}`, 'disabled');
     DOM.element(`#zone${index}`).style.backgroundColor = '';
   }
-  if (zone.cc) {
-    DOM.addClass(`#zone${index} .check.cc`, 'selected');
-  }
-  if (zone.mod) {
-    DOM.addClass(`#zone${index} .check.mod`, 'selected');
-  }
-  if (zone.sustain) {
-    DOM.addClass(`#zone${index} .check.sustain`, 'selected');
-  }
-  if (zone.fixedvel) {
-    DOM.addClass(`#zone${index} .check.fixedvel`, 'selected');
-  }
-  if (zone.pitchbend) {
-    DOM.addClass(`#zone${index} .check.pitchbend`, 'selected');
-  }
-  if (zone.enabled) {
-    DOM.addClass(`#zone${index} .ch.enabled`, 'selected');
-  }
-  if (zone.solo) {
-    DOM.addClass(`#zone${index} .ch.solo`, 'selected');
-  }
-  if (zone.programchange) {
-    DOM.addClass(`#zone${index} .check.programchange`, 'selected');
+  [
+    "cc",
+    "mod",
+    "sustain",
+    "fixedvel",
+    "pitchbend",
+    "enabled",
+    "solo",
+    "programchange",
+    "arp_enabled",
+    "arp_hold",
+    "arp_repeat"
+  ].forEach(p => {
+    if (zone[p]) {
+      DOM.addClass(`#zone${index} .${p}`, 'selected');
+    }
+  });
+  ['arp_direction','arp_division','arp_octaves'].forEach( p=>{
+    DOM.element(`#zone${index} .${p}`).selectedIndex = zone[p];
+  });
+
+  if (zone.arp_enabled) {
+    DOM.addClass(`#zone${index}`, 'arp-enabled');
+  } else {
+    DOM.removeClass(`#zone${index}`, 'arp-enabled');
   }
   DOM.all(`#zone${index} .circle`, e => {
     const parts = e.getAttribute('data-action').split(':');
@@ -418,7 +513,7 @@ document.addEventListener('DOMContentLoaded', function () {
         console.log(message);
       }
     }
-    , dispatchEventForZones
+    , midiEventHandler
   );
   window.addEventListener('resize', renderMarkersForAllZones);
   DOM.element('#newzone').addEventListener('click', createNewZone);
@@ -435,5 +530,25 @@ document.addEventListener('DOMContentLoaded', function () {
     saveZones();
     console.log(zones);
   });
+  DOM.element('#inputBPM').addEventListener('mousemove', (e)=>{
+    DOM.element('#displayBPM').innerHTML = e.target.value;
+  });
   ipcRenderer.send('show', true);
 });
+
+/*
+var MidiClock = require('midi-clock')
+var clock = MidiClock(window.webkitAudioContext)
+
+clock.start()
+
+clock.on('position', function(position){
+
+  // log on each beat, ignore the rest
+  var microPosition = position % 24
+  if (microPosition === 0){
+    // console.log('Beat:', position / 24)
+  }
+
+});
+*/

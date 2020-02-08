@@ -6,7 +6,7 @@ body {
     font-family: Arial, Helvetica, sans-serif;
     background: #272422;
     color: #ddd;
-    margin: 0;
+    margin: 30px 0 0 0;
 }
 
 * {
@@ -25,17 +25,27 @@ body {
     padding: 4px;
 }
 
+input[type=range]::-webkit-slider-runnable-track {
+    background: #000;
+    border-radius: 6px;
+}
+
+
+select {
+    cursor: pointer;
+}
+
 #midisettings {
     position: fixed;
     z-index: 2;
     top: 0;
     left: 0;
     right: 0;
-    height: 32px;
     text-align: center;
     background-color: #333;
     padding: 5px;
     font-size: .85em;
+    color: rgba(255,255,255,.67);
     box-shadow: 0 2px 5px #272422;
 }
 
@@ -45,7 +55,14 @@ body {
 
 #midisettings select {
     width: 160px;
+    border: 1px solid rgba(0,0,0,.4);
+    border-radius: 4px;
+    background-color: rgba(0,0,0,.25);
+    color: rgba(255,255,255,.67);
+    font-size: 1em;
+    padding: 0;
 }
+
 select#midiInChannel {
     width: auto;
 }
@@ -168,10 +185,25 @@ select#midiInChannel {
     background-color: rgba(0,196,0,.7)!important;
 }
 
-.settings {
+.settings, .arp-settings {
+    width: 800px;
+    margin: 0 auto;
     text-align: center;
     color: rgba(255,255,255,.3);
     font-size: .85em;
+}
+
+.arp-settings {
+    margin-top: 1em;
+    padding-left: .5em;
+    padding-bottom: .5em;
+    border-bottom: 1px solid rgba(255,255,255,.3);
+    display: none;
+    text-align: left;
+}
+
+.arp-enabled .arp-settings {
+    display: block;
 }
 
 .delzone {
@@ -186,7 +218,7 @@ select#midiInChannel {
     background: #900;
 }
 
-.check, .val {
+.check, .val, .drop-down {
     margin-right: 1em;
 }
 
@@ -216,8 +248,7 @@ select#midiInChannel {
     content: '✔';
 }
 
-
-.val {
+.val, .drop-down {
     display: inline-block;
 }
 
@@ -234,6 +265,23 @@ select#midiInChannel {
 
 .circle.selected {
     background-color: rgba(0,0,0,.25);
+}
+
+.drop-down select {
+    border: 1px solid rgba(0,0,0,.4);
+    border-radius: 4px;
+    background-color: rgba(0,0,0,.25);
+    color: rgba(255,255,255,.3);
+    font-size: 1em;
+    padding: 0;
+}
+
+.drop-down select:focus {
+    outline: none;
+}
+
+.drop-down select option.emph {
+    padding: 5px 0;
 }
 
 .range {
