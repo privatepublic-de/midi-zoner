@@ -108,7 +108,7 @@ select#midiInChannel {
     transition: color 200ms;
 }
 #beat.on {
-    color: #f00;
+    color: #777;
     transition: color 50ms;
 }
 
