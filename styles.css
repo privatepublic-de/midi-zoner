@@ -99,6 +99,19 @@ select#midiInChannel {
     left: 23px;
 }
 
+#displayBPM {
+    display:inline-block;
+    width: 3em;
+}
+#beat {
+    color: #000;
+    transition: color 200ms;
+}
+#beat.on {
+    color: #f00;
+    transition: color 50ms;
+}
+
 .padded {
     padding: 24px 1em 0 1em;
 }

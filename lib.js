@@ -360,6 +360,12 @@ MIDI.prototype.panic = function() {
   }
 }
 
+MIDI.prototype.send = function(msg) {
+  if (this.hasOutput) {
+    this.deviceOut.send(msg);
+  }
+}
+
 function toHex(d, pad) {
   return ('0000' + Number(d).toString(16)).slice(pad ? -pad : -2).toUpperCase();
 }
