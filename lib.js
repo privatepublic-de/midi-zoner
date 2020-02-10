@@ -366,6 +366,14 @@ MIDI.prototype.send = function(msg) {
   }
 }
 
+const clockMSG = Uint8Array.from([0xf8]);
+
+MIDI.prototype.sendClock = function() {
+  if (this.hasOutput) {
+    this.deviceOut.send(clockMSG);
+  }
+}
+
 function toHex(d, pad) {
   return ('0000' + Number(d).toString(16)).slice(pad ? -pad : -2).toUpperCase();
 }

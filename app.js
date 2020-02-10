@@ -8,7 +8,6 @@ const NOTENAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', '
 const DIV_TICKS = [ 96, 72, 64, 48, 36, 32, 24, 18, 16, 12, 9, 8, 6, 4, 3 ]; // 24ppq
 
 class Live extends EventEmitter {
-  tempo = 120;
   activeNotes = [];
   arpActive = false;
 
@@ -79,12 +78,23 @@ class Zone {
   };
   activeNotes = [];
   activeNotesSorted = [];
+  canvasElement = null;
   midi = null;
 
   constructor(midi) {
     this.midi = midi;
     this.notesChanged = this.notesChanged.bind(this);
     live.on('noteschanged', this.notesChanged);
+  }
+
+  toJSON() {
+    return {
+      channel: this.channel, enabled: this.enabled, solo: this.solo, programchange: this.programchange, 
+      low: this.low, high: this.high, octave: this.octave, fixedval: this.fixedvel, mod: this.mod, sustain: this.sustain,
+      cc: this.cc, pitchbend: this.pitchbend, arp_enabled: this.arp_enabled, arp_direction: this.arp_direction, 
+      arp_octaves: this.arp_octaves, arp_division: this._arp_division, arp_gatelength: this.arp_gatelength, 
+      arp_repeat: this.arp_repeat
+    };
   }
 
   get arp_division() {
@@ -104,6 +114,30 @@ class Zone {
   notesChanged() {
     this.activeNotes = live.activeNotes.filter(note => note.number>=this.low && note.number<=this.high);
     this.activeNotesSorted = Array.from(this.activeNotes).sort((a,b)=>a.number-b.number);
+    requestAnimationFrame(this.renderNotes.bind(this));
+  }
+
+  renderNotes() {
+    if (this.canvasElement) {
+      this.canvasElement.width = this.canvasElement.parentElement.offsetWidth;
+      const ctx = this.canvasElement.getContext('2d');
+      const cwidth = this.canvasElement.width;
+      ctx.clearRect(0,0,cwidth,this.canvasElement.height);
+      
+      ctx.fillStyle = this.arp_enabled?'rgba(0,0,0,.5)':'rgba(255,255,255,.5)';
+      const list = this.arp_hold?this.arp.holdlist:this.activeNotes;
+      for (let i=0;i<list.length; i++) {
+        const number = list[i].number;
+        ctx.fillRect(cwidth * number/127, 0, 5, 16);
+      }
+      if (this.arp_enabled) {
+        ctx.fillStyle = 'rgba(255,255,255,.5)';
+        const note = this.arp.lastnote;
+        if (note) {
+          ctx.fillRect(cwidth * note.number/127, 0, 5, 16);
+        }
+      } 
+    }
   }
 
   clock(pos) {
@@ -158,9 +192,13 @@ class Zone {
           }
           if (this.arp.noteindex>-1) {
             const activeNote = repetition?this.arp.repeatnote:notes[this.arp.noteindex];
-            const note = new Note(activeNote.number, activeNote.velo);
+            let number = activeNote.number + this.octave*12;
+            while (number>127) number-=12;
+            while (number<0) number+=12;
+            const note = new Note(number, activeNote.velo);
             this.arp.lastnote = note;
             this.midi.send(Uint8Array.from([0x90+this.channel, note.number, note.velo]));
+            requestAnimationFrame(this.renderNotes.bind(this));
           }
         }
         this.arp.repeattrig = !this.arp.repeattrig;
@@ -170,6 +208,7 @@ class Zone {
         this.midi.send(Uint8Array.from([0x80+this.channel, note.number, note.velo]));
         this.arp.lastnote = null;
         this.arp.repeatnote = note;
+        requestAnimationFrame(this.renderNotes.bind(this));
       }
     }
   }
@@ -180,16 +219,30 @@ const zones = {
   list: [],
   solocount: 0,
   inChannel: 0,
-  inChannelExclusive: true
+  inChannelExclusive: true,
+  sendClock: false,
+  tempo: 120
 };
 
 function saveZones() {
-  console.log('SAVE ZONES disabled for now');
-  // localStorage.setItem('zones', JSON.stringify(zones));
+  localStorage.setItem('zones', JSON.stringify(zones));
 }
 
-function loadZones() {
-  console.log('LOAD ZONES disabled for now');
+function loadZones(midi) {
+  let stored = localStorage.getItem('zones');
+  if (stored) {
+    stored = JSON.parse(stored);
+    console.log(stored);
+    Object.assign(zones, stored);
+    zones.list = [];
+    for (let i=0;i<stored.list.length;i++) {
+      const zone = new Zone(midi);
+      Object.assign(zone, stored.list[i]);
+      zones.list.push(zone);
+    }
+  }
+
+
   // const stored = localStorage.getItem('zones');
   // if (stored) {
   //   objectAssignDeep(zones, JSON.parse(stored));
@@ -229,7 +282,6 @@ function midiEventHandler(event, midiOutDevice) {
                   outevent[1] = key;
                   outevent[2] = velo;
                   midiOutDevice.send(outevent);
-                  setTimeout(()=>{ updateKeyForZone(index, event.data[1], noteOn)},0);
                 }
               }
             }
@@ -426,6 +478,7 @@ function renderZones() {
                 <span class="current"></span>
                 <span class="marker low">C-1</span>
                 <span class="marker high">G9</span>
+                <canvas id="canvas${index}" width="100" height="16"></canvas>
             </div>
             <div class="settings">
                 <div class="check arp_enabled" data-action="${index}:arp_enabled">ARP</div>
@@ -456,16 +509,6 @@ function renderZones() {
                   </select>
                 </div>
                 <div class="drop-down">
-                  Octaves
-                  <select class="arp_octaves" data-change="${index}:arp_octaves">
-                    <option>0</option>
-                    <option>1</option>
-                    <option>2</option>
-                    <option>3</option>
-                  </select>
-                </div>
-                <div class="check arp_repeat" data-action="${index}:arp_repeat">Repeat</div>
-                <div class="drop-down">
                   Notes
                   <select class="arp_division" data-change="${index}:arp_division">
                     <option>1/1 --</option>
@@ -485,9 +528,11 @@ function renderZones() {
                     <option>1/32 --</option>
                   </select>
                 </div>
+                <div class="check arp_repeat" data-action="${index}:arp_repeat">Repeat</div>
             </div>
         </section>`;
     DOM.addHTML('#zones', 'beforeend', html);
+    zone.canvasElement = DOM.element(`#canvas${index}`);
     renderMarkersForZone(index);
     updateValuesForZone(index);
   });
@@ -549,28 +594,6 @@ function renderMarkersForZone(index, tempLo, tempHigh) {
   }
 }
 
-function updateKeyForZone(index, key, on) {
-  const transp = zones.list[index].octave*12;
-  const range = DOM.element(`#zone${index} .range`);
-  const width = range.offsetWidth;
-  const id = `key${index}_${key}`;
-  const x = key / 127.0 * width;
-  const isTransposed = (transp!=0);
-  if (isTransposed) {
-    const id2 = `key${index}_${(key+transp)}`;
-    if (on) {
-      const x2 = (key+transp) / 127.0 * width;
-      DOM.addHTML(range, 'beforeend', `<span class='key' data-key="${id2}" style='left:${x2}px'></span>`);
-    } else {
-      DOM.all(`*[data-key="${id2}"]`).forEach(e=>e.remove());
-    }  
-  }
-  if (on) {
-    DOM.addHTML(range, 'beforeend', `<span class='key ${isTransposed?'transp':''}' data-key="${id}" style='left:${x}px'></span>`);
-  } else {
-    DOM.all(`*[data-key="${id}"]`).forEach(e=>e.remove());
-  }
-}
 
 function updateValuesForAllZones() {
   for (let i=0;i<zones.list.length;i++) {
@@ -608,7 +631,7 @@ function updateValuesForZone(index) {
       DOM.addClass(`#zone${index} .${p}`, 'selected');
     }
   });
-  ['arp_direction','arp_division','arp_octaves'].forEach( p=>{
+  ['arp_direction','arp_division'].forEach( p=>{
     DOM.element(`#zone${index} .${p}`).selectedIndex = zone[p];
   });
 
@@ -646,8 +669,6 @@ function allSoloOff() {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-  loadZones();
-  renderZones();
   const midi = new MIDI(
     (midiavailable, message) => {
       if (midiavailable) {
@@ -658,7 +679,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     , midiEventHandler
   );
-
+  loadZones(midi);
+  renderZones();
   function createNewZone() {
     zones.list.push(new Zone(midi));
     saveZones();
@@ -689,15 +711,20 @@ document.addEventListener('DOMContentLoaded', function () {
   DOM.element('#inputBPM').addEventListener('change', (e)=>{
     localStorage.setItem('tempo', e.target.value);
   });
-  live.tempo = (0 + localStorage.getItem('tempo')) || live.tempo;
   DOM.element('#displayBPM').innerHTML = live.tempo;
   DOM.element('#inputBPM').value = live.tempo;
+  DOM.element('#sendClock').value = zones.sendClock;
+  DOM.element('#sendClock').addEventListener('change', (e)=>{
+    zones.sendClock = e.target.checked;
+  });
   ipcRenderer.send('show', true);
-
 
   // Clock
   const beatElement = DOM.element('#beat');
   clock.on('position', (pos)=>{
+    if (zones.sendClock) {
+      midi.sendClock();
+    }
     for (let i=0;i<zones.list.length;i++) {
       zones.list[i].clock(pos);
     }

@@ -319,6 +319,14 @@ select#midiInChannel {
     border-radius: 6px;
 }
 
+.range canvas {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 16px;
+    width: 100%;
+}
+
 .marker {
     position: absolute;
     top: 7px;
@@ -370,26 +378,13 @@ select#midiInChannel {
     text-indent: 4px;
 }
 
-.key {
-    position: absolute;
-    bottom: 0;
-    height: 10px;
-    width: 4px;
-    margin-left: -1px;
-    background-color: #fff;
-}
-
-.key.transp {
-    background-color: transparent;
-    border: 1px solid black;
-}
-
 .check:hover,
 .circle:hover {
     /* border-color: #ccc; */
     background-color: rgba(255,255,255,.1);
 }
 
+.circle.selected:hover,
 .check.selected:hover {
     background-color: rgba(0,0,0,.5);
 }

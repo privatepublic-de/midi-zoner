@@ -20,7 +20,8 @@ function createWindow () {
     backgroundColor: '#000000',
     icon: __dirname + '/res/zoner.png',
     webPreferences: {
-      nodeIntegration: true
+      nodeIntegration: true,
+      backgroundThrottling: false
     },
     show: false
   })
