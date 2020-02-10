@@ -192,7 +192,7 @@ class Zone {
           }
           if (this.arp.noteindex>-1) {
             const activeNote = repetition?this.arp.repeatnote:notes[this.arp.noteindex];
-            let number = activeNote.number + this.octave*12;
+            let number = repetition?activeNote.number:activeNote.number + this.octave*12;
             while (number>127) number-=12;
             while (number<0) number+=12;
             const note = new Note(number, activeNote.velo);
@@ -697,14 +697,14 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   DOM.element('#inputBPM').addEventListener('mousemove', (e)=>{
     DOM.element('#displayBPM').innerHTML = e.target.value;
-    live.tempo = e.target.value;
-    clock.setTempo(live.tempo);
+    zones.tempo = e.target.value;
+    clock.setTempo(zones.tempo);
   });
   DOM.element('#inputBPM').addEventListener('change', (e)=>{
     localStorage.setItem('tempo', e.target.value);
   });
-  DOM.element('#displayBPM').innerHTML = live.tempo;
-  DOM.element('#inputBPM').value = live.tempo;
+  DOM.element('#displayBPM').innerHTML = zones.tempo;
+  DOM.element('#inputBPM').value = zones.tempo;
   DOM.element('#sendClock').value = zones.sendClock;
   DOM.element('#sendClock').addEventListener('change', (e)=>{
     zones.sendClock = e.target.checked;
@@ -729,6 +729,6 @@ document.addEventListener('DOMContentLoaded', function () {
     },0);
   });
 
-  clock.setTempo(live.tempo);
+  clock.setTempo(zones.tempo);
   clock.start();
 });
