@@ -200,9 +200,6 @@ select#midiInChannel {
 }
 
 .settings, .arp-settings {
-    width: 800px;
-    margin: 0 auto;
-    text-align: center;
     color: rgba(255,255,255,.3);
     font-size: .85em;
 }
