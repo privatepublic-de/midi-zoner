@@ -241,16 +241,6 @@ function loadZones(midi) {
       zones.list.push(zone);
     }
   }
-
-
-  // const stored = localStorage.getItem('zones');
-  // if (stored) {
-  //   objectAssignDeep(zones, JSON.parse(stored));
-  //   for (let i=0; i<zones.list.length; i++) {
-  //     zones.list[i] = objectAssignDeep.noMutate(zonetemplate, zones.list[i]); // ensure availability of new properties 
-  //   }
-  //   console.log(zones);
-  // }
 }
 
 function midiEventHandler(event, midiOutDevice) {
@@ -384,7 +374,9 @@ function actionHandler(ev) {
         zone.solo = false;
         zones.solocount--;
         updateValuesForAllZones();
-      };
+      } else {
+        updateValuesForZone(zoneindex);
+      }
       break;
     case 'solo':
       if (zone.enabled) {
