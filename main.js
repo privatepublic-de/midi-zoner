@@ -1,19 +1,19 @@
-const electron = require("electron");
+const electron = require('electron');
 const { app, BrowserWindow, ipcMain } = electron;
-const settings = require("electron-settings");
+const settings = require('electron-settings');
 
 const minWidth = 950;
 const minHeight = 730;
 
-let win
+let win;
 
-function createWindow () {
+function createWindow() {
   const rect = storedWindowPos();
   win = new BrowserWindow({
-    x: rect?rect.x:undefined,
-    y: rect?rect.y:undefined,
-    width: rect?rect.width:minWidth,
-    height: rect?rect.height:minHeight,
+    x: rect ? rect.x : undefined,
+    y: rect ? rect.y : undefined,
+    width: rect ? rect.width : minWidth,
+    height: rect ? rect.height : minHeight,
     minWidth: minWidth,
     minHeight: 200,
     autoHideMenuBar: true,
@@ -24,28 +24,28 @@ function createWindow () {
       backgroundThrottling: false
     },
     show: false
-  })
-  win.loadFile('index.html')
+  });
+  win.loadFile('index.html');
   // win.webContents.openDevTools()
 
-  win.on('close', ()=> {
+  win.on('close', () => {
     saveWindowPos(win);
   });
 
   win.on('closed', () => {
-    win = null
-  })
+    win = null;
+  });
 }
 
-ipcMain.on("show", ()=>{
+ipcMain.on('show', () => {
   win.show();
-})
+});
 
-app.on('ready', createWindow)
+app.on('ready', createWindow);
 
 app.on('window-all-closed', () => {
-    app.quit()  
-})
+  app.quit();
+});
 
 function saveWindowPos(win) {
   if (!win.isMinimized()) {

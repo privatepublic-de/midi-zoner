@@ -171,7 +171,6 @@ let DOM = {
   }
 };
 
-
 /**
  * Web MIDI interface handler
  */
@@ -185,7 +184,9 @@ function MIDI(completeHandler, eventHandler) {
   self.knownOutputIds = {};
   let select_in = DOM.element('#midiInDeviceId');
   let select_out = DOM.element('#midiOutDeviceId');
-  DOM.element('#midiPanic').addEventListener('click', ()=> { self.panic() });
+  DOM.element('#midiPanic').addEventListener('click', () => {
+    self.panic();
+  });
   const optionNoDevice = '<option value="">(No devices)</option>';
   const knownPorts = {};
 
@@ -197,7 +198,7 @@ function MIDI(completeHandler, eventHandler) {
         trueReported = available;
         completeHandler(available, msg);
       }
-    } 
+    }
   };
 
   const onMIDISuccess = function(midiAccess) {
@@ -234,7 +235,12 @@ function MIDI(completeHandler, eventHandler) {
     for (let entry of self.midiAccess.inputs) {
       let input = entry[1];
       if (!knownPorts[input.id]) {
-        console.log('MIDI: Input device', input.name, input.manufacturer, input.state);
+        console.log(
+          'MIDI: Input device',
+          input.name,
+          input.manufacturer,
+          input.state
+        );
       }
       knownPorts[input.id] = true;
       if (input.id == localStorage.getItem('midiInId')) {
@@ -251,7 +257,12 @@ function MIDI(completeHandler, eventHandler) {
     for (let entry of self.midiAccess.outputs) {
       let output = entry[1];
       if (!knownPorts[output.id]) {
-        console.log('MIDI: Output device', output.name, output.manufacturer, output.state);
+        console.log(
+          'MIDI: Output device',
+          output.name,
+          output.manufacturer,
+          output.state
+        );
       }
       knownPorts[output.id] = true;
       if (output.id == localStorage.getItem('midiOutId')) {
@@ -284,16 +295,14 @@ function MIDI(completeHandler, eventHandler) {
         DOM.addHTML(select_out, 'beforeend', optionNoDevice);
         DOM.addHTML(select_in, 'beforeend', optionNoDevice);
       }
-      reportStatus(
-        false,
-        message
-      );
+      reportStatus(false, message);
     } else {
       reportStatus(true);
     }
   };
   function onMIDIMessage(event) {
-    if ((event[0] & 0xf0) != 0xf0) { // only channel messages for now
+    if ((event[0] & 0xf0) != 0xf0) {
+      // only channel messages for now
       eventHandler(event, self.deviceOut);
     }
   }
@@ -314,7 +323,7 @@ function MIDI(completeHandler, eventHandler) {
   // go ahead, start midi
   let list = [select_in, select_out];
   list.forEach(function(el) {
-    el.addEventListener('change', ()=>{   
+    el.addEventListener('change', () => {
       selectDevices();
       localStorage.setItem('midiInId', self.deviceIdIn);
       localStorage.setItem('midiOutId', self.deviceIdOut);
@@ -345,7 +354,7 @@ MIDI.prototype.hasInput = function() {
 
 MIDI.prototype.panic = function() {
   if (this.hasOutput()) {
-    for (var i=0; i<16; i++) {
+    for (var i = 0; i < 16; i++) {
       const msg = new Uint8Array(3);
       msg[0] = 0xb0 + i;
       msg[2] = 0;
@@ -358,13 +367,13 @@ MIDI.prototype.panic = function() {
     }
     console.log('MIDI: Panic. Sent CC 120, 122, 123 to all channels');
   }
-}
+};
 
 MIDI.prototype.send = function(msg) {
   if (this.hasOutput()) {
     this.deviceOut.send(msg);
   }
-}
+};
 
 const clockMSG = Uint8Array.from([0xf8]);
 
@@ -372,7 +381,7 @@ MIDI.prototype.sendClock = function() {
   if (this.hasOutput()) {
     this.deviceOut.send(clockMSG);
   }
-}
+};
 
 function toHex(d, pad) {
   return ('0000' + Number(d).toString(16)).slice(pad ? -pad : -2).toUpperCase();
@@ -383,27 +392,27 @@ function toBinary(d, pad) {
     .toUpperCase();
 }
 
-function hslToRgb(h, s, l){
-    var r, g, b;
+function hslToRgb(h, s, l) {
+  var r, g, b;
 
-    if(s == 0){
-        r = g = b = l; // achromatic
-    }else{
-        var hue2rgb = function hue2rgb(p, q, t){
-            if(t < 0) t += 1;
-            if(t > 1) t -= 1;
-            if(t < 1/6) return p + (q - p) * 6 * t;
-            if(t < 1/2) return q;
-            if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
-            return p;
-        }
+  if (s == 0) {
+    r = g = b = l; // achromatic
+  } else {
+    var hue2rgb = function hue2rgb(p, q, t) {
+      if (t < 0) t += 1;
+      if (t > 1) t -= 1;
+      if (t < 1 / 6) return p + (q - p) * 6 * t;
+      if (t < 1 / 2) return q;
+      if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+      return p;
+    };
 
-        var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-        var p = 2 * l - q;
-        r = hue2rgb(p, q, h + 1/3);
-        g = hue2rgb(p, q, h);
-        b = hue2rgb(p, q, h - 1/3);
-    }
+    var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    var p = 2 * l - q;
+    r = hue2rgb(p, q, h + 1 / 3);
+    g = hue2rgb(p, q, h);
+    b = hue2rgb(p, q, h - 1 / 3);
+  }
 
-    return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+  return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
 }
