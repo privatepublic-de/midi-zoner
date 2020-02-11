@@ -2,7 +2,7 @@ const { ipcRenderer } = require('electron');
 // const objectAssignDeep = require(`object-assign-deep`);
 const MidiClock = require('midi-clock');
 const EventEmitter = require('events');
-const clock = MidiClock(window.webkitAudioContext);
+
 
 const NOTENAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const DIV_TICKS = [ 96, 72, 64, 48, 36, 32, 24, 18, 16, 12, 9, 8, 6, 4, 3 ]; // 24ppq
@@ -671,6 +671,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     , midiEventHandler
   );
+  const clock = MidiClock(window.webkitAudioContext);
   loadZones(midi);
   renderZones();
   function createNewZone() {
