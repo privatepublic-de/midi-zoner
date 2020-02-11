@@ -3,7 +3,6 @@ const { ipcRenderer } = require('electron');
 const MidiClock = require('midi-clock');
 const EventEmitter = require('events');
 
-
 const NOTENAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const DIV_TICKS = [ 96, 72, 64, 48, 36, 32, 24, 18, 16, 12, 9, 8, 6, 4, 3 ]; // 24ppq
 
@@ -74,7 +73,8 @@ class Zone {
     inc: 1,
     lastnote: null,
     repeattrig: false,
-    repeatnote: null
+    repeatnote: null,
+    beat: false
   };
   activeNotes = [];
   activeNotesSorted = [];
@@ -123,7 +123,17 @@ class Zone {
       const ctx = this.canvasElement.getContext('2d');
       const cwidth = this.canvasElement.width;
       ctx.clearRect(0,0,cwidth,this.canvasElement.height);
-      
+
+      if (this.arp_enabled) {
+        if (this.arp.beat) {
+          ctx.fillStyle = 'rgba(0,0,0,.33)';
+          ctx.beginPath();
+          ctx.arc(12, 7, 6, 0, Math.PI*2, true); 
+          ctx.closePath();
+          ctx.fill();
+        }
+      }
+
       ctx.fillStyle = this.arp_enabled?'rgba(0,0,0,.5)':'rgba(255,255,255,.5)';
       const list = this.arp_hold?this.arp.holdlist:this.activeNotes;
       for (let i=0;i<list.length; i++) {
@@ -140,10 +150,12 @@ class Zone {
     }
   }
 
+  
   clock(pos) {
-    if (this.arp_enabled) {
-      const remainder = pos % this.arp_ticks;
-      if (remainder===0) {
+    const remainder = pos % this.arp_ticks;
+    if (remainder===0) {
+      if (this.arp_enabled) {
+        this.arp.beat = true;
         let notes;
         const activelist = this.arp_direction>2?this.activeNotes:this.activeNotesSorted;;
         if (this.arp_hold) {
@@ -198,21 +210,23 @@ class Zone {
             const note = new Note(number, activeNote.velo);
             this.arp.lastnote = note;
             this.midi.send(Uint8Array.from([0x90+this.channel, note.number, note.velo]));
-            requestAnimationFrame(this.renderNotes.bind(this));
           }
         }
         this.arp.repeattrig = !this.arp.repeattrig;
-      } else if (this.arp.lastnote && remainder>this.arp_ticks*this.arp_gatelength) {
+        requestAnimationFrame(this.renderNotes.bind(this));
+      }
+    } else if (remainder>this.arp_ticks*this.arp_gatelength) {
+      this.arp.beat = false;
+      if (this.arp.lastnote){
         // send note off
         const note = this.arp.lastnote;
         this.midi.send(Uint8Array.from([0x80+this.channel, note.number, note.velo]));
         this.arp.lastnote = null;
         this.arp.repeatnote = note;
-        requestAnimationFrame(this.renderNotes.bind(this));
       }
+      requestAnimationFrame(this.renderNotes.bind(this));
     }
   }
-
 }
 
 const zones = {
@@ -713,7 +727,6 @@ document.addEventListener('DOMContentLoaded', function () {
   ipcRenderer.send('show', true);
 
   // Clock
-  const beatElement = DOM.element('#beat');
   clock.on('position', (pos)=>{
     if (zones.sendClock) {
       midi.sendClock();
@@ -721,13 +734,6 @@ document.addEventListener('DOMContentLoaded', function () {
     for (let i=0;i<zones.list.length;i++) {
       zones.list[i].clock(pos);
     }
-    setTimeout(()=>{
-      if (pos%24<12) {
-        DOM.addClass(beatElement, 'on');
-      } else {
-        DOM.removeClass(beatElement, 'on');
-      }
-    },0);
   });
 
   clock.setTempo(zones.tempo);
