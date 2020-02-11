@@ -164,12 +164,12 @@ class Zone {
       const cwidth = this.canvasElement.width;
       ctx.clearRect(0, 0, cwidth, this.canvasElement.height);
 
-      if (this.arp_enabled) {
-        if (this.arp.beat) {
-          ctx.fillStyle = 'rgba(0,0,0,.33)';
-          ctx.fillRect(0, 14, cwidth, 2);
-        }
-      }
+      // if (this.arp_enabled) {
+      //   if (this.arp.beat) {
+      //     ctx.fillStyle = 'rgba(0,0,0,.33)';
+      //     ctx.fillRect(0, 14, cwidth, 2);
+      //   }
+      // }
 
       ctx.fillStyle = this.arp_enabled
         ? 'rgba(0,0,0,.5)'
