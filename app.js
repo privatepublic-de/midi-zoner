@@ -143,6 +143,17 @@ class Zone {
     this.activeNotesSorted = Array.from(this.activeNotes).sort(
       (a, b) => a.number - b.number
     );
+    if (this.activeNotes.length > 0) {
+      if (
+        this.arp.holdcount == 0 ||
+        this.activeNotes.length >= this.arp.holdlist.length
+      ) {
+        this.arp.holdlist = Array.from(
+          this.arp_direction > 2 ? this.activeNotes : this.activeNotesSorted
+        );
+      }
+    }
+    this.arp.holdcount = this.activeNotes.length;
     requestAnimationFrame(this.renderNotes.bind(this));
   }
 
@@ -156,11 +167,7 @@ class Zone {
       if (this.arp_enabled) {
         if (this.arp.beat) {
           ctx.fillStyle = 'rgba(0,0,0,.33)';
-          ctx.fillRect(0,14,cwidth,2);
-          /*ctx.beginPath();
-          ctx.arc(12, 7, 6, 0, Math.PI * 2, true);
-          ctx.closePath();
-          ctx.fill();*/
+          ctx.fillRect(0, 14, cwidth, 2);
         }
       }
 
@@ -191,21 +198,14 @@ class Zone {
         const activelist =
           this.arp_direction > 2 ? this.activeNotes : this.activeNotesSorted;
         if (this.arp_hold) {
-          if (this.activeNotes.length > 0) {
-            if (this.activeNotes.length >= this.arp.holdcount) {
-              this.arp.holdlist = Array.from(activelist);
-              this.arp.holdcount = this.arp.holdlist.length;
-            }
-          } else {
-            this.arp.holdcount = 0;
-          }
           notes = this.arp.holdlist;
         } else {
-          notes = activelist;
+          notes = Array.from(activelist);
         }
         if (
           notes.length > 0 &&
-          this.enabled && (zones.solocount === 0 || this.solo)
+          this.enabled &&
+          (zones.solocount === 0 || this.solo)
         ) {
           // send next note
           const repetition = this.arp_repeat && this.arp.repeattrig;
@@ -237,7 +237,7 @@ class Zone {
                 break;
             }
           }
-          if (this.arp.noteindex > -1) {
+          if (this.arp.noteindex > -1 && this.arp.noteindex < notes.length) {
             const activeNote = repetition
               ? this.arp.repeatnote
               : notes[this.arp.noteindex];
@@ -566,21 +566,21 @@ function renderZones() {
                 <div class="drop-down">
                   Notes
                   <select class="arp_division" data-change="${index}:arp_division">
-                    <option>1/1 --</option>
+                    <option>1/1 Whole</option>
                     <option>1/2.</option>
                     <option>1/1t</option>
-                    <option>1/2 --</option>
+                    <option>1/2 Half</option>
                     <option>1/4.</option>
                     <option>1/2t</option>
-                    <option>1/4 --</option>
+                    <option>1/4 Quarter</option>
                     <option>1/8.</option>
                     <option>1/4t</option>
-                    <option>1/8 --</option>
+                    <option>1/8 Eighth</option>
                     <option>1/16.</option>
                     <option>1/8t</option>
-                    <option>1/16 --</option>
+                    <option>1/16 Sixteenth</option>
                     <option>1/32.</option>
-                    <option>1/32 --</option>
+                    <option>1/32 Thirtysecond</option>
                   </select>
                 </div>
                 <div class="check arp_repeat" data-action="${index}:arp_repeat">Repeat</div>
@@ -756,7 +756,6 @@ document.addEventListener('DOMContentLoaded', function() {
   DOM.element('#inChannelExclusive').addEventListener('change', e => {
     zones.inChannelExclusive = e.target.checked;
     saveZones();
-    console.log(zones);
   });
   DOM.element('#inputBPM').addEventListener('mousemove', e => {
     DOM.element('#displayBPM').innerHTML = e.target.value;
@@ -765,6 +764,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   DOM.element('#inputBPM').addEventListener('change', e => {
     localStorage.setItem('tempo', e.target.value);
+    saveZones();
   });
   DOM.element('#displayBPM').innerHTML = zones.tempo;
   DOM.element('#inputBPM').value = zones.tempo;
