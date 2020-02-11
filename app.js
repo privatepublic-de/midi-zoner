@@ -156,10 +156,11 @@ class Zone {
       if (this.arp_enabled) {
         if (this.arp.beat) {
           ctx.fillStyle = 'rgba(0,0,0,.33)';
-          ctx.beginPath();
+          ctx.fillRect(0,14,cwidth,2);
+          /*ctx.beginPath();
           ctx.arc(12, 7, 6, 0, Math.PI * 2, true);
           ctx.closePath();
-          ctx.fill();
+          ctx.fill();*/
         }
       }
 
