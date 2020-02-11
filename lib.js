@@ -344,7 +344,7 @@ MIDI.prototype.hasInput = function() {
 };
 
 MIDI.prototype.panic = function() {
-  if (this.hasOutput) {
+  if (this.hasOutput()) {
     for (var i=0; i<16; i++) {
       const msg = new Uint8Array(3);
       msg[0] = 0xb0 + i;
@@ -361,7 +361,7 @@ MIDI.prototype.panic = function() {
 }
 
 MIDI.prototype.send = function(msg) {
-  if (this.hasOutput) {
+  if (this.hasOutput()) {
     this.deviceOut.send(msg);
   }
 }
@@ -369,7 +369,7 @@ MIDI.prototype.send = function(msg) {
 const clockMSG = Uint8Array.from([0xf8]);
 
 MIDI.prototype.sendClock = function() {
-  if (this.hasOutput) {
+  if (this.hasOutput()) {
     this.deviceOut.send(clockMSG);
   }
 }
