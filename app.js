@@ -92,6 +92,7 @@ class Zone {
   activeNotesSorted = [];
   canvasElement = null;
   midi = null;
+  dom = {};
 
   constructor(midi) {
     this.midi = midi;
@@ -163,14 +164,6 @@ class Zone {
       const ctx = this.canvasElement.getContext('2d');
       const cwidth = this.canvasElement.width;
       ctx.clearRect(0, 0, cwidth, this.canvasElement.height);
-
-      // if (this.arp_enabled) {
-      //   if (this.arp.beat) {
-      //     ctx.fillStyle = 'rgba(0,0,0,.33)';
-      //     ctx.fillRect(0, 14, cwidth, 2);
-      //   }
-      // }
-
       ctx.fillStyle = this.arp_enabled
         ? 'rgba(0,0,0,.5)'
         : 'rgba(255,255,255,.5)';
@@ -588,6 +581,10 @@ function renderZones() {
         </section>`;
     DOM.addHTML('#zones', 'beforeend', html);
     zone.canvasElement = DOM.element(`#canvas${index}`);
+    zone.dom.markerlow = DOM.element(`#zone${index} .marker.low`);
+    zone.dom.markerhigh = DOM.element(`#zone${index} .marker.high`);
+    zone.dom.join = DOM.element(`#zone${index} .join`);
+    zone.dom.current = DOM.element(`#zone${index} .current`);
     renderMarkersForZone(index);
     updateValuesForZone(index);
   });
@@ -611,26 +608,24 @@ function renderMarkersForAllZones() {
 }
 
 function renderMarkersForZone(index, tempLo, tempHigh) {
-  const low = tempLo != undefined ? tempLo : zones.list[index].low;
-  const high = tempHigh != undefined ? tempHigh : zones.list[index].high;
-  let xlow = low / 127.0;
-  let xhi = high / 127.0;
-  let xclow = zones.list[index].low / 127.0;
-  let xchi = zones.list[index].high / 127.0;
-  const markerlow = DOM.element(`#zone${index} .marker.low`);
-  const markerhigh = DOM.element(`#zone${index} .marker.high`);
-  const join = DOM.element(`#zone${index} .join`);
-  const current = DOM.element(`#zone${index} .current`);
+  const zone = zones.list[index];
+  const low = tempLo != undefined ? tempLo : zone.low;
+  const high = tempHigh != undefined ? tempHigh : zone.high;
+  const xlow = low / 127.0;
+  const xhi = high / 127.0;
+  const xclow = zone.low / 127.0;
+  const xchi = zone.high / 127.0;
   const width = DOM.element(`#zone${index} .range`).offsetWidth;
   const xpad = (0.75 / 127.0) * width;
-  markerlow.style.left = `${xlow * width}px`;
-  markerhigh.style.right = `${width - xhi * width - xpad}px`;
-  markerlow.innerHTML = NOTENAMES[low % 12] + (parseInt(low / 12) - 1);
-  markerhigh.innerHTML = NOTENAMES[high % 12] + (parseInt(high / 12) - 1);
-  join.style.left = `${xlow * width}px`;
-  join.style.right = `${width - xhi * width - xpad}px`;
-  current.style.left = `${xclow * width}px`;
-  current.style.right = `${width - xchi * width - xpad}px`;
+  zone.dom.markerlow.style.left = `${xlow * width}px`;
+  zone.dom.markerhigh.style.right = `${width - xhi * width - xpad}px`;
+  zone.dom.markerlow.innerHTML = NOTENAMES[low % 12] + (parseInt(low / 12) - 1);
+  zone.dom.markerhigh.innerHTML =
+    NOTENAMES[high % 12] + (parseInt(high / 12) - 1);
+  zone.dom.join.style.left = `${xlow * width}px`;
+  zone.dom.join.style.right = `${width - xhi * width - xpad}px`;
+  zone.dom.current.style.left = `${xclow * width}px`;
+  zone.dom.current.style.right = `${width - xchi * width - xpad}px`;
   let ocount = 0;
   DOM.all(`#zone${index} .range .oct`, e => {
     ocount++;
@@ -638,14 +633,14 @@ function renderMarkersForZone(index, tempLo, tempHigh) {
     e.innerHTML = ocount - 1;
   });
   if (tempLo != undefined) {
-    DOM.addClass(markerlow, 'hover');
+    DOM.addClass(zone.dom.markerlow, 'hover');
   } else {
-    DOM.removeClass(markerlow, 'hover');
+    DOM.removeClass(zone.dom.markerlow, 'hover');
   }
   if (tempHigh != undefined) {
-    DOM.addClass(markerhigh, 'hover');
+    DOM.addClass(zone.dom.markerhigh, 'hover');
   } else {
-    DOM.removeClass(markerhigh, 'hover');
+    DOM.removeClass(zone.dom.markerhigh, 'hover');
   }
 }
 
@@ -743,7 +738,9 @@ document.addEventListener('DOMContentLoaded', function() {
     DOM.element('#tools').scrollIntoView();
   }
 
-  window.addEventListener('resize', renderMarkersForAllZones);
+  window.addEventListener('resize', () => {
+    requestAnimationFrame(renderMarkersForAllZones);
+  });
   DOM.element('#newzone').addEventListener('click', createNewZone);
   DOM.element('#allMuteOff').addEventListener('click', allMuteOff);
   DOM.element('#allSoloOff').addEventListener('click', allSoloOff);
@@ -768,7 +765,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   DOM.element('#displayBPM').innerHTML = zones.tempo;
   DOM.element('#inputBPM').value = zones.tempo;
-  DOM.element('#sendClock').value = zones.sendClock;
+  DOM.element('#sendClock').checked = zones.sendClock;
   DOM.element('#sendClock').addEventListener('change', e => {
     zones.sendClock = e.target.checked;
   });
