@@ -721,13 +721,23 @@ function allSoloOff() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  const midi = new MIDI((midiavailable, message) => {
-    if (midiavailable) {
-      console.log('MIDI available');
-    } else {
-      console.log(message);
+  let tickposition = 0;
+  const midi = new MIDI(
+    (midiavailable, message) => {
+      if (midiavailable) {
+        console.log('MIDI available');
+      } else {
+        console.log(message);
+      }
+    },
+    midiEventHandler,
+    e => {
+      for (let i = 0; i < zones.list.length; i++) {
+        zones.list[i].clock(tickposition);
+      }
+      tickposition++;
     }
-  }, midiEventHandler);
+  );
   const clock = MidiClock(window.webkitAudioContext);
   loadZones(midi);
   renderZones();
@@ -773,11 +783,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Clock
   clock.on('position', pos => {
-    if (zones.sendClock) {
-      midi.sendClock();
-    }
-    for (let i = 0; i < zones.list.length; i++) {
-      zones.list[i].clock(pos);
+    if (!midi.deviceInClock) {
+      if (zones.sendClock) {
+        midi.sendClock();
+      }
+      for (let i = 0; i < zones.list.length; i++) {
+        zones.list[i].clock(pos);
+      }
     }
   });
 
