@@ -183,6 +183,7 @@ function MIDI(completeHandler, eventHandler, clockHandler) {
   self.deviceIdOut = null;
   self.knownInputIds = {};
   self.knownOutputIds = {};
+  self.songposition = 0;
   let select_in = DOM.element('#midiInDeviceId');
   let select_in_clock = DOM.element('#midiClockInDeviceId');
   let select_out = DOM.element('#midiOutDeviceId');
@@ -319,7 +320,12 @@ function MIDI(completeHandler, eventHandler, clockHandler) {
   }
   function onMIDIClockMessage(event) {
     if (clockHandler && event.data[0] === 0xf8) {
-      clockHandler(event);
+      clockHandler(self.songposition);
+      self.songposition++;
+    }
+    if (event.data[0] === 0xfa) {
+      // start
+      self.songposition = 0;
     }
   }
   function selectDevices() {
