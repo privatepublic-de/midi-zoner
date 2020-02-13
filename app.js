@@ -721,7 +721,6 @@ function allSoloOff() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  let tickposition = 0;
   const midi = new MIDI(
     (midiavailable, message) => {
       if (midiavailable) {
@@ -731,11 +730,10 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     },
     midiEventHandler,
-    e => {
+    pos => {
       for (let i = 0; i < zones.list.length; i++) {
-        zones.list[i].clock(tickposition);
+        zones.list[i].clock(pos);
       }
-      tickposition++;
     }
   );
   const clock = MidiClock(window.webkitAudioContext);
@@ -764,20 +762,39 @@ document.addEventListener('DOMContentLoaded', function() {
     zones.inChannelExclusive = e.target.checked;
     saveZones();
   });
-  DOM.element('#inputBPM').addEventListener('mousemove', e => {
-    DOM.element('#displayBPM').innerHTML = e.target.value;
-    zones.tempo = e.target.value;
-    clock.setTempo(zones.tempo);
+
+  const displayBPM = DOM.element('#displayBPM');
+  displayBPM.innerHTML = zones.tempo;
+  let bpmStartX = 0;
+  let bpmStartTempo = 0;
+  let dragBPM = false;
+  displayBPM.addEventListener('mousedown', e => {
+    bpmStartX = e.screenX;
+    bpmStartTempo = parseInt(zones.tempo);
+    dragBPM = true;
+    DOM.addClass(document.body, 'dragging');
   });
-  DOM.element('#inputBPM').addEventListener('change', e => {
-    localStorage.setItem('tempo', e.target.value);
-    saveZones();
+  document.body.addEventListener('mousemove', e => {
+    if (dragBPM) {
+      let dragTempo = bpmStartTempo + Math.round((e.screenX - bpmStartX) / 2);
+      dragTempo = Math.min(Math.max(20, dragTempo), 240);
+      zones.tempo = dragTempo;
+      clock.setTempo(zones.tempo);
+      displayBPM.innerHTML = zones.tempo;
+    }
   });
-  DOM.element('#displayBPM').innerHTML = zones.tempo;
-  DOM.element('#inputBPM').value = zones.tempo;
+  document.body.addEventListener('mouseup', e => {
+    if (dragBPM) {
+      DOM.removeClass(document.body, 'dragging');
+      dragBPM = false;
+      saveZones();
+    }
+  });
+
   DOM.element('#sendClock').checked = zones.sendClock;
   DOM.element('#sendClock').addEventListener('change', e => {
     zones.sendClock = e.target.checked;
+    saveZones();
   });
   ipcRenderer.send('show', true);
 
