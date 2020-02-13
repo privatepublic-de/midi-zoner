@@ -395,3 +395,22 @@ select#midiInChannel {
 .ch:hover {
   background-color: rgba(0, 0, 0, 0.25) !important;
 }
+
+input[type='checkbox'] {
+  display: none;
+}
+input[type='checkbox'] + label::before {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.9);
+  background-color: #444;
+  content: '';
+  margin-right: 5px;
+  vertical-align: middle;
+}
+input[type='checkbox']:checked + label::before {
+  box-shadow: inset 0px 0px 0px 3px #333;
+  background-color: #888;
+}
