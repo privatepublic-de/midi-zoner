@@ -95,6 +95,7 @@ select#midiInChannel {
 #midisettings .left {
   position: absolute;
   left: 23px;
+  bottom: 8px;
 }
 
 #displayBPM {
