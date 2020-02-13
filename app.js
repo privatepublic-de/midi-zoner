@@ -141,6 +141,18 @@ class Zone {
     this.activeNotes = live.activeNotes.filter(
       note => note.number >= this.low && note.number <= this.high
     );
+    if (this.arp_enabled && this.arp_octaves > 0) {
+      const count = this.activeNotes.length;
+      for (let i = 0; i < this.arp_octaves; i++) {
+        // add arp octaves
+        for (let j = 0; j < count; j++) {
+          const note = this.activeNotes[j];
+          this.activeNotes.push(
+            new Note(note.number + 12 * (i + 1), note.velo)
+          );
+        }
+      }
+    }
     this.activeNotesSorted = Array.from(this.activeNotes).sort(
       (a, b) => a.number - b.number
     );
@@ -580,6 +592,15 @@ function renderZones() {
                     <option>1/32 Thirtysecond</option>
                   </select>
                 </div>
+                <div class="drop-down">
+                  Oct
+                  <select class="arp_octaves" data-change="${index}:arp_octaves">
+                    <option>1</option>
+                    <option>2</option>
+                    <option>3</option>
+                    <option>4</option>
+                  </select>
+                </div>
                 <div class="check arp_repeat" data-action="${index}:arp_repeat">Repeat</div>
             </div>
         </section>`;
@@ -688,7 +709,7 @@ function updateValuesForZone(index) {
       DOM.addClass(`#zone${index} .${p}`, 'selected');
     }
   });
-  ['arp_direction', 'arp_division'].forEach(p => {
+  ['arp_direction', 'arp_division', 'arp_octaves'].forEach(p => {
     DOM.element(`#zone${index} .${p}`).selectedIndex = zone[p];
   });
 
