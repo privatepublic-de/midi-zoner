@@ -399,6 +399,9 @@ select#midiInChannel {
 input[type='checkbox'] {
   display: none;
 }
+input[type='checkbox'] + label {
+  cursor: pointer;
+}
 input[type='checkbox'] + label::before {
   display: inline-block;
   width: 16px;
