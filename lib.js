@@ -404,10 +404,24 @@ MIDI.prototype.send = function(msg) {
 };
 
 const clockMSG = Uint8Array.from([0xf8]);
+const startMSG = Uint8Array.from([0xfa]);
+const stopMSG = Uint8Array.from([0xfc]);
 
 MIDI.prototype.sendClock = function() {
   if (this.hasOutput()) {
     this.deviceOut.send(clockMSG);
+  }
+};
+
+MIDI.prototype.sendStart = function() {
+  if (this.hasOutput()) {
+    this.deviceOut.send(startMSG);
+  }
+};
+
+MIDI.prototype.sendStop = function() {
+  if (this.hasOutput()) {
+    this.deviceOut.send(stopMSG);
   }
 };
 

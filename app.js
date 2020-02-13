@@ -109,7 +109,7 @@ class Zone {
       low: this.low,
       high: this.high,
       octave: this.octave,
-      fixedval: this.fixedvel,
+      fixedvel: this.fixedvel,
       mod: this.mod,
       sustain: this.sustain,
       cc: this.cc,
@@ -242,7 +242,11 @@ class Zone {
             const note = new Note(number, activeNote.velo);
             this.arp.lastnote = note;
             this.midi.send(
-              Uint8Array.from([0x90 + this.channel, note.number, note.velo])
+              Uint8Array.from([
+                0x90 + this.channel,
+                note.number,
+                this.fixedvel ? 127 : note.velo
+              ])
             );
           }
         }
@@ -721,10 +725,17 @@ function allSoloOff() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+  const clock = MidiClock(window.webkitAudioContext);
   const midi = new MIDI(
     (midiavailable, message) => {
       if (midiavailable) {
         console.log('MIDI available');
+        if (zones.sendClock) {
+          clock.start();
+          if (!midi.deviceInClock) {
+            midi.sendStart();
+          }
+        }
       } else {
         console.log(message);
       }
@@ -736,8 +747,21 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
   );
-  const clock = MidiClock(window.webkitAudioContext);
   loadZones(midi);
+  // Clock
+  clock.on('position', pos => {
+    if (!midi.deviceInClock) {
+      if (zones.sendClock) {
+        midi.sendClock();
+      }
+      for (let i = 0; i < zones.list.length; i++) {
+        zones.list[i].clock(pos);
+      }
+    }
+  });
+
+  clock.setTempo(zones.tempo);
+
   renderZones();
   function createNewZone() {
     zones.list.push(new Zone(midi));
@@ -794,22 +818,17 @@ document.addEventListener('DOMContentLoaded', function() {
   DOM.element('#sendClock').checked = zones.sendClock;
   DOM.element('#sendClock').addEventListener('change', e => {
     zones.sendClock = e.target.checked;
+    if (zones.sendClock) {
+      clock.start();
+      if (!midi.deviceInClock) {
+        midi.sendStart();
+      }
+    } else {
+      if (!midi.deviceInClock) {
+        midi.sendStop();
+      }
+    }
     saveZones();
   });
   ipcRenderer.send('show', true);
-
-  // Clock
-  clock.on('position', pos => {
-    if (!midi.deviceInClock) {
-      if (zones.sendClock) {
-        midi.sendClock();
-      }
-      for (let i = 0; i < zones.list.length; i++) {
-        zones.list[i].clock(pos);
-      }
-    }
-  });
-
-  clock.setTempo(zones.tempo);
-  clock.start();
 });
