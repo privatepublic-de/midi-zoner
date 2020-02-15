@@ -290,6 +290,99 @@ const zones = {
   tempo: 120
 };
 
+class DragZone {
+  index = null;
+  srcdim = null;
+  moveHandler = null;
+  dropHandler = null;
+
+  constructor(index, event) {
+    this.zoneElement = DOM.element(`#zone${index}`);
+    this.dragElement = DOM.element('#draggedzone');
+    this.index = index;
+    this.startY = 0;
+    this.srcdim = {
+      top: this.zoneElement.offsetTop,
+      left: this.zoneElement.offsetLeft,
+      width: this.zoneElement.offsetWidth,
+      height: this.zoneElement.offsetHeight
+    };
+    this.moveHandler = this.move.bind(this);
+    this.dropHandler = this.drop.bind(this);
+    this.startY = event.screenY;
+    this.dragElement.style.top = `${this.srcdim.top}px`;
+    this.dragElement.style.left = `${this.srcdim.left}px`;
+    this.dragElement.style.width = `${this.srcdim.width}px`;
+    this.dragElement.style.height = `${this.srcdim.height}px`;
+    this.zoneElement.style.opacity = 0.33;
+    this.dragElement.style.backgroundColor = this.zoneElement.style.backgroundColor;
+    DOM.show(this.dragElement);
+    document.body.addEventListener('mousemove', this.moveHandler, true);
+    document.body.addEventListener('mouseup', this.dropHandler, true);
+  }
+
+  move(ev) {
+    this.findDropElement(ev.screenY);
+  }
+
+  drop(ev) {
+    const target = this.findDropElement(ev.screenY);
+    console.log('Drop', this.index, 'new index', target.index);
+    document.body.removeEventListener('mousemove', this.moveHandler, true);
+    document.body.removeEventListener('mouseup', this.dropHandler, true);
+    DOM.removeClass('.zone', 'dropbefore');
+    DOM.removeClass('.zone', 'dropafter');
+    DOM.hide(this.dragElement);
+    this.zoneElement.style.opacity = 1;
+    const me = zones.list.splice(this.index, 1);
+    if (target.index > this.index) {
+      target.index--;
+    }
+    zones.list.splice(target.index, 0, me[0]);
+    saveZones();
+    renderZones();
+  }
+
+  findDropElement(screenY) {
+    const y = this.srcdim.top + (screenY - this.startY);
+    this.dragElement.style.top = `${y}px`;
+    let found = -1;
+    let z;
+
+    let nearestTop = window.innerHeight;
+    let nearestTopIndex;
+
+    for (let i = 0; i < zones.list.length; i++) {
+      if (i === this.index) {
+        continue;
+      }
+      z = DOM.element(`#zone${i}`);
+      if (Math.abs(y - z.offsetTop) < nearestTop) {
+        nearestTop = Math.abs(y - z.offsetTop);
+        nearestTopIndex = i;
+      }
+    }
+
+    if (
+      nearestTopIndex === zones.list.length - 1 &&
+      y > z.offsetTop + z.offsetHeight
+    ) {
+      DOM.removeClass('.zone', 'dropbefore');
+      DOM.addClass(`#zone${nearestTopIndex}`, 'dropafter');
+      found = nearestTopIndex + 1;
+    } else {
+      DOM.removeClass('.zone', 'dropbefore');
+      DOM.removeClass('.zone', 'dropafter');
+      if (nearestTopIndex != this.index + 1) {
+        DOM.addClass(`#zone${nearestTopIndex}`, 'dropbefore');
+      }
+      found = nearestTopIndex;
+    }
+
+    return { element: z, index: found };
+  }
+}
+
 function saveZones() {
   localStorage.setItem('zones', JSON.stringify(zones));
 }
@@ -533,8 +626,9 @@ function renderZones() {
     }
     const octavemarkers =
       '<span class="oct"></span><span class="oct"></span><span class="oct"></span><span class="oct"></span><span class="oct"></span><span class="oct"></span><span class="oct"></span><span class="oct"></span><span class="oct"></span><span class="oct"></span>';
-    let html = `<section class="zone" id="zone${index}">
+    const html = `<section class="zone" id="zone${index}">
             <div class="delzone" data-action="${index}:delete" title="Remove zone">✕</div>
+            <div class="dragzone" title="Drag zone">≡</div>
             <div class="channels"><div class="ch enabled" data-action="${index}:enabled" title="Mute Zone">M</div><div class="ch solo" data-action="${index}:solo" title="Solo Zone">S</div>${channelselectors}</div>
             <div class="range" data-hover="${index}:range" data-action="${index}:range">
                 ${octavemarkers}
@@ -612,6 +706,10 @@ function renderZones() {
     zone.dom.current = DOM.element(`#zone${index} .current`);
     renderMarkersForZone(index);
     updateValuesForZone(index);
+    const dragHandler = DOM.element(`#zone${index} .dragzone`);
+    dragHandler.addEventListener('mousedown', ev => {
+      new DragZone(index, ev);
+    });
   });
   DOM.all('*[data-action]').forEach(e => {
     e.addEventListener('click', actionHandler);

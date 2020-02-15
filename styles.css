@@ -142,18 +142,35 @@ select#midiInChannel {
   color: #ccc;
 }
 
+#draggedzone {
+  position: absolute;
+  display: none;
+  border-radius: 8px;
+  cursor: grabbing;
+}
+
 .zone {
+  position: relative;
   background-color: #444;
   margin: 1.5em auto;
   padding: 0.5em;
   border-radius: 8px;
   width: 100%;
   color: #fff;
+  transition: margin 200ms;
 }
 
 .zone,
 .zone * {
   user-select: none;
+}
+
+.zone.dropbefore {
+  margin-top: 6em;
+}
+
+.zone.dropafter {
+  margin-bottom: 6em;
 }
 
 .zone.disabled {
@@ -168,15 +185,15 @@ select#midiInChannel {
 
 .ch {
   display: inline-block;
-  padding-top: 0.7em;
-  height: 38px;
+  padding: 2px 0;
   width: 38px;
+  font-size: 0.85em;
   margin-right: 4px;
   text-align: center;
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.5);
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: 4px;
 }
 
 .ch.no15 {
@@ -190,6 +207,7 @@ select#midiInChannel {
 .ch.enabled.selected {
   background-color: rgba(0, 0, 0, 0.1);
 }
+
 .ch.solo {
   margin-right: 2%;
   background-color: rgba(0, 0, 0, 0.1);
@@ -231,16 +249,18 @@ select#midiInChannel {
   display: block;
 }
 
-.delzone {
+.delzone,
+.dragzone {
   float: right;
   color: rgba(0, 0, 0, 0.3);
   cursor: pointer;
   border-radius: 5px;
 }
 
-.delzone:hover {
-  color: #fff;
-  background: #900;
+.dragzone {
+  margin-right: 1em;
+  padding: 0 4px;
+  cursor: grab;
 }
 
 .check,
@@ -273,6 +293,10 @@ select#midiInChannel {
 
 .check.selected::before {
   content: '✔';
+}
+
+.check.arp_enabled {
+  width: 78px;
 }
 
 .val,
@@ -314,7 +338,7 @@ select#midiInChannel {
 
 .range {
   position: relative;
-  height: 40px;
+  height: 28px;
   cursor: pointer;
   width: 100%;
   margin: 0.5em auto;
@@ -327,7 +351,7 @@ select#midiInChannel {
   position: absolute;
   left: 0;
   bottom: 0;
-  height: 16px;
+  height: 10px;
   width: 100%;
 }
 
@@ -335,9 +359,9 @@ select#midiInChannel {
   position: absolute;
   top: 7px;
   width: 32px;
-  height: 24px;
+  height: 12px;
   font-size: 0.85em;
-  padding: 3px 0 0 0;
+  padding: 1px 0 0 0;
   text-align: center;
   transition: 200ms left, 200ms right;
 }
@@ -346,7 +370,7 @@ select#midiInChannel {
   top: 0;
 }
 .marker.high {
-  top: 16px;
+  top: 8px;
 }
 
 .marker.hover {
@@ -356,14 +380,14 @@ select#midiInChannel {
 .join {
   position: absolute;
   top: 0;
-  height: 40px;
+  height: 28px;
   background-color: rgba(0, 0, 0, 0.25);
 }
 .current {
   display: none;
   position: absolute;
-  top: 12px;
-  height: 15px;
+  top: 6px;
+  height: 14px;
   background-color: rgba(0, 0, 0, 0.15);
 }
 .range:hover .current {
