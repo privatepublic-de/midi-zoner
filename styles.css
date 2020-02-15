@@ -142,13 +142,6 @@ select#midiInChannel {
   color: #ccc;
 }
 
-#draggedzone {
-  position: absolute;
-  display: none;
-  border-radius: 8px;
-  cursor: grabbing;
-}
-
 .zone {
   background-color: #444;
   margin: 1.5em auto;
@@ -156,6 +149,13 @@ select#midiInChannel {
   border-radius: 8px;
   width: 100%;
   color: #fff;
+}
+
+.zone.dragged {
+  position: absolute;
+  cursor: grabbing;
+  z-index: 1;
+  opacity: 0.8;
 }
 
 .dragging .zone {

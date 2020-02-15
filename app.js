@@ -296,28 +296,28 @@ class DragZone {
   moveHandler = null;
   dropHandler = null;
   hasmoved = false;
+  zoneElement = null;
+  startY = 0;
 
   constructor(index, event) {
     this.zoneElement = DOM.element(`#zone${index}`);
-    this.dragElement = DOM.element('#draggedzone');
     this.index = index;
     this.startY = 0;
     this.srcdim = {
       top: this.zoneElement.offsetTop,
       left: this.zoneElement.offsetLeft,
       width: this.zoneElement.offsetWidth,
-      height: this.zoneElement.offsetHeight
+      height: this.zoneElement.offsetHeight,
+      offsetTop: 24
     };
+    DOM.addClass(this.zoneElement, 'dragged');
     this.moveHandler = this.move.bind(this);
     this.dropHandler = this.drop.bind(this);
     this.startY = event.screenY;
-    this.dragElement.style.top = `${this.srcdim.top}px`;
-    this.dragElement.style.left = `${this.srcdim.left}px`;
-    this.dragElement.style.width = `${this.srcdim.width}px`;
-    this.dragElement.style.height = `${this.srcdim.height}px`;
-    this.dragElement.style.backgroundColor = this.zoneElement.style.backgroundColor;
-    this.zoneElement.style.display = 'none';
-    DOM.show(this.dragElement);
+    this.zoneElement.style.top = `${this.srcdim.top}px`;
+    this.zoneElement.style.left = `${this.srcdim.left}px`;
+    this.zoneElement.style.width = `${this.srcdim.width}px`;
+    this.zoneElement.style.height = `${this.srcdim.height}px`;
     document.body.addEventListener('mousemove', this.moveHandler, true);
     document.body.addEventListener('mouseup', this.dropHandler, true);
     this.findDropElement(event.screenY);
@@ -332,8 +332,7 @@ class DragZone {
   }
 
   drop(ev) {
-    const target = this.findDropElement(ev.screenY);
-    console.log('Drop', this.index, 'new index', target.index);
+    let targetIndex = this.findDropElement(ev.screenY);
     document.body.removeEventListener('mousemove', this.moveHandler, true);
     document.body.removeEventListener('mouseup', this.dropHandler, true);
     DOM.removeClass('#zones', 'dragging');
@@ -341,14 +340,13 @@ class DragZone {
       el.style.marginTop = '';
       el.style.marginBottom = '';
     });
-    DOM.hide(this.dragElement);
     this.zoneElement.style.display = 'block';
     if (this.hasmoved) {
       const me = zones.list.splice(this.index, 1);
-      if (target.index > this.index) {
-        target.index--;
+      if (targetIndex > this.index) {
+        targetIndex--;
       }
-      zones.list.splice(target.index, 0, me[0]);
+      zones.list.splice(targetIndex, 0, me[0]);
       saveZones();
       renderZones();
     }
@@ -356,13 +354,11 @@ class DragZone {
 
   findDropElement(screenY) {
     const y = this.srcdim.top + (screenY - this.startY);
-    this.dragElement.style.top = `${y}px`;
+    this.zoneElement.style.top = `${y - this.srcdim.offsetTop}px`;
     let found = -1;
     let z;
-
     let nearestTop = window.innerHeight;
     let nearestTopIndex;
-
     for (let i = 0; i < zones.list.length; i++) {
       if (i === this.index) {
         continue;
@@ -374,27 +370,23 @@ class DragZone {
         nearestTopIndex = i;
       }
     }
-
     DOM.all(`.zone`).forEach(el => {
       el.style.marginTop = '';
       el.style.marginBottom = '';
     });
-
     if (
       nearestTopIndex === zones.list.length - 1 &&
       y > z.offsetTop + z.offsetHeight / 2
     ) {
-      // DOM.addClass(`#zone${nearestTopIndex}`, 'dropafter');
       DOM.element(`#zone${nearestTopIndex}`).style.marginBottom = `${this.srcdim
         .height + 48}px`;
       found = nearestTopIndex + 1;
     } else {
-      // DOM.addClass(`#zone${nearestTopIndex}`, 'dropbefore');
       DOM.element(`#zone${nearestTopIndex}`).style.marginTop = `${this.srcdim
         .height + 48}px`;
       found = nearestTopIndex;
     }
-    return { element: z, index: found };
+    return found;
   }
 }
 
