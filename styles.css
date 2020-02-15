@@ -150,27 +150,21 @@ select#midiInChannel {
 }
 
 .zone {
-  position: relative;
   background-color: #444;
   margin: 1.5em auto;
   padding: 0.5em;
   border-radius: 8px;
   width: 100%;
   color: #fff;
+}
+
+.dragging .zone {
   transition: margin 200ms;
 }
 
 .zone,
 .zone * {
   user-select: none;
-}
-
-.zone.dropbefore {
-  margin-top: 6em;
-}
-
-.zone.dropafter {
-  margin-bottom: 6em;
 }
 
 .zone.disabled {

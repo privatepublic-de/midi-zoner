@@ -295,6 +295,7 @@ class DragZone {
   srcdim = null;
   moveHandler = null;
   dropHandler = null;
+  hasmoved = false;
 
   constructor(index, event) {
     this.zoneElement = DOM.element(`#zone${index}`);
@@ -314,15 +315,20 @@ class DragZone {
     this.dragElement.style.left = `${this.srcdim.left}px`;
     this.dragElement.style.width = `${this.srcdim.width}px`;
     this.dragElement.style.height = `${this.srcdim.height}px`;
-    this.zoneElement.style.opacity = 0.33;
     this.dragElement.style.backgroundColor = this.zoneElement.style.backgroundColor;
+    this.zoneElement.style.display = 'none';
     DOM.show(this.dragElement);
     document.body.addEventListener('mousemove', this.moveHandler, true);
     document.body.addEventListener('mouseup', this.dropHandler, true);
+    this.findDropElement(event.screenY);
+    setTimeout(() => {
+      DOM.addClass('#zones', 'dragging');
+    }, 100);
   }
 
   move(ev) {
     this.findDropElement(ev.screenY);
+    this.hasmoved = true;
   }
 
   drop(ev) {
@@ -330,17 +336,22 @@ class DragZone {
     console.log('Drop', this.index, 'new index', target.index);
     document.body.removeEventListener('mousemove', this.moveHandler, true);
     document.body.removeEventListener('mouseup', this.dropHandler, true);
-    DOM.removeClass('.zone', 'dropbefore');
-    DOM.removeClass('.zone', 'dropafter');
+    DOM.removeClass('#zones', 'dragging');
+    DOM.all(`.zone`).forEach(el => {
+      el.style.marginTop = '';
+      el.style.marginBottom = '';
+    });
     DOM.hide(this.dragElement);
-    this.zoneElement.style.opacity = 1;
-    const me = zones.list.splice(this.index, 1);
-    if (target.index > this.index) {
-      target.index--;
+    this.zoneElement.style.display = 'block';
+    if (this.hasmoved) {
+      const me = zones.list.splice(this.index, 1);
+      if (target.index > this.index) {
+        target.index--;
+      }
+      zones.list.splice(target.index, 0, me[0]);
+      saveZones();
+      renderZones();
     }
-    zones.list.splice(target.index, 0, me[0]);
-    saveZones();
-    renderZones();
   }
 
   findDropElement(screenY) {
@@ -357,28 +368,32 @@ class DragZone {
         continue;
       }
       z = DOM.element(`#zone${i}`);
-      if (Math.abs(y - z.offsetTop) < nearestTop) {
-        nearestTop = Math.abs(y - z.offsetTop);
+      const dist = Math.abs(y + this.srcdim.height / 2 - z.offsetTop);
+      if (dist < nearestTop) {
+        nearestTop = dist;
         nearestTopIndex = i;
       }
     }
 
+    DOM.all(`.zone`).forEach(el => {
+      el.style.marginTop = '';
+      el.style.marginBottom = '';
+    });
+
     if (
       nearestTopIndex === zones.list.length - 1 &&
-      y > z.offsetTop + z.offsetHeight
+      y > z.offsetTop + z.offsetHeight / 2
     ) {
-      DOM.removeClass('.zone', 'dropbefore');
-      DOM.addClass(`#zone${nearestTopIndex}`, 'dropafter');
+      // DOM.addClass(`#zone${nearestTopIndex}`, 'dropafter');
+      DOM.element(`#zone${nearestTopIndex}`).style.marginBottom = `${this.srcdim
+        .height + 48}px`;
       found = nearestTopIndex + 1;
     } else {
-      DOM.removeClass('.zone', 'dropbefore');
-      DOM.removeClass('.zone', 'dropafter');
-      if (nearestTopIndex != this.index + 1) {
-        DOM.addClass(`#zone${nearestTopIndex}`, 'dropbefore');
-      }
+      // DOM.addClass(`#zone${nearestTopIndex}`, 'dropbefore');
+      DOM.element(`#zone${nearestTopIndex}`).style.marginTop = `${this.srcdim
+        .height + 48}px`;
       found = nearestTopIndex;
     }
-
     return { element: z, index: found };
   }
 }
