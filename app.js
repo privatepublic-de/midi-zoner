@@ -376,7 +376,7 @@ class DragZone {
     });
     if (
       nearestTopIndex === zones.list.length - 1 &&
-      y > z.offsetTop + z.offsetHeight / 2
+      y > z.offsetTop
     ) {
       DOM.element(`#zone${nearestTopIndex}`).style.marginBottom = `${this.srcdim
         .height + 48}px`;
