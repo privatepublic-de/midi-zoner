@@ -313,7 +313,7 @@ function MIDI(completeHandler, eventHandler, clockHandler) {
         DOM.addHTML(select_out, 'beforeend', optionNoDevice);
         DOM.addHTML(select_in, 'beforeend', optionNoDevice);
       }
-      return { success: false, message };
+      return { success: true, message };
     } else {
       return { success: true };
     }
