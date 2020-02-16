@@ -848,6 +848,15 @@ function allSoloOff() {
   saveZones();
 }
 
+function allHoldOff() {
+  for (var i = 0; i < zones.list.length; i++) {
+    const zone = zones.list[i];
+    zone.arp_hold = false;
+  }
+  updateValuesForAllZones();
+  saveZones();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   const clock = MidiClock(window.webkitAudioContext);
   const midi = new MIDI(
@@ -869,10 +878,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         clock.setTempo(zones.tempo);
         if (zones.sendClock) {
+          console.log('Starting internal clock send');
           clock.start();
-          if (!midi.deviceInClock) {
-            midi.sendStart();
-          }
+          midi.sendStart();
         }
         renderZones();
         function createNewZone() {
@@ -888,6 +896,7 @@ document.addEventListener('DOMContentLoaded', function() {
         DOM.element('#newzone').addEventListener('click', createNewZone);
         DOM.element('#allMuteOff').addEventListener('click', allMuteOff);
         DOM.element('#allSoloOff').addEventListener('click', allSoloOff);
+        DOM.element('#allHoldOff').addEventListener('click', allHoldOff);
         DOM.element('#midiInChannel').selectedIndex = zones.inChannel;
         DOM.element('#midiInChannel').addEventListener('change', e => {
           zones.inChannel = e.target.selectedIndex;

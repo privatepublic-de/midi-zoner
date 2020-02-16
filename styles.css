@@ -75,17 +75,19 @@ select#midiInChannel {
   border-radius: 4px;
 }
 
-#midisettings #allMuteOff {
+.lightButton {
   background: #555;
   color: #333;
   width: 38px;
+  text-align: center;
+}
+
+#midisettings #allMuteOff {
   margin-right: 4px;
 }
 
-#midisettings #allSoloOff {
-  background: #555;
-  color: #333;
-  width: 38px;
+#midisettings #allHoldOff {
+  margin-bottom: 4px;
 }
 
 #midiPanic {
@@ -93,6 +95,7 @@ select#midiInChannel {
 }
 
 #midisettings .left {
+  text-align: left;
   position: absolute;
   left: 23px;
   bottom: 8px;
