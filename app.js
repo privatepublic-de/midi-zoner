@@ -856,12 +856,95 @@ document.addEventListener('DOMContentLoaded', function() {
     (midiavailable, message) => {
       if (midiavailable) {
         console.log('MIDI available');
+        loadZones(midi);
+        // Clock
+        clock.on('position', pos => {
+          if (!midi.deviceInClock) {
+            if (zones.sendClock) {
+              midi.sendClock();
+            }
+            for (let i = 0; i < zones.list.length; i++) {
+              zones.list[i].clock(pos);
+            }
+          }
+        });
+
+        clock.setTempo(zones.tempo);
         if (zones.sendClock) {
           clock.start();
           if (!midi.deviceInClock) {
             midi.sendStart();
           }
         }
+        renderZones();
+        function createNewZone() {
+          zones.list.push(new Zone(midi));
+          saveZones();
+          renderZones();
+          DOM.element('#tools').scrollIntoView();
+        }
+
+        window.addEventListener('resize', () => {
+          requestAnimationFrame(renderMarkersForAllZones);
+        });
+        DOM.element('#newzone').addEventListener('click', createNewZone);
+        DOM.element('#allMuteOff').addEventListener('click', allMuteOff);
+        DOM.element('#allSoloOff').addEventListener('click', allSoloOff);
+        DOM.element('#midiInChannel').selectedIndex = zones.inChannel;
+        DOM.element('#midiInChannel').addEventListener('change', e => {
+          zones.inChannel = e.target.selectedIndex;
+          saveZones();
+        });
+        DOM.element('#inChannelExclusive').checked = zones.inChannelExclusive;
+        DOM.element('#inChannelExclusive').addEventListener('change', e => {
+          zones.inChannelExclusive = e.target.checked;
+          saveZones();
+        });
+
+        const displayBPM = DOM.element('#displayBPM');
+        displayBPM.innerHTML = zones.tempo;
+        let bpmStartX = 0;
+        let bpmStartTempo = 0;
+        let dragBPM = false;
+        displayBPM.addEventListener('mousedown', e => {
+          bpmStartX = e.screenX;
+          bpmStartTempo = parseInt(zones.tempo);
+          dragBPM = true;
+          DOM.addClass(document.body, 'dragging');
+        });
+        document.body.addEventListener('mousemove', e => {
+          if (dragBPM) {
+            let dragTempo =
+              bpmStartTempo + Math.round((e.screenX - bpmStartX) / 2);
+            dragTempo = Math.min(Math.max(20, dragTempo), 240);
+            zones.tempo = dragTempo;
+            clock.setTempo(zones.tempo);
+            displayBPM.innerHTML = zones.tempo;
+          }
+        });
+        document.body.addEventListener('mouseup', e => {
+          if (dragBPM) {
+            DOM.removeClass(document.body, 'dragging');
+            dragBPM = false;
+            saveZones();
+          }
+        });
+
+        DOM.element('#sendClock').checked = zones.sendClock;
+        DOM.element('#sendClock').addEventListener('change', e => {
+          zones.sendClock = e.target.checked;
+          if (zones.sendClock) {
+            clock.start();
+            if (!midi.deviceInClock) {
+              midi.sendStart();
+            }
+          } else {
+            if (!midi.deviceInClock) {
+              midi.sendStop();
+            }
+          }
+          saveZones();
+        });
       } else {
         console.log(message);
       }
@@ -873,88 +956,6 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
   );
-  loadZones(midi);
-  // Clock
-  clock.on('position', pos => {
-    if (!midi.deviceInClock) {
-      if (zones.sendClock) {
-        midi.sendClock();
-      }
-      for (let i = 0; i < zones.list.length; i++) {
-        zones.list[i].clock(pos);
-      }
-    }
-  });
 
-  clock.setTempo(zones.tempo);
-
-  renderZones();
-  function createNewZone() {
-    zones.list.push(new Zone(midi));
-    saveZones();
-    renderZones();
-    DOM.element('#tools').scrollIntoView();
-  }
-
-  window.addEventListener('resize', () => {
-    requestAnimationFrame(renderMarkersForAllZones);
-  });
-  DOM.element('#newzone').addEventListener('click', createNewZone);
-  DOM.element('#allMuteOff').addEventListener('click', allMuteOff);
-  DOM.element('#allSoloOff').addEventListener('click', allSoloOff);
-  DOM.element('#midiInChannel').selectedIndex = zones.inChannel;
-  DOM.element('#midiInChannel').addEventListener('change', e => {
-    zones.inChannel = e.target.selectedIndex;
-    saveZones();
-  });
-  DOM.element('#inChannelExclusive').checked = zones.inChannelExclusive;
-  DOM.element('#inChannelExclusive').addEventListener('change', e => {
-    zones.inChannelExclusive = e.target.checked;
-    saveZones();
-  });
-
-  const displayBPM = DOM.element('#displayBPM');
-  displayBPM.innerHTML = zones.tempo;
-  let bpmStartX = 0;
-  let bpmStartTempo = 0;
-  let dragBPM = false;
-  displayBPM.addEventListener('mousedown', e => {
-    bpmStartX = e.screenX;
-    bpmStartTempo = parseInt(zones.tempo);
-    dragBPM = true;
-    DOM.addClass(document.body, 'dragging');
-  });
-  document.body.addEventListener('mousemove', e => {
-    if (dragBPM) {
-      let dragTempo = bpmStartTempo + Math.round((e.screenX - bpmStartX) / 2);
-      dragTempo = Math.min(Math.max(20, dragTempo), 240);
-      zones.tempo = dragTempo;
-      clock.setTempo(zones.tempo);
-      displayBPM.innerHTML = zones.tempo;
-    }
-  });
-  document.body.addEventListener('mouseup', e => {
-    if (dragBPM) {
-      DOM.removeClass(document.body, 'dragging');
-      dragBPM = false;
-      saveZones();
-    }
-  });
-
-  DOM.element('#sendClock').checked = zones.sendClock;
-  DOM.element('#sendClock').addEventListener('change', e => {
-    zones.sendClock = e.target.checked;
-    if (zones.sendClock) {
-      clock.start();
-      if (!midi.deviceInClock) {
-        midi.sendStart();
-      }
-    } else {
-      if (!midi.deviceInClock) {
-        midi.sendStop();
-      }
-    }
-    saveZones();
-  });
   ipcRenderer.send('show', true);
 });
