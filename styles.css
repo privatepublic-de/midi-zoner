@@ -164,7 +164,7 @@ select#midiInChannel {
 }
 
 .dragging .zone {
-  transition: margin 200ms;
+  transition: margin 250ms 50ms;
 }
 
 .zone,
