@@ -157,6 +157,11 @@ select#midiInChannel {
   z-index: 1;
   opacity: 0.8;
 }
+.zone.initialising {
+  text-align: center;
+  padding: 30px;
+  color: #ccc;
+}
 
 .dragging .zone {
   transition: margin 200ms;
