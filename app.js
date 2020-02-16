@@ -559,11 +559,9 @@ function actionHandler(ev) {
       }
       break;
     case 'delete':
-      if (confirm('Sure?')) {
-        zones.list.splice(zoneindex, 1)[0].detach();
-        renderZones();
-        saveZones();
-      }
+      zones.list.splice(zoneindex, 1)[0].detach();
+      renderZones();
+      saveZones();
       break;
   }
   saveZones();
