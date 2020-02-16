@@ -207,9 +207,10 @@ function MIDI(completeHandler, eventHandler, clockHandler) {
   const onMIDISuccess = function(midiAccess) {
     console.log('MIDI ready!');
     self.midiAccess = midiAccess;
-    listInputsAndOutputs();
+    const initResult = listInputsAndOutputs();
     selectDevices();
     self.midiAccess.onstatechange = onStateChange;
+    reportStatus(initResult.success, initResult.message);
   };
   const onMIDIFailure = function(msg) {
     console.log('MIDI: Failed to get MIDI access - ' + msg);
@@ -220,12 +221,14 @@ function MIDI(completeHandler, eventHandler, clockHandler) {
     const state = e.port.state;
     if (state === 'disconnected') {
       knownPorts[port.id] = false;
-      listInputsAndOutputs();
+      const initResult = listInputsAndOutputs();
       selectDevices();
+      reportStatus(initResult.success, initResult.message);
     } else if (state === 'connected') {
       if (!knownPorts[port.id]) {
-        listInputsAndOutputs();
+        const initResult = listInputsAndOutputs();
         selectDevices();
+        reportStatus(initResult.success, initResult.message);
       }
     }
   };
@@ -310,9 +313,9 @@ function MIDI(completeHandler, eventHandler, clockHandler) {
         DOM.addHTML(select_out, 'beforeend', optionNoDevice);
         DOM.addHTML(select_in, 'beforeend', optionNoDevice);
       }
-      reportStatus(false, message);
+      return { success: false, message };
     } else {
-      reportStatus(true);
+      return { success: true };
     }
   };
   function onMIDIMessage(event) {
