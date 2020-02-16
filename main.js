@@ -1,6 +1,8 @@
 const electron = require('electron');
-const { app, BrowserWindow, ipcMain } = electron;
+const { app, BrowserWindow, ipcMain, powerSaveBlocker } = electron;
 const settings = require('electron-settings');
+
+powerSaveBlocker.start('prevent-app-suspension');
 
 const minWidth = 950;
 const minHeight = 730;
