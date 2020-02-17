@@ -19,34 +19,6 @@ const NOTENAMES = [
 ];
 const DIV_TICKS = [96, 72, 64, 48, 36, 32, 24, 18, 16, 12, 9, 8, 6, 4, 3]; // 24ppq
 
-class Live extends EventEmitter {
-  activeNotes = [];
-  arpActive = false;
-
-  addNote(note) {
-    this.activeNotes.push(note);
-    this.emit('noteschanged');
-  }
-
-  removeNote(number) {
-    let index = -1;
-    for (let i = 0; i < this.activeNotes.length; i++) {
-      if (this.activeNotes[i].number === number) {
-        index = i;
-        break;
-      }
-    }
-    if (index > -1) {
-      this.activeNotes.splice(index, 1);
-      this.emit('noteschanged');
-    } else {
-      console.log(`Live.removeNote: Note ${number} not found`);
-    }
-  }
-}
-
-const live = new Live();
-
 class Note {
   number = 0;
   velo = 0;
@@ -80,6 +52,8 @@ class Zone {
   arp_hold = false;
   arp = {
     holdlist: [],
+    orderlist: [],
+    sortedlist: [],
     holdcount: 0,
     noteindex: -1,
     inc: 1,
@@ -89,15 +63,12 @@ class Zone {
     beat: false
   };
   activeNotes = [];
-  activeNotesSorted = [];
   canvasElement = null;
   midi = null;
   dom = {};
 
   constructor(midi) {
     this.midi = midi;
-    this.notesChanged = this.notesChanged.bind(this);
-    live.on('noteschanged', this.notesChanged);
   }
 
   toJSON() {
@@ -130,43 +101,121 @@ class Zone {
   set arp_division(v) {
     this._arp_division = v;
     this.arp_ticks = DIV_TICKS[v];
-    console.log(`Zone: Arp division ${v}, ${this.arp_ticks} ticks`);
   }
 
-  detach() {
-    live.off('noteschanged', this.notesChanged);
+  addNote(note) {
+    this.activeNotes.push(note);
   }
 
-  notesChanged() {
-    this.activeNotes = live.activeNotes.filter(
-      note => note.number >= this.low && note.number <= this.high
-    );
-    if (this.arp_enabled && this.arp_octaves > 0) {
-      const count = this.activeNotes.length;
-      for (let i = 0; i < this.arp_octaves; i++) {
-        // add arp octaves
-        for (let j = 0; j < count; j++) {
-          const note = this.activeNotes[j];
-          this.activeNotes.push(
-            new Note(note.number + 12 * (i + 1), note.velo)
-          );
+  removeNote(number) {
+    let index = -1;
+    for (let i = 0; i < this.activeNotes.length; i++) {
+      if (this.activeNotes[i].number === number) {
+        index = i;
+        break;
+      }
+    }
+    if (index > -1) {
+      this.activeNotes.splice(index, 1);
+    } else {
+      console.log(`Zone.removeNote: Note ${number} not found`);
+    }
+  }
+
+  handleMidi(message, data, midiOutDevice) {
+    if (this.enabled && (zones.solocount === 0 || this.solo)) {
+      switch (message) {
+        case MIDI_MESSAGE.NOTE_OFF: // note off
+        case MIDI_MESSAGE.NOTE_ON: // note on
+          let key = data[1];
+          let velo = data[2];
+          if (key >= this.low && key <= this.high) {
+            key = key + this.octave * 12;
+            if (key >= 0 && key <= 127) {
+              if (this.fixedvel && velo > 0) {
+                velo = 127;
+              }
+              if (!this.arp_enabled) {
+                const outevent = new Uint8Array(data);
+                outevent[0] = message + this.channel;
+                outevent[1] = key;
+                outevent[2] = velo;
+                midiOutDevice.send(outevent);
+              }
+            }
+          }
+          if (message === MIDI_MESSAGE.NOTE_ON) {
+            this.addNote(new Note(key, velo));
+          } else {
+            this.removeNote(key);
+          }
+          this.notesChanged();
+          break;
+        case MIDI_MESSAGE.CONTROLLER: // cc
+          if (data[1] == 0x40 && !this.sustain) {
+            // no sustain pedal
+            return;
+          }
+          if (data[1] == 0x01 && !this.mod) {
+            // no mod wheel
+            return;
+          }
+          if (!this.cc && data[1] != 0x40 && data[1] != 0x01) {
+            // no ccs in general
+            return;
+          }
+          const outevent = new Uint8Array(data);
+          outevent[0] = message + this.channel;
+          midiOutDevice.send(outevent);
+          break;
+        case MIDI_MESSAGE.PITCH_BEND: // pitch bend
+          if (this.pitchbend) {
+            const outevent = new Uint8Array(data);
+            outevent[0] = message + this.channel;
+            midiOutDevice.send(outevent);
+          }
+          break;
+        case MIDI_MESSAGE.PGM_CHANGE: // prgm change
+          if (this.programchange) {
+            const outevent = new Uint8Array(data);
+            outevent[0] = message + this.channel;
+            midiOutDevice.send(outevent);
+          }
+          break;
+        default: {
+          const outevent = new Uint8Array(data);
+          outevent[0] = message + this.channel;
+          midiOutDevice.send(outevent);
         }
       }
     }
-    this.activeNotesSorted = Array.from(this.activeNotes).sort(
-      (a, b) => a.number - b.number
-    );
-    if (this.activeNotes.length > 0) {
-      if (
-        this.arp.holdcount == 0 ||
-        this.activeNotes.length >= this.arp.holdlist.length
-      ) {
-        this.arp.holdlist = Array.from(
-          this.arp_direction > 2 ? this.activeNotes : this.activeNotesSorted
+  }
+
+  notesChanged() {
+    this.arp.orderlist = Array.from(this.activeNotes);
+    for (let i = 0; i < this.arp_octaves; i++) {
+      // add arp octaves
+      for (let j = 0; j < this.activeNotes.length; j++) {
+        const note = this.activeNotes[j];
+        this.arp.orderlist.push(
+          new Note(note.number + 12 * (i + 1), note.velo)
         );
       }
     }
-    this.arp.holdcount = this.activeNotes.length;
+    this.arp.sortedlist = Array.from(this.arp.orderlist).sort(
+      (a, b) => a.number - b.number
+    );
+    if (this.arp.orderlist.length > 0) {
+      if (
+        this.arp.holdcount == 0 ||
+        this.arp.orderlist.length >= this.arp.holdlist.length
+      ) {
+        this.arp.holdlist = Array.from(
+          this.arp_direction > 2 ? this.arp.orderlist : this.arp.sortedlist
+        );
+      }
+    }
+    this.arp.holdcount = this.arp.orderlist.length;
     requestAnimationFrame(this.renderNotes.bind(this));
   }
 
@@ -201,7 +250,7 @@ class Zone {
         this.arp.beat = true;
         let notes;
         const activelist =
-          this.arp_direction > 2 ? this.activeNotes : this.activeNotesSorted;
+          this.arp_direction > 2 ? this.arp.orderlist : this.arp.sortedlist;
         if (this.arp_hold) {
           notes = this.arp.holdlist;
         } else {
@@ -255,7 +304,7 @@ class Zone {
             this.arp.lastnote = note;
             this.midi.send(
               Uint8Array.from([
-                0x90 + this.channel,
+                MIDI_MESSAGE.NOTE_ON + this.channel,
                 note.number,
                 this.fixedvel ? 127 : note.velo
               ])
@@ -271,7 +320,11 @@ class Zone {
         // send note off
         const note = this.arp.lastnote;
         this.midi.send(
-          Uint8Array.from([0x80 + this.channel, note.number, note.velo])
+          Uint8Array.from([
+            MIDI_MESSAGE.NOTE_OFF + this.channel,
+            note.number,
+            note.velo
+          ])
         );
         this.arp.lastnote = null;
         this.arp.repeatnote = note;
@@ -374,10 +427,7 @@ class DragZone {
       el.style.marginTop = '';
       el.style.marginBottom = '';
     });
-    if (
-      nearestTopIndex === zones.list.length - 1 &&
-      y > z.offsetTop
-    ) {
+    if (nearestTopIndex === zones.list.length - 1 && y > z.offsetTop) {
       DOM.element(`#zone${nearestTopIndex}`).style.marginBottom = `${this.srcdim
         .height + 48}px`;
       found = nearestTopIndex + 1;
@@ -398,7 +448,6 @@ function loadZones(midi) {
   let stored = localStorage.getItem('zones');
   if (stored) {
     stored = JSON.parse(stored);
-    console.log(stored);
     Object.assign(zones, stored);
     zones.list = [];
     for (let i = 0; i < stored.list.length; i++) {
@@ -410,76 +459,14 @@ function loadZones(midi) {
 }
 
 function midiEventHandler(event, midiOutDevice) {
-  if ((event.data[0] & 0x0f) === zones.inChannel) {
-    const msgtype = event.data[0] & 0xf0;
-    const noteOn = msgtype == 0x90 && event.data[2] > 0;
-    const noteOff = msgtype == 0x80 || (msgtype == 0x90 && event.data[2] === 0);
-    if (noteOn) {
-      live.addNote(new Note(event.data[1], event.data[2]));
-    } else if (noteOff) {
-      live.removeNote(event.data[1]);
-    }
-    zones.list.forEach((zone, index) => {
-      if (zone.enabled && (zones.solocount === 0 || zone.solo)) {
-        switch (msgtype) {
-          case 0x80: // note off
-          case 0x90: // note on
-            if (!zone.arp_enabled) {
-              let key = event.data[1];
-              let velo = event.data[2];
-              if (key >= zone.low && key <= zone.high) {
-                key = key + zone.octave * 12;
-                if (key >= 0 && key <= 127) {
-                  if (zone.fixedvel && velo > 0) {
-                    velo = 127;
-                  }
-                  const outevent = new Uint8Array(event.data);
-                  outevent[0] = msgtype + zone.channel;
-                  outevent[1] = key;
-                  outevent[2] = velo;
-                  midiOutDevice.send(outevent);
-                }
-              }
-            }
-            break;
-          case 0xb0: // cc
-            if (event.data[1] == 0x40 && !zone.sustain) {
-              // no sustain pedal
-              return;
-            }
-            if (event.data[1] == 0x01 && !zone.mod) {
-              // no mod wheel
-              return;
-            }
-            if (!zone.cc && event.data[1] != 0x40 && event.data[1] != 0x01) {
-              // no ccs in general
-              return;
-            }
-            const outevent = new Uint8Array(event.data);
-            outevent[0] = msgtype + zone.channel;
-            midiOutDevice.send(outevent);
-            break;
-          case 0xe0: // pitch bend
-            if (zone.pitchbend) {
-              const outevent = new Uint8Array(event.data);
-              outevent[0] = msgtype + zone.channel;
-              midiOutDevice.send(outevent);
-            }
-            break;
-          case 0xc0: // prgm change
-            if (zone.programchange) {
-              const outevent = new Uint8Array(event.data);
-              outevent[0] = msgtype + zone.channel;
-              midiOutDevice.send(outevent);
-            }
-            break;
-          default: {
-            const outevent = new Uint8Array(event.data);
-            outevent[0] = msgtype + zone.channel;
-            midiOutDevice.send(outevent);
-          }
-        }
-      }
+  const channel = event.data[0] & 0x0f;
+  const msgtype = event.data[0] & 0xf0;
+  if (msgtype === MIDI_MESSAGE.NOTE_ON && event.data[2] === 0) {
+    msgtype = MIDI_MESSAGE.NOTE_OFF;
+  }
+  if (channel === zones.inChannel) {
+    zones.list.forEach(zone => {
+      zone.handleMidi(msgtype, event.data, midiOutDevice);
     });
   } else {
     // msg from other channel
@@ -559,7 +546,7 @@ function actionHandler(ev) {
       }
       break;
     case 'delete':
-      zones.list.splice(zoneindex, 1)[0].detach();
+      zones.list.splice(zoneindex, 1);
       renderZones();
       saveZones();
       break;
@@ -779,9 +766,6 @@ function updateValuesForAllZones() {
 }
 
 function updateValuesForZone(index) {
-  live.arpActive = zones.list.some(z => {
-    return z.enabled && z.arp_enabled;
-  });
   const zone = zones.list[index];
   DOM.removeClass(`#zone${index} *[data-action]`, 'selected');
   DOM.addClass(`#zone${index} .no${zone.channel}`, 'selected');
