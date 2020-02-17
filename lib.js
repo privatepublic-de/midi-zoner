@@ -171,6 +171,24 @@ let DOM = {
   }
 };
 
+const MIDI_MESSAGE = {
+  NOTE_OFF: 0x80,
+  NOTE_ON: 0x90,
+  NOTE_PRESSURE: 0xa0,
+  CONTROLLER: 0xb0,
+  PGM_CHANGE: 0xc0,
+  CHANNEL_PRESSURE: 0xd0,
+  PITCH_BEND: 0xe0,
+  SYSTEM_EXCLUSIVE: 0xf0,
+  SONG_POS: 0xf2,
+  SONG_SELECT: 0xf3,
+  TUNE_REQUEST: 0xf6,
+  CLOCK: 0xf8,
+  START: 0xfa,
+  CONTINUE: 0xfb,
+  STOP: 0xfc
+};
+
 /**
  * Web MIDI interface handler
  */
@@ -322,11 +340,11 @@ function MIDI(completeHandler, eventHandler, clockHandler) {
     eventHandler(event, self.deviceOut);
   }
   function onMIDIClockMessage(event) {
-    if (clockHandler && event.data[0] === 0xf8) {
+    if (clockHandler && event.data[0] === MIDI_MESSAGE.CLOCK) {
       clockHandler(self.songposition);
       self.songposition++;
     }
-    if (event.data[0] === 0xfa) {
+    if (event.data[0] === MIDI_MESSAGE.START) {
       // start
       self.songposition = 0;
     }
@@ -387,7 +405,7 @@ MIDI.prototype.panic = function() {
   if (this.hasOutput()) {
     for (var i = 0; i < 16; i++) {
       const msg = new Uint8Array(3);
-      msg[0] = 0xb0 + i;
+      msg[0] = MIDI_MESSAGE.CONTROLLER + i;
       msg[2] = 0;
       msg[1] = 120; // all sound off
       this.deviceOut.send(msg);
@@ -406,9 +424,9 @@ MIDI.prototype.send = function(msg) {
   }
 };
 
-const clockMSG = Uint8Array.from([0xf8]);
-const startMSG = Uint8Array.from([0xfa]);
-const stopMSG = Uint8Array.from([0xfc]);
+const clockMSG = Uint8Array.from([MIDI_MESSAGE.CLOCK]);
+const startMSG = Uint8Array.from([MIDI_MESSAGE.START]);
+const stopMSG = Uint8Array.from([MIDI_MESSAGE.STOP]);
 
 MIDI.prototype.sendClock = function() {
   if (this.hasOutput()) {
