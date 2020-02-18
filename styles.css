@@ -176,9 +176,10 @@ select#midiInChannel {
 }
 
 .zone.disabled {
+  /*
   background-color: #444 !important;
-  color: #000;
-  opacity: 0.3;
+  color: #000;  */
+  opacity: 0.6;
 }
 
 .channels {
@@ -206,6 +207,14 @@ select#midiInChannel {
   background-color: rgba(0, 0, 0, 0.25);
   color: #fff;
 }
+
+.ch.enabled {
+  background-color: rgba(196, 0, 0, 0.4);
+}
+.ch.enabled:hover {
+  background-color: rgba(196, 0, 0, 0.8) !important;
+}
+
 .ch.enabled.selected {
   background-color: rgba(0, 0, 0, 0.1);
 }

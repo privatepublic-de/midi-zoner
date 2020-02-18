@@ -244,8 +244,8 @@ class Zone {
   }
 
   clock(pos) {
-    const remainder = pos % this.arp_ticks;
-    if (remainder === 0) {
+    const tickn = pos % this.arp_ticks;
+    if (tickn === 0) {
       if (this.arp_enabled) {
         this.arp.beat = true;
         let notes;
@@ -256,11 +256,7 @@ class Zone {
         } else {
           notes = Array.from(activelist);
         }
-        if (
-          notes.length > 0 &&
-          this.enabled &&
-          (zones.solocount === 0 || this.solo)
-        ) {
+        if (notes.length > 0 && (zones.solocount === 0 || this.solo)) {
           // send next note
           const repetition = this.arp_repeat && this.arp.repeattrig;
           if (!repetition) {
@@ -314,7 +310,7 @@ class Zone {
         this.arp.repeattrig = !this.arp.repeattrig;
         requestAnimationFrame(this.renderNotes.bind(this));
       }
-    } else if (remainder > this.arp_ticks * this.arp_gatelength) {
+    } else if (tickn > this.arp_ticks * this.arp_gatelength) {
       this.arp.beat = false;
       if (this.arp.lastnote) {
         // send note off
@@ -777,7 +773,10 @@ function updateValuesForZone(index) {
     ).style.backgroundColor = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
   } else {
     DOM.addClass(`#zone${index}`, 'disabled');
-    DOM.element(`#zone${index}`).style.backgroundColor = '';
+    const rgb = hslToRgb(zone.channel / 16, 0.2, 0.2);
+    DOM.element(
+      `#zone${index}`
+    ).style.backgroundColor = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
   }
   [
     'cc',
