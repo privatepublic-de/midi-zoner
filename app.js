@@ -43,7 +43,7 @@ class Zone {
   pitchbend = true;
   arp_enabled = false;
   arp_direction = 0; // 0=UP, 1=DOWN, 2=UP/DOWN, 3=RANDOM, 4=ORDER
-  arp_octaves = 0;
+  _arp_octaves = 0;
   _arp_division = 6;
   arp_ticks = DIV_TICKS[6];
   arp_gatelength = 0.5;
@@ -51,10 +51,10 @@ class Zone {
   arp_velocity = 0; // 0 = as played
   arp_hold = false;
   arp = {
-    holdlist: [],
+    // holdlist: [],
     orderlist: [],
     sortedlist: [],
-    holdcount: 0,
+    // holdcount: 0,
     noteindex: -1,
     inc: 1,
     lastnote: null,
@@ -63,6 +63,7 @@ class Zone {
     beat: false
   };
   activeNotes = [];
+  holdList = [];
   canvasElement = null;
   midi = null;
   dom = {};
@@ -87,7 +88,7 @@ class Zone {
       pitchbend: this.pitchbend,
       arp_enabled: this.arp_enabled,
       arp_direction: this.arp_direction,
-      arp_octaves: this.arp_octaves,
+      arp_octaves: this._arp_octaves,
       arp_division: this._arp_division,
       arp_gatelength: this.arp_gatelength,
       arp_repeat: this.arp_repeat
@@ -103,8 +104,21 @@ class Zone {
     this.arp_ticks = DIV_TICKS[v];
   }
 
+  get arp_octaves() {
+    return this._arp_octaves;
+  }
+
+  set arp_octaves(v) {
+    this._arp_octaves = v;
+    this.notesChanged();
+  }
+
   addNote(note) {
+    if (this.activeNotes.length === 0) {
+      this.holdList = [];
+    }
     this.activeNotes.push(note);
+    this.holdList.push(note);
   }
 
   removeNote(number) {
@@ -193,7 +207,7 @@ class Zone {
 
   notesChanged() {
     this.arp.orderlist = Array.from(this.activeNotes);
-    for (let i = 0; i < this.arp_octaves; i++) {
+    for (let i = 0; i < this._arp_octaves; i++) {
       // add arp octaves
       for (let j = 0; j < this.activeNotes.length; j++) {
         const note = this.activeNotes[j];
@@ -205,17 +219,10 @@ class Zone {
     this.arp.sortedlist = Array.from(this.arp.orderlist).sort(
       (a, b) => a.number - b.number
     );
-    if (this.arp.orderlist.length > 0) {
-      if (
-        this.arp.holdcount == 0 ||
-        this.arp.orderlist.length >= this.arp.holdlist.length
-      ) {
-        this.arp.holdlist = Array.from(
-          this.arp_direction > 2 ? this.arp.orderlist : this.arp.sortedlist
-        );
-      }
-    }
-    this.arp.holdcount = this.arp.orderlist.length;
+    this.arp.sortedHoldList = Array.from(this.holdList).sort(
+      (a, b) => a.number - b.number
+    );
+
     requestAnimationFrame(this.renderNotes.bind(this));
   }
 
@@ -228,7 +235,7 @@ class Zone {
       ctx.fillStyle = this.arp_enabled
         ? 'rgba(0,0,0,.5)'
         : 'rgba(255,255,255,.5)';
-      const list = this.arp_hold ? this.arp.holdlist : this.activeNotes;
+      const list = this.arp_hold ? this.holdList : this.activeNotes;
       for (let i = 0; i < list.length; i++) {
         const number = list[i].number;
         ctx.fillRect((cwidth * number) / 127, 0, 5, 16);
@@ -249,14 +256,16 @@ class Zone {
       if (this.arp_enabled) {
         this.arp.beat = true;
         let notes;
-        const activelist =
-          this.arp_direction > 2 ? this.arp.orderlist : this.arp.sortedlist;
         if (this.arp_hold) {
-          notes = this.arp.holdlist;
+          notes = Array.from(
+            this.arp_direction > 2 ? this.holdList : this.arp.sortedHoldList
+          );
         } else {
-          notes = Array.from(activelist);
+          notes = Array.from(
+            this.arp_direction > 2 ? this.arp.orderlist : this.arp.sortedlist
+          );
         }
-        if (notes.length > 0 && (zones.solocount === 0 || this.solo)) {
+        if (notes.length > 0 /*&& (zones.solocount === 0 || this.solo)*/) {
           // send next note
           const repetition = this.arp_repeat && this.arp.repeattrig;
           if (!repetition) {
