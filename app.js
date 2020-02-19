@@ -1,7 +1,6 @@
 const { ipcRenderer } = require('electron');
-// const objectAssignDeep = require(`object-assign-deep`);
 const MidiClock = require('midi-clock');
-const EventEmitter = require('events');
+const DragZone = require('./modules/dragzone');
 
 const NOTENAMES = [
   'C',
@@ -29,6 +28,7 @@ class Note {
 }
 
 class Zone {
+  static solocount = 0;
   channel = 0; // 0-based
   enabled = true;
   solo = false;
@@ -137,7 +137,7 @@ class Zone {
   }
 
   handleMidi(message, data, midiOutDevice) {
-    if (this.enabled && (zones.solocount === 0 || this.solo)) {
+    if (this.enabled && (Zone.solocount === 0 || this.solo)) {
       switch (message) {
         case MIDI_MESSAGE.NOTE_OFF: // note off
         case MIDI_MESSAGE.NOTE_ON: // note on
@@ -341,109 +341,12 @@ class Zone {
 
 const zones = {
   list: [],
-  solocount: 0,
+  // solocount: 0,
   inChannel: 0,
   inChannelExclusive: true,
   sendClock: false,
   tempo: 120
 };
-
-class DragZone {
-  index = null;
-  srcdim = null;
-  moveHandler = null;
-  dropHandler = null;
-  hasmoved = false;
-  zoneElement = null;
-  startY = 0;
-
-  constructor(index, event) {
-    this.zoneElement = DOM.element(`#zone${index}`);
-    this.index = index;
-    this.startY = 0;
-    this.srcdim = {
-      top: this.zoneElement.offsetTop,
-      left: this.zoneElement.offsetLeft,
-      width: this.zoneElement.offsetWidth,
-      height: this.zoneElement.offsetHeight,
-      offsetTop: 24
-    };
-    DOM.addClass(this.zoneElement, 'dragged');
-    this.moveHandler = this.move.bind(this);
-    this.dropHandler = this.drop.bind(this);
-    this.startY = event.screenY;
-    this.zoneElement.style.top = `${this.srcdim.top}px`;
-    this.zoneElement.style.left = `${this.srcdim.left}px`;
-    this.zoneElement.style.width = `${this.srcdim.width}px`;
-    this.zoneElement.style.height = `${this.srcdim.height}px`;
-    document.body.addEventListener('mousemove', this.moveHandler, true);
-    document.body.addEventListener('mouseup', this.dropHandler, true);
-    this.findDropElement(event.screenY);
-    setTimeout(() => {
-      DOM.addClass('#zones', 'dragging');
-    }, 100);
-  }
-
-  move(ev) {
-    this.findDropElement(ev.screenY);
-    this.hasmoved = true;
-  }
-
-  drop(ev) {
-    let targetIndex = this.findDropElement(ev.screenY);
-    document.body.removeEventListener('mousemove', this.moveHandler, true);
-    document.body.removeEventListener('mouseup', this.dropHandler, true);
-    DOM.removeClass('#zones', 'dragging');
-    DOM.all(`.zone`).forEach(el => {
-      el.style.marginTop = '';
-      el.style.marginBottom = '';
-    });
-    this.zoneElement.style.display = 'block';
-    if (this.hasmoved) {
-      const me = zones.list.splice(this.index, 1);
-      if (targetIndex > this.index) {
-        targetIndex--;
-      }
-      zones.list.splice(targetIndex, 0, me[0]);
-      saveZones();
-      renderZones();
-    }
-  }
-
-  findDropElement(screenY) {
-    const y = this.srcdim.top + (screenY - this.startY);
-    this.zoneElement.style.top = `${y - this.srcdim.offsetTop}px`;
-    let found = -1;
-    let z;
-    let nearestTop = window.innerHeight;
-    let nearestTopIndex;
-    for (let i = 0; i < zones.list.length; i++) {
-      if (i === this.index) {
-        continue;
-      }
-      z = DOM.element(`#zone${i}`);
-      const dist = Math.abs(y + this.srcdim.height / 2 - z.offsetTop);
-      if (dist < nearestTop) {
-        nearestTop = dist;
-        nearestTopIndex = i;
-      }
-    }
-    DOM.all(`.zone`).forEach(el => {
-      el.style.marginTop = '';
-      el.style.marginBottom = '';
-    });
-    if (nearestTopIndex === zones.list.length - 1 && y > z.offsetTop) {
-      DOM.element(`#zone${nearestTopIndex}`).style.marginBottom = `${this.srcdim
-        .height + 48}px`;
-      found = nearestTopIndex + 1;
-    } else {
-      DOM.element(`#zone${nearestTopIndex}`).style.marginTop = `${this.srcdim
-        .height + 48}px`;
-      found = nearestTopIndex;
-    }
-    return found;
-  }
-}
 
 function saveZones() {
   localStorage.setItem('zones', JSON.stringify(zones));
@@ -533,7 +436,7 @@ function actionHandler(ev) {
       zone.enabled = !zone.enabled;
       if (zone.solo) {
         zone.solo = false;
-        zones.solocount--;
+        Zone.solocount--;
         updateValuesForAllZones();
       } else {
         updateValuesForZone(zoneindex);
@@ -543,9 +446,9 @@ function actionHandler(ev) {
       if (zone.enabled) {
         zone.solo = !zone.solo;
         if (zone.solo) {
-          zones.solocount++;
+          Zone.solocount++;
         } else {
-          zones.solocount--;
+          Zone.solocount--;
         }
         updateValuesForAllZones();
       }
@@ -774,7 +677,7 @@ function updateValuesForZone(index) {
   const zone = zones.list[index];
   DOM.removeClass(`#zone${index} *[data-action]`, 'selected');
   DOM.addClass(`#zone${index} .no${zone.channel}`, 'selected');
-  if (zone.enabled && (zones.solocount === 0 || zone.solo)) {
+  if (zone.enabled && (Zone.solocount === 0 || zone.solo)) {
     DOM.removeClass(`#zone${index}`, 'disabled');
     const rgb = hslToRgb(zone.channel / 16, 0.4, 0.3);
     DOM.element(
@@ -835,7 +738,7 @@ function allSoloOff() {
     const zone = zones.list[i];
     zone.solo = false;
   }
-  zones.solocount = 0;
+  Zone.solocount = 0;
   updateValuesForAllZones();
   saveZones();
 }
