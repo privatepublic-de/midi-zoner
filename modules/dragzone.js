@@ -6,8 +6,10 @@ module.exports = class DragZone {
   hasmoved = false;
   zoneElement = null;
   startY = 0;
+  finishedCallback = null;
 
-  constructor(index, event) {
+  constructor(index, startMouseEvent, finishedCallback) {
+    this.finishedCallback = finishedCallback;
     this.zoneElement = DOM.element(`#zone${index}`);
     this.index = index;
     this.startY = 0;
@@ -21,14 +23,14 @@ module.exports = class DragZone {
     DOM.addClass(this.zoneElement, 'dragged');
     this.moveHandler = this.move.bind(this);
     this.dropHandler = this.drop.bind(this);
-    this.startY = event.screenY;
+    this.startY = startMouseEvent.screenY;
     this.zoneElement.style.top = `${this.srcdim.top}px`;
     this.zoneElement.style.left = `${this.srcdim.left}px`;
     this.zoneElement.style.width = `${this.srcdim.width}px`;
     this.zoneElement.style.height = `${this.srcdim.height}px`;
     document.body.addEventListener('mousemove', this.moveHandler, true);
     document.body.addEventListener('mouseup', this.dropHandler, true);
-    this.findDropElement(event.screenY);
+    this.findDropElement(startMouseEvent.screenY);
     setTimeout(() => {
       DOM.addClass('#zones', 'dragging');
     }, 100);
@@ -55,8 +57,7 @@ module.exports = class DragZone {
         targetIndex--;
       }
       zones.list.splice(targetIndex, 0, me[0]);
-      saveZones();
-      renderZones();
+      this.finishedCallback();
     }
   }
 

@@ -608,7 +608,10 @@ function renderZones() {
     updateValuesForZone(index);
     const dragHandler = DOM.element(`#zone${index} .dragzone`);
     dragHandler.addEventListener('mousedown', ev => {
-      new DragZone(index, ev);
+      new DragZone(index, ev, () => {
+        saveZones();
+        renderZones();
+      });
     });
   });
   DOM.all('*[data-action]').forEach(e => {
