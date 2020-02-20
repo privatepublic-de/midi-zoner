@@ -22,10 +22,10 @@ module.exports = class Zone {
   arp_velocity = 0; // 0 = as played
   arp_hold = false;
   arp = {
-    // holdlist: [],
     orderlist: [],
     sortedlist: [],
-    // holdcount: 0,
+    holdlist: [],
+    sortedHoldList: [],
     noteindex: -1,
     inc: 1,
     lastnote: null,
@@ -143,13 +143,13 @@ module.exports = class Zone {
                 midiOutDevice.send(outevent);
               }
             }
+            if (message === MIDI_MESSAGE.NOTE_ON) {
+              this.addNote(new Note(key, velo));
+            } else {
+              this.removeNote(key);
+            }
+            this.notesChanged();
           }
-          if (message === MIDI_MESSAGE.NOTE_ON) {
-            this.addNote(new Note(key, velo));
-          } else {
-            this.removeNote(key);
-          }
-          this.notesChanged();
           break;
         case MIDI_MESSAGE.CONTROLLER: // cc
           if (data[1] == 0x40 && !this.sustain) {
@@ -193,6 +193,7 @@ module.exports = class Zone {
 
   notesChanged() {
     this.arp.orderlist = Array.from(this.activeNotes);
+    this.arp.holdlist = Array.from(this.holdList);
     for (let i = 0; i < this._arp_octaves; i++) {
       // add arp octaves
       for (let j = 0; j < this.activeNotes.length; j++) {
@@ -201,11 +202,15 @@ module.exports = class Zone {
           new Note(note.number + 12 * (i + 1), note.velo)
         );
       }
+      for (let j = 0; j < this.holdList.length; j++) {
+        const note = this.holdList[j];
+        this.arp.holdlist.push(new Note(note.number + 12 * (i + 1), note.velo));
+      }
     }
     this.arp.sortedlist = Array.from(this.arp.orderlist).sort(
       (a, b) => a.number - b.number
     );
-    this.arp.sortedHoldList = Array.from(this.holdList).sort(
+    this.arp.sortedHoldList = Array.from(this.arp.holdlist).sort(
       (a, b) => a.number - b.number
     );
 
@@ -244,7 +249,7 @@ module.exports = class Zone {
         let notes;
         if (this.arp_hold) {
           notes = Array.from(
-            this.arp_direction > 2 ? this.holdList : this.arp.sortedHoldList
+            this.arp_direction > 2 ? this.arp.holdlist : this.arp.sortedHoldList
           );
         } else {
           notes = Array.from(
