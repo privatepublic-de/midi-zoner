@@ -365,7 +365,7 @@ function updateValuesForZone(index) {
   DOM.addClass(`#zone${index} .no${zone.channel}`, 'selected');
   if (zone.enabled && (Zone.solocount === 0 || zone.solo)) {
     DOM.removeClass(`#zone${index}`, 'disabled');
-    const rgb = hslToRgb(zone.channel / 16, 0.4, 0.3);
+    const rgb = hslToRgb(zone.channel / 16, 0.5, 0.3);
     DOM.element(
       `#zone${index}`
     ).style.backgroundColor = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
