@@ -356,7 +356,6 @@ class Zone {
 
 const zones = {
   list: [],
-  // solocount: 0,
   inChannel: 0,
   inChannelExclusive: true,
   sendClock: false,
@@ -463,6 +462,7 @@ function actionHandler(ev) {
       }
       break;
     case 'delete':
+      zones.list[zoneindex].solo = false;
       zones.list.splice(zoneindex, 1);
       renderZones();
       saveZones();
