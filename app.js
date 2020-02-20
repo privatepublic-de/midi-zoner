@@ -31,7 +31,7 @@ class Zone {
   static solocount = 0;
   channel = 0; // 0-based
   enabled = true;
-  solo = false;
+  _solo = false;
   programchange = false;
   low = 0;
   high = 127;
@@ -111,6 +111,21 @@ class Zone {
   set arp_octaves(v) {
     this._arp_octaves = v;
     this.notesChanged();
+  }
+
+  get solo() {
+    return this._solo;
+  }
+
+  set solo(v) {
+    if (this._solo !== v) {
+      if (this._solo) {
+        Zone.solocount--;
+      } else {
+        Zone.solocount++;
+      }
+      this._solo = v;
+    }
   }
 
   addNote(note) {
@@ -436,7 +451,6 @@ function actionHandler(ev) {
       zone.enabled = !zone.enabled;
       if (zone.solo) {
         zone.solo = false;
-        Zone.solocount--;
         updateValuesForAllZones();
       } else {
         updateValuesForZone(zoneindex);
@@ -445,11 +459,6 @@ function actionHandler(ev) {
     case 'solo':
       if (zone.enabled) {
         zone.solo = !zone.solo;
-        if (zone.solo) {
-          Zone.solocount++;
-        } else {
-          Zone.solocount--;
-        }
         updateValuesForAllZones();
       }
       break;
@@ -738,18 +747,15 @@ function allMuteOff() {
 
 function allSoloOff() {
   for (var i = 0; i < zones.list.length; i++) {
-    const zone = zones.list[i];
-    zone.solo = false;
+    zones.list[i].solo = false;
   }
-  Zone.solocount = 0;
   updateValuesForAllZones();
   saveZones();
 }
 
 function allHoldOff() {
   for (var i = 0; i < zones.list.length; i++) {
-    const zone = zones.list[i];
-    zone.arp_hold = false;
+    zones.list[i].arp_hold = false;
   }
   updateValuesForAllZones();
   saveZones();
