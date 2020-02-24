@@ -17,8 +17,8 @@
         <a id="allMuteOff" class="lightButton" title="Un-mute all">M</a
         ><a id="allSoloOff" class="lightButton" title="Un-solo all">S</a>
       </div>
-      <div>
-        <label for="midiInDeviceId">MIDI In:</label>
+      <div class="sec">
+        <label for="midiInDeviceId">In:</label>
         <select id="midiInDeviceId" tabindex="-1"
           ><option>(No devices)</option></select
         >
@@ -40,29 +40,35 @@
           <option>Ch 15</option>
           <option>Ch 16</option>
         </select>
-        <input id="inChannelExclusive" type="checkbox" />
-        <label
-          for="inChannelExclusive"
-          title="Messages from other channels are ignored, not forwarded"
-          >Exclusive</label
-        >
+        <br />
         <label for="midiOutDeviceId" tabindex="-1">Out:</label>
         <select id="midiOutDeviceId" tabindex="-1"
           ><option>(No devices)</option></select
         >
         <button id="midiPanic" class="lightButton">Panic</button>
       </div>
-      <div style="margin-top: .5em">
-        Clock:
-        <select id="midiClockInDeviceId" tabindex="-1"
-          ><option value="*INTERNAL*">INTERNAL</option></select
+      <div class="sec">
+        <input id="inChannelExclusive" type="checkbox" />
+        <label
+          for="inChannelExclusive"
+          title="Messages from other channels are ignored, not forwarded"
+          >Exclusive</label
         >
-        <label>BPM: <span id="displayBPM">130</span></label>
-        <span id="startClockButton" class="toggle"></span>
+        <br />
         <input id="sendClock" type="checkbox" />
         <label for="sendClock" title="Send internal clock to MIDI-Out device"
           >Send clock</label
         >
+      </div>
+      <div class="sec">
+        <label for="midiClockInDeviceId">Clock:</label>
+        <select id="midiClockInDeviceId" tabindex="-1"
+          ><option value="*INTERNAL*">INTERNAL</option></select
+        >
+        <br />
+        <label>BPM:</label>
+        <span id="displayBPM">130</span>
+        <span id="startClockButton" class="toggle"></span>
       </div>
     </section>
     <div class="padded">

@@ -47,8 +47,15 @@ select {
   box-shadow: 0 2px 5px #272422;
 }
 
-#midisettings label {
+.sec {
+  display: inline-block;
+  text-align: left;
   margin-left: 1em;
+}
+
+#midisettings label {
+  min-width: 3em;
+  display: inline-block;
 }
 
 #midisettings select {
@@ -101,10 +108,10 @@ select#midiInChannel {
 
 #displayBPM {
   display: inline-block;
+  text-align: center;
   background-color: rgba(0, 0, 0, 0.25);
   border: 1px solid rgba(0, 0, 0, 0.4);
   border-radius: 4px;
-  font-size: 1.2em;
   width: 4em;
   cursor: col-resize;
   user-select: none;
@@ -150,6 +157,7 @@ select#midiInChannel {
   border-radius: 8px;
   width: 100%;
   color: #fff;
+  box-shadow: 0 0 10px #000;
 }
 
 .zone.dragged {
