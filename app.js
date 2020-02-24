@@ -456,13 +456,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
           }
         });
-
         clock.setTempo(zones.tempo);
-        if (zones.sendClock) {
-          console.log('Starting internal clock send');
-          midi.sendStart();
-        }
-        clock.start();
         renderZones();
         function createNewZone() {
           zones.list.push(new Zone(midi));
@@ -470,7 +464,6 @@ document.addEventListener('DOMContentLoaded', function() {
           renderZones();
           DOM.element('#tools').scrollIntoView();
         }
-
         window.addEventListener('resize', () => {
           requestAnimationFrame(renderMarkersForAllZones);
         });
@@ -518,8 +511,9 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         });
 
-        DOM.element('#sendClock').checked = zones.sendClock;
-        DOM.element('#sendClock').addEventListener('change', e => {
+        const sendClockCheck = DOM.element('#sendClock');
+        sendClockCheck.checked = zones.sendClock;
+        sendClockCheck.addEventListener('change', e => {
           zones.sendClock = e.target.checked;
           if (zones.sendClock) {
             clock.start();
@@ -532,6 +526,31 @@ document.addEventListener('DOMContentLoaded', function() {
             }
           }
           saveZones();
+        });
+        const startClockButton = DOM.element('#startClockButton');
+        let clockRunning = false;
+        startClockButton.addEventListener('click', () => {
+          if (!midi.deviceInClock) {
+            clockRunning = !clockRunning;
+            if (clockRunning) {
+              startClockButton.classList.add('selected');
+              if (zones.sendClock) {
+                console.log('Starting internal clock send');
+                midi.sendStart();
+              }
+              clock.start();
+            } else {
+              startClockButton.classList.remove('selected');
+              if (zones.sendClock) {
+                console.log('Starting internal clock send');
+                midi.sendStop();
+              }
+              clock.stop();
+              zones.list.forEach(z => {
+                z.arpNoteOff();
+              });
+            }
+          }
         });
       } else {
         console.log(message);

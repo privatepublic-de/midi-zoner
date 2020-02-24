@@ -358,19 +358,23 @@ module.exports = class Zone {
       }
     } else if (tickn > this.arp_ticks * this.arp_gatelength) {
       this.arp.beat = false;
-      if (this.arp.lastnote) {
-        // send note off
-        const note = this.arp.lastnote;
-        this.midi.send(
-          Uint8Array.from([
-            MIDI_MESSAGE.NOTE_OFF + this.channel,
-            note.number,
-            note.velo
-          ])
-        );
-        this.arp.lastnote = null;
-        this.arp.repeatnote = note;
-      }
+      this.arpNoteOff();
+    }
+  }
+
+  arpNoteOff() {
+    if (this.arp.lastnote) {
+      // send note off
+      const note = this.arp.lastnote;
+      this.midi.send(
+        Uint8Array.from([
+          MIDI_MESSAGE.NOTE_OFF + this.channel,
+          note.number,
+          note.velo
+        ])
+      );
+      this.arp.lastnote = null;
+      this.arp.repeatnote = note;
       requestAnimationFrame(this.renderNotes.bind(this));
     }
   }

@@ -65,21 +65,19 @@ select#midiInChannel {
   width: auto;
 }
 
-#midisettings button,
-#midisettings a {
+.lightButton {
   display: inline-block;
   border: none;
   background: #464048;
   color: #777;
   cursor: pointer;
   border-radius: 4px;
-}
-
-.lightButton {
-  background: #555;
-  color: #333;
-  width: 38px;
+  min-width: 38px;
   text-align: center;
+}
+.lightButton:hover {
+  background: #777;
+  color: #000;
 }
 
 #midisettings #allMuteOff {
@@ -276,11 +274,13 @@ select#midiInChannel {
 
 .check,
 .val,
+.toggle,
 .drop-down {
   margin-right: 1em;
 }
 
-.check {
+.check,
+.toggle {
   display: inline-block;
   padding: 2px 8px;
   border-radius: 5px;
@@ -449,6 +449,24 @@ input[type='checkbox'] + label::before {
   vertical-align: middle;
 }
 input[type='checkbox']:checked + label::before {
-  box-shadow: inset 0px 0px 0px 3px #333;
-  background-color: #888;
+  content: '✔';
+}
+
+.toggle {
+  margin-left: 1em;
+}
+
+.toggle:hover {
+  background-color: rgba(0, 0, 0, 0.25) !important;
+}
+
+.toggle.selected {
+  background-color: rgba(196, 0, 0, 0.4);
+}
+
+#startClockButton::before {
+  content: '▶';
+}
+#startClockButton.selected::before {
+  content: '◼';
 }

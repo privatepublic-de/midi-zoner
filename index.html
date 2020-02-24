@@ -50,7 +50,7 @@
         <select id="midiOutDeviceId" tabindex="-1"
           ><option>(No devices)</option></select
         >
-        <button id="midiPanic">Panic</button>
+        <button id="midiPanic" class="lightButton">Panic</button>
       </div>
       <div style="margin-top: .5em">
         Clock:
@@ -58,6 +58,7 @@
           ><option value="*INTERNAL*">INTERNAL</option></select
         >
         <label>BPM: <span id="displayBPM">130</span></label>
+        <span id="startClockButton" class="toggle"></span>
         <input id="sendClock" type="checkbox" />
         <label for="sendClock" title="Send internal clock to MIDI-Out device"
           >Send clock</label
