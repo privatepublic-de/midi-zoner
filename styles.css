@@ -39,7 +39,6 @@ select {
   top: 0;
   left: 0;
   right: 0;
-  text-align: center;
   background-color: #333;
   padding: 5px;
   font-size: 0.85em;
@@ -47,15 +46,21 @@ select {
   box-shadow: 0 2px 5px #272422;
 }
 
-.sec {
-  display: inline-block;
-  text-align: left;
-  margin-left: 1em;
+#midisettings table {
+  margin: 0 auto;
+  border-spacing: 0;
 }
 
-#midisettings label {
-  min-width: 3em;
-  display: inline-block;
+#midisettings td {
+  padding: 2px 4px 2px 8px;
+}
+
+.lb {
+  border-left: 1px solid #666;
+}
+
+.tb {
+  border-top: 1px solid #666;
 }
 
 #midisettings select {

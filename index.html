@@ -17,59 +17,74 @@
         <a id="allMuteOff" class="lightButton" title="Un-mute all">M</a
         ><a id="allSoloOff" class="lightButton" title="Un-solo all">S</a>
       </div>
-      <div class="sec">
-        <label for="midiInDeviceId">In:</label>
-        <select id="midiInDeviceId" tabindex="-1"
-          ><option>(No devices)</option></select
-        >
-        <select id="midiInChannel" tabindex="-1">
-          <option>Ch 1</option>
-          <option>Ch 2</option>
-          <option>Ch 3</option>
-          <option>Ch 4</option>
-          <option>Ch 5</option>
-          <option>Ch 6</option>
-          <option>Ch 7</option>
-          <option>Ch 8</option>
-          <option>Ch 9</option>
-          <option>Ch 10</option>
-          <option>Ch 11</option>
-          <option>Ch 12</option>
-          <option>Ch 13</option>
-          <option>Ch 14</option>
-          <option>Ch 15</option>
-          <option>Ch 16</option>
-        </select>
-        <br />
-        <label for="midiOutDeviceId" tabindex="-1">Out:</label>
-        <select id="midiOutDeviceId" tabindex="-1"
-          ><option>(No devices)</option></select
-        >
-        <button id="midiPanic" class="lightButton">Panic</button>
-      </div>
-      <div class="sec">
-        <input id="inChannelExclusive" type="checkbox" />
-        <label
-          for="inChannelExclusive"
-          title="Messages from other channels are ignored, not forwarded"
-          >Exclusive</label
-        >
-        <br />
-        <input id="sendClock" type="checkbox" />
-        <label for="sendClock" title="Send internal clock to MIDI-Out device"
-          >Send clock</label
-        >
-      </div>
-      <div class="sec">
-        <label for="midiClockInDeviceId">Clock:</label>
-        <select id="midiClockInDeviceId" tabindex="-1"
-          ><option value="*INTERNAL*">INTERNAL</option></select
-        >
-        <br />
-        <label>BPM:</label>
-        <span id="displayBPM">130</span>
-        <span id="startClockButton" class="toggle"></span>
-      </div>
+      <table>
+        <tr>
+          <td><label for="midiInDeviceId">In:</label></td>
+          <td>
+            <select id="midiInDeviceId" tabindex="-1"
+              ><option>(No devices)</option></select
+            >
+          </td>
+          <td>
+            <select id="midiInChannel" tabindex="-1">
+              <option>Ch 1</option>
+              <option>Ch 2</option>
+              <option>Ch 3</option>
+              <option>Ch 4</option>
+              <option>Ch 5</option>
+              <option>Ch 6</option>
+              <option>Ch 7</option>
+              <option>Ch 8</option>
+              <option>Ch 9</option>
+              <option>Ch 10</option>
+              <option>Ch 11</option>
+              <option>Ch 12</option>
+              <option>Ch 13</option>
+              <option>Ch 14</option>
+              <option>Ch 15</option>
+              <option>Ch 16</option>
+            </select>
+          </td>
+          <td>
+            <input id="inChannelExclusive" type="checkbox" />
+            <label
+              for="inChannelExclusive"
+              title="Messages from other channels are ignored, not forwarded"
+              >Exclusive</label
+            >
+          </td>
+          <td class="lb"><label for="midiClockInDeviceId">Clock:</label></td>
+          <td>
+            <select id="midiClockInDeviceId" tabindex="-1"
+              ><option value="*INTERNAL*">INTERNAL</option></select
+            >
+          </td>
+        </tr>
+        <tr>
+          <td><label for="midiOutDeviceId" tabindex="-1">Out:</label></td>
+          <td>
+            <select id="midiOutDeviceId" tabindex="-1"
+              ><option>(No devices)</option></select
+            >
+          </td>
+          <td>
+            <button id="midiPanic" class="lightButton">Panic</button>
+          </td>
+          <td class="lb tb">
+            <input id="sendClock" type="checkbox" />
+            <label
+              for="sendClock"
+              title="Send internal clock to MIDI-Out device"
+              >Send clock</label
+            >
+          </td>
+          <td><label>BPM:</label></td>
+          <td>
+            <span id="displayBPM">130</span
+            ><span id="startClockButton" class="toggle"></span>
+          </td>
+        </tr>
+      </table>
     </section>
     <div class="padded">
       <section id="zones">
