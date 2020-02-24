@@ -17,16 +17,6 @@ const NOTENAMES = [
   'A#',
   'B'
 ];
-const DIV_TICKS = [96, 72, 64, 48, 36, 32, 24, 18, 16, 12, 9, 8, 6, 4, 3]; // 24ppq
-
-class Note {
-  number = 0;
-  velo = 0;
-  constructor(number, velo) {
-    this.number = number;
-    this.velo = velo;
-  }
-}
 
 const zones = {
   list: [],
@@ -117,6 +107,7 @@ function actionHandler(ev) {
     case 'arp_direction':
     case 'arp_octaves':
     case 'arp_division':
+    case 'arp_probability':
       zone[params[1]] = e.selectedIndex;
       updateValuesForZone(zoneindex);
       break;
@@ -139,7 +130,6 @@ function actionHandler(ev) {
       zones.list[zoneindex].solo = false;
       zones.list.splice(zoneindex, 1);
       renderZones();
-      saveZones();
       break;
   }
   saveZones();
@@ -279,6 +269,18 @@ function renderZones() {
                   </select>
                 </div>
                 <div class="check arp_repeat" data-action="${index}:arp_repeat">Repeat</div>
+                <div class="drop-down">
+                  <select class="arp_probability" data-change="${index}:arp_probability">
+                    <option>100</option>
+                    <option>75</option>
+                    <option>66</option>
+                    <option>50</option>
+                    <option>33</option>
+                    <option>25</option>
+                    <option>12</option>
+                  </select>
+                  %
+                </div>
             </div>
         </section>`;
     DOM.addHTML('#zones', 'beforeend', html);
@@ -371,7 +373,7 @@ function updateValuesForZone(index) {
     ).style.backgroundColor = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
   } else {
     DOM.addClass(`#zone${index}`, 'disabled');
-    const rgb = hslToRgb(zone.channel / 16, 0.2, 0.2);
+    const rgb = hslToRgb(zone.channel / 16, 0.3, 0.2);
     DOM.element(
       `#zone${index}`
     ).style.backgroundColor = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
@@ -393,10 +395,11 @@ function updateValuesForZone(index) {
       DOM.addClass(`#zone${index} .${p}`, 'selected');
     }
   });
-  ['arp_direction', 'arp_division', 'arp_octaves'].forEach(p => {
-    DOM.element(`#zone${index} .${p}`).selectedIndex = zone[p];
-  });
-
+  ['arp_direction', 'arp_division', 'arp_octaves', 'arp_probability'].forEach(
+    p => {
+      DOM.element(`#zone${index} .${p}`).selectedIndex = zone[p];
+    }
+  );
   if (zone.arp_enabled) {
     DOM.addClass(`#zone${index}`, 'arp-enabled');
   } else {
@@ -457,9 +460,9 @@ document.addEventListener('DOMContentLoaded', function() {
         clock.setTempo(zones.tempo);
         if (zones.sendClock) {
           console.log('Starting internal clock send');
-          clock.start();
           midi.sendStart();
         }
+        clock.start();
         renderZones();
         function createNewZone() {
           zones.list.push(new Zone(midi));

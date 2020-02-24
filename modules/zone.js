@@ -1,3 +1,24 @@
+const DIV_TICKS = [96, 72, 64, 48, 36, 32, 24, 18, 16, 12, 9, 8, 6, 4, 3]; // 24ppq
+const PROBABILITIES = [1, 0.75, 0.66, 0.5, 0.33, 0.25, 0.12];
+
+class Note {
+  number = 0;
+  velo = 0;
+  constructor(number, velo) {
+    this.number = number;
+    this.velo = velo;
+  }
+}
+
+class MidiNote {
+  number = 0;
+  channel = 0;
+  constructor(number, channel) {
+    this.number = number;
+    this.channel = channel;
+  }
+}
+
 module.exports = class Zone {
   static solocount = 0;
   channel = 0; // 0-based
@@ -19,6 +40,7 @@ module.exports = class Zone {
   arp_ticks = DIV_TICKS[6];
   arp_gatelength = 0.5;
   arp_repeat = 0;
+  arp_probability = 0;
   arp_velocity = 0; // 0 = as played
   arp_hold = false;
   arp = {
@@ -34,6 +56,7 @@ module.exports = class Zone {
     beat: false
   };
   activeNotes = [];
+  midiActiveNotes = [];
   holdList = [];
   canvasElement = null;
   midi = null;
@@ -62,7 +85,8 @@ module.exports = class Zone {
       arp_octaves: this._arp_octaves,
       arp_division: this._arp_division,
       arp_gatelength: this.arp_gatelength,
-      arp_repeat: this.arp_repeat
+      arp_repeat: this.arp_repeat,
+      arp_probability: this.arp_probability
     };
   }
 
@@ -128,6 +152,7 @@ module.exports = class Zone {
         case MIDI_MESSAGE.NOTE_OFF: // note off
         case MIDI_MESSAGE.NOTE_ON: // note on
           let key = data[1];
+          const srcKey = key;
           let velo = data[2];
           if (key >= this.low && key <= this.high) {
             key = key + this.octave * 12;
@@ -135,18 +160,35 @@ module.exports = class Zone {
               if (this.fixedvel && velo > 0) {
                 velo = 127;
               }
-              if (!this.arp_enabled) {
-                const outevent = new Uint8Array(data);
-                outevent[0] = message + this.channel;
-                outevent[1] = key;
-                outevent[2] = velo;
-                midiOutDevice.send(outevent);
+
+              const outevent = new Uint8Array(data);
+              if (message == MIDI_MESSAGE.NOTE_ON) {
+                if (!this.arp_enabled) {
+                  outevent[0] = message + this.channel;
+                  outevent[1] = key;
+                  outevent[2] = velo;
+                  this.midiActiveNotes[srcKey] = new MidiNote(
+                    key,
+                    this.channel
+                  );
+                  midiOutDevice.send(outevent);
+                }
+                this.addNote(new Note(key, velo));
+              } else {
+                const srcNote = this.midiActiveNotes[srcKey];
+                if (srcNote) {
+                  if (!this.arp_enabled) {
+                    outevent[0] = message + srcNote.channel;
+                    outevent[1] = srcNote.number;
+                    outevent[2] = velo;
+                    midiOutDevice.send(outevent);
+                    this.midiActiveNotes[srcKey] = null;
+                    this.removeNote(srcNote.number);
+                  }
+                } else {
+                  this.removeNote(key);
+                }
               }
-            }
-            if (message === MIDI_MESSAGE.NOTE_ON) {
-              this.addNote(new Note(key, velo));
-            } else {
-              this.removeNote(key);
             }
             this.notesChanged();
           }
@@ -226,7 +268,7 @@ module.exports = class Zone {
       ctx.fillStyle = this.arp_enabled
         ? 'rgba(0,0,0,.5)'
         : 'rgba(255,255,255,.5)';
-      const list = this.arp_hold ? this.holdList : this.activeNotes;
+      const list = this.arp_hold ? this.arp.holdlist : this.activeNotes;
       for (let i = 0; i < list.length; i++) {
         const number = list[i].number;
         ctx.fillRect((cwidth * number) / 127, 0, 5, 16);
@@ -243,7 +285,11 @@ module.exports = class Zone {
 
   clock(pos) {
     const tickn = pos % this.arp_ticks;
-    if (tickn === 0) {
+    if (
+      tickn === 0 &&
+      (this.arp_probability === 0 ||
+        Math.random() < PROBABILITIES[this.arp_probability])
+    ) {
       if (this.arp_enabled) {
         this.arp.beat = true;
         let notes;

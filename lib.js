@@ -259,14 +259,14 @@ function MIDI(completeHandler, eventHandler, clockHandler) {
     DOM.empty(select_in);
     for (let entry of self.midiAccess.inputs) {
       let input = entry[1];
-      if (!knownPorts[input.id]) {
-        console.log(
-          'MIDI: Input device',
-          input.name,
-          input.manufacturer,
-          input.state
-        );
-      }
+      // if (!knownPorts[input.id]) {
+      //   console.log(
+      //     'MIDI: Input device',
+      //     input.name,
+      //     input.manufacturer,
+      //     input.state
+      //   );
+      // }
       knownPorts[input.id] = true;
       if (input.id == localStorage.getItem('midiInId')) {
         selectedIn = input.id;
@@ -289,14 +289,14 @@ function MIDI(completeHandler, eventHandler, clockHandler) {
     DOM.empty(select_out);
     for (let entry of self.midiAccess.outputs) {
       let output = entry[1];
-      if (!knownPorts[output.id]) {
-        console.log(
-          'MIDI: Output device',
-          output.name,
-          output.manufacturer,
-          output.state
-        );
-      }
+      // if (!knownPorts[output.id]) {
+      //   console.log(
+      //     'MIDI: Output device',
+      //     output.name,
+      //     output.manufacturer,
+      //     output.state
+      //   );
+      // }
       knownPorts[output.id] = true;
       if (output.id == localStorage.getItem('midiOutId')) {
         selectedOut = output.id;

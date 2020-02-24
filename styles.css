@@ -179,7 +179,7 @@ select#midiInChannel {
   /*
   background-color: #444 !important;
   color: #000;  */
-  opacity: 0.6;
+  opacity: 1;
 }
 
 .channels {
