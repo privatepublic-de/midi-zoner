@@ -476,6 +476,11 @@ input[type='checkbox']:checked + label::before {
   background-color: rgba(196, 0, 0, 0.4);
 }
 
+.toggle.selected:hover {
+  background-color: rgba(255, 0, 0, 0.4) !important;
+}
+
+
 #startClockButton::before {
   content: 'Start';
 }
