@@ -39,11 +39,11 @@ select {
   top: 0;
   left: 0;
   right: 0;
-  background-color: #333;
+  background-color: #181818;
   padding: 5px;
   font-size: 0.85em;
   color: rgba(255, 255, 255, 0.67);
-  box-shadow: 0 2px 5px #272422;
+  box-shadow: 0 2px 5px #000;
 }
 
 #midisettings table {
@@ -98,10 +98,6 @@ select#midiInChannel {
 
 #midisettings #allHoldOff {
   margin-bottom: 4px;
-}
-
-#midiPanic {
-  margin-left: 1em;
 }
 
 #midisettings .left {
@@ -460,6 +456,7 @@ input[type='checkbox'] + label::before {
   content: '';
   margin-right: 5px;
   vertical-align: middle;
+  text-align: center;
 }
 input[type='checkbox']:checked + label::before {
   content: '✔';
@@ -479,6 +476,7 @@ input[type='checkbox']:checked + label::before {
 
 #startClockButton::before {
   content: '▶';
+  height: 1em;
 }
 #startClockButton.selected::before {
   content: '◼';
