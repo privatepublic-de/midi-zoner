@@ -42,8 +42,8 @@ select {
   background-color: #181818;
   padding: 5px;
   font-size: 0.85em;
-  color: rgba(255, 255, 255, 0.67);
-  box-shadow: 0 2px 5px #000;
+  color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 2px 5px #272422;
 }
 
 #midisettings table {
@@ -56,11 +56,11 @@ select {
 }
 
 .lb {
-  border-left: 1px solid #666;
+  border-left: 1px solid #333;
 }
 
 .tb {
-  border-top: 1px solid #666;
+  border-top: 1px solid #333;
 }
 
 #midisettings select {
@@ -68,7 +68,7 @@ select {
   border: 1px solid rgba(0, 0, 0, 0.4);
   border-radius: 4px;
   background-color: rgba(0, 0, 0, 0.25);
-  color: rgba(255, 255, 255, 0.67);
+  color: rgba(255, 255, 255, 0.5);
   font-size: 1em;
   padding: 0;
 }
@@ -479,7 +479,6 @@ input[type='checkbox']:checked + label::before {
 .toggle.selected:hover {
   background-color: rgba(255, 0, 0, 0.4) !important;
 }
-
 
 #startClockButton::before {
   content: 'Start';
