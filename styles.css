@@ -450,7 +450,7 @@ input[type='checkbox'] + label::before {
   display: inline-block;
   width: 16px;
   height: 16px;
-  border-radius: 16px;
+  border-radius: 4px;
   border: 1px solid rgba(0, 0, 0, 0.9);
   background-color: #444;
   content: '';
