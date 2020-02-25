@@ -11,6 +11,7 @@ body {
 
 * {
   box-sizing: border-box;
+  user-select: none;
 }
 
 body.dragging * {
@@ -39,11 +40,12 @@ select {
   top: 0;
   left: 0;
   right: 0;
-  background-color: #181818;
+  background-color: #2f2f2f;
   padding: 5px;
   font-size: 0.85em;
   color: rgba(255, 255, 255, 0.5);
   box-shadow: 0 2px 5px #272422;
+  border-bottom: 1px solid #333;
 }
 
 #midisettings table {
@@ -115,7 +117,6 @@ select#midiInChannel {
   border-radius: 4px;
   width: 4em;
   cursor: col-resize;
-  user-select: none;
 }
 
 #displayBPM:hover,
@@ -175,11 +176,6 @@ select#midiInChannel {
 
 .dragging .zone {
   transition: margin 250ms 50ms;
-}
-
-.zone,
-.zone * {
-  user-select: none;
 }
 
 .zone.disabled {
