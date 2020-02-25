@@ -1,4 +1,4 @@
-'use strict';
+const MidiClock = require('midi-clock');
 
 /**
  * DOM utilities
@@ -195,6 +195,8 @@ const MIDI_MESSAGE = {
 function MIDI(completeHandler, eventHandler, clockHandler) {
   console.log('MIDI: Initializing...');
   const self = this;
+  self.internalClock = MidiClock(window.webkitAudioContext);
+  self.sendInternalClock = false;
   self.midiAccess = null;
   self.deviceIdIn = null;
   self.deviceIdInClock = null;
@@ -349,6 +351,15 @@ function MIDI(completeHandler, eventHandler, clockHandler) {
       self.songposition = 0;
     }
   }
+  self.internalClock.on('position', pos => {
+    if (!self.deviceInClock && clockHandler) {
+      clockHandler(self.songposition);
+      if (self.sendInternalClock) {
+        self.sendClock();
+      }
+      self.songposition++;
+    }
+  });
   function selectDevices() {
     self.deviceIdIn = DOM.find(select_in, 'option:checked')[0].value;
     self.deviceIdInClock = DOM.find(select_in_clock, 'option:checked')[0].value;
@@ -444,6 +455,33 @@ MIDI.prototype.sendStop = function() {
   if (this.hasOutput()) {
     this.deviceOut.send(stopMSG);
   }
+};
+
+MIDI.prototype.startClock = function(v) {
+  self.songposition = 0;
+  if (!this.deviceInClock) {
+    this.internalClock.start();
+  }
+  if (this.sendInternalClock) {
+    this.sendStart();
+  }
+};
+
+MIDI.prototype.stopClock = function(v) {
+  if (!this.deviceInClock) {
+    this.internalClock.stop();
+  }
+  if (this.sendInternalClock) {
+    this.sendStop();
+  }
+};
+
+MIDI.prototype.setSendClock = function(v) {
+  this.sendInternalClock = v;
+};
+
+MIDI.prototype.setInternalClockTempo = function(bpm) {
+  this.internalClock.setTempo(bpm);
 };
 
 function toHex(d, pad) {

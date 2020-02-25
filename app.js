@@ -1,5 +1,4 @@
 const { ipcRenderer } = require('electron');
-const MidiClock = require('midi-clock');
 const DragZone = require('./modules/dragzone');
 const Zone = require('./modules/zone');
 
@@ -439,24 +438,12 @@ function allHoldOff() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  const clock = MidiClock(window.webkitAudioContext);
   const midi = new MIDI(
     (midiavailable, message) => {
       if (midiavailable) {
         console.log('MIDI available');
         loadZones(midi);
-        // Clock
-        clock.on('position', pos => {
-          if (!midi.deviceInClock) {
-            if (zones.sendClock) {
-              midi.sendClock();
-            }
-            for (let i = 0; i < zones.list.length; i++) {
-              zones.list[i].clock(pos);
-            }
-          }
-        });
-        clock.setTempo(zones.tempo);
+        midi.setInternalClockTempo(zones.tempo);
         renderZones();
         function createNewZone() {
           zones.list.push(new Zone(midi));
@@ -499,7 +486,7 @@ document.addEventListener('DOMContentLoaded', function() {
               bpmStartTempo + Math.round((e.screenX - bpmStartX) / 2);
             dragTempo = Math.min(Math.max(20, dragTempo), 240);
             zones.tempo = dragTempo;
-            clock.setTempo(zones.tempo);
+            midi.setInternalClockTempo(zones.tempo);
             displayBPM.innerHTML = zones.tempo;
           }
         });
@@ -513,18 +500,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const sendClockCheck = DOM.element('#sendClock');
         sendClockCheck.checked = zones.sendClock;
+        midi.setSendClock(zones.sendClock);
         sendClockCheck.addEventListener('change', e => {
           zones.sendClock = e.target.checked;
-          if (zones.sendClock) {
-            clock.start();
-            if (!midi.deviceInClock) {
-              midi.sendStart();
-            }
-          } else {
-            if (!midi.deviceInClock) {
-              midi.sendStop();
-            }
-          }
+          midi.setSendClock(zones.sendClock);
           saveZones();
         });
         const startClockButton = DOM.element('#startClockButton');
@@ -534,18 +513,10 @@ document.addEventListener('DOMContentLoaded', function() {
             clockRunning = !clockRunning;
             if (clockRunning) {
               startClockButton.classList.add('selected');
-              if (zones.sendClock) {
-                console.log('Starting internal clock send');
-                midi.sendStart();
-              }
-              clock.start();
+              midi.startClock();
             } else {
               startClockButton.classList.remove('selected');
-              if (zones.sendClock) {
-                console.log('Starting internal clock send');
-                midi.sendStop();
-              }
-              clock.stop();
+              midi.stopClock();
               zones.list.forEach(z => {
                 z.arpNoteOff();
               });
