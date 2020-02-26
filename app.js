@@ -1,6 +1,8 @@
 const { ipcRenderer } = require('electron');
+const DOM = require('./modules/domutils');
 const DragZone = require('./modules/dragzone');
 const Zone = require('./modules/zone');
+const { MIDI, MIDI_MESSAGE } = require('./modules/midi');
 
 const NOTENAMES = [
   'C',
@@ -366,13 +368,13 @@ function updateValuesForZone(index) {
   DOM.addClass(`#zone${index} .no${zone.channel}`, 'selected');
   if (zone.enabled && (Zone.solocount === 0 || zone.solo)) {
     DOM.removeClass(`#zone${index}`, 'disabled');
-    const rgb = hslToRgb(zone.channel / 16, 0.5, 0.3);
+    const rgb = DOM.hslToRgb(zone.channel / 16, 0.5, 0.3);
     DOM.element(
       `#zone${index}`
     ).style.backgroundColor = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
   } else {
     DOM.addClass(`#zone${index}`, 'disabled');
-    const rgb = hslToRgb(zone.channel / 16, 0.3, 0.2);
+    const rgb = DOM.hslToRgb(zone.channel / 16, 0.3, 0.2);
     DOM.element(
       `#zone${index}`
     ).style.backgroundColor = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
