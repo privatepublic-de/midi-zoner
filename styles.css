@@ -237,7 +237,7 @@ select#midiInChannel {
 .settings,
 .arp-settings {
   color: rgba(255, 255, 255, 0.3);
-  font-size: 0.85em;
+  font-size: 10px;
 }
 
 .arp-settings {
@@ -253,10 +253,10 @@ select#midiInChannel {
 .arp-settings .arpanchor {
   position: absolute;
   width: 40px;
-  height: 14px;
+  height: 9px;
   left: 18px;
   background-color: rgba(0, 0, 0, 0.15);
-  top: -14px;
+  top: -9px;
 }
 
 .arp-enabled .arp-settings {
@@ -287,7 +287,7 @@ select#midiInChannel {
 .check,
 .toggle {
   display: inline-block;
-  padding: 2px 8px;
+  padding: 1px 4px;
   border-radius: 5px;
   border: 1px solid rgba(0, 0, 0, 0.4);
   cursor: pointer;
@@ -298,7 +298,7 @@ select#midiInChannel {
 }
 
 .check::before {
-  margin: 0 0.5em 0 0;
+  margin: 0 2px 0 0;
   display: inline-block;
   width: 1.2em;
 }
@@ -322,12 +322,12 @@ select#midiInChannel {
 
 .circle {
   display: inline-block;
-  width: 16px;
-  height: 16px;
+  width: 10px;
+  height: 10px;
   border: 1px solid rgba(0, 0, 0, 0.6);
   border-radius: 50%;
   cursor: pointer;
-  vertical-align: top;
+  vertical-align: middle;
   margin: 0 2px;
 }
 
