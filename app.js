@@ -219,7 +219,8 @@ function renderZones() {
                 <canvas id="canvas${index}" width="100" height="16"></canvas>
             </div>
             <div class="settings">
-                <div class="check arp_enabled" data-action="${index}:arp_enabled">ARP</div>
+                <div class="check arp_enabled" data-action="${index}:arp_enabled">ARP
+                <span class="arpanchor"></span></div>
                 <div class="val">Oct 
                     <a class="circle" data-action="${index}:octave:-2"></a> 
                     <a class="circle" data-action="${index}:octave:-1"></a> 
@@ -236,7 +237,6 @@ function renderZones() {
                 <div class="check fixedvel" data-action="${index}:fixedvel">Fixed Vel</div>
             </div>
             <div class="arp-settings">
-                <span class="arpanchor"></span>
                 <div class="check arp_hold" data-action="${index}:arp_hold">Hold</div>
                 <div class="drop-down">
                   <select class="arp_direction" data-change="${index}:arp_direction">
