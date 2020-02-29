@@ -325,8 +325,9 @@ select#midiInChannel {
 
 .percent {
   position: relative;
-  width: 60px;
+  width: 80px;
   text-align: center;
+  padding: 1px 5px 1px 5px;
 }
 .percent::after {
   content: '%';

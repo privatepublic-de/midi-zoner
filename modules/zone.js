@@ -1,5 +1,4 @@
 const DIV_TICKS = [96, 72, 64, 48, 36, 32, 24, 18, 16, 12, 9, 8, 6, 4, 3]; // 24ppq
-const PROBABILITIES = [1, 0.75, 0.66, 0.5, 0.33, 0.25, 0.12];
 
 class Note {
   number = 0;
@@ -41,7 +40,7 @@ module.exports = class Zone {
   arp_ticks = DIV_TICKS[6];
   arp_gatelength = 0.5;
   arp_repeat = 0;
-  arp_probability = 0;
+  arp_probability = 1;
   arp_velocity = 0; // 0 = as played
   arp_hold = false;
   arp = {
@@ -300,11 +299,7 @@ module.exports = class Zone {
       this.arp_ticks * this.arp_gatelength,
       this.arp_ticks - 1
     );
-    if (
-      tickn === 0 &&
-      (this.arp_probability === 0 ||
-        Math.random() < PROBABILITIES[this.arp_probability])
-    ) {
+    if (tickn === 0 && Math.random() < this.arp_probability) {
       if (this.arp_enabled) {
         this.arp.beat = true;
         let notes;

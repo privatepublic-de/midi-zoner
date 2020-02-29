@@ -109,13 +109,13 @@ function actionHandler(ev) {
     case 'arp_direction':
     case 'arp_octaves':
     case 'arp_division':
-    case 'arp_probability':
       zone[params[1]] = e.selectedIndex;
       updateValuesForZone(zoneindex);
       break;
+    case 'arp_probability':
     case 'arp_gatelength':
-      const percent = ev.offsetX / e.offsetWidth;
-      zone[params[1]] = percent;
+      let percent = ev.offsetX / (e.offsetWidth * 0.95);
+      zone[params[1]] = Math.max(0, Math.floor(percent * 24) / 24);
       updateValuesForZone(zoneindex);
       break;
     case 'enabled':
@@ -283,17 +283,9 @@ function renderZones() {
                   <span class="pcnt">50</span>
                 </div>
                 Prob
-                <div class="drop-down">
-                  <select class="arp_probability" data-change="${index}:arp_probability">
-                    <option>100</option>
-                    <option>75</option>
-                    <option>66</option>
-                    <option>50</option>
-                    <option>33</option>
-                    <option>25</option>
-                    <option>12</option>
-                  </select>
-                  %
+                <div class="percent arp_probability" data-action="${index}:arp_probability">
+                  <span class="inner"></span>
+                  <span class="pcnt">50</span>
                 </div>
             </div>
         </section>`;
@@ -410,17 +402,13 @@ function updateValuesForZone(index) {
       DOM.addClass(`#zone${index} .${p}`, 'selected');
     }
   });
-  ['arp_direction', 'arp_division', 'arp_octaves', 'arp_probability'].forEach(
-    p => {
-      DOM.element(`#zone${index} .${p}`).selectedIndex = zone[p];
-    }
-  );
-  ['arp_gatelength'].forEach(p => {
+  ['arp_direction', 'arp_division', 'arp_octaves'].forEach(p => {
+    DOM.element(`#zone${index} .${p}`).selectedIndex = zone[p];
+  });
+  ['arp_gatelength', 'arp_probability'].forEach(p => {
     const pcnt = parseInt(zone[p] * 100);
-    DOM.element(
-      `#zone${index} .percent.arp_gatelength .inner`
-    ).style.width = `${pcnt}%`;
-    DOM.element(`#zone${index} .percent.arp_gatelength .pcnt`).innerHTML = pcnt;
+    DOM.element(`#zone${index} .percent.${p} .inner`).style.width = `${pcnt}%`;
+    DOM.element(`#zone${index} .percent.${p} .pcnt`).innerHTML = pcnt;
   });
   if (zone.arp_enabled) {
     DOM.addClass(`#zone${index}`, 'arp-enabled');
