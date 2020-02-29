@@ -32,6 +32,7 @@ module.exports = class Zone {
   mod = true;
   sustain = true;
   cc = true;
+  at2mod = false;
   pitchbend = true;
   arp_enabled = false;
   arp_direction = 0; // 0=UP, 1=DOWN, 2=UP/DOWN, 3=RANDOM, 4=ORDER
@@ -79,6 +80,7 @@ module.exports = class Zone {
       mod: this.mod,
       sustain: this.sustain,
       cc: this.cc,
+      at2mod: this.at2mod,
       pitchbend: this.pitchbend,
       arp_enabled: this.arp_enabled,
       arp_direction: this.arp_direction,
@@ -224,6 +226,15 @@ module.exports = class Zone {
             midiOutDevice.send(outevent);
           }
           break;
+        case MIDI_MESSAGE.CHANNEL_PRESSURE:
+          if (this.at2mod) {
+            const outevent = new Uint8Array(3);
+            outevent[0] = MIDI_MESSAGE.CONTROLLER + this.channel;
+            outevent[1] = 1;
+            outevent[2] = data[1];
+            midiOutDevice.send(outevent);
+            break;
+          }
         default: {
           const outevent = new Uint8Array(data);
           outevent[0] = message + this.channel;
@@ -285,6 +296,10 @@ module.exports = class Zone {
 
   clock(pos) {
     const tickn = pos % this.arp_ticks;
+    const offtick = Math.min(
+      this.arp_ticks * this.arp_gatelength,
+      this.arp_ticks - 1
+    );
     if (
       tickn === 0 &&
       (this.arp_probability === 0 ||
@@ -356,7 +371,7 @@ module.exports = class Zone {
         this.arp.repeattrig = !this.arp.repeattrig;
         requestAnimationFrame(this.renderNotes.bind(this));
       }
-    } else if (tickn > this.arp_ticks * this.arp_gatelength) {
+    } else if (tickn >= offtick) {
       this.arp.beat = false;
       this.arpNoteOff();
     }

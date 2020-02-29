@@ -96,6 +96,7 @@ function actionHandler(ev) {
     case 'cc':
     case 'sustain':
     case 'mod':
+    case 'at2mod':
     case 'fixedvel':
     case 'pitchbend':
     case 'programchange':
@@ -110,6 +111,11 @@ function actionHandler(ev) {
     case 'arp_division':
     case 'arp_probability':
       zone[params[1]] = e.selectedIndex;
+      updateValuesForZone(zoneindex);
+      break;
+    case 'arp_gatelength':
+      const percent = ev.offsetX / e.offsetWidth;
+      zone[params[1]] = percent;
       updateValuesForZone(zoneindex);
       break;
     case 'enabled':
@@ -222,6 +228,7 @@ function renderZones() {
                     <a class="circle" data-action="${index}:octave:2"></a> 
                 </div>
                 <div class="check mod" data-action="${index}:mod">Mod</div>
+                <div class="check at2mod" data-action="${index}:at2mod">AT&gt;Mod</div>
                 <div class="check sustain" data-action="${index}:sustain">Pedal</div>
                 <div class="check cc" data-action="${index}:cc">CCs</div>
                 <div class="check pitchbend" data-action="${index}:pitchbend">PB</div>
@@ -270,6 +277,12 @@ function renderZones() {
                   </select>
                 </div>
                 <div class="check arp_repeat" data-action="${index}:arp_repeat">Repeat</div>
+                Gate
+                <div class="percent arp_gatelength" data-action="${index}:arp_gatelength">
+                  <span class="inner"></span>
+                  <span class="pcnt">50</span>
+                </div>
+                Prob
                 <div class="drop-down">
                   <select class="arp_probability" data-change="${index}:arp_probability">
                     <option>100</option>
@@ -368,13 +381,13 @@ function updateValuesForZone(index) {
   DOM.addClass(`#zone${index} .no${zone.channel}`, 'selected');
   if (zone.enabled && (Zone.solocount === 0 || zone.solo)) {
     DOM.removeClass(`#zone${index}`, 'disabled');
-    const rgb = DOM.hslToRgb(zone.channel / 16, 0.5, 0.3);
+    const rgb = DOM.hslToRgb(zone.channel / 16, 0.5, 0.4);
     DOM.element(
       `#zone${index}`
     ).style.backgroundColor = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
   } else {
     DOM.addClass(`#zone${index}`, 'disabled');
-    const rgb = DOM.hslToRgb(zone.channel / 16, 0.3, 0.2);
+    const rgb = DOM.hslToRgb(zone.channel / 16, 0.15, 0.3);
     DOM.element(
       `#zone${index}`
     ).style.backgroundColor = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
@@ -382,6 +395,7 @@ function updateValuesForZone(index) {
   [
     'cc',
     'mod',
+    'at2mod',
     'sustain',
     'fixedvel',
     'pitchbend',
@@ -401,6 +415,13 @@ function updateValuesForZone(index) {
       DOM.element(`#zone${index} .${p}`).selectedIndex = zone[p];
     }
   );
+  ['arp_gatelength'].forEach(p => {
+    const pcnt = parseInt(zone[p] * 100);
+    DOM.element(
+      `#zone${index} .percent.arp_gatelength .inner`
+    ).style.width = `${pcnt}%`;
+    DOM.element(`#zone${index} .percent.arp_gatelength .pcnt`).innerHTML = pcnt;
+  });
   if (zone.arp_enabled) {
     DOM.addClass(`#zone${index}`, 'arp-enabled');
   } else {
