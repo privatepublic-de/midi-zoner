@@ -1,5 +1,5 @@
 const DOM = require('./domutils');
-const MidiClock = require('midi-clock');
+const MidiClock = require('./clock');
 
 const MIDI_MESSAGE = {
   NOTE_OFF: 0x80,
@@ -25,7 +25,7 @@ const MIDI_MESSAGE = {
 function MIDI(completeHandler, eventHandler, clockHandler) {
   console.log('MIDI: Initializing...');
   const self = this;
-  self.internalClock = MidiClock(window.webkitAudioContext);
+  self.internalClock = MidiClock();
   self.sendInternalClock = false;
   self.midiAccess = null;
   self.deviceIdIn = null;
@@ -150,6 +150,7 @@ function MIDI(completeHandler, eventHandler, clockHandler) {
       select_in_clock.value = selectedInClock;
     }
     console.log('MIDI: ', countIn, 'inputs,', countOut, 'outputs');
+    self.internalClock.start();
     if (countIn == 0 || countOut == 0) {
       let message;
       if (countIn > 0 && countOut == 0) {
@@ -181,7 +182,7 @@ function MIDI(completeHandler, eventHandler, clockHandler) {
       self.songposition = 0;
     }
   }
-  self.internalClock.on('position', pos => {
+  self.internalClock.on('tick', () => {
     if (!self.deviceInClock && clockHandler) {
       clockHandler(self.songposition);
       if (self.sendInternalClock) {
@@ -268,6 +269,7 @@ MIDI.prototype.send = function(msg) {
 const clockMSG = Uint8Array.from([MIDI_MESSAGE.CLOCK]);
 const startMSG = Uint8Array.from([MIDI_MESSAGE.START]);
 const stopMSG = Uint8Array.from([MIDI_MESSAGE.STOP]);
+const songPosStart = Uint8Array.from([MIDI_MESSAGE.SONG_POS, 0, 0]);
 
 MIDI.prototype.sendClock = function() {
   if (this.hasOutput()) {
@@ -288,10 +290,8 @@ MIDI.prototype.sendStop = function() {
 };
 
 MIDI.prototype.startClock = function(v) {
-  self.songposition = 0;
-  if (!this.deviceInClock) {
-    this.internalClock.start();
-  }
+  this.songposition = 0;
+  this.internalClock.start();
   if (this.sendInternalClock) {
     this.sendStart();
   }
@@ -299,7 +299,7 @@ MIDI.prototype.startClock = function(v) {
 
 MIDI.prototype.stopClock = function(v) {
   if (!this.deviceInClock) {
-    this.internalClock.stop();
+    // this.internalClock.stop();
   }
   if (this.sendInternalClock) {
     this.sendStop();
