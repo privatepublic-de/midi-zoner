@@ -219,7 +219,7 @@ function renderZones() {
                 <canvas id="canvas${index}" width="100" height="16"></canvas>
             </div>
             <div class="settings">
-                <div class="check arp_enabled" data-action="${index}:arp_enabled">ARP
+                <div class="check arp_enabled" data-action="${index}:arp_enabled">Arp
                 <span class="arpanchor"></span></div>
                 <div class="val">Oct 
                     <a class="circle" data-action="${index}:octave:-2"></a> 
@@ -229,7 +229,7 @@ function renderZones() {
                     <a class="circle" data-action="${index}:octave:2"></a> 
                 </div>
                 <div class="check mod" data-action="${index}:mod">Mod</div>
-                <div class="check at2mod" data-action="${index}:at2mod">AT&gt;Mod</div>
+                <div class="check at2mod" data-action="${index}:at2mod">AT &gt; Mod</div>
                 <div class="check sustain" data-action="${index}:sustain">Pedal</div>
                 <div class="check cc" data-action="${index}:cc">CCs</div>
                 <div class="check pitchbend" data-action="${index}:pitchbend">PB</div>

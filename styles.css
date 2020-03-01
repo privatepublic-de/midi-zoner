@@ -42,7 +42,7 @@ select {
   right: 0;
   background-color: #2f2f2f;
   padding: 5px;
-  font-size: 0.85em;
+  font-size: 12px;
   color: rgba(255, 255, 255, 0.5);
   box-shadow: 0 2px 5px #272422;
   border-bottom: 1px solid #333;
@@ -71,7 +71,7 @@ select {
   border-radius: 4px;
   background-color: rgba(0, 0, 0, 0.25);
   color: rgba(255, 255, 255, 0.5);
-  font-size: 1em;
+  font-size: 12px;
   padding: 0;
 }
 
@@ -115,7 +115,7 @@ select#midiInChannel {
   background-color: rgba(0, 0, 0, 0.25);
   border: 1px solid rgba(0, 0, 0, 0.4);
   border-radius: 4px;
-  width: 4em;
+  width: 50px;
   cursor: col-resize;
 }
 
@@ -126,13 +126,13 @@ select#midiInChannel {
 }
 
 .padded {
-  padding: 24px 1em 0 1em;
+  padding: 24px 14px 0 14px;
 }
 
 #tools {
   width: 100%;
-  margin: 1.5em auto;
-  padding-bottom: 1em;
+  margin: 20px auto;
+  padding-bottom: 14px;
 }
 
 #newzone {
@@ -154,8 +154,8 @@ select#midiInChannel {
 
 .zone {
   background-color: #444;
-  margin: 1.5em auto;
-  padding: 0.5em;
+  margin: 20px auto;
+  padding: 8px;
   border-radius: 8px;
   width: 100%;
   color: #fff;
@@ -191,10 +191,10 @@ select#midiInChannel {
   display: inline-block;
   padding: 2px 0;
   width: 38px;
-  font-size: 0.85em;
+  font-size: 12px;
   margin-right: 4px;
   text-align: center;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   color: rgba(255, 255, 255, 0.5);
   cursor: pointer;
   border-radius: 4px;
@@ -205,8 +205,8 @@ select#midiInChannel {
 }
 
 .ch.selected {
-  background-color: rgba(0, 0, 0, 0.25);
-  color: #fff;
+  background-color: rgba(255, 255, 255, 0.25);
+  color: rgba(0, 0, 0, 0.5);
 }
 
 .ch.enabled {
@@ -234,15 +234,15 @@ select#midiInChannel {
 
 .settings,
 .arp-settings {
-  color: rgba(255, 255, 255, 0.3);
-  font-size: 0.85em;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
 }
 
 .arp-settings {
   position: relative;
-  margin-top: 1em;
+  margin-top: 12px;
   margin-left: 1px;
-  padding: 0.5em;
+  padding: 6px;
   background-color: rgba(0, 0, 0, 0.15);
   border-radius: 0 4px 4px 4px;
   display: none;
@@ -254,7 +254,7 @@ select#midiInChannel {
   position: absolute;
   top: 100%;
   width: 100%;
-  height: 18px;
+  height: 16px;
   left: 0;
   background-color: rgba(0, 0, 0, 0.15);
 }
@@ -273,7 +273,7 @@ select#midiInChannel {
 }
 
 .dragzone {
-  margin-right: 1em;
+  margin-right: 12px;
   padding: 0 4px;
   cursor: grab;
 }
@@ -283,7 +283,7 @@ select#midiInChannel {
 .toggle,
 .drop-down,
 .percent {
-  margin-right: 0.75em;
+  margin-right: 8px;
   height: 20px;
 }
 
@@ -293,18 +293,21 @@ select#midiInChannel {
   display: inline-block;
   padding: 2px 6px;
   border-radius: 5px;
-  border: 1px solid rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   cursor: pointer;
+  box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.25);
 }
 
 .check.selected {
-  background-color: rgba(0, 0, 0, 0.25);
+  background-color: rgba(255, 255, 255, 0.25);
+  color: rgba(0, 0, 0, 0.5);
+  box-shadow: none;
 }
 
 .check::before {
   margin: 0 2px 0 0;
   display: inline-block;
-  width: 1.2em;
+  width: 14px;
 }
 
 .check::before {
@@ -355,7 +358,7 @@ select#midiInChannel {
   display: inline-block;
   width: 14px;
   height: 14px;
-  border: 1px solid rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 50%;
   cursor: pointer;
   vertical-align: middle;
@@ -363,18 +366,18 @@ select#midiInChannel {
 }
 
 .circle.selected {
-  background-color: rgba(0, 0, 0, 0.25);
+  background-color: rgba(255, 255, 255, 0.25);
 }
 
 .drop-down select {
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 4px;
   background-color: transparent;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 1em;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
   padding: 0;
   height: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.25);
 }
 
 .drop-down select:focus {
@@ -390,7 +393,7 @@ select#midiInChannel {
   height: 28px;
   cursor: pointer;
   width: 100%;
-  margin: 0.5em auto;
+  margin: 6px auto;
   border: 2px solid rgba(0, 0, 0, 0.2);
   overflow: hidden;
   border-radius: 6px;
@@ -409,7 +412,7 @@ select#midiInChannel {
   top: 7px;
   width: 32px;
   height: 12px;
-  font-size: 0.85em;
+  font-size: 12px;
   padding: 1px 0 0 0;
   text-align: center;
   transition: 200ms left, 200ms right;
@@ -450,19 +453,13 @@ select#midiInChannel {
   color: rgba(255, 255, 255, 0.2);
   width: 1px;
   bottom: 0;
-  font-size: 0.65em;
+  font-size: 8px;
   text-indent: 4px;
 }
 
 .check:hover,
 .circle:hover {
-  /* border-color: #ccc; */
   background-color: rgba(255, 255, 255, 0.1);
-}
-
-.circle.selected:hover,
-.check.selected:hover {
-  background-color: rgba(0, 0, 0, 0.5);
 }
 
 .ch:hover {
@@ -492,7 +489,7 @@ input[type='checkbox']:checked + label::before {
 }
 
 .toggle {
-  margin-left: 1em;
+  margin-left: 7px;
   width: 50px;
   text-align: center;
 }
