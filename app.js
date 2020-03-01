@@ -248,7 +248,7 @@ function renderZones() {
                   </select>
                 </div>
                 <div class="drop-down">
-                  Notes
+                  Note
                   <select class="arp_division" data-change="${index}:arp_division">
                     <option>1/1 whole</option>
                     <option>1/2.</option>

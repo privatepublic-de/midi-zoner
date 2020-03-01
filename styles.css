@@ -254,7 +254,7 @@ select#midiInChannel {
   position: absolute;
   top: 100%;
   width: 100%;
-  height: 15px;
+  height: 18px;
   left: 0;
   background-color: rgba(0, 0, 0, 0.15);
 }
@@ -283,16 +283,17 @@ select#midiInChannel {
 .toggle,
 .drop-down,
 .percent {
-  margin-right: 1em;
+  margin-right: 0.75em;
+  height: 20px;
 }
 
 .check,
 .toggle,
 .percent {
   display: inline-block;
-  padding: 1px 4px;
+  padding: 2px 6px;
   border-radius: 5px;
-  border: 1px solid rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(0, 0, 0, 0.2);
   cursor: pointer;
 }
 
@@ -366,12 +367,14 @@ select#midiInChannel {
 }
 
 .drop-down select {
-  border: 1px solid rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 4px;
-  background-color: rgba(0, 0, 0, 0.25);
-  color: rgba(255, 255, 255, 0.3);
+  background-color: transparent;
+  color: rgba(255, 255, 255, 0.5);
   font-size: 1em;
   padding: 0;
+  height: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 .drop-down select:focus {
