@@ -1,33 +1,38 @@
-const EventEmitter = require('events').EventEmitter;
 const NanoTimer = require('nanotimer');
 
-module.exports = function() {
-  let clock = new EventEmitter();
-  let timer = new NanoTimer();
-
-  timer.setInterval(tick, '', '25000u');
+module.exports = function(tickCallback) {
+  const timer = new NanoTimer();
 
   let playing = false;
+  let tickLength = microseconds(120);
+  timer.setInterval(tick, '', `${tickLength}u`);
 
   function tick() {
     if (playing) {
-      clock.emit('tick');
+      tickCallback();
     }
   }
 
-  clock.setTempo = function(tempo) {
-    const tickLength = parseInt(60000000 / (tempo * 24));
-    timer.clearInterval();
-    timer.setInterval(tick, '', `${tickLength}u`);
-  };
+  function microseconds(tempo) {
+    return parseInt(60000000 / (tempo * 24));
+  }
 
-  clock.start = function() {
-    playing = true;
-  };
+  return {
+    setTempo: function(tempo) {
+      const tlength = microseconds(tempo);
+      if (tlength != tickLength) {
+        tickLength = tlength;
+        timer.clearInterval();
+        timer.setInterval(tick, '', `${tickLength}u`);
+      }
+    },
 
-  clock.stop = function() {
-    playing = false;
-  };
+    start: function() {
+      playing = true;
+    },
 
-  return clock;
+    stop: function() {
+      playing = false;
+    }
+  };
 };

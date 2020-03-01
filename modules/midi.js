@@ -25,7 +25,15 @@ const MIDI_MESSAGE = {
 function MIDI(completeHandler, eventHandler, clockHandler) {
   console.log('MIDI: Initializing...');
   const self = this;
-  self.internalClock = MidiClock();
+  self.internalClock = MidiClock(() => {
+    if (!self.deviceInClock && clockHandler) {
+      clockHandler(self.songposition);
+      if (self.sendInternalClock) {
+        self.sendClock();
+      }
+      self.songposition++;
+    }
+  });
   self.sendInternalClock = false;
   self.midiAccess = null;
   self.deviceIdIn = null;
@@ -182,15 +190,7 @@ function MIDI(completeHandler, eventHandler, clockHandler) {
       self.songposition = 0;
     }
   }
-  self.internalClock.on('tick', () => {
-    if (!self.deviceInClock && clockHandler) {
-      clockHandler(self.songposition);
-      if (self.sendInternalClock) {
-        self.sendClock();
-      }
-      self.songposition++;
-    }
-  });
+
   function selectDevices() {
     self.deviceIdIn = DOM.find(select_in, 'option:checked')[0].value;
     self.deviceIdInClock = DOM.find(select_in_clock, 'option:checked')[0].value;
