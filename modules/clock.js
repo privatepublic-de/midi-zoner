@@ -5,7 +5,6 @@ module.exports = function(tickCallback) {
 
   let playing = false;
   let tickLength = microseconds(120);
-  timer.setInterval(tick, '', `${tickLength}u`);
 
   function tick() {
     if (playing) {
@@ -29,6 +28,7 @@ module.exports = function(tickCallback) {
 
     start: function() {
       playing = true;
+      timer.setInterval(tick, '', `${tickLength}u`);
     },
 
     stop: function() {
