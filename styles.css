@@ -194,8 +194,9 @@ select#midiInChannel {
   font-size: 12px;
   margin-right: 4px;
   text-align: center;
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  /* border: 1px solid rgba(255, 255, 255, 0.25); */
   color: rgba(255, 255, 255, 0.5);
+  background-color: rgba(0, 0, 0, 0.1);
   cursor: pointer;
   border-radius: 4px;
 }
@@ -207,6 +208,7 @@ select#midiInChannel {
 .ch.selected {
   background-color: rgba(255, 255, 255, 0.25);
   color: rgba(0, 0, 0, 0.5);
+  border-color: transparent;
 }
 
 .ch.enabled {
@@ -241,7 +243,6 @@ select#midiInChannel {
 .arp-settings {
   position: relative;
   margin-top: 12px;
-  margin-left: 1px;
   padding: 6px;
   background-color: rgba(0, 0, 0, 0.15);
   border-radius: 0 4px 4px 4px;
@@ -254,7 +255,7 @@ select#midiInChannel {
   position: absolute;
   top: 100%;
   width: 100%;
-  height: 16px;
+  height: 15px;
   left: 0;
   background-color: rgba(0, 0, 0, 0.15);
 }
@@ -291,17 +292,17 @@ select#midiInChannel {
 .toggle,
 .percent {
   display: inline-block;
-  padding: 2px 6px;
+  padding: 3px 6px 0 6px;
   border-radius: 5px;
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  background-color: rgba(0, 0, 0, 0.125);
+  /* border: 1px solid rgba(255, 255, 255, 0.25); */
   cursor: pointer;
-  box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.25);
 }
 
 .check.selected {
   background-color: rgba(255, 255, 255, 0.25);
   color: rgba(0, 0, 0, 0.5);
-  box-shadow: none;
+  border-color: transparent;
 }
 
 .check::before {
@@ -336,6 +337,8 @@ select#midiInChannel {
   width: 80px;
   text-align: center;
   padding: 1px 5px 1px 5px;
+  overflow: hidden;
+  vertical-align: middle;
 }
 .percent::after {
   content: '%';
@@ -346,7 +349,11 @@ select#midiInChannel {
   bottom: 0;
   left: 0;
   width: 50%;
-  background-color: rgba(0, 0, 0, 0.25);
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.percent .pcnt {
+  vertical-align: middle;
 }
 
 .val,
@@ -370,19 +377,21 @@ select#midiInChannel {
 }
 
 .drop-down select {
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  /* border: 1px solid rgba(255, 255, 255, 0.25); */
+  border: none;
+  background-color: rgba(0, 0, 0, 0.125);
   border-radius: 4px;
-  background-color: transparent;
+  /* background-color: transparent; */
   color: rgba(255, 255, 255, 0.7);
   font-size: 12px;
   padding: 0;
   height: 20px;
-  box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.25);
+  box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.25);
 }
 
-.drop-down select:focus {
-  outline: none;
-}
+/* .drop-down select:focus {
+  
+} */
 
 .drop-down select option {
   background-color: #333;
@@ -411,7 +420,7 @@ select#midiInChannel {
   position: absolute;
   top: 7px;
   width: 32px;
-  height: 12px;
+  /* height: 12px; */
   font-size: 12px;
   padding: 1px 0 0 0;
   text-align: center;
@@ -422,7 +431,7 @@ select#midiInChannel {
   top: 0;
 }
 .marker.high {
-  top: 8px;
+  top: 10px;
 }
 
 .marker.hover {

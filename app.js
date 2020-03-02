@@ -247,8 +247,8 @@ function renderZones() {
                     <option>ORDER</option>
                   </select>
                 </div>
+                Note
                 <div class="drop-down">
-                  Note
                   <select class="arp_division" data-change="${index}:arp_division">
                     <option>1/1 whole</option>
                     <option>1/2.</option>
@@ -373,13 +373,13 @@ function updateValuesForZone(index) {
   DOM.addClass(`#zone${index} .no${zone.channel}`, 'selected');
   if (zone.enabled && (Zone.solocount === 0 || zone.solo)) {
     DOM.removeClass(`#zone${index}`, 'disabled');
-    const rgb = DOM.hslToRgb(zone.channel / 16, 0.5, 0.4);
+    const rgb = DOM.hslToRgb(zone.channel / 16, 0.4, 0.3);
     DOM.element(
       `#zone${index}`
     ).style.backgroundColor = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
   } else {
     DOM.addClass(`#zone${index}`, 'disabled');
-    const rgb = DOM.hslToRgb(zone.channel / 16, 0.15, 0.3);
+    const rgb = DOM.hslToRgb(zone.channel / 16, 0.15, 0.2);
     DOM.element(
       `#zone${index}`
     ).style.backgroundColor = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
