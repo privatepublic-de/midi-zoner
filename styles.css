@@ -305,32 +305,32 @@ select#midiInChannel {
   border-color: transparent;
 }
 
-.check::before {
+/* .check::before {
   margin: 0 2px 0 0;
   display: inline-block;
   width: 14px;
 }
 
 .check::before {
-  content: '✕';
+  content: '○';
 }
 
 .check.selected::before {
-  content: '✔';
-}
+  content: '●';
+} */
 
 .check.arp_enabled {
   width: 68px;
   position: relative;
 }
 
-.check.arp_enabled::before {
+/* .check.arp_enabled::before {
   content: '▶';
 }
 
 .check.arp_enabled.selected::before {
   content: '▼';
-}
+} */
 
 .percent {
   position: relative;
@@ -494,7 +494,7 @@ input[type='checkbox'] + label::before {
   text-align: center;
 }
 input[type='checkbox']:checked + label::before {
-  content: '✔';
+  content: '●';
 }
 
 .toggle {
