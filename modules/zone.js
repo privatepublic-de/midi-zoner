@@ -168,25 +168,23 @@ module.exports = class Zone {
                   outevent[0] = message + this.channel;
                   outevent[1] = key;
                   outevent[2] = velo;
-                  this.midiActiveNotes[srcKey] = new MidiNote(
-                    key,
-                    this.channel
-                  );
                   midiOutDevice.send(outevent);
                 }
+                this.midiActiveNotes[srcKey] = new MidiNote(key, this.channel);
                 this.addNote(new Note(key, velo));
               } else {
                 const srcNote = this.midiActiveNotes[srcKey];
                 if (srcNote) {
+                  this.midiActiveNotes[srcKey] = null;
+                  this.removeNote(srcNote.number);
                   if (!this.arp_enabled) {
                     outevent[0] = message + srcNote.channel;
                     outevent[1] = srcNote.number;
                     outevent[2] = velo;
                     midiOutDevice.send(outevent);
-                    this.midiActiveNotes[srcKey] = null;
-                    this.removeNote(srcNote.number);
                   }
                 } else {
+                  console.log(`No src note for ${srcKey}, clearing ${key}`);
                   this.removeNote(key);
                 }
               }
@@ -278,15 +276,22 @@ module.exports = class Zone {
       ctx.fillStyle = this.arp_enabled
         ? 'rgba(0,0,0,.5)'
         : 'rgba(255,255,255,.5)';
+      ctx.strokeStyle = 'rgba(0,0,0,.75)';
       const list = this.arp_hold ? this.arp.holdlist : this.activeNotes;
       for (let i = 0; i < list.length; i++) {
-        const number = list[i].number;
-        ctx.fillRect((cwidth * number) / 127, 0, 5, 16);
+        const number = list[i].number + this.octave * 12;
+        if (this.arp_enabled) {
+          ctx.beginPath();
+          ctx.rect((cwidth * number) / 127, 0, 5, 16);
+          ctx.stroke();
+        } else {
+          ctx.fillRect((cwidth * number) / 127, 0, 5, 16);
+        }
       }
       if (this.arp_enabled) {
-        ctx.fillStyle = 'rgba(255,255,255,.5)';
         const note = this.arp.lastnote;
         if (note) {
+          ctx.fillStyle = 'rgba(255,255,255,.5)';
           ctx.fillRect((cwidth * note.number) / 127, 0, 5, 16);
         }
       }
