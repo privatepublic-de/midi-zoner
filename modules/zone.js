@@ -1,3 +1,4 @@
+const seedrandom = require('seedrandom');
 const DIV_TICKS = [96, 72, 64, 48, 36, 32, 24, 18, 16, 12, 9, 8, 6, 4, 3]; // 24ppq
 
 class Note {
@@ -62,8 +63,13 @@ module.exports = class Zone {
   midi = null;
   dom = {};
 
+  rngArp = null;
+  rngProb = null;
+
   constructor(midi) {
     this.midi = midi;
+    this.rngArp = seedrandom();
+    this.rngProb = seedrandom();
   }
 
   toJSON() {
@@ -304,7 +310,7 @@ module.exports = class Zone {
       this.arp_ticks * this.arp_gatelength,
       this.arp_ticks - 1
     );
-    if (tickn === 0 && Math.random() < this.arp_probability) {
+    if (tickn === 0 && this.rngProb() < this.arp_probability) {
       if (this.arp_enabled) {
         this.arp.beat = true;
         let notes;
@@ -344,7 +350,7 @@ module.exports = class Zone {
                 }
                 break;
               case 3: // random
-                this.arp.noteindex = parseInt(Math.random() * notes.length);
+                this.arp.noteindex = parseInt(this.rngArp() * notes.length);
                 break;
             }
           }
