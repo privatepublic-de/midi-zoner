@@ -181,8 +181,8 @@ select#midiInChannel {
 .zone.disabled {
   opacity: 0.67;
   box-shadow: none;
-  border: 2px solid;
-  padding: 6px;
+  /* border: 2px solid;
+  padding: 6px; */
 }
 
 .channels {

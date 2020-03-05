@@ -377,14 +377,17 @@ function updateValuesForZone(index) {
     DOM.element(`#zone${index}`).style.borderColor = 'transparent';
     DOM.element(
       `#zone${index}`
-    ).style.backgroundColor = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
+    ).style.background = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
   } else {
     DOM.addClass(`#zone${index}`, 'disabled');
-    const rgb = DOM.hslToRgb(zone.channel / 16, 0.4, 0.3);
+    const rgb = DOM.hslToRgb(zone.channel / 16, 0.3, 0.15);
+    // DOM.element(
+    //   `#zone${index}`
+    // ).style.borderColor = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
+    // DOM.element(`#zone${index}`).style.backgroundColor = '#333333';
     DOM.element(
       `#zone${index}`
-    ).style.borderColor = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
-    DOM.element(`#zone${index}`).style.backgroundColor = '#333333';
+    ).style.background = `linear-gradient(0deg,  #222222, rgba(${rgb[0]},${rgb[1]},${rgb[2]},1))`;
   }
   [
     'cc',
