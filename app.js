@@ -374,15 +374,17 @@ function updateValuesForZone(index) {
   if (zone.enabled && (Zone.solocount === 0 || zone.solo)) {
     DOM.removeClass(`#zone${index}`, 'disabled');
     const rgb = DOM.hslToRgb(zone.channel / 16, 0.4, 0.3);
+    DOM.element(`#zone${index}`).style.borderColor = 'transparent';
     DOM.element(
       `#zone${index}`
     ).style.backgroundColor = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
   } else {
     DOM.addClass(`#zone${index}`, 'disabled');
-    const rgb = DOM.hslToRgb(zone.channel / 16, 0.15, 0.2);
+    const rgb = DOM.hslToRgb(zone.channel / 16, 0.4, 0.3);
     DOM.element(
       `#zone${index}`
-    ).style.backgroundColor = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
+    ).style.borderColor = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
+    DOM.element(`#zone${index}`).style.backgroundColor = '#333333';
   }
   [
     'cc',

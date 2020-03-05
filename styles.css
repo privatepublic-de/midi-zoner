@@ -155,7 +155,7 @@ select#midiInChannel {
 .zone {
   background-color: #444;
   margin: 20px auto;
-  padding: 8px;
+  padding: 8px 8px 8px 8px;
   border-radius: 8px;
   width: 100%;
   color: #fff;
@@ -179,8 +179,10 @@ select#midiInChannel {
 }
 
 .zone.disabled {
-  opacity: 0.75;
+  opacity: 0.67;
   box-shadow: none;
+  border: 2px solid;
+  padding: 6px;
 }
 
 .channels {
