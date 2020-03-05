@@ -179,7 +179,7 @@ select#midiInChannel {
 }
 
 .zone.disabled {
-  opacity: 0.67;
+  opacity: 0.4;
   box-shadow: none;
   /* border: 2px solid;
   padding: 6px; */

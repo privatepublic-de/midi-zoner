@@ -387,7 +387,7 @@ function updateValuesForZone(index) {
     // DOM.element(`#zone${index}`).style.backgroundColor = '#333333';
     DOM.element(
       `#zone${index}`
-    ).style.background = `linear-gradient(0deg,  #222222, rgba(${rgb[0]},${rgb[1]},${rgb[2]},1))`;
+    ).style.background = `linear-gradient(0deg,  #272422, rgba(${rgb[0]},${rgb[1]},${rgb[2]},1))`;
   }
   [
     'cc',
