@@ -44,12 +44,14 @@ module.exports = class Zone {
   arp_probability = 1;
   arp_velocity = 0; // 0 = as played
   arp_hold = false;
+  arp_pattern = [true, true, false, true, true, true, false, false];
   arp = {
     orderlist: [],
     sortedlist: [],
     holdlist: [],
     sortedHoldList: [],
     noteindex: -1,
+    patternPos: -1,
     inc: 1,
     lastnote: null,
     repeattrig: false,
@@ -60,6 +62,7 @@ module.exports = class Zone {
   midiActiveNotes = [];
   holdList = [];
   canvasElement = null;
+  patternCanvas = null;
   midi = null;
   dom = {};
 
@@ -93,7 +96,8 @@ module.exports = class Zone {
       arp_division: this._arp_division,
       arp_gatelength: this.arp_gatelength,
       arp_repeat: this.arp_repeat,
-      arp_probability: this.arp_probability
+      arp_probability: this.arp_probability,
+      arp_pattern: this.arp_pattern
     };
   }
 
@@ -304,14 +308,40 @@ module.exports = class Zone {
     }
   }
 
+  renderPattern() {
+    if (this.patternCanvas) {
+      const ctx = this.patternCanvas.getContext('2d');
+      const cwidth = this.patternCanvas.width;
+      const width = cwidth / 8;
+      ctx.clearRect(0, 0, cwidth, this.patternCanvas.height);
+      for (let i = 0; i < this.arp_pattern.length; i++) {
+        if (i === this.arp.patternPos) {
+          ctx.fillStyle = 'rgba(0,0,0,.25)';
+          ctx.fillRect(width * i, 0, width, 16);
+        }
+        if (this.arp_pattern[i]) {
+          ctx.fillStyle = 'rgba(255,255,255,.75)';
+          ctx.beginPath();
+          ctx.arc(width * (i + 0.5), 8, 4, 0, 2 * Math.PI);
+          ctx.fill();
+        }
+      }
+    }
+  }
+
   clock(pos) {
     const tickn = pos % this.arp_ticks;
     const offtick = Math.min(
       this.arp_ticks * this.arp_gatelength,
       this.arp_ticks - 1
     );
-    if (tickn === 0 && this.rngProb() < this.arp_probability) {
-      if (this.arp_enabled) {
+    if (tickn === 0) {
+      this.arp.patternPos = (this.arp.patternPos + 1) % this.arp_pattern.length;
+      if (
+        this.arp_enabled &&
+        this.arp_pattern[this.arp.patternPos] &&
+        this.rngProb() < this.arp_probability
+      ) {
         this.arp.beat = true;
         let notes;
         if (this.arp_hold) {
@@ -377,6 +407,7 @@ module.exports = class Zone {
         this.arp.repeattrig = !this.arp.repeattrig;
         requestAnimationFrame(this.renderNotes.bind(this));
       }
+      requestAnimationFrame(this.renderPattern.bind(this));
     } else if (tickn >= offtick) {
       this.arp.beat = false;
       this.arpNoteOff();

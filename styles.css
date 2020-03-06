@@ -524,3 +524,12 @@ input[type='checkbox']:checked + label::before {
 #startClockButton.selected::before {
   content: 'Stop ';
 }
+
+.pattern {
+  border: 1px solid rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  display: inline-block;
+  height: 18px;
+  vertical-align: middle;
+  cursor: pointer;
+}

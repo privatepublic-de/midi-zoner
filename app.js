@@ -114,9 +114,17 @@ function actionHandler(ev) {
       break;
     case 'arp_probability':
     case 'arp_gatelength':
-      let percent = ev.offsetX / (e.offsetWidth * 0.95);
+      const percent = ev.offsetX / (e.offsetWidth * 0.95);
       zone[params[1]] = Math.max(0, Math.floor(percent * 24) / 24);
       updateValuesForZone(zoneindex);
+      break;
+    case 'arp_pattern':
+      const index = parseInt((ev.offsetX / e.offsetWidth) * 8);
+      console.log(index);
+      console.log(JSON.stringify(zone.arp_pattern));
+      zone.arp_pattern[index] = !zone.arp_pattern[index];
+      console.log(JSON.stringify(zone.arp_pattern));
+      zone.renderPattern();
       break;
     case 'enabled':
       zone.enabled = !zone.enabled;
@@ -287,10 +295,12 @@ function renderZones() {
                   <span class="inner"></span>
                   <span class="pcnt">50</span>
                 </div>
+                <div class="pattern" data-action="${index}:arp_pattern"><canvas id="canvasPattern${index}" width="128" height="16"></canvas></div>
             </div>
         </section>`;
     DOM.addHTML('#zones', 'beforeend', html);
     zone.canvasElement = DOM.element(`#canvas${index}`);
+    zone.patternCanvas = DOM.element(`#canvasPattern${index}`);
     zone.dom.markerlow = DOM.element(`#zone${index} .marker.low`);
     zone.dom.markerhigh = DOM.element(`#zone${index} .marker.high`);
     zone.dom.join = DOM.element(`#zone${index} .join`);
@@ -381,10 +391,6 @@ function updateValuesForZone(index) {
   } else {
     DOM.addClass(`#zone${index}`, 'disabled');
     const rgb = DOM.hslToRgb(zone.channel / 16, 0.3, 0.15);
-    // DOM.element(
-    //   `#zone${index}`
-    // ).style.borderColor = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
-    // DOM.element(`#zone${index}`).style.backgroundColor = '#333333';
     DOM.element(
       `#zone${index}`
     ).style.background = `linear-gradient(0deg,  #272422, rgba(${rgb[0]},${rgb[1]},${rgb[2]},1))`;
