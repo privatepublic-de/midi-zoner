@@ -286,6 +286,7 @@ MIDI.prototype.sendStart = function() {
 MIDI.prototype.sendStop = function() {
   if (this.hasOutput()) {
     this.deviceOut.send(stopMSG);
+    this.deviceOut.send(songPosStart);
   }
 };
 
