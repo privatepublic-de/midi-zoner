@@ -307,6 +307,7 @@ function renderZones() {
     zone.dom.current = DOM.element(`#zone${index} .current`);
     renderMarkersForZone(index);
     updateValuesForZone(index);
+    zone.renderPattern();
     const dragHandler = DOM.element(`#zone${index} .dragzone`);
     dragHandler.addEventListener('mousedown', ev => {
       new DragZone(index, ev, () => {
@@ -540,7 +541,7 @@ document.addEventListener('DOMContentLoaded', function() {
               startClockButton.classList.remove('selected');
               midi.stopClock();
               zones.list.forEach(z => {
-                z.arpNoteOff();
+                z.stopped();
               });
             }
           }

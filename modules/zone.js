@@ -433,4 +433,11 @@ module.exports = class Zone {
       requestAnimationFrame(this.renderNotes.bind(this));
     }
   }
+
+  stopped() {
+    this.arp.noteindex = -1;
+    this.arp.patternPos = -1;
+    this.arpNoteOff();
+    requestAnimationFrame(this.renderPattern.bind(this));
+  }
 };

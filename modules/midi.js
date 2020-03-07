@@ -25,15 +25,6 @@ const MIDI_MESSAGE = {
 function MIDI(completeHandler, eventHandler, clockHandler) {
   console.log('MIDI: Initializing...');
   const self = this;
-  self.internalClock = MidiClock(() => {
-    if (!self.deviceInClock && clockHandler) {
-      clockHandler(self.songposition);
-      if (self.sendInternalClock) {
-        self.sendClock();
-      }
-      self.songposition++;
-    }
-  });
   self.sendInternalClock = false;
   self.midiAccess = null;
   self.deviceIdIn = null;
@@ -42,6 +33,18 @@ function MIDI(completeHandler, eventHandler, clockHandler) {
   self.knownInputIds = {};
   self.knownOutputIds = {};
   self.songposition = 0;
+  self.isInternalClockRunning = false;
+  self.internalClock = MidiClock(() => {
+    if (!self.deviceInClock && clockHandler) {
+      if (self.isInternalClockRunning) {
+        clockHandler(self.songposition);
+      }
+      if (self.sendInternalClock) {
+        self.sendClock();
+      }
+      self.songposition++;
+    }
+  });
   let select_in = DOM.element('#midiInDeviceId');
   let select_in_clock = DOM.element('#midiClockInDeviceId');
   let select_out = DOM.element('#midiOutDeviceId');
@@ -292,6 +295,7 @@ MIDI.prototype.sendStop = function() {
 
 MIDI.prototype.startClock = function(v) {
   this.songposition = 0;
+  this.isInternalClockRunning = true;
   this.internalClock.start();
   if (this.sendInternalClock) {
     this.sendStart();
@@ -299,6 +303,7 @@ MIDI.prototype.startClock = function(v) {
 };
 
 MIDI.prototype.stopClock = function(v) {
+  this.isInternalClockRunning = false;
   if (!this.deviceInClock) {
     // this.internalClock.stop();
   }
