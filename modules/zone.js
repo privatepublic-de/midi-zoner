@@ -44,7 +44,7 @@ module.exports = class Zone {
   arp_probability = 1;
   arp_velocity = 0; // 0 = as played
   arp_hold = false;
-  arp_pattern = [true, true, false, true, true, true, false, false];
+  arp_pattern = [true, true, true, true, true, true, true, true];
   arp = {
     orderlist: [],
     sortedlist: [],
@@ -314,16 +314,19 @@ module.exports = class Zone {
       const cwidth = this.patternCanvas.width;
       const width = cwidth / 8;
       ctx.clearRect(0, 0, cwidth, this.patternCanvas.height);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
       for (let i = 0; i < this.arp_pattern.length; i++) {
         if (i === this.arp.patternPos) {
-          ctx.fillStyle = 'rgba(0,0,0,.25)';
+          ctx.fillStyle = 'rgba(0,0,0,.5)';
           ctx.fillRect(width * i, 0, width, 16);
         }
+        ctx.beginPath();
+        ctx.arc(width * (i + 0.5), 8, 4, 0, 2 * Math.PI);
         if (this.arp_pattern[i]) {
-          ctx.fillStyle = 'rgba(255,255,255,.75)';
-          ctx.beginPath();
-          ctx.arc(width * (i + 0.5), 8, 4, 0, 2 * Math.PI);
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
           ctx.fill();
+        } else {
+          ctx.stroke();
         }
       }
     }
