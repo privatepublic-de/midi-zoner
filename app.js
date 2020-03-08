@@ -196,10 +196,21 @@ function dblClickHandler(ev) {
   const action = e.getAttribute('data-action');
   const params = action.split(':');
   const zoneindex = params[0];
-  zones.list[zoneindex].high = 127;
-  zones.list[zoneindex].low = 0;
-  catchedMarker[zoneindex] = 0;
-  renderMarkersForZone(zoneindex);
+  const zone = zones.list[zoneindex];
+  switch (params[1]) {
+    case 'range':
+      zone.high = 127;
+      zone.low = 0;
+      catchedMarker[zoneindex] = 0;
+      renderMarkersForZone(zoneindex);
+      break;
+    case 'arp_pattern':
+      for (let i = 0; i < zone.arp_pattern.length; i++) {
+        zone.arp_pattern[i] = true;
+      }
+      zone.renderPattern();
+      break;
+  }
   saveZones();
 }
 
@@ -325,6 +336,9 @@ function renderZones() {
   DOM.all('*[data-hover]').forEach(e => {
     e.addEventListener('mousemove', hoverHandler);
     e.addEventListener('mouseleave', hoverOutHandler);
+    e.addEventListener('dblclick', dblClickHandler);
+  });
+  DOM.all('.pattern').forEach(e => {
     e.addEventListener('dblclick', dblClickHandler);
   });
 }
