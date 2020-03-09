@@ -4,17 +4,10 @@ const DIV_TICKS = [96, 72, 64, 48, 36, 32, 24, 18, 16, 12, 9, 8, 6, 4, 3]; // 24
 class Note {
   number = 0;
   velo = 0;
-  constructor(number, velo) {
+  channel = 0;
+  constructor(number, velo, channel) {
     this.number = number;
     this.velo = velo;
-  }
-}
-
-class MidiNote {
-  number = 0;
-  channel = 0;
-  constructor(number, channel) {
-    this.number = number;
     this.channel = channel;
   }
 }
@@ -139,7 +132,12 @@ module.exports = class Zone {
       this.holdList = [];
     }
     this.activeNotes.push(note);
-    this.holdList.push(note);
+    const existingIndex = this.holdList.findIndex(n => n.number == note.number);
+    if (existingIndex == -1) {
+      this.holdList.push(note);
+    } else {
+      this.holdList[existingIndex] = note;
+    }
   }
 
   removeNote(number) {
@@ -180,8 +178,9 @@ module.exports = class Zone {
                   outevent[2] = velo;
                   midiOutDevice.send(outevent);
                 }
-                this.midiActiveNotes[srcKey] = new MidiNote(key, this.channel);
-                this.addNote(new Note(key, velo));
+                const playNote = new Note(key, velo, this.channel);
+                this.midiActiveNotes[srcKey] = playNote;
+                this.addNote(playNote);
               } else {
                 const srcNote = this.midiActiveNotes[srcKey];
                 if (srcNote) {
@@ -396,7 +395,7 @@ module.exports = class Zone {
               : activeNote.number + this.octave * 12;
             while (number > 127) number -= 12;
             while (number < 0) number += 12;
-            const note = new Note(number, activeNote.velo);
+            const note = new Note(number, activeNote.velo, this.channel);
             this.arp.lastnote = note;
             this.midi.send(
               Uint8Array.from([
@@ -423,7 +422,7 @@ module.exports = class Zone {
       const note = this.arp.lastnote;
       this.midi.send(
         Uint8Array.from([
-          MIDI_MESSAGE.NOTE_OFF + this.channel,
+          MIDI_MESSAGE.NOTE_OFF + note.channel,
           note.number,
           note.velo
         ])
