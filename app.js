@@ -266,28 +266,27 @@ function renderZones() {
                     <option>ORDER</option>
                   </select>
                 </div>
-                Note
                 <div class="drop-down">
                   <select class="arp_division" data-change="${index}:arp_division">
-                    <option>1/1 whole</option>
+                    <option>1/1 ***</option>
                     <option>1/2.</option>
                     <option>1/1t</option>
-                    <option>1/2 half</option>
+                    <option>1/2 ***</option>
                     <option>1/4.</option>
                     <option>1/2t</option>
-                    <option>1/4 quarter</option>
+                    <option>1/4 ***</option>
                     <option>1/8.</option>
                     <option>1/4t</option>
-                    <option>1/8 eighth</option>
+                    <option>1/8 ***</option>
                     <option>1/16.</option>
                     <option>1/8t</option>
-                    <option>1/16 sixteenth</option>
+                    <option>1/16 ***</option>
                     <option>1/32.</option>
-                    <option>1/32 thirty2nd</option>
+                    <option>1/32 ***</option>
                   </select>
                 </div>
                 <div class="drop-down">
-                  Oct
+                  Octs
                   <select class="arp_octaves" data-change="${index}:arp_octaves">
                     <option>1</option>
                     <option>2</option>
@@ -296,7 +295,7 @@ function renderZones() {
                   </select>
                 </div>
                 <div class="check arp_repeat" data-action="${index}:arp_repeat">Repeat</div>
-                Gate
+                Len
                 <div class="percent arp_gatelength" data-action="${index}:arp_gatelength">
                   <span class="inner"></span>
                   <span class="pcnt">50</span>
