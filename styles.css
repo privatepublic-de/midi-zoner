@@ -282,6 +282,10 @@ select#midiInChannel {
   cursor: grab;
 }
 
+.dragged .dragzone {
+  cursor: grabbing;
+}
+
 .check,
 .val,
 .toggle,
