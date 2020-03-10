@@ -27,6 +27,11 @@ function createWindow() {
     },
     show: false
   });
+
+  win.once('ready-to-show', () => {
+    win.show();
+  });
+
   win.loadFile('index.html');
   // win.webContents.openDevTools()
 
