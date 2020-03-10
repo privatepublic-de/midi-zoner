@@ -1,5 +1,24 @@
 const seedrandom = require('seedrandom');
-const DIV_TICKS = [96, 72, 64, 48, 36, 32, 24, 18, 16, 12, 9, 8, 6, 4, 3]; // 24ppq
+const DIV_TICKS = [
+  192,
+  144,
+  96,
+  72,
+  64,
+  48,
+  36,
+  32,
+  24,
+  18,
+  16,
+  12,
+  9,
+  8,
+  6,
+  4,
+  3,
+  2
+]; // 24ppq
 
 class Note {
   number = 0;
@@ -30,8 +49,8 @@ module.exports = class Zone {
   arp_enabled = false;
   arp_direction = 0; // 0=UP, 1=DOWN, 2=UP/DOWN, 3=RANDOM, 4=ORDER
   _arp_octaves = 0;
-  _arp_division = 6;
-  arp_ticks = DIV_TICKS[6];
+  _arp_division = 8;
+  arp_ticks = DIV_TICKS[8];
   arp_gatelength = 0.5;
   arp_repeat = 0;
   arp_probability = 1;

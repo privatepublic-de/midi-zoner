@@ -231,6 +231,8 @@ function renderZones() {
                 </div>
                 <div class="drop-down">
                   <select class="arp_division" data-change="${index}:arp_division">
+                    <option>2/1</option>
+                    <option>1/1.</option>
                     <option>1/1 ***</option>
                     <option>1/2.</option>
                     <option>1/1t</option>
@@ -246,6 +248,7 @@ function renderZones() {
                     <option>1/16 ***</option>
                     <option>1/32.</option>
                     <option>1/32 ***</option>
+                    <option>1/16t</option>
                   </select>
                 </div>
                 <div class="drop-down">
