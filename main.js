@@ -51,7 +51,7 @@ app.on('window-all-closed', () => {
 
 function saveWindowPos(win) {
   if (!win.isMinimized()) {
-    let rect = win.getContentBounds();
+    let rect = win.getBounds();
     settings.set('windowPos', rect);
   }
 }
