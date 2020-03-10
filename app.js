@@ -1,4 +1,3 @@
-const { ipcRenderer } = require('electron');
 const DOM = require('./modules/domutils');
 const Zone = require('./modules/zone');
 const { MIDI, MIDI_MESSAGE } = require('./modules/midi');
@@ -151,6 +150,4 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
   });
-
-  ipcRenderer.send('show', true);
 });

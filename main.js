@@ -1,5 +1,5 @@
 const electron = require('electron');
-const { app, BrowserWindow, ipcMain, powerSaveBlocker } = electron;
+const { app, BrowserWindow, powerSaveBlocker } = electron;
 const settings = require('electron-settings');
 
 powerSaveBlocker.start('prevent-app-suspension');
@@ -43,10 +43,6 @@ function createWindow() {
     win = null;
   });
 }
-
-ipcMain.on('show', () => {
-  win.show();
-});
 
 app.on('ready', createWindow);
 
