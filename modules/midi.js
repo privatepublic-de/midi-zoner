@@ -22,7 +22,7 @@ const MIDI_MESSAGE = {
 /**
  * Web MIDI interface handler
  */
-function MIDI(completeHandler, eventHandler, clockHandler, panicHandler) {
+function MIDI({ completeHandler, eventHandler, clockHandler, panicHandler }) {
   console.log('MIDI: Initializing...');
   const self = this;
   self.panicHandler = panicHandler;

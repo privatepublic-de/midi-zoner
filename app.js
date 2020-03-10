@@ -474,8 +474,17 @@ function allHoldOff() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  const midi = new MIDI(
-    (midiavailable, message) => {
+  const midi = new MIDI({
+    eventHandler: midiEventHandler,
+    clockHandler: pos => {
+      for (let i = 0; i < zones.list.length; i++) {
+        zones.list[i].clock(pos);
+      }
+    },
+    panicHandler: () => {
+      zones.list.forEach(z => z.panic());
+    },
+    completeHandler: (midiavailable, message) => {
       // availability handler
       if (midiavailable) {
         console.log('MIDI available');
@@ -563,19 +572,8 @@ document.addEventListener('DOMContentLoaded', function() {
       } else {
         console.log(message);
       }
-    },
-    midiEventHandler,
-    pos => {
-      // clock Handler
-      for (let i = 0; i < zones.list.length; i++) {
-        zones.list[i].clock(pos);
-      }
-    },
-    () => {
-      // panic handler
-      zones.list.forEach(z => z.panic());
     }
-  );
+  });
 
   ipcRenderer.send('show', true);
 });
