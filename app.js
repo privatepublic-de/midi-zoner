@@ -476,6 +476,7 @@ function allHoldOff() {
 document.addEventListener('DOMContentLoaded', function() {
   const midi = new MIDI(
     (midiavailable, message) => {
+      // availability handler
       if (midiavailable) {
         console.log('MIDI available');
         loadZones(midi);
@@ -565,9 +566,14 @@ document.addEventListener('DOMContentLoaded', function() {
     },
     midiEventHandler,
     pos => {
+      // clock Handler
       for (let i = 0; i < zones.list.length; i++) {
         zones.list[i].clock(pos);
       }
+    },
+    () => {
+      // panic handler
+      zones.list.forEach(z => z.panic());
     }
   );
 

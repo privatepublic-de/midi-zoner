@@ -22,9 +22,10 @@ const MIDI_MESSAGE = {
 /**
  * Web MIDI interface handler
  */
-function MIDI(completeHandler, eventHandler, clockHandler) {
+function MIDI(completeHandler, eventHandler, clockHandler, panicHandler) {
   console.log('MIDI: Initializing...');
   const self = this;
+  self.panicHandler = panicHandler;
   self.sendInternalClock = false;
   self.midiAccess = null;
   self.deviceIdIn = null;
@@ -261,6 +262,7 @@ MIDI.prototype.panic = function() {
     }
     console.log('MIDI: Panic. Sent CC 120, 122, 123 to all channels');
   }
+  if (this.panicHandler) this.panicHandler();
 };
 
 MIDI.prototype.send = function(msg) {

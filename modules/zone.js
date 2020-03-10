@@ -439,4 +439,11 @@ module.exports = class Zone {
     this.arpNoteOff();
     requestAnimationFrame(this.renderPattern.bind(this));
   }
+
+  panic() {
+    this.activeNotes = [];
+    this.midiActiveNotes = [];
+    this.holdList = [];
+    this.notesChanged();
+  }
 };
