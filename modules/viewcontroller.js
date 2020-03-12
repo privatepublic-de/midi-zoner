@@ -370,7 +370,7 @@ function updateValuesForZone(index) {
     ).style.background = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
   } else {
     DOM.addClass(`#zone${index}`, 'disabled');
-    const rgb = DOM.hslToRgb(zone.channel / 16, 0.3, 0.15);
+    const rgb = DOM.hslToRgb(zone.channel / 16, 0.4, 0.3);
     DOM.element(
       `#zone${index}`
     ).style.background = `linear-gradient(0deg,  #272422, rgba(${rgb[0]},${rgb[1]},${rgb[2]},1))`;
