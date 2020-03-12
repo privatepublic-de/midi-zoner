@@ -4,8 +4,8 @@ const settings = require('electron-settings');
 
 powerSaveBlocker.start('prevent-app-suspension');
 
-const minWidth = 950;
-const minHeight = 730;
+const defaultWidth = 950;
+const defaultHeight = 730;
 
 let win;
 
@@ -14,9 +14,9 @@ function createWindow() {
   win = new BrowserWindow({
     x: rect ? rect.x : undefined,
     y: rect ? rect.y : undefined,
-    width: rect ? rect.width : minWidth,
-    height: rect ? rect.height : minHeight,
-    minWidth: minWidth,
+    width: rect ? rect.width : defaultWidth,
+    height: rect ? rect.height : defaultHeight,
+    minWidth: defaultWidth,
     minHeight: 200,
     autoHideMenuBar: true,
     backgroundColor: '#000000',
@@ -61,8 +61,8 @@ function storedWindowPos() {
   let rect = settings.get('windowPos');
   if (rect) {
     // check if stored window pos is within screen
-    if (rect.width < minWidth) rect.width = minWidth;
-    if (rect.height < minHeight) rect.height = minHeight;
+    if (rect.width < defaultWidth) rect.width = defaultWidth;
+    if (rect.height < defaultHeight) rect.height = defaultHeight;
     let displays = electron.screen.getAllDisplays();
     let isVisible = false;
     const max_thresh = 100;
