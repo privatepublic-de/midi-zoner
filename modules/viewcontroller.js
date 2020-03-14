@@ -218,7 +218,9 @@ function renderZones() {
     const html = `<section class="zone" id="zone${index}">
             <div class="delzone" data-action="${index}:delete" title="Remove zone">✕</div>
             <div class="dragzone" title="Drag zone">≡</div>
-            <div class="channels"><div class="ch enabled" data-action="${index}:enabled" title="Mute Zone">M</div><div class="ch solo" data-action="${index}:solo" title="Solo Zone">S</div>${channelselectors}</div>
+            <div class="channels"><div class="ch enabled" data-action="${index}:enabled" 
+              title="Mute zone">M</div><div class="ch solo" data-action="${index}:solo" 
+              title="Solo Zone">S</div>${channelselectors}</div>
             <div class="range" data-hover="${index}:range" data-action="${index}:range">
                 ${octavemarkers}
                 <span class="join"></span>
@@ -228,30 +230,56 @@ function renderZones() {
                 <canvas id="canvas${index}" width="100" height="16"></canvas>
             </div>
             <div class="settings">
-                <div class="check arp_enabled" data-action="${index}:arp_enabled">Arp
+                <div class="check arp_enabled" data-action="${index}:arp_enabled"
+                  title="Enable arpeggiator"
+                >Arp
                 <span class="arpanchor"></span></div>
-                <div class="val">Oct 
+                <div class="val" title="Transpose octave">Oct 
                     <a class="circle" data-action="${index}:octave:-2"></a> 
                     <a class="circle" data-action="${index}:octave:-1"></a> 
                     <a class="circle selected" data-action="${index}:octave:0"></a> 
                     <a class="circle" data-action="${index}:octave:1"></a> 
                     <a class="circle" data-action="${index}:octave:2"></a> 
                 </div>
-                <div class="check mod" data-action="${index}:mod">Mod</div>
-                <div class="check at2mod" data-action="${index}:at2mod">AT &gt; Mod</div>
-                <div class="check sustain" data-action="${index}:sustain">Pedal</div>
-                <div class="check cc" data-action="${index}:cc">CCs</div>
-                <div class="check pitchbend" data-action="${index}:pitchbend">PB</div>
-                <div class="check fixedvel" data-action="${index}:fixedvel">Fixed Vel</div>
-                <div class="check programchange" data-action="${index}:programchange">PRGM</div>
-                <div class="val">
+                <div class="check mod" data-action="${index}:mod"
+                  title="Forward mod wheel messages (CC 1)"
+                >Mod</div>
+                <div class="check at2mod" data-action="${index}:at2mod"
+                  title="Convert channel pressure (aftertouch) to mod (CC 1)"
+                >AT &gt; Mod</div>
+                <div class="check sustain" data-action="${index}:sustain"
+                  title="Forward sustain pedal messages (CC 64)"
+                >Pedal</div>
+                <div class="check cc" data-action="${index}:cc"
+                  title="Forward control change messages"
+                >CCs</div>
+                <div class="check pitchbend" data-action="${index}:pitchbend"
+                  title="Forward pitch bend messages"
+                >PB</div>
+                <div class="check fixedvel" data-action="${index}:fixedvel"
+                  title="Use fixed velocity 127"
+                >Fixed Vel</div>
+                <div class="check programchange" data-action="${index}:programchange"
+                  title="Forward program change messages"
+                >PRGM</div>
+                <div class="val" title="Send program change message">
                   <span class="valuestep" data-action="${index}:prgdec">&lt;</span>
-                  <input class="programnumber" type="text" value="" min="1" max="128" size="3" data-change="${index}:changeprogram">
+                  <input class="programnumber" type="text" value="" size="3" 
+                    onkeyup="
+                      if (event.keyCode === 13) {
+                        event.preventDefault();
+                        this.dispatchEvent(new Event('change'));
+                      }
+                    "
+                    onfocus="this.select()" 
+                    data-change="${index}:changeprogram">
                   <span class="valuestep" data-action="${index}:prginc">&gt;</span>
                 </div>
             </div>
             <div class="arp-settings">
-                <div class="check arp_hold" data-action="${index}:arp_hold">Hold</div>
+                <div class="check arp_hold" data-action="${index}:arp_hold"
+                      title="Hold notes after key release"
+                >Hold</div>
                 <div class="drop-down">
                   <select class="arp_direction" data-change="${index}:arp_direction">
                     <option>UP</option>
@@ -294,16 +322,22 @@ function renderZones() {
                 </div>
                 <div class="check arp_repeat" data-action="${index}:arp_repeat">Repeat</div>
                 Len
-                <div class="percent arp_gatelength" data-action="${index}:arp_gatelength">
+                <div class="percent arp_gatelength" data-action="${index}:arp_gatelength"
+                      title="Note length"
+                >
                   <span class="inner"></span>
                   <span class="pcnt">50</span>
                 </div>
                 Prob
-                <div class="percent arp_probability" data-action="${index}:arp_probability">
+                <div class="percent arp_probability" data-action="${index}:arp_probability"
+                      title="Note probability"
+                >
                   <span class="inner"></span>
                   <span class="pcnt">50</span>
                 </div>
-                <div class="pattern" data-action="${index}:arp_pattern"><canvas id="canvasPattern${index}" width="128" height="16"></canvas></div>
+                <div class="pattern" data-action="${index}:arp_pattern"
+                      title="Arpeggiator pattern"
+                ><canvas id="canvasPattern${index}" width="128" height="16"></canvas></div>
             </div>
         </section>`;
     DOM.addHTML('#zones', 'beforeend', html);

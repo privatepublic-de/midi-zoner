@@ -377,6 +377,7 @@ select#midiInChannel {
   cursor: pointer;
   vertical-align: middle;
   margin: 0 2px;
+  text-align: center;
 }
 
 .circle.selected {
