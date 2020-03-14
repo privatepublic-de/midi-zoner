@@ -241,39 +241,41 @@ function renderZones() {
                     <a class="circle" data-action="${index}:octave:1"></a> 
                     <a class="circle" data-action="${index}:octave:2"></a> 
                 </div>
-                <div class="check mod" data-action="${index}:mod"
-                  title="Forward mod wheel messages (CC 1)"
-                >Mod</div>
-                <div class="check at2mod" data-action="${index}:at2mod"
-                  title="Convert channel pressure (aftertouch) to mod (CC 1)"
-                >AT &gt; Mod</div>
-                <div class="check sustain" data-action="${index}:sustain"
-                  title="Forward sustain pedal messages (CC 64)"
-                >Pedal</div>
-                <div class="check cc" data-action="${index}:cc"
-                  title="Forward control change messages"
-                >CCs</div>
-                <div class="check pitchbend" data-action="${index}:pitchbend"
-                  title="Forward pitch bend messages"
-                >PB</div>
-                <div class="check fixedvel" data-action="${index}:fixedvel"
-                  title="Use fixed velocity 127"
-                >Fixed Vel</div>
-                <div class="check programchange" data-action="${index}:programchange"
-                  title="Forward program change messages"
-                >PRGM</div>
-                <div class="val" title="Send program change message">
-                  <span class="valuestep" data-action="${index}:prgdec">&lt;</span>
-                  <input class="programnumber" type="text" value="" size="3" 
-                    onkeyup="
-                      if (event.keyCode === 13) {
-                        event.preventDefault();
-                        this.dispatchEvent(new Event('change'));
-                      }
-                    "
-                    onfocus="this.select()" 
-                    data-change="${index}:changeprogram">
-                  <span class="valuestep" data-action="${index}:prginc">&gt;</span>
+                <div class="hidden">
+                  <div class="check mod" data-action="${index}:mod"
+                    title="Forward mod wheel messages (CC 1)"
+                  >Mod</div>
+                  <div class="check at2mod" data-action="${index}:at2mod"
+                    title="Convert channel pressure (aftertouch) to mod (CC 1)"
+                  >AT &gt; Mod</div>
+                  <div class="check sustain" data-action="${index}:sustain"
+                    title="Forward sustain pedal messages (CC 64)"
+                  >Pedal</div>
+                  <div class="check cc" data-action="${index}:cc"
+                    title="Forward control change messages"
+                  >CCs</div>
+                  <div class="check pitchbend" data-action="${index}:pitchbend"
+                    title="Forward pitch bend messages"
+                  >PB</div>
+                  <div class="check fixedvel" data-action="${index}:fixedvel"
+                    title="Use fixed velocity 127"
+                  >Fixed Vel</div>
+                  <div class="check programchange" data-action="${index}:programchange"
+                    title="Forward program change messages"
+                  >PRGM</div>
+                  <div class="val" title="Send program change message">
+                    <span class="valuestep" data-action="${index}:prgdec">&lt;</span>
+                    <input class="programnumber" type="text" value="" size="3" 
+                      onkeyup="
+                        if (event.keyCode === 13) {
+                          event.preventDefault();
+                          this.dispatchEvent(new Event('change'));
+                        }
+                      "
+                      onfocus="this.select()" 
+                      data-change="${index}:changeprogram">
+                    <span class="valuestep" data-action="${index}:prginc">&gt;</span>
+                  </div>
                 </div>
             </div>
             <div class="arp-settings">

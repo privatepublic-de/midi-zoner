@@ -243,6 +243,24 @@ select#midiInChannel {
   font-size: 12px;
 }
 
+.hidden {
+  display: inline-block;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.hidden:hover {
+  display: inline-block;
+  border-color: transparent;
+}
+
+.hidden * {
+  visibility: hidden;
+}
+
+.hidden:hover * {
+  visibility: visible;
+}
+
 .arp-settings {
   position: relative;
   margin-top: 12px;
