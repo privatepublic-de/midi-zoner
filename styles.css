@@ -404,7 +404,7 @@ select#midiInChannel {
 .valuestep {
   display: inline-block;
   background-color: rgba(0, 0, 0, 0.125);
-  border-radius: 4px;
+  border-radius: 50%;
   color: rgba(255, 255, 255, 0.7);
   padding: 2px 4px;
   cursor: pointer;
