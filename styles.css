@@ -245,11 +245,6 @@ select#midiInChannel {
 
 .hidden {
   display: inline-block;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.hidden:hover {
-  border-color: transparent;
 }
 
 .hidden * {
@@ -257,7 +252,7 @@ select#midiInChannel {
   transition: opacity 1s;
 }
 
-.hidden:hover * {
+.zone:hover .hidden * {
   opacity: 1;
   transition: opacity 200ms;
 }
