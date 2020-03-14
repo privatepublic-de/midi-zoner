@@ -249,16 +249,17 @@ select#midiInChannel {
 }
 
 .hidden:hover {
-  display: inline-block;
   border-color: transparent;
 }
 
 .hidden * {
-  visibility: hidden;
+  opacity: 0;
+  transition: opacity 1s;
 }
 
 .hidden:hover * {
-  visibility: visible;
+  opacity: 1;
+  transition: opacity 200ms;
 }
 
 .arp-settings {
