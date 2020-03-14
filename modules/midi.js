@@ -295,6 +295,14 @@ MIDI.prototype.sendStop = function() {
   }
 };
 
+MIDI.prototype.sendProgramChange = function(channel, no) {
+  if (this.hasOutput()) {
+    this.deviceOut.send(
+      Uint8Array.from([channel + MIDI_MESSAGE.PGM_CHANGE, no])
+    );
+  }
+};
+
 MIDI.prototype.startClock = function(v) {
   this.songposition = 0;
   this.isInternalClockRunning = true;

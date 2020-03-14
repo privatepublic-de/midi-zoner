@@ -20,12 +20,14 @@ const NOTENAMES = [
 const catchedMarker = [0, 0, 0, 0];
 
 let zones = {};
+let midiController;
 
 function triggerSave() {}
 
-function initController({ saveZones, storage }) {
+function initController({ saveZones, storage, midi }) {
   triggerSave = saveZones;
   zones = storage;
+  midiController = midi;
 }
 
 function actionHandler(ev) {
@@ -88,6 +90,31 @@ function actionHandler(ev) {
       zone.arp_pattern[index] = !zone.arp_pattern[index];
       console.log(JSON.stringify(zone.arp_pattern));
       zone.renderPattern();
+      break;
+    case 'changeprogram':
+      {
+        const v = parseInt(e.value);
+        if (v > 0 && v < 129) {
+          console.log('Program change', v);
+          midiController.sendProgramChange(zone.channel, v - 1);
+        }
+      }
+      break;
+    case 'prgdec':
+    case 'prginc':
+      {
+        const input = DOM.element(`#zone${zoneindex} input.programnumber`);
+        let v = parseInt(input.value);
+        v = Number.isInteger(v) ? v : 0;
+        if (params[1] == 'prginc') {
+          if (v < 128) v++;
+        } else {
+          if (v > 1) v--;
+        }
+        v = Math.min(128, Math.max(0, v));
+        input.value = v;
+        input.dispatchEvent(new Event('change'));
+      }
       break;
     case 'enabled':
       zone.enabled = !zone.enabled;
@@ -215,8 +242,13 @@ function renderZones() {
                 <div class="check sustain" data-action="${index}:sustain">Pedal</div>
                 <div class="check cc" data-action="${index}:cc">CCs</div>
                 <div class="check pitchbend" data-action="${index}:pitchbend">PB</div>
-                <div class="check programchange" data-action="${index}:programchange">PRGM</div>
                 <div class="check fixedvel" data-action="${index}:fixedvel">Fixed Vel</div>
+                <div class="check programchange" data-action="${index}:programchange">PRGM</div>
+                <div class="val">
+                  <span class="valuestep" data-action="${index}:prgdec">&lt;</span>
+                  <input class="programnumber" type="text" value="" min="1" max="128" size="3" data-change="${index}:changeprogram">
+                  <span class="valuestep" data-action="${index}:prginc">&gt;</span>
+                </div>
             </div>
             <div class="arp-settings">
                 <div class="check arp_hold" data-action="${index}:arp_hold">Hold</div>
@@ -364,16 +396,16 @@ function updateValuesForZone(index) {
   if (zone.enabled && (Zone.solocount === 0 || zone.solo)) {
     DOM.removeClass(`#zone${index}`, 'disabled');
     const rgb = DOM.hslToRgb(zone.channel / 16, 0.4, 0.3);
-    DOM.element(`#zone${index}`).style.borderColor = 'transparent';
+    // DOM.element(`#zone${index}`).style.borderColor = 'transparent';
     DOM.element(
       `#zone${index}`
     ).style.background = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
   } else {
     DOM.addClass(`#zone${index}`, 'disabled');
-    const rgb = DOM.hslToRgb(zone.channel / 16, 0.4, 0.3);
+    const rgb = DOM.hslToRgb(zone.channel / 16, 0.4, 0.2);
     DOM.element(
       `#zone${index}`
-    ).style.background = `linear-gradient(0deg,  #272422, rgba(${rgb[0]},${rgb[1]},${rgb[2]},1))`;
+    ).style.background = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
   }
   [
     'cc',

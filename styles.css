@@ -383,7 +383,8 @@ select#midiInChannel {
   background-color: rgba(255, 255, 255, 0.25);
 }
 
-.drop-down select {
+.drop-down select,
+.val input {
   /* border: 1px solid rgba(255, 255, 255, 0.25); */
   border: none;
   background-color: rgba(0, 0, 0, 0.125);
@@ -394,6 +395,19 @@ select#midiInChannel {
   padding: 0;
   height: 20px;
   box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.val input {
+  text-align: center;
+}
+
+.valuestep {
+  display: inline-block;
+  background-color: rgba(0, 0, 0, 0.125);
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 2px 4px;
+  cursor: pointer;
 }
 
 /* .drop-down select:focus {

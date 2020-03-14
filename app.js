@@ -15,8 +15,6 @@ function saveZones() {
   localStorage.setItem('zones', JSON.stringify(zones));
 }
 
-view.initController({ saveZones, storage: zones });
-
 function loadZones(midi) {
   let stored = localStorage.getItem('zones');
   if (stored) {
@@ -150,4 +148,5 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
   });
+  view.initController({ saveZones, storage: zones, midi });
 });
