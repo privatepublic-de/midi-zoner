@@ -250,7 +250,7 @@ select#midiInChannel {
 .hidden *,
 .mch {
   opacity: 0;
-  transition: opacity 1s;
+  transition: opacity 2s;
 }
 
 .zone:hover .hidden *,
@@ -463,7 +463,7 @@ select#midiInChannel {
   font-size: 12px;
   padding: 1px 0 0 0;
   text-align: center;
-  transition: 200ms left, 200ms right;
+  transition: 1s left, 1s right;
 }
 
 .marker.low {
