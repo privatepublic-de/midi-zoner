@@ -37,11 +37,11 @@ function MIDI({ completeHandler, eventHandler, clockHandler, panicHandler }) {
   self.isInternalClockRunning = false;
   self.internalClock = MidiClock(() => {
     if (!self.deviceInClock && clockHandler) {
-      if (self.isInternalClockRunning) {
-        clockHandler(self.songposition);
-      }
       if (self.sendInternalClock) {
         self.sendClock();
+      }
+      if (self.isInternalClockRunning) {
+        clockHandler(self.songposition);
       }
       self.songposition++;
     }
