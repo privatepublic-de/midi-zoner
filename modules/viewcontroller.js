@@ -209,7 +209,7 @@ function renderZones() {
   zones.list.forEach((zone, index) => {
     let channelselectors = '';
     for (let i = 0; i < 16; i++) {
-      channelselectors += `<div class="ch ${
+      channelselectors += `<div class="ch mch ${
         zone.channel == i ? 'selected' : ''
       } no${i}" data-action="${index}:ch:${i}">${i + 1}</div>`;
     }

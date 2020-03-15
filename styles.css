@@ -247,12 +247,15 @@ select#midiInChannel {
   display: inline-block;
 }
 
-.hidden * {
+.hidden *,
+.mch {
   opacity: 0;
   transition: opacity 1s;
 }
 
-.zone:hover .hidden * {
+.zone:hover .hidden *,
+.zone:hover .mch,
+.mch.selected {
   opacity: 1;
   transition: opacity 200ms;
 }
