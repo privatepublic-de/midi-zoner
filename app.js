@@ -143,6 +143,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
           }
         });
+        document.body.addEventListener('keyup', ev => {
+          if (ev.key == ' ') {
+            startClockButton.click();
+          }
+        });
       } else {
         console.log(message);
       }
