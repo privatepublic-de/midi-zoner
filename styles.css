@@ -524,16 +524,20 @@ input[type='checkbox'] + label::before {
   display: inline-block;
   width: 16px;
   height: 16px;
-  border-radius: 4px;
+  line-height: 14px;
+  border-radius: 50%;
   border: 1px solid rgba(0, 0, 0, 0.9);
-  background-color: #444;
+  background-color: transparent;
   content: '';
   margin-right: 5px;
-  vertical-align: middle;
+  vertical-align: text-bottom;
   text-align: center;
+  box-sizing: border-box;
 }
 input[type='checkbox']:checked + label::before {
-  content: '●';
+  border-radius: 50%;
+  border-width: 4px;
+  background-color: #888;
 }
 
 .toggle {
