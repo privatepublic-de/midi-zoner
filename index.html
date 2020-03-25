@@ -16,15 +16,23 @@
         <a id="allMuteOff" class="lightButton" title="Un-mute all">M</a
         ><a id="allSoloOff" class="lightButton" title="Un-solo all">S</a>
       </div>
-      <table>
-        <tr>
-          <td><label for="midiInDeviceId">In:</label></td>
-          <td>
+      <div class="controls">
+        <div class="block">
+          <div class="row">
+            <label for="midiInDeviceId">In:</label>
             <select id="midiInDeviceId" tabindex="-1"
               ><option>(No devices)</option></select
             >
-          </td>
-          <td>
+          </div>
+          <div class="row">
+            <label for="midiOutDeviceId" tabindex="-1">Out:</label>
+            <select id="midiOutDeviceId" tabindex="-1"
+              ><option>(No devices)</option></select
+            >
+          </div>
+        </div>
+        <div class="block">
+          <div class="row">
             <select id="midiInChannel" tabindex="-1">
               <option>Ch 1</option>
               <option>Ch 2</option>
@@ -43,31 +51,8 @@
               <option>Ch 15</option>
               <option>Ch 16</option>
             </select>
-          </td>
-          <td class="rb">
-            <input id="inChannelExclusive" type="checkbox" />
-            <label
-              for="inChannelExclusive"
-              title="Messages from other channels are ignored, not forwarded"
-              >Exclusive</label
-            >
-          </td>
-          <td><label for="midiClockInDeviceId">Clock:</label></td>
-          <td>
-            <select id="midiClockInDeviceId" tabindex="-1"
-              ><option value="*INTERNAL*">INTERNAL</option></select
-            >
-          </td>
-        </tr>
-        <tr>
-          <td><label for="midiOutDeviceId" tabindex="-1">Out:</label></td>
-          <td>
-            <select id="midiOutDeviceId" tabindex="-1"
-              ><option>(No devices)</option></select
-            >
-          </td>
-          <td></td>
-          <td class="rb">
+          </div>
+          <div class="row">
             <button
               id="midiPanic"
               class="lightButton"
@@ -75,9 +60,26 @@
             >
               Panic
             </button>
-          </td>
-          <td class="onlyinternal"><label>BPM:</label></td>
-          <td class="onlyinternal">
+          </div>
+        </div>
+        <div class="block">
+          <div class="row">
+            <input id="inChannelExclusive" type="checkbox" /><label
+              for="inChannelExclusive"
+              title="Messages from other channels are ignored, not forwarded"
+              >Exclusive</label
+            >
+          </div>
+        </div>
+        <div class="block clocksettings">
+          <div class="row">
+            <label for="midiClockInDeviceId">Clock:</label>
+            <select id="midiClockInDeviceId" tabindex="-1"
+              ><option value="*INTERNAL*">INTERNAL</option></select
+            >
+          </div>
+          <div class="row onlyinternal">
+            <label>BPM:</label>
             <span id="displayBPM">130</span
             ><span id="startClockButton" class="toggle"></span>
             <input id="sendClock" type="checkbox" />
@@ -86,9 +88,9 @@
               title="Send internal clock to MIDI-Out device"
               >Send clock</label
             >
-          </td>
-        </tr>
-      </table>
+          </div>
+        </div>
+      </div>
     </section>
     <div class="padded">
       <section id="zones">

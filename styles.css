@@ -46,27 +46,60 @@ select {
   color: rgba(255, 255, 255, 0.5);
   box-shadow: 0 2px 5px #272422;
   border-bottom: 1px solid #333;
+  text-align: center;
 }
 
-#midisettings table {
-  margin: 0 auto;
-  border-spacing: 0;
+#midisettings .controls {
+  display: inline-block;
+  text-align: left;
 }
 
-#midisettings td {
-  padding: 2px 4px 2px 8px;
+#midisettings .block {
+  display: inline-block;
+  vertical-align: top;
 }
 
-.lb {
-  border-left: 8px solid #444;
+#midisettings .row {
+  padding: 4px;
+  min-height: 24px;
 }
 
-.rb {
-  border-right: 8px solid #444;
+#midisettings label {
+  display: inline-block;
+  width: 30px;
 }
 
-.tb {
-  border-top: 1px solid #333;
+#midisettings input[type='checkbox'] {
+  display: none;
+}
+#midisettings input[type='checkbox'] + label {
+  cursor: pointer;
+  width: auto;
+}
+#midisettings input[type='checkbox'] + label::before {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  line-height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.9);
+  background-color: transparent;
+  content: '';
+  margin-right: 5px;
+  vertical-align: text-bottom;
+  text-align: center;
+  box-sizing: border-box;
+}
+#midisettings input[type='checkbox']:checked + label::before {
+  border-radius: 50%;
+  border-width: 4px;
+  background-color: #888;
+}
+
+#midisettings .clocksettings {
+  background-color: #3c3c3c;
+  margin-left: 10px;
+  padding: 0 4px;
 }
 
 #midisettings select {
@@ -84,11 +117,13 @@ select#midiInChannel {
 }
 
 .onlyinternal {
-  visibility: hidden;
+  opacity: 0.2;
+  pointer-events: none;
 }
 
 .internalClock .onlyinternal {
-  visibility: visible;
+  opacity: 1;
+  pointer-events: all;
 }
 
 .lightButton {
@@ -341,32 +376,10 @@ select#midiInChannel {
   border-color: transparent;
 }
 
-/* .check::before {
-  margin: 0 2px 0 0;
-  display: inline-block;
-  width: 14px;
-}
-
-.check::before {
-  content: '○';
-}
-
-.check.selected::before {
-  content: '●';
-} */
-
 .check.arp_enabled {
   width: 68px;
   position: relative;
 }
-
-/* .check.arp_enabled::before {
-  content: '▶';
-}
-
-.check.arp_enabled.selected::before {
-  content: '▼';
-} */
 
 .percent {
   position: relative;
@@ -524,32 +537,6 @@ select#midiInChannel {
 
 .ch:hover {
   background-color: rgba(0, 0, 0, 0.25) !important;
-}
-
-input[type='checkbox'] {
-  display: none;
-}
-input[type='checkbox'] + label {
-  cursor: pointer;
-}
-input[type='checkbox'] + label::before {
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  line-height: 14px;
-  border-radius: 50%;
-  border: 1px solid rgba(0, 0, 0, 0.9);
-  background-color: transparent;
-  content: '';
-  margin-right: 5px;
-  vertical-align: text-bottom;
-  text-align: center;
-  box-sizing: border-box;
-}
-input[type='checkbox']:checked + label::before {
-  border-radius: 50%;
-  border-width: 4px;
-  background-color: #888;
 }
 
 .toggle {
