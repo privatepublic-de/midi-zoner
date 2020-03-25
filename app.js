@@ -55,6 +55,11 @@ document.addEventListener('DOMContentLoaded', function() {
         zones.list[i].clock(pos);
       }
     },
+    stoppedHandler: () => {
+      zones.list.forEach(z => {
+        z.stopped();
+      });
+    },
     panicHandler: () => {
       zones.list.forEach(z => z.panic());
     },
@@ -64,6 +69,19 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('MIDI available');
         loadZones(midi);
         midi.setInternalClockTempo(zones.tempo);
+        const updateClockInterface = function() {
+          console.log('Clock input device changed');
+          if (midi.deviceInClock) {
+            DOM.removeClass('#midisettings', 'internalClock');
+          } else {
+            DOM.addClass('#midisettings', 'internalClock');
+          }
+        };
+        DOM.element('#midiClockInDeviceId').addEventListener(
+          'change',
+          updateClockInterface
+        );
+        updateClockInterface();
         view.renderZones();
         function createNewZone() {
           zones.list.push(new Zone(midi));

@@ -61,6 +61,10 @@ select {
   border-left: 8px solid #444;
 }
 
+.rb {
+  border-right: 8px solid #444;
+}
+
 .tb {
   border-top: 1px solid #333;
 }
@@ -77,6 +81,14 @@ select {
 
 select#midiInChannel {
   width: auto;
+}
+
+.onlyinternal {
+  visibility: hidden;
+}
+
+.internalClock .onlyinternal {
+  visibility: visible;
 }
 
 .lightButton {

@@ -33,6 +33,7 @@ module.exports = function(tickCallback) {
 
     stop: function() {
       playing = false;
+      timer.clearInterval();
     }
   };
 };

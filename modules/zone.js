@@ -455,6 +455,7 @@ module.exports = class Zone {
   stopped() {
     this.arp.noteindex = -1;
     this.arp.patternPos = -1;
+    this.arp.repeattrig = false;
     this.arp.inc = 1;
     this.arpNoteOff();
     requestAnimationFrame(this.renderPattern.bind(this));

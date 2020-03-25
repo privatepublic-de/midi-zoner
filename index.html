@@ -44,7 +44,7 @@
               <option>Ch 16</option>
             </select>
           </td>
-          <td>
+          <td class="rb">
             <input id="inChannelExclusive" type="checkbox" />
             <label
               for="inChannelExclusive"
@@ -52,7 +52,7 @@
               >Exclusive</label
             >
           </td>
-          <td class="lb"><label for="midiClockInDeviceId">Clock:</label></td>
+          <td><label for="midiClockInDeviceId">Clock:</label></td>
           <td>
             <select id="midiClockInDeviceId" tabindex="-1"
               ><option value="*INTERNAL*">INTERNAL</option></select
@@ -67,7 +67,7 @@
             >
           </td>
           <td></td>
-          <td>
+          <td class="rb">
             <button
               id="midiPanic"
               class="lightButton"
@@ -76,8 +76,8 @@
               Panic
             </button>
           </td>
-          <td class="lb"><label>BPM:</label></td>
-          <td>
+          <td class="onlyinternal"><label>BPM:</label></td>
+          <td class="onlyinternal">
             <span id="displayBPM">130</span
             ><span id="startClockButton" class="toggle"></span>
             <input id="sendClock" type="checkbox" />

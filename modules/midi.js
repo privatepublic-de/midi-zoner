@@ -22,7 +22,13 @@ const MIDI_MESSAGE = {
 /**
  * Web MIDI interface handler
  */
-function MIDI({ completeHandler, eventHandler, clockHandler, panicHandler }) {
+function MIDI({
+  completeHandler,
+  eventHandler,
+  clockHandler,
+  stoppedHandler,
+  panicHandler
+}) {
   console.log('MIDI: Initializing...');
   const self = this;
   self.panicHandler = panicHandler;
@@ -34,13 +40,13 @@ function MIDI({ completeHandler, eventHandler, clockHandler, panicHandler }) {
   self.knownInputIds = {};
   self.knownOutputIds = {};
   self.songposition = 0;
-  self.isInternalClockRunning = false;
+  self.isClockRunning = false;
   self.internalClock = MidiClock(() => {
     if (!self.deviceInClock && clockHandler) {
       if (self.sendInternalClock) {
         self.sendClock();
       }
-      if (self.isInternalClockRunning) {
+      if (self.isClockRunning) {
         clockHandler(self.songposition);
       }
       self.songposition++;
@@ -162,7 +168,7 @@ function MIDI({ completeHandler, eventHandler, clockHandler, panicHandler }) {
       select_in_clock.value = selectedInClock;
     }
     console.log('MIDI: ', countIn, 'inputs,', countOut, 'outputs');
-    self.internalClock.start();
+    // self.internalClock.start();
     if (countIn == 0 || countOut == 0) {
       let message;
       if (countIn > 0 && countOut == 0) {
@@ -185,13 +191,23 @@ function MIDI({ completeHandler, eventHandler, clockHandler, panicHandler }) {
     eventHandler(event, self.deviceOut);
   }
   function onMIDIClockMessage(event) {
-    if (clockHandler && event.data[0] === MIDI_MESSAGE.CLOCK) {
+    if (
+      self.isClockRunning &&
+      clockHandler &&
+      event.data[0] === MIDI_MESSAGE.CLOCK
+    ) {
       clockHandler(self.songposition);
       self.songposition++;
     }
     if (event.data[0] === MIDI_MESSAGE.START) {
       // start
+      self.isClockRunning = true;
+    } else if (event.data[0] === MIDI_MESSAGE.STOP) {
+      self.isClockRunning = false;
       self.songposition = 0;
+      if (stoppedHandler) {
+        stoppedHandler();
+      }
     }
   }
 
@@ -209,6 +225,9 @@ function MIDI({ completeHandler, eventHandler, clockHandler, panicHandler }) {
       self.deviceIn.onmidimessage = onMIDIMessage;
       if (self.deviceInClock) {
         self.deviceInClock.onmidimessage = onMIDIClockMessage;
+        self.internalClock.stop();
+      } else {
+        self.internalClock.start();
       }
     } else {
       console.log('MIDI: No input device selected!');
@@ -305,7 +324,7 @@ MIDI.prototype.sendProgramChange = function(channel, no) {
 
 MIDI.prototype.startClock = function(v) {
   this.songposition = 0;
-  this.isInternalClockRunning = true;
+  this.isClockRunning = true;
   this.internalClock.start();
   if (this.sendInternalClock) {
     this.sendStart();
@@ -313,7 +332,7 @@ MIDI.prototype.startClock = function(v) {
 };
 
 MIDI.prototype.stopClock = function(v) {
-  this.isInternalClockRunning = false;
+  this.isClockRunning = false;
   if (!this.deviceInClock) {
     // this.internalClock.stop();
   }

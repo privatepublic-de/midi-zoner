@@ -2,7 +2,7 @@ const electron = require('electron');
 const { app, BrowserWindow, powerSaveBlocker } = electron;
 const settings = require('electron-settings');
 
-powerSaveBlocker.start('prevent-app-suspension');
+// powerSaveBlocker.start('prevent-app-suspension');
 
 const defaultWidth = 950;
 const defaultHeight = 730;
