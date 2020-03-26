@@ -96,6 +96,13 @@ document.addEventListener('DOMContentLoaded', function() {
         DOM.element('#allMuteOff').addEventListener('click', view.allMuteOff);
         DOM.element('#allSoloOff').addEventListener('click', view.allSoloOff);
         DOM.element('#allHoldOff').addEventListener('click', view.allHoldOff);
+        for (var i = 0; i < 16; i++) {
+          DOM.addHTML(
+            '#midiInChannel',
+            'beforeend',
+            `<option>Ch ${i + 1}</option>`
+          );
+        }
         DOM.element('#midiInChannel').selectedIndex = zones.inChannel;
         DOM.element('#midiInChannel').addEventListener('change', e => {
           zones.inChannel = e.target.selectedIndex;
