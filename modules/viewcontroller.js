@@ -211,10 +211,10 @@ function renderZones() {
     for (let i = 0; i < 16; i++) {
       channelselectors += `<div class="ch mch ${
         zone.channel == i ? 'selected' : ''
-      } no${i}" data-action="${index}:ch:${i}">${i + 1}</div>`;
+      } no${i}" data-action="${index}:ch:${i}" title="Select MIDI channel ${i +
+        1}">${i + 1}</div>`;
     }
-    const octavemarkers =
-      '<span class="oct"></span><span class="oct"></span><span class="oct"></span><span class="oct"></span><span class="oct"></span><span class="oct"></span><span class="oct"></span><span class="oct"></span><span class="oct"></span><span class="oct"></span>';
+    const octavemarkers = '<span class="oct"></span>'.repeat(10);
     const html = `<section class="zone" id="zone${index}">
             <div class="delzone" data-action="${index}:delete" title="Remove zone">✕</div>
             <div class="dragzone" title="Drag zone">≡</div>
