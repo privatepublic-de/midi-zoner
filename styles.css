@@ -136,10 +136,10 @@ select#midiInChannel {
   min-width: 38px;
   text-align: center;
 }
-.lightButton:hover {
+/* .lightButton:hover {
   background: #777;
   color: #000;
-}
+} */
 
 #midisettings #allMuteOff {
   margin-right: 4px;
@@ -262,14 +262,15 @@ select#midiInChannel {
 }
 
 .ch.enabled {
-  background-color: rgba(196, 0, 0, 0.4);
+  background-color: rgba(0, 0, 0, 0.1);
 }
-.ch.enabled:hover {
+/* .ch.enabled:hover {
   background-color: rgba(196, 0, 0, 0.8) !important;
-}
+} */
 
 .ch.enabled.selected {
-  background-color: rgba(0, 0, 0, 0.1);
+  background-color: rgba(196, 0, 0, 0.4);
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .ch.solo {
@@ -280,9 +281,9 @@ select#midiInChannel {
 .ch.solo.selected {
   background-color: rgba(0, 196, 0, 0.4);
 }
-.ch.solo.selected:hover {
+/* .ch.solo.selected:hover {
   background-color: rgba(0, 196, 0, 0.7) !important;
-}
+} */
 
 .settings,
 .arp-settings {
@@ -467,7 +468,7 @@ select#midiInChannel {
   cursor: pointer;
   width: 100%;
   margin: 6px auto;
-  border: 2px solid rgba(0, 0, 0, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.08);
   overflow: hidden;
   border-radius: 6px;
 }
@@ -506,14 +507,14 @@ select#midiInChannel {
   position: absolute;
   top: 0;
   height: 28px;
-  background-color: rgba(0, 0, 0, 0.25);
+  background-color: rgba(255, 255, 255, 0.08);
 }
 .current {
   display: none;
   position: absolute;
   top: 6px;
   height: 14px;
-  background-color: rgba(0, 0, 0, 0.15);
+  background-color: rgba(255, 255, 255, 0.15);
 }
 .range:hover .current {
   display: block;
@@ -522,7 +523,7 @@ select#midiInChannel {
 .oct {
   position: absolute;
   top: 0;
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: rgba(255, 255, 255, 0.07);
   color: rgba(255, 255, 255, 0.2);
   width: 1px;
   bottom: 0;
@@ -530,14 +531,14 @@ select#midiInChannel {
   text-indent: 4px;
 }
 
-.check:hover,
+/* .check:hover,
 .circle:hover {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
 .ch:hover {
   background-color: rgba(0, 0, 0, 0.25) !important;
-}
+} */
 
 .toggle {
   margin-left: 7px;
@@ -546,17 +547,17 @@ select#midiInChannel {
   background-color: rgba(0, 196, 0, 0.4);
 }
 
-.toggle:hover {
+/* .toggle:hover {
   background-color: rgba(255, 255, 255, 0.1) !important;
-}
+} */
 
 .toggle.selected {
   background-color: rgba(196, 0, 0, 0.4);
 }
 
-.toggle.selected:hover {
+/* .toggle.selected:hover {
   background-color: rgba(255, 0, 0, 0.4) !important;
-}
+} */
 
 #startClockButton::before {
   content: 'Start';
