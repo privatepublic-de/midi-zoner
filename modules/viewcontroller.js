@@ -219,7 +219,7 @@ function renderZones() {
             <div class="delzone" data-action="${index}:delete" title="Remove zone">✕</div>
             <div class="dragzone" title="Drag zone">≡</div>
             <div class="channels"><div class="ch enabled" data-action="${index}:enabled" 
-              title="Mute zone">M</div><div class="ch solo" data-action="${index}:solo" 
+              title="Receive MIDI events">R</div><div class="ch solo" data-action="${index}:solo" 
               title="Solo Zone">S</div>${channelselectors}</div>
             <div class="range" data-hover="${index}:range" data-action="${index}:range">
                 ${octavemarkers}
