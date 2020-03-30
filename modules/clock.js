@@ -1,7 +1,7 @@
 const NanoTimer = require('nanotimer');
 
 module.exports = function(tickCallback) {
-  const timer = new NanoTimer();
+  let timer;
 
   let playing = false;
   let tickLength = microseconds(120);
@@ -21,19 +21,25 @@ module.exports = function(tickCallback) {
       const tlength = microseconds(tempo);
       if (tlength != tickLength) {
         tickLength = tlength;
-        timer.clearInterval();
-        timer.setInterval(tick, '', `${tickLength}u`);
+        if (timer) {
+          timer.clearInterval();
+          timer.setInterval(tick, '', `${tickLength}u`);
+        }
       }
     },
 
     start: function() {
       playing = true;
+      timer = new NanoTimer();
       timer.setInterval(tick, '', `${tickLength}u`);
     },
 
     stop: function() {
       playing = false;
-      timer.clearInterval();
+      if (timer) {
+        timer.clearInterval();
+        delete timer;
+      }
     }
   };
 };

@@ -227,7 +227,7 @@ function MIDI({
         self.deviceInClock.onmidimessage = onMIDIClockMessage;
         self.internalClock.stop();
       } else {
-        self.internalClock.start();
+        // self.internalClock.start();
       }
     } else {
       console.log('MIDI: No input device selected!');
@@ -334,7 +334,7 @@ MIDI.prototype.startClock = function(v) {
 MIDI.prototype.stopClock = function(v) {
   this.isClockRunning = false;
   if (!this.deviceInClock) {
-    // this.internalClock.stop();
+    this.internalClock.stop();
   }
   if (this.sendInternalClock) {
     this.sendStop();
