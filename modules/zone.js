@@ -1,4 +1,5 @@
 const seedrandom = require('seedrandom');
+const MIDI = require('./midi');
 const DIV_TICKS = [
   192,
   144,
@@ -177,8 +178,8 @@ module.exports = class Zone {
   handleMidi(message, data, midiOutDevice) {
     if (this.enabled && (Zone.solocount === 0 || this.solo)) {
       switch (message) {
-        case MIDI_MESSAGE.NOTE_OFF: // note off
-        case MIDI_MESSAGE.NOTE_ON: // note on
+        case MIDI.MESSAGE.NOTE_OFF: // note off
+        case MIDI.MESSAGE.NOTE_ON: // note on
           let key = data[1];
           const srcKey = key;
           let velo = data[2];
@@ -190,7 +191,7 @@ module.exports = class Zone {
               }
 
               const outevent = new Uint8Array(data);
-              if (message == MIDI_MESSAGE.NOTE_ON) {
+              if (message == MIDI.MESSAGE.NOTE_ON) {
                 if (!this.arp_enabled) {
                   outevent[0] = message + this.channel;
                   outevent[1] = key;
@@ -220,7 +221,7 @@ module.exports = class Zone {
             this.notesChanged();
           }
           break;
-        case MIDI_MESSAGE.CONTROLLER: // cc
+        case MIDI.MESSAGE.CONTROLLER: // cc
           if (data[1] == 0x40 && !this.sustain) {
             // no sustain pedal
             return;
@@ -237,24 +238,24 @@ module.exports = class Zone {
           outevent[0] = message + this.channel;
           midiOutDevice.send(outevent);
           break;
-        case MIDI_MESSAGE.PITCH_BEND: // pitch bend
+        case MIDI.MESSAGE.PITCH_BEND: // pitch bend
           if (this.pitchbend) {
             const outevent = new Uint8Array(data);
             outevent[0] = message + this.channel;
             midiOutDevice.send(outevent);
           }
           break;
-        case MIDI_MESSAGE.PGM_CHANGE: // prgm change
+        case MIDI.MESSAGE.PGM_CHANGE: // prgm change
           if (this.programchange) {
             const outevent = new Uint8Array(data);
             outevent[0] = message + this.channel;
             midiOutDevice.send(outevent);
           }
           break;
-        case MIDI_MESSAGE.CHANNEL_PRESSURE:
+        case MIDI.MESSAGE.CHANNEL_PRESSURE:
           if (this.at2mod) {
             const outevent = new Uint8Array(3);
-            outevent[0] = MIDI_MESSAGE.CONTROLLER + this.channel;
+            outevent[0] = MIDI.MESSAGE.CONTROLLER + this.channel;
             outevent[1] = 1;
             outevent[2] = data[1];
             midiOutDevice.send(outevent);
@@ -418,7 +419,7 @@ module.exports = class Zone {
             this.arp.lastnote = note;
             this.midi.send(
               Uint8Array.from([
-                MIDI_MESSAGE.NOTE_ON + this.channel,
+                MIDI.MESSAGE.NOTE_ON + this.channel,
                 note.number,
                 this.fixedvel ? 127 : note.velo
               ])
@@ -441,7 +442,7 @@ module.exports = class Zone {
       const note = this.arp.lastnote;
       this.midi.send(
         Uint8Array.from([
-          MIDI_MESSAGE.NOTE_OFF + note.channel,
+          MIDI.MESSAGE.NOTE_OFF + note.channel,
           note.number,
           note.velo
         ])

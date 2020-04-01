@@ -1,6 +1,6 @@
 const DOM = require('./modules/domutils');
 const Zone = require('./modules/zone');
-const { MIDI, MIDI_MESSAGE } = require('./modules/midi');
+const MIDI = require('./modules/midi');
 const view = require('./modules/viewcontroller');
 
 const zones = {
@@ -32,8 +32,8 @@ function loadZones(midi) {
 function midiEventHandler(event, midiOutDevice) {
   const channel = event.data[0] & 0x0f;
   const msgtype = event.data[0] & 0xf0;
-  if (msgtype === MIDI_MESSAGE.NOTE_ON && event.data[2] === 0) {
-    msgtype = MIDI_MESSAGE.NOTE_OFF;
+  if (msgtype === MIDI.MESSAGE.NOTE_ON && event.data[2] === 0) {
+    msgtype = MIDI.MESSAGE.NOTE_OFF;
   }
   if (channel === zones.inChannel) {
     zones.list.forEach(zone => {
