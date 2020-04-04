@@ -18,7 +18,7 @@ const DIV_TICKS = [
   6,
   4,
   3,
-  2
+  2,
 ]; // 24ppq
 
 class Note {
@@ -69,7 +69,7 @@ module.exports = class Zone {
     lastnote: null,
     repeattrig: false,
     repeatnote: null,
-    beat: false
+    beat: false,
   };
   activeNotes = [];
   midiActiveNotes = [];
@@ -110,7 +110,7 @@ module.exports = class Zone {
       arp_gatelength: this.arp_gatelength,
       arp_repeat: this.arp_repeat,
       arp_probability: this.arp_probability,
-      arp_pattern: this.arp_pattern
+      arp_pattern: this.arp_pattern,
     };
   }
 
@@ -152,7 +152,9 @@ module.exports = class Zone {
       this.holdList = [];
     }
     this.activeNotes.push(note);
-    const existingIndex = this.holdList.findIndex(n => n.number == note.number);
+    const existingIndex = this.holdList.findIndex(
+      (n) => n.number == note.number
+    );
     if (existingIndex == -1) {
       this.holdList.push(note);
     } else {
@@ -391,14 +393,18 @@ module.exports = class Zone {
                 }
                 break;
               case 2: // updown
-                this.arp.noteindex += this.arp.inc;
-                if (this.arp.noteindex >= notes.length - 1) {
-                  this.arp.inc = -1;
-                  if (this.arp.noteindex > notes.length - 1) {
-                    this.arp.noteindex = Math.max(notes.length - 1, 0);
+                if (notes.length > 1) {
+                  this.arp.noteindex += this.arp.inc;
+                  if (this.arp.noteindex >= notes.length - 1) {
+                    this.arp.inc = -1;
+                    if (this.arp.noteindex > notes.length - 1) {
+                      this.arp.noteindex = Math.max(notes.length - 1, 0);
+                    }
+                  } else if (this.arp.noteindex < 1) {
+                    this.arp.inc = 1;
                   }
-                } else if (this.arp.noteindex < 1) {
-                  this.arp.inc = 1;
+                } else {
+                  this.arp.noteindex = 0;
                 }
                 break;
               case 3: // random
@@ -421,7 +427,7 @@ module.exports = class Zone {
               Uint8Array.from([
                 MIDI.MESSAGE.NOTE_ON + this.channel,
                 note.number,
-                this.fixedvel ? 127 : note.velo
+                this.fixedvel ? 127 : note.velo,
               ])
             );
           }
@@ -444,7 +450,7 @@ module.exports = class Zone {
         Uint8Array.from([
           MIDI.MESSAGE.NOTE_OFF + note.channel,
           note.number,
-          note.velo
+          note.velo,
         ])
       );
       this.arp.lastnote = null;
