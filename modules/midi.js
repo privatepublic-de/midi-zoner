@@ -20,14 +20,14 @@ class MIDI {
     CLOCK: 0xf8,
     START: 0xfa,
     CONTINUE: 0xfb,
-    STOP: 0xfc
+    STOP: 0xfc,
   };
   constructor({
     completeHandler,
     eventHandler,
     clockHandler,
     stoppedHandler,
-    panicHandler
+    panicHandler,
   }) {
     console.log('MIDI: Initializing...');
     this.panicHandler = panicHandler;
@@ -68,19 +68,19 @@ class MIDI {
         }
       }
     };
-    const onMIDISuccess = midiAccess => {
-      console.log('MIDI ready!');
+    const onMIDISuccess = (midiAccess) => {
+      console.log('MIDI: ready');
       this.midiAccess = midiAccess;
       const initResult = listInputsAndOutputs();
       selectDevices();
       this.midiAccess.onstatechange = onStateChange;
       reportStatus(initResult.success, initResult.message);
     };
-    const onMIDIFailure = msg => {
+    const onMIDIFailure = (msg) => {
       console.log('MIDI: Failed to get MIDI access - ' + msg);
       reportStatus(false, 'No MIDI available');
     };
-    const onStateChange = e => {
+    const onStateChange = (e) => {
       const port = e.port;
       const state = e.port.state;
       if (state === 'disconnected') {
@@ -105,6 +105,14 @@ class MIDI {
       DOM.empty(select_in);
       for (let entry of this.midiAccess.inputs) {
         let input = entry[1];
+        if (!knownPorts[input.id]) {
+          console.log(
+            'MIDI: in :',
+            input.name,
+            input.manufacturer,
+            input.version
+          );
+        }
         knownPorts[input.id] = true;
         if (input.id == localStorage.getItem('midiInId')) {
           selectedIn = input.id;
@@ -115,18 +123,26 @@ class MIDI {
         DOM.addHTML(
           select_in,
           'beforeend',
-          `<option value="${input.id}">${input.name}</option>`
+          `<option value="${input.id}">${input.name} (${input.manufacturer})</option>`
         );
         DOM.addHTML(
           select_in_clock,
           'beforeend',
-          `<option value="${input.id}">${input.name}</option>`
+          `<option value="${input.id}">${input.name} (${input.manufacturer})</option>`
         );
         countIn++;
       }
       DOM.empty(select_out);
       for (let entry of this.midiAccess.outputs) {
         let output = entry[1];
+        if (!knownPorts[output.id]) {
+          console.log(
+            'MIDI: out:',
+            output.name,
+            output.manufacturer,
+            output.version
+          );
+        }
         knownPorts[output.id] = true;
         if (output.id == localStorage.getItem('midiOutId')) {
           selectedOut = output.id;
@@ -134,7 +150,7 @@ class MIDI {
         DOM.addHTML(
           select_out,
           'beforeend',
-          `<option value="${output.id}">${output.name}</option>`
+          `<option value="${output.id}">${output.name} (${output.manufacturer})</option>`
         );
         countOut++;
       }
@@ -167,10 +183,10 @@ class MIDI {
         return { success: true };
       }
     };
-    const onMIDIMessage = event => {
+    const onMIDIMessage = (event) => {
       eventHandler(event, this.deviceOut);
     };
-    const onMIDIClockMessage = event => {
+    const onMIDIClockMessage = (event) => {
       if (
         this.isClockRunning &&
         clockHandler &&
@@ -201,7 +217,7 @@ class MIDI {
       this.deviceInClock = this.midiAccess.inputs.get(this.deviceIdInClock);
       this.deviceOut = this.midiAccess.outputs.get(this.deviceIdOut);
       if (this.deviceIn) {
-        this.midiAccess.inputs.forEach(entry => {
+        this.midiAccess.inputs.forEach((entry) => {
           entry.onmidimessage = undefined;
         });
         this.deviceIn.onmidimessage = onMIDIMessage;
@@ -217,7 +233,7 @@ class MIDI {
     };
     // go ahead, start midi
     const list = [select_in, select_in_clock, select_out];
-    list.forEach(el => {
+    list.forEach((el) => {
       el.addEventListener('change', () => {
         selectDevices();
         localStorage.setItem('midiInId', this.deviceIdIn);
@@ -234,7 +250,7 @@ class MIDI {
       console.log('MIDI: System has *no* MIDI support.');
       reportStatus(false, 'Sorry, browser has no MIDI support.');
       DOM.addClass('#midisettings', 'unsupported');
-      DOM.all('#midisettings select', function(el) {
+      DOM.all('#midisettings select', function (el) {
         el.disabled = 'disabled';
       });
     }
