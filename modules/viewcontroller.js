@@ -80,10 +80,7 @@ function actionHandler(ev) {
     case 'arp_probability':
     case 'arp_gatelength':
       const percent = ev.offsetX / (e.offsetWidth * 0.95);
-      zone[params[1]] = Math.mind(
-        1,
-        Math.max(0, Math.floor(percent * 24) / 24)
-      );
+      zone[params[1]] = Math.min(1, Math.max(0, Math.floor(percent * 24) / 24));
       updateValuesForZone(zoneindex);
       break;
     case 'arp_pattern':
