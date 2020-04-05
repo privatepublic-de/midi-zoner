@@ -80,15 +80,15 @@ function actionHandler(ev) {
     case 'arp_probability':
     case 'arp_gatelength':
       const percent = ev.offsetX / (e.offsetWidth * 0.95);
-      zone[params[1]] = Math.max(0, Math.floor(percent * 24) / 24);
+      zone[params[1]] = Math.mind(
+        1,
+        Math.max(0, Math.floor(percent * 24) / 24)
+      );
       updateValuesForZone(zoneindex);
       break;
     case 'arp_pattern':
       const index = parseInt((ev.offsetX / e.offsetWidth) * 8);
-      console.log(index);
-      console.log(JSON.stringify(zone.arp_pattern));
       zone.arp_pattern[index] = !zone.arp_pattern[index];
-      console.log(JSON.stringify(zone.arp_pattern));
       zone.renderPattern();
       break;
     case 'changeprogram':
@@ -211,8 +211,9 @@ function renderZones() {
     for (let i = 0; i < 16; i++) {
       channelselectors += `<div class="ch mch ${
         zone.channel == i ? 'selected' : ''
-      } no${i}" data-action="${index}:ch:${i}" title="Select MIDI channel ${i +
-        1}">${i + 1}</div>`;
+      } no${i}" data-action="${index}:ch:${i}" title="Select MIDI channel ${
+        i + 1
+      }">${i + 1}</div>`;
     }
     const octavemarkers = '<span class="oct"></span>'.repeat(10);
     const html = `<section class="zone" id="zone${index}">
@@ -353,25 +354,25 @@ function renderZones() {
     updateValuesForZone(index);
     zone.renderPattern();
     const dragHandler = DOM.element(`#zone${index} .dragzone`);
-    dragHandler.addEventListener('mousedown', ev => {
+    dragHandler.addEventListener('mousedown', (ev) => {
       new DragZone(index, ev, () => {
         triggerSave();
         renderZones();
       });
     });
   });
-  DOM.all('*[data-action]').forEach(e => {
+  DOM.all('*[data-action]').forEach((e) => {
     e.addEventListener('click', actionHandler);
   });
-  DOM.all('*[data-change]').forEach(e => {
+  DOM.all('*[data-change]').forEach((e) => {
     e.addEventListener('change', actionHandler);
   });
-  DOM.all('*[data-hover]').forEach(e => {
+  DOM.all('*[data-hover]').forEach((e) => {
     e.addEventListener('mousemove', hoverHandler);
     e.addEventListener('mouseleave', hoverOutHandler);
     e.addEventListener('dblclick', dblClickHandler);
   });
-  DOM.all('.pattern').forEach(e => {
+  DOM.all('.pattern').forEach((e) => {
     e.addEventListener('dblclick', dblClickHandler);
   });
 }
@@ -402,7 +403,7 @@ function renderMarkersForZone(index, tempLo, tempHigh) {
   zone.dom.current.style.left = `${xclow * width}px`;
   zone.dom.current.style.right = `${width - xchi * width - xpad}px`;
   let ocount = 0;
-  DOM.all(`#zone${index} .range .oct`, e => {
+  DOM.all(`#zone${index} .range .oct`, (e) => {
     ocount++;
     e.style.left = `${((ocount * 12) / 127.0) * width}px`;
     e.innerHTML = ocount - 1;
@@ -456,15 +457,15 @@ function updateValuesForZone(index) {
     'arp_enabled',
     'arp_hold',
     'arp_repeat'
-  ].forEach(p => {
+  ].forEach((p) => {
     if (zone[p]) {
       DOM.addClass(`#zone${index} .${p}`, 'selected');
     }
   });
-  ['arp_direction', 'arp_division', 'arp_octaves'].forEach(p => {
+  ['arp_direction', 'arp_division', 'arp_octaves'].forEach((p) => {
     DOM.element(`#zone${index} .${p}`).selectedIndex = zone[p];
   });
-  ['arp_gatelength', 'arp_probability'].forEach(p => {
+  ['arp_gatelength', 'arp_probability'].forEach((p) => {
     const pcnt = parseInt(zone[p] * 100);
     DOM.element(`#zone${index} .percent.${p} .inner`).style.width = `${pcnt}%`;
     DOM.element(`#zone${index} .percent.${p} .pcnt`).innerHTML = pcnt;
@@ -474,7 +475,7 @@ function updateValuesForZone(index) {
   } else {
     DOM.removeClass(`#zone${index}`, 'arp-enabled');
   }
-  DOM.all(`#zone${index} .circle`, e => {
+  DOM.all(`#zone${index} .circle`, (e) => {
     const parts = e.getAttribute('data-action').split(':');
     if (parts[2] == zone.octave) {
       DOM.addClass(e, 'selected');
