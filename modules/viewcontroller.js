@@ -358,6 +358,22 @@ function renderZones() {
       });
     });
   });
+  DOM.all('.arp_probability,.arp_gatelength').forEach((el) => {
+    let active = false;
+    el.addEventListener('mousedown', (e) => {
+      active = true;
+      actionHandler(e);
+    });
+    el.addEventListener('mouseup', (e) => {
+      active = false;
+      actionHandler(e);
+    });
+    el.addEventListener('mousemove', (e) => {
+      if (active) {
+        actionHandler(e);
+      }
+    });
+  });
   DOM.all('*[data-action]').forEach((e) => {
     e.addEventListener('click', actionHandler);
   });
