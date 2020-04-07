@@ -18,7 +18,7 @@ const DIV_TICKS = [
   6,
   4,
   3,
-  2,
+  2
 ]; // 24ppq
 
 class Note {
@@ -69,7 +69,7 @@ module.exports = class Zone {
     lastnote: null,
     repeattrig: false,
     repeatnote: null,
-    beat: false,
+    beat: false
   };
   activeNotes = [];
   midiActiveNotes = [];
@@ -110,7 +110,7 @@ module.exports = class Zone {
       arp_gatelength: this.arp_gatelength,
       arp_repeat: this.arp_repeat,
       arp_probability: this.arp_probability,
-      arp_pattern: this.arp_pattern,
+      arp_pattern: this.arp_pattern
     };
   }
 
@@ -360,12 +360,9 @@ module.exports = class Zone {
       this.arp_ticks - 1
     );
     if (tickn === 0) {
+      const probable = this.rngProb() < this.arp_probability;
       this.arp.patternPos = (this.arp.patternPos + 1) % this.arp_pattern.length;
-      if (
-        this.arp_enabled &&
-        this.arp_pattern[this.arp.patternPos] &&
-        this.rngProb() < this.arp_probability
-      ) {
+      if (this.arp_enabled && this.arp_pattern[this.arp.patternPos]) {
         this.arp.beat = true;
         let notes;
         if (this.arp_hold) {
@@ -412,7 +409,11 @@ module.exports = class Zone {
                 break;
             }
           }
-          if (this.arp.noteindex > -1 && this.arp.noteindex < notes.length) {
+          if (
+            probable &&
+            this.arp.noteindex > -1 &&
+            this.arp.noteindex < notes.length
+          ) {
             const activeNote = repetition
               ? this.arp.repeatnote
               : notes[this.arp.noteindex];
@@ -427,7 +428,7 @@ module.exports = class Zone {
               Uint8Array.from([
                 MIDI.MESSAGE.NOTE_ON + this.channel,
                 note.number,
-                this.fixedvel ? 127 : note.velo,
+                this.fixedvel ? 127 : note.velo
               ])
             );
           }
@@ -450,7 +451,7 @@ module.exports = class Zone {
         Uint8Array.from([
           MIDI.MESSAGE.NOTE_OFF + note.channel,
           note.number,
-          note.velo,
+          note.velo
         ])
       );
       this.arp.lastnote = null;
