@@ -364,10 +364,14 @@ function renderZones() {
       active = true;
       actionHandler(e);
     });
-    el.addEventListener('mouseup', (e) => {
-      active = false;
-      actionHandler(e);
-    });
+    const trackingOff = (e) => {
+      if (active) {
+        active = false;
+        actionHandler(e);
+      }
+    };
+    el.addEventListener('mouseup', trackingOff);
+    el.addEventListener('mouseleave', trackingOff);
     el.addEventListener('mousemove', (e) => {
       if (active) {
         actionHandler(e);
