@@ -421,8 +421,11 @@ select#midiInChannel {
   color: rgba(255, 255, 255, 0.7);
   font-size: 12px;
   padding: 0;
-  height: 20px;
   box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.drop-down select {
+  height: 20px;
 }
 
 .val input {
@@ -431,10 +434,10 @@ select#midiInChannel {
 
 .valuestep {
   display: inline-block;
-  background-color: rgba(0, 0, 0, 0.125);
-  border-radius: 50%;
+  /* background-color: rgba(0, 0, 0, 0.125);
+  border-radius: 50%; */
   color: rgba(255, 255, 255, 0.7);
-  padding: 2px 4px;
+  padding: 4px;
   cursor: pointer;
 }
 
@@ -534,4 +537,10 @@ select#midiInChannel {
   height: 18px;
   vertical-align: middle;
   cursor: pointer;
+}
+
+.val.prgm {
+  background-color: rgba(0, 0, 0, 0.125);
+  border-radius: 4px;
+  vertical-align: top;
 }

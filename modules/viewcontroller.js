@@ -261,7 +261,7 @@ function renderZones() {
                   <div class="check programchange" data-action="${index}:programchange"
                     title="Forward program change messages"
                   >PRGM</div>
-                  <div class="val" title="Send program change message">
+                  <div class="val prgm" title="Send program change message">
                     <span class="valuestep" data-action="${index}:prgdec">&lt;</span>
                     <input class="programnumber" type="text" value="" size="3" 
                       onkeyup="
