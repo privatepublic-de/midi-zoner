@@ -447,7 +447,7 @@ function updateValuesForZone(index) {
   const zone = zones.list[index];
   DOM.removeClass(`#zone${index} *[data-action]`, 'selected');
   DOM.addClass(`#zone${index} .no${zone.channel}`, 'selected');
-  if (zone.enabled && (Zone.solocount === 0 || zone.solo)) {
+  if (zone.enabled && (Zone.solocount === 0 || zone.solo) || zone.arp_hold) {
     DOM.removeClass(`#zone${index}`, 'disabled');
     const rgb = DOM.hslToRgb(zone.channel / 16, 0.4, 0.3);
     // DOM.element(`#zone${index}`).style.borderColor = 'transparent';
