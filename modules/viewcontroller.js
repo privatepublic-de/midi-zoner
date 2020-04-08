@@ -21,6 +21,7 @@ const catchedMarker = [0, 0, 0, 0];
 
 let zones = {};
 let midiController;
+let elAllMuteOff, elAllSoloOff, elAllHoldOff;
 
 function triggerSave() {}
 
@@ -28,6 +29,12 @@ function initController({ saveZones, storage, midi }) {
   triggerSave = saveZones;
   zones = storage;
   midiController = midi;
+  elAllMuteOff = DOM.element('#allMuteOff');
+  elAllMuteOff.addEventListener('click', allMuteOff);
+  elAllSoloOff = DOM.element('#allSoloOff');
+  elAllSoloOff.addEventListener('click', allSoloOff);
+  elAllHoldOff = DOM.element('#allHoldOff');
+  elAllHoldOff.addEventListener('click', allHoldOff);
 }
 
 function actionHandler(ev) {
@@ -443,14 +450,40 @@ function updateValuesForAllZones() {
   }
 }
 
+function updateGeneralButtons() {
+  let muted = 0,
+    held = 0;
+  for (let i = 0; i < zones.list.length; i++) {
+    muted += zones.list[i].enabled ? 0 : 1;
+    held += zones.list[i].arp_hold ? 1 : 0;
+  }
+  if (muted > 0) {
+    DOM.addClass(elAllMuteOff, 'active');
+  } else {
+    DOM.removeClass(elAllMuteOff, 'active');
+  }
+  if (Zone.solocount > 0) {
+    DOM.addClass(elAllSoloOff, 'active');
+  } else {
+    DOM.removeClass(elAllSoloOff, 'active');
+  }
+  if (held > 0) {
+    DOM.addClass(elAllHoldOff, 'active');
+  } else {
+    DOM.removeClass(elAllHoldOff, 'active');
+  }
+}
+
 function updateValuesForZone(index) {
   const zone = zones.list[index];
   DOM.removeClass(`#zone${index} *[data-action]`, 'selected');
   DOM.addClass(`#zone${index} .no${zone.channel}`, 'selected');
-  if (zone.enabled && (Zone.solocount === 0 || zone.solo) || zone.arp_hold) {
+  if (
+    (zone.enabled && (Zone.solocount === 0 || zone.solo)) ||
+    (zone.arp_hold && zone.arp.holdlist.length > 0)
+  ) {
     DOM.removeClass(`#zone${index}`, 'disabled');
     const rgb = DOM.hslToRgb(zone.channel / 16, 0.4, 0.3);
-    // DOM.element(`#zone${index}`).style.borderColor = 'transparent';
     DOM.element(
       `#zone${index}`
     ).style.background = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
@@ -498,6 +531,7 @@ function updateValuesForZone(index) {
       DOM.addClass(e, 'selected');
     }
   });
+  updateGeneralButtons();
 }
 
 function allMuteOff() {
@@ -528,8 +562,5 @@ function allHoldOff() {
 module.exports = {
   initController,
   renderZones,
-  renderMarkersForAllZones,
-  allMuteOff,
-  allSoloOff,
-  allHoldOff
+  renderMarkersForAllZones
 };

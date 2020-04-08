@@ -36,7 +36,7 @@ function midiEventHandler(event, midiOutDevice) {
     msgtype = MIDI.MESSAGE.NOTE_OFF;
   }
   if (channel === zones.inChannel) {
-    zones.list.forEach(zone => {
+    zones.list.forEach((zone) => {
       zone.handleMidi(msgtype, event.data, midiOutDevice);
     });
   } else {
@@ -47,21 +47,21 @@ function midiEventHandler(event, midiOutDevice) {
   }
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
   const midi = new MIDI({
     eventHandler: midiEventHandler,
-    clockHandler: pos => {
+    clockHandler: (pos) => {
       for (let i = 0; i < zones.list.length; i++) {
         zones.list[i].clock(pos);
       }
     },
     stoppedHandler: () => {
-      zones.list.forEach(z => {
+      zones.list.forEach((z) => {
         z.stopped();
       });
     },
     panicHandler: () => {
-      zones.list.forEach(z => z.panic());
+      zones.list.forEach((z) => z.panic());
     },
     completeHandler: (midiavailable, message) => {
       // availability handler
@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('MIDI available');
         loadZones(midi);
         midi.setInternalClockTempo(zones.tempo);
-        const updateClockInterface = function() {
+        const updateClockInterface = function () {
           console.log('Clock input device changed');
           if (midi.deviceInClock) {
             DOM.removeClass('#midisettings', 'internalClock');
@@ -93,9 +93,6 @@ document.addEventListener('DOMContentLoaded', function() {
           requestAnimationFrame(view.renderMarkersForAllZones);
         });
         DOM.element('#newzone').addEventListener('click', createNewZone);
-        DOM.element('#allMuteOff').addEventListener('click', view.allMuteOff);
-        DOM.element('#allSoloOff').addEventListener('click', view.allSoloOff);
-        DOM.element('#allHoldOff').addEventListener('click', view.allHoldOff);
         for (var i = 0; i < 16; i++) {
           DOM.addHTML(
             '#midiInChannel',
@@ -104,12 +101,12 @@ document.addEventListener('DOMContentLoaded', function() {
           );
         }
         DOM.element('#midiInChannel').selectedIndex = zones.inChannel;
-        DOM.element('#midiInChannel').addEventListener('change', e => {
+        DOM.element('#midiInChannel').addEventListener('change', (e) => {
           zones.inChannel = e.target.selectedIndex;
           saveZones();
         });
         DOM.element('#inChannelExclusive').checked = zones.inChannelExclusive;
-        DOM.element('#inChannelExclusive').addEventListener('change', e => {
+        DOM.element('#inChannelExclusive').addEventListener('change', (e) => {
           zones.inChannelExclusive = e.target.checked;
           saveZones();
         });
@@ -119,13 +116,13 @@ document.addEventListener('DOMContentLoaded', function() {
         let bpmStartX = 0;
         let bpmStartTempo = 0;
         let dragBPM = false;
-        displayBPM.addEventListener('mousedown', e => {
+        displayBPM.addEventListener('mousedown', (e) => {
           bpmStartX = e.screenX;
           bpmStartTempo = parseInt(zones.tempo);
           dragBPM = true;
           DOM.addClass(document.body, 'dragging');
         });
-        document.body.addEventListener('mousemove', e => {
+        document.body.addEventListener('mousemove', (e) => {
           if (dragBPM) {
             let dragTempo =
               bpmStartTempo + Math.round((e.screenX - bpmStartX) / 2);
@@ -135,7 +132,7 @@ document.addEventListener('DOMContentLoaded', function() {
             displayBPM.innerHTML = zones.tempo;
           }
         });
-        document.body.addEventListener('mouseup', e => {
+        document.body.addEventListener('mouseup', (e) => {
           if (dragBPM) {
             DOM.removeClass(document.body, 'dragging');
             dragBPM = false;
@@ -146,7 +143,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const sendClockCheck = DOM.element('#sendClock');
         sendClockCheck.checked = zones.sendClock;
         midi.setSendClock(zones.sendClock);
-        sendClockCheck.addEventListener('change', e => {
+        sendClockCheck.addEventListener('change', (e) => {
           zones.sendClock = e.target.checked;
           midi.setSendClock(zones.sendClock);
           saveZones();
@@ -162,13 +159,13 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
               startClockButton.classList.remove('selected');
               midi.stopClock();
-              zones.list.forEach(z => {
+              zones.list.forEach((z) => {
                 z.stopped();
               });
             }
           }
         });
-        document.body.addEventListener('keyup', ev => {
+        document.body.addEventListener('keyup', (ev) => {
           if (ev.key == ' ') {
             startClockButton.click();
           }
