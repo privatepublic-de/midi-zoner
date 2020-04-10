@@ -20,14 +20,14 @@ class MIDI {
     CLOCK: 0xf8,
     START: 0xfa,
     CONTINUE: 0xfb,
-    STOP: 0xfc,
+    STOP: 0xfc
   };
   constructor({
     completeHandler,
     eventHandler,
     clockHandler,
     stoppedHandler,
-    panicHandler,
+    panicHandler
   }) {
     console.log('MIDI: Initializing...');
     this.panicHandler = panicHandler;
@@ -103,6 +103,7 @@ class MIDI {
       let countIn = 0;
       let countOut = 0;
       DOM.empty(select_in);
+      DOM.empty(select_in_clock);
       for (let entry of this.midiAccess.inputs) {
         let input = entry[1];
         if (!knownPorts[input.id]) {
