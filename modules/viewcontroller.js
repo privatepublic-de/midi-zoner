@@ -122,7 +122,7 @@ function actionHandler(ev) {
       break;
     case 'enabled':
       zone.enabled = !zone.enabled;
-      if (zone.solo) {
+      if (zone.solo && !zone.enabled) {
         zone.solo = false;
         updateValuesForAllZones();
       } else {
@@ -130,10 +130,11 @@ function actionHandler(ev) {
       }
       break;
     case 'solo':
-      if (zone.enabled) {
-        zone.solo = !zone.solo;
-        updateValuesForAllZones();
+      zone.solo = !zone.solo;
+      if (zone.solo) {
+        zone.enabled = true;
       }
+      updateValuesForAllZones();
       break;
     case 'delete':
       zones.list[zoneindex].solo = false;
@@ -480,7 +481,7 @@ function updateValuesForZone(index) {
   DOM.addClass(`#zone${index} .no${zone.channel}`, 'selected');
   if (
     (zone.enabled && (Zone.solocount === 0 || zone.solo)) ||
-    (zone.arp_hold && zone.arp.holdlist.length > 0)
+    (zone.arp_enabled && zone.arp_hold && zone.arp.holdlist.length > 0)
   ) {
     DOM.removeClass(`#zone${index}`, 'disabled');
     const rgb = DOM.hslToRgb(zone.channel / 16, 0.4, 0.3);
