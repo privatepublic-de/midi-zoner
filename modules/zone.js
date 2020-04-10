@@ -104,6 +104,7 @@ module.exports = class Zone {
       at2mod: this.at2mod,
       pitchbend: this.pitchbend,
       arp_enabled: this.arp_enabled,
+      arp_hold: this.arp_hold,
       arp_direction: this.arp_direction,
       arp_octaves: this._arp_octaves,
       arp_division: this._arp_division,
@@ -308,7 +309,10 @@ module.exports = class Zone {
         ? 'rgba(0,0,0,.5)'
         : 'rgba(255,255,255,.5)';
       ctx.strokeStyle = 'rgba(0,0,0,.75)';
-      const list = this.arp_hold ? this.arp.holdlist : this.activeNotes;
+      const list =
+        this.arp_hold && this.arp_enabled
+          ? this.arp.holdlist
+          : this.activeNotes;
       for (let i = 0; i < list.length; i++) {
         const number = list[i].number + this.octave * 12;
         if (this.arp_enabled) {
