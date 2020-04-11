@@ -4,7 +4,7 @@ const settings = require('electron-settings');
 
 powerSaveBlocker.start('prevent-app-suspension');
 
-const defaultWidth = 950;
+const defaultWidth = 1000;
 const defaultHeight = 730;
 
 let win;
@@ -66,7 +66,7 @@ function storedWindowPos() {
     let displays = electron.screen.getAllDisplays();
     let isVisible = false;
     const max_thresh = 100;
-    displays.forEach(display => {
+    displays.forEach((display) => {
       let bounds = display.bounds;
       if (
         rect.x >= bounds.x &&

@@ -6,7 +6,7 @@ body {
   font-family: Arial, Helvetica, sans-serif;
   background: #272422;
   color: #ddd;
-  margin: 30px 0 0 0;
+  margin: 0 0 0 0;
 }
 
 * {
@@ -47,6 +47,14 @@ select {
   box-shadow: 0 2px 5px #272422;
   border-bottom: 1px solid #333;
   text-align: center;
+  overflow: hidden;
+  height: 32px;
+  transition: height 300ms;
+}
+
+#midisettings:hover,
+.dragging #midisettings {
+  height: 66px;
 }
 
 #midisettings .controls {
@@ -153,8 +161,8 @@ select#midiInChannel {
 #midisettings .left {
   text-align: left;
   position: absolute;
-  left: 23px;
-  bottom: 8px;
+  left: 20px;
+  bottom: 2px;
 }
 
 #displayBPM {
