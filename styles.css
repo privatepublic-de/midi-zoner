@@ -163,7 +163,7 @@ select#midiInChannel {
   text-align: left;
   position: absolute;
   left: 20px;
-  bottom: 2px;
+  top: 10px;
 }
 
 #displayBPM {
