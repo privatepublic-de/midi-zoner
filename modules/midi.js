@@ -104,6 +104,11 @@ class MIDI {
       let countOut = 0;
       DOM.empty(select_in);
       DOM.empty(select_in_clock);
+      DOM.addHTML(
+        select_in_clock,
+        'beforeend',
+        '<option value="*INTERNAL*">INTERNAL</option>'
+      );
       for (let entry of this.midiAccess.inputs) {
         let input = entry[1];
         if (!knownPorts[input.id]) {
