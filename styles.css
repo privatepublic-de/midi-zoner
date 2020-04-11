@@ -55,6 +55,7 @@ select {
 #midisettings:hover,
 .dragging #midisettings {
   height: 66px;
+  background-color: #222;
 }
 
 #midisettings .controls {
