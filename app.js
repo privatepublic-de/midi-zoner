@@ -37,7 +37,7 @@ function midiEventHandler(event, midiOutDevice) {
   }
   if (channel === zones.inChannel) {
     zones.list.forEach((zone) => {
-      zone.handleMidi(msgtype, event.data, midiOutDevice);
+      zone.handleMidi(msgtype, event.data);
     });
   } else {
     // msg from other channel
@@ -66,11 +66,11 @@ document.addEventListener('DOMContentLoaded', function () {
     completeHandler: (midiavailable, message) => {
       // availability handler
       if (midiavailable) {
-        console.log('MIDI available');
+        console.log('app: MIDI available');
         loadZones(midi);
         midi.setInternalClockTempo(zones.tempo);
         const updateClockInterface = function () {
-          console.log('Clock input device changed');
+          console.log('app: Clock input device changed');
           if (midi.deviceInClock) {
             DOM.removeClass('#midisettings', 'internalClock');
           } else {
@@ -171,8 +171,14 @@ document.addEventListener('DOMContentLoaded', function () {
           }
         });
       } else {
-        console.log(message);
+        console.log('app:', message);
       }
+    },
+    updatePortsHandler: (inputs, outputs) => {
+      console.log('app: MIDI port update');
+      console.log('app: inputs', inputs);
+      console.log('app: outputs', outputs);
+      midi.updateUsedPorts(view.updateOutputPortsForAllZone(outputs));
     }
   });
   view.initController({ saveZones, storage: zones, midi });

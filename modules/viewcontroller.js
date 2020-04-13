@@ -54,12 +54,15 @@ function actionHandler(ev) {
       }
       renderMarkersForZone(zoneindex);
       catchedMarker[zoneindex] = 0;
-      // updateValuesForZone(zoneindex);
       break;
     case 'ch':
       let number = parseInt(params[2]);
       zone.channel = number;
       updateValuesForZone(zoneindex);
+      break;
+    case 'outport':
+      zone.preferredOutputPortId = zone.outputPortId = e.value;
+      midiController.updateUsedPorts(listUsedPorts());
       break;
     case 'octave':
       zone.octave = parseInt(params[2]);
@@ -99,7 +102,6 @@ function actionHandler(ev) {
       {
         const v = parseInt(e.value);
         if (v > 0 && v < 129) {
-          console.log('Program change', v);
           midiController.sendProgramChange(zone.channel, v - 1);
         }
       }
@@ -227,9 +229,8 @@ function renderZones() {
             <div class="channels"><div class="ch enabled" data-action="${index}:enabled" 
               title="Receive MIDI events">R</div><div class="ch solo" data-action="${index}:solo" 
               title="Solo Zone">S</div>
-              <select class="outport">
-                <option>Default port</option>
-                <option>iConnectMIDI4+ DIN 1 (iConnectivity)</option>
+              <select class="outport" data-change="${index}:outport">
+                <option value="*">- default port -</option>
               </select>
               ${channelselectors} 
             </div>
@@ -371,6 +372,7 @@ function renderZones() {
         renderZones();
       });
     });
+    initOutputPortsForZone(index);
   });
   DOM.all('.arp_probability,.arp_gatelength').forEach((el) => {
     let active = false;
@@ -541,6 +543,59 @@ function updateValuesForZone(index) {
   updateGeneralButtons();
 }
 
+let cachedOutputPorts;
+
+function updateOutputPortsForAllZone(outputs) {
+  cachedOutputPorts = outputs;
+  for (let i = 0; i < zones.list.length; i++) {
+    updateOutputPortsForZone(i, outputs);
+  }
+  return listUsedPorts();
+}
+
+function listUsedPorts() {
+  const usedPorts = new Set();
+  for (let i = 0; i < zones.list.length; i++) {
+    usedPorts.add(zones.list[i].outputPortId);
+  }
+  return usedPorts;
+}
+
+function initOutputPortsForZone(index) {
+  if (cachedOutputPorts) {
+    updateOutputPortsForZone(index, cachedOutputPorts);
+  }
+}
+
+function updateOutputPortsForZone(index, outputs) {
+  const select = DOM.element(`#zone${index} select.outport`);
+  DOM.empty(select);
+  DOM.addHTML(
+    select,
+    'beforeend',
+    '<option value="*">- default port -</option>'
+  );
+  const preferredOutputPortId = zones.list[index].preferredOutputPortId;
+  let preferredPortAvailable = false;
+  outputs.forEach((port) => {
+    DOM.addHTML(
+      select,
+      'beforeend',
+      `<option value="${port.id}">${port.name}</option>`
+    );
+    if (port.id == preferredOutputPortId) {
+      preferredPortAvailable = true;
+    }
+  });
+  if (preferredPortAvailable) {
+    select.value = preferredOutputPortId;
+    zones.list[index].outputPortId = preferredOutputPortId;
+  } else {
+    select.value = '*';
+    zones.list[index].outputPortId = '*';
+  }
+}
+
 function allMuteOff() {
   for (var i = 0; i < zones.list.length; i++) {
     const zone = zones.list[i];
@@ -569,5 +624,6 @@ function allHoldOff() {
 module.exports = {
   initController,
   renderZones,
-  renderMarkersForAllZones
+  renderMarkersForAllZones,
+  updateOutputPortsForAllZone
 };

@@ -25,16 +25,22 @@ class Note {
   number = 0;
   velo = 0;
   channel = 0;
-  constructor(number, velo, channel) {
+  portId = '*';
+  constructor(number, velo, channel, portId) {
     this.number = number;
     this.velo = velo;
     this.channel = channel;
+    if (portId) {
+      this.portId = portId;
+    }
   }
 }
 
 module.exports = class Zone {
   static solocount = 0;
   channel = 0; // 0-based
+  preferredOutputPortId = '*';
+  outputPortId = '*';
   enabled = true;
   _solo = false;
   programchange = false;
@@ -91,6 +97,7 @@ module.exports = class Zone {
   toJSON() {
     return {
       channel: this.channel,
+      preferredOutputPortId: this.preferredOutputPortId,
       enabled: this.enabled,
       solo: this.solo,
       programchange: this.programchange,
@@ -178,7 +185,7 @@ module.exports = class Zone {
     }
   }
 
-  handleMidi(message, data, midiOutDevice) {
+  handleMidi(message, data) {
     if (this.enabled && (Zone.solocount === 0 || this.solo)) {
       switch (message) {
         case MIDI.MESSAGE.NOTE_OFF: // note off
@@ -199,9 +206,14 @@ module.exports = class Zone {
                   outevent[0] = message + this.channel;
                   outevent[1] = key;
                   outevent[2] = velo;
-                  midiOutDevice.send(outevent);
+                  this.midi.send(outevent, this.outputPortId);
                 }
-                const playNote = new Note(key, velo, this.channel);
+                const playNote = new Note(
+                  key,
+                  velo,
+                  this.channel,
+                  this.outputPortId
+                );
                 this.midiActiveNotes[srcKey] = playNote;
                 this.addNote(playNote);
               } else {
@@ -213,7 +225,7 @@ module.exports = class Zone {
                     outevent[0] = message + srcNote.channel;
                     outevent[1] = srcNote.number;
                     outevent[2] = velo;
-                    midiOutDevice.send(outevent);
+                    this.midi.send(outevent, this.outputPortId);
                   }
                 } else {
                   console.log(`No src note for ${srcKey}, clearing ${key}`);
@@ -239,20 +251,20 @@ module.exports = class Zone {
           }
           const outevent = new Uint8Array(data);
           outevent[0] = message + this.channel;
-          midiOutDevice.send(outevent);
+          this.midi.send(outevent, this.outputPortId);
           break;
         case MIDI.MESSAGE.PITCH_BEND: // pitch bend
           if (this.pitchbend) {
             const outevent = new Uint8Array(data);
             outevent[0] = message + this.channel;
-            midiOutDevice.send(outevent);
+            this.midi.send(outevent, this.outputPortId);
           }
           break;
         case MIDI.MESSAGE.PGM_CHANGE: // prgm change
           if (this.programchange) {
             const outevent = new Uint8Array(data);
             outevent[0] = message + this.channel;
-            midiOutDevice.send(outevent);
+            this.midi.send(outevent, this.outputPortId);
           }
           break;
         case MIDI.MESSAGE.CHANNEL_PRESSURE:
@@ -261,13 +273,13 @@ module.exports = class Zone {
             outevent[0] = MIDI.MESSAGE.CONTROLLER + this.channel;
             outevent[1] = 1;
             outevent[2] = data[1];
-            midiOutDevice.send(outevent);
+            this.midi.send(outevent, this.outputPortId);
             break;
           }
         default: {
           const outevent = new Uint8Array(data);
           outevent[0] = message + this.channel;
-          midiOutDevice.send(outevent);
+          this.midi.send(outevent, this.outputPortId);
         }
       }
     }
@@ -426,7 +438,12 @@ module.exports = class Zone {
               : activeNote.number + this.octave * 12;
             while (number > 127) number -= 12;
             while (number < 0) number += 12;
-            const note = new Note(number, activeNote.velo, this.channel);
+            const note = new Note(
+              number,
+              activeNote.velo,
+              this.channel,
+              this.outputPortId
+            );
             this.arp.lastnote = note;
             this.midi.send(
               Uint8Array.from([
@@ -456,7 +473,8 @@ module.exports = class Zone {
           MIDI.MESSAGE.NOTE_OFF + note.channel,
           note.number,
           note.velo
-        ])
+        ]),
+        note.portId
       );
       this.arp.lastnote = null;
       this.arp.repeatnote = note;

@@ -24,6 +24,7 @@ class MIDI {
   };
   constructor({
     completeHandler,
+    updatePortsHandler,
     eventHandler,
     clockHandler,
     stoppedHandler,
@@ -36,8 +37,8 @@ class MIDI {
     this.deviceIdIn = null;
     this.deviceIdInClock = null;
     this.deviceIdOut = null;
-    this.knownInputIds = {};
-    this.knownOutputIds = {};
+    this.knownPorts = {};
+    this.usedPorts = new Set();
     this.songposition = 0;
     this.isClockRunning = false;
     this.internalClock = MidiClock(() => {
@@ -58,13 +59,19 @@ class MIDI {
       this.panic();
     });
     const optionNoDevice = '<option value="">(No devices)</option>';
-    const knownPorts = {};
     let trueReported = false;
-    const reportStatus = (available, msg) => {
-      if (completeHandler) {
-        if ((available && !trueReported) || !available) {
-          trueReported = available;
+    const reportStatus = (available, msg, inputPorts, outputPorts) => {
+      if ((available && !trueReported) || !available) {
+        trueReported = available;
+        if (completeHandler) {
           completeHandler(available, msg);
+        }
+        if (updatePortsHandler) {
+          updatePortsHandler(inputPorts, outputPorts);
+        }
+      } else {
+        if (updatePortsHandler) {
+          updatePortsHandler(inputPorts, outputPorts);
         }
       }
     };
@@ -74,7 +81,12 @@ class MIDI {
       const initResult = listInputsAndOutputs();
       selectDevices();
       this.midiAccess.onstatechange = onStateChange;
-      reportStatus(initResult.success, initResult.message);
+      reportStatus(
+        initResult.success,
+        initResult.message,
+        initResult.inputs,
+        initResult.outputs
+      );
     };
     const onMIDIFailure = (msg) => {
       console.log('MIDI: Failed to get MIDI access - ' + msg);
@@ -84,15 +96,25 @@ class MIDI {
       const port = e.port;
       const state = e.port.state;
       if (state === 'disconnected') {
-        knownPorts[port.id] = false;
+        delete this.knownPorts[port.id];
         const initResult = listInputsAndOutputs();
         selectDevices();
-        reportStatus(initResult.success, initResult.message);
+        reportStatus(
+          initResult.success,
+          initResult.message,
+          initResult.inputs,
+          initResult.outputs
+        );
       } else if (state === 'connected') {
-        if (!knownPorts[port.id]) {
+        if (!this.knownPorts[port.id]) {
           const initResult = listInputsAndOutputs();
           selectDevices();
-          reportStatus(initResult.success, initResult.message);
+          reportStatus(
+            initResult.success,
+            initResult.message,
+            initResult.inputs,
+            initResult.outputs
+          );
         }
       }
     };
@@ -109,9 +131,23 @@ class MIDI {
         'beforeend',
         '<option value="*INTERNAL*">INTERNAL</option>'
       );
-      for (let entry of this.midiAccess.inputs) {
+      const sortPortsComparator = (a, b) => {
+        const aUpper = ('' + a[1].name).toUpperCase();
+        const bUpper = ('' + b[1].name).toUpperCase();
+        if (aUpper < bUpper) {
+          return -1;
+        }
+        if (bUpper < aUpper) {
+          return 1;
+        }
+        return 0;
+      };
+      const sortedInputs = Array.from(this.midiAccess.inputs).sort(
+        sortPortsComparator
+      );
+      sortedInputs.forEach((entry) => {
         let input = entry[1];
-        if (!knownPorts[input.id]) {
+        if (!this.knownPorts[input.id]) {
           console.log(
             'MIDI: in :',
             input.name,
@@ -119,7 +155,7 @@ class MIDI {
             input.version
           );
         }
-        knownPorts[input.id] = true;
+        this.knownPorts[input.id] = input;
         if (input.id == localStorage.getItem('midiInId')) {
           selectedIn = input.id;
         }
@@ -137,11 +173,15 @@ class MIDI {
           `<option value="${input.id}">${input.name} (${input.manufacturer})</option>`
         );
         countIn++;
-      }
+      });
+
       DOM.empty(select_out);
-      for (let entry of this.midiAccess.outputs) {
+      const sortedOutputs = Array.from(this.midiAccess.outputs).sort(
+        sortPortsComparator
+      );
+      sortedOutputs.forEach((entry) => {
         let output = entry[1];
-        if (!knownPorts[output.id]) {
+        if (!this.knownPorts[output.id]) {
           console.log(
             'MIDI: out:',
             output.name,
@@ -149,7 +189,7 @@ class MIDI {
             output.version
           );
         }
-        knownPorts[output.id] = true;
+        this.knownPorts[output.id] = output;
         if (output.id == localStorage.getItem('midiOutId')) {
           selectedOut = output.id;
         }
@@ -159,7 +199,7 @@ class MIDI {
           `<option value="${output.id}">${output.name} (${output.manufacturer})</option>`
         );
         countOut++;
-      }
+      });
       if (selectedIn) {
         select_in.value = selectedIn;
       }
@@ -170,6 +210,14 @@ class MIDI {
         select_in_clock.value = selectedInClock;
       }
       console.log('MIDI: ', countIn, 'inputs,', countOut, 'outputs');
+      const mapDescriptor = (port) => {
+        return {
+          id: port[1].id,
+          name: `${port[1].name} (${port[1].manufacturer})`
+        };
+      };
+      const inputDescriptors = sortedInputs.map(mapDescriptor);
+      const outputDescriptors = sortedOutputs.map(mapDescriptor);
       // this.internalClock.start();
       if (countIn == 0 || countOut == 0) {
         let message;
@@ -184,9 +232,18 @@ class MIDI {
           DOM.addHTML(select_out, 'beforeend', optionNoDevice);
           DOM.addHTML(select_in, 'beforeend', optionNoDevice);
         }
-        return { success: true, message };
+        return {
+          success: true,
+          message,
+          inputs: inputDescriptors,
+          outputs: outputDescriptors
+        };
       } else {
-        return { success: true };
+        return {
+          success: true,
+          inputs: inputDescriptors,
+          outputs: outputDescriptors
+        };
       }
     };
     const onMIDIMessage = (event) => {
@@ -284,9 +341,18 @@ class MIDI {
     }
     if (this.panicHandler) this.panicHandler();
   }
-  send(msg) {
-    if (this.hasOutput()) {
-      this.deviceOut.send(msg);
+  send(msg, portId) {
+    if (!portId || portId === '*') {
+      if (this.hasOutput()) {
+        this.deviceOut.send(msg);
+      }
+    } else {
+      const deviceOut = this.knownPorts[portId];
+      if (deviceOut) {
+        deviceOut.send(msg);
+      } else {
+        console.log('MIDI: Unknown output port', portId);
+      }
     }
   }
   sendClock() {
@@ -334,6 +400,10 @@ class MIDI {
   }
   setInternalClockTempo(bpm) {
     this.internalClock.setTempo(bpm);
+  }
+  updateUsedPorts(set) {
+    this.usedPorts = set;
+    console.log('MIDI: Used ports updated', this.usedPorts);
   }
 }
 
