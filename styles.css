@@ -6,7 +6,7 @@ body {
   font-family: Arial, Helvetica, sans-serif;
   background: #272422;
   color: #ddd;
-  margin: 0 0 0 0;
+  margin: 30px 0 0 0;
 }
 
 * {
@@ -42,21 +42,12 @@ select {
   left: 0;
   right: 0;
   background-color: #2f2f2f;
-  padding: 5px;
+  padding: 2px 5px;
   font-size: 12px;
   color: rgba(255, 255, 255, 0.5);
   box-shadow: 0 2px 5px #272422;
   border-bottom: 1px solid #333;
   text-align: center;
-  overflow: hidden;
-  height: 32px;
-  transition: height 300ms;
-}
-
-#midisettings:hover,
-.dragging #midisettings {
-  height: 66px;
-  background-color: #222;
 }
 
 #midisettings .controls {
@@ -76,7 +67,7 @@ select {
 
 #midisettings label {
   display: inline-block;
-  width: 30px;
+  min-width: 30px;
 }
 
 #midisettings input[type='checkbox'] {
@@ -164,7 +155,7 @@ select#midiInChannel {
   text-align: left;
   position: absolute;
   left: 20px;
-  top: 10px;
+  bottom: 5px;
 }
 
 #displayBPM {
@@ -268,6 +259,7 @@ select#midiInChannel {
 }
 
 .ch.enabled,
+.soloed-out .ch.enabled.selected,
 .zone.disabled .ch.enabled.selected {
   background-color: rgba(0, 0, 0, 0.1);
 }

@@ -102,7 +102,11 @@ function actionHandler(ev) {
       {
         const v = parseInt(e.value);
         if (v > 0 && v < 129) {
-          midiController.sendProgramChange(zone.channel, v - 1);
+          midiController.sendProgramChange(
+            zone.outputPortId,
+            zone.channel,
+            v - 1
+          );
         }
       }
       break;
@@ -487,6 +491,11 @@ function updateValuesForZone(index) {
   const zone = zones.list[index];
   DOM.removeClass(`#zone${index} *[data-action]`, 'selected');
   DOM.addClass(`#zone${index} .no${zone.channel}`, 'selected');
+  if (Zone.solocount > 0 && !zone.solo) {
+    DOM.addClass(`#zone${index}`, 'soloed-out');
+  } else {
+    DOM.removeClass(`#zone${index}`, 'soloed-out');
+  }
   if (
     (zone.enabled && (Zone.solocount === 0 || zone.solo)) ||
     (zone.arp_enabled && zone.arp_hold && zone.arp.holdlist.length > 0)
@@ -568,12 +577,13 @@ function initOutputPortsForZone(index) {
 }
 
 function updateOutputPortsForZone(index, outputs) {
+  const defaultOutput = outputs.filter((op) => op.isDefault);
   const select = DOM.element(`#zone${index} select.outport`);
   DOM.empty(select);
   DOM.addHTML(
     select,
     'beforeend',
-    '<option value="*">- default port -</option>'
+    `<option value="*">Default Out* (see above)</option>`
   );
   const preferredOutputPortId = zones.list[index].preferredOutputPortId;
   let preferredPortAvailable = false;

@@ -450,7 +450,8 @@ module.exports = class Zone {
                 MIDI.MESSAGE.NOTE_ON + this.channel,
                 note.number,
                 this.fixedvel ? 127 : note.velo
-              ])
+              ]),
+              this.outputPortId
             );
           }
         }

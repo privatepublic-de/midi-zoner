@@ -213,7 +213,8 @@ class MIDI {
       const mapDescriptor = (port) => {
         return {
           id: port[1].id,
-          name: `${port[1].name} (${port[1].manufacturer})`
+          name: `${port[1].name} (${port[1].manufacturer})`,
+          isDefault: port[1].id == selectedIn || port[1].id == selectedOut
         };
       };
       const inputDescriptors = sortedInputs.map(mapDescriptor);
@@ -325,20 +326,20 @@ class MIDI {
     return typeof this.deviceIn !== 'undefined';
   }
   panic() {
-    if (this.hasOutput()) {
-      for (var i = 0; i < 16; i++) {
-        const msg = new Uint8Array(3);
-        msg[0] = MIDI.MESSAGE.CONTROLLER + i;
-        msg[2] = 0;
-        msg[1] = 120; // all sound off
-        this.deviceOut.send(msg);
-        msg[1] = 121; // reset controllers
-        this.deviceOut.send(msg);
-        msg[1] = 123; // all notes off
-        this.deviceOut.send(msg);
-      }
-      console.log('MIDI: Panic. Sent CC 120, 122, 123 to all channels');
+    for (var i = 0; i < 16; i++) {
+      const msg = new Uint8Array(3);
+      msg[0] = MIDI.MESSAGE.CONTROLLER + i;
+      msg[2] = 0;
+      msg[1] = 120; // all sound off
+      this.sendToAllUsedPorts(msg);
+      msg[1] = 121; // reset controllers
+      this.sendToAllUsedPorts(msg);
+      msg[1] = 123; // all notes off
+      this.sendToAllUsedPorts(msg);
     }
+    console.log(
+      'MIDI: Panic. Sent CC 120, 122, 123 to all channels and used ports'
+    );
     if (this.panicHandler) this.panicHandler();
   }
   send(msg, portId) {
@@ -355,27 +356,29 @@ class MIDI {
       }
     }
   }
+  sendToAllUsedPorts(msg) {
+    this.usedPorts.forEach((portId) => {
+      const deviceOut =
+        portId == '*' ? this.deviceOut : this.knownPorts[portId];
+      if (deviceOut) {
+        deviceOut.send(msg);
+      }
+    });
+  }
   sendClock() {
-    if (this.hasOutput()) {
-      this.deviceOut.send(clockMSG);
-    }
+    this.sendToAllUsedPorts(clockMSG);
   }
   sendStart() {
-    if (this.hasOutput()) {
-      this.deviceOut.send(startMSG);
-    }
+    this.sendToAllUsedPorts(startMSG);
   }
   sendStop() {
-    if (this.hasOutput()) {
-      this.deviceOut.send(stopMSG);
-      this.deviceOut.send(songPosStart);
-    }
+    this.sendToAllUsedPorts(stopMSG);
+    this.sendToAllUsedPorts(songPosStart);
   }
-  sendProgramChange(channel, no) {
-    if (this.hasOutput()) {
-      this.deviceOut.send(
-        Uint8Array.from([channel + MIDI.MESSAGE.PGM_CHANGE, no])
-      );
+  sendProgramChange(portId, channel, no) {
+    const deviceOut = this.knownPorts[portId];
+    if (deviceOut) {
+      deviceOut.send(Uint8Array.from([channel + MIDI.MESSAGE.PGM_CHANGE, no]));
     }
   }
   startClock(v) {
