@@ -527,7 +527,7 @@ function updateValuesForZone(index) {
     ).style.background = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
   } else {
     DOM.addClass(`#zone${index}`, 'disabled');
-    const rgb = DOM.hslToRgb(zone.hue, zone.saturation, 0.2);
+    const rgb = DOM.hslToRgb(zone.hue, 0, 0.25);
     DOM.element(
       `#zone${index}`
     ).style.background = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
