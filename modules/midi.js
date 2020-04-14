@@ -152,21 +152,21 @@ class MIDI {
       });
       console.log('MIDI: ', countIn, 'inputs,', countOut, 'outputs');
       const mapDescriptor = (port) => {
-        let name = '';
-        const words = port[1].name.split(/\s/);
-        words.forEach((word, n) => {
-          if (n > 0) {
-            name += ' ';
-          }
-          if (word.length < 9) {
-            name += word;
-          } else {
-            name += word.substr(0, 7) + '…';
-          }
-        });
+        // let name = '';
+        // const words = port[1].name.split(/\s/);
+        // words.forEach((word, n) => {
+        //   if (n > 0) {
+        //     name += ' ';
+        //   }
+        //   if (word.length < 9) {
+        //     name += word;
+        //   } else {
+        //     name += word.substr(0, 7) + '…';
+        //   }
+        // });
         return {
           id: port[1].id,
-          name: `${name} (${port[1].manufacturer})`,
+          name: `${port[1].name}`, //`${name}`,
           isSelectedInput: port[1].id == selectedIn,
           isSelectedClockInput: port[1].id == selectedInClock
         };
