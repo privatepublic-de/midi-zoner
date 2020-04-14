@@ -42,6 +42,10 @@ function midiEventHandler(event) {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
+  const select_in = DOM.element('#midiInDeviceId');
+  const select_in_clock = DOM.element('#midiClockInDeviceId');
+  const optionNoDevice = '<option value="">(No devices)</option>';
+
   const midi = new MIDI({
     eventHandler: midiEventHandler,
     clockHandler: (pos) => {
@@ -61,6 +65,9 @@ document.addEventListener('DOMContentLoaded', function () {
       // availability handler
       if (midiavailable) {
         console.log('app: MIDI available');
+        DOM.element('#midiPanic').addEventListener('click', () => {
+          midi.panic();
+        });
         loadZones(midi);
         midi.setInternalClockTempo(zones.tempo);
         const updateClockInterface = function () {
@@ -78,14 +85,14 @@ document.addEventListener('DOMContentLoaded', function () {
         updateClockInterface();
         view.renderZones();
         function createNewZone() {
-          const newZone = new Zone(midi);
+          const newZone = new Zone(midi, zones.list.length);
           if (zones.list.length > 0) {
             newZone.preferredOutputPortId = newZone.outputPortId =
               zones.list[zones.list.length - 1].outputPortId;
           }
           zones.list.push(newZone);
           saveZones();
-          view.renderZones();
+          view.renderLastZone();
           DOM.element('#tools').scrollIntoView();
         }
         window.addEventListener('resize', () => {
@@ -171,8 +178,43 @@ document.addEventListener('DOMContentLoaded', function () {
       console.log('app: MIDI port update');
       console.log('app: inputs', inputs);
       console.log('app: outputs', outputs);
+      // midi settings
+      DOM.empty(select_in);
+      DOM.empty(select_in_clock);
+      DOM.addHTML(
+        select_in_clock,
+        'beforeend',
+        '<option value="*INTERNAL*">INTERNAL</option>'
+      );
+      inputs.forEach((input) => {
+        DOM.addHTML(
+          select_in,
+          'beforeend',
+          `<option value="${input.id}" ${
+            input.isSelectedInput ? 'selected' : ''
+          }>${input.name} (${input.manufacturer})</option>`
+        );
+        DOM.addHTML(
+          select_in_clock,
+          'beforeend',
+          `<option value="${input.id}"${
+            input.isSelectedClockInput ? 'selected' : ''
+          }>${input.name} (${input.manufacturer})</option>`
+        );
+      });
+      // zones
       midi.updateUsedPorts(view.updateOutputPortsForAllZone(outputs));
     }
+  });
+  const list = [select_in, select_in_clock];
+  list.forEach((el) => {
+    el.addEventListener('change', () => {
+      const inId = DOM.find(select_in, 'option:checked')[0].value;
+      const inClockId = DOM.find(select_in_clock, 'option:checked')[0].value;
+      midi.selectDevices(inId, inClockId);
+      localStorage.setItem('midiInId', inId);
+      localStorage.setItem('midiInClockId', inClockId);
+    });
   });
   view.initController({ saveZones, storage: zones, midi });
 });
