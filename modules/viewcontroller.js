@@ -149,6 +149,10 @@ function actionHandler(ev) {
       renderZones();
       window.scrollTo({ top: scrollPos });
       break;
+    case 'color':
+      zone.randomizeColor();
+      updateValuesForZone(zoneindex);
+      break;
   }
   triggerSave();
 }
@@ -243,6 +247,7 @@ function appendZone(zone, index) {
   const html = `<section class="zone" id="zone${index}">
             <div class="delzone" data-action="${index}:delete" title="Remove zone">✕</div>
             <div class="dragzone" title="Drag zone">≡</div>
+            <div class="randzonecolor" data-action="${index}:color" title="Change color">C</div>
             <div class="channels"><div class="ch enabled" data-action="${index}:enabled" 
               title="Receive MIDI events">R</div><div class="ch solo" data-action="${index}:solo" 
               title="Solo Zone">S</div>

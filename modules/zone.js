@@ -501,4 +501,8 @@ module.exports = class Zone {
     this.holdList = [];
     this.notesChanged();
   }
+
+  randomizeColor() {
+    this.hue = Math.random();
+  }
 };

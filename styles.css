@@ -333,15 +333,16 @@ select#midiInChannel {
 }
 
 .delzone,
-.dragzone {
+.dragzone,
+.randzonecolor {
   float: right;
   color: rgba(0, 0, 0, 0.3);
   cursor: pointer;
   border-radius: 5px;
+  margin-left: 12px;
 }
 
 .dragzone {
-  margin-right: 12px;
   padding: 0 4px;
   cursor: grab;
 }
