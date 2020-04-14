@@ -192,14 +192,14 @@ document.addEventListener('DOMContentLoaded', function () {
           'beforeend',
           `<option value="${input.id}" ${
             input.isSelectedInput ? 'selected' : ''
-          }>${input.name} (${input.manufacturer})</option>`
+          }>${input.name}</option>`
         );
         DOM.addHTML(
           select_in_clock,
           'beforeend',
-          `<option value="${input.id}"${
+          `<option value="${input.id}" ${
             input.isSelectedClockInput ? 'selected' : ''
-          }>${input.name} (${input.manufacturer})</option>`
+          }>${input.name}</option>`
         );
       });
       // zones
