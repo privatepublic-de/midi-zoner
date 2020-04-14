@@ -84,14 +84,16 @@ module.exports = class Zone {
   patternCanvas = null;
   midi = null;
   dom = {};
+  hue = 0;
 
   rngArp = null;
   rngProb = null;
 
-  constructor(midi) {
+  constructor(midi, index) {
     this.midi = midi;
     this.rngArp = seedrandom();
     this.rngProb = seedrandom();
+    this.hue = (0.29 * index) % 1.0;
   }
 
   toJSON() {
@@ -118,7 +120,8 @@ module.exports = class Zone {
       arp_gatelength: this.arp_gatelength,
       arp_repeat: this.arp_repeat,
       arp_probability: this.arp_probability,
-      arp_pattern: this.arp_pattern
+      arp_pattern: this.arp_pattern,
+      hue: this.hue
     };
   }
 

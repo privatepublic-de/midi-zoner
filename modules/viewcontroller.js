@@ -143,9 +143,11 @@ function actionHandler(ev) {
       updateValuesForAllZones();
       break;
     case 'delete':
+      const scrollPos = window.scrollY;
       zones.list[zoneindex].solo = false;
       zones.list.splice(zoneindex, 1);
       renderZones();
+      window.scrollTo({ top: scrollPos });
       break;
   }
   triggerSave();
@@ -218,16 +220,27 @@ function dblClickHandler(ev) {
 function renderZones() {
   DOM.empty('#zones');
   zones.list.forEach((zone, index) => {
-    let channelselectors = '';
-    for (let i = 0; i < 16; i++) {
-      channelselectors += `<div class="ch mch ${
-        zone.channel == i ? 'selected' : ''
-      } no${i}" data-action="${index}:ch:${i}" title="Select MIDI channel ${
-        i + 1
-      }">${i + 1}</div>`;
-    }
-    const octavemarkers = '<span class="oct"></span>'.repeat(10);
-    const html = `<section class="zone" id="zone${index}">
+    appendZone(zone, index);
+  });
+}
+
+function renderLastZone() {
+  const index = zones.list.length - 1;
+  const zone = zones.list[index];
+  appendZone(zone, index);
+}
+
+function appendZone(zone, index) {
+  let channelselectors = '';
+  for (let i = 0; i < 16; i++) {
+    channelselectors += `<div class="ch mch ${
+      zone.channel == i ? 'selected' : ''
+    } no${i}" data-action="${index}:ch:${i}" title="Select MIDI channel ${
+      i + 1
+    }">${i + 1}</div>`;
+  }
+  const octavemarkers = '<span class="oct"></span>'.repeat(10);
+  const html = `<section class="zone" id="zone${index}">
             <div class="delzone" data-action="${index}:delete" title="Remove zone">✕</div>
             <div class="dragzone" title="Drag zone">≡</div>
             <div class="channels"><div class="ch enabled" data-action="${index}:enabled" 
@@ -359,26 +372,28 @@ function renderZones() {
                 ><canvas id="canvasPattern${index}" width="128" height="16"></canvas></div>
             </div>
         </section>`;
-    DOM.addHTML('#zones', 'beforeend', html);
-    zone.canvasElement = DOM.element(`#canvas${index}`);
-    zone.patternCanvas = DOM.element(`#canvasPattern${index}`);
-    zone.dom.markerlow = DOM.element(`#zone${index} .marker.low`);
-    zone.dom.markerhigh = DOM.element(`#zone${index} .marker.high`);
-    zone.dom.join = DOM.element(`#zone${index} .join`);
-    zone.dom.current = DOM.element(`#zone${index} .current`);
-    renderMarkersForZone(index);
-    updateValuesForZone(index);
-    zone.renderPattern();
-    const dragHandler = DOM.element(`#zone${index} .dragzone`);
-    dragHandler.addEventListener('mousedown', (ev) => {
-      new DragZone(index, ev, () => {
-        triggerSave();
-        renderZones();
-      });
+  DOM.addHTML('#zones', 'beforeend', html);
+  zone.canvasElement = DOM.element(`#canvas${index}`);
+  zone.patternCanvas = DOM.element(`#canvasPattern${index}`);
+  zone.dom.markerlow = DOM.element(`#zone${index} .marker.low`);
+  zone.dom.markerhigh = DOM.element(`#zone${index} .marker.high`);
+  zone.dom.join = DOM.element(`#zone${index} .join`);
+  zone.dom.current = DOM.element(`#zone${index} .current`);
+  renderMarkersForZone(index);
+  updateValuesForZone(index);
+  zone.renderPattern();
+  const dragHandler = DOM.element(`#zone${index} .dragzone`);
+  dragHandler.addEventListener('mousedown', (ev) => {
+    new DragZone(index, ev, () => {
+      triggerSave();
+      renderZones();
     });
-    initOutputPortsForZone(index);
   });
-  DOM.all('.arp_probability,.arp_gatelength').forEach((el) => {
+  initOutputPortsForZone(index);
+
+  DOM.all(
+    `#zone${index} .arp_probability,#zone${index} .arp_gatelength`
+  ).forEach((el) => {
     let active = false;
     el.addEventListener('mousedown', (e) => {
       active = true;
@@ -398,18 +413,18 @@ function renderZones() {
       }
     });
   });
-  DOM.all('*[data-action]').forEach((e) => {
+  DOM.all(`#zone${index} *[data-action]`).forEach((e) => {
     e.addEventListener('click', actionHandler);
   });
-  DOM.all('*[data-change]').forEach((e) => {
+  DOM.all(`#zone${index} *[data-change]`).forEach((e) => {
     e.addEventListener('change', actionHandler);
   });
-  DOM.all('*[data-hover]').forEach((e) => {
+  DOM.all(`#zone${index} *[data-hover]`).forEach((e) => {
     e.addEventListener('mousemove', hoverHandler);
     e.addEventListener('mouseleave', hoverOutHandler);
     e.addEventListener('dblclick', dblClickHandler);
   });
-  DOM.all('.pattern').forEach((e) => {
+  DOM.all(`#zone${index} .pattern`).forEach((e) => {
     e.addEventListener('dblclick', dblClickHandler);
   });
 }
@@ -496,18 +511,19 @@ function updateValuesForZone(index) {
   } else {
     DOM.removeClass(`#zone${index}`, 'soloed-out');
   }
+  // const hue = (0.28 * index) % 1.0; // zone.channel / 16
   if (
     (zone.enabled && (Zone.solocount === 0 || zone.solo)) ||
     (zone.arp_enabled && zone.arp_hold && zone.arp.holdlist.length > 0)
   ) {
     DOM.removeClass(`#zone${index}`, 'disabled');
-    const rgb = DOM.hslToRgb(zone.channel / 16, 0.4, 0.3);
+    const rgb = DOM.hslToRgb(zone.hue, 0.4, 0.3);
     DOM.element(
       `#zone${index}`
     ).style.background = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
   } else {
     DOM.addClass(`#zone${index}`, 'disabled');
-    const rgb = DOM.hslToRgb(zone.channel / 16, 0.4, 0.2);
+    const rgb = DOM.hslToRgb(zone.hue, 0.4, 0.2);
     DOM.element(
       `#zone${index}`
     ).style.background = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
@@ -634,6 +650,7 @@ function allHoldOff() {
 module.exports = {
   initController,
   renderZones,
+  renderLastZone,
   renderMarkersForAllZones,
   updateOutputPortsForAllZone
 };
