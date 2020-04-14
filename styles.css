@@ -249,7 +249,7 @@ select#midiInChannel {
   width: 24px;
   height: 20px;
   font-size: 12px;
-  margin-right: 4px;
+  margin-left: 8px;
   text-align: center;
   color: rgba(255, 255, 255, 0.5);
   background-color: rgba(0, 0, 0, 0.1);
@@ -259,8 +259,8 @@ select#midiInChannel {
 
 .ch.enabled.selected,
 .ch.selected {
-  background-color: rgba(255, 255, 255, 0.25);
-  color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(255, 255, 255, 0.4);
+  color: #000;
   border-color: transparent;
 }
 
@@ -332,14 +332,17 @@ select#midiInChannel {
   display: inline-block;
 }
 
-.delzone,
-.dragzone,
-.randzonecolor {
+.rtool {
   float: right;
-  color: rgba(0, 0, 0, 0.3);
+  color: rgba(0, 0, 0, 0.5);
   cursor: pointer;
   border-radius: 5px;
   margin-left: 12px;
+  min-width: 1.5em;
+  text-align: center;
+}
+.rtool:hover {
+  background-color: rgba(255, 255, 255, 0.4);
 }
 
 .dragzone {
@@ -438,7 +441,9 @@ select#midiInChannel {
 }
 
 .zone select.outport {
-  background-color: transparent;
+  background-color: rgba(255, 255, 255, 0.4);
+  color: #000;
+  vertical-align: top;
   width: 170px;
 }
 

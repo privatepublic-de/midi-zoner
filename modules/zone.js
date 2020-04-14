@@ -85,15 +85,16 @@ module.exports = class Zone {
   midi = null;
   dom = {};
   hue = 0;
+  saturation = 0;
 
   rngArp = null;
   rngProb = null;
 
-  constructor(midi, index) {
+  constructor(midi) {
     this.midi = midi;
     this.rngArp = seedrandom();
     this.rngProb = seedrandom();
-    this.hue = (0.29 * index) % 1.0;
+    this.randomizeColor();
   }
 
   toJSON() {
@@ -121,7 +122,8 @@ module.exports = class Zone {
       arp_repeat: this.arp_repeat,
       arp_probability: this.arp_probability,
       arp_pattern: this.arp_pattern,
-      hue: this.hue
+      hue: this.hue,
+      saturation: this.saturation
     };
   }
 
@@ -504,5 +506,6 @@ module.exports = class Zone {
 
   randomizeColor() {
     this.hue = Math.random();
+    this.saturation = Math.random() * 0.3 + 0.5;
   }
 };

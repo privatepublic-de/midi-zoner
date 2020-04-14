@@ -245,9 +245,9 @@ function appendZone(zone, index) {
   }
   const octavemarkers = '<span class="oct"></span>'.repeat(10);
   const html = `<section class="zone" id="zone${index}">
-            <div class="delzone" data-action="${index}:delete" title="Remove zone">✕</div>
-            <div class="dragzone" title="Drag zone">≡</div>
-            <div class="randzonecolor" data-action="${index}:color" title="Change color">C</div>
+            <div class="delzone rtool" data-action="${index}:delete" title="Remove zone">✕</div>
+            <div class="dragzone rtool" title="Drag zone">↑ ↓</div>
+            <div class="randzonecolor rtool" data-action="${index}:color" title="Change color">C</div>
             <div class="channels"><div class="ch enabled" data-action="${index}:enabled" 
               title="Receive MIDI events">R</div><div class="ch solo" data-action="${index}:solo" 
               title="Solo Zone">S</div>
@@ -516,19 +516,18 @@ function updateValuesForZone(index) {
   } else {
     DOM.removeClass(`#zone${index}`, 'soloed-out');
   }
-  // const hue = (0.28 * index) % 1.0; // zone.channel / 16
   if (
     (zone.enabled && (Zone.solocount === 0 || zone.solo)) ||
     (zone.arp_enabled && zone.arp_hold && zone.arp.holdlist.length > 0)
   ) {
     DOM.removeClass(`#zone${index}`, 'disabled');
-    const rgb = DOM.hslToRgb(zone.hue, 0.4, 0.3);
+    const rgb = DOM.hslToRgb(zone.hue, zone.saturation, 0.3);
     DOM.element(
       `#zone${index}`
     ).style.background = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
   } else {
     DOM.addClass(`#zone${index}`, 'disabled');
-    const rgb = DOM.hslToRgb(zone.hue, 0.4, 0.2);
+    const rgb = DOM.hslToRgb(zone.hue, zone.saturation, 0.2);
     DOM.element(
       `#zone${index}`
     ).style.background = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
@@ -604,7 +603,7 @@ function updateOutputPortsForZone(index, outputs) {
   DOM.addHTML(
     select,
     'beforeend',
-    `<option value="*">(no MIDI output):</option>`
+    `<option value="*">(select MIDI output)</option>`
   );
   const preferredOutputPortId = zones.list[index].preferredOutputPortId;
   let preferredPortAvailable = false;
