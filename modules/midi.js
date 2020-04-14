@@ -152,13 +152,13 @@ class MIDI {
       });
       console.log('MIDI: ', countIn, 'inputs,', countOut, 'outputs');
       const mapDescriptor = (port) => {
-        const words = port[1].name.split(/\s/);
         let name = '';
+        const words = port[1].name.split(/\s/);
         words.forEach((word, n) => {
           if (n > 0) {
             name += ' ';
           }
-          if (word.length < 8) {
+          if (word.length < 9) {
             name += word;
           } else {
             name += word.substr(0, 7) + '…';
