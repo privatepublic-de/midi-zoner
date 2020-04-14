@@ -78,7 +78,12 @@ document.addEventListener('DOMContentLoaded', function () {
         updateClockInterface();
         view.renderZones();
         function createNewZone() {
-          zones.list.push(new Zone(midi));
+          const newZone = new Zone(midi);
+          if (zones.list.length > 0) {
+            newZone.preferredOutputPortId = newZone.outputPortId =
+              zones.list[zones.list.length - 1].outputPortId;
+          }
+          zones.list.push(newZone);
           saveZones();
           view.renderZones();
           DOM.element('#tools').scrollIntoView();
