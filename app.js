@@ -6,7 +6,6 @@ const view = require('./modules/viewcontroller');
 const zones = {
   list: [],
   inChannel: 0,
-  inChannelExclusive: true,
   sendClock: false,
   tempo: 120
 };
@@ -29,7 +28,7 @@ function loadZones(midi) {
   }
 }
 
-function midiEventHandler(event, midiOutDevice) {
+function midiEventHandler(event) {
   const channel = event.data[0] & 0x0f;
   const msgtype = event.data[0] & 0xf0;
   if (msgtype === MIDI.MESSAGE.NOTE_ON && event.data[2] === 0) {
@@ -39,11 +38,6 @@ function midiEventHandler(event, midiOutDevice) {
     zones.list.forEach((zone) => {
       zone.handleMidi(msgtype, event.data);
     });
-  } else {
-    // msg from other channel
-    if (!zones.inChannelExclusive) {
-      midiOutDevice.send(event.data);
-    }
   }
 }
 
@@ -105,12 +99,6 @@ document.addEventListener('DOMContentLoaded', function () {
           zones.inChannel = e.target.selectedIndex;
           saveZones();
         });
-        DOM.element('#inChannelExclusive').checked = zones.inChannelExclusive;
-        DOM.element('#inChannelExclusive').addEventListener('change', (e) => {
-          zones.inChannelExclusive = e.target.checked;
-          saveZones();
-        });
-
         const displayBPM = DOM.element('#displayBPM');
         displayBPM.innerHTML = zones.tempo;
         let bpmStartX = 0;

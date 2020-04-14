@@ -16,52 +16,35 @@
           >H</a
         >
       </div>
+      <div class="right">
+        <button
+          id="midiPanic"
+          class="lightButton"
+          title="Send 'All notes off' to all outputs"
+        >
+          Panic
+        </button>
+      </div>
       <div class="controls">
-        <div class="block">
-          <div class="row">
+        <div class="row">
+          <div class="block">
             <label for="midiInDeviceId">In:</label>
             <select id="midiInDeviceId" tabindex="-1"
               ><option>(No devices)</option></select
             >
           </div>
-          <div class="row" title="Out*: default output port">
-            <label for="midiOutDeviceId" tabindex="-1">Out*:</label>
-            <select id="midiOutDeviceId" tabindex="-1"
-              ><option>(No devices)</option></select
-            >
-          </div>
-        </div>
-        <div class="block">
-          <div class="row">
+          <div class="block">
             <select id="midiInChannel" tabindex="-1"></select>
           </div>
-          <div class="row">
-            <button
-              id="midiPanic"
-              class="lightButton"
-              title="Send MIDI all notes off"
-            >
-              Panic
-            </button>
-          </div>
         </div>
-        <div class="block">
-          <div class="row">
-            <input id="inChannelExclusive" type="checkbox" /><label
-              for="inChannelExclusive"
-              title="Messages from other channels are ignored, not forwarded"
-              >Exclusive</label
-            >
-          </div>
-        </div>
-        <div class="block clocksettings">
-          <div class="row">
+        <div class="row clocksettings">
+          <div class="block">
             <label for="midiClockInDeviceId">Clock:</label>
             <select id="midiClockInDeviceId" tabindex="-1"
               ><option value="*INTERNAL*">INTERNAL</option></select
             >
           </div>
-          <div class="row onlyinternal">
+          <div class="block onlyinternal clocksettings">
             <label>BPM:</label>
             <span id="displayBPM">130</span
             ><span id="startClockButton" class="toggle"></span>

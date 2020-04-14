@@ -58,6 +58,7 @@ select {
 #midisettings .block {
   display: inline-block;
   vertical-align: top;
+  margin-right: 10px;
 }
 
 #midisettings .row {
@@ -67,7 +68,7 @@ select {
 
 #midisettings label {
   display: inline-block;
-  min-width: 30px;
+  min-width: 35px;
 }
 
 #midisettings input[type='checkbox'] {
@@ -99,8 +100,6 @@ select {
 
 #midisettings .clocksettings {
   background-color: #3c3c3c;
-  margin-left: 10px;
-  padding: 0 4px;
 }
 
 #midisettings select {
@@ -151,11 +150,18 @@ select#midiInChannel {
   margin-bottom: 4px;
 }
 
-#midisettings .left {
+#midisettings .left,
+#midisettings .right {
   text-align: left;
   position: absolute;
-  left: 20px;
   bottom: 5px;
+}
+
+#midisettings .left {
+  left: 20px;
+}
+#midisettings .right {
+  right: 20px;
 }
 
 #displayBPM {

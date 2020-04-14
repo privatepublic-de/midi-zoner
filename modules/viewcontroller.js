@@ -234,7 +234,7 @@ function renderZones() {
               title="Receive MIDI events">R</div><div class="ch solo" data-action="${index}:solo" 
               title="Solo Zone">S</div>
               <select class="outport" data-change="${index}:outport">
-                <option value="*">- default port -</option>
+                <option value="*"></option>
               </select>
               ${channelselectors} 
             </div>
@@ -583,7 +583,7 @@ function updateOutputPortsForZone(index, outputs) {
   DOM.addHTML(
     select,
     'beforeend',
-    `<option value="*">Default Out* (see above)</option>`
+    `<option value="*">(no MIDI output):</option>`
   );
   const preferredOutputPortId = zones.list[index].preferredOutputPortId;
   let preferredPortAvailable = false;

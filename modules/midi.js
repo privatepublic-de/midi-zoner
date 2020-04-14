@@ -36,7 +36,6 @@ class MIDI {
     this.midiAccess = null;
     this.deviceIdIn = null;
     this.deviceIdInClock = null;
-    this.deviceIdOut = null;
     this.knownPorts = {};
     this.usedPorts = new Set();
     this.songposition = 0;
@@ -54,7 +53,6 @@ class MIDI {
     });
     const select_in = DOM.element('#midiInDeviceId');
     const select_in_clock = DOM.element('#midiClockInDeviceId');
-    const select_out = DOM.element('#midiOutDeviceId');
     DOM.element('#midiPanic').addEventListener('click', () => {
       this.panic();
     });
@@ -175,7 +173,6 @@ class MIDI {
         countIn++;
       });
 
-      DOM.empty(select_out);
       const sortedOutputs = Array.from(this.midiAccess.outputs).sort(
         sortPortsComparator
       );
@@ -193,18 +190,10 @@ class MIDI {
         if (output.id == localStorage.getItem('midiOutId')) {
           selectedOut = output.id;
         }
-        DOM.addHTML(
-          select_out,
-          'beforeend',
-          `<option value="${output.id}">${output.name} (${output.manufacturer})</option>`
-        );
         countOut++;
       });
       if (selectedIn) {
         select_in.value = selectedIn;
-      }
-      if (selectedOut) {
-        select_out.value = selectedOut;
       }
       if (selectedInClock) {
         select_in_clock.value = selectedInClock;
@@ -224,13 +213,11 @@ class MIDI {
         let message;
         if (countIn > 0 && countOut == 0) {
           message = 'No MIDI output devices';
-          DOM.addHTML(select_out, 'beforeend', optionNoDevice);
         } else if (countIn == 0 && countOut > 0) {
           message = 'No MIDI input devices';
           DOM.addHTML(select_in, 'beforeend', optionNoDevice);
         } else {
           message = 'No MIDI devices';
-          DOM.addHTML(select_out, 'beforeend', optionNoDevice);
           DOM.addHTML(select_in, 'beforeend', optionNoDevice);
         }
         return {
@@ -248,7 +235,7 @@ class MIDI {
       }
     };
     const onMIDIMessage = (event) => {
-      eventHandler(event, this.deviceOut);
+      eventHandler(event);
     };
     const onMIDIClockMessage = (event) => {
       if (
@@ -276,10 +263,8 @@ class MIDI {
         select_in_clock,
         'option:checked'
       )[0].value;
-      this.deviceIdOut = DOM.find(select_out, 'option:checked')[0].value;
       this.deviceIn = this.midiAccess.inputs.get(this.deviceIdIn);
       this.deviceInClock = this.midiAccess.inputs.get(this.deviceIdInClock);
-      this.deviceOut = this.midiAccess.outputs.get(this.deviceIdOut);
       if (this.deviceIn) {
         this.midiAccess.inputs.forEach((entry) => {
           entry.onmidimessage = undefined;
@@ -296,13 +281,12 @@ class MIDI {
       }
     };
     // go ahead, start midi
-    const list = [select_in, select_in_clock, select_out];
+    const list = [select_in, select_in_clock];
     list.forEach((el) => {
       el.addEventListener('change', () => {
         selectDevices();
         localStorage.setItem('midiInId', this.deviceIdIn);
         localStorage.setItem('midiInClockId', this.deviceIdInClock);
-        localStorage.setItem('midiOutId', this.deviceIdOut);
       });
     });
     if ('function' === typeof window.navigator.requestMIDIAccess) {
@@ -318,9 +302,6 @@ class MIDI {
         el.disabled = 'disabled';
       });
     }
-  }
-  hasOutput() {
-    return typeof this.deviceOut !== 'undefined';
   }
   hasInput() {
     return typeof this.deviceIn !== 'undefined';
@@ -344,9 +325,7 @@ class MIDI {
   }
   send(msg, portId) {
     if (!portId || portId === '*') {
-      if (this.hasOutput()) {
-        this.deviceOut.send(msg);
-      }
+      // do nothing
     } else {
       const deviceOut = this.knownPorts[portId];
       if (deviceOut) {
@@ -358,8 +337,7 @@ class MIDI {
   }
   sendToAllUsedPorts(msg) {
     this.usedPorts.forEach((portId) => {
-      const deviceOut =
-        portId == '*' ? this.deviceOut : this.knownPorts[portId];
+      const deviceOut = this.knownPorts[portId];
       if (deviceOut) {
         deviceOut.send(msg);
       }
