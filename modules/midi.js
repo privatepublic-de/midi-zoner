@@ -228,7 +228,7 @@ class MIDI {
     } else if (event.data[0] === MIDI.MESSAGE.STOP) {
       this.isClockRunning = false;
       this.songposition = 0;
-      if (stoppedHandler) {
+      if (this.stoppedHandler) {
         this.stoppedHandler();
       }
     }
