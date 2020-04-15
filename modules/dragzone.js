@@ -1,3 +1,5 @@
+const { webFrame } = require('electron');
+
 module.exports = class DragZone {
   index = null;
   srcdim = null;
@@ -9,6 +11,7 @@ module.exports = class DragZone {
   finishedCallback = null;
 
   constructor(index, startMouseEvent, finishedCallback) {
+    this.zoomFactor = webFrame.getZoomFactor();
     this.finishedCallback = finishedCallback;
     this.zoneElement = DOM.element(`#zone${index}`);
     this.index = index;
@@ -23,14 +26,15 @@ module.exports = class DragZone {
     DOM.addClass(this.zoneElement, 'dragged');
     this.moveHandler = this.move.bind(this);
     this.dropHandler = this.drop.bind(this);
-    this.startY = startMouseEvent.screenY;
+    this.startY = startMouseEvent.screenY / this.zoomFactor;
     this.zoneElement.style.top = `${this.srcdim.top}px`;
     this.zoneElement.style.left = `${this.srcdim.left}px`;
     this.zoneElement.style.width = `${this.srcdim.width}px`;
     this.zoneElement.style.height = `${this.srcdim.height}px`;
     document.body.addEventListener('mousemove', this.moveHandler, true);
     document.body.addEventListener('mouseup', this.dropHandler, true);
-    this.findDropElement(startMouseEvent.screenY);
+    DOM.addClass(document.body, 'zonedrag');
+    this.findDropElement(this.startY);
     setTimeout(() => {
       DOM.addClass('#zones', 'dragging');
     }, 100);
@@ -46,7 +50,8 @@ module.exports = class DragZone {
     document.body.removeEventListener('mousemove', this.moveHandler, true);
     document.body.removeEventListener('mouseup', this.dropHandler, true);
     DOM.removeClass('#zones', 'dragging');
-    DOM.all(`.zone`).forEach(el => {
+    DOM.removeClass(document.body, 'zonedrag');
+    DOM.all(`.zone`).forEach((el) => {
       el.style.marginTop = '';
       el.style.marginBottom = '';
     });
@@ -62,7 +67,7 @@ module.exports = class DragZone {
   }
 
   findDropElement(screenY) {
-    const y = this.srcdim.top + (screenY - this.startY);
+    const y = this.srcdim.top + (screenY / this.zoomFactor - this.startY);
     this.zoneElement.style.top = `${y - this.srcdim.offsetTop}px`;
     let found = -1;
     let z;
@@ -79,17 +84,19 @@ module.exports = class DragZone {
         nearestTopIndex = i;
       }
     }
-    DOM.all(`.zone`).forEach(el => {
+    DOM.all(`.zone`).forEach((el) => {
       el.style.marginTop = '';
       el.style.marginBottom = '';
     });
     if (nearestTopIndex === zones.list.length - 1 && y > z.offsetTop) {
-      DOM.element(`#zone${nearestTopIndex}`).style.marginBottom = `${this.srcdim
-        .height + 48}px`;
+      DOM.element(`#zone${nearestTopIndex}`).style.marginBottom = `${
+        this.srcdim.height + 48
+      }px`;
       found = nearestTopIndex + 1;
     } else {
-      DOM.element(`#zone${nearestTopIndex}`).style.marginTop = `${this.srcdim
-        .height + 48}px`;
+      DOM.element(`#zone${nearestTopIndex}`).style.marginTop = `${
+        this.srcdim.height + 48
+      }px`;
       found = nearestTopIndex;
     }
     return found;
