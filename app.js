@@ -44,7 +44,7 @@ function midiEventHandler(event) {
 document.addEventListener('DOMContentLoaded', function () {
   const select_in = DOM.element('#midiInDeviceId');
   const select_in_clock = DOM.element('#midiClockInDeviceId');
-  const optionNoDevice = '<option value="">(No devices)</option>';
+  const optionNoDevice = '<option value="">(No devices available)</option>';
 
   const midi = new MIDI({
     eventHandler: midiEventHandler,
@@ -186,22 +186,27 @@ document.addEventListener('DOMContentLoaded', function () {
         'beforeend',
         '<option value="*INTERNAL*">INTERNAL</option>'
       );
-      inputs.forEach((input) => {
-        DOM.addHTML(
-          select_in,
-          'beforeend',
-          `<option value="${input.id}" ${
-            input.isSelectedInput ? 'selected' : ''
-          }>${input.name}</option>`
-        );
-        DOM.addHTML(
-          select_in_clock,
-          'beforeend',
-          `<option value="${input.id}" ${
-            input.isSelectedClockInput ? 'selected' : ''
-          }>${input.name}</option>`
-        );
-      });
+      if (inputs.length > 0) {
+        inputs.forEach((input) => {
+          DOM.addHTML(
+            select_in,
+            'beforeend',
+            `<option value="${input.id}" ${
+              input.isSelectedInput ? 'selected' : ''
+            }>${input.name}</option>`
+          );
+          DOM.addHTML(
+            select_in_clock,
+            'beforeend',
+            `<option value="${input.id}" ${
+              input.isSelectedClockInput ? 'selected' : ''
+            }>${input.name}</option>`
+          );
+        });
+      } else {
+        DOM.addHTML(select_in, 'beforeend', optionNoDevice);
+        DOM.addHTML(select_in_clock, 'beforeend', optionNoDevice);
+      }
       // zones
       midi.updateUsedPorts(view.updateOutputPortsForAllZone(outputs));
     }
