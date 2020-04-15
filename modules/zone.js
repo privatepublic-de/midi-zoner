@@ -506,6 +506,6 @@ module.exports = class Zone {
 
   randomizeColor() {
     this.hue = Math.random();
-    this.saturation = Math.random() * 0.3 + 0.5;
+    this.saturation = Math.random() * 0.9;
   }
 };
