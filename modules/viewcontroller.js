@@ -145,6 +145,8 @@ function actionHandler(ev) {
     case 'delete':
       const scrollPos = window.scrollY;
       zones.list[zoneindex].solo = false;
+      zones.list[zoneindex].arp_enabled = false;
+      zones.list[zoneindex].arpNoteOff();
       zones.list.splice(zoneindex, 1);
       renderZones();
       window.scrollTo({ top: scrollPos });
