@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const select_in = DOM.element('#midiInDeviceId');
   const select_in_clock = DOM.element('#midiClockInDeviceId');
   const optionNoDevice = '<option value="">(No devices available)</option>';
-
+  let activeUpdateTimer = null;
   const midi = new MIDI({
     eventHandler: midiEventHandler,
     clockHandler: (pos) => {
@@ -175,44 +175,50 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     },
     updatePortsHandler: (inputs, outputs) => {
-      console.log('app: MIDI port update');
-      console.log('app: inputs', inputs);
-      console.log('app: outputs', outputs);
-      // midi settings
-      DOM.empty(select_in);
-      DOM.empty(select_in_clock);
-      DOM.addHTML(
-        select_in_clock,
-        'beforeend',
-        '<option value="*INTERNAL*">INTERNAL</option>'
-      );
-      if (inputs.length > 0) {
-        inputs.forEach((input) => {
-          DOM.addHTML(
-            select_in,
-            'beforeend',
-            `<option value="${input.id}" ${
-              input.isSelectedInput ? 'selected' : ''
-            }>${input.name}</option>`
-          );
-          DOM.addHTML(
-            select_in_clock,
-            'beforeend',
-            `<option value="${input.id}" ${
-              input.isSelectedClockInput ? 'selected' : ''
-            }>${input.name}</option>`
-          );
-        });
-      } else {
-        DOM.addHTML(select_in, 'beforeend', optionNoDevice);
-        DOM.addHTML(select_in_clock, 'beforeend', optionNoDevice);
+      if (activeUpdateTimer) {
+        clearTimeout(activeUpdateTimer);
+        activeUpdateTimer = null;
       }
-      // zones
-      midi.updateUsedPorts(view.updateOutputPortsForAllZone(outputs));
-      DOM.addClass(document.body, 'updated');
-      setTimeout(() => {
-        DOM.removeClass(document.body, 'updated');
-      }, 1000);
+      activeUpdateTimer = setTimeout(() => {
+        console.log('app: MIDI port update');
+        console.log('app: inputs', inputs);
+        console.log('app: outputs', outputs);
+        // midi settings
+        DOM.empty(select_in);
+        DOM.empty(select_in_clock);
+        DOM.addHTML(
+          select_in_clock,
+          'beforeend',
+          '<option value="*INTERNAL*">INTERNAL</option>'
+        );
+        if (inputs.length > 0) {
+          inputs.forEach((input) => {
+            DOM.addHTML(
+              select_in,
+              'beforeend',
+              `<option value="${input.id}" ${
+                input.isSelectedInput ? 'selected' : ''
+              }>${input.name}</option>`
+            );
+            DOM.addHTML(
+              select_in_clock,
+              'beforeend',
+              `<option value="${input.id}" ${
+                input.isSelectedClockInput ? 'selected' : ''
+              }>${input.name}</option>`
+            );
+          });
+        } else {
+          DOM.addHTML(select_in, 'beforeend', optionNoDevice);
+          DOM.addHTML(select_in_clock, 'beforeend', optionNoDevice);
+        }
+        // zones
+        midi.updateUsedPorts(view.updateOutputPortsForAllZone(outputs));
+        DOM.addClass(document.body, 'updated');
+        setTimeout(() => {
+          DOM.removeClass(document.body, 'updated');
+        }, 1000);
+      }, 100);
     }
   });
   const list = [select_in, select_in_clock];
