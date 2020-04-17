@@ -209,6 +209,10 @@ document.addEventListener('DOMContentLoaded', function () {
       }
       // zones
       midi.updateUsedPorts(view.updateOutputPortsForAllZone(outputs));
+      DOM.addClass('#controls', 'updated');
+      setTimeout(() => {
+        DOM.removeClass('#controls', 'updated');
+      }, 1000);
     }
   });
   const list = [select_in, select_in_clock];

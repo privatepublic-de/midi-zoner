@@ -110,6 +110,11 @@ select {
   color: rgba(255, 255, 255, 0.5);
   font-size: 12px;
   padding: 0;
+  transition: background-color 1s;
+}
+
+#midisettings .updated select {
+  background-color: #8cf;
 }
 
 select#midiInChannel {
