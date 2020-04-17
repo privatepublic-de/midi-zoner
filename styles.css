@@ -113,8 +113,10 @@ select {
   transition: background-color 1s;
 }
 
-#midisettings .updated select {
-  background-color: #8cf;
+.updated #midisettings select,
+.updated .zone select.outport {
+  background-color: #ebe172;
+  color: #000;
 }
 
 select#midiInChannel {
@@ -455,6 +457,7 @@ select#midiInChannel {
   color: #000;
   vertical-align: top;
   width: 170px;
+  transition: background-color 1s;
 }
 
 .zone select {

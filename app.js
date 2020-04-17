@@ -209,9 +209,9 @@ document.addEventListener('DOMContentLoaded', function () {
       }
       // zones
       midi.updateUsedPorts(view.updateOutputPortsForAllZone(outputs));
-      DOM.addClass('#controls', 'updated');
+      DOM.addClass(document.body, 'updated');
       setTimeout(() => {
-        DOM.removeClass('#controls', 'updated');
+        DOM.removeClass(document.body, 'updated');
       }, 1000);
     }
   });
