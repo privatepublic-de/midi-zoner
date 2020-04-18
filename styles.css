@@ -592,11 +592,14 @@ select#midiInChannel {
   margin-top: 1px;
   top: 100%;
   width: 100%;
+  height: 0;
   text-align: center;
+  overflow: hidden;
 }
 
 .pattern:hover .euclid {
   opacity: 1;
+  height: auto;
 }
 
 .val.prgm {
