@@ -104,7 +104,6 @@ function actionHandler(ev) {
       updateValuesForZone(zoneindex);
       break;
     case 'arp_pattern':
-      console.log(ev.target, ev.currentTarget);
       if (ev.target.tagName == 'CANVAS') {
         const index = parseInt(
           (ev.offsetX / e.offsetWidth) * zone.arp_pattern.length
@@ -396,13 +395,12 @@ function appendZone(zone, index) {
                 </div>
                 <div class="pattern" data-action="${index}:arp_pattern"
                       title="Arpeggiator pattern"
-                ><canvas id="canvasPattern${index}" width="128" height="16"></canvas><div class="euclid">
-                    <div class="val">
-                      Euclidian <input id="euchits${index}" type="text" value="8" size="3">
-                      of
-                      <input type="text" id="euclen${index}" value="8" size="3">
-                      <span class="valuestep" data-action="${index}:euclid">Create</span>
-                    </div>
+                ><canvas id="canvasPattern${index}" width="128" height="16"></canvas><div class="euclid" title="Create euclidian arpeggiator pattern">
+                    Create euclidian<br/>
+                    <input id="euchits${index}" type="text" value="8" size="3">
+                    of
+                    <input type="text" id="euclen${index}" value="8" size="3">
+                    <span class="submit" data-action="${index}:euclid">OK</span>                    
                   </div>
                 </div>
             </div>
@@ -566,15 +564,15 @@ function updateValuesForZone(index) {
   ) {
     DOM.removeClass(`#zone${index}`, 'disabled');
     const rgb = DOM.hslToRgb(zone.hue, zone.saturation, 0.3);
-    DOM.element(
-      `#zone${index}`
-    ).style.background = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
+    const style = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
+    DOM.element(`#zone${index}`).style.background = style;
+    DOM.element(`#zone${index}`).style.setProperty('--bg-color', style);
   } else {
     DOM.addClass(`#zone${index}`, 'disabled');
     const rgb = DOM.hslToRgb(zone.hue, 0, 0.25);
-    DOM.element(
-      `#zone${index}`
-    ).style.background = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
+    const style = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
+    DOM.element(`#zone${index}`).style.background = style;
+    DOM.element(`#zone${index}`).style.setProperty('--bg-color', style);
   }
   [
     'cc',

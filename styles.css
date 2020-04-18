@@ -467,9 +467,16 @@ select#midiInChannel {
 
 .valuestep {
   display: inline-block;
-  /* background-color: rgba(0, 0, 0, 0.125);
-  border-radius: 50%; */
   color: rgba(255, 255, 255, 0.7);
+  padding: 4px;
+  cursor: pointer;
+}
+
+.submit {
+  display: inline-block;
+  color: rgba(255, 255, 255, 0.7);
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
   padding: 4px;
   cursor: pointer;
 }
@@ -565,7 +572,7 @@ select#midiInChannel {
 
 .pattern {
   position: relative;
-  border: 1px solid rgba(0, 0, 0, 0.3);
+  /* border: 1px solid rgba(0, 0, 0, 0.3); */
   border-radius: 4px;
   display: inline-block;
   height: 18px;
@@ -575,14 +582,15 @@ select#midiInChannel {
 
 .pattern .euclid {
   position: absolute;
-  background-color: rgba(0, 0, 0, 0.4);
+  padding: 2px;
+  background-color: var(--bg-color);
   box-shadow: 0 0 2px #000;
-  border-radius: 0 0 4px 4px;
+  border-radius: 4px;
   opacity: 0;
   transition: opacity 0.5s;
   left: 0;
+  margin-top: 1px;
   top: 100%;
-  margin-top: 5px;
   width: 100%;
   text-align: center;
 }
