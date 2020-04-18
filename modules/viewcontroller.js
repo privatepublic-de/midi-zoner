@@ -1,4 +1,5 @@
 const DOM = require('./domutils');
+const MIDI = require('./midi');
 const DragZone = require('./dragzone');
 const Zone = require('./zone');
 
@@ -20,14 +21,22 @@ const NOTENAMES = [
 const catchedMarker = [0, 0, 0, 0];
 
 let zones = {};
+/** @type {MIDI} */
 let midiController;
 let elAllMuteOff, elAllSoloOff, elAllHoldOff;
 
-function triggerSave() {}
+let triggerSave = () => {};
 
-function initController({ saveZones, storage, midi }) {
-  triggerSave = saveZones;
-  zones = storage;
+/**
+ * Init view controller with references to data and MIDI controller.
+ * @param {Object} references - references to data and data handling
+ * @param {function} references.saveData - Function to save zones settings
+ * @param {Object} references.data - Storage object containing zone settings
+ * @param {MIDI} references.midi - MIDI controller
+ */
+function initController({ saveData, data, midi }) {
+  triggerSave = saveData;
+  zones = data;
   midiController = midi;
   elAllMuteOff = DOM.element('#allMuteOff');
   elAllMuteOff.addEventListener('click', allMuteOff);
@@ -223,6 +232,9 @@ function dblClickHandler(ev) {
   triggerSave();
 }
 
+/**
+ * Render all zones completely. #zones element will be cleared first.
+ */
 function renderZones() {
   DOM.empty('#zones');
   zones.list.forEach((zone, index) => {
@@ -230,6 +242,9 @@ function renderZones() {
   });
 }
 
+/**
+ * Append and render the last zone in zones list. Call this only after inserting a new zone, not multiple times.
+ */
 function renderLastZone() {
   const index = zones.list.length - 1;
   const zone = zones.list[index];
@@ -436,6 +451,9 @@ function appendZone(zone, index) {
   });
 }
 
+/**
+ * Render zone markers (lowest and highest note) for all zones.
+ */
 function renderMarkersForAllZones() {
   for (let i = 0; i < zones.list.length; i++) {
     renderMarkersForZone(i);
@@ -576,6 +594,11 @@ function updateValuesForZone(index) {
 
 let cachedOutputPorts;
 
+/**
+ * Update available MIDI output ports.
+ * @param {Array} outputs
+ * @returns {Set} set of all currently used ports
+ */
 function updateOutputPortsForAllZone(outputs) {
   cachedOutputPorts = outputs;
   for (let i = 0; i < zones.list.length; i++) {

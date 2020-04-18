@@ -255,9 +255,10 @@ class MIDI {
     }
   }
 
-  hasInput() {
-    return typeof this.deviceIn !== 'undefined';
-  }
+  /**
+   * Send MIDI messages "all sound off" (0x78), "reset controllers" (0x79), "all notes off" (0x7b)
+   * to all currently used ports on all 16 MIDI channels.
+   */
   panic() {
     for (var i = 0; i < 16; i++) {
       const msg = new Uint8Array(3);
@@ -275,6 +276,12 @@ class MIDI {
     );
     if (this.panicHandler) this.panicHandler();
   }
+
+  /**
+   * Send MIDI message to given portId
+   * @param {Uint8Array} msg
+   * @param {*} portId
+   */
   send(msg, portId) {
     if (!portId || portId === '*') {
       // do nothing
@@ -287,6 +294,11 @@ class MIDI {
       }
     }
   }
+
+  /**
+   * Send MIDI message to all used ports.
+   * @param {Uint8Array} msg
+   */
   sendToAllUsedPorts(msg) {
     this.usedPorts.forEach((portId) => {
       const deviceOut = this.knownPorts[portId];
@@ -295,23 +307,48 @@ class MIDI {
       }
     });
   }
+
+  /**
+   * Send MIDI clock tick message (0xf8) to all used ports.
+   */
   sendClock() {
     this.sendToAllUsedPorts(clockMSG);
   }
+
+  /**
+   * Send MIDI start message (0xfa) to all used ports.
+   */
   sendStart() {
     this.sendToAllUsedPorts(startMSG);
   }
+
+  /**
+   * Send MIDI stop message (0xfc) and song position start (0xf2, 0, 0) to all used ports.
+   */
   sendStop() {
     this.sendToAllUsedPorts(stopMSG);
     this.sendToAllUsedPorts(songPosStart);
   }
+
+  /**
+   * Send program change message (0xc0) to given port.
+   * @param {*} portId
+   * @param {Number} channel (0-based)
+   * @param {Number} no Program number 0-127
+   */
   sendProgramChange(portId, channel, no) {
     const deviceOut = this.knownPorts[portId];
     if (deviceOut) {
       deviceOut.send(Uint8Array.from([channel + MIDI.MESSAGE.PGM_CHANGE, no]));
     }
   }
-  startClock(v) {
+
+  /**
+   * Starts internal MIDI clock and sends MIDI start message
+   * if MIDI controller's sendInternalClock is set to true.
+   * @see MIDI.setSendClock
+   */
+  startClock() {
     this.songposition = 0;
     this.isClockRunning = true;
     this.internalClock.start();
@@ -319,7 +356,13 @@ class MIDI {
       this.sendStart();
     }
   }
-  stopClock(v) {
+
+  /**
+   * Stops internal MIDI clock and send MIDI stop message
+   * if MIDI controller's sendInternalClock is set to true.
+   * @see MIDI.setSendClock
+   */
+  stopClock() {
     this.isClockRunning = false;
     if (!this.deviceInClock) {
       this.internalClock.stop();
@@ -328,12 +371,28 @@ class MIDI {
       this.sendStop();
     }
   }
+
+  /**
+   * Sets MIDI controller's sendInternalClock state.
+   * @param {Boolean} v
+   */
   setSendClock(v) {
     this.sendInternalClock = v;
   }
+
+  /**
+   * Set bets-per-minute tempo of internal clock.
+   * @param {Number} bpm
+   */
   setInternalClockTempo(bpm) {
     this.internalClock.setTempo(bpm);
   }
+
+  /**
+   * Update list of used ports. This list is used for
+   * all "sendToAllPorts" methods.
+   * @param {Set} set
+   */
   updateUsedPorts(set) {
     this.usedPorts = set;
     console.log('MIDI: Used ports updated', this.usedPorts);

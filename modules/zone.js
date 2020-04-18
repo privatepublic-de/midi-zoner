@@ -82,6 +82,7 @@ module.exports = class Zone {
   holdList = [];
   canvasElement = null;
   patternCanvas = null;
+  /** @type {MIDI} */
   midi = null;
   dom = {};
   hue = 0;
@@ -90,6 +91,10 @@ module.exports = class Zone {
   rngArp = null;
   rngProb = null;
 
+  /**
+   * Creates a new zone with default values.
+   * @param {MIDI} midi
+   */
   constructor(midi) {
     this.midi = midi;
     this.rngArp = seedrandom();

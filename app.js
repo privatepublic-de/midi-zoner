@@ -231,5 +231,5 @@ document.addEventListener('DOMContentLoaded', function () {
       localStorage.setItem('midiInClockId', inClockId);
     });
   });
-  view.initController({ saveZones, storage: zones, midi });
+  view.initController({ saveData: saveZones, data: zones, midi });
 });
