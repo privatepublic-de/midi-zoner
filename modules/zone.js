@@ -204,7 +204,7 @@ module.exports = class Zone {
           const srcKey = key;
           let velo = data[2];
           if (key >= this.low && key <= this.high) {
-            key = key + this.octave * 12;
+            key = key + (this.arp_enabled ? 0 : this.octave * 12);
             if (key >= 0 && key <= 127) {
               if (this.fixedvel && velo > 0) {
                 velo = 127;
@@ -324,6 +324,7 @@ module.exports = class Zone {
   renderNotes() {
     if (this.canvasElement) {
       this.canvasElement.width = this.canvasElement.parentElement.offsetWidth;
+      /** @type {CanvasRenderingContext2D} */
       const ctx = this.canvasElement.getContext('2d');
       const cwidth = this.canvasElement.width;
       ctx.clearRect(0, 0, cwidth, this.canvasElement.height);
@@ -336,12 +337,13 @@ module.exports = class Zone {
           ? this.arp.holdlist
           : this.activeNotes;
       for (let i = 0; i < list.length; i++) {
-        const number = list[i].number + this.octave * 12;
         if (this.arp_enabled) {
+          const number = list[i].number + this.octave * 12;
           ctx.beginPath();
           ctx.rect((cwidth * number) / 127, 0, 5, 16);
           ctx.stroke();
         } else {
+          const number = list[i].number;
           ctx.fillRect((cwidth * number) / 127, 0, 5, 16);
         }
       }
@@ -357,18 +359,24 @@ module.exports = class Zone {
 
   renderPattern() {
     if (this.patternCanvas) {
+      /** @type {CanvasRenderingContext2D} */
       const ctx = this.patternCanvas.getContext('2d');
       const cwidth = this.patternCanvas.width;
-      const width = cwidth / 8;
+      const plen = this.arp_pattern.length;
+      const width = cwidth / plen;
+      let radius = width / 2 - 1;
+      if (radius > 7) {
+        radius = 7;
+      }
       ctx.clearRect(0, 0, cwidth, this.patternCanvas.height);
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
-      for (let i = 0; i < this.arp_pattern.length; i++) {
+      for (let i = 0; i < plen; i++) {
         if (i === this.arp.patternPos) {
           ctx.fillStyle = 'rgba(0,0,0,.5)';
           ctx.fillRect(width * i, 0, width, 16);
         }
         ctx.beginPath();
-        ctx.arc(width * (i + 0.5), 8, 4, 0, 2 * Math.PI);
+        ctx.arc(width * (i + 0.5), 8, radius, 0, 2 * Math.PI);
         if (this.arp_pattern[i]) {
           ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
           ctx.fill();
@@ -512,5 +520,18 @@ module.exports = class Zone {
   randomizeColor() {
     this.hue = Math.random();
     this.saturation = Math.random() * 0.9;
+  }
+
+  createEuclidPattern(length, hits) {
+    const s = hits / length;
+    const result = [];
+    let previous = -1;
+    for (let i = 0; i < length; i++) {
+      let current = Math.floor(i * s);
+      result.push(current != previous);
+      previous = current;
+    }
+    this.arp_pattern = result;
+    this.renderPattern();
   }
 };

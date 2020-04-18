@@ -51,6 +51,7 @@ function actionHandler(ev) {
   const action = e.getAttribute('data-action') || e.getAttribute('data-change');
   const params = action.split(':');
   const zoneindex = params[0];
+  /** @type {Zone} */
   const zone = zones.list[zoneindex];
   switch (params[1]) {
     case 'range':
@@ -103,9 +104,14 @@ function actionHandler(ev) {
       updateValuesForZone(zoneindex);
       break;
     case 'arp_pattern':
-      const index = parseInt((ev.offsetX / e.offsetWidth) * 8);
-      zone.arp_pattern[index] = !zone.arp_pattern[index];
-      zone.renderPattern();
+      console.log(ev.target, ev.currentTarget);
+      if (ev.target.tagName == 'CANVAS') {
+        const index = parseInt(
+          (ev.offsetX / e.offsetWidth) * zone.arp_pattern.length
+        );
+        zone.arp_pattern[index] = !zone.arp_pattern[index];
+        zone.renderPattern();
+      }
       break;
     case 'changeprogram':
       {
@@ -163,6 +169,11 @@ function actionHandler(ev) {
     case 'color':
       zone.randomizeColor();
       updateValuesForZone(zoneindex);
+      break;
+    case 'euclid':
+      const hits = DOM.element(`#euchits${zoneindex}`).value;
+      const len = DOM.element(`#euclen${zoneindex}`).value;
+      zone.createEuclidPattern(len, hits);
       break;
   }
   triggerSave();
@@ -223,6 +234,7 @@ function dblClickHandler(ev) {
       renderMarkersForZone(zoneindex);
       break;
     case 'arp_pattern':
+      zone.arp_pattern.length = 8;
       for (let i = 0; i < zone.arp_pattern.length; i++) {
         zone.arp_pattern[i] = true;
       }
@@ -318,13 +330,6 @@ function appendZone(zone, index) {
                   <div class="val prgm" title="Send program change message">
                     <span class="valuestep" data-action="${index}:prgdec">&lt;</span>
                     <input class="programnumber" type="text" value="" size="3" 
-                      onkeyup="
-                        if (event.keyCode === 13) {
-                          event.preventDefault();
-                          this.dispatchEvent(new Event('change'));
-                        }
-                      "
-                      onfocus="this.select()" 
                       data-change="${index}:changeprogram">
                     <span class="valuestep" data-action="${index}:prginc">&gt;</span>
                   </div>
@@ -391,7 +396,15 @@ function appendZone(zone, index) {
                 </div>
                 <div class="pattern" data-action="${index}:arp_pattern"
                       title="Arpeggiator pattern"
-                ><canvas id="canvasPattern${index}" width="128" height="16"></canvas></div>
+                ><canvas id="canvasPattern${index}" width="128" height="16"></canvas><div class="euclid">
+                    <div class="val">
+                      Euclidian <input id="euchits${index}" type="text" value="8" size="3">
+                      of
+                      <input type="text" id="euclen${index}" value="8" size="3">
+                      <span class="valuestep" data-action="${index}:euclid">Create</span>
+                    </div>
+                  </div>
+                </div>
             </div>
         </section>`;
   DOM.addHTML('#zones', 'beforeend', html);
@@ -445,6 +458,17 @@ function appendZone(zone, index) {
     e.addEventListener('mousemove', hoverHandler);
     e.addEventListener('mouseleave', hoverOutHandler);
     e.addEventListener('dblclick', dblClickHandler);
+  });
+  DOM.all(`input[type="text"]`).forEach((e) => {
+    e.addEventListener('keyup', (event) => {
+      if (event.keyCode === 13) {
+        event.preventDefault();
+        this.dispatchEvent(new Event('change'));
+      }
+    });
+    e.addEventListener('focus', () => {
+      e.select();
+    });
   });
   DOM.all(`#zone${index} .pattern`).forEach((e) => {
     e.addEventListener('dblclick', dblClickHandler);

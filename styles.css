@@ -442,13 +442,14 @@ select#midiInChannel {
 }
 
 .zone select,
-.val input {
+.zone input {
   border: none;
   background-color: rgba(0, 0, 0, 0.125);
   border-radius: 4px;
   color: rgba(255, 255, 255, 0.7);
   font-size: 12px;
   padding: 0;
+  text-align: center;
   /* box-shadow: inset -1px -1px 2px rgba(0, 0, 0, 0.15); */
 }
 
@@ -456,16 +457,12 @@ select#midiInChannel {
   background-color: rgba(255, 255, 255, 0.4);
   color: #000;
   vertical-align: top;
-  width: 170px;
+  width: 150px;
   transition: background-color 1s;
 }
 
 .zone select {
   height: 20px;
-}
-
-.val input {
-  text-align: center;
 }
 
 .valuestep {
@@ -567,12 +564,31 @@ select#midiInChannel {
 }
 
 .pattern {
+  position: relative;
   border: 1px solid rgba(0, 0, 0, 0.3);
   border-radius: 4px;
   display: inline-block;
   height: 18px;
   vertical-align: middle;
   cursor: pointer;
+}
+
+.pattern .euclid {
+  position: absolute;
+  background-color: rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 2px #000;
+  border-radius: 0 0 4px 4px;
+  opacity: 0;
+  transition: opacity 0.5s;
+  left: 0;
+  top: 100%;
+  margin-top: 5px;
+  width: 100%;
+  text-align: center;
+}
+
+.pattern:hover .euclid {
+  opacity: 1;
 }
 
 .val.prgm {
