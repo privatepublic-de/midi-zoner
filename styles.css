@@ -486,10 +486,10 @@ select#midiInChannel {
   color: rgba(255, 255, 255, 0.7);
   background-color: rgba(0, 0, 0, 0.2);
   border-radius: 4px;
-  padding: 4px;
+  padding: 2px 4px;
   cursor: pointer;
-  margin-left: 8px;
-  font-size: 10px;
+  margin: 0 4px;
+  /* font-size: 10px; */
 }
 
 .zone select option {
@@ -600,10 +600,11 @@ select#midiInChannel {
   background-color: var(--bg-color);
   box-shadow: 0 0 8px #000;
   border-radius: 4px;
-  bottom: 15px;
+  bottom: 20px;
   right: 0;
   text-align: center;
   line-height: 1.2em;
+  transition: opacity 667ms;
 }
 
 .val.prgm {

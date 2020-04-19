@@ -185,6 +185,14 @@ function actionHandler(ev) {
         console.log('Created euclid', hits, len);
       }
       break;
+    case 'pattern-shift-left':
+      zone.arp_pattern.push(zone.arp_pattern.shift());
+      zone.renderPattern();
+      break;
+    case 'pattern-shift-right':
+      zone.arp_pattern.unshift(zone.arp_pattern.pop());
+      zone.renderPattern();
+      break;
   }
   triggerSave();
 }
