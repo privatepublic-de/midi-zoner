@@ -106,6 +106,12 @@ document.addEventListener('DOMContentLoaded', function () {
             `<option>Ch ${i + 1}</option>`
           );
         }
+        DOM.element('#shuffleColors').addEventListener('click', () => {
+          zones.list.forEach((zone) => {
+            zone.randomizeColor();
+            view.renderZones();
+          });
+        });
         DOM.element('#midiInChannel').selectedIndex = zones.inChannel;
         DOM.element('#midiInChannel').addEventListener('change', (e) => {
           zones.inChannel = e.target.selectedIndex;
