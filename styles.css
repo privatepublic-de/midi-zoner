@@ -219,6 +219,10 @@ select#midiInChannel {
   padding: 24px 14px 0 14px;
 }
 
+#zones {
+  min-height: 30px;
+}
+
 #tools {
   width: 100%;
   margin: 0 auto;

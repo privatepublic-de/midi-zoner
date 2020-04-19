@@ -294,10 +294,12 @@ function appendZone(zone, index) {
   zone.renderPattern();
   const dragHandler = DOM.element(`#zone${index} .dragzone`);
   dragHandler.addEventListener('mousedown', (ev) => {
-    new DragZone(index, ev, () => {
-      triggerSave();
-      renderZones();
-    });
+    if (zones.list.length > 1) {
+      new DragZone(index, ev, () => {
+        triggerSave();
+        renderZones();
+      });
+    }
   });
   initOutputPortsForZone(index);
 
