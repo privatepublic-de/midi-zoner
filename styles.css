@@ -14,6 +14,10 @@ body {
   user-select: none;
 }
 
+p {
+  margin: 0 0 0.5em 0;
+}
+
 body.dragging * {
   cursor: col-resize;
 }
@@ -298,6 +302,7 @@ select#midiInChannel {
 
 .settings,
 .arp-settings {
+  position: relative;
   color: rgba(255, 255, 255, 0.7);
   font-size: 12px;
 }
@@ -479,6 +484,8 @@ select#midiInChannel {
   border-radius: 4px;
   padding: 4px;
   cursor: pointer;
+  margin-left: 8px;
+  font-size: 10px;
 }
 
 .zone select option {
@@ -580,26 +587,19 @@ select#midiInChannel {
   cursor: pointer;
 }
 
-.pattern .euclid {
+.zone .euclid {
   position: absolute;
-  padding: 2px;
+  cursor: default;
+  display: none;
+  width: 150px;
+  padding: 8px;
   background-color: var(--bg-color);
-  box-shadow: 0 0 2px #000;
+  box-shadow: 0 0 8px #000;
   border-radius: 4px;
-  opacity: 0;
-  transition: opacity 0.5s;
-  left: 0;
-  margin-top: 1px;
-  top: 100%;
-  width: 100%;
-  height: 0;
+  bottom: 15px;
+  right: 0;
   text-align: center;
   overflow: hidden;
-}
-
-.pattern:hover .euclid {
-  opacity: 1;
-  height: auto;
 }
 
 .val.prgm {
