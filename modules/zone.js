@@ -53,6 +53,8 @@ module.exports = class Zone {
   cc = true;
   at2mod = false;
   pitchbend = true;
+  euclid_hits = 8;
+  euclid_length = 8;
   arp_enabled = false;
   arp_direction = 0; // 0=UP, 1=DOWN, 2=UP/DOWN, 3=RANDOM, 4=ORDER
   _arp_octaves = 0;
@@ -128,7 +130,9 @@ module.exports = class Zone {
       arp_probability: this.arp_probability,
       arp_pattern: this.arp_pattern,
       hue: this.hue,
-      saturation: this.saturation
+      saturation: this.saturation,
+      euclid_hits: this.euclid_hits,
+      euclid_length: this.euclid_length
     };
   }
 
@@ -522,7 +526,9 @@ module.exports = class Zone {
     this.saturation = Math.random() * 0.9;
   }
 
-  createEuclidPattern(length, hits) {
+  createEuclidianPattern(length, hits) {
+    this.euclid_length = length;
+    this.euclid_hits = hits;
     const s = hits / length;
     const result = [];
     let previous = -1;

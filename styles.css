@@ -455,7 +455,11 @@ select#midiInChannel {
   font-size: 12px;
   padding: 0;
   text-align: center;
-  /* box-shadow: inset -1px -1px 2px rgba(0, 0, 0, 0.15); */
+  box-shadow: inset -1px -1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.zone input {
+  width: 30px;
 }
 
 .zone select.outport {
@@ -599,7 +603,7 @@ select#midiInChannel {
   bottom: 15px;
   right: 0;
   text-align: center;
-  overflow: hidden;
+  line-height: 1.2em;
 }
 
 .val.prgm {

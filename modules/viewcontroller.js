@@ -174,9 +174,16 @@ function actionHandler(ev) {
       DOM.element(`#zone${zoneindex} .euclid`).style.display = 'block';
       break;
     case 'euclid':
-      const hits = DOM.element(`#euchits${zoneindex}`).value;
-      const len = DOM.element(`#euclen${zoneindex}`).value;
-      zone.createEuclidPattern(len, hits);
+      ev.stopPropagation();
+      let hits = parseInt(DOM.element(`#euchits${zoneindex}`).value);
+      let len = parseInt(DOM.element(`#euclen${zoneindex}`).value);
+      if (!isNaN(hits) && !isNaN(len)) {
+        hits = Math.min(32, Math.max(1, hits));
+        len = Math.min(32, Math.max(2, len));
+        zone.createEuclidianPattern(len, hits);
+        DOM.element(`#zone${zoneindex} .euclid`).style.display = 'none';
+        console.log('Created euclid', hits, len);
+      }
       break;
   }
   triggerSave();
@@ -333,9 +340,20 @@ function appendZone(zone, index) {
   DOM.all(`#zone${index} .pattern`).forEach((e) => {
     e.addEventListener('dblclick', dblClickHandler);
   });
+  let euclidHideTimeout = null;
+  const resetEuclidHideTimeout = () => {
+    if (euclidHideTimeout) {
+      clearTimeout(euclidHideTimeout);
+    }
+  };
   DOM.all(`#zone${index} .euclid`).forEach((e) => {
     e.addEventListener('mouseleave', function () {
-      this.style.display = 'none';
+      euclidHideTimeout = setTimeout(() => {
+        e.style.display = 'none';
+      }, 667);
+    });
+    e.addEventListener('mousemove', function () {
+      resetEuclidHideTimeout();
     });
   });
 }
@@ -417,6 +435,7 @@ function updateGeneralButtons() {
 }
 
 function updateValuesForZone(index) {
+  /** @type {Zone} */
   const zone = zones.list[index];
   DOM.removeClass(`#zone${index} *[data-action]`, 'selected');
   DOM.addClass(`#zone${index} .no${zone.channel}`, 'selected');
@@ -478,6 +497,8 @@ function updateValuesForZone(index) {
       DOM.addClass(e, 'selected');
     }
   });
+  DOM.element(`#euchits${index}`).value = zone.euclid_hits;
+  DOM.element(`#euclen${index}`).value = zone.euclid_length;
   updateGeneralButtons();
 }
 

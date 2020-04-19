@@ -139,9 +139,9 @@ module.exports = {
             <div class="check" title="Create euclidian patterns" data-action="${index}:showeuclid">
               <div class="euclid" title="">
                 <p>Create euclidian pattern</p>
-                <input id="euchits${index}" type="text" value="8" size="3">
+                <input id="euchits${index}" type="text" value="8" size="3" title="Steps">
                 in
-                <input type="text" id="euclen${index}" value="8" size="3">
+                <input type="text" id="euclen${index}" value="8" size="3" title="Length">
                 <span class="submit" data-action="${index}:euclid">OK</span>                    
               </div>
               &lt; Create
