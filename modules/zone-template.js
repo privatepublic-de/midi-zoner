@@ -10,6 +10,8 @@ module.exports = {
       }">${i + 1}</div>`;
     }
     const octavemarkers = '<span class="oct"></span>'.repeat(10);
+    const checkboxIcons =
+      '<span class="material-icons sel">check_circle</span><span class="material-icons unsel">radio_button_unchecked</span> ';
     const html = `
       <section class="zone" id="zone${index}">
         <div class="delzone rtool" data-action="${index}:delete" title="Remove zone"><i class="material-icons">cancel</i></div>
@@ -46,25 +48,25 @@ module.exports = {
             <div class="hidden">
               <div class="check mod" data-action="${index}:mod"
                 title="Forward mod wheel messages (CC 1)"
-              >Mod</div>
+              >${checkboxIcons}Mod</div>
               <div class="check at2mod" data-action="${index}:at2mod"
                 title="Convert channel pressure (aftertouch) to mod (CC 1)"
-              >AT &gt; Mod</div>
+              >${checkboxIcons}AT &gt; Mod</div>
               <div class="check sustain" data-action="${index}:sustain"
                 title="Forward sustain pedal messages (CC 64)"
-              >Pedal</div>
+              >${checkboxIcons}Pedal</div>
               <div class="check cc" data-action="${index}:cc"
                 title="Forward control change messages"
-              >CCs</div>
+              >${checkboxIcons}CCs</div>
               <div class="check pitchbend" data-action="${index}:pitchbend"
                 title="Forward pitch bend messages"
-              >PB</div>
+              >${checkboxIcons}PB</div>
               <div class="check fixedvel" data-action="${index}:fixedvel"
                 title="Use fixed velocity 127"
-              >Fixed Vel</div>
+              >${checkboxIcons}Fixed Vel</div>
               <div class="check programchange" data-action="${index}:programchange"
                 title="Forward program change messages"
-              >PRGM</div>
+              >${checkboxIcons}PRGM</div>
               <div class="val prgm" title="Send program change message">
                 <span class="valuestep" data-action="${index}:prgdec">&lt;</span>
                 <input class="programnumber" type="text" value="" size="3" 
@@ -117,7 +119,7 @@ module.exports = {
                 <option>4</option>
               </select>
             </div>
-            <div class="check arp_repeat" data-action="${index}:arp_repeat">Repeat</div>
+            <div class="check arp_repeat" data-action="${index}:arp_repeat">${checkboxIcons}Repeat</div>
             Len
             <div class="percent arp_gatelength" data-action="${index}:arp_gatelength"
                   title="Note length"

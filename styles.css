@@ -21,6 +21,7 @@
   -moz-osx-font-smoothing: grayscale;
   font-feature-settings: 'liga';
   vertical-align: middle;
+  padding-bottom: 2px;
 }
 
 html {
@@ -426,6 +427,17 @@ select#midiInChannel {
   background-color: rgba(255, 255, 255, 0.4);
   color: #000;
   border-color: transparent;
+}
+.check.selected .material-icons {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.check .sel,
+.check.selected .unsel {
+  display: none;
+}
+.check.selected .sel {
+  display: inherit;
 }
 
 .check.arp_enabled {
