@@ -81,7 +81,7 @@ module.exports = {
               <select class="arp_direction" data-change="${index}:arp_direction">
                 <option>UP</option>
                 <option>DOWN</option>
-                <option>UP/DOWN</option>
+                <option>UP / DOWN</option>
                 <option>RANDOM</option>
                 <option>ORDER</option>
               </select>
@@ -136,7 +136,7 @@ module.exports = {
                   title="Arpeggiator pattern"
             ><canvas id="canvasPattern${index}" width="128" height="16"></canvas>
             </div>
-            <div class="check" title="Create euclidian patterns" data-action="${index}:showeuclid">
+            <div class="check" title="Create or shift pattern" data-action="${index}:showeuclid">
               <div class="euclid" title="">
                 <p>Create euclidian pattern</p>
                 <p>
@@ -151,7 +151,7 @@ module.exports = {
                   <span class="submit" data-action="${index}:pattern-shift-right">&gt;</span>      
                 </p>
               </div>
-              &lt; Create
+              <i class="material-icons">settings</i>
             </div>
         </div>
       </section>`;

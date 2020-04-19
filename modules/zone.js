@@ -373,7 +373,7 @@ module.exports = class Zone {
         radius = 7;
       }
       ctx.clearRect(0, 0, cwidth, this.patternCanvas.height);
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08';
       for (let i = 0; i < plen; i++) {
         if (i === this.arp.patternPos) {
           ctx.fillStyle = 'rgba(0,0,0,.5)';

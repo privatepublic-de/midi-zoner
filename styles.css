@@ -9,7 +9,6 @@
   font-family: 'Material Icons';
   font-weight: normal;
   font-style: normal;
-  font-size: 18px;
   display: inline-block;
   line-height: 1;
   text-transform: none;
@@ -21,6 +20,7 @@
   text-rendering: optimizeLegibility;
   -moz-osx-font-smoothing: grayscale;
   font-feature-settings: 'liga';
+  vertical-align: middle;
 }
 
 html {
@@ -375,6 +375,7 @@ select#midiInChannel {
 
 .rtool {
   float: right;
+  font-size: 18px;
   color: rgba(255, 255, 255, 0.2);
   cursor: pointer;
   border-radius: 5px;
@@ -386,7 +387,7 @@ select#midiInChannel {
 }
 
 .rtool.delzone:hover {
-  color: #c00;
+  color: #900;
 }
 
 .dragzone {
