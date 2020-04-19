@@ -12,9 +12,9 @@ module.exports = {
     const octavemarkers = '<span class="oct"></span>'.repeat(10);
     const html = `
       <section class="zone" id="zone${index}">
-        <div class="delzone rtool" data-action="${index}:delete" title="Remove zone">✕</div>
-        <div class="dragzone rtool" title="Drag zone">↑ ↓</div>
-        <div class="randzonecolor rtool" data-action="${index}:color" title="Change color">C</div>
+        <div class="delzone rtool" data-action="${index}:delete" title="Remove zone"><i class="material-icons">cancel</i></div>
+        <div class="dragzone rtool" title="Drag zone"><i class="material-icons">import_export</i></div>
+        <div class="randzonecolor rtool" data-action="${index}:color" title="Change color"><i class="material-icons">palette</i></div>
         <div class="channels"><div class="ch enabled" data-action="${index}:enabled" 
           title="Receive MIDI events">R</div><div class="ch solo" data-action="${index}:solo" 
           title="Solo Zone">S</div>

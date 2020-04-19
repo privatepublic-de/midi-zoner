@@ -1,3 +1,28 @@
+@font-face {
+  font-family: 'Material Icons';
+  font-style: normal;
+  font-weight: 400;
+  src: local('Material Icons'), local('MaterialIcons-Regular'),
+    url(MaterialIcons-Regular.woff2) format('woff2');
+}
+.material-icons {
+  font-family: 'Material Icons';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 18px;
+  display: inline-block;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'liga';
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -139,13 +164,16 @@ select#midiInChannel {
 
 .lightButton {
   display: inline-block;
-  border: none;
+  padding: 0 4px;
   background: #464048;
   color: #777;
   cursor: pointer;
   border-radius: 4px;
-  min-width: 24px;
+  min-width: 26px;
   text-align: center;
+  height: 14px;
+  vertical-align: top;
+  margin: 0 4px;
 }
 
 .lightButton.active {
@@ -153,12 +181,8 @@ select#midiInChannel {
   color: #ccc;
 }
 
-#midisettings #allMuteOff {
-  margin-right: 4px;
-}
-
-#midisettings #allHoldOff {
-  margin-bottom: 4px;
+.lightButton .material-icons {
+  font-size: 14px;
 }
 
 #midisettings .left,
@@ -351,15 +375,18 @@ select#midiInChannel {
 
 .rtool {
   float: right;
-  color: rgba(0, 0, 0, 0.5);
+  color: rgba(255, 255, 255, 0.2);
   cursor: pointer;
   border-radius: 5px;
-  margin-left: 12px;
-  min-width: 1.5em;
+  margin-left: 6px;
   text-align: center;
 }
 .rtool:hover {
-  background-color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.rtool.delzone:hover {
+  color: #c00;
 }
 
 .dragzone {
