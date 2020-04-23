@@ -6,19 +6,24 @@
   "scripts": {
     "start": "electron .",
     "pack:osx": "electron-packager . --out=dist/osx --platform=darwin --arch=x64 --icon='./assets/zoner.icns' --overwrite --ignore='assets'",
-    "build": "npm run pack:osx",
-    "pack:win": "electron-builder -w"
+    "build:win": "electron-builder -w",
+    "build:mac": "electron-builder -m"
   },
   "author": "Peter Witzel - privatepublic.de",
   "license": "ISC",
   "devDependencies": {
     "electron": "^8.0.2",
-    "electron-builder": "22.4.1",
+    "electron-builder": "22.5.1",
     "electron-packager": "^14.2.0"
   },
   "build": {
     "appId": "de.privatepublic.midizoner",
     "productName": "midi-zoner",
+    "mac": {
+      "target": "dmg",
+      "icon": "assets/zoner.icns",
+      "category": "public.app-category.music"
+    },
     "win": {
       "target": "portable",
       "icon": "assets/zoner.png"
