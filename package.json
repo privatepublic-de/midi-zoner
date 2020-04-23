@@ -6,13 +6,23 @@
   "scripts": {
     "start": "electron .",
     "pack:osx": "electron-packager . --out=dist/osx --platform=darwin --arch=x64 --icon='./assets/zoner.icns' --overwrite --ignore='assets'",
-    "build": "npm run pack:osx"
+    "build": "npm run pack:osx",
+    "pack:win": "electron-builder -w"
   },
   "author": "Peter Witzel",
   "license": "ISC",
   "devDependencies": {
     "electron": "^8.0.2",
+    "electron-builder": "22.4.1",
     "electron-packager": "^14.2.0"
+  },
+  "build": {
+    "appId": "de.privatepublic.midizoner",
+    "productName": "midi-zoner",
+    "win": {
+      "target": "portable",
+      "icon": "assets/zoner.png"
+    }
   },
   "dependencies": {
     "electron-settings": "3.2.0",
