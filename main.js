@@ -141,16 +141,19 @@ function createApplicationMenu() {
       role: 'help',
       submenu: [
         {
+          label: 'Documentation',
+          click: async () => {
+            const { shell } = require('electron');
+            await shell.openExternal(
+              'https://github.com/privatepublic-de/midi-zoner/wiki'
+            );
+          }
+        },
+        { type: 'separator' },
+        {
           label: 'About / Credits',
           click: async () => {
             openAboutWindow();
-          }
-        },
-        {
-          label: 'Learn More',
-          click: async () => {
-            const { shell } = require('electron');
-            await shell.openExternal('https://electronjs.org');
           }
         }
       ]
@@ -162,7 +165,7 @@ function createApplicationMenu() {
 }
 
 function openAboutWindow() {
-  const aboutWin = new BrowserWindow({
+  let aboutWin = new BrowserWindow({
     title: 'midi-zoner',
     width: 400,
     height: 400,
@@ -171,6 +174,9 @@ function openAboutWindow() {
     backgroundColor: '#000000',
     icon: iconPath,
     show: false,
+    parent: win,
+    minimizable: false,
+    maximizable: false,
     webPreferences: {
       nodeIntegration: true
     }
@@ -179,4 +185,7 @@ function openAboutWindow() {
     aboutWin.show();
   });
   aboutWin.loadFile('res/about.html');
+  aboutWin.on('closed', () => {
+    aboutWin = null;
+  });
 }
