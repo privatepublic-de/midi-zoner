@@ -151,7 +151,7 @@ function createApplicationMenu() {
         },
         { type: 'separator' },
         {
-          label: 'About / Credits',
+          label: 'About midi-zoner',
           click: async () => {
             openAboutWindow();
           }
@@ -166,7 +166,7 @@ function createApplicationMenu() {
 
 function openAboutWindow() {
   let aboutWin = new BrowserWindow({
-    title: 'midi-zoner',
+    title: 'About midi-zoner',
     width: 400,
     height: 400,
     minWidth: 400,

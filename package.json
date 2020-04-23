@@ -1,7 +1,7 @@
 {
   "name": "midi-zoner",
   "version": "1.0.1",
-  "description": "Play multiple MIDI devices, channels and note ranges from one input source.",
+  "description": "Play multiple MIDI devices, channels and note ranges from one MIDI input source. Includes an arpeggiator with euclidian patterns.",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -9,7 +9,7 @@
     "build": "npm run pack:osx",
     "pack:win": "electron-builder -w"
   },
-  "author": "Peter Witzel",
+  "author": "Peter Witzel - privatepublic.de",
   "license": "ISC",
   "devDependencies": {
     "electron": "^8.0.2",

@@ -3,9 +3,8 @@ body {
   background: #272422;
   color: #ddd;
 }
-
 .symbol {
-  width: 180px;
+  width: 150px;
   display: block;
   margin: 0 auto;
 }
@@ -13,4 +12,15 @@ body {
 h1 {
   font-weight: normal;
   text-align: center;
+  margin: 0;
+}
+
+.version {
+  color: #ccc;
+  text-align: center;
+  font-size: small;
+}
+
+a {
+  color: #3476d8;
 }
