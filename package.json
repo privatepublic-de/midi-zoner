@@ -1,7 +1,7 @@
 {
   "name": "midi-zoner",
   "version": "1.0.1",
-  "description": "",
+  "description": "Play multiple MIDI devices, channels and note ranges from one input source.",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

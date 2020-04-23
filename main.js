@@ -1,11 +1,12 @@
 const electron = require('electron');
-const { app, BrowserWindow, powerSaveBlocker } = electron;
+const { app, BrowserWindow, Menu, powerSaveBlocker } = electron;
 const settings = require('electron-settings');
 
 powerSaveBlocker.start('prevent-app-suspension');
 
 const defaultWidth = 1000;
 const defaultHeight = 730;
+const iconPath = __dirname + '/res/zoner.png';
 
 let win;
 
@@ -14,34 +15,31 @@ function createWindow() {
   win = new BrowserWindow({
     x: rect ? rect.x : undefined,
     y: rect ? rect.y : undefined,
+    title: 'midi-zoner',
     width: rect ? rect.width : defaultWidth,
     height: rect ? rect.height : defaultHeight,
     minWidth: defaultWidth,
     minHeight: 200,
     autoHideMenuBar: true,
     backgroundColor: '#000000',
-    icon: __dirname + '/res/zoner.png',
+    icon: iconPath,
     webPreferences: {
       nodeIntegration: true,
       backgroundThrottling: false
     },
     show: false
   });
-
   win.once('ready-to-show', () => {
     win.show();
   });
-
   win.loadFile('index.html');
-  // win.webContents.openDevTools()
-
   win.on('close', () => {
     saveWindowPos(win);
   });
-
   win.on('closed', () => {
     win = null;
   });
+  createApplicationMenu();
 }
 
 app.on('ready', createWindow);
@@ -84,4 +82,101 @@ function storedWindowPos() {
     }
   }
   return rect;
+}
+
+function createApplicationMenu() {
+  const isMac = process.platform === 'darwin';
+
+  const template = [
+    // { role: 'appMenu' }
+    ...(isMac
+      ? [
+          {
+            label: app.name,
+            submenu: [
+              { role: 'about' },
+              { type: 'separator' },
+              { role: 'services' },
+              { type: 'separator' },
+              { role: 'hide' },
+              { role: 'hideothers' },
+              { role: 'unhide' },
+              { type: 'separator' },
+              { role: 'quit' }
+            ]
+          }
+        ]
+      : []),
+    // { role: 'fileMenu' }
+    {
+      label: 'File',
+      submenu: [isMac ? { role: 'close' } : { role: 'quit' }]
+    },
+    // { role: 'viewMenu' }
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'toggledevtools' },
+        { type: 'separator' },
+        { role: 'resetzoom' },
+        { role: 'zoomin' },
+        { role: 'zoomout' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' }
+      ]
+    },
+    // { role: 'windowMenu' }
+    {
+      label: 'Window',
+      submenu: [
+        { role: 'minimize' },
+        { role: 'zoom' },
+        ...(isMac
+          ? [{ type: 'separator' }, { role: 'front' }]
+          : [{ role: 'close' }])
+      ]
+    },
+    {
+      role: 'help',
+      submenu: [
+        {
+          label: 'About / Credits',
+          click: async () => {
+            openAboutWindow();
+          }
+        },
+        {
+          label: 'Learn More',
+          click: async () => {
+            const { shell } = require('electron');
+            await shell.openExternal('https://electronjs.org');
+          }
+        }
+      ]
+    }
+  ];
+
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
+}
+
+function openAboutWindow() {
+  const aboutWin = new BrowserWindow({
+    title: 'midi-zoner',
+    width: 400,
+    height: 400,
+    minWidth: 400,
+    minHeight: 400,
+    backgroundColor: '#000000',
+    icon: iconPath,
+    show: false,
+    webPreferences: {
+      nodeIntegration: true
+    }
+  });
+  aboutWin.once('ready-to-show', () => {
+    aboutWin.show();
+  });
+  aboutWin.loadFile('res/about.html');
 }

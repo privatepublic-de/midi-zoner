@@ -145,7 +145,7 @@ select {
 
 .updated #midisettings select,
 .updated .zone select.outport {
-  background-color: #ebe172;
+  background-color: #fff;
   color: #000;
 }
 
@@ -260,6 +260,7 @@ select#midiInChannel {
   padding: 8px 8px 8px 8px;
   border-radius: 8px;
   width: 100%;
+  min-width: 960px;
   box-shadow: 0 2px 10px #111;
 }
 

@@ -1,0 +1,16 @@
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: #272422;
+  color: #ddd;
+}
+
+.symbol {
+  width: 180px;
+  display: block;
+  margin: 0 auto;
+}
+
+h1 {
+  font-weight: normal;
+  text-align: center;
+}
