@@ -168,9 +168,9 @@ function openAboutWindow() {
   let aboutWin = new BrowserWindow({
     title: 'About midi-zoner',
     width: 400,
-    height: 400,
+    height: 450,
     minWidth: 400,
-    minHeight: 400,
+    minHeight: 450,
     backgroundColor: '#000000',
     icon: iconPath,
     show: false,
@@ -188,4 +188,5 @@ function openAboutWindow() {
   aboutWin.on('closed', () => {
     aboutWin = null;
   });
+  aboutWin.removeMenu();
 }
