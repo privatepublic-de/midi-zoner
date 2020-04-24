@@ -36,7 +36,7 @@ module.exports = {
         <div class="settings">
             <div class="check arp_enabled" data-action="${index}:arp_enabled"
               title="Enable arpeggiator"
-            >Arp
+            >Arp <span class="material-icons sel">expand_more</span><span class="material-icons unsel">chevron_right</span>
             <span class="arpanchor"></span></div>
             <div class="val" title="Transpose octave">Oct 
                 <a class="circle" data-action="${index}:octave:-2"></a> 
