@@ -147,10 +147,17 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         const sendClockCheck = DOM.element('#sendClock');
-        sendClockCheck.checked = zones.sendClock;
+        if (zones.sendClock) {
+          DOM.addClass(sendClockCheck, 'selected');
+        }
         midi.setSendClock(zones.sendClock);
-        sendClockCheck.addEventListener('change', (e) => {
-          zones.sendClock = e.target.checked;
+        sendClockCheck.addEventListener('click', (e) => {
+          zones.sendClock = !zones.sendClock;
+          if (zones.sendClock) {
+            DOM.addClass(sendClockCheck, 'selected');
+          } else {
+            DOM.removeClass(sendClockCheck, 'selected');
+          }
           midi.setSendClock(zones.sendClock);
           saveZones();
         });

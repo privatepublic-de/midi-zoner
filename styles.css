@@ -101,33 +101,6 @@ select {
   min-width: 35px;
 }
 
-#midisettings input[type='checkbox'] {
-  display: none;
-}
-#midisettings input[type='checkbox'] + label {
-  cursor: pointer;
-  width: auto;
-}
-#midisettings input[type='checkbox'] + label::before {
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  line-height: 14px;
-  border-radius: 50%;
-  border: 1px solid rgba(0, 0, 0, 0.9);
-  background-color: transparent;
-  content: '';
-  margin-right: 5px;
-  vertical-align: text-bottom;
-  text-align: center;
-  box-sizing: border-box;
-}
-#midisettings input[type='checkbox']:checked + label::before {
-  border-radius: 50%;
-  border-width: 4px;
-  background-color: #888;
-}
-
 #midisettings .clocksettings {
   background-color: #3c3c3c;
 }
@@ -433,11 +406,11 @@ select#midiInChannel {
   color: rgba(0, 0, 0, 0.6);
 }
 
-.check .sel,
-.check.selected .unsel {
+.sel,
+.selected .unsel {
   display: none;
 }
-.check.selected .sel {
+.selected .sel {
   display: inherit;
 }
 
