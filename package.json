@@ -7,7 +7,8 @@
     "start": "electron .",
     "pack:osx": "electron-packager . --out=dist/osx --platform=darwin --arch=x64 --icon='./assets/zoner.icns' --overwrite --ignore='assets'",
     "build:win": "electron-builder -w",
-    "build:mac": "electron-builder -m"
+    "build:mac": "electron-builder -m",
+    "build:linux": "electron-builder -l"
   },
   "author": "Peter Witzel - privatepublic.de",
   "license": "ISC",
@@ -27,6 +28,10 @@
     "win": {
       "target": "portable",
       "icon": "assets/zoner.png"
+    },
+    "linux": {
+      "target": "AppImage",
+      "category": "AudioVideo"
     }
   },
   "dependencies": {
