@@ -66,11 +66,11 @@ module.exports = class Zone {
   arp_velocity = 0; // 0 = as played
   arp_hold = false;
   arp_pattern = [true, true, true, true, true, true, true, true];
+  arp_holdlist = [];
+  arp_sortedHoldList = [];
   arp = {
     orderlist: [],
     sortedlist: [],
-    holdlist: [],
-    sortedHoldList: [],
     noteindex: -1,
     patternPos: -1,
     inc: 1,
@@ -129,6 +129,8 @@ module.exports = class Zone {
       arp_repeat: this.arp_repeat,
       arp_probability: this.arp_probability,
       arp_pattern: this.arp_pattern,
+      arp_holdlist: this.arp_holdlist,
+      arp_sortedHoldList: this.arp_sortedHoldList,
       hue: this.hue,
       saturation: this.saturation,
       euclid_hits: this.euclid_hits,
@@ -301,7 +303,7 @@ module.exports = class Zone {
 
   notesChanged() {
     this.arp.orderlist = Array.from(this.activeNotes);
-    this.arp.holdlist = Array.from(this.holdList);
+    this.arp_holdlist = Array.from(this.holdList);
     for (let i = 0; i < this._arp_octaves; i++) {
       // add arp octaves
       for (let j = 0; j < this.activeNotes.length; j++) {
@@ -312,13 +314,13 @@ module.exports = class Zone {
       }
       for (let j = 0; j < this.holdList.length; j++) {
         const note = this.holdList[j];
-        this.arp.holdlist.push(new Note(note.number + 12 * (i + 1), note.velo));
+        this.arp_holdlist.push(new Note(note.number + 12 * (i + 1), note.velo));
       }
     }
     this.arp.sortedlist = Array.from(this.arp.orderlist).sort(
       (a, b) => a.number - b.number
     );
-    this.arp.sortedHoldList = Array.from(this.arp.holdlist).sort(
+    this.arp_sortedHoldList = Array.from(this.arp_holdlist).sort(
       (a, b) => a.number - b.number
     );
 
@@ -338,7 +340,7 @@ module.exports = class Zone {
       ctx.strokeStyle = 'rgba(0,0,0,.75)';
       const list =
         this.arp_hold && this.arp_enabled
-          ? this.arp.holdlist
+          ? this.arp_holdlist
           : this.activeNotes;
       for (let i = 0; i < list.length; i++) {
         if (this.arp_enabled) {
@@ -405,7 +407,7 @@ module.exports = class Zone {
         let notes;
         if (this.arp_hold) {
           notes = Array.from(
-            this.arp_direction > 2 ? this.arp.holdlist : this.arp.sortedHoldList
+            this.arp_direction > 2 ? this.arp_holdlist : this.arp_sortedHoldList
           );
         } else {
           notes = Array.from(

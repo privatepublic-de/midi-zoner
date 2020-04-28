@@ -456,7 +456,7 @@ function updateValuesForZone(index) {
   }
   if (
     (zone.enabled && (Zone.solocount === 0 || zone.solo)) ||
-    (zone.arp_enabled && zone.arp_hold && zone.arp.holdlist.length > 0)
+    (zone.arp_enabled && zone.arp_hold && zone.arp_holdlist.length > 0)
   ) {
     DOM.removeClass(`#zone${index}`, 'disabled');
     const rgb = DOM.hslToRgb(zone.hue, zone.saturation, 0.3);
