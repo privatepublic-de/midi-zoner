@@ -53,7 +53,7 @@ module.exports = class Zone {
   cc = true;
   at2mod = false;
   pitchbend = true;
-  euclid_hits = 8;
+  euclid_hits = 5;
   euclid_length = 8;
   arp_enabled = false;
   arp_direction = 0; // 0=UP, 1=DOWN, 2=UP/DOWN, 3=RANDOM, 4=ORDER
