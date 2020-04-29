@@ -302,28 +302,31 @@ module.exports = class Zone {
   }
 
   notesChanged() {
-    this.arp.orderlist = Array.from(this.activeNotes);
-    this.arp_holdlist = Array.from(this.holdList);
-    for (let i = 0; i < this._arp_octaves; i++) {
-      // add arp octaves
-      for (let j = 0; j < this.activeNotes.length; j++) {
-        const note = this.activeNotes[j];
-        this.arp.orderlist.push(
-          new Note(note.number + 12 * (i + 1), note.velo)
-        );
+    if (this.enabled) {
+      this.arp.orderlist = Array.from(this.activeNotes);
+      this.arp_holdlist = Array.from(this.holdList);
+      for (let i = 0; i < this._arp_octaves; i++) {
+        // add arp octaves
+        for (let j = 0; j < this.activeNotes.length; j++) {
+          const note = this.activeNotes[j];
+          this.arp.orderlist.push(
+            new Note(note.number + 12 * (i + 1), note.velo)
+          );
+        }
+        for (let j = 0; j < this.holdList.length; j++) {
+          const note = this.holdList[j];
+          this.arp_holdlist.push(
+            new Note(note.number + 12 * (i + 1), note.velo)
+          );
+        }
       }
-      for (let j = 0; j < this.holdList.length; j++) {
-        const note = this.holdList[j];
-        this.arp_holdlist.push(new Note(note.number + 12 * (i + 1), note.velo));
-      }
+      this.arp.sortedlist = Array.from(this.arp.orderlist).sort(
+        (a, b) => a.number - b.number
+      );
+      this.arp_sortedHoldList = Array.from(this.arp_holdlist).sort(
+        (a, b) => a.number - b.number
+      );
     }
-    this.arp.sortedlist = Array.from(this.arp.orderlist).sort(
-      (a, b) => a.number - b.number
-    );
-    this.arp_sortedHoldList = Array.from(this.arp_holdlist).sort(
-      (a, b) => a.number - b.number
-    );
-
     requestAnimationFrame(this.renderNotes.bind(this));
   }
 
