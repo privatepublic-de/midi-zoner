@@ -258,6 +258,10 @@ select#midiInChannel {
   box-shadow: none;
 }
 
+.zone input[type='color'] {
+  display: none;
+}
+
 .channels {
   max-width: 900px;
 }

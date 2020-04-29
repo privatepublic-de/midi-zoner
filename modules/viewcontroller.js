@@ -167,7 +167,12 @@ function actionHandler(ev) {
       window.scrollTo({ top: scrollPos });
       break;
     case 'color':
-      zone.randomizeColor();
+      console.log('Change:', e.value);
+      console.log(DOM.hexToRgb(e.value));
+      const hsl = DOM.rgb2hsl(DOM.hexToRgb(e.value));
+      console.log(hsl);
+      zone.saturation = hsl[1];
+      zone.hue = hsl[0];
       updateValuesForZone(zoneindex);
       break;
     case 'showeuclid':
@@ -454,12 +459,16 @@ function updateValuesForZone(index) {
   } else {
     DOM.removeClass(`#zone${index}`, 'soloed-out');
   }
+  const rgbZone = DOM.hslToRgb(zone.hue, zone.saturation, 0.3);
+  const colorInput = DOM.element(`#zone${index} input[type="color"]`);
+  colorInput.value = DOM.rgbToHex(rgbZone);
+  console.log('Set: ', DOM.rgbToHex(rgbZone));
   if (
     (zone.enabled && (Zone.solocount === 0 || zone.solo)) ||
     (zone.arp_enabled && zone.arp_hold && zone.arp_holdlist.length > 0)
   ) {
     DOM.removeClass(`#zone${index}`, 'disabled');
-    const rgb = DOM.hslToRgb(zone.hue, zone.saturation, 0.3);
+    const rgb = rgbZone;
     const style = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
     DOM.element(`#zone${index}`).style.background = style;
     DOM.element(`#zone${index}`).style.setProperty('--bg-color', style);

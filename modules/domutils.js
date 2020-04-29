@@ -3,7 +3,7 @@ module.exports = {
    * Returns first matching element for selector string or selector itself if it's no string.
    * @param {*} selector
    */
-  element: function(selector) {
+  element: function (selector) {
     if (typeof selector === 'string') {
       return document.querySelector(selector);
     } else {
@@ -16,7 +16,7 @@ module.exports = {
    * @param {string} selector
    * @param {function} handler
    */
-  find: function(rootElement, selector, handler) {
+  find: function (rootElement, selector, handler) {
     const list = rootElement.querySelectorAll(selector);
     if (handler) {
       for (let i = 0; i < list.length; i++) {
@@ -30,7 +30,7 @@ module.exports = {
    * @param {*} selector
    * @param {function} handler
    */
-  all: function(selector, handler) {
+  all: function (selector, handler) {
     let list = [];
     if (selector) {
       if (typeof selector === 'string') {
@@ -54,8 +54,8 @@ module.exports = {
    * @param {string} eventName
    * @param {function} handler
    */
-  on: function(selector, eventName, handler) {
-    DOM.all(selector, function(el) {
+  on: function (selector, eventName, handler) {
+    DOM.all(selector, function (el) {
       el.addEventListener(eventName, handler);
     });
   },
@@ -66,8 +66,8 @@ module.exports = {
    * @param {string} eventName
    * @param {function} handler
    */
-  attachInside: function(rootElement, selector, eventName, handler) {
-    DOM.find(rootElement, selector, function(el) {
+  attachInside: function (rootElement, selector, eventName, handler) {
+    DOM.find(rootElement, selector, function (el) {
       DOM.on(el, eventName, handler);
     });
   },
@@ -75,8 +75,8 @@ module.exports = {
    * Clears content of all elements matching selector.
    * @param {*} selector
    */
-  empty: function(selector) {
-    DOM.all(selector, function(el) {
+  empty: function (selector) {
+    DOM.all(selector, function (el) {
       while (el.firstChild) {
         el.removeChild(el.firstChild);
       }
@@ -86,8 +86,8 @@ module.exports = {
    * Sets style.display = 'none' for all matching elements.
    * @param {*} selector
    */
-  hide: function(selector) {
-    DOM.all(selector, function(el) {
+  hide: function (selector) {
+    DOM.all(selector, function (el) {
       el.style.display = 'none';
     });
   },
@@ -95,8 +95,8 @@ module.exports = {
    * Sets style.display = 'block' for all matching elements.
    * @param {*} selector
    */
-  show: function(selector) {
-    DOM.all(selector, function(el) {
+  show: function (selector) {
+    DOM.all(selector, function (el) {
       el.style.display = 'block';
     });
   },
@@ -104,14 +104,14 @@ module.exports = {
    * Removes style class 'visible' from all matching elements.
    * @param {*} selector
    */
-  unvisible: function(selector) {
+  unvisible: function (selector) {
     DOM.removeClass(selector, 'visible');
   },
   /**
    * Adds style class 'visible' to all matching elements.
    * @param {*} selector
    */
-  visible: function(selector) {
+  visible: function (selector) {
     DOM.addClass(selector, 'visible');
   },
   /**
@@ -119,8 +119,8 @@ module.exports = {
    * @param {*} selector
    * @param {string} className
    */
-  addClass: function(selector, className) {
-    DOM.all(selector, function(el) {
+  addClass: function (selector, className) {
+    DOM.all(selector, function (el) {
       el.classList.add(className);
     });
   },
@@ -129,13 +129,13 @@ module.exports = {
    * @param {*} selector
    * @param {string} className
    */
-  removeClass: function(selector, className) {
+  removeClass: function (selector, className) {
     if (className) {
-      DOM.all(selector, function(el) {
+      DOM.all(selector, function (el) {
         el.classList.remove(className);
       });
     } else {
-      DOM.all(selector, function(el) {
+      DOM.all(selector, function (el) {
         el.className = '';
       });
     }
@@ -146,7 +146,7 @@ module.exports = {
    * @param {string} position ['beforebegin', 'afterbegin', 'beforeend', 'afterend']
    * @param {string} html
    */
-  addHTML: function(selector, position, html) {
+  addHTML: function (selector, position, html) {
     let element = DOM.element(selector);
     element.insertAdjacentHTML(position, html);
     return element;
@@ -156,7 +156,7 @@ module.exports = {
    * @param {object} el
    * @param {string} attrname
    */
-  ancestorAttribute: function(el, attrname) {
+  ancestorAttribute: function (el, attrname) {
     let element = el;
     let attrValue = null;
     while (element && !(attrValue = element.getAttribute(attrname))) {
@@ -165,13 +165,13 @@ module.exports = {
     return attrValue;
   },
 
-  hslToRgb: function(h, s, l) {
-    var r, g, b;
+  hslToRgb: function (h, s, l) {
+    let r, g, b;
 
     if (s == 0) {
       r = g = b = l; // achromatic
     } else {
-      var hue2rgb = function hue2rgb(p, q, t) {
+      let hue2rgb = function hue2rgb(p, q, t) {
         if (t < 0) t += 1;
         if (t > 1) t -= 1;
         if (t < 1 / 6) return p + (q - p) * 6 * t;
@@ -180,13 +180,81 @@ module.exports = {
         return p;
       };
 
-      var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-      var p = 2 * l - q;
+      let q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      let p = 2 * l - q;
       r = hue2rgb(p, q, h + 1 / 3);
       g = hue2rgb(p, q, h);
       b = hue2rgb(p, q, h - 1 / 3);
     }
 
     return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+  },
+
+  rgbToHex: function (rgb) {
+    const toHex = function (v) {
+      let hex = Number(Math.floor(v)).toString(16);
+      if (hex.length < 2) {
+        hex = '0' + hex;
+      }
+      return hex;
+    };
+    return '#' + toHex(rgb[0]) + toHex(rgb[1]) + toHex(rgb[2]);
+  },
+
+  /*
+   * Converts an RGB color to HSL
+   * Parameters
+   *     rgbArr : 3-element array containing the RGB values
+   *
+   * Result : 3-element array containing the HSL values
+   *
+   */
+  rgb2hsl: function (rgbArr) {
+    let r = rgbArr[0] / 255,
+      g = rgbArr[1] / 255,
+      b = rgbArr[2] / 255;
+
+    var max = Math.max(r, g, b),
+      min = Math.min(r, g, b);
+    var h,
+      s,
+      l = (max + min) / 2;
+
+    if (max == min) {
+      h = s = 0; // achromatic
+    } else {
+      var d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+
+      switch (max) {
+        case r:
+          h = (g - b) / d + (g < b ? 6 : 0);
+          break;
+        case g:
+          h = (b - r) / d + 2;
+          break;
+        case b:
+          h = (r - g) / d + 4;
+          break;
+      }
+
+      h /= 6;
+    }
+
+    return [h, s, l];
+  },
+
+  hexToRgb(hex) {
+    if (hex.length < 6 || hex.length > 7) {
+      throw new Error('Hex color syntax error: ' + hex);
+    }
+    if (hex.indexOf('#') === 0) {
+      hex = hex.substr(1);
+    }
+    return [
+      parseInt(hex.substr(0, 2), 16),
+      parseInt(hex.substr(2, 2), 16),
+      parseInt(hex.substr(4, 2), 16)
+    ];
   }
 };

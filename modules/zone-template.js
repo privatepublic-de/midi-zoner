@@ -16,7 +16,7 @@ module.exports = {
       <section class="zone" id="zone${index}">
         <div class="delzone rtool" data-action="${index}:delete" title="Remove zone"><i class="material-icons">cancel</i></div>
         <div class="dragzone rtool" title="Drag zone"><i class="material-icons">import_export</i></div>
-        <div class="randzonecolor rtool" data-action="${index}:color" title="Change color"><i class="material-icons">palette</i></div>
+        <div class="randzonecolor rtool" title="Change color"><label><input data-change="${index}:color" type="color"><i class="material-icons">palette</i></label></div>
         <div class="channels"><div class="ch enabled" data-action="${index}:enabled" 
           title="Receive MIDI events">R</div><div class="ch solo" data-action="${index}:solo" 
           title="Solo Zone">S</div>
