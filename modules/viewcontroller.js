@@ -167,10 +167,7 @@ function actionHandler(ev) {
       window.scrollTo({ top: scrollPos });
       break;
     case 'color':
-      console.log('Change:', e.value);
-      console.log(DOM.hexToRgb(e.value));
       const hsl = DOM.rgb2hsl(DOM.hexToRgb(e.value));
-      console.log(hsl);
       zone.saturation = hsl[1];
       zone.hue = hsl[0];
       updateValuesForZone(zoneindex);
@@ -334,7 +331,7 @@ function appendZone(zone, index) {
     e.addEventListener('click', actionHandler);
   });
   DOM.all(`#zone${index} *[data-change]`).forEach((e) => {
-    e.addEventListener('change', actionHandler);
+    e.addEventListener('input', actionHandler);
   });
   DOM.all(`#zone${index} *[data-hover]`).forEach((e) => {
     e.addEventListener('mousemove', hoverHandler);
@@ -462,7 +459,6 @@ function updateValuesForZone(index) {
   const rgbZone = DOM.hslToRgb(zone.hue, zone.saturation, 0.3);
   const colorInput = DOM.element(`#zone${index} input[type="color"]`);
   colorInput.value = DOM.rgbToHex(rgbZone);
-  console.log('Set: ', DOM.rgbToHex(rgbZone));
   if (
     (zone.enabled && (Zone.solocount === 0 || zone.solo)) ||
     (zone.arp_enabled && zone.arp_hold && zone.arp_holdlist.length > 0)

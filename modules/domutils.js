@@ -165,6 +165,13 @@ module.exports = {
     return attrValue;
   },
 
+  /**
+   * Convert hsl values (0-1) to rgb.
+   * @param {number} h Hue
+   * @param {number} s Saturation
+   * @param {number} l Luminosity
+   * @returns {Number[]} [r,g,b] values (0-255)
+   */
   hslToRgb: function (h, s, l) {
     let r, g, b;
 
@@ -190,6 +197,11 @@ module.exports = {
     return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
   },
 
+  /**
+   * Convert rgb values to hex color string (#ffffff)
+   * @param {number[]} rgb [r,g,b] values (0-255)
+   * @returns {string} corresponding hex color value
+   */
   rgbToHex: function (rgb) {
     const toHex = function (v) {
       let hex = Number(Math.floor(v)).toString(16);
@@ -201,29 +213,26 @@ module.exports = {
     return '#' + toHex(rgb[0]) + toHex(rgb[1]) + toHex(rgb[2]);
   },
 
-  /*
-   * Converts an RGB color to HSL
-   * Parameters
-   *     rgbArr : 3-element array containing the RGB values
-   *
-   * Result : 3-element array containing the HSL values
-   *
+  /**
+   * Calculate [hue, saturation, luminosity] out of three rgb values (0-255)
+   * @param {Number[]} rgbArr [r,g,b] (0-255)
+   * @returns {Number[]} [h,s,l] values (0-1)
    */
   rgb2hsl: function (rgbArr) {
     let r = rgbArr[0] / 255,
       g = rgbArr[1] / 255,
       b = rgbArr[2] / 255;
 
-    var max = Math.max(r, g, b),
+    let max = Math.max(r, g, b),
       min = Math.min(r, g, b);
-    var h,
+    let h,
       s,
       l = (max + min) / 2;
 
     if (max == min) {
-      h = s = 0; // achromatic
+      h = s = 0;
     } else {
-      var d = max - min;
+      let d = max - min;
       s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
 
       switch (max) {
@@ -244,6 +253,11 @@ module.exports = {
     return [h, s, l];
   },
 
+  /**
+   * RGB value array from hex color string (#ffffff)
+   * @param {string} hex hex color string
+   * @returns {Number[]} [r,g,b] values
+   */
   hexToRgb(hex) {
     if (hex.length < 6 || hex.length > 7) {
       throw new Error('Hex color syntax error: ' + hex);

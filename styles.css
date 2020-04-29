@@ -360,7 +360,6 @@ select#midiInChannel {
   float: right;
   font-size: 18px;
   color: rgba(255, 255, 255, 0.2);
-  cursor: pointer;
   border-radius: 5px;
   margin-left: 6px;
   text-align: center;
@@ -371,6 +370,11 @@ select#midiInChannel {
 
 .rtool.delzone:hover {
   color: #900;
+}
+
+.rtool,
+.rtool label {
+  cursor: pointer;
 }
 
 .dragzone {
