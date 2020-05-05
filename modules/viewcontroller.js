@@ -138,7 +138,7 @@ function actionHandler(ev) {
         }
         v = Math.min(128, Math.max(0, v));
         input.value = v;
-        input.dispatchEvent(new Event('change'));
+        input.dispatchEvent(new Event('input'));
       }
       break;
     case 'enabled':
@@ -342,7 +342,7 @@ function appendZone(zone, index) {
     e.addEventListener('keyup', (event) => {
       if (event.keyCode === 13) {
         event.preventDefault();
-        this.dispatchEvent(new Event('change'));
+        this.dispatchEvent(new Event('input'));
       }
     });
     e.addEventListener('focus', () => {
