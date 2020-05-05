@@ -210,6 +210,9 @@ class MIDI {
   }
 
   onMIDIMessage(event) {
+    if (this.deviceInClock === this.deviceIn) {
+      this.onMIDIClockMessage(event);
+    }
     this.eventHandler(event);
   }
 
@@ -245,7 +248,9 @@ class MIDI {
       });
       this.deviceIn.onmidimessage = this.onMIDIMessage.bind(this);
       if (this.deviceInClock) {
-        this.deviceInClock.onmidimessage = this.onMIDIClockMessage.bind(this);
+        if (this.deviceIn !== this.deviceInClock) {
+          this.deviceInClock.onmidimessage = this.onMIDIClockMessage.bind(this);
+        }
         this.internalClock.stop();
       } else {
         // this.internalClock.start();
