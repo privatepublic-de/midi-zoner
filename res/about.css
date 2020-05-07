@@ -1,5 +1,11 @@
+@font-face {
+  font-family: 'Pontano Sans';
+  font-style: normal;
+  font-weight: 400;
+  src: url(PotanoSans-Regular.ttf) format('ttf');
+}
 body {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Pontano Sans', sans-serif;
   background: #272422;
   color: #ddd;
 }

@@ -25,7 +25,7 @@ module.exports = {
           </select>
           ${channelselectors} 
         </div>
-        <div class="range" data-hover="${index}:range" data-action="${index}:range">
+        <div class="range" data-hover="${index}:range" data-action="${index}:range" title="Select start and end note\n(hold 'shift' for octave locking)">
             ${octavemarkers}
             <span class="join"></span>
             <span class="current"></span>

@@ -5,6 +5,13 @@
   src: local('Material Icons'), local('MaterialIcons-Regular'),
     url(./res/MaterialIcons-Regular.woff2) format('woff2');
 }
+@font-face {
+  font-family: 'Pontano Sans';
+  font-style: normal;
+  font-weight: 400;
+  src: url(./res/PotanoSans-Regular.ttf) format('ttf');
+}
+
 .material-icons {
   font-family: 'Material Icons';
   font-weight: normal;
@@ -18,10 +25,24 @@
   direction: ltr;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  -moz-osx-font-smoothing: grayscale;
   font-feature-settings: 'liga';
   vertical-align: middle;
   padding-bottom: 2px;
+}
+
+:root {
+  --brighter-1: rgba(255, 255, 255, 0.1);
+  --brighter-2: rgba(255, 255, 255, 0.3);
+  --brighter-3: rgba(255, 255, 255, 0.5);
+  --brighter-4: rgba(255, 255, 255, 0.7);
+
+  --darker-1: rgba(0, 0, 0, 0.1);
+  --darker-2: rgba(0, 0, 0, 0.3);
+  --darker-3: rgba(0, 0, 0, 0.5);
+  --darker-4: rgba(0, 0, 0, 0.7);
+
+  --red-highlight: rgba(196, 0, 0, 0.4);
+  --green-highlight: rgba(0, 196, 0, 0.4);
 }
 
 html {
@@ -29,7 +50,7 @@ html {
 }
 
 body {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Potano Sans', Verdana, sans-serif;
   background: #272422;
   color: #ddd;
   margin: 30px 0 0 0;
@@ -74,7 +95,7 @@ select {
   background-color: #2f2f2f;
   padding: 2px 5px;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--brighter-3);
   box-shadow: 0 2px 5px #272422;
   border-bottom: 1px solid #333;
   text-align: center;
@@ -107,10 +128,10 @@ select {
 
 #midisettings select {
   width: 170px;
-  border: 1px solid rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--darker-3);
   border-radius: 4px;
-  background-color: rgba(0, 0, 0, 0.25);
-  color: rgba(255, 255, 255, 0.5);
+  background-color: var(--darker-2);
+  color: var(--brighter-3);
   font-size: 12px;
   padding: 0;
   transition: background-color 1s, color 1s;
@@ -145,7 +166,7 @@ select#midiInChannel {
   border-radius: 4px;
   min-width: 26px;
   text-align: center;
-  height: 14px;
+  height: 16px;
   vertical-align: top;
   margin: 0 4px;
 }
@@ -176,8 +197,8 @@ select#midiInChannel {
 #displayBPM {
   display: inline-block;
   text-align: center;
-  background-color: rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(0, 0, 0, 0.4);
+  background-color: var(--darker-2);
+  border: 1px solid var(--darker-3);
   border-radius: 4px;
   width: 50px;
   cursor: col-resize;
@@ -226,7 +247,7 @@ select#midiInChannel {
 }
 
 .zone {
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--brighter-4);
   font-size: 12px;
   background-color: #444;
   margin: 20px auto;
@@ -271,18 +292,19 @@ select#midiInChannel {
   padding: 4px 0;
   width: 24px;
   height: 20px;
+  line-height: 12px;
   font-size: 12px;
   margin-left: 8px;
   text-align: center;
-  color: rgba(255, 255, 255, 0.5);
-  background-color: rgba(0, 0, 0, 0.1);
+  color: var(--brighter-3);
+  background-color: var(--darker-1);
   cursor: pointer;
   border-radius: 4px;
 }
 
 .ch.enabled.selected,
 .ch.selected {
-  background-color: rgba(255, 255, 255, 0.4);
+  background-color: var(--brighter-2);
   color: #000;
   border-color: transparent;
 }
@@ -290,27 +312,27 @@ select#midiInChannel {
 .ch.enabled,
 .soloed-out .ch.enabled.selected,
 .zone.disabled .ch.enabled.selected {
-  background-color: rgba(0, 0, 0, 0.1);
+  background-color: var(--darker-1);
 }
 
 .check.arp_hold.selected {
-  background-color: rgba(196, 0, 0, 0.4);
-  color: rgba(255, 255, 255, 0.5);
+  background-color: var(--red-highlight);
+  color: var(--brighter-3);
 }
 
 .ch.solo {
   margin-right: 2%;
-  background-color: rgba(0, 0, 0, 0.1);
+  background-color: var(--darker-1);
 }
 
 .ch.solo.selected {
-  background-color: rgba(0, 196, 0, 0.4);
+  background-color: var(--green-highlight);
 }
 
 .settings,
 .arp-settings {
   position: relative;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--brighter-4);
   font-size: 12px;
 }
 
@@ -335,7 +357,7 @@ select#midiInChannel {
   position: relative;
   margin-top: 12px;
   padding: 6px;
-  background-color: rgba(0, 0, 0, 0.15);
+  background-color: var(--darker-1);
   border-radius: 0 4px 4px 4px;
   display: none;
   text-align: left;
@@ -348,7 +370,7 @@ select#midiInChannel {
   width: 100%;
   height: 15px;
   left: 0;
-  background-color: rgba(0, 0, 0, 0.15);
+  background-color: var(--darker-1);
 }
 
 .arp-enabled .arp-settings,
@@ -359,13 +381,13 @@ select#midiInChannel {
 .rtool {
   float: right;
   font-size: 18px;
-  color: rgba(255, 255, 255, 0.2);
+  color: var(--brighter-2);
   border-radius: 5px;
   margin-left: 6px;
   text-align: center;
 }
 .rtool:hover {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--brighter-4);
 }
 
 .rtool.delzone:hover {
@@ -401,17 +423,17 @@ select#midiInChannel {
   display: inline-block;
   padding: 3px 6px 0 6px;
   border-radius: 5px;
-  background-color: rgba(0, 0, 0, 0.125);
+  background-color: var(--darker-1);
   cursor: pointer;
 }
 
 .check.selected {
-  background-color: rgba(255, 255, 255, 0.4);
+  background-color: var(--brighter-3);
   color: #000;
   border-color: transparent;
 }
 .check.selected .material-icons {
-  color: rgba(0, 0, 0, 0.6);
+  color: var(--darker-3);
 }
 
 .sel,
@@ -444,7 +466,7 @@ select#midiInChannel {
   bottom: 0;
   left: 0;
   width: 50%;
-  background-color: rgba(255, 255, 255, 0.15);
+  background-color: var(--brighter-1);
 }
 
 .percent .pcnt {
@@ -460,7 +482,7 @@ select#midiInChannel {
   display: inline-block;
   width: 14px;
   height: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid var(--brighter-2);
   border-radius: 50%;
   cursor: pointer;
   vertical-align: middle;
@@ -469,19 +491,19 @@ select#midiInChannel {
 }
 
 .circle.selected {
-  background-color: rgba(255, 255, 255, 0.25);
+  background-color: var(--brighter-2);
 }
 
 .zone select,
 .zone input {
   border: none;
-  background-color: rgba(0, 0, 0, 0.125);
+  background-color: var(--darker-1);
   border-radius: 4px;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--brighter-4);
   font-size: 12px;
   padding: 0;
   text-align: center;
-  box-shadow: inset -1px -1px 2px rgba(0, 0, 0, 0.15);
+  box-shadow: inset -1px -1px 2px var(--darker-1);
 }
 
 .zone input {
@@ -489,7 +511,7 @@ select#midiInChannel {
 }
 
 .zone select.outport {
-  background-color: rgba(255, 255, 255, 0.4);
+  background-color: var(--brighter-2);
   color: #000;
   vertical-align: top;
   width: 150px;
@@ -502,15 +524,15 @@ select#midiInChannel {
 
 .valuestep {
   display: inline-block;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--brighter-4);
   padding: 4px;
   cursor: pointer;
 }
 
 .submit {
   display: inline-block;
-  color: rgba(255, 255, 255, 0.7);
-  background-color: rgba(0, 0, 0, 0.2);
+  color: var(--brighter-4);
+  background-color: var(--darker-1);
   border-radius: 4px;
   padding: 2px 4px;
   cursor: pointer;
@@ -528,7 +550,7 @@ select#midiInChannel {
   cursor: pointer;
   width: 100%;
   margin: 6px auto;
-  border: 2px solid rgba(255, 255, 255, 0.08);
+  border: 2px solid var(--brighter-1);
   overflow: hidden;
   border-radius: 6px;
 }
@@ -559,7 +581,7 @@ select#midiInChannel {
 }
 
 .marker.hover {
-  background-color: rgba(255, 255, 255, 0.75);
+  background-color: var(--brighter-4);
   color: #000;
 }
 
@@ -567,14 +589,14 @@ select#midiInChannel {
   position: absolute;
   top: 0;
   height: 28px;
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: var(--brighter-1);
 }
 .current {
   display: none;
   position: absolute;
   top: 6px;
   height: 14px;
-  background-color: rgba(255, 255, 255, 0.15);
+  background-color: var(--brighter-1);
 }
 .range:hover .current {
   display: block;
@@ -583,8 +605,8 @@ select#midiInChannel {
 .oct {
   position: absolute;
   top: 0;
-  background-color: rgba(255, 255, 255, 0.07);
-  color: rgba(255, 255, 255, 0.2);
+  background-color: var(--brighter-1);
+  color: var(--brighter-2);
   width: 1px;
   bottom: 0;
   font-size: 8px;
@@ -598,7 +620,7 @@ select#midiInChannel {
 }
 
 .toggle.selected {
-  background-color: rgba(196, 0, 0, 0.4);
+  background-color: var(--red-highlight);
 }
 
 #startClockButton::before {
@@ -610,7 +632,6 @@ select#midiInChannel {
 
 .pattern {
   position: relative;
-  /* border: 1px solid rgba(0, 0, 0, 0.3); */
   border-radius: 4px;
   display: inline-block;
   height: 18px;
@@ -622,7 +643,7 @@ select#midiInChannel {
   position: absolute;
   cursor: default;
   display: none;
-  width: 150px;
+  width: 170px;
   padding: 8px;
   background-color: var(--bg-color);
   box-shadow: 0 0 8px #000;
@@ -635,7 +656,7 @@ select#midiInChannel {
 }
 
 .val.prgm {
-  background-color: rgba(0, 0, 0, 0.125);
+  background-color: var(--darker-1);
   border-radius: 4px;
   vertical-align: top;
 }
