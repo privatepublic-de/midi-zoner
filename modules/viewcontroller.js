@@ -45,6 +45,31 @@ function initController({ saveData, data, midi }) {
   elAllHoldOff.addEventListener('click', allHoldOff);
 }
 
+function findTouchedNote(
+  /** @type {MouseEvent} */ ev,
+  /** @type {HTMLElement} */ e,
+  /** @type {Zone} */ zone
+) {
+  let num = parseInt(((ev.clientX - e.offsetLeft) / e.offsetWidth) * 128);
+  const isLow = ev.clientY - e.offsetTop < e.offsetHeight / 2;
+  if (ev.shiftKey) {
+    // constrain to octaves
+    num = Math.round(num / 12) * 12;
+    if (!isLow) num = num - 1;
+  }
+  if (num > 127) num = 127;
+  if (isLow) {
+    num = num < zone.high ? num : zone.high;
+  } else {
+    num = num > zone.low ? num : zone.low;
+  }
+  return {
+    isLow: isLow,
+    low: isLow ? num : null,
+    high: isLow ? null : num
+  };
+}
+
 function actionHandler(ev) {
   const e = ev.currentTarget;
   const action = e.getAttribute('data-action') || e.getAttribute('data-change');
@@ -54,13 +79,11 @@ function actionHandler(ev) {
   const zone = zones.list[zoneindex];
   switch (params[1]) {
     case 'range':
-      let num = parseInt(((ev.clientX - e.offsetLeft) / e.offsetWidth) * 128);
-      if (num > 127) num = 127;
-      const isLow = ev.clientY - e.offsetTop < e.offsetHeight / 2;
-      if (isLow) {
-        zone.low = num < zone.high ? num : zone.high;
+      const result = findTouchedNote(ev, e, zone);
+      if (result.isLow) {
+        zone.low = result.low;
       } else {
-        zone.high = num > zone.low ? num : zone.low;
+        zone.high = result.high;
       }
       renderMarkersForZone(zoneindex);
       break;
@@ -206,16 +229,8 @@ function hoverHandler(ev) {
   const zone = zones.list[zoneindex];
   switch (params[1]) {
     case 'range':
-      let num = parseInt(((ev.clientX - e.offsetLeft) / e.offsetWidth) * 128);
-      if (num > 127) num = 127;
-      const isLow = ev.clientY - e.offsetTop < e.offsetHeight / 2;
-      let tempLow, tempHigh;
-      if (isLow) {
-        tempLow = num < zone.high ? num : zone.high;
-      } else {
-        tempHigh = num > zone.low ? num : zone.low;
-      }
-      renderMarkersForZone(zoneindex, tempLow, tempHigh);
+      const result = findTouchedNote(ev, e, zone);
+      renderMarkersForZone(zoneindex, result.low, result.high);
       break;
   }
   updateValuesForZone(zoneindex);
