@@ -111,6 +111,7 @@ document.addEventListener('DOMContentLoaded', function () {
             zone.randomizeColor();
             view.renderZones();
           });
+          saveZones();
         });
         DOM.element('#midiInChannel').selectedIndex = zones.inChannel;
         DOM.element('#midiInChannel').addEventListener('change', (e) => {
