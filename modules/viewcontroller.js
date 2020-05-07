@@ -19,8 +19,6 @@ const NOTENAMES = [
   'B'
 ];
 
-const catchedMarker = [0, 0, 0, 0];
-
 let zones = {};
 /** @type {MIDI} */
 let midiController;
@@ -58,13 +56,13 @@ function actionHandler(ev) {
     case 'range':
       let num = parseInt(((ev.clientX - e.offsetLeft) / e.offsetWidth) * 128);
       if (num > 127) num = 127;
-      if (catchedMarker[zoneindex] < 0) {
-        zone.low = num;
+      const isLow = ev.clientY - e.offsetTop < e.offsetHeight / 2;
+      if (isLow) {
+        zone.low = num < zone.high ? num : zone.high;
       } else {
-        zone.high = num;
+        zone.high = num > zone.low ? num : zone.low;
       }
       renderMarkersForZone(zoneindex);
-      catchedMarker[zoneindex] = 0;
       break;
     case 'ch':
       let number = parseInt(params[2]);
@@ -204,26 +202,18 @@ function hoverHandler(ev) {
   const action = e.getAttribute('data-hover');
   const params = action.split(':');
   const zoneindex = params[0];
+  /** @type {Zone} */
   const zone = zones.list[zoneindex];
   switch (params[1]) {
     case 'range':
       let num = parseInt(((ev.clientX - e.offsetLeft) / e.offsetWidth) * 128);
       if (num > 127) num = 127;
-      const middle = zone.low + (zone.high - zone.low) / 2;
-      if (catchedMarker[zoneindex] === 0) {
-        catchedMarker[zoneindex] = num < middle ? -1 : 1;
-      }
-      if (catchedMarker[zoneindex] < 0 && num > zone.high) {
-        catchedMarker[zoneindex] = 1;
-      }
-      if (catchedMarker[zoneindex] > 0 && num < zone.low) {
-        catchedMarker[zoneindex] = -1;
-      }
+      const isLow = ev.clientY - e.offsetTop < e.offsetHeight / 2;
       let tempLow, tempHigh;
-      if (catchedMarker[zoneindex] < 0) {
-        tempLow = num;
+      if (isLow) {
+        tempLow = num < zone.high ? num : zone.high;
       } else {
-        tempHigh = num;
+        tempHigh = num > zone.low ? num : zone.low;
       }
       renderMarkersForZone(zoneindex, tempLow, tempHigh);
       break;
@@ -236,7 +226,6 @@ function hoverOutHandler(ev) {
   const action = e.getAttribute('data-hover');
   const params = action.split(':');
   const zoneindex = params[0];
-  catchedMarker[zoneindex] = 0;
   renderMarkersForZone(zoneindex);
 }
 
@@ -250,7 +239,6 @@ function dblClickHandler(ev) {
     case 'range':
       zone.high = 127;
       zone.low = 0;
-      catchedMarker[zoneindex] = 0;
       renderMarkersForZone(zoneindex);
       break;
     case 'arp_pattern':
