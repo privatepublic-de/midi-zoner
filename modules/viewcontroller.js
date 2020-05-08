@@ -460,6 +460,21 @@ function updateValuesForZone(index) {
     DOM.removeClass(`#zone${index}`, 'soloed-out');
   }
   const rgbZone = DOM.hslToRgb(zone.hue, zone.saturation, 0.3);
+  const rgbZoneComplement = DOM.hslToRgb(
+    (zone.hue + 0.125) % 1.0,
+    zone.saturation,
+    0.6
+  );
+  const rgbZoneComplementStyle = `rgba(${rgbZoneComplement[0]},${rgbZoneComplement[1]},${rgbZoneComplement[2]},1)`;
+  const rgbZoneComplementDarkStyle = `rgba(${rgbZoneComplement[0]},${rgbZoneComplement[1]},${rgbZoneComplement[2]},.6)`;
+  DOM.element(`#zone${index}`).style.setProperty(
+    '--bg-color-complement',
+    rgbZoneComplementStyle
+  );
+  DOM.element(`#zone${index}`).style.setProperty(
+    '--bg-color-complement-dark',
+    rgbZoneComplementDarkStyle
+  );
   const colorInput = DOM.element(`#zone${index} input[type="color"]`);
   colorInput.value = DOM.rgbToHex(rgbZone);
   if (
