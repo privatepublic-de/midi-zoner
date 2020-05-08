@@ -1,6 +1,6 @@
 {
   "name": "midi-zoner",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Play multiple MIDI devices, channels and note ranges from one MIDI input source. Includes an arpeggiator with euclidian patterns.",
   "main": "main.js",
   "scripts": {
