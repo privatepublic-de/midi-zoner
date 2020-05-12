@@ -48,13 +48,30 @@ function existingScenesHtml() {
   if (savedList.length > 0) {
     existingHtml = '<ul>';
     savedList.forEach((k, index) => {
-      existingHtml += `<li data-index="${index}">${k}</li>`;
+      existingHtml += `<li data-index="${index}"><i class="material-icons">delete</i>${k}</li>`;
     });
     existingHtml += '</ul>';
   } else {
     existingHtml = '<p><i>(nothing saved yet)</i></p>';
   }
   return existingHtml;
+}
+
+function attachDeleteHandler(container, reloadFunction) {
+  DOM.find(container, 'li i').forEach((e) => {
+    e.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const index = new Number(e.parentElement.getAttribute('data-index'));
+      const key = savedScenesKeys()[index];
+      if (confirm('Delete scene "' + key + '"?')) {
+        const scenesJ = localStorage.getItem('scenes');
+        const scenes = scenesJ ? JSON.parse(scenesJ) : {};
+        delete scenes[key];
+        localStorage.setItem('scenes', JSON.stringify(scenes));
+        reloadFunction();
+      }
+    });
+  });
 }
 
 function openLoadDialog(midi) {
@@ -78,6 +95,9 @@ function openLoadDialog(midi) {
       saveZones();
     }
     closeLoadSaveDialog();
+  });
+  attachDeleteHandler(container, () => {
+    openLoadDialog(midi);
   });
   DOM.show(container);
 }
@@ -113,6 +133,7 @@ function openSaveDialog() {
     saveSceneWithKey(savedScenesKeys()[index]);
     closeLoadSaveDialog();
   });
+  attachDeleteHandler(container, openSaveDialog);
   DOM.show(container);
   nameInput.value = '';
   nameInput.focus();

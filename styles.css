@@ -676,6 +676,7 @@ select#midiInChannel {
   z-index: 2;
   font-size: 12px;
   display: none;
+  min-width: 200px;
 }
 
 ul {
@@ -694,6 +695,10 @@ li {
 
 #loadsave li {
   cursor: pointer;
+}
+
+#loadsave li i {
+  float: right;
 }
 
 #loadsave li:hover {
