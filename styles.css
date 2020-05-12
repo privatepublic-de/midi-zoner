@@ -192,6 +192,7 @@ select#midiInChannel {
 }
 #midisettings .right {
   right: 20px;
+  text-align: right;
 }
 
 #displayBPM {
@@ -664,4 +665,37 @@ select#midiInChannel {
   background-color: var(--darker-1);
   border-radius: 4px;
   vertical-align: top;
+}
+
+#loadsave {
+  position: fixed;
+  background: #444;
+  padding: 10px;
+  top: 30px;
+  right: 10px;
+  z-index: 2;
+  font-size: 12px;
+  display: none;
+}
+
+ul {
+  list-style-type: none;
+  margin-bottom: 1em;
+  padding: 0;
+}
+
+li {
+  display: block;
+  margin: 0.5em 0;
+  padding: 4px;
+  background: #555;
+  border-radius: 5px;
+}
+
+#loadsave li {
+  cursor: pointer;
+}
+
+#loadsave li:hover {
+  outline: 1px solid;
 }

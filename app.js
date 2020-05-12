@@ -15,17 +15,111 @@ function saveZones() {
 }
 
 function loadZones(midi) {
-  let stored = localStorage.getItem('zones');
-  if (stored) {
-    stored = JSON.parse(stored);
-    Object.assign(zones, stored);
+  const zonesJson = localStorage.getItem('zones');
+  if (zonesJson) {
+    applyStoredZones(JSON.parse(zonesJson), midi);
+  }
+}
+
+function applyStoredZones(storedZones, midi) {
+  if (storedZones) {
+    Object.assign(zones, storedZones);
     zones.list = [];
-    for (let i = 0; i < stored.list.length; i++) {
+    for (let i = 0; i < storedZones.list.length; i++) {
       const zone = new Zone(midi);
-      Object.assign(zone, stored.list[i]);
+      Object.assign(zone, storedZones.list[i]);
       zones.list.push(zone);
     }
   }
+}
+
+function savedScenesKeys() {
+  const scenesj = localStorage.getItem('scenes');
+  if (scenesj) {
+    return Object.keys(JSON.parse(scenesj)).sort();
+  } else {
+    return [];
+  }
+}
+
+function existingScenesHtml() {
+  const savedList = savedScenesKeys();
+  let existingHtml;
+  if (savedList.length > 0) {
+    existingHtml = '<ul>';
+    savedList.forEach((k, index) => {
+      existingHtml += `<li data-index="${index}">${k}</li>`;
+    });
+    existingHtml += '</ul>';
+  } else {
+    existingHtml = '<p><i>(nothing saved yet)</i></p>';
+  }
+  return existingHtml;
+}
+
+function openLoadDialog(midi) {
+  const container = DOM.element('#loadsave');
+  DOM.empty(container);
+  DOM.addHTML(
+    container,
+    'beforeend',
+    `<p>Load scene</p>
+    ${existingScenesHtml()}
+    <p><button onclick="closeLoadSaveDialog()">Cancel</button></p>`
+  );
+  DOM.on('#loadsave li', 'click', (ev) => {
+    const index = new Number(ev.target.getAttribute('data-index'));
+    const scenesJ = localStorage.getItem('scenes');
+    const scenes = scenesJ ? JSON.parse(scenesJ) : {};
+    const scene = scenes[savedScenesKeys()[index]];
+    if (scene) {
+      applyStoredZones(JSON.parse(scene), midi);
+      view.renderZones();
+      saveZones();
+    }
+    closeLoadSaveDialog();
+  });
+  DOM.show(container);
+}
+
+function openSaveDialog() {
+  const container = DOM.element('#loadsave');
+  DOM.empty(container);
+  DOM.addHTML(
+    container,
+    'beforeend',
+    `<p>Save scene</p>
+    <p>New: <input type="text" placeholder="Enter name" id="newSceneName"/> 
+    <button id="saveNew">Save</button></p>
+    <p><br/>Overwrite existing scene:</p>
+    ${existingScenesHtml()}
+    <p><button onclick="closeLoadSaveDialog()">Cancel</button></p>`
+  );
+  function saveSceneWithKey(key) {
+    const scenesJ = localStorage.getItem('scenes');
+    const scenes = scenesJ ? JSON.parse(scenesJ) : {};
+    scenes[key] = JSON.stringify(zones);
+    localStorage.setItem('scenes', JSON.stringify(scenes));
+  }
+  const nameInput = DOM.element('#newSceneName');
+  DOM.element('#saveNew').addEventListener('click', () => {
+    if (nameInput.value && nameInput.value.trim() != '') {
+      saveSceneWithKey(nameInput.value.trim());
+      closeLoadSaveDialog();
+    }
+  });
+  DOM.on('#loadsave li', 'click', (ev) => {
+    const index = new Number(ev.target.getAttribute('data-index'));
+    saveSceneWithKey(savedScenesKeys()[index]);
+    closeLoadSaveDialog();
+  });
+  DOM.show(container);
+  nameInput.value = '';
+  nameInput.focus();
+}
+
+function closeLoadSaveDialog() {
+  DOM.hide('#loadsave');
 }
 
 function midiEventHandler(event) {
@@ -183,6 +277,10 @@ document.addEventListener('DOMContentLoaded', function () {
           if (ev.key == ' ') {
             startClockButton.click();
           }
+        });
+        DOM.element('#save').addEventListener('click', openSaveDialog);
+        DOM.element('#load').addEventListener('click', () => {
+          openLoadDialog(midi);
         });
       } else {
         console.log('app:', message);
