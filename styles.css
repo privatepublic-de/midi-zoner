@@ -707,6 +707,8 @@ li {
 
 #loadsave li i {
   float: right;
+  border-left: 1px solid #ccc;
+  padding-left: 3px;
 }
 
 #loadsave li:hover {
