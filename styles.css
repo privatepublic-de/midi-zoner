@@ -695,6 +695,7 @@ li {
 
 #loadsave li {
   cursor: pointer;
+  border: 1px solid transparent;
 }
 
 #loadsave li i {
@@ -702,5 +703,5 @@ li {
 }
 
 #loadsave li:hover {
-  outline: 1px solid;
+  border-color: #999;
 }
