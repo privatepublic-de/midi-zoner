@@ -61,6 +61,10 @@ body {
   user-select: none;
 }
 
+h2 {
+  font-weight: normal;
+}
+
 p {
   margin: 0 0 0.5em 0;
 }
@@ -164,11 +168,13 @@ select#midiInChannel {
   color: #777;
   cursor: pointer;
   border-radius: 4px;
+  border: none;
   min-width: 26px;
   text-align: center;
   height: 16px;
   vertical-align: top;
   margin: 0 4px;
+  box-shadow: 0 0 2px #000;
 }
 
 .lightButton.active {
@@ -670,13 +676,14 @@ select#midiInChannel {
 #loadsave {
   position: fixed;
   background: #444;
-  padding: 10px;
+  padding: 0 10px 10px 10px;
   top: 30px;
-  right: 10px;
+  left: 20px;
   z-index: 2;
   font-size: 12px;
   display: none;
   min-width: 200px;
+  box-shadow: 0 0 10px #000;
 }
 
 ul {
@@ -704,4 +711,12 @@ li {
 
 #loadsave li:hover {
   border-color: #999;
+}
+
+#loadsave input {
+  border: 1px solid var(--darker-3);
+  border-radius: 4px;
+  background-color: var(--darker-2);
+  color: var(--brighter-3);
+  padding: 0;
 }

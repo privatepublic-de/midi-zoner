@@ -74,15 +74,17 @@ function attachDeleteHandler(container, reloadFunction) {
   });
 }
 
+let isLoadSaveDialogOpenend = false;
+
 function openLoadDialog(midi) {
   const container = DOM.element('#loadsave');
   DOM.empty(container);
   DOM.addHTML(
     container,
     'beforeend',
-    `<p>Load scene</p>
+    `<h2>Load scene</h2>
     ${existingScenesHtml()}
-    <p><button onclick="closeLoadSaveDialog()">Cancel</button></p>`
+    <p><button onclick="closeLoadSaveDialog()" class="lightButton">Cancel</button></p>`
   );
   DOM.on('#loadsave li', 'click', (ev) => {
     const index = new Number(ev.target.getAttribute('data-index'));
@@ -100,6 +102,7 @@ function openLoadDialog(midi) {
     openLoadDialog(midi);
   });
   DOM.show(container);
+  isLoadSaveDialogOpenend = true;
 }
 
 function openSaveDialog() {
@@ -108,12 +111,12 @@ function openSaveDialog() {
   DOM.addHTML(
     container,
     'beforeend',
-    `<p>Save scene</p>
-    <p>New: <input type="text" placeholder="Enter name" id="newSceneName"/> 
-    <button id="saveNew">Save</button></p>
-    <p><br/>Overwrite existing scene:</p>
+    `<h2>Save scene</h2>
+    <p><input type="text" placeholder="Enter name" id="newSceneName"/> 
+    <button id="saveNew" class="lightButton">Save</button></p>
+    <h2>Overwrite existing scene</h2>
     ${existingScenesHtml()}
-    <p><button onclick="closeLoadSaveDialog()">Cancel</button></p>`
+    <p><button onclick="closeLoadSaveDialog()" class="lightButton">Cancel</button></p>`
   );
   function saveSceneWithKey(key) {
     const scenesJ = localStorage.getItem('scenes');
@@ -137,10 +140,12 @@ function openSaveDialog() {
   DOM.show(container);
   nameInput.value = '';
   nameInput.focus();
+  isLoadSaveDialogOpenend = true;
 }
 
 function closeLoadSaveDialog() {
   DOM.hide('#loadsave');
+  isLoadSaveDialogOpenend = false;
 }
 
 function midiEventHandler(event) {
@@ -295,14 +300,22 @@ document.addEventListener('DOMContentLoaded', function () {
           }
         });
         document.body.addEventListener('keyup', (ev) => {
-          if (ev.key == ' ') {
+          if (!isLoadSaveDialogOpenend && ev.key == ' ') {
             startClockButton.click();
           }
         });
-        DOM.element('#save').addEventListener('click', openSaveDialog);
-        DOM.element('#load').addEventListener('click', () => {
+        DOM.element('#save').addEventListener('click', (e) => {
+          e.stopPropagation();
+          openSaveDialog();
+        });
+        DOM.element('#load').addEventListener('click', (e) => {
+          e.stopPropagation();
           openLoadDialog(midi);
         });
+        DOM.element('#loadsave').addEventListener('click', (e) =>
+          e.stopPropagation()
+        );
+        document.body.addEventListener('click', closeLoadSaveDialog);
       } else {
         console.log('app:', message);
       }
