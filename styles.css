@@ -263,6 +263,7 @@ select#midiInChannel {
 }
 
 .zone {
+  position: relative;
   color: var(--brighter-4);
   font-size: 12px;
   background-color: #444;
@@ -730,4 +731,19 @@ li {
   background-color: var(--darker-2);
   color: var(--brighter-3);
   padding: 0;
+}
+
+.showcc {
+  position: absolute;
+  right: 0;
+  bottom: 8px;
+}
+.ccpots {
+  font-size: 10px;
+}
+.ccpot {
+  display: inline-block;
+  width: 56px;
+  height: 56px;
+  border: 1px solid var(--brighter-3);
 }

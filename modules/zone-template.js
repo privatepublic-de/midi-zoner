@@ -33,6 +33,9 @@ module.exports = {
             <span class="marker high">G9</span>
             <canvas id="canvas${index}" width="100" height="16"></canvas>
         </div>
+        <div class="showcc"><div class="check" data-action="${index}:arp_enabled"
+      >CCs <span class="material-icons sel">expand_more</span><span class="material-icons unsel">chevron_right</span>
+      </div></div>
         <div class="settings">
             <div class="check arp_enabled" data-action="${index}:arp_enabled"
               title="Enable arpeggiator"
@@ -155,6 +158,17 @@ module.exports = {
               </div>
               <i class="material-icons">settings</i>
             </div>
+        </div>
+        <div class"ccpots">
+          <div class="ccpot"><label>Volume</label> <span>#7</span></div>
+          <div class="ccpot"></div>
+          <div class="ccpot"></div>
+          <div class="ccpot"></div>
+          <div class="ccpot"></div>
+          <div class="ccpot"></div>
+          <div class="ccpot"></div>
+          <div class="ccpot"></div>
+          <div class="ccpotadd"><span class="material-icons">add</span></div>
         </div>
       </section>`;
     return html;
