@@ -160,7 +160,15 @@ module.exports = {
             </div>
         </div>
         <div class"ccpots">
-          <div class="ccpot"><label>Volume</label> <span>#7</span></div>
+          <div class="ccpot"><svg width="100%" height="100%" viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="28" cy="40" r="22" stroke="var(--brighter-2)" fill="transparent" />
+          <path 
+            d="M 0 0 A 22 22 0 0 0 112.5 85.05"
+            stroke="yellow"
+            stroke-width="2"
+            fill="none"
+          />
+          </svg><label>Volume</label> <span>#7</span></div>
           <div class="ccpot"></div>
           <div class="ccpot"></div>
           <div class="ccpot"></div>

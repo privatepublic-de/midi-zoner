@@ -743,7 +743,15 @@ li {
 }
 .ccpot {
   display: inline-block;
+  position: relative;
   width: 56px;
   height: 56px;
-  border: 1px solid var(--brighter-3);
+  border-bottom: 1px solid var(--brighter-3);
+  vertical-align: top;
+}
+
+.ccpot svg {
+  position: absolute;
+  top: 0;
+  left: 0;
 }
