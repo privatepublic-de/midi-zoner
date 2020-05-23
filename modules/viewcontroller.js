@@ -532,7 +532,50 @@ function updateValuesForZone(index) {
   });
   DOM.element(`#euchits${index}`).value = zone.euclid_hits;
   DOM.element(`#euclen${index}`).value = zone.euclid_length;
+  updateControllerValues(zone, index);
   updateGeneralButtons();
+}
+
+function polarToCartesian(centerX, centerY, radius, degrees) {
+  const rad = ((degrees - 90) * Math.PI) / 180.0;
+  return {
+    x: centerX + radius * Math.cos(rad),
+    y: centerY + radius * Math.sin(rad)
+  };
+}
+
+function describeArc(x, y, radius, startAngle, endAngle) {
+  const start = polarToCartesian(x, y, radius, endAngle);
+  const end = polarToCartesian(x, y, radius, startAngle);
+  const largeArcFlag = endAngle - startAngle <= 180 ? '0' : '1';
+  return [
+    'M',
+    start.x,
+    start.y,
+    'A',
+    radius,
+    radius,
+    0,
+    largeArcFlag,
+    0,
+    end.x,
+    end.y
+  ].join(' ');
+}
+
+function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
+  zone.cc_controllers.forEach((c, ix) => {
+    const pathRange = DOM.element(`#pot_range_${zoneindex}_${ix}`);
+    const pathValue = DOM.element(`#pot_value_${zoneindex}_${ix}`);
+    const rangePath = describeArc(28, 36, 18, -135, 135);
+    const valDegrees = 270 * (c.val / 127);
+    const valuePath = describeArc(28, 36, 18, -135, -135 + valDegrees);
+    pathRange.setAttribute('d', rangePath);
+    pathValue.setAttribute('d', valuePath);
+    DOM.element(`#pot_${zoneindex}_${ix} .cc`).value = c.number;
+    DOM.element(`#pot_${zoneindex}_${ix} .label`).value = c.label;
+    DOM.element(`#pot_${zoneindex}_${ix} .value`).innerHTML = c.val;
+  });
 }
 
 let cachedOutputPorts;

@@ -51,6 +51,11 @@ module.exports = class Zone {
   mod = true;
   sustain = true;
   cc = true;
+  cc_controllers = [
+    { number: 7, label: 'Volume', val: 100 },
+    { number: 12, label: 'Para1', val: 12 },
+    { number: 120, label: 'Para2', val: 64 }
+  ];
   at2mod = false;
   pitchbend = true;
   euclid_hits = 5;
