@@ -371,6 +371,70 @@ function appendZone(zone, index) {
       resetEuclidHideTimeout();
     });
   });
+  const suckEvent = (e) => {
+    e.stopPropagation();
+  };
+  DOM.on(`#zone${index} .ccpots input`, 'click', suckEvent);
+  DOM.on(`#zone${index} .ccpots input`, 'mousedown', suckEvent);
+  DOM.all(`#zone${index} .ccpots .ccpot`).forEach((pot, ix) => {
+    let isDragging = false;
+    let cx, cy;
+    const updateValue = function (v) {
+      const oldVal = zone.cc_controllers[ix].val;
+      if (v != oldVal) {
+        zone.cc_controllers[ix].val = v;
+        updateControllerValues(zone, index);
+      }
+    };
+    pot.addEventListener('mousedown', (e) => {
+      let el = pot;
+      cx = 0;
+      cy = 0;
+      do {
+        cx += el.offsetLeft;
+        cy += el.offsetTop;
+        el = el.offsetParent;
+      } while (el);
+      cx += 28;
+      cy += 46;
+      isDragging = true;
+      updateValue(valueForCoordinates(e.pageX, e.pageY, cx, cy));
+    });
+    window.addEventListener('mousemove', (e) => {
+      if (isDragging) {
+        updateValue(valueForCoordinates(e.pageX, e.pageY, cx, cy));
+      }
+    });
+    window.addEventListener('mouseup', (e) => {
+      if (isDragging) {
+        updateValue(valueForCoordinates(e.pageX, e.pageY, cx, cy));
+        isDragging = false;
+      }
+    });
+  });
+}
+
+function valueForCoordinates(x, y, cx, cy) {
+  let y0 = y - cy;
+  let x0 = x - cx;
+  let ang = parseInt(Math.atan2(y0, x0) * (180 / Math.PI));
+  if (ang < 0 && ang >= -90) {
+    // TODO clean up matching areas
+    ang += 225;
+  } else if (ang >= 0 && ang < 45) {
+    ang += 225;
+  } else if (ang < -90) {
+    ang += 225;
+  } else if (ang > 135) {
+    ang -= 135;
+  } else {
+    if (ang < 90) {
+      ang = 270;
+    } else {
+      ang = 0;
+    }
+  }
+  return parseInt((ang / 270.0) * 127);
 }
 
 /**
