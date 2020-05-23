@@ -227,6 +227,15 @@ function actionHandler(ev) {
     case 'send_all_cc':
       zone.sendAllCC();
       break;
+    case 'cc_label':
+      zone.cc_controllers[params[2]].label = e.value;
+      break;
+    case 'cc_number':
+      e.value = e.value.replace(/[^0-9]/, '');
+      if (e.value != '') {
+        zone.cc_controllers[params[2]].number = parseInt(e.value);
+      }
+      break;
     case 'cc_remove':
       zone.cc_controllers.splice(params[2], 1);
       renderControllersForZone(zone, zoneindex);
@@ -498,6 +507,10 @@ function renderControllersForZone(zone, index) {
     'mousedown',
     suckEvent
   );
+  DOM.on(`#zone${index} .ccpots input`, 'keyup', suckEvent);
+  DOM.on(`#zone${index} .ccpots input`, 'focus', (e) => {
+    e.select();
+  });
 
   DOM.all(`#zone${index} .ccpots .ccpot`).forEach((pot, ix) => {
     let isDragging = false;
@@ -524,6 +537,7 @@ function renderControllersForZone(zone, index) {
       isDragging = true;
       updateValue(valueForCoordinates(e.pageX, e.pageY, cx, cy));
     });
+    // TODO generalize window events!
     window.addEventListener('mousemove', (e) => {
       if (isDragging) {
         updateValue(valueForCoordinates(e.pageX, e.pageY, cx, cy));
@@ -539,6 +553,9 @@ function renderControllersForZone(zone, index) {
   });
   DOM.all(`#zone${index} .ccpot *[data-action]`).forEach((e) => {
     e.addEventListener('click', actionHandler);
+  });
+  DOM.all(`#zone${index} .ccpot *[data-change]`).forEach((e) => {
+    e.addEventListener('input', actionHandler);
   });
   updateValuesForZone(index);
 }
@@ -796,5 +813,6 @@ module.exports = {
   renderZones,
   renderLastZone,
   renderMarkersForAllZones,
-  updateOutputPortsForAllZone
+  updateOutputPortsForAllZone,
+  updateControllerValues
 };

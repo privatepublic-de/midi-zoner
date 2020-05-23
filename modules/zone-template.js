@@ -26,8 +26,8 @@ module.exports = {
                 fill="none"
               />
             </svg>
-            <input class="label" type="text" value="${cc.label}"/>
-            <input class="cc" type="text" value="${cc.number}"/>
+            <input class="label" type="text" value="${cc.label}" data-change="${zoneindex}:cc_label:${ix}"/>
+            <input class="cc" type="text" value="${cc.number}" data-change="${zoneindex}:cc_number:${ix}"/>
             <span class="value">127</span>
             <div class="tools">
               <span class="material-icons" data-action="${zoneindex}:cc_left:${ix}">arrow_back</span>

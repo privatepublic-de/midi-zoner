@@ -209,6 +209,7 @@ module.exports = class Zone {
   }
 
   handleMidi(message, data) {
+    let resultMessage = null;
     if (this.enabled && (Zone.solocount === 0 || this.solo)) {
       switch (message) {
         case MIDI.MESSAGE.NOTE_OFF: // note off
@@ -260,6 +261,12 @@ module.exports = class Zone {
           }
           break;
         case MIDI.MESSAGE.CONTROLLER: // cc
+          for (let i = 0; i < this.cc_controllers.length; i++) {
+            if (this.cc_controllers[i].number == data[1]) {
+              this.cc_controllers[i].val = data[2];
+              resultMessage = 'updateCC';
+            }
+          }
           if (data[1] == 0x40 && !this.sustain) {
             // no sustain pedal
             return;
@@ -306,6 +313,7 @@ module.exports = class Zone {
         }
       }
     }
+    return resultMessage;
   }
 
   notesChanged() {

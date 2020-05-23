@@ -806,14 +806,20 @@ li {
   display: none;
   position: absolute;
   text-align: center;
-  padding-top: 2px;
+  padding: 2px;
   top: 100%;
   width: 100%;
   font-size: 12px;
+  z-index: 1;
+  color: var(--brighter-2);
 }
 
 .ccpot:hover .tools {
   display: block;
+}
+
+.ccpot .tools span:hover {
+  color: var(--brighter-4);
 }
 
 .ccpots *[data-action] {

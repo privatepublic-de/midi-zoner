@@ -155,8 +155,13 @@ function midiEventHandler(event) {
     msgtype = MIDI.MESSAGE.NOTE_OFF;
   }
   if (channel === zones.inChannel) {
-    zones.list.forEach((zone) => {
-      zone.handleMidi(msgtype, event.data);
+    zones.list.forEach((zone, index) => {
+      const resultMessage = zone.handleMidi(msgtype, event.data);
+      if (resultMessage == 'updateCC') {
+        requestAnimationFrame(() => {
+          view.updateControllerValues(zone, index);
+        });
+      }
     });
   }
 }
