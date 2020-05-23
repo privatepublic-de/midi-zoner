@@ -745,6 +745,15 @@ li {
   display: block;
 }
 
+.showccs {
+  padding: 0 4px;
+}
+
+.show-cc .showccs {
+  box-shadow: 1px 1px 2px var(--darker-3) inset;
+  color: var(--brighter-4);
+}
+
 .ccpot {
   display: inline-block;
   position: relative;
