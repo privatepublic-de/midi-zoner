@@ -216,6 +216,41 @@ function actionHandler(ev) {
       zone.arp_pattern.unshift(zone.arp_pattern.pop());
       zone.renderPattern();
       break;
+    case 'toggle_show_cc':
+      zone.show_cc = !zone.show_cc;
+      updateValuesForZone(zoneindex);
+      break;
+    case 'add_cc_controller':
+      zone.cc_controllers.push({ number: 1, label: 'Controller', val: 0 });
+      renderControllersForZone(zone, zoneindex);
+      break;
+    case 'send_all_cc':
+      zone.sendAllCC();
+      break;
+    case 'cc_remove':
+      zone.cc_controllers.splice(params[2], 1);
+      renderControllersForZone(zone, zoneindex);
+      break;
+    case 'cc_left':
+      if (params[2] > 0) {
+        zone.cc_controllers.splice(
+          params[2] - 1,
+          0,
+          zone.cc_controllers.splice(params[2], 1)[0]
+        );
+        renderControllersForZone(zone, zoneindex);
+      }
+      break;
+    case 'cc_right':
+      if (params[2] < zone.cc_controllers.length - 1) {
+        zone.cc_controllers.splice(
+          params[2] + 1,
+          0,
+          zone.cc_controllers.splice(params[2], 1)[0]
+        );
+        renderControllersForZone(zone, zoneindex);
+      }
+      break;
   }
   triggerSave();
 }
@@ -286,7 +321,7 @@ function renderLastZone() {
   appendZone(zone, index);
 }
 
-function appendZone(zone, index) {
+function appendZone(/** @type {Zone} */ zone, index) {
   DOM.addHTML('#zones', 'beforeend', zoneTemplate.getHTML(zone, index));
   zone.canvasElement = DOM.element(`#canvas${index}`);
   zone.patternCanvas = DOM.element(`#canvasPattern${index}`);
@@ -295,6 +330,7 @@ function appendZone(zone, index) {
   zone.dom.join = DOM.element(`#zone${index} .join`);
   zone.dom.current = DOM.element(`#zone${index} .current`);
   renderMarkersForZone(index);
+  renderControllersForZone(zone, index);
   updateValuesForZone(index);
   zone.renderPattern();
   const dragHandler = DOM.element(`#zone${index} .dragzone`);
@@ -371,47 +407,6 @@ function appendZone(zone, index) {
       resetEuclidHideTimeout();
     });
   });
-  const suckEvent = (e) => {
-    e.stopPropagation();
-  };
-  DOM.on(`#zone${index} .ccpots input`, 'click', suckEvent);
-  DOM.on(`#zone${index} .ccpots input`, 'mousedown', suckEvent);
-  DOM.all(`#zone${index} .ccpots .ccpot`).forEach((pot, ix) => {
-    let isDragging = false;
-    let cx, cy;
-    const updateValue = function (v) {
-      const oldVal = zone.cc_controllers[ix].val;
-      if (v != oldVal) {
-        zone.cc_controllers[ix].val = v;
-        updateControllerValues(zone, index);
-      }
-    };
-    pot.addEventListener('mousedown', (e) => {
-      let el = pot;
-      cx = 0;
-      cy = 0;
-      do {
-        cx += el.offsetLeft;
-        cy += el.offsetTop;
-        el = el.offsetParent;
-      } while (el);
-      cx += 28;
-      cy += 46;
-      isDragging = true;
-      updateValue(valueForCoordinates(e.pageX, e.pageY, cx, cy));
-    });
-    window.addEventListener('mousemove', (e) => {
-      if (isDragging) {
-        updateValue(valueForCoordinates(e.pageX, e.pageY, cx, cy));
-      }
-    });
-    window.addEventListener('mouseup', (e) => {
-      if (isDragging) {
-        updateValue(valueForCoordinates(e.pageX, e.pageY, cx, cy));
-        isDragging = false;
-      }
-    });
-  });
 }
 
 function valueForCoordinates(x, y, cx, cy) {
@@ -481,6 +476,71 @@ function renderMarkersForZone(index, tempLo, tempHigh) {
   } else {
     DOM.removeClass(zone.dom.markerhigh, 'hover');
   }
+}
+
+function renderControllersForZone(zone, index) {
+  DOM.all(`#zone${index} .ccpots .ccpot`).forEach((e) => e.remove());
+  DOM.addHTML(
+    `#zone${index} .ccpots`,
+    'afterbegin',
+    zoneTemplate.getControllerHTML(zone, index)
+  );
+  const suckEvent = (e) => {
+    e.stopPropagation();
+  };
+  DOM.on(
+    `#zone${index} .ccpots input, #zone${index} .ccpot .tools`,
+    'click',
+    suckEvent
+  );
+  DOM.on(
+    `#zone${index} .ccpots input, #zone${index} .ccpot .tools`,
+    'mousedown',
+    suckEvent
+  );
+
+  DOM.all(`#zone${index} .ccpots .ccpot`).forEach((pot, ix) => {
+    let isDragging = false;
+    let cx, cy;
+    const updateValue = function (v) {
+      const oldVal = zone.cc_controllers[ix].val;
+      if (v != oldVal) {
+        zone.cc_controllers[ix].val = v;
+        zone.sendCC(ix);
+        updateControllerValues(zone, index);
+      }
+    };
+    pot.addEventListener('mousedown', (e) => {
+      let el = pot;
+      cx = 0;
+      cy = 0;
+      do {
+        cx += el.offsetLeft;
+        cy += el.offsetTop;
+        el = el.offsetParent;
+      } while (el);
+      cx += 28;
+      cy += 46;
+      isDragging = true;
+      updateValue(valueForCoordinates(e.pageX, e.pageY, cx, cy));
+    });
+    window.addEventListener('mousemove', (e) => {
+      if (isDragging) {
+        updateValue(valueForCoordinates(e.pageX, e.pageY, cx, cy));
+      }
+    });
+    window.addEventListener('mouseup', (e) => {
+      if (isDragging) {
+        updateValue(valueForCoordinates(e.pageX, e.pageY, cx, cy));
+        isDragging = false;
+        triggerSave();
+      }
+    });
+  });
+  DOM.all(`#zone${index} .ccpot *[data-action]`).forEach((e) => {
+    e.addEventListener('click', actionHandler);
+  });
+  updateValuesForZone(index);
 }
 
 function updateValuesForAllZones() {
@@ -556,6 +616,11 @@ function updateValuesForZone(index) {
     const style = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
     DOM.element(`#zone${index}`).style.background = style;
     DOM.element(`#zone${index}`).style.setProperty('--bg-color', style);
+  }
+  if (zone.show_cc) {
+    DOM.addClass(`#zone${index}`, 'show-cc');
+  } else {
+    DOM.removeClass(`#zone${index}`, 'show-cc');
   }
   [
     'cc',

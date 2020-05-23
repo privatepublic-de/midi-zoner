@@ -53,9 +53,9 @@ module.exports = class Zone {
   cc = true;
   cc_controllers = [
     { number: 7, label: 'Volume', val: 100 },
-    { number: 12, label: 'Para1', val: 12 },
-    { number: 120, label: 'Para2', val: 64 }
+    { number: 1, label: 'Wheel', val: 0 }
   ];
+  show_cc = false;
   at2mod = false;
   pitchbend = true;
   euclid_hits = 5;
@@ -139,7 +139,9 @@ module.exports = class Zone {
       hue: this.hue,
       saturation: this.saturation,
       euclid_hits: this.euclid_hits,
-      euclid_length: this.euclid_length
+      euclid_length: this.euclid_length,
+      show_cc: this.show_cc,
+      cc_controllers: this.cc_controllers
     };
   }
 
@@ -549,5 +551,22 @@ module.exports = class Zone {
     }
     this.arp_pattern = result;
     this.renderPattern();
+  }
+
+  sendCC(index) {
+    this.midi.send(
+      Uint8Array.from([
+        MIDI.MESSAGE.CONTROLLER + this.channel,
+        this.cc_controllers[index].number,
+        this.cc_controllers[index].val
+      ]),
+      this.outputPortId
+    );
+  }
+
+  sendAllCC() {
+    for (let i = 0; i < this.cc_controllers.length; i++) {
+      this.sendCC(i);
+    }
   }
 };

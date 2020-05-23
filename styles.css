@@ -733,20 +733,20 @@ li {
   padding: 0;
 }
 
-.showcc {
-  position: absolute;
-  right: 0;
-  bottom: 8px;
-}
 .ccpots {
+  display: none;
   margin-top: 8px;
   padding: 8px 0;
   border-radius: 4px;
   background-color: var(--darker-1);
   font-size: 10px;
 }
-.ccpot,
-.ccpotadd {
+
+.show-cc .ccpots {
+  display: block;
+}
+
+.ccpot {
   display: inline-block;
   position: relative;
   width: 56px;
@@ -792,4 +792,30 @@ li {
   text-align: center;
   font-size: 9px;
   color: var(--brighter-2);
+}
+
+.ccpotttools {
+  display: inline-block;
+  position: relative;
+  width: 56px;
+  vertical-align: bottom;
+  font-size: 18px;
+}
+
+.ccpot .tools {
+  display: none;
+  position: absolute;
+  text-align: center;
+  padding-top: 2px;
+  top: 100%;
+  width: 100%;
+  font-size: 12px;
+}
+
+.ccpot:hover .tools {
+  display: block;
+}
+
+.ccpots *[data-action] {
+  cursor: pointer;
 }

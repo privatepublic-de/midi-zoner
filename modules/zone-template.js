@@ -1,19 +1,6 @@
 const Zone = require('./zone');
 module.exports = {
-  getHTML: function (/** @type {Zone} */ zone, zoneindex) {
-    const index = zoneindex;
-    let channelselectors = '';
-    for (let i = 0; i < 16; i++) {
-      channelselectors += `<div class="ch mch ${
-        zone.channel == i ? 'selected' : ''
-      } no${i}" data-action="${index}:ch:${i}" title="Select MIDI channel ${
-        i + 1
-      }">${i + 1}</div>`;
-    }
-    const octavemarkers = '<span class="oct"></span>'.repeat(10);
-    const checkboxIcons = /*html*/ `<span class="material-icons sel">check_circle</span
-      ><span class="material-icons unsel">radio_button_unchecked</span> `;
-
+  getControllerHTML: function (/** @type {Zone} */ zone, zoneindex) {
     let controllers = '';
     zone.cc_controllers.forEach((cc, ix) => {
       controllers += /*html*/ `
@@ -42,9 +29,29 @@ module.exports = {
             <input class="label" type="text" value="${cc.label}"/>
             <input class="cc" type="text" value="${cc.number}"/>
             <span class="value">127</span>
+            <div class="tools">
+              <span class="material-icons" data-action="${zoneindex}:cc_left:${ix}">arrow_back</span>
+              <span class="material-icons" data-action="${zoneindex}:cc_remove:${ix}">cancel</span>
+              <span class="material-icons" data-action="${zoneindex}:cc_right:${ix}">arrow_forward</span>
+            </div>
           </div>
       `;
     });
+    return controllers;
+  },
+  getHTML: function (/** @type {Zone} */ zone, zoneindex) {
+    const index = zoneindex;
+    let channelselectors = '';
+    for (let i = 0; i < 16; i++) {
+      channelselectors += `<div class="ch mch ${
+        zone.channel == i ? 'selected' : ''
+      } no${i}" data-action="${index}:ch:${i}" title="Select MIDI channel ${
+        i + 1
+      }">${i + 1}</div>`;
+    }
+    const octavemarkers = '<span class="oct"></span>'.repeat(10);
+    const checkboxIcons = /*html*/ `<span class="material-icons sel">check_circle</span
+      ><span class="material-icons unsel">radio_button_unchecked</span> `;
 
     return /*html*/ `<section class="zone" id="zone${index}">
       <div
@@ -65,6 +72,10 @@ module.exports = {
           ></label
         >
       </div>
+      <div class="showccs rtool" data-action="${index}:toggle_show_cc" 
+        title="Show CC controllers">
+        <i class="material-icons">tune</i>
+      </div>
       <div class="channels">
         <div
           class="ch enabled"
@@ -81,6 +92,12 @@ module.exports = {
         </select>
         ${channelselectors}
       </div>
+      <div class="ccpots">
+        <div class="ccpotttools">
+          <i class="material-icons" title="Add new control" data-action="${index}:add_cc_controller">add</i>
+          <i class="material-icons" title="Send all CC values" data-action="${index}:send_all_cc">send</i>
+        </div>
+      </div>
       <div
         class="range"
         data-hover="${index}:range"
@@ -94,12 +111,6 @@ module.exports = {
         <span class="marker low">C-1</span>
         <span class="marker high">G9</span>
         <canvas id="canvas${index}" width="100" height="16"></canvas>
-      </div>
-      <div class="showcc">
-        <div class="check" data-action="${index}:arp_enabled">
-          CCs <span class="material-icons sel">expand_more</span
-          ><span class="material-icons unsel">chevron_right</span>
-        </div>
       </div>
       <div class="settings">
         <div
@@ -295,10 +306,6 @@ module.exports = {
           </div>
           <i class="material-icons">settings</i>
         </div>
-      </div>
-      <div class="ccpots">
-        ${controllers}
-        <div class="ccpotadd"><span class="material-icons">add</span></div>
       </div>
     </section>`;
   }
