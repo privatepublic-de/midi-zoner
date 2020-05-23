@@ -15,14 +15,14 @@ module.exports = {
                 id="pot_range_${zoneindex}_${ix}"
                 d=""
                 stroke="var(--brighter-1)"
-                stroke-width="7"
+                stroke-width="9"
                 fill="none"
               />
               <path
                 id="pot_value_${zoneindex}_${ix}"
                 d=""
                 stroke="var(--brighter-4)"
-                stroke-width="7"
+                stroke-width="9"
                 fill="none"
               />
             </svg>
