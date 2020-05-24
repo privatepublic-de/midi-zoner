@@ -21,10 +21,11 @@ function loadZones(midi) {
   }
 }
 
-function applyStoredZones(storedZones, midi) {
+function applyStoredZones(storedZones, midi, append) {
   if (storedZones) {
+    const tempList = zones.list;
     Object.assign(zones, storedZones);
-    zones.list = [];
+    zones.list = append ? tempList : [];
     for (let i = 0; i < storedZones.list.length; i++) {
       const zone = new Zone(midi);
       Object.assign(zone, storedZones.list[i]);
@@ -42,13 +43,18 @@ function savedScenesKeys() {
   }
 }
 
-function existingScenesHtml() {
+function existingScenesHtml(className) {
   const savedList = savedScenesKeys();
   let existingHtml;
   if (savedList.length > 0) {
-    existingHtml = '<ul>';
+    existingHtml = `<ul class="${className}">`;
     savedList.forEach((k, index) => {
-      existingHtml += `<li data-index="${index}"><i class="material-icons">delete</i>${k}</li>`;
+      existingHtml += /*html*/ `
+        <li data-index="${index}">
+          <i data-act="delete" class="material-icons">delete</i>
+          <i data-act="add" class="material-icons" title="Add to exisiting zones">add</i>
+          ${k}
+        </li>`;
     });
     existingHtml += '</ul>';
   } else {
@@ -57,8 +63,8 @@ function existingScenesHtml() {
   return existingHtml;
 }
 
-function attachDeleteHandler(container, reloadFunction) {
-  DOM.find(container, 'li i').forEach((e) => {
+function attachSceneActionHandlers(container, reloadFunction, midi) {
+  DOM.find(container, 'li *[data-act="delete"]').forEach((e) => {
     e.addEventListener('click', (ev) => {
       ev.stopPropagation();
       const index = new Number(e.parentElement.getAttribute('data-index'));
@@ -72,6 +78,21 @@ function attachDeleteHandler(container, reloadFunction) {
       }
     });
   });
+  DOM.find(container, 'li *[data-act="add"]').forEach((e) => {
+    e.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const index = new Number(e.parentElement.getAttribute('data-index'));
+      const scenesJ = localStorage.getItem('scenes');
+      const scenes = scenesJ ? JSON.parse(scenesJ) : {};
+      const scene = scenes[savedScenesKeys()[index]];
+      if (scene) {
+        applyStoredZones(JSON.parse(scene), midi, true);
+        view.renderZones();
+        saveZones();
+      }
+      closeLoadSaveDialog();
+    });
+  });
 }
 
 let isLoadSaveDialogOpenend = false;
@@ -83,7 +104,7 @@ function openLoadDialog(midi) {
     container,
     'beforeend',
     `<h2>Load scene</h2>
-    ${existingScenesHtml()}
+    ${existingScenesHtml('load')}
     <p><button onclick="closeLoadSaveDialog()" class="lightButton">Cancel</button></p>`
   );
   DOM.on('#loadsave li', 'click', (ev) => {
@@ -98,9 +119,13 @@ function openLoadDialog(midi) {
     }
     closeLoadSaveDialog();
   });
-  attachDeleteHandler(container, () => {
-    openLoadDialog(midi);
-  });
+  attachSceneActionHandlers(
+    container,
+    () => {
+      openLoadDialog(midi);
+    },
+    midi
+  );
   DOM.show(container);
   isLoadSaveDialogOpenend = true;
 }
@@ -115,7 +140,7 @@ function openSaveDialog() {
     <p><input type="text" placeholder="Enter name" id="newSceneName"/> 
     <button id="saveNew" class="lightButton">Save</button></p>
     <h2>Overwrite existing scene</h2>
-    ${existingScenesHtml()}
+    ${existingScenesHtml('save')}
     <p><button onclick="closeLoadSaveDialog()" class="lightButton">Cancel</button></p>`
   );
   function saveSceneWithKey(key) {
@@ -136,7 +161,7 @@ function openSaveDialog() {
     saveSceneWithKey(savedScenesKeys()[index]);
     closeLoadSaveDialog();
   });
-  attachDeleteHandler(container, openSaveDialog);
+  attachSceneActionHandlers(container, openSaveDialog);
   DOM.show(container);
   nameInput.value = '';
   nameInput.focus();

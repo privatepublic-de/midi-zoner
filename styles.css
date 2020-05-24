@@ -718,7 +718,15 @@ li {
 #loadsave li i {
   float: right;
   border-left: 1px solid var(--brighter-2);
-  padding-left: 3px;
+  padding: 0 3px;
+}
+
+#loadsave li i:hover {
+  background-color: #069;
+}
+
+#loadsave .save *[data-act='add'] {
+  display: none;
 }
 
 #loadsave li:hover {
