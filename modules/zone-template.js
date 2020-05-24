@@ -15,7 +15,7 @@ module.exports = {
                 id="pot_range_${zoneindex}_${ix}"
                 d=""
                 stroke="var(--brighter-1)"
-                stroke-width="9"
+                stroke-width="8"
                 fill="none"
               />
               <path
