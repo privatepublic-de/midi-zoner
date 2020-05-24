@@ -51,7 +51,8 @@ function findTouchedNote(
   /** @type {Zone} */ zone
 ) {
   let num = parseInt(((ev.clientX - e.offsetLeft) / e.offsetWidth) * 128);
-  const isLow = ev.clientY - e.offsetTop < e.offsetHeight / 2;
+  const isLow =
+    ev.clientY - (e.offsetTop + e.offsetParent.offsetTop) < e.offsetHeight / 2;
   if (ev.shiftKey) {
     // constrain to octaves
     num = Math.round(num / 12) * 12;
