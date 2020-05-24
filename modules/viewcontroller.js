@@ -535,7 +535,7 @@ function renderControllersForZone(zone, index) {
         el = el.offsetParent;
       } while (el);
       cx += 28;
-      cy += 46;
+      cy += 36;
       isDragging = true;
       updateValue(valueForCoordinates(e.pageX, e.pageY, cx, cy));
     });
