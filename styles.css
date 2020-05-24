@@ -736,7 +736,7 @@ li {
 .ccpots {
   display: none;
   margin-top: 8px;
-  padding: 8px 0;
+  padding: 8px 0 0 0;
   border-radius: 4px;
   font-size: 10px;
 }
@@ -760,7 +760,7 @@ li {
   width: 56px;
   height: 56px;
   vertical-align: top;
-  margin: 5px 0;
+  margin: 0 0 20px 0;
 }
 
 .ccpot input {
@@ -805,29 +805,30 @@ li {
 
 .ccpotttools {
   display: inline-block;
-  position: relative;
   width: 56px;
   vertical-align: bottom;
   font-size: 18px;
   color: var(--brighter-2);
+  margin-bottom: 20px;
 }
 
 .ccpot .tools {
-  display: none;
+  opacity: 0;
   position: absolute;
   text-align: center;
-  padding: 2px;
+  padding: 2px 2px 0 2px;
   top: 100%;
   width: 100%;
   font-size: 12px;
   z-index: 1;
   color: var(--brighter-2);
   background-color: var(--bg-color);
-  box-shadow: 0 1px 3px var(--darker-2);
+  /* box-shadow: 0 1px 3px var(--darker-2); */
+  transition: opacity 300ms;
 }
 
-.ccpot:hover .tools {
-  display: block;
+.ccpot .tools:hover {
+  opacity: 1;
 }
 
 .ccpot .tools span:hover {

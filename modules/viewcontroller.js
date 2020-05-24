@@ -251,11 +251,12 @@ function actionHandler(ev) {
       }
       break;
     case 'cc_right':
-      if (params[2] < zone.cc_controllers.length - 1) {
+      const pos = params[2];
+      if (pos < zone.cc_controllers.length - 1) {
         zone.cc_controllers.splice(
-          params[2] + 1,
+          pos + 1,
           0,
-          zone.cc_controllers.splice(params[2], 1)[0]
+          zone.cc_controllers.splice(pos, 1)[0]
         );
         renderControllersForZone(zone, zoneindex);
       }
@@ -509,7 +510,7 @@ function renderControllersForZone(zone, index) {
   );
   DOM.on(`#zone${index} .ccpots input`, 'keyup', suckEvent);
   DOM.on(`#zone${index} .ccpots input`, 'focus', (e) => {
-    e.select();
+    e.target.select();
   });
 
   DOM.all(`#zone${index} .ccpots .ccpot`).forEach((pot, ix) => {
