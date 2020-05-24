@@ -241,6 +241,11 @@ function actionHandler(ev) {
       zone.cc_controllers.splice(params[2], 1);
       renderControllersForZone(zone, zoneindex);
       break;
+    case 'cc_togglepolarity':
+      zone.cc_controllers[params[2]].isBipolar = !zone.cc_controllers[params[2]]
+        .isBipolar;
+      updateControllerValues(zone, zoneindex);
+      break;
     case 'cc_left':
       {
         const pos = Number(params[2]);
@@ -526,13 +531,6 @@ function renderControllersForZone(zone, index) {
         updateControllerValues(zone, index);
       }
     };
-    DOM.find(pot, '.tools', (el) => {
-      el.addEventListener('contextmenu', () => {
-        zone.cc_controllers[ix].isBipolar = !zone.cc_controllers[ix].isBipolar;
-        updateControllerValues(zone, index);
-        triggerSave();
-      });
-    });
     pot.addEventListener('mousedown', (e) => {
       let el = pot;
       cx = 0;

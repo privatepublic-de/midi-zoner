@@ -828,16 +828,22 @@ li {
   padding: 2px 2px 0 2px;
   top: 100%;
   width: 100%;
-  font-size: 12px;
+  font-size: 9px;
   z-index: 1;
   color: var(--brighter-2);
   background-color: var(--bg-color);
-  /* box-shadow: 0 1px 3px var(--darker-2); */
-  transition: opacity 300ms;
+  box-shadow: 0 1px 3px var(--darker-2);
+  transition: opacity 300ms, height 300ms;
+  height: 14px;
+  overflow: hidden;
+}
+.ccpot .tools .material-icons {
+  font-size: 12px;
 }
 
 .ccpot .tools:hover {
   opacity: 1;
+  height: 28px;
 }
 
 .ccpot .tools span:hover {

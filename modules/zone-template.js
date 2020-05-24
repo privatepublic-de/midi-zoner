@@ -33,6 +33,8 @@ module.exports = {
               <span class="material-icons" data-action="${zoneindex}:cc_left:${ix}">arrow_back</span>
               <span class="material-icons" data-action="${zoneindex}:cc_remove:${ix}">cancel</span>
               <span class="material-icons" data-action="${zoneindex}:cc_right:${ix}">arrow_forward</span>
+              <br/>
+              <span data-action="${zoneindex}:cc_togglepolarity:${ix}">bi/uni-pol</span>
             </div>
           </div>
       `;
