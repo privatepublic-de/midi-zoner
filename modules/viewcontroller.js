@@ -526,6 +526,13 @@ function renderControllersForZone(zone, index) {
         updateControllerValues(zone, index);
       }
     };
+    DOM.find(pot, '.tools', (el) => {
+      el.addEventListener('contextmenu', () => {
+        zone.cc_controllers[ix].isBipolar = !zone.cc_controllers[ix].isBipolar;
+        updateControllerValues(zone, index);
+        triggerSave();
+      });
+    });
     pot.addEventListener('mousedown', (e) => {
       let el = pot;
       cx = 0;
@@ -694,6 +701,11 @@ function polarToCartesian(centerX, centerY, radius, degrees) {
 }
 
 function describeArc(x, y, radius, startAngle, endAngle) {
+  if (startAngle > endAngle) {
+    const temp = startAngle;
+    startAngle = endAngle;
+    endAngle = temp;
+  }
   const start = polarToCartesian(x, y, radius, endAngle);
   const end = polarToCartesian(x, y, radius, startAngle);
   const largeArcFlag = endAngle - startAngle <= 180 ? '0' : '1';
@@ -717,13 +729,17 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
     const pathRange = DOM.element(`#pot_range_${zoneindex}_${ix}`);
     const pathValue = DOM.element(`#pot_value_${zoneindex}_${ix}`);
     const rangePath = describeArc(28, 36, 18, -135, 135);
-    const valDegrees = 270 * (c.val / 127);
-    const valuePath = describeArc(28, 36, 18, -135, -135 + valDegrees);
+    const valDegrees = 270 * (c.isBipolar ? (c.val - 64) / 64 : c.val / 127);
+    const valuePath = c.isBipolar
+      ? describeArc(28, 36, 18, 0, valDegrees / 2)
+      : describeArc(28, 36, 18, -135, -135 + valDegrees);
     pathRange.setAttribute('d', rangePath);
     pathValue.setAttribute('d', valuePath);
     DOM.element(`#pot_${zoneindex}_${ix} .cc`).value = c.number;
     DOM.element(`#pot_${zoneindex}_${ix} .label`).value = c.label;
-    DOM.element(`#pot_${zoneindex}_${ix} .value`).innerHTML = c.val;
+    DOM.element(`#pot_${zoneindex}_${ix} .value`).innerHTML = c.isBipolar
+      ? c.val - 64
+      : c.val;
   });
 }
 

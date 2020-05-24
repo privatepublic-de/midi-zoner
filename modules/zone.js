@@ -52,8 +52,8 @@ module.exports = class Zone {
   sustain = true;
   cc = true;
   cc_controllers = [
-    { number: 7, label: 'Volume', val: 100 },
-    { number: 1, label: 'Wheel', val: 0 }
+    { number: 7, label: 'Volume', val: 100, isBipolar: false },
+    { number: 1, label: 'Wheel', val: 0, isBipolar: false }
   ];
   show_cc = false;
   at2mod = false;
