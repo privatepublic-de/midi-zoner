@@ -241,24 +241,25 @@ function actionHandler(ev) {
       renderControllersForZone(zone, zoneindex);
       break;
     case 'cc_left':
-      if (params[2] > 0) {
-        zone.cc_controllers.splice(
-          params[2] - 1,
-          0,
-          zone.cc_controllers.splice(params[2], 1)[0]
-        );
-        renderControllersForZone(zone, zoneindex);
+      {
+        const pos = Number(params[2]);
+        if (pos > 0) {
+          const v2 = zone.cc_controllers[pos - 1];
+          zone.cc_controllers[pos - 1] = zone.cc_controllers[pos];
+          zone.cc_controllers[pos] = v2;
+          renderControllersForZone(zone, zoneindex);
+        }
       }
       break;
     case 'cc_right':
-      const pos = params[2];
-      if (pos < zone.cc_controllers.length - 1) {
-        zone.cc_controllers.splice(
-          pos + 1,
-          0,
-          zone.cc_controllers.splice(pos, 1)[0]
-        );
-        renderControllersForZone(zone, zoneindex);
+      {
+        const pos = Number(params[2]);
+        if (pos < zone.cc_controllers.length - 1) {
+          const v2 = zone.cc_controllers[pos + 1];
+          zone.cc_controllers[pos + 1] = zone.cc_controllers[pos];
+          zone.cc_controllers[pos] = v2;
+          renderControllersForZone(zone, zoneindex);
+        }
       }
       break;
   }
