@@ -26,10 +26,16 @@ module.exports = {
                 fill="none"
               />
               <path
-                id="pot_zero_${zoneindex}_${ix}"
+                id="pot_zero1_${zoneindex}_${ix}"
                 d=""
                 stroke="none"
                 fill="var(--bg-color)"
+              />
+              <path
+                id="pot_zero2_${zoneindex}_${ix}"
+                d=""
+                stroke="none"
+                fill="var(--brighter-2)"
               />
             </svg>
             <input class="label" type="text" value="${cc.label}" data-change="${zoneindex}:cc_label:${ix}"/>
