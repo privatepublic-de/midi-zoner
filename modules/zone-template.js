@@ -25,6 +25,12 @@ module.exports = {
                 stroke-width="9"
                 fill="none"
               />
+              <path
+                id="pot_zero_${zoneindex}_${ix}"
+                d=""
+                stroke="none"
+                fill="var(--bg-color)"
+              />
             </svg>
             <input class="label" type="text" value="${cc.label}" data-change="${zoneindex}:cc_label:${ix}"/>
             <input class="cc" type="text" value="${cc.number}" data-change="${zoneindex}:cc_number:${ix}"/>

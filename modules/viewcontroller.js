@@ -726,13 +726,19 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
   zone.cc_controllers.forEach((c, ix) => {
     const pathRange = DOM.element(`#pot_range_${zoneindex}_${ix}`);
     const pathValue = DOM.element(`#pot_value_${zoneindex}_${ix}`);
+    const pathZero = DOM.element(`#pot_zero_${zoneindex}_${ix}`);
     const rangePath = describeArc(28, 36, 18, -135, 135);
+    let zeroPath = '';
+    if (c.isBipolar) {
+      zeroPath = 'M 28 14 l 4 9 l -8 0 l 4 -9 z';
+    }
     const valDegrees = 270 * (c.isBipolar ? (c.val - 64) / 64 : c.val / 127);
     const valuePath = c.isBipolar
       ? describeArc(28, 36, 18, 0, valDegrees / 2)
       : describeArc(28, 36, 18, -135, -135 + valDegrees);
     pathRange.setAttribute('d', rangePath);
     pathValue.setAttribute('d', valuePath);
+    pathZero.setAttribute('d', zeroPath);
     DOM.element(`#pot_${zoneindex}_${ix} .cc`).value = c.number;
     DOM.element(`#pot_${zoneindex}_${ix} .label`).value = c.label;
     DOM.element(`#pot_${zoneindex}_${ix} .value`).innerHTML = c.isBipolar
