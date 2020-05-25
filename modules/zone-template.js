@@ -18,24 +18,15 @@ module.exports = {
                 stroke-width="8"
                 fill="none"
               />
+              <rect
+                id="pot_zero_${zoneindex}_${ix}"
+                x="26" y="13" width="4" height="10" fill="var(--bg-color)" />
               <path
                 id="pot_value_${zoneindex}_${ix}"
                 d=""
                 stroke="var(--brighter-4)"
                 stroke-width="9"
                 fill="none"
-              />
-              <path
-                id="pot_zero1_${zoneindex}_${ix}"
-                d=""
-                stroke="none"
-                fill="var(--bg-color)"
-              />
-              <path
-                id="pot_zero2_${zoneindex}_${ix}"
-                d=""
-                stroke="none"
-                fill="var(--brighter-2)"
               />
             </svg>
             <input class="label" type="text" value="${cc.label}" data-change="${zoneindex}:cc_label:${ix}"/>

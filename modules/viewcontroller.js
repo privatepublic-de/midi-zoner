@@ -724,21 +724,16 @@ function describeArc(x, y, radius, startAngle, endAngle) {
 
 function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
   zone.cc_controllers.forEach((c, ix) => {
-    const pathRange = DOM.element(`#pot_range_${zoneindex}_${ix}`);
-    const pathValue = DOM.element(`#pot_value_${zoneindex}_${ix}`);
-    const pathZero1 = DOM.element(`#pot_zero1_${zoneindex}_${ix}`);
-    const pathZero2 = DOM.element(`#pot_zero2_${zoneindex}_${ix}`);
     const rangePath = describeArc(28, 36, 18, -135, 135);
-    const zeroPath1 = c.isBipolar ? 'M 28 18 l 4 7 l -8 0 l 4 -7 z' : '';
-    const zeroPath2 = c.isBipolar ? 'M 28 20 l 4 7 l -8 0 l 4 -7 z' : '';
     const valDegrees = 270 * (c.isBipolar ? (c.val - 64) / 64 : c.val / 127);
     const valuePath = c.isBipolar
       ? describeArc(28, 36, 18, 0, valDegrees / 2)
       : describeArc(28, 36, 18, -135, -135 + valDegrees);
-    pathRange.setAttribute('d', rangePath);
-    pathValue.setAttribute('d', valuePath);
-    pathZero1.setAttribute('d', zeroPath1);
-    pathZero2.setAttribute('d', zeroPath2);
+    DOM.element(`#pot_range_${zoneindex}_${ix}`).setAttribute('d', rangePath);
+    DOM.element(`#pot_value_${zoneindex}_${ix}`).setAttribute('d', valuePath);
+    DOM.element(`#pot_zero_${zoneindex}_${ix}`).style.display = c.isBipolar
+      ? 'block'
+      : 'none';
     DOM.element(`#pot_${zoneindex}_${ix} .cc`).value = c.number;
     DOM.element(`#pot_${zoneindex}_${ix} .label`).value = c.label;
     DOM.element(`#pot_${zoneindex}_${ix} .value`).innerHTML = c.isBipolar
