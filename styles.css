@@ -577,6 +577,12 @@ select#midiInChannel {
   border-radius: 6px;
 }
 
+.dragvalue .range,
+.dragvalue .zone:not(.show-cc),
+.dragvalue .ccpot .tools {
+  pointer-events: none;
+}
+
 .range canvas {
   position: absolute;
   left: 0;

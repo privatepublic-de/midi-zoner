@@ -543,6 +543,7 @@ function renderControllersForZone(zone, index) {
       cx += 28;
       cy += 36;
       isDragging = true;
+      DOM.addClass(document.body, 'dragvalue');
       updateValue(valueForCoordinates(e.pageX, e.pageY, cx, cy));
     });
     // TODO generalize window events!
@@ -554,6 +555,7 @@ function renderControllersForZone(zone, index) {
     window.addEventListener('mouseup', (e) => {
       if (isDragging) {
         updateValue(valueForCoordinates(e.pageX, e.pageY, cx, cy));
+        DOM.removeClass(document.body, 'dragvalue');
         isDragging = false;
         triggerSave();
       }
