@@ -546,7 +546,7 @@ module.exports = class Zone {
   randomizeColor() {
     this.hue = Math.random();
     this.saturation = Math.random() * 0.9;
-    this.lightness = 0.1 + Math.random() * 0.5;
+    this.lightness = 0.1 + Math.random() * 0.2;
   }
 
   createEuclidianPattern(length, hits) {
