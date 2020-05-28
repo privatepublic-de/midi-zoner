@@ -190,8 +190,9 @@ function actionHandler(ev) {
       break;
     case 'color':
       const hsl = DOM.rgb2hsl(DOM.hexToRgb(e.value));
-      zone.saturation = hsl[1];
       zone.hue = hsl[0];
+      zone.saturation = hsl[1];
+      zone.lightness = hsl[2];
       updateValuesForZone(zoneindex);
       break;
     case 'showeuclid':
@@ -610,11 +611,11 @@ function updateValuesForZone(index) {
   } else {
     DOM.removeClass(`#zone${index}`, 'soloed-out');
   }
-  const rgbZone = DOM.hslToRgb(zone.hue, zone.saturation, 0.3);
+  const rgbZone = DOM.hslToRgb(zone.hue, zone.saturation, zone.lightness);
   const rgbZoneComplement = DOM.hslToRgb(
     (zone.hue + 0.125) % 1.0,
     zone.saturation,
-    0.6
+    zone.lightness + 0.2
   );
   const rgbZoneComplementStyle = `rgba(${rgbZoneComplement[0]},${rgbZoneComplement[1]},${rgbZoneComplement[2]},1)`;
   const rgbZoneComplementDarkStyle = `rgba(${rgbZoneComplement[0]},${rgbZoneComplement[1]},${rgbZoneComplement[2]},.6)`;

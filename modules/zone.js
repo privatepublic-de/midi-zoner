@@ -94,6 +94,7 @@ module.exports = class Zone {
   dom = {};
   hue = 0;
   saturation = 0;
+  lightness = 0;
 
   rngArp = null;
   rngProb = null;
@@ -138,6 +139,7 @@ module.exports = class Zone {
       arp_sortedHoldList: this.arp_sortedHoldList,
       hue: this.hue,
       saturation: this.saturation,
+      lightness: this.lightness,
       euclid_hits: this.euclid_hits,
       euclid_length: this.euclid_length,
       show_cc: this.show_cc,
@@ -544,6 +546,7 @@ module.exports = class Zone {
   randomizeColor() {
     this.hue = Math.random();
     this.saturation = Math.random() * 0.9;
+    this.lightness = 0.1 + Math.random() * 0.5;
   }
 
   createEuclidianPattern(length, hits) {
