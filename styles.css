@@ -349,7 +349,7 @@ select#midiInChannel {
 .settings,
 .arp-settings {
   position: relative;
-  color: var(--brighter-4);
+  color: var(--brighter-3);
   font-size: 12px;
 }
 
@@ -414,6 +414,7 @@ select#midiInChannel {
 
 .rtool.delzone:hover {
   color: #900;
+  text-shadow: 0 0 2px #fff;
 }
 
 .rtool,
