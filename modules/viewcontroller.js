@@ -427,29 +427,6 @@ function appendZone(/** @type {Zone} */ zone, index) {
   });
 }
 
-function valueForCoordinates(x, y, cx, cy) {
-  let y0 = y - cy;
-  let x0 = x - cx;
-  let ang = parseInt(Math.atan2(y0, x0) * (180 / Math.PI));
-  if (ang < 0 && ang >= -90) {
-    // TODO clean up matching areas
-    ang += 225;
-  } else if (ang >= 0 && ang < 45) {
-    ang += 225;
-  } else if (ang < -90) {
-    ang += 225;
-  } else if (ang > 135) {
-    ang -= 135;
-  } else {
-    if (ang < 90) {
-      ang = 270;
-    } else {
-      ang = 0;
-    }
-  }
-  return parseInt((ang / 270.0) * 127);
-}
-
 /**
  * Render zone markers (lowest and highest note) for all zones.
  */
@@ -496,6 +473,76 @@ function renderMarkersForZone(index, tempLo, tempHigh) {
   }
 }
 
+class PotDragHandler {
+  isDragging = false;
+  cx = 0;
+  cy = 0;
+  /** @type {function} */ updateValueCallback = null;
+  constructor() {
+    window.addEventListener('mousemove', this.move.bind(this));
+    window.addEventListener('mouseup', this.stopDrag.bind(this));
+  }
+
+  valueForCoordinates(x, y) {
+    const y0 = y - this.cy;
+    const x0 = x - this.cx;
+    let ang = parseInt(Math.atan2(y0, x0) * (180 / Math.PI));
+    if (ang < 0 && ang >= -90) {
+      ang += 225;
+    } else if (ang >= 0 && ang < 45) {
+      ang += 225;
+    } else if (ang < -90) {
+      ang += 225;
+    } else if (ang > 135) {
+      ang -= 135;
+    } else {
+      if (ang < 90) {
+        ang = 270;
+      } else {
+        ang = 0;
+      }
+    }
+    return Math.floor((ang / 270.0) * 127);
+  }
+
+  startDrag(
+    /** @type {HTMLElement} */ pot,
+    /** @type {MouseEvent} */ e,
+    /** @type {function} */ updateValueCallback
+  ) {
+    this.updateValueCallback = updateValueCallback;
+    let el = pot;
+    this.cx = 0;
+    this.cy = 0;
+    do {
+      this.cx += el.offsetLeft;
+      this.cy += el.offsetTop;
+      el = el.offsetParent;
+    } while (el);
+    this.cx += 28;
+    this.cy += 36;
+    this.isDragging = true;
+    this.updateValueCallback(this.valueForCoordinates(e.pageX, e.pageY));
+    DOM.addClass(document.body, 'dragvalue');
+  }
+
+  move(/** @type {MouseEvent} */ e) {
+    if (this.isDragging) {
+      this.updateValueCallback(this.valueForCoordinates(e.pageX, e.pageY));
+    }
+  }
+
+  stopDrag(/** @type {MouseEvent} */ e) {
+    if (this.isDragging) {
+      this.updateValueCallback(this.valueForCoordinates(e.pageX, e.pageY));
+      DOM.removeClass(document.body, 'dragvalue');
+      this.isDragging = false;
+      triggerSave(); // TODO is ugly
+    }
+  }
+}
+const PotDragHandlerInstance = new PotDragHandler();
+
 function renderControllersForZone(zone, index) {
   DOM.all(`#zone${index} .ccpots .ccpot`).forEach((e) => e.remove());
   DOM.addHTML(
@@ -522,44 +569,15 @@ function renderControllersForZone(zone, index) {
   });
 
   DOM.all(`#zone${index} .ccpots .ccpot`).forEach((pot, ix) => {
-    let isDragging = false;
-    let cx, cy;
-    const updateValue = function (v) {
-      const oldVal = zone.cc_controllers[ix].val;
-      if (v != oldVal) {
-        zone.cc_controllers[ix].val = v;
-        zone.sendCC(ix);
-        updateControllerValues(zone, index);
-      }
-    };
     pot.addEventListener('mousedown', (e) => {
-      let el = pot;
-      cx = 0;
-      cy = 0;
-      do {
-        cx += el.offsetLeft;
-        cy += el.offsetTop;
-        el = el.offsetParent;
-      } while (el);
-      cx += 28;
-      cy += 36;
-      isDragging = true;
-      DOM.addClass(document.body, 'dragvalue');
-      updateValue(valueForCoordinates(e.pageX, e.pageY, cx, cy));
-    });
-    // TODO generalize window events!
-    window.addEventListener('mousemove', (e) => {
-      if (isDragging) {
-        updateValue(valueForCoordinates(e.pageX, e.pageY, cx, cy));
-      }
-    });
-    window.addEventListener('mouseup', (e) => {
-      if (isDragging) {
-        updateValue(valueForCoordinates(e.pageX, e.pageY, cx, cy));
-        DOM.removeClass(document.body, 'dragvalue');
-        isDragging = false;
-        triggerSave();
-      }
+      PotDragHandlerInstance.startDrag(pot, e, (v) => {
+        const oldVal = zone.cc_controllers[ix].val;
+        if (v != oldVal) {
+          zone.cc_controllers[ix].val = v;
+          zone.sendCC(ix);
+          updateControllerValues(zone, index);
+        }
+      });
     });
   });
   DOM.all(`#zone${index} .ccpot *[data-action]`).forEach((e) => {
