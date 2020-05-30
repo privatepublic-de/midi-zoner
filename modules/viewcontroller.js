@@ -3,6 +3,7 @@ const MIDI = require('./midi');
 const DragZone = require('./dragzone');
 const Zone = require('./zone');
 const zoneTemplate = require('./zone-template');
+const potDragHandler = require('./potdraghandler');
 
 const NOTENAMES = [
   'C',
@@ -473,76 +474,6 @@ function renderMarkersForZone(index, tempLo, tempHigh) {
   }
 }
 
-class PotDragHandler {
-  isDragging = false;
-  cx = 0;
-  cy = 0;
-  /** @type {function} */ updateValueCallback = null;
-  constructor() {
-    window.addEventListener('mousemove', this.move.bind(this));
-    window.addEventListener('mouseup', this.stopDrag.bind(this));
-  }
-
-  valueForCoordinates(x, y) {
-    const y0 = y - this.cy;
-    const x0 = x - this.cx;
-    let ang = parseInt(Math.atan2(y0, x0) * (180 / Math.PI));
-    if (ang < 0 && ang >= -90) {
-      ang += 225;
-    } else if (ang >= 0 && ang < 45) {
-      ang += 225;
-    } else if (ang < -90) {
-      ang += 225;
-    } else if (ang > 135) {
-      ang -= 135;
-    } else {
-      if (ang < 90) {
-        ang = 270;
-      } else {
-        ang = 0;
-      }
-    }
-    return Math.floor((ang / 270.0) * 127);
-  }
-
-  startDrag(
-    /** @type {HTMLElement} */ pot,
-    /** @type {MouseEvent} */ e,
-    /** @type {function} */ updateValueCallback
-  ) {
-    this.updateValueCallback = updateValueCallback;
-    let el = pot;
-    this.cx = 0;
-    this.cy = 0;
-    do {
-      this.cx += el.offsetLeft;
-      this.cy += el.offsetTop;
-      el = el.offsetParent;
-    } while (el);
-    this.cx += 28;
-    this.cy += 36;
-    this.isDragging = true;
-    this.updateValueCallback(this.valueForCoordinates(e.pageX, e.pageY));
-    DOM.addClass(document.body, 'dragvalue');
-  }
-
-  move(/** @type {MouseEvent} */ e) {
-    if (this.isDragging) {
-      this.updateValueCallback(this.valueForCoordinates(e.pageX, e.pageY));
-    }
-  }
-
-  stopDrag(/** @type {MouseEvent} */ e) {
-    if (this.isDragging) {
-      this.updateValueCallback(this.valueForCoordinates(e.pageX, e.pageY));
-      DOM.removeClass(document.body, 'dragvalue');
-      this.isDragging = false;
-      triggerSave(); // TODO is ugly
-    }
-  }
-}
-const PotDragHandlerInstance = new PotDragHandler();
-
 function renderControllersForZone(zone, index) {
   DOM.all(`#zone${index} .ccpots .ccpot`).forEach((e) => e.remove());
   DOM.addHTML(
@@ -570,14 +501,21 @@ function renderControllersForZone(zone, index) {
 
   DOM.all(`#zone${index} .ccpots .ccpot`).forEach((pot, ix) => {
     pot.addEventListener('mousedown', (e) => {
-      PotDragHandlerInstance.startDrag(pot, e, (v) => {
-        const oldVal = zone.cc_controllers[ix].val;
-        if (v != oldVal) {
-          zone.cc_controllers[ix].val = v;
-          zone.sendCC(ix);
-          updateControllerValues(zone, index);
+      potDragHandler.startDrag(
+        pot,
+        e,
+        (v) => {
+          const oldVal = zone.cc_controllers[ix].val;
+          if (v != oldVal) {
+            zone.cc_controllers[ix].val = v;
+            zone.sendCC(ix);
+            updateControllerValues(zone, index);
+          }
+        },
+        () => {
+          triggerSave();
         }
-      });
+      );
     });
   });
   DOM.all(`#zone${index} .ccpot *[data-action]`).forEach((e) => {
