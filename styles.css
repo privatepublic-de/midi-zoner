@@ -66,10 +66,10 @@
 }
 
 body.bright {
-  --bg-window: #ddd;
+  --bg-window: #c6c6d9;
   --fg-window: #272422;
   --scrollbar: #bbb;
-  --bg-topbar: #bbbbbf;
+  --bg-topbar: #acacc0;
   --shadow-topbar: #aaa;
   --border-topbar: #98989f;
   --highlight-topbar: #88888f;
