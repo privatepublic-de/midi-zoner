@@ -572,13 +572,9 @@ function updateValuesForZone(index) {
     zone.saturation,
     zone.lightness + (zones.brightTheme ? 0.1 : 0)
   );
-  const rgbZoneComplement = DOM.hslToRgb(
-    (zone.hue + 0.125) % 1.0,
-    zone.saturation,
-    zone.lightness + 0.2
-  );
+  const rgbZoneComplement = DOM.hslToRgb(zone.hue, 0.1, zone.lightness + 0.2);
   const rgbZoneComplementStyle = `rgba(${rgbZoneComplement[0]},${rgbZoneComplement[1]},${rgbZoneComplement[2]},1)`;
-  const rgbZoneComplementDarkStyle = `rgba(${rgbZoneComplement[0]},${rgbZoneComplement[1]},${rgbZoneComplement[2]},.6)`;
+  const rgbZoneComplementDarkStyle = `rgba(${rgbZoneComplement[0]},${rgbZoneComplement[1]},${rgbZoneComplement[2]},1)`;
   DOM.element(`#zone${index}`).style.setProperty(
     '--bg-color-complement',
     rgbZoneComplementStyle
