@@ -263,6 +263,9 @@ document.addEventListener('DOMContentLoaded', function () {
           });
           saveZones();
         });
+        DOM.element('#toggleTheme').addEventListener('click', () => {
+          document.body.classList.toggle('bright');
+        });
         DOM.element('#midiInChannel').selectedIndex = zones.inChannel;
         DOM.element('#midiInChannel').addEventListener('change', (e) => {
           zones.inChannel = e.target.selectedIndex;
