@@ -7,6 +7,7 @@ const zones = {
   list: [],
   inChannel: 0,
   sendClock: false,
+  brightTheme: false,
   tempo: 120
 };
 
@@ -19,6 +20,7 @@ function loadZones(midi) {
   if (zonesJson) {
     applyStoredZones(JSON.parse(zonesJson), midi);
   }
+  updateThemeDisplay();
 }
 
 function applyStoredZones(storedZones, midi, append) {
@@ -173,6 +175,14 @@ function closeLoadSaveDialog() {
   isLoadSaveDialogOpenend = false;
 }
 
+function updateThemeDisplay() {
+  if (zones.brightTheme) {
+    DOM.addClass(document.body, 'bright');
+  } else {
+    DOM.removeClass(document.body, 'bright');
+  }
+}
+
 function midiEventHandler(event) {
   const channel = event.data[0] & 0x0f;
   const msgtype = event.data[0] & 0xf0;
@@ -264,7 +274,10 @@ document.addEventListener('DOMContentLoaded', function () {
           saveZones();
         });
         DOM.element('#toggleTheme').addEventListener('click', () => {
-          document.body.classList.toggle('bright');
+          zones.brightTheme = !zones.brightTheme;
+          saveZones();
+          updateThemeDisplay();
+          view.updateValuesForAllZones();
         });
         DOM.element('#midiInChannel').selectedIndex = zones.inChannel;
         DOM.element('#midiInChannel').addEventListener('change', (e) => {

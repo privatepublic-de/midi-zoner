@@ -69,8 +69,8 @@ body.bright {
   --bg-window: #ddd;
   --fg-window: #272422;
   --scrollbar: #bbb;
-  --bg-topbar: #98989f;
-  --shadow-topbar: #333;
+  --bg-topbar: #bbbbbf;
+  --shadow-topbar: #aaa;
   --border-topbar: #98989f;
   --highlight-topbar: #88888f;
   --bg-topbar-button: #98989f;
@@ -101,7 +101,7 @@ body.bright {
 }
 
 .bright .zone {
-  opacity: 0.8;
+  /* opacity: 0.8; */
 }
 
 html {
@@ -164,6 +164,10 @@ select {
   text-align: center;
 }
 
+.bright #midisettings {
+  color: var(--brighter-4);
+}
+
 #midisettings .controls {
   display: inline-block;
   text-align: left;
@@ -176,17 +180,17 @@ select {
 }
 
 #midisettings .row {
-  padding: 4px;
+  padding: 4px 8px;
   min-height: 24px;
 }
 
 #midisettings label {
   display: inline-block;
-  min-width: 35px;
+  min-width: 38px;
 }
 
 #midisettings .clocksettings {
-  background-color: var(--highlight-topbar);
+  background-color: var(--darker-1);
 }
 
 #midisettings select {

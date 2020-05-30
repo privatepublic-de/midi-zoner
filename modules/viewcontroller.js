@@ -567,7 +567,11 @@ function updateValuesForZone(index) {
   } else {
     DOM.removeClass(`#zone${index}`, 'soloed-out');
   }
-  const rgbZone = DOM.hslToRgb(zone.hue, zone.saturation, zone.lightness);
+  const rgbZone = DOM.hslToRgb(
+    zone.hue,
+    zone.saturation,
+    zone.lightness + (zones.brightTheme ? 0.1 : 0)
+  );
   const rgbZoneComplement = DOM.hslToRgb(
     (zone.hue + 0.125) % 1.0,
     zone.saturation,
@@ -791,5 +795,6 @@ module.exports = {
   renderLastZone,
   renderMarkersForAllZones,
   updateOutputPortsForAllZone,
-  updateControllerValues
+  updateControllerValues,
+  updateValuesForAllZones
 };
