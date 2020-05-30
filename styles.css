@@ -804,7 +804,7 @@ li {
 }
 
 .show-cc .showccs {
-  box-shadow: 1px 1px 2px var(--darker-3) inset;
+  box-shadow: 1px 1px 2px var(--darker-2) inset;
   color: var(--brighter-4);
 }
 
