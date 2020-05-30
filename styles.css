@@ -81,8 +81,8 @@ body.bright {
   --highlight-bpm-value: #0cc;
   --bg-midi-update: #fff;
   --fg-midi-update: #000;
-  --bg-loadsave: #444;
-  --bg-loadsave-item: #555;
+  --bg-loadsave: #fff;
+  --bg-loadsave-item: #eee;
   --shadow-zone: #888;
   --fg-channel-select: #000;
 
