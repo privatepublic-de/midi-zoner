@@ -536,6 +536,19 @@ module.exports = class Zone {
     requestAnimationFrame(this.renderPattern.bind(this));
   }
 
+  dismiss() {
+    this.solo = false;
+    this.arp_enabled = false;
+    this.enabled = false;
+    this.arpNoteOff();
+    const outevent = new Uint8Array([0, 0, 0]);
+    this.activeNotes.forEach((n) => {
+      outevent[0] = MIDI.MESSAGE.NOTE_OFF + n.channel;
+      outevent[1] = n.number;
+      this.midi.send(outevent, this.outputPortId);
+    });
+  }
+
   panic() {
     this.activeNotes = [];
     this.midiActiveNotes = [];

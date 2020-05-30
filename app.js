@@ -26,6 +26,9 @@ function loadZones(midi) {
 function applyStoredZones(storedZones, midi, append) {
   if (storedZones) {
     const tempList = zones.list;
+    if (!append) {
+      zones.list.forEach((z) => z.dismiss());
+    }
     Object.assign(zones, storedZones);
     zones.list = append ? tempList : [];
     for (let i = 0; i < storedZones.list.length; i++) {
