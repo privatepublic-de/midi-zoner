@@ -75,33 +75,9 @@ body.bright {
   --highlight-topbar: #88888f;
   --bg-topbar-button: #98989f;
   --fg-topbar-button: #fff;
-  --shadow-topbar-button: #000;
-  --bg-topbar-button-active: #666;
-  --fg-topbar-button-active: #ccc;
-  --highlight-bpm-value: #0cc;
-  --bg-midi-update: #fff;
-  --fg-midi-update: #000;
   --bg-loadsave: #fff;
   --bg-loadsave-item: #eee;
   --shadow-zone: #888;
-  --fg-channel-select: #000;
-
-  --brighter-1: rgba(255, 255, 255, 0.1);
-  --brighter-2: rgba(255, 255, 255, 0.3);
-  --brighter-3: rgba(255, 255, 255, 0.5);
-  --brighter-4: rgba(255, 255, 255, 0.7);
-
-  --darker-1: rgba(0, 0, 0, 0.1);
-  --darker-2: rgba(0, 0, 0, 0.3);
-  --darker-3: rgba(0, 0, 0, 0.5);
-  --darker-4: rgba(0, 0, 0, 0.7);
-
-  --red-highlight: rgba(196, 0, 0, 0.4);
-  --green-highlight: rgba(0, 196, 0, 0.4);
-}
-
-.bright .zone {
-  /* opacity: 0.8; */
 }
 
 html {
@@ -122,6 +98,7 @@ body {
 
 h2 {
   font-weight: normal;
+  font-size: 1.2em;
 }
 
 p {
@@ -804,9 +781,9 @@ li {
 #loadsave input {
   border: 1px solid var(--darker-3);
   border-radius: 4px;
-  background-color: var(--darker-2);
+  background-color: var(--darker-1);
   color: var(--brighter-3);
-  padding: 0;
+  padding: 1px 2px;
 }
 
 .ccpots {
