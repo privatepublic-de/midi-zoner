@@ -31,6 +31,26 @@
 }
 
 :root {
+  --bg-window: #272422;
+  --fg-window: #ddd;
+  --scrollbar: #383838;
+  --bg-topbar: #2f2f2f;
+  --shadow-topbar: #272422;
+  --border-topbar: #000;
+  --highlight-topbar: #3c3c3c;
+  --bg-topbar-button: #464048;
+  --fg-topbar-button: #777;
+  --shadow-topbar-button: #000;
+  --bg-topbar-button-active: #666;
+  --fg-topbar-button-active: #ccc;
+  --highlight-bpm-value: #0cc;
+  --bg-midi-update: #fff;
+  --fg-midi-update: #000;
+  --bg-loadsave: #444;
+  --bg-loadsave-item: #555;
+  --shadow-zone: #111;
+  --fg-channel-select: #000;
+
   --brighter-1: rgba(255, 255, 255, 0.1);
   --brighter-2: rgba(255, 255, 255, 0.3);
   --brighter-3: rgba(255, 255, 255, 0.5);
@@ -45,14 +65,53 @@
   --green-highlight: rgba(0, 196, 0, 0.4);
 }
 
+body.bright {
+  --bg-window: #ddd;
+  --fg-window: #272422;
+  --scrollbar: #bbb;
+  --bg-topbar: #98989f;
+  --shadow-topbar: #333;
+  --border-topbar: #98989f;
+  --highlight-topbar: #88888f;
+  --bg-topbar-button: #98989f;
+  --fg-topbar-button: #fff;
+  --shadow-topbar-button: #000;
+  --bg-topbar-button-active: #666;
+  --fg-topbar-button-active: #ccc;
+  --highlight-bpm-value: #0cc;
+  --bg-midi-update: #fff;
+  --fg-midi-update: #000;
+  --bg-loadsave: #444;
+  --bg-loadsave-item: #555;
+  --shadow-zone: #888;
+  --fg-channel-select: #000;
+
+  --brighter-1: rgba(255, 255, 255, 0.1);
+  --brighter-2: rgba(255, 255, 255, 0.3);
+  --brighter-3: rgba(255, 255, 255, 0.5);
+  --brighter-4: rgba(255, 255, 255, 0.7);
+
+  --darker-1: rgba(0, 0, 0, 0.1);
+  --darker-2: rgba(0, 0, 0, 0.3);
+  --darker-3: rgba(0, 0, 0, 0.5);
+  --darker-4: rgba(0, 0, 0, 0.7);
+
+  --red-highlight: rgba(196, 0, 0, 0.4);
+  --green-highlight: rgba(0, 196, 0, 0.4);
+}
+
+.bright .zone {
+  opacity: 0.8;
+}
+
 html {
   scroll-behavior: smooth;
 }
 
 body {
   font-family: 'Potano Sans', Verdana, sans-serif;
-  background: #272422;
-  color: #ddd;
+  background: var(--bg-window);
+  color: var(--fg-window);
   margin: 30px 0 0 0;
 }
 
@@ -79,13 +138,13 @@ select {
 }
 
 ::-webkit-scrollbar {
-  background-color: #272422;
+  background-color: transparent;
   width: 6px;
 }
 
 ::-webkit-scrollbar-thumb:window-inactive,
 ::-webkit-scrollbar-thumb {
-  background: #383838;
+  background: var(--scrollbar);
   border-radius: 4px;
   padding: 4px;
 }
@@ -96,13 +155,12 @@ select {
   top: 0;
   left: 0;
   right: 0;
-  background-color: #2f2f2f;
+  background-color: var(--bg-topbar);
   padding: 2px 5px;
   font-size: 12px;
   color: var(--brighter-3);
-  box-shadow: 0 2px 5px #272422;
-  border-bottom: 1px solid #000;
-
+  box-shadow: 0 2px 5px var(--shadow-topbar);
+  border-bottom: 1px solid var(--border-topbar);
   text-align: center;
 }
 
@@ -128,7 +186,7 @@ select {
 }
 
 #midisettings .clocksettings {
-  background-color: #3c3c3c;
+  background-color: var(--highlight-topbar);
 }
 
 #midisettings select {
@@ -144,8 +202,8 @@ select {
 
 .updated #midisettings select,
 .updated .zone select.outport {
-  background-color: #fff;
-  color: #000;
+  background-color: var(--bg-midi-update);
+  color: var(--fg-midi-update);
 }
 
 select#midiInChannel {
@@ -173,8 +231,8 @@ select#midiInChannel {
 .lightButton {
   display: inline-block;
   padding: 0 4px;
-  background: #464048;
-  color: #777;
+  background: var(--bg-topbar-button);
+  color: var(--fg-topbar-button);
   cursor: pointer;
   border-radius: 4px;
   border: none;
@@ -183,12 +241,12 @@ select#midiInChannel {
   height: 16px;
   vertical-align: top;
   margin: 0 4px;
-  box-shadow: 0 0 2px #000;
+  box-shadow: 0 0 2px var(--shadow-topbar-button);
 }
 
 .lightButton.active {
-  background: #666;
-  color: #ccc;
+  background: var(--bg-topbar-button-active);
+  color: var(--fg-topbar-button-active);
 }
 
 .lightButton .material-icons {
@@ -222,8 +280,8 @@ select#midiInChannel {
 
 #displayBPM:hover,
 .dragging #displayBPM {
-  color: #0cc;
-  box-shadow: 0 0 10px #0cc;
+  color: var(--highlight-bpm-value);
+  box-shadow: 0 0 10px var(--highlight-bpm-value);
 }
 
 .padded {
@@ -242,37 +300,36 @@ select#midiInChannel {
 }
 
 .zonedrag #tools {
-  background-color: #333;
+  background-color: var(--bg-topbar);
 }
 
 #newzone {
-  background: #444;
+  background: var(--bg-topbar-button);
   border-radius: 8px;
   width: 48px;
   height: 24px;
   line-height: 24px;
   display: inline-block;
   text-align: center;
-  color: #888;
+  color: var(--fg-topbar-button);
   cursor: pointer;
 }
 
 #newzone:hover {
-  background: #888;
-  color: #ccc;
+  background: var(--bg-topbar-button-active);
+  color: var(--fg-topbar-button-active);
 }
 
 .zone {
   position: relative;
   color: var(--brighter-4);
   font-size: 12px;
-  background-color: #444;
   margin: 20px auto;
   padding: 8px 8px 8px 8px;
   border-radius: 8px;
   width: 100%;
   min-width: 960px;
-  box-shadow: 0 2px 10px #111;
+  box-shadow: 0 2px 10px var(--shadow-zone);
 }
 
 .zone.dragged {
@@ -284,7 +341,7 @@ select#midiInChannel {
 .zone.initialising {
   text-align: center;
   padding: 30px;
-  color: #ccc;
+  color: var(--fg-window);
 }
 
 .dragging .zone {
@@ -322,7 +379,7 @@ select#midiInChannel {
 .ch.enabled.selected,
 .ch.selected {
   background-color: var(--brighter-2);
-  color: #000;
+  color: var(--fg-channel-select);
   border-color: transparent;
 }
 
@@ -452,7 +509,7 @@ select#midiInChannel {
 
 .check.selected {
   background-color: var(--brighter-3);
-  color: #000;
+  color: var(--fg-channel-select);
   border-color: transparent;
 }
 .check.selected .material-icons {
@@ -535,7 +592,7 @@ select#midiInChannel {
 
 .zone select.outport {
   background-color: var(--brighter-2);
-  color: #000;
+  color: var(--fg-channel-select);
   vertical-align: top;
   width: 150px;
   transition: background-color 1s;
@@ -564,7 +621,7 @@ select#midiInChannel {
 }
 
 .zone select option {
-  background-color: #333;
+  background-color: var(--bg-topbar);
 }
 
 .range {
@@ -611,7 +668,7 @@ select#midiInChannel {
 
 .marker.hover {
   background-color: var(--brighter-4);
-  color: #000;
+  color: var(--fg-channel-select);
 }
 
 .join {
@@ -675,7 +732,7 @@ select#midiInChannel {
   width: 170px;
   padding: 8px;
   background-color: var(--bg-color);
-  box-shadow: 0 0 8px #000;
+  box-shadow: 0 0 8px var(--shadow-topbar-button);
   border-radius: 4px;
   bottom: 20px;
   right: 0;
@@ -692,7 +749,7 @@ select#midiInChannel {
 
 #loadsave {
   position: fixed;
-  background: #444;
+  background: var(--bg-loadsave);
   padding: 0 10px 10px 10px;
   top: 30px;
   left: 20px;
@@ -700,7 +757,7 @@ select#midiInChannel {
   font-size: 12px;
   display: none;
   min-width: 200px;
-  box-shadow: 0 0 10px #000;
+  box-shadow: 0 0 10px var(--shadow-zone);
 }
 
 ul {
@@ -713,7 +770,7 @@ li {
   display: block;
   margin: 0.5em 0;
   padding: 4px;
-  background: #555;
+  background: var(--bg-loadsave-item);
   border-radius: 5px;
 }
 
@@ -737,7 +794,7 @@ li {
 }
 
 #loadsave li:hover {
-  border-color: #999;
+  border-color: var(--brigher-1);
 }
 
 #loadsave input {
