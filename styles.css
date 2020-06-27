@@ -66,11 +66,11 @@
 }
 
 body.bright {
-  --bg-window: #c6c6d9;
+  --bg-window: #f8f8f8;
   --fg-window: #272422;
   --scrollbar: #bbb;
-  --bg-topbar: #acacc0;
-  --shadow-topbar: #aaa;
+  --bg-topbar: #eeeeee;
+  --shadow-topbar: #888;
   --border-topbar: #98989f;
   --highlight-topbar: #88888f;
   --bg-topbar-button: #98989f;
@@ -142,7 +142,7 @@ select {
 }
 
 .bright #midisettings {
-  color: var(--brighter-4);
+  color: var(--darker-4);
 }
 
 #midisettings .controls {
