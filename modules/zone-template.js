@@ -148,7 +148,7 @@ module.exports = {
             data-action="${index}:at2mod"
             title="Convert channel pressure (aftertouch) to mod (CC 1)"
           >
-            ${checkboxIcons}AT &gt; Mod
+            ${checkboxIcons}AT&gt;Mod
           </div>
           <div
             class="check sustain"
@@ -176,7 +176,7 @@ module.exports = {
             data-action="${index}:fixedvel"
             title="Use fixed velocity 127"
           >
-            ${checkboxIcons}Fixed Vel
+            ${checkboxIcons}Fix Vel
           </div>
           <div
             class="check programchange"
@@ -275,7 +275,7 @@ module.exports = {
           <canvas id="canvasPattern${index}" width="128" height="16"></canvas>
         </div>
         <div
-          class="check"
+          class="check patgen"
           title="Create or shift pattern"
           data-action="${index}:showeuclid"
         >

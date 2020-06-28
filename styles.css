@@ -486,6 +486,11 @@ select#midiInChannel {
   border-radius: 5px;
   background-color: var(--darker-1);
   cursor: pointer;
+  min-width: 75px;
+}
+
+.check.patgen {
+  min-width: 0;
 }
 
 .check.selected {
