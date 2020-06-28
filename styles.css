@@ -591,7 +591,7 @@ select#midiInChannel {
 .valuestep {
   display: inline-block;
   color: var(--brighter-4);
-  padding: 4px;
+  padding: 0 4px;
   cursor: pointer;
 }
 
@@ -731,6 +731,7 @@ select#midiInChannel {
   background-color: var(--darker-1);
   border-radius: 4px;
   vertical-align: top;
+  line-height: 1.6em;
 }
 
 #loadsave {
