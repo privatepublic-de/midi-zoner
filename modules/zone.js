@@ -95,6 +95,7 @@ module.exports = class Zone {
   hue = 0;
   saturation = 0;
   lightness = 0.3;
+  pgm_no = null;
 
   rngArp = null;
   rngProb = null;

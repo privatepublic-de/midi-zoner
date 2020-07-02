@@ -140,6 +140,7 @@ function actionHandler(ev) {
       {
         const v = parseInt(e.value);
         if (v > 0 && v < 129) {
+          zone.pgm_no = v;
           midiController.sendProgramChange(
             zone.outputPortId,
             zone.channel,
@@ -647,6 +648,9 @@ function updateValuesForZone(index) {
   });
   DOM.element(`#euchits${index}`).value = zone.euclid_hits;
   DOM.element(`#euclen${index}`).value = zone.euclid_length;
+  DOM.element(`#zone${index} input.programnumber`).value = zone.pgm_no
+    ? zone.pgm_no
+    : '';
   updateControllerValues(zone, index);
   updateGeneralButtons();
 }
