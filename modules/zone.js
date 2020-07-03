@@ -82,7 +82,8 @@ module.exports = class Zone {
     lastnote: null,
     repeattrig: false,
     repeatnote: null,
-    beat: false
+    beat: false,
+    octave: 0
   };
   activeNotes = [];
   midiActiveNotes = [];
@@ -163,7 +164,7 @@ module.exports = class Zone {
 
   set arp_octaves(v) {
     this._arp_octaves = v;
-    this.notesChanged();
+    requestAnimationFrame(this.renderNotes.bind(this));
   }
 
   get solo() {
@@ -323,21 +324,6 @@ module.exports = class Zone {
     if (this.enabled) {
       this.arp.orderlist = Array.from(this.activeNotes);
       this.arp_holdlist = Array.from(this.holdList);
-      for (let i = 0; i < this._arp_octaves; i++) {
-        // add arp octaves
-        for (let j = 0; j < this.activeNotes.length; j++) {
-          const note = this.activeNotes[j];
-          this.arp.orderlist.push(
-            new Note(note.number + 12 * (i + 1), note.velo)
-          );
-        }
-        for (let j = 0; j < this.holdList.length; j++) {
-          const note = this.holdList[j];
-          this.arp_holdlist.push(
-            new Note(note.number + 12 * (i + 1), note.velo)
-          );
-        }
-      }
       this.arp.sortedlist = Array.from(this.arp.orderlist).sort(
         (a, b) => a.number - b.number
       );
@@ -365,10 +351,12 @@ module.exports = class Zone {
           : this.activeNotes;
       for (let i = 0; i < list.length; i++) {
         if (this.arp_enabled) {
-          const number = list[i].number + this.octave * 12;
-          ctx.beginPath();
-          ctx.rect((cwidth * number) / 127, 0, 5, 16);
-          ctx.stroke();
+          for (let ao = 0; ao < this.arp_octaves + 1; ao++) {
+            const number = list[i].number + (this.octave + ao) * 12;
+            ctx.beginPath();
+            ctx.rect((cwidth * number) / 127, 0, 5, 16);
+            ctx.stroke();
+          }
         } else {
           const number = list[i].number;
           ctx.fillRect((cwidth * number) / 127, 0, 5, 16);
@@ -414,6 +402,16 @@ module.exports = class Zone {
     }
   }
 
+  nextOctave(incrementDirection) {
+    let noct = this.arp.octave + incrementDirection;
+    if (noct < 0) {
+      noct = this.arp_octaves;
+    } else if (noct > this.arp_octaves) {
+      noct = 0;
+    }
+    this.arp.octave = noct;
+  }
+
   clock(pos) {
     const tickn = pos % this.arp_ticks;
     const offtick = Math.min(
@@ -442,31 +440,48 @@ module.exports = class Zone {
             switch (this.arp_direction) {
               case 0: // up
               case 4: // order
-                this.arp.noteindex = (this.arp.noteindex + 1) % notes.length;
+                this.arp.noteindex++;
+                if (this.arp.noteindex >= notes.length) {
+                  this.arp.noteindex = 0;
+                  this.nextOctave(1);
+                }
                 break;
               case 1: // down
                 this.arp.noteindex--;
                 if (this.arp.noteindex < 0) {
                   this.arp.noteindex = notes.length - 1;
+                  this.nextOctave(-1);
                 }
                 break;
               case 2: // updown
                 if (notes.length > 1) {
                   this.arp.noteindex += this.arp.inc;
-                  if (this.arp.noteindex >= notes.length - 1) {
-                    this.arp.inc = -1;
-                    if (this.arp.noteindex > notes.length - 1) {
-                      this.arp.noteindex = Math.max(notes.length - 1, 0);
+                  if (this.arp.noteindex >= notes.length) {
+                    this.arp.noteindex = this.arp.noteindex % notes.length;
+                    if (this.arp.octave == this.arp_octaves) {
+                      this.arp.inc = -1;
+                      this.arp.noteindex = notes.length - 2;
+                    } else {
+                      this.nextOctave(this.arp.inc);
                     }
-                  } else if (this.arp.noteindex < 1) {
-                    this.arp.inc = 1;
+                  } else if (this.arp.noteindex < 0) {
+                    if (this.arp.octave == 0) {
+                      this.arp.inc = 1;
+                      this.arp.noteindex = 1;
+                    } else {
+                      this.arp.noteindex = notes.length - 1;
+                      this.nextOctave(this.arp.inc);
+                    }
                   }
                 } else {
                   this.arp.noteindex = 0;
                 }
                 break;
               case 3: // random
-                this.arp.noteindex = parseInt(this.rngArp() * notes.length);
+                this.arp.noteindex = Math.floor(this.rngArp() * notes.length);
+                this.arp.octave = Math.floor(
+                  this.rngArp() * (this.arp_octaves + 1)
+                );
                 break;
             }
           }
@@ -480,7 +495,7 @@ module.exports = class Zone {
               : notes[this.arp.noteindex];
             let number = repetition
               ? activeNote.number
-              : activeNote.number + this.octave * 12;
+              : activeNote.number + (this.octave + this.arp.octave) * 12;
             while (number > 127) number -= 12;
             while (number < 0) number += 12;
             const note = new Note(
@@ -533,6 +548,7 @@ module.exports = class Zone {
     this.arp.patternPos = -1;
     this.arp.repeattrig = false;
     this.arp.inc = 1;
+    this.arp.octave = 0;
     this.arpNoteOff();
     requestAnimationFrame(this.renderPattern.bind(this));
   }
