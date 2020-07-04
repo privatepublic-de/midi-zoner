@@ -99,6 +99,7 @@ module.exports = class Zone {
   pgm_no = null;
 
   rngArp = null;
+  rngArpOct = null;
   rngProb = null;
 
   /**
@@ -108,6 +109,7 @@ module.exports = class Zone {
   constructor(midi) {
     this.midi = midi;
     this.rngArp = seedrandom();
+    this.rngArpOct = seedrandom();
     this.rngProb = seedrandom();
     this.randomizeColor();
   }
@@ -402,16 +404,6 @@ module.exports = class Zone {
     }
   }
 
-  nextOctave(incrementDirection) {
-    let noct = this.arp.octave + incrementDirection;
-    if (noct < 0) {
-      noct = this.arp_octaves;
-    } else if (noct > this.arp_octaves) {
-      noct = 0;
-    }
-    this.arp.octave = noct;
-  }
-
   clock(pos) {
     const tickn = pos % this.arp_ticks;
     const offtick = Math.min(
@@ -433,24 +425,32 @@ module.exports = class Zone {
             this.arp_direction > 2 ? this.arp.orderlist : this.arp.sortedlist
           );
         }
-        if (notes.length > 0 /*&& (zones.solocount === 0 || this.solo)*/) {
-          // send next note
+        if (notes.length > 0) {
           const repetition = this.arp_repeat && this.arp.repeattrig;
           if (!repetition) {
+            const nextArpOctave = (dir) => {
+              let noct = this.arp.octave + dir;
+              if (noct < 0) {
+                noct = this.arp_octaves;
+              } else if (noct > this.arp_octaves) {
+                noct = 0;
+              }
+              this.arp.octave = noct;
+            };
             switch (this.arp_direction) {
               case 0: // up
               case 4: // order
                 this.arp.noteindex++;
                 if (this.arp.noteindex >= notes.length) {
                   this.arp.noteindex = 0;
-                  this.nextOctave(1);
+                  nextArpOctave(1);
                 }
                 break;
               case 1: // down
                 this.arp.noteindex--;
                 if (this.arp.noteindex < 0) {
                   this.arp.noteindex = notes.length - 1;
-                  this.nextOctave(-1);
+                  nextArpOctave(-1);
                 }
                 break;
               case 2: // updown
@@ -462,7 +462,7 @@ module.exports = class Zone {
                       this.arp.inc = -1;
                       this.arp.noteindex = notes.length - 2;
                     } else {
-                      this.nextOctave(this.arp.inc);
+                      nextArpOctave(this.arp.inc);
                     }
                   } else if (this.arp.noteindex < 0) {
                     if (this.arp.octave == 0) {
@@ -470,7 +470,7 @@ module.exports = class Zone {
                       this.arp.noteindex = 1;
                     } else {
                       this.arp.noteindex = notes.length - 1;
-                      this.nextOctave(this.arp.inc);
+                      nextArpOctave(this.arp.inc);
                     }
                   }
                 } else {
@@ -480,7 +480,7 @@ module.exports = class Zone {
               case 3: // random
                 this.arp.noteindex = Math.floor(this.rngArp() * notes.length);
                 this.arp.octave = Math.floor(
-                  this.rngArp() * (this.arp_octaves + 1)
+                  this.rngArpOct() * (this.arp_octaves + 1)
                 );
                 break;
             }
