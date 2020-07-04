@@ -99,6 +99,17 @@ module.exports = {
       </div>
       <div class="ccpots">
         <div class="ccpotttools">
+          <label>Program</label>
+          <div class="prgm" title="Send program change message">
+            <input
+              class="programnumber"
+              type="text"
+              value=""
+              data-change="${index}:changeprogram"
+            />
+            <span class="valuestep" data-action="${index}:prgdec">&lt;</span>
+            <span class="valuestep" data-action="${index}:prginc">&gt;</span>
+          </div>
           <i class="material-icons" title="Add new control" data-action="${index}:add_cc_controller">add</i>
           <i class="material-icons" title="Send all CC values" data-action="${index}:send_all_cc">send</i>
         </div>
@@ -139,7 +150,7 @@ module.exports = {
           <div
             class="check mod"
             data-action="${index}:mod"
-            title="Forward mod wheel messages (CC 1)"
+            title="Transmit mod wheel messages (CC 1)"
           >
             ${checkboxIcons}Mod
           </div>
@@ -153,21 +164,21 @@ module.exports = {
           <div
             class="check sustain"
             data-action="${index}:sustain"
-            title="Forward sustain pedal messages (CC 64)"
+            title="Transmit sustain pedal messages (CC 64)"
           >
             ${checkboxIcons}Pedal
           </div>
           <div
             class="check cc"
             data-action="${index}:cc"
-            title="Forward control change messages"
+            title="Transmit control change messages"
           >
             ${checkboxIcons}CCs
           </div>
           <div
             class="check pitchbend"
             data-action="${index}:pitchbend"
-            title="Forward pitch bend messages"
+            title="Transmit pitch bend messages"
           >
             ${checkboxIcons}PB
           </div>
@@ -181,20 +192,9 @@ module.exports = {
           <div
             class="check programchange"
             data-action="${index}:programchange"
-            title="Forward program change messages"
+            title="Transmit program change messages"
           >
             ${checkboxIcons}PRGM
-          </div>
-          <div class="val prgm" title="Send program change message">
-            <span class="valuestep" data-action="${index}:prgdec">&lt;</span>
-            <input
-              class="programnumber"
-              type="text"
-              value=""
-              size="3"
-              data-change="${index}:changeprogram"
-            />
-            <span class="valuestep" data-action="${index}:prginc">&gt;</span>
           </div>
         </div>
       </div>
