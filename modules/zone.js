@@ -96,7 +96,7 @@ module.exports = class Zone {
   hue = 0;
   saturation = 0;
   lightness = 0.3;
-  pgm_no = null;
+  pgm_no = null; // 1-based: 1-128
 
   rngArp = null;
   rngArpOct = null;
@@ -603,6 +603,16 @@ module.exports = class Zone {
       ]),
       this.outputPortId
     );
+  }
+
+  sendProgramChange() {
+    if (this.pgm_no) {
+      this.midi.sendProgramChange(
+        this.outputPortId,
+        this.channel,
+        this.pgm_no - 1
+      );
+    }
   }
 
   sendAllCC() {

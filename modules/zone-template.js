@@ -111,7 +111,7 @@ module.exports = {
             <span class="valuestep" data-action="${index}:prginc">&gt;</span>
           </div>
           <i class="material-icons" title="Add new control" data-action="${index}:add_cc_controller">add</i>
-          <i class="material-icons" title="Send all CC values" data-action="${index}:send_all_cc">send</i>
+          <i class="material-icons" title="Send all values" data-action="${index}:send_all_cc">send</i>
         </div>
       </div>
       <div
