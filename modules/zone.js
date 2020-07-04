@@ -344,9 +344,9 @@ module.exports = class Zone {
       const cwidth = this.canvasElement.width;
       ctx.clearRect(0, 0, cwidth, this.canvasElement.height);
       ctx.fillStyle = this.arp_enabled
-        ? 'rgba(0,0,0,.5)'
-        : 'rgba(255,255,255,.5)';
-      ctx.strokeStyle = 'rgba(0,0,0,.75)';
+        ? 'rgba(0,0,0,.2)'
+        : 'rgba(255,255,255,.6)';
+      // ctx.strokeStyle = 'rgba(0,0,0,.75)';
       const list =
         this.arp_hold && this.arp_enabled
           ? this.arp_holdlist
@@ -355,9 +355,7 @@ module.exports = class Zone {
         if (this.arp_enabled) {
           for (let ao = 0; ao < this.arp_octaves + 1; ao++) {
             const number = list[i].number + (this.octave + ao) * 12;
-            ctx.beginPath();
-            ctx.rect((cwidth * number) / 127, 0, 5, 16);
-            ctx.stroke();
+            ctx.fillRect((cwidth * number) / 127, 0, 5, 16);
           }
         } else {
           const number = list[i].number;
@@ -367,7 +365,7 @@ module.exports = class Zone {
       if (this.arp_enabled) {
         const note = this.arp.lastnote;
         if (note) {
-          ctx.fillStyle = 'rgba(255,255,255,.5)';
+          ctx.fillStyle = 'rgba(255,255,255,.7)';
           ctx.fillRect((cwidth * note.number) / 127, 0, 5, 16);
         }
       }
