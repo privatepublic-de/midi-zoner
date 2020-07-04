@@ -272,8 +272,17 @@ document.addEventListener('DOMContentLoaded', function () {
         DOM.element('#shuffleColors').addEventListener('click', () => {
           zones.list.forEach((zone) => {
             zone.randomizeColor();
-            view.renderZones();
           });
+          view.renderZones();
+          saveZones();
+        });
+        DOM.element('#shuffleColors').addEventListener('dblclick', () => {
+          zones.list.forEach((/** @type {Zone} */ zone, index) => {
+            zone.hue = index / zones.list.length;
+            zone.saturation = 0.6;
+            zone.lightness = 0.3;
+          });
+          view.renderZones();
           saveZones();
         });
         DOM.element('#toggleTheme').addEventListener('click', () => {
