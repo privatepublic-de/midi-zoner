@@ -72,7 +72,7 @@ function findTouchedNote(
   };
 }
 
-function actionHandler(ev) {
+function actionHandler(/** @type {MouseEvent} */ ev) {
   const e = ev.currentTarget;
   const action = e.getAttribute('data-action') || e.getAttribute('data-change');
   const params = action.split(':');
@@ -247,10 +247,18 @@ function actionHandler(ev) {
       {
         const pos = Number(params[2]);
         if (pos > 0) {
-          const v2 = zone.cc_controllers[pos - 1];
-          zone.cc_controllers[pos - 1] = zone.cc_controllers[pos];
+          let targetPos = pos - (ev.shiftKey ? 4 : 1);
+          if (targetPos < 0) {
+            targetPos = 0;
+          }
+          const v2 = zone.cc_controllers[targetPos];
+          zone.cc_controllers[targetPos] = zone.cc_controllers[pos];
           zone.cc_controllers[pos] = v2;
           renderControllersForZone(zone, zoneindex);
+          DOM.addClass(
+            `#zone${zoneindex} .ccpot:nth-child(${targetPos + 1})`,
+            'moved'
+          );
         }
       }
       break;
@@ -258,10 +266,18 @@ function actionHandler(ev) {
       {
         const pos = Number(params[2]);
         if (pos < zone.cc_controllers.length - 1) {
-          const v2 = zone.cc_controllers[pos + 1];
-          zone.cc_controllers[pos + 1] = zone.cc_controllers[pos];
+          let targetPos = pos + (ev.shiftKey ? 4 : 1);
+          if (targetPos >= zone.cc_controllers.length) {
+            targetPos = zone.cc_controllers.length - 1;
+          }
+          const v2 = zone.cc_controllers[targetPos];
+          zone.cc_controllers[targetPos] = zone.cc_controllers[pos];
           zone.cc_controllers[pos] = v2;
           renderControllersForZone(zone, zoneindex);
+          DOM.addClass(
+            `#zone${zoneindex} .ccpot:nth-child(${targetPos + 1})`,
+            'moved'
+          );
         }
       }
       break;
