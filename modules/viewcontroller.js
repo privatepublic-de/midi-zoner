@@ -91,8 +91,10 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       break;
     case 'ch':
       let number = parseInt(params[2]);
-      zone.channel = number;
-      updateValuesForZone(zoneindex);
+      if (number < 16 || (number == 16 && !zone.arp_enabled)) {
+        zone.channel = number;
+        updateValuesForZone(zoneindex);
+      }
       break;
     case 'outport':
       zone.preferredOutputPortId = zone.outputPortId = e.value;
