@@ -578,6 +578,11 @@ function updateValuesForZone(index) {
   } else {
     DOM.removeClass(`#zone${index}`, 'soloed-out');
   }
+  if (zone.channel == 16) {
+    DOM.addClass(`#zone${index}`, 'transposer');
+  } else {
+    DOM.removeClass(`#zone${index}`, 'transposer');
+  }
   const rgbZone = DOM.hslToRgb(
     zone.hue,
     zone.saturation,

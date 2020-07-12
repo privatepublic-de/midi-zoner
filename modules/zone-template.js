@@ -47,12 +47,15 @@ module.exports = {
   getHTML: function (/** @type {Zone} */ zone, zoneindex) {
     const index = zoneindex;
     let channelselectors = '';
-    for (let i = 0; i < 16; i++) {
+    for (let i = 0; i < 17; i++) {
+      const label = i < 16 ? i + 1 : 'T';
+      const title =
+        i < 16
+          ? `Select MIDI channel ${i + 1}`
+          : 'Transpose arpeggiators with this Zone';
       channelselectors += `<div class="ch mch ${
         zone.channel == i ? 'selected' : ''
-      } no${i}" data-action="${index}:ch:${i}" title="Select MIDI channel ${
-        i + 1
-      }">${i + 1}</div>`;
+      } no${i}" data-action="${index}:ch:${i}" title="${title}">${label}</div>`;
     }
     const octavemarkers = '<span class="oct"></span>'.repeat(10);
     const checkboxIcons = /*html*/ `<span class="material-icons sel">check_circle</span

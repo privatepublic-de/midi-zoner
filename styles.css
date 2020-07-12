@@ -931,3 +931,24 @@ li {
 .ccpots *[data-action] {
   cursor: pointer;
 }
+
+.zone.transposer .outport,
+.zone.transposer .showccs {
+  visibility: hidden;
+}
+
+.zone.transposer .settings,
+.zone.transposer .arp-settings,
+.zone.transposer .ccpots {
+  display: none;
+}
+
+.zone.transposer {
+  background-color: var(--darker-1) !important;
+  border: 1px solid var(--bg-color);
+  box-shadow: none;
+}
+
+.zone.transposer .mch.no16 {
+  background-color: var(--bg-color);
+}
