@@ -14,7 +14,7 @@
   "author": "Peter Witzel - privatepublic.de",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^8.0.2",
+    "electron": "^8.4.0",
     "electron-builder": "22.5.1",
     "electron-packager": "^14.2.0"
   },
