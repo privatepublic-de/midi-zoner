@@ -348,18 +348,22 @@ module.exports = class Zone {
       this.canvasElement.width = this.canvasElement.parentElement.offsetWidth;
       /** @type {CanvasRenderingContext2D} */
       const ctx = this.canvasElement.getContext('2d');
+      this.canvasElement.width =
+        this.canvasElement.height *
+        (this.canvasElement.clientWidth / this.canvasElement.clientHeight);
       const cwidth = this.canvasElement.width;
+      const notewidth = cwidth / 127 - cwidth / 127 / 3;
       ctx.clearRect(0, 0, cwidth, this.canvasElement.height);
       if (this.channel == 16) {
         ctx.fillStyle = 'rgba(255,255,255,.6)';
         ctx.font = '15px sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText(
-          `Transpose ${Zone.arp_transpose >= 0 ? '+' : ''}${
+          `Arpeggiator transpose: ${Zone.arp_transpose >= 0 ? '+' : ''}${
             Zone.arp_transpose
           }`,
           cwidth / 2,
-          15
+          12
         );
         return;
       }
@@ -376,18 +380,18 @@ module.exports = class Zone {
           for (let ao = 0; ao < this.arp_octaves + 1; ao++) {
             const number =
               list[i].number + Zone.arp_transpose + (this.octave + ao) * 12;
-            ctx.fillRect((cwidth * number) / 127, 0, 5, 16);
+            ctx.fillRect((cwidth * number) / 127, 0, notewidth, 16);
           }
         } else {
           const number = list[i].number;
-          ctx.fillRect((cwidth * number) / 127, 0, 5, 16);
+          ctx.fillRect((cwidth * number) / 127, 0, notewidth, 16);
         }
       }
       if (this.arp_enabled) {
         const note = this.arp.lastnote;
         if (note) {
           ctx.fillStyle = 'rgba(255,255,255,.7)';
-          ctx.fillRect((cwidth * note.number) / 127, 0, 5, 16);
+          ctx.fillRect((cwidth * note.number) / 127, 0, notewidth, 16);
         }
       }
     }
