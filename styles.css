@@ -78,6 +78,7 @@ body.bright {
   --bg-loadsave: #fff;
   --bg-loadsave-item: #eee;
   --shadow-zone: #888;
+  --highlight-bpm-value: #066;
 }
 
 html {
@@ -183,12 +184,13 @@ select {
 
 #midisettings select option {
   color: var(--brighter-4);
-  background-color: var(--darker-2);
+  background-color: var(--darker-4);
 }
 
 .bright #midisettings select {
-  color: var(--brighter-4);
-  background-color: var(--darker-2);
+  color: var(--darker-4);
+  background-color: var(--darker-1);
+  border: 1px solid var(--darker-1);
 }
 
 .updated #midisettings select,
@@ -267,6 +269,17 @@ select#midiInChannel {
   border-radius: 4px;
   width: 50px;
   cursor: col-resize;
+}
+
+.bright #displayBPM {
+  background-color: var(--darker-1);
+  border: 1px solid var(--darker-1);
+}
+
+#displayBPM:hover,
+.dragging #displayBPM {
+  color: var(--highlight-bpm-value);
+  box-shadow: 0 0 10px var(--highlight-bpm-value);
 }
 
 #displayBPM:hover,
@@ -616,8 +629,11 @@ select#midiInChannel {
 
 .zone select option {
   background-color: var(--bg-topbar);
+  color: var(--brighter-4);
 }
-
+.bright .zone select option {
+  color: var(--darker-4);
+}
 .range {
   position: relative;
   height: 28px;
