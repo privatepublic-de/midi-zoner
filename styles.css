@@ -73,8 +73,9 @@ body.bright {
   --shadow-topbar: #888;
   --border-topbar: #98989f;
   --highlight-topbar: #88888f;
-  --bg-topbar-button: #98989f;
-  --fg-topbar-button: #fff;
+  --bg-topbar-button: rgba(0, 0, 0, 0.1);
+  --fg-topbar-button: rgba(0, 0, 0, 0.3);
+  --shadow-topbar-button: rgba(0, 0, 0, 0.3);
   --bg-loadsave: #fff;
   --bg-loadsave-item: #eee;
   --shadow-zone: #888;
