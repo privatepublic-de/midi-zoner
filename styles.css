@@ -181,6 +181,16 @@ select {
   transition: background-color 1s, color 1s;
 }
 
+#midisettings select option {
+  color: var(--brighter-4);
+  background-color: var(--darker-2);
+}
+
+.bright #midisettings select {
+  color: var(--brighter-4);
+  background-color: var(--darker-2);
+}
+
 .updated #midisettings select,
 .updated .zone select.outport {
   background-color: var(--bg-midi-update);
@@ -312,6 +322,10 @@ select#midiInChannel {
   min-width: 960px;
   box-shadow: 0 2px 10px var(--shadow-zone);
   border: 1px solid var(--darker-3);
+}
+
+.bright .zone {
+  border: 1px solid var(--darker-2);
 }
 
 .zone.dragged {
