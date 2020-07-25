@@ -73,15 +73,17 @@ function findTouchedNote(
 }
 
 function actionHandler(/** @type {MouseEvent} */ ev) {
-  const e = ev.currentTarget;
-  const action = e.getAttribute('data-action') || e.getAttribute('data-change');
+  const element = ev.currentTarget;
+  const action =
+    element.getAttribute('data-action') || element.getAttribute('data-change');
   const params = action.split(':');
   const zoneindex = params[0];
   /** @type {Zone} */
   const zone = zones.list[zoneindex];
+  ev.stopPropagation();
   switch (params[1]) {
     case 'range':
-      const result = findTouchedNote(ev, e, zone);
+      const result = findTouchedNote(ev, element, zone);
       if (result.isLow) {
         zone.low = result.low;
       } else {
@@ -91,13 +93,13 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       break;
     case 'ch':
       let number = parseInt(params[2]);
-      if (number < 16 || (number == 16 && !zone.arp_enabled)) {
+      if (number < 16) {
         zone.channel = number;
         updateValuesForZone(zoneindex);
       }
       break;
     case 'outport':
-      zone.preferredOutputPortId = zone.outputPortId = e.value;
+      zone.preferredOutputPortId = zone.outputPortId = element.value;
       midiController.updateUsedPorts(listUsedPorts());
       break;
     case 'octave':
@@ -112,6 +114,7 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
     case 'pitchbend':
     case 'programchange':
     case 'arp_hold':
+    case 'arp_transpose':
     case 'arp_repeat':
     case 'arp_enabled':
       zone[params[1]] = !zone[params[1]];
@@ -120,19 +123,19 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
     case 'arp_direction':
     case 'arp_octaves':
     case 'arp_division':
-      zone[params[1]] = e.selectedIndex;
+      zone[params[1]] = element.selectedIndex;
       updateValuesForZone(zoneindex);
       break;
     case 'arp_probability':
     case 'arp_gatelength':
-      const percent = ev.offsetX / (e.offsetWidth * 0.95);
+      const percent = ev.offsetX / (element.offsetWidth * 0.95);
       zone[params[1]] = Math.min(1, Math.max(0, Math.floor(percent * 24) / 24));
       updateValuesForZone(zoneindex);
       break;
     case 'arp_pattern':
       if (ev.target.tagName == 'CANVAS') {
         const index = parseInt(
-          (ev.offsetX / e.offsetWidth) * zone.arp_pattern.length
+          (ev.offsetX / element.offsetWidth) * zone.arp_pattern.length
         );
         zone.arp_pattern[index] = !zone.arp_pattern[index];
         zone.renderPattern();
@@ -140,7 +143,7 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       break;
     case 'changeprogram':
       {
-        const v = parseInt(e.value);
+        const v = parseInt(element.value);
         if (v > 0 && v < 129) {
           zone.pgm_no = v;
           zone.sendProgramChange();
@@ -187,7 +190,7 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       window.scrollTo({ top: scrollPos });
       break;
     case 'color':
-      const hsl = DOM.rgb2hsl(DOM.hexToRgb(e.value));
+      const hsl = DOM.rgb2hsl(DOM.hexToRgb(element.value));
       zone.hue = hsl[0];
       zone.saturation = hsl[1];
       zone.lightness = hsl[2];
@@ -228,12 +231,12 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       zone.sendAllCC();
       break;
     case 'cc_label':
-      zone.cc_controllers[params[2]].label = e.value;
+      zone.cc_controllers[params[2]].label = element.value;
       break;
     case 'cc_number':
-      e.value = e.value.replace(/[^0-9]/, '');
-      if (e.value != '') {
-        zone.cc_controllers[params[2]].number = parseInt(e.value);
+      element.value = element.value.replace(/[^0-9]/, '');
+      if (element.value != '') {
+        zone.cc_controllers[params[2]].number = parseInt(element.value);
       }
       break;
     case 'cc_remove':
@@ -580,11 +583,6 @@ function updateValuesForZone(index) {
   } else {
     DOM.removeClass(`#zone${index}`, 'soloed-out');
   }
-  if (zone.channel == 16) {
-    DOM.addClass(`#zone${index}`, 'transposer');
-  } else {
-    DOM.removeClass(`#zone${index}`, 'transposer');
-  }
   const rgbZone = DOM.hslToRgb(
     zone.hue,
     zone.saturation,
@@ -640,6 +638,7 @@ function updateValuesForZone(index) {
     'programchange',
     'arp_enabled',
     'arp_hold',
+    'arp_transpose',
     'arp_repeat'
   ].forEach((p) => {
     if (zone[p]) {

@@ -47,12 +47,9 @@ module.exports = {
   getHTML: function (/** @type {Zone} */ zone, zoneindex) {
     const index = zoneindex;
     let channelselectors = '';
-    for (let i = 0; i < 17; i++) {
-      const label = i < 16 ? i + 1 : 'T';
-      const title =
-        i < 16
-          ? `Select MIDI channel ${i + 1}`
-          : 'Transpose arpeggiators with this Zone';
+    for (let i = 0; i < 16; i++) {
+      const label = i + 1;
+      const title = `Select MIDI channel ${i + 1}`;
       channelselectors += `<div class="ch mch ${
         zone.channel == i ? 'selected' : ''
       } no${i}" data-action="${index}:ch:${i}" title="${title}">${label}</div>`;
@@ -208,6 +205,12 @@ module.exports = {
           title="Hold notes after key release"
         >
           Hold
+          <span
+            class="arp_transpose"
+            title="Use keyboard to transpose held arpeggio"
+            data-action="${index}:arp_transpose">
+            transpose
+          </span>
         </div>
         <div class="drop-down">
           <select class="arp_direction" data-change="${index}:arp_direction">

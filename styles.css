@@ -964,23 +964,18 @@ li {
   cursor: pointer;
 }
 
-.zone.transposer .outport,
-.zone.transposer .showccs {
-  visibility: hidden;
+.arp_transpose {
+  font-size: 0.75em;
+  border: 1px solid var(--brighter-1);
+  color: var(--brighter-2);
+  padding: 0 2px;
+  border-radius: 2px;
+  font-style: italic;
+}
+.arp_transpose.selected {
+  color: var(--brighter-4);
 }
 
-.zone.transposer .settings,
-.zone.transposer .arp-settings,
-.zone.transposer .ccpots {
-  display: none;
-}
-
-.zone.transposer {
-  background-color: var(--darker-1) !important;
-  /* border: 1px solid var(--bg-color); */
-  box-shadow: none;
-}
-
-.zone.transposer .mch.no16 {
-  background-color: var(--bg-color);
+.arp_hold.selected .arp_transpose.selected {
+  background-color: var(--brighter-2);
 }

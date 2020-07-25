@@ -38,7 +38,6 @@ class Note {
 
 module.exports = class Zone {
   static solocount = 0;
-  static arp_transpose = 0;
   channel = 0; // 0-based
   preferredOutputPortId = '*';
   outputPortId = '*';
@@ -71,6 +70,8 @@ module.exports = class Zone {
   arp_probability = 1;
   arp_velocity = 0; // 0 = as played
   arp_hold = false;
+  arp_transpose = false;
+  arp_transpose_amount = 0;
   arp_pattern = [true, true, true, true, true, true, true, true];
   arp_holdlist = [];
   arp_sortedHoldList = [];
@@ -225,9 +226,9 @@ module.exports = class Zone {
           const srcKey = key;
           let velo = data[2];
           if (key >= this.low && key <= this.high) {
-            if (this.channel === 16) {
+            if (this.arp_enabled && this.arp_hold && this.arp_transpose) {
               // transposer zone
-              Zone.arp_transpose = ((key + 12) % 24) - 12;
+              this.arp_transpose_amount = ((key + 12) % 24) - 12;
               requestAnimationFrame(this.renderNotes.bind(this));
               return null;
             }
@@ -354,19 +355,6 @@ module.exports = class Zone {
       const cwidth = this.canvasElement.width;
       const notewidth = cwidth / 127 - cwidth / 127 / 3;
       ctx.clearRect(0, 0, cwidth, this.canvasElement.height);
-      if (this.channel == 16) {
-        ctx.fillStyle = 'rgba(255,255,255,.6)';
-        ctx.font = '15px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(
-          `Arpeggiator transpose: ${Zone.arp_transpose >= 0 ? '+' : ''}${
-            Zone.arp_transpose
-          }`,
-          cwidth / 2,
-          12
-        );
-        return;
-      }
       ctx.fillStyle = this.arp_enabled
         ? 'rgba(0,0,0,.2)'
         : 'rgba(255,255,255,.6)';
@@ -379,7 +367,9 @@ module.exports = class Zone {
         if (this.arp_enabled) {
           for (let ao = 0; ao < this.arp_octaves + 1; ao++) {
             const number =
-              list[i].number + Zone.arp_transpose + (this.octave + ao) * 12;
+              list[i].number +
+              (this.arp_transpose ? this.arp_transpose_amount : 0) +
+              (this.octave + ao) * 12;
             ctx.fillRect((cwidth * number) / 127, 0, notewidth, 16);
           }
         } else {
@@ -520,7 +510,7 @@ module.exports = class Zone {
               ? activeNote.number
               : activeNote.number +
                 (this.octave + this.arp.octave) * 12 +
-                Zone.arp_transpose;
+                (this.arp_transpose ? this.arp_transpose_amount : 0);
             while (number > 127) number -= 12;
             while (number < 0) number += 12;
             const note = new Note(
