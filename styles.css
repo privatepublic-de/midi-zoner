@@ -70,8 +70,7 @@ body.bright {
   --fg-window: #272422;
   --scrollbar: #bbb;
   --bg-topbar: #eeeeee;
-  --shadow-topbar: #888;
-  --border-topbar: #98989f;
+  --border-topbar: #ddd;
   --highlight-topbar: #88888f;
   --bg-topbar-button: rgba(0, 0, 0, 0.1);
   --fg-topbar-button: rgba(0, 0, 0, 0.3);
@@ -145,6 +144,7 @@ select {
 
 .bright #midisettings {
   color: var(--darker-4);
+  box-shadow: none;
 }
 
 #midisettings .controls {
