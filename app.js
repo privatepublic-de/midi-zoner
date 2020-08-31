@@ -188,7 +188,7 @@ function updateThemeDisplay() {
 
 function midiEventHandler(event) {
   const channel = event.data[0] & 0x0f;
-  const msgtype = event.data[0] & 0xf0;
+  let msgtype = event.data[0] & 0xf0;
   if (msgtype === MIDI.MESSAGE.NOTE_ON && event.data[2] === 0) {
     msgtype = MIDI.MESSAGE.NOTE_OFF;
   }
