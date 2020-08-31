@@ -119,7 +119,7 @@ module.exports = {
         data-hover="${index}:range"
         data-action="${index}:range"
         title="Select start and end note
-(hold 'shift' for octave locking)"
+(hold 'shift' for single note stepping)"
       >
         ${octavemarkers}
         <span class="join"></span>
