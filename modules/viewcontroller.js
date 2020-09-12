@@ -333,6 +333,13 @@ function dblClickHandler(ev) {
       }
       zone.renderPattern();
       break;
+    case 'solo':
+      for (var i = 0; i < zones.list.length; i++) {
+        zones.list[i].solo = false;
+      }
+      zone.solo = true;
+      updateValuesForAllZones();
+      break;
   }
   triggerSave();
 }
@@ -423,7 +430,7 @@ function appendZone(/** @type {Zone} */ zone, index) {
       e.select();
     });
   });
-  DOM.all(`#zone${index} .pattern`).forEach((e) => {
+  DOM.all(`#zone${index} .pattern, #zone${index} .ch.solo`).forEach((e) => {
     e.addEventListener('dblclick', dblClickHandler);
   });
   let euclidHideTimeout = null;
