@@ -89,7 +89,7 @@ module.exports = {
         >
           R
         </div>
-        <div class="ch solo" data-action="${index}:solo" title="Solo Zone">
+        <div class="ch solo" data-action="${index}:solo" title="Solo Zone\n(Double click for this zone only)">
           S
         </div>
         <select class="outport" data-change="${index}:outport">
@@ -278,7 +278,7 @@ module.exports = {
           data-action="${index}:arp_pattern"
           title="Arpeggiator pattern"
         >
-          <canvas id="canvasPattern${index}" width="128" height="16"></canvas>
+          <canvas id="canvasPattern${index}" width="200" height="16"></canvas>
         </div>
         <div
           class="check patgen"

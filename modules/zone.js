@@ -399,10 +399,10 @@ module.exports = class Zone {
         radius = 7;
       }
       ctx.clearRect(0, 0, cwidth, this.patternCanvas.height);
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.3';
       for (let i = 0; i < plen; i++) {
         if (i === this.arp.patternPos) {
-          ctx.fillStyle = 'rgba(0,0,0,.5)';
+          ctx.fillStyle = 'rgba(255,255,255,.15)';
           ctx.fillRect(width * i, 0, width, 16);
         }
         ctx.beginPath();

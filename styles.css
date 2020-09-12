@@ -255,10 +255,10 @@ select#midiInChannel {
 }
 
 #midisettings .left {
-  left: 20px;
+  left: 15px;
 }
 #midisettings .right {
-  right: 20px;
+  right: 15px;
   text-align: right;
 }
 
@@ -290,7 +290,7 @@ select#midiInChannel {
 }
 
 .padded {
-  padding: 24px 14px 0 14px;
+  padding: 30px 5px 0 5px;
 }
 
 #zones {
@@ -329,9 +329,9 @@ select#midiInChannel {
   position: relative;
   color: var(--brighter-4);
   font-size: 12px;
-  margin: 20px auto;
+  margin: 5px auto;
   padding: 8px 8px 8px 8px;
-  border-radius: 8px;
+  /* border-radius: 8px; */
   width: 100%;
   min-width: 960px;
   box-shadow: 0 2px 10px var(--shadow-zone);
