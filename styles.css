@@ -123,7 +123,7 @@ select {
 ::-webkit-scrollbar-thumb:window-inactive,
 ::-webkit-scrollbar-thumb {
   background: var(--scrollbar);
-  border-radius: 4px;
+  /* border-radius: 4px; */
   padding: 4px;
 }
 
@@ -175,7 +175,7 @@ select {
 #midisettings select {
   width: 170px;
   border: 1px solid var(--darker-3);
-  border-radius: 4px;
+  /* border-radius: 4px; */
   background-color: var(--darker-2);
   color: var(--brighter-3);
   font-size: 12px;
@@ -228,7 +228,7 @@ select#midiInChannel {
   background: var(--bg-topbar-button);
   color: var(--fg-topbar-button);
   cursor: pointer;
-  border-radius: 4px;
+  /* border-radius: 4px; */
   border: none;
   min-width: 26px;
   text-align: center;
@@ -267,7 +267,7 @@ select#midiInChannel {
   text-align: center;
   background-color: var(--darker-2);
   border: 1px solid var(--darker-3);
-  border-radius: 4px;
+  /* border-radius: 4px; */
   width: 50px;
   cursor: col-resize;
 }
@@ -301,7 +301,7 @@ select#midiInChannel {
   width: 100%;
   margin: 0 auto;
   padding: 4px 10px;
-  border-radius: 8px;
+  /* border-radius: 8px; */
 }
 
 .zonedrag #tools {
@@ -310,7 +310,7 @@ select#midiInChannel {
 
 #newzone {
   background: var(--bg-topbar-button);
-  border-radius: 8px;
+  /* border-radius: 8px; */
   width: 48px;
   height: 24px;
   line-height: 24px;
@@ -383,7 +383,7 @@ select#midiInChannel {
   color: var(--brighter-3);
   background-color: var(--darker-1);
   cursor: pointer;
-  border-radius: 4px;
+  /* border-radius: 4px; */
 }
 
 .ch.enabled.selected,
@@ -442,7 +442,7 @@ select#midiInChannel {
   margin-top: 12px;
   padding: 6px;
   background-color: var(--bg-color-complement-dark);
-  border-radius: 0 4px 4px 4px;
+  /* border-radius: 0 4px 4px 4px; */
   display: none;
   text-align: left;
 }
@@ -464,14 +464,14 @@ select#midiInChannel {
 
 .check.arp_enabled.selected {
   background-color: var(--bg-color-complement);
-  border-radius: 5px 5px 0 0;
+  /* border-radius: 5px 5px 0 0; */
 }
 
 .rtool {
   float: right;
   font-size: 18px;
   color: var(--brighter-2);
-  border-radius: 5px;
+  /* border-radius: 5px; */
   margin-left: 6px;
   text-align: center;
 }
@@ -512,7 +512,7 @@ select#midiInChannel {
 .percent {
   display: inline-block;
   padding: 3px 6px 0 6px;
-  border-radius: 5px;
+  /* border-radius: 5px; */
   background-color: var(--darker-1);
   cursor: pointer;
   min-width: 75px;
@@ -578,10 +578,10 @@ select#midiInChannel {
   width: 14px;
   height: 14px;
   border: 1px solid var(--brighter-2);
-  border-radius: 50%;
+  /* border-radius: 50%; */
   cursor: pointer;
   vertical-align: middle;
-  margin: 0 2px;
+  margin: 0;
   text-align: center;
 }
 
@@ -593,7 +593,7 @@ select#midiInChannel {
 .zone input {
   border: none;
   background-color: var(--darker-1);
-  border-radius: 4px;
+  /* border-radius: 4px; */
   color: var(--brighter-4);
   font-size: 12px;
   padding: 0;
@@ -621,7 +621,7 @@ select#midiInChannel {
   display: inline-block;
   color: var(--brighter-4);
   background-color: var(--darker-1);
-  border-radius: 4px;
+  /* border-radius: 4px; */
   padding: 2px 4px;
   cursor: pointer;
   margin: 0 4px;
@@ -643,7 +643,7 @@ select#midiInChannel {
   margin: 6px auto;
   border: 2px solid var(--brighter-1);
   overflow: hidden;
-  border-radius: 6px;
+  /* border-radius: 6px; */
 }
 
 .dragvalue .range,
@@ -729,7 +729,7 @@ select#midiInChannel {
 
 .pattern {
   position: relative;
-  border-radius: 4px;
+  /* border-radius: 4px; */
   display: inline-block;
   height: 18px;
   vertical-align: middle;
@@ -744,7 +744,7 @@ select#midiInChannel {
   padding: 8px;
   background-color: var(--bg-color);
   box-shadow: 0 0 8px var(--shadow-topbar-button);
-  border-radius: 4px;
+  /* border-radius: 4px; */
   bottom: 20px;
   right: 0;
   text-align: center;
@@ -759,7 +759,7 @@ select#midiInChannel {
   color: var(--brighter-4);
 }
 .prgm {
-  border-radius: 4px;
+  /* border-radius: 4px; */
   font-size: 9px;
   margin-bottom: 0.5em;
   text-align: center;
@@ -811,7 +811,7 @@ li {
   margin: 0.5em 0;
   padding: 4px;
   background: var(--bg-loadsave-item);
-  border-radius: 5px;
+  /* border-radius: 5px; */
 }
 
 #loadsave li {
@@ -839,7 +839,7 @@ li {
 
 #loadsave input {
   border: 1px solid var(--darker-3);
-  border-radius: 4px;
+  /* border-radius: 4px; */
   background-color: var(--darker-1);
   color: var(--brighter-3);
   padding: 1px 2px;
@@ -849,7 +849,7 @@ li {
   display: none;
   margin-top: 8px;
   padding: 8px 0 0 0;
-  border-radius: 4px;
+  /* border-radius: 4px; */
   font-size: 10px;
   max-width: 500px;
 }
@@ -969,7 +969,7 @@ li {
   border: 1px solid var(--brighter-1);
   color: var(--brighter-2);
   padding: 0 2px;
-  border-radius: 2px;
+  /* border-radius: 2px; */
 }
 .arp_transpose.selected {
   color: var(--brighter-4);
