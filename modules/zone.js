@@ -405,12 +405,15 @@ module.exports = class Zone {
           ctx.fillStyle = 'rgba(255,255,255,.15)';
           ctx.fillRect(width * i, 0, width, 16);
         }
-        ctx.beginPath();
-        ctx.arc(width * (i + 0.5), 8, radius, 0, 2 * Math.PI);
+        // ctx.arc(width * (i + 0.5), 8, radius, 0, 2 * Math.PI);
         if (this.arp_pattern[i]) {
           ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
-          ctx.fill();
+          ctx.fillRect(width * i + 1, 1, width - 2, 16 - 2);
+          // ctx.fill();
         } else {
+          // ctx.stroke();
+          ctx.beginPath();
+          ctx.rect(width * i + 2, 2, width - 4, 16 - 4);
           ctx.stroke();
         }
       }

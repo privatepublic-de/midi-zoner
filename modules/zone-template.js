@@ -140,11 +140,11 @@ module.exports = {
         </div>
         <div class="val" title="Transpose octave">
           Oct
-          <a class="circle" data-action="${index}:octave:-2"></a>
-          <a class="circle" data-action="${index}:octave:-1"></a>
-          <a class="circle selected" data-action="${index}:octave:0"></a>
-          <a class="circle" data-action="${index}:octave:1"></a>
-          <a class="circle" data-action="${index}:octave:2"></a>
+          <a class="octselect" data-action="${index}:octave:-2"></a><a 
+          class="octselect" data-action="${index}:octave:-1"></a><a 
+          class="octselect selected" data-action="${index}:octave:0"></a><a 
+          class="octselect" data-action="${index}:octave:1"></a><a 
+          class="octselect" data-action="${index}:octave:2"></a>
         </div>
         <div class="hidden">
           <div

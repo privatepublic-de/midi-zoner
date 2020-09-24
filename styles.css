@@ -573,7 +573,7 @@ select#midiInChannel {
   display: inline-block;
 }
 
-.circle {
+.octselect {
   display: inline-block;
   width: 14px;
   height: 14px;
@@ -583,9 +583,13 @@ select#midiInChannel {
   vertical-align: middle;
   margin: 0;
   text-align: center;
+  /* border-left: none; */
+}
+.octselect:first-child {
+  border-left: 1px solid var(--brighter-2);
 }
 
-.circle.selected {
+.octselect.selected {
   background-color: var(--brighter-2);
 }
 

@@ -612,12 +612,12 @@ function updateValuesForZone(index) {
   );
   const colorInput = DOM.element(`#zone${index} input[type="color"]`);
   colorInput.value = DOM.rgbToHex(rgbZone);
-  if (
-    (zone.enabled && (Zone.solocount === 0 || zone.solo)) ||
-    (zone.arp_enabled && zone.arp_hold && zone.arp_holdlist.length > 0)
-  ) {
+  const zoneHasHeldArp =
+    zone.arp_enabled && zone.arp_hold && zone.arp_holdlist.length > 0;
+  const zoneIsEnabled = zone.enabled && (Zone.solocount === 0 || zone.solo);
+  if (zoneIsEnabled || zoneHasHeldArp) {
     DOM.removeClass(`#zone${index}`, 'disabled');
-    const rgb = rgbZone;
+    const rgb = zoneHasHeldArp && !zoneIsEnabled ? [50, 50, 50] : rgbZone;
     const style = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
     DOM.element(`#zone${index}`).style.background = style;
     DOM.element(`#zone${index}`).style.setProperty('--bg-color', style);
@@ -665,7 +665,7 @@ function updateValuesForZone(index) {
   } else {
     DOM.removeClass(`#zone${index}`, 'arp-enabled');
   }
-  DOM.all(`#zone${index} .circle`, (e) => {
+  DOM.all(`#zone${index} .octselect`, (e) => {
     const parts = e.getAttribute('data-action').split(':');
     if (parts[2] == zone.octave) {
       DOM.addClass(e, 'selected');
