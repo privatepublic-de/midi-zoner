@@ -762,13 +762,15 @@ function initOutputPortsForZone(index) {
 }
 
 function updateOutputPortsForZone(index, outputs) {
-  const defaultOutput = outputs.filter((op) => op.isDefault);
+  // const defaultOutput = outputs.filter((op) => op.isDefault);
   const select = DOM.element(`#zone${index} select.outport`);
   DOM.empty(select);
+  const noSelectionLabel =
+    outputs.length > 0 ? '(select MIDI output)' : '(no outputs available)';
   DOM.addHTML(
     select,
     'beforeend',
-    `<option value="*">(select MIDI output)</option>`
+    `<option value="*">${noSelectionLabel}</option>`
   );
   const preferredOutputPortId = zones.list[index].preferredOutputPortId;
   let preferredPortAvailable = false;
