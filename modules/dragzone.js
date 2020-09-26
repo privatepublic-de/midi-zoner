@@ -21,7 +21,7 @@ module.exports = class DragZone {
       left: this.zoneElement.offsetLeft,
       width: this.zoneElement.offsetWidth,
       height: this.zoneElement.offsetHeight,
-      offsetTop: 24
+      offsetTop: 5
     };
     DOM.addClass(this.zoneElement, 'dragged');
     this.moveHandler = this.move.bind(this);
@@ -90,12 +90,12 @@ module.exports = class DragZone {
     });
     if (nearestTopIndex === zones.list.length - 1 && y > z.offsetTop) {
       DOM.element(`#zone${nearestTopIndex}`).style.marginBottom = `${
-        this.srcdim.height + 48
+        this.srcdim.height + 10
       }px`;
       found = nearestTopIndex + 1;
     } else {
       DOM.element(`#zone${nearestTopIndex}`).style.marginTop = `${
-        this.srcdim.height + 48
+        this.srcdim.height + 10
       }px`;
       found = nearestTopIndex;
     }
