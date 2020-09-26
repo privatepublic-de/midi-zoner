@@ -453,7 +453,7 @@ select#midiInChannel {
 
 .arp-settings {
   position: relative;
-  margin-top: 12px;
+  margin-top: 3px;
   padding: 6px;
   background-color: var(--bg-color-complement-dark);
   /* border-radius: 0 4px 4px 4px; */
