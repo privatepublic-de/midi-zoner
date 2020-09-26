@@ -40,6 +40,7 @@ class MIDI {
     this.deviceIdInClock = localStorage.getItem('midiInClockId');
     this.knownPorts = {};
     this.usedPorts = new Set();
+    this.clockOutputPorts = new Set();
     this.songposition = 0;
     this.isClockRunning = false;
     this.internalClock = MidiClock(() => {
@@ -131,7 +132,7 @@ class MIDI {
         sortPortsComparator
       );
       sortedInputs.forEach((entry) => {
-        let input = entry[1];
+        const input = entry[1];
         this.knownPorts[input.id] = input;
         if (input.id == localStorage.getItem('midiInId')) {
           selectedIn = input.id;
@@ -146,24 +147,12 @@ class MIDI {
         sortPortsComparator
       );
       sortedOutputs.forEach((entry) => {
-        let output = entry[1];
+        const output = entry[1];
         this.knownPorts[output.id] = output;
         countOut++;
       });
       console.log('MIDI: ', countIn, 'inputs,', countOut, 'outputs');
       const mapDescriptor = (port) => {
-        // let name = '';
-        // const words = port[1].name.split(/\s/);
-        // words.forEach((word, n) => {
-        //   if (n > 0) {
-        //     name += ' ';
-        //   }
-        //   if (word.length < 9) {
-        //     name += word;
-        //   } else {
-        //     name += word.substr(0, 7) + '…';
-        //   }
-        // });
         return {
           id: port[1].id,
           name: `${port[1].name}`, //`${name}`,
@@ -234,6 +223,15 @@ class MIDI {
       if (this.stoppedHandler) {
         this.stoppedHandler();
       }
+    }
+    if (
+      event.data[0] === MIDI.MESSAGE.CLOCK ||
+      event.data[0] === MIDI.MESSAGE.START ||
+      event.data[0] === MIDI.MESSAGE.STOP
+    ) {
+      this.clockOutputPorts.forEach((portid) => {
+        this.send(event.data, portid);
+      });
     }
   }
 
@@ -401,6 +399,18 @@ class MIDI {
   updateUsedPorts(set) {
     this.usedPorts = set;
     console.log('MIDI: Used ports updated', this.usedPorts);
+  }
+
+  updateClockOutputReceiver(portid, enabled) {
+    if (enabled) {
+      this.clockOutputPorts.add(portid);
+    } else {
+      this.clockOutputPorts.delete(portid);
+    }
+    console.log(
+      `MIDI: Update clock output receiver ${portid}, ${enabled}`,
+      this.clockOutputPorts
+    );
   }
 }
 

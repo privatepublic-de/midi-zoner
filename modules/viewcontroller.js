@@ -120,6 +120,10 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       zone[params[1]] = !zone[params[1]];
       updateValuesForZone(zoneindex);
       break;
+    case 'sendClock':
+      zone.sendClock = !zone.sendClock;
+      updateValuesForZone(zoneindex);
+      break;
     case 'arp_direction':
     case 'arp_octaves':
     case 'arp_division':
@@ -636,6 +640,7 @@ function updateValuesForZone(index) {
   [
     'cc',
     'mod',
+    'sendClock',
     'at2mod',
     'sustain',
     'fixedvel',

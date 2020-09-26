@@ -49,6 +49,7 @@ module.exports = class Zone {
   octave = 0;
   fixedvel = false;
   mod = true;
+  _sendClock = false;
   sustain = true;
   cc = true;
   cc_controllers = [
@@ -128,6 +129,7 @@ module.exports = class Zone {
       octave: this.octave,
       fixedvel: this.fixedvel,
       mod: this.mod,
+      sendClock: this.sendClock,
       sustain: this.sustain,
       cc: this.cc,
       at2mod: this.at2mod,
@@ -184,6 +186,18 @@ module.exports = class Zone {
       }
       this._solo = v;
     }
+  }
+
+  get sendClock() {
+    return this._sendClock;
+  }
+
+  set sendClock(v) {
+    this._sendClock = v;
+    this.midi.updateClockOutputReceiver(
+      this.outputPortId != '*' ? this.outputPortId : this.preferredOutputPortId,
+      this._sendClock
+    );
   }
 
   addNote(note) {

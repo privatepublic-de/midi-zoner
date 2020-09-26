@@ -95,6 +95,14 @@ module.exports = {
         <select class="outport" data-change="${index}:outport">
           <option value="*"></option>
         </select>
+        <div
+            class="mch sendClock"
+            data-action="${index}:sendClock"
+            title="Transmit clock to this device"
+          >
+          <span class="material-icons sel">watch_later</span
+          ><span class="material-icons unsel">query_builder</span>
+        </div>
         ${channelselectors}
       </div>
       <div class="ccpots">
