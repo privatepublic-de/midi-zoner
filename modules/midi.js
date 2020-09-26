@@ -40,7 +40,7 @@ class MIDI {
     this.deviceIdInClock = localStorage.getItem('midiInClockId');
     this.knownPorts = {};
     this.usedPorts = new Set();
-    this.clockOutputPorts = new Set();
+    this.clockOutputPorts = {};
     this.songposition = 0;
     this.isClockRunning = false;
     this.internalClock = MidiClock(() => {
@@ -229,9 +229,11 @@ class MIDI {
       event.data[0] === MIDI.MESSAGE.START ||
       event.data[0] === MIDI.MESSAGE.STOP
     ) {
-      this.clockOutputPorts.forEach((portid) => {
-        this.send(event.data, portid);
-      });
+      for (const [portid, enabled] of Object.entries(this.clockOutputPorts)) {
+        if (enabled) {
+          this.send(event.data, portid);
+        }
+      }
     }
   }
 
@@ -402,11 +404,7 @@ class MIDI {
   }
 
   updateClockOutputReceiver(portid, enabled) {
-    if (enabled) {
-      this.clockOutputPorts.add(portid);
-    } else {
-      this.clockOutputPorts.delete(portid);
-    }
+    this.clockOutputPorts[portid] = enabled;
     console.log(
       `MIDI: Update clock output receiver ${portid}, ${enabled}`,
       this.clockOutputPorts

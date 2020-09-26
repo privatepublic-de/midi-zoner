@@ -122,7 +122,12 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       break;
     case 'sendClock':
       zone.sendClock = !zone.sendClock;
-      updateValuesForZone(zoneindex);
+      for (let i = 0; i < zones.list.length; i++) {
+        if (zones.list[i].outputPortId == zone.outputPortId) {
+          zones.list[i].sendClock = zone.sendClock;
+        }
+      }
+      updateValuesForAllZones();
       break;
     case 'arp_direction':
     case 'arp_octaves':

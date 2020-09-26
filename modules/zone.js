@@ -586,6 +586,7 @@ module.exports = class Zone {
   }
 
   dismiss() {
+    this.sendClock = false;
     this.solo = false;
     this.arp_enabled = false;
     this.enabled = false;
