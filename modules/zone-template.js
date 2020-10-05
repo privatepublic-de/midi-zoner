@@ -217,7 +217,7 @@ module.exports = {
             class="arp_transpose"
             title="Use keyboard to transpose held arpeggio"
             data-action="${index}:arp_transpose">
-            transpose
+            t
           </span>
         </div>
         <div class="drop-down">

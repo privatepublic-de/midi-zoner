@@ -991,7 +991,8 @@ li {
   font-size: 0.75em;
   border: 1px solid var(--brighter-1);
   color: var(--brighter-2);
-  padding: 0 2px;
+  padding: 0 3px;
+  float: right;
   /* border-radius: 2px; */
 }
 .arp_transpose.selected {
