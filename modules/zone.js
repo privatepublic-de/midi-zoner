@@ -48,10 +48,10 @@ module.exports = class Zone {
   high = 127;
   octave = 0;
   fixedvel = false;
-  mod = true;
+  mod = false;
   _sendClock = false;
   sustain = true;
-  cc = true;
+  cc = false;
   cc_controllers = [
     { number: 7, label: 'Volume', val: 100, isBipolar: false },
     { number: 1, label: 'Wheel', val: 0, isBipolar: false }
