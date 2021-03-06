@@ -783,16 +783,16 @@ select#midiInChannel {
 }
 .prgm {
   /* border-radius: 4px; */
+  display: inline-block;
   font-size: 9px;
   margin-bottom: 0.5em;
   text-align: center;
   position: relative;
 }
 .zone input.programnumber {
-  width: 100%;
+  width: 6em;
   font-size: 10px;
   padding: 2px 0;
-  background-color: var(--brighter-1);
 }
 .valuestep {
   position: absolute;
@@ -946,12 +946,11 @@ li {
 .ccpotttools {
   display: inline-block;
   width: 56px;
-  vertical-align: top;
+  vertical-align: bottom;
   font-size: 18px;
   color: var(--brighter-2);
   margin-bottom: 20px;
   text-align: center;
-  height: 56px;
 }
 
 .ccpot .tools {

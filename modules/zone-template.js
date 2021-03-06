@@ -1,4 +1,7 @@
 const Zone = require('./zone');
+function stripTooltips(/** @type {string} */ s) {
+  return s.replace(/title=\".+?\"/g, '');
+}
 module.exports = {
   getControllerHTML: function (/** @type {Zone} */ zone, zoneindex) {
     let controllers = '';
@@ -42,7 +45,7 @@ module.exports = {
           </div>
       `;
     });
-    return controllers;
+    return stripTooltips(controllers);
   },
   getHTML: function (/** @type {Zone} */ zone, zoneindex) {
     const index = zoneindex;
@@ -58,7 +61,7 @@ module.exports = {
     const checkboxIcons = /*html*/ `<span class="material-icons sel">check_circle</span
       ><span class="material-icons unsel">radio_button_unchecked</span> `;
 
-    return /*html*/ `<section class="zone" id="zone${index}">
+    return stripTooltips(/*html*/ `<section class="zone" id="zone${index}">
       <div
         class="delzone rtool"
         data-action="${index}:delete"
@@ -107,17 +110,6 @@ module.exports = {
       </div>
       <div class="ccpots">
         <div class="ccpotttools">
-          <label>Program</label>
-          <div class="prgm" title="Send program change message">
-            <input
-              class="programnumber"
-              type="text"
-              value=""
-              data-change="${index}:changeprogram"
-            />
-            <span class="valuestep" data-action="${index}:prgdec">&lt;</span>
-            <span class="valuestep" data-action="${index}:prginc">&gt;</span>
-          </div>
           <i class="material-icons" title="Add new control" data-action="${index}:add_cc_controller">add</i>
           <i class="material-icons" title="Send all values" data-action="${index}:send_all_cc">send</i>
         </div>
@@ -203,6 +195,16 @@ module.exports = {
             title="Transmit program change messages"
           >
             ${checkboxIcons}PRGM
+          </div>
+          <div class="prgm" title="Send program change message">
+            <input
+              class="programnumber"
+              type="text"
+              value=""
+              data-change="${index}:changeprogram"
+            />
+            <span class="valuestep" data-action="${index}:prgdec">&lt;</span>
+            <span class="valuestep" data-action="${index}:prginc">&gt;</span>
           </div>
         </div>
       </div>
@@ -326,6 +328,6 @@ module.exports = {
           <i class="material-icons">settings</i>
         </div>
       </div>
-    </section>`;
+    </section>`);
   }
 };
