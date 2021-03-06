@@ -186,31 +186,32 @@ function updateThemeDisplay() {
   }
 }
 
-function midiEventHandler(event) {
-  const channel = event.data[0] & 0x0f;
-  let msgtype = event.data[0] & 0xf0;
-  if (msgtype === MIDI.MESSAGE.NOTE_ON && event.data[2] === 0) {
-    msgtype = MIDI.MESSAGE.NOTE_OFF;
-  }
-  if (channel === zones.inChannel) {
-    zones.list.forEach((zone, index) => {
-      const resultMessage = zone.handleMidi(msgtype, event.data);
-      if (resultMessage == 'updateCC') {
-        requestAnimationFrame(() => {
-          view.updateControllerValues(zone, index);
-        });
-      }
-    });
-  }
-}
-
 document.addEventListener('DOMContentLoaded', function () {
   const select_in = DOM.element('#midiInDeviceId');
   const select_in_clock = DOM.element('#midiClockInDeviceId');
   const optionNoDevice = '<option value="">(No devices available)</option>';
   let activeUpdateTimer = null;
   const midi = new MIDI({
-    eventHandler: midiEventHandler,
+    eventHandler: (event) => {
+      const channel = event.data[0] & 0x0f;
+      let msgtype = event.data[0] & 0xf0;
+      if (msgtype === MIDI.MESSAGE.NOTE_ON && event.data[2] === 0) {
+        msgtype = MIDI.MESSAGE.NOTE_OFF;
+      }
+      if (channel === zones.inChannel) {
+        zones.list.forEach((zone, index) => {
+          const resultMessage = zone.handleMidi(msgtype, event.data);
+          if (resultMessage == 'updateCC') {
+            requestAnimationFrame(() => {
+              view.updateControllerValues(zone, index);
+            });
+          }
+        });
+      } else {
+        // forward messages from other channels
+        midi.sendToAllUsedPorts(event.data);
+      }
+    },
     clockHandler: (pos) => {
       for (let i = 0; i < zones.list.length; i++) {
         zones.list[i].clock(pos);
