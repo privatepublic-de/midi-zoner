@@ -1,24 +1,7 @@
 const seedrandom = require('seedrandom');
 const MIDI = require('./midi');
 const DIV_TICKS = [
-  192,
-  144,
-  96,
-  72,
-  64,
-  48,
-  36,
-  32,
-  24,
-  18,
-  16,
-  12,
-  9,
-  8,
-  6,
-  4,
-  3,
-  2
+  192, 144, 96, 72, 64, 48, 36, 32, 24, 18, 16, 12, 9, 8, 6, 4, 3, 2
 ]; // 24ppq
 
 class Note {
@@ -484,26 +467,25 @@ module.exports = class Zone {
                 }
                 break;
               case 2: // updown
-                if (notes.length > 1) {
-                  this.arp.noteindex += this.arp.inc;
-                  if (this.arp.noteindex >= notes.length) {
-                    this.arp.noteindex = this.arp.noteindex % notes.length;
-                    if (this.arp.octave == this.arp_octaves) {
-                      this.arp.inc = -1;
-                      this.arp.noteindex = notes.length - 2;
-                    } else {
-                      nextArpOctave(this.arp.inc);
-                    }
-                  } else if (this.arp.noteindex < 0) {
-                    if (this.arp.octave == 0) {
-                      this.arp.inc = 1;
-                      this.arp.noteindex = 1;
-                    } else {
-                      this.arp.noteindex = notes.length - 1;
-                      nextArpOctave(this.arp.inc);
-                    }
+                this.arp.noteindex += this.arp.inc;
+                if (this.arp.noteindex >= notes.length) {
+                  this.arp.noteindex = this.arp.noteindex % notes.length;
+                  if (this.arp.octave == this.arp_octaves) {
+                    this.arp.inc = -1;
+                    this.arp.noteindex = notes.length - 2;
+                  } else {
+                    nextArpOctave(this.arp.inc);
                   }
-                } else {
+                } else if (this.arp.noteindex < 0) {
+                  if (this.arp.octave == 0) {
+                    this.arp.inc = 1;
+                    this.arp.noteindex = 1;
+                  } else {
+                    this.arp.noteindex = notes.length - 1;
+                    nextArpOctave(this.arp.inc);
+                  }
+                }
+                if (notes.length == 1) {
                   this.arp.noteindex = 0;
                 }
                 break;
