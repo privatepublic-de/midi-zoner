@@ -294,8 +294,6 @@ class MIDI {
       const deviceOut = this.knownPorts[portId];
       if (deviceOut) {
         deviceOut.send(msg);
-      } else {
-        console.log('MIDI: Unknown output port', portId);
       }
     }
   }
