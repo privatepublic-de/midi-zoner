@@ -529,7 +529,7 @@ select#midiInChannel {
   /* border-radius: 5px; */
   background-color: var(--darker-1);
   cursor: pointer;
-  min-width: 75px;
+  min-width: 55px;
 }
 
 .check.patgen,
@@ -986,19 +986,29 @@ li {
   cursor: pointer;
 }
 
-.arp_transpose {
+.innertoggle {
   font-size: 0.75em;
-  border: 1px solid var(--brighter-1);
-  color: var(--brighter-2);
+  border: 1px solid var(--darker-1);
+  color: var(--darker-2);
   padding: 0 3px;
   float: right;
-  /* border-radius: 2px; */
+  margin-left: 5px;
 }
-.arp_transpose.selected {
-  color: var(--brighter-4);
+.innertoggle.selected {
+  color: var(--darker-4);
   font-style: italic;
 }
+.innertoggle.selected {
+  background-color: var(--darker-2);
+}
 
-.arp_hold.selected .arp_transpose.selected {
+.arp-settings .innertoggle {
+  border-color: var(--brighter-1);
+  color: var(--brighter-2);
+}
+.arp-settings .innertoggle.selected {
+  color: var(--brighter-4);
+}
+.arp-settings .innertoggle.selected {
   background-color: var(--brighter-2);
 }
