@@ -108,6 +108,7 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       break;
     case 'cc':
     case 'sustain':
+    case 'sustain_on':
     case 'mod':
     case 'at2mod':
     case 'fixedvel':
@@ -253,8 +254,8 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       renderControllersForZone(zone, zoneindex);
       break;
     case 'cc_togglepolarity':
-      zone.cc_controllers[params[2]].isBipolar = !zone.cc_controllers[params[2]]
-        .isBipolar;
+      zone.cc_controllers[params[2]].isBipolar =
+        !zone.cc_controllers[params[2]].isBipolar;
       updateControllerValues(zone, zoneindex);
       break;
     case 'cc_left':
@@ -656,6 +657,7 @@ function updateValuesForZone(index) {
     'arp_enabled',
     'arp_hold',
     'arp_transpose',
+    'sustain_on',
     'arp_repeat'
   ].forEach((p) => {
     if (zone[p]) {

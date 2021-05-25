@@ -34,6 +34,7 @@ module.exports = class Zone {
   mod = false;
   _sendClock = false;
   sustain = true;
+  _sustain_on = false;
   cc = false;
   cc_controllers = [
     { number: 7, label: 'Volume', val: 100, isBipolar: false },
@@ -169,6 +170,22 @@ module.exports = class Zone {
       }
       this._solo = v;
     }
+  }
+
+  get sustain_on() {
+    return this._sustain_on;
+  }
+
+  set sustain_on(v) {
+    this._sustain_on = v;
+    this.midi.send(
+      Uint8Array.from([
+        MIDI.MESSAGE.CONTROLLER + this.channel,
+        64,
+        v ? 127 : 0
+      ]),
+      this.outputPortId
+    );
   }
 
   get sendClock() {
@@ -468,11 +485,15 @@ module.exports = class Zone {
                 break;
               case 2: // updown
                 this.arp.noteindex += this.arp.inc;
+                // console.log(
+                //   `i: ${this.arp.noteindex}/${notes.length}, inc: ${this.arp.inc}`
+                // );
                 if (this.arp.noteindex >= notes.length) {
                   this.arp.noteindex = this.arp.noteindex % notes.length;
-                  if (this.arp.octave == this.arp_octaves) {
+                  if (this.arp.octave >= this.arp_octaves) {
                     this.arp.inc = -1;
                     this.arp.noteindex = notes.length - 2;
+                    if (notes.length == 1) nextArpOctave(this.arp.inc);
                   } else {
                     nextArpOctave(this.arp.inc);
                   }
@@ -480,6 +501,7 @@ module.exports = class Zone {
                   if (this.arp.octave == 0) {
                     this.arp.inc = 1;
                     this.arp.noteindex = 1;
+                    if (notes.length == 1) nextArpOctave(this.arp.inc);
                   } else {
                     this.arp.noteindex = notes.length - 1;
                     nextArpOctave(this.arp.inc);

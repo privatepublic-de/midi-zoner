@@ -45,7 +45,7 @@ module.exports = {
           </div>
       `;
     });
-    return stripTooltips(controllers);
+    return controllers; //stripTooltips(controllers);
   },
   getHTML: function (/** @type {Zone} */ zone, zoneindex) {
     const index = zoneindex;
@@ -61,7 +61,7 @@ module.exports = {
     const checkboxIcons = /*html*/ `<span class="material-icons sel">check_circle</span
       ><span class="material-icons unsel">radio_button_unchecked</span> `;
 
-    return stripTooltips(/*html*/ `<section class="zone" id="zone${index}">
+    return /*html*/ `<section class="zone" id="zone${index}">
       <div
         class="delzone rtool"
         data-action="${index}:delete"
@@ -152,28 +152,29 @@ module.exports = {
             data-action="${index}:mod"
             title="Transmit mod wheel messages (CC 1)"
           >
-            ${checkboxIcons}Mod
+            ${checkboxIcons}MW
           </div>
           <div
             class="check at2mod"
             data-action="${index}:at2mod"
             title="Convert channel pressure (aftertouch) to mod (CC 1)"
           >
-            ${checkboxIcons}AT&gt;Mod
+            ${checkboxIcons}AT&gt;MW
           </div>
           <div
             class="check sustain"
             data-action="${index}:sustain"
             title="Transmit sustain pedal messages (CC 64)"
           >
-            ${checkboxIcons}Pedal
+            ${checkboxIcons}Sus
+            <span class="innertoggle sustain_on" data-action="${index}:sustain_on">ON</span>
           </div>
           <div
             class="check cc"
             data-action="${index}:cc"
             title="Transmit control change messages"
           >
-            ${checkboxIcons}CCs
+            ${checkboxIcons}CC
           </div>
           <div
             class="check pitchbend"
@@ -187,14 +188,14 @@ module.exports = {
             data-action="${index}:fixedvel"
             title="Use fixed velocity 127"
           >
-            ${checkboxIcons}Fix Vel
+            ${checkboxIcons}Vel
           </div>
           <div
             class="check programchange"
             data-action="${index}:programchange"
             title="Transmit program change messages"
           >
-            ${checkboxIcons}PRGM
+            ${checkboxIcons}Prg
           </div>
           <div class="prgm" title="Send program change message">
             <input
@@ -216,7 +217,7 @@ module.exports = {
         >
           Hold
           <span
-            class="arp_transpose"
+            class="arp_transpose innertoggle"
             title="Use keyboard to transpose held arpeggio"
             data-action="${index}:arp_transpose">
             t
@@ -328,6 +329,6 @@ module.exports = {
           <i class="material-icons">settings</i>
         </div>
       </div>
-    </section>`);
+    </section>`;
   }
 };
