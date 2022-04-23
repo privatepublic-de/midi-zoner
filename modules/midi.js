@@ -26,13 +26,13 @@ class MIDI {
     updatePortsHandler,
     eventHandler,
     clockHandler,
-    stoppedHandler,
+    transportHandler,
     panicHandler
   }) {
     console.log('MIDI: Initializing...');
     this.panicHandler = panicHandler;
     this.eventHandler = eventHandler;
-    this.stoppedHandler = stoppedHandler;
+    this.transportHandler = transportHandler;
     this.clockHandler = clockHandler;
     this.sendInternalClock = false;
     this.midiAccess = null;
@@ -43,6 +43,10 @@ class MIDI {
     this.clockOutputPorts = {};
     this.songposition = 0;
     this.isClockRunning = false;
+    this.hasClock = false;
+    setInterval(() => {
+      this.hasClock = false;
+    }, 1000);
     this.internalClock = MidiClock(() => {
       if (!this.deviceInClock && this.clockHandler) {
         if (this.sendInternalClock) {
@@ -153,9 +157,27 @@ class MIDI {
       });
       console.log('MIDI: ', countIn, 'inputs,', countOut, 'outputs');
       const mapDescriptor = (port) => {
+        let sName = port[1].name;
+        let words = sName.split(' ');
+        for (let i = 0; i < words.length; i++) {
+          if (words[i].length > 7) {
+            let short = '';
+            let lastCase = null;
+            for (let c = 0; c < words[i].length; c++) {
+              let code = words[i].charCodeAt(c);
+              let thisCase = code < 65 ? 1 : code < 97 ? 2 : 3;
+              if (thisCase != lastCase) {
+                short += words[i].charAt(c);
+                lastCase = thisCase;
+              }
+            }
+            words[i] = short;
+          }
+        }
+        sName = words.join(' ');
         return {
           id: port[1].id,
-          name: `${port[1].name}`, //`${name}`,
+          name: sName, //`${port[1].name}`, //`${name}`,
           isSelectedInput: port[1].id == selectedIn,
           isSelectedClockInput: port[1].id == selectedInClock
         };
@@ -206,6 +228,9 @@ class MIDI {
   }
 
   onMIDIClockMessage(event) {
+    if (event.data[0] === MIDI.MESSAGE.CLOCK) {
+      this.hasClock = true;
+    }
     if (
       this.isClockRunning &&
       this.clockHandler &&
@@ -217,11 +242,14 @@ class MIDI {
     if (event.data[0] === MIDI.MESSAGE.START) {
       // start
       this.isClockRunning = true;
+      if (this.transportHandler) {
+        this.transportHandler(true);
+      }
     } else if (event.data[0] === MIDI.MESSAGE.STOP) {
       this.isClockRunning = false;
       this.songposition = 0;
-      if (this.stoppedHandler) {
-        this.stoppedHandler();
+      if (this.transportHandler) {
+        this.transportHandler(false);
       }
     }
     if (
@@ -354,9 +382,11 @@ class MIDI {
   startClock() {
     this.songposition = 0;
     this.isClockRunning = true;
-    this.internalClock.start();
-    if (this.sendInternalClock) {
-      this.sendStart();
+    if (!this.deviceInClock) {
+      this.internalClock.start();
+      if (this.sendInternalClock) {
+        this.sendStart();
+      }
     }
   }
 
@@ -369,9 +399,9 @@ class MIDI {
     this.isClockRunning = false;
     if (!this.deviceInClock) {
       this.internalClock.stop();
-    }
-    if (this.sendInternalClock) {
-      this.sendStop();
+      if (this.sendInternalClock) {
+        this.sendStop();
+      }
     }
   }
 

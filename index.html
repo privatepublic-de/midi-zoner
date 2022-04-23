@@ -46,9 +46,9 @@
         <div class="row">
           <div class="block">
             <label for="midiInDeviceId">In:</label>
-            <select id="midiInDeviceId" tabindex="-1"
-              ><option>(No devices)</option></select
-            >
+            <select id="midiInDeviceId" tabindex="-1">
+              <option>(No devices)</option>
+            </select>
           </div>
           <div class="block">
             <select id="midiInChannel" tabindex="-1"></select>
@@ -57,14 +57,19 @@
         <div class="row clocksettings">
           <div class="block">
             <label for="midiClockInDeviceId">Clock:</label>
-            <select id="midiClockInDeviceId" tabindex="-1"
-              ><option value="*INTERNAL*">INTERNAL</option></select
-            >
+            <select id="midiClockInDeviceId" tabindex="-1">
+              <option value="*INTERNAL*">INTERNAL</option>
+            </select>
+            <span class="hasClock" id="clockIndicator"></span>
+            <span
+              id="startClockButton"
+              class="toggle"
+              title="Start arpeggiators"
+            ></span>
           </div>
           <div class="block onlyinternal">
             <label>BPM:</label>
-            <span id="displayBPM">130</span
-            ><span id="startClockButton" class="toggle"></span>
+            <span id="displayBPM">130</span>
             <span id="sendClock" title="Send internal clock to MIDI-Out devices"
               ><span class="material-icons sel">check_circle</span
               ><span class="material-icons unsel">radio_button_unchecked</span>
@@ -80,9 +85,7 @@
       </section>
       <section id="tools">
         <a id="newzone" title="Add new zone"
-          ><span class="material-icons">
-            add
-          </span></a
+          ><span class="material-icons"> add </span></a
         >
       </section>
     </div>

@@ -189,6 +189,7 @@ function updateThemeDisplay() {
 document.addEventListener('DOMContentLoaded', function () {
   const select_in = DOM.element('#midiInDeviceId');
   const select_in_clock = DOM.element('#midiClockInDeviceId');
+  const startClockButton = DOM.element('#startClockButton');
   const optionNoDevice = '<option value="">(No devices available)</option>';
   let activeUpdateTimer = null;
   const midi = new MIDI({
@@ -217,10 +218,15 @@ document.addEventListener('DOMContentLoaded', function () {
         zones.list[i].clock(pos);
       }
     },
-    stoppedHandler: () => {
-      zones.list.forEach((z) => {
-        z.stopped();
-      });
+    transportHandler: (started) => {
+      if (started) {
+        startClockButton.classList.add('selected');
+      } else {
+        startClockButton.classList.remove('selected');
+        zones.list.forEach((z) => {
+          z.stopped();
+        });
+      }
     },
     panicHandler: () => {
       zones.list.forEach((z) => z.panic());
@@ -341,11 +347,10 @@ document.addEventListener('DOMContentLoaded', function () {
           midi.setSendClock(zones.sendClock);
           saveZones();
         });
-        const startClockButton = DOM.element('#startClockButton');
         let clockRunning = false;
         startClockButton.addEventListener('click', () => {
-          if (!midi.deviceInClock) {
-            clockRunning = !clockRunning;
+          clockRunning = !clockRunning;
+          if (true || !midi.deviceInClock) {
             if (clockRunning) {
               startClockButton.classList.add('selected');
               midi.startClock();
@@ -426,6 +431,14 @@ document.addEventListener('DOMContentLoaded', function () {
       }, 100);
     }
   });
+  const clockIndicator = DOM.element('#clockIndicator');
+  setInterval(() => {
+    if (midi.hasClock) {
+      clockIndicator.classList.add('yes');
+    } else {
+      clockIndicator.classList.remove('yes');
+    }
+  }, 999);
   const list = [select_in, select_in_clock];
   list.forEach((el) => {
     el.addEventListener('change', () => {

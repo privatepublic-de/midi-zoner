@@ -54,7 +54,7 @@ function findTouchedNote(
   let num = parseInt(((ev.clientX - e.offsetLeft) / e.offsetWidth) * 128);
   const isLow =
     ev.clientY - (e.offsetTop + e.offsetParent.offsetTop) < e.offsetHeight / 2;
-  if (!ev.shiftKey) {
+  if (ev.shiftKey) {
     // constrain to octaves
     num = Math.round(num / 12) * 12;
     if (!isLow) num = num - 1;
@@ -106,12 +106,20 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       zone.octave = parseInt(params[2]);
       updateValuesForZone(zoneindex);
       break;
+    case 'fixedvel_value':
+      zone.fixedvel_value = document.getElementById(
+        'fixedvel' + zoneindex
+      ).value;
+      break;
+    case 'fixedvel':
+      zone.fixedvel_value = document.getElementById(
+        'fixedvel' + zoneindex
+      ).value;
     case 'cc':
     case 'sustain':
     case 'sustain_on':
     case 'mod':
     case 'at2mod':
-    case 'fixedvel':
     case 'pitchbend':
     case 'programchange':
     case 'arp_hold':
@@ -247,6 +255,12 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       element.value = element.value.replace(/[^0-9]/, '');
       if (element.value != '') {
         zone.cc_controllers[params[2]].number = parseInt(element.value);
+      }
+      break;
+    case 'cc_number_in':
+      element.value = element.value.replace(/[^0-9]/, '');
+      if (element.value != '') {
+        zone.cc_controllers[params[2]].number_in = parseInt(element.value);
       }
       break;
     case 'cc_remove':
@@ -492,7 +506,7 @@ function renderMarkersForZone(index, tempLo, tempHigh) {
   let ocount = 0;
   DOM.all(`#zone${index} .range .oct`, (e) => {
     ocount++;
-    e.style.left = `${((ocount * 12) / 127.0) * width}px`;
+    e.style.left = `${((ocount * 12.0) / 127.0) * width}px`;
     e.innerHTML = ocount - 1;
   });
   if (tempLo != undefined) {
@@ -688,6 +702,7 @@ function updateValuesForZone(index) {
   DOM.element(`#zone${index} input.programnumber`).value = zone.pgm_no
     ? zone.pgm_no
     : '';
+  DOM.element(`#fixedvel${index}`).value = zone.fixedvel_value;
   updateControllerValues(zone, index);
   updateGeneralButtons();
 }
@@ -726,11 +741,11 @@ function describeArc(x, y, radius, startAngle, endAngle) {
 
 function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
   zone.cc_controllers.forEach((c, ix) => {
-    const rangePath = describeArc(28, 36, 18, -135, 135);
+    const rangePath = describeArc(28, 30, 18, -135, 135);
     const valDegrees = 270 * (c.isBipolar ? (c.val - 64) / 64 : c.val / 127);
     const valuePath = c.isBipolar
-      ? describeArc(28, 36, 18, 0, valDegrees / 2)
-      : describeArc(28, 36, 18, -135, -135 + valDegrees);
+      ? describeArc(28, 30, 18, 0, valDegrees / 2)
+      : describeArc(28, 30, 18, -135, -135 + valDegrees);
     DOM.element(`#pot_range_${zoneindex}_${ix}`).setAttribute('d', rangePath);
     DOM.element(`#pot_value_${zoneindex}_${ix}`).setAttribute('d', valuePath);
     DOM.element(`#pot_zero_${zoneindex}_${ix}`).style.display = c.isBipolar

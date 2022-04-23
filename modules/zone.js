@@ -5,9 +5,14 @@ const DIV_TICKS = [
 ]; // 24ppq
 
 class Note {
+  static isBlackKey = function (n) {
+    const nn = n % 12;
+    return nn == 1 || nn == 3 || nn == 6 || nn == 8 || nn == 10;
+  };
   number = 0;
   velo = 0;
   channel = 0;
+  isBlackKey = false;
   portId = '*';
   constructor(number, velo, channel, portId) {
     this.number = number;
@@ -16,6 +21,7 @@ class Note {
     if (portId) {
       this.portId = portId;
     }
+    this.isBlackKey = Note.isBlackKey(number);
   }
 }
 
@@ -31,14 +37,15 @@ module.exports = class Zone {
   high = 127;
   octave = 0;
   fixedvel = false;
-  mod = false;
+  fixedvel_value = 127;
+  mod = true;
   _sendClock = false;
   sustain = true;
   _sustain_on = false;
   cc = false;
   cc_controllers = [
-    { number: 7, label: 'Volume', val: 100, isBipolar: false },
-    { number: 1, label: 'Wheel', val: 0, isBipolar: false }
+    { number: 7, number_in: 7, label: 'Volume', val: 100, isBipolar: false },
+    { number: 1, number_in: 1, label: 'Mod Wheel', val: 0, isBipolar: false }
   ];
   show_cc = false;
   at2mod = false;
@@ -112,6 +119,7 @@ module.exports = class Zone {
       high: this.high,
       octave: this.octave,
       fixedvel: this.fixedvel,
+      fixedvel_value: this.fixedvel_value,
       mod: this.mod,
       sendClock: this.sendClock,
       sustain: this.sustain,
@@ -231,7 +239,6 @@ module.exports = class Zone {
   }
 
   handleMidi(message, data) {
-    let resultMessage = null;
     if (this.enabled && (Zone.solocount === 0 || this.solo)) {
       switch (message) {
         case MIDI.MESSAGE.NOTE_OFF: // note off
@@ -249,7 +256,7 @@ module.exports = class Zone {
             key = key + (this.arp_enabled ? 0 : this.octave * 12);
             if (key >= 0 && key <= 127) {
               if (this.fixedvel && velo > 0) {
-                velo = 127;
+                velo = this.fixedvel_value || 127;
               }
 
               const outevent = new Uint8Array(data);
@@ -290,9 +297,14 @@ module.exports = class Zone {
           break;
         case MIDI.MESSAGE.CONTROLLER: // cc
           for (let i = 0; i < this.cc_controllers.length; i++) {
-            if (this.cc_controllers[i].number == data[1]) {
+            if (this.cc_controllers[i].number_in == data[1]) {
               this.cc_controllers[i].val = data[2];
-              resultMessage = 'updateCC';
+              const outevent = new Uint8Array(3);
+              outevent[0] = MIDI.MESSAGE.CONTROLLER + this.channel;
+              outevent[1] = this.cc_controllers[i].number;
+              outevent[2] = data[2];
+              this.midi.send(outevent, this.outputPortId);
+              return 'updateCC';
             }
           }
           if (data[1] == 0x40 && !this.sustain) {
@@ -341,7 +353,7 @@ module.exports = class Zone {
         }
       }
     }
-    return resultMessage;
+    return;
   }
 
   notesChanged() {
@@ -367,7 +379,7 @@ module.exports = class Zone {
         this.canvasElement.height *
         (this.canvasElement.clientWidth / this.canvasElement.clientHeight);
       const cwidth = this.canvasElement.width;
-      const notewidth = cwidth / 127 - cwidth / 127 / 3;
+      const notewidth = cwidth / 127.0 - cwidth / 127.0 / 3.0;
       ctx.clearRect(0, 0, cwidth, this.canvasElement.height);
       ctx.fillStyle = this.arp_enabled
         ? 'rgba(0,0,0,.2)'
@@ -384,18 +396,33 @@ module.exports = class Zone {
               list[i].number +
               (this.arp_transpose ? this.arp_transpose_amount : 0) +
               (this.octave + ao) * 12;
-            ctx.fillRect((cwidth * number) / 127, 0, notewidth, 16);
+            ctx.fillRect(
+              (cwidth * number) / 127,
+              2 - (Note.isBlackKey(number) ? 2 : 0),
+              notewidth,
+              16
+            );
           }
         } else {
           const number = list[i].number;
-          ctx.fillRect((cwidth * number) / 127, 0, notewidth, 16);
+          ctx.fillRect(
+            (cwidth * number) / 127,
+            2 - (Note.isBlackKey(number) ? 2 : 0),
+            notewidth,
+            16
+          );
         }
       }
       if (this.arp_enabled) {
         const note = this.arp.lastnote;
         if (note) {
           ctx.fillStyle = 'rgba(255,255,255,.7)';
-          ctx.fillRect((cwidth * note.number) / 127, 0, notewidth, 16);
+          ctx.fillRect(
+            (cwidth * note.number) / 127,
+            2 - (note.isBlackKey ? 2 : 0),
+            notewidth,
+            16
+          );
         }
       }
     }

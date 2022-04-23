@@ -32,8 +32,18 @@ module.exports = {
                 fill="none"
               />
             </svg>
-            <input class="label" type="text" value="${cc.label}" data-change="${zoneindex}:cc_label:${ix}"/>
-            <input class="cc" type="text" value="${cc.number}" data-change="${zoneindex}:cc_number:${ix}"/>
+            <input class="label" type="text" value="${
+              cc.label
+            }" data-change="${zoneindex}:cc_label:${ix}"/>
+            <div class="cc">
+              <input type="text" value="${
+                cc.number_in || cc.number
+              }" data-change="${zoneindex}:cc_number_in:${ix}"/>
+              &rarr;
+              <input type="text" value="${
+                cc.number
+              }" data-change="${zoneindex}:cc_number:${ix}"/>
+            </div>
             <span class="value">127</span>
             <div class="tools">
               <span class="material-icons" data-action="${zoneindex}:cc_left:${ix}">arrow_back</span>
@@ -114,19 +124,22 @@ module.exports = {
           <i class="material-icons" title="Send all values" data-action="${index}:send_all_cc">send</i>
         </div>
       </div>
-      <div
-        class="range"
-        data-hover="${index}:range"
-        data-action="${index}:range"
-        title="Select start and end note
-(hold 'shift' for single note stepping)"
-      >
-        ${octavemarkers}
-        <span class="join"></span>
-        <span class="current"></span>
-        <span class="marker low">C-1</span>
-        <span class="marker high">G9</span>
-        <canvas id="canvas${index}" width="100" height="16"></canvas>
+      <div class="rangeholder">
+        <div
+          class="range"
+          data-hover="${index}:range"
+          data-action="${index}:range"
+          title="Select start and end note
+  (hold 'shift' for octave note stepping)"
+        >
+          ${octavemarkers}
+          <span class="rangeborder"></span>
+          <span class="join"></span>
+          <span class="current"></span>
+          <span class="marker low">C-1</span>
+          <span class="marker high">G9</span>
+          <canvas id="canvas${index}" width="100" height="18"></canvas>
+        </div>
       </div>
       <div class="settings">
         <div
@@ -186,9 +199,16 @@ module.exports = {
           <div
             class="check fixedvel"
             data-action="${index}:fixedvel"
-            title="Use fixed velocity 127"
+            title="Use fixed velocity"
           >
             ${checkboxIcons}Vel
+            <select id="fixedvel${index}" onclick="event.stopPropagation();" data-change="${index}:fixedvel_value">
+              <option>16</option>
+              <option>32</option>
+              <option>64</option>
+              <option>96</option>
+              <option>127</option>
+            </select>
           </div>
           <div
             class="check programchange"

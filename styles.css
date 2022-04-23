@@ -206,7 +206,7 @@ select#midiInChannel {
 
 .onlyinternal {
   opacity: 0.2;
-  pointer-events: none;
+  /* pointer-events: none; */
 }
 
 .internalClock .onlyinternal {
@@ -658,13 +658,18 @@ select#midiInChannel {
 .bright .zone select option {
   color: var(--darker-4);
 }
+
+.rangeholder {
+  /* border: 2px solid var(--brighter-1); */
+  margin: 6px auto;
+}
+
 .range {
   position: relative;
   height: 28px;
   cursor: pointer;
   width: 100%;
-  margin: 6px auto;
-  border: 2px solid var(--brighter-1);
+  /* border: 2px solid var(--brighter-1); */
   overflow: hidden;
   /* border-radius: 6px; */
 }
@@ -681,6 +686,15 @@ select#midiInChannel {
   bottom: 0;
   height: 10px;
   width: 100%;
+}
+
+.rangeborder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border: 1px solid var(--brighter-1);
 }
 
 .marker {
@@ -894,9 +908,9 @@ li {
   display: inline-block;
   position: relative;
   width: 56px;
-  height: 56px;
+  height: 67px;
   vertical-align: top;
-  margin: 0 0 20px 0;
+  margin: 0 0 5px 0;
 }
 
 .ccpot.moved {
@@ -927,17 +941,29 @@ li {
 
 .ccpot .value {
   position: absolute;
-  top: 52%;
+  top: 44%;
   left: 0;
   right: 0;
   text-align: center;
 }
 
 .ccpot .cc {
+  display: none;
   position: absolute;
   bottom: 0;
-  left: 30%;
-  width: 40%;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 9px;
+  color: var(--brighter-2);
+}
+
+.ccpot:hover .cc {
+  display: block;
+}
+
+.ccpot .cc input {
+  width: 33%;
   text-align: center;
   font-size: 9px;
   color: var(--brighter-2);
@@ -1011,4 +1037,17 @@ li {
 }
 .arp-settings .innertoggle.selected {
   background-color: var(--brighter-2);
+}
+
+.fixedvel select {
+  height: 8px;
+  font-size: 8px;
+  vertical-align: top;
+}
+
+.hasClock {
+  border-right: 2px solid #00000000;
+}
+.hasClock.yes {
+  border-color: #f00;
 }
