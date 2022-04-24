@@ -239,14 +239,8 @@ document.addEventListener('DOMContentLoaded', function () {
           midi.panic();
         });
         loadZones(midi);
-        midi.setInternalClockTempo(zones.tempo);
         const updateClockInterface = function () {
           console.log('app: Clock input device changed');
-          if (midi.deviceInClock) {
-            DOM.removeClass('#midisettings', 'internalClock');
-          } else {
-            DOM.addClass('#midisettings', 'internalClock');
-          }
         };
         DOM.element('#midiClockInDeviceId').addEventListener(
           'change',
@@ -303,50 +297,6 @@ document.addEventListener('DOMContentLoaded', function () {
           zones.inChannel = e.target.selectedIndex;
           saveZones();
         });
-        const displayBPM = DOM.element('#displayBPM');
-        displayBPM.innerHTML = zones.tempo;
-        let bpmStartX = 0;
-        let bpmStartTempo = 0;
-        let dragBPM = false;
-        displayBPM.addEventListener('mousedown', (e) => {
-          bpmStartX = e.screenX;
-          bpmStartTempo = parseInt(zones.tempo);
-          dragBPM = true;
-          DOM.addClass(document.body, 'dragging');
-        });
-        document.body.addEventListener('mousemove', (e) => {
-          if (dragBPM) {
-            let dragTempo =
-              bpmStartTempo + Math.round((e.screenX - bpmStartX) / 2);
-            dragTempo = Math.min(Math.max(20, dragTempo), 240);
-            zones.tempo = dragTempo;
-            midi.setInternalClockTempo(zones.tempo);
-            displayBPM.innerHTML = zones.tempo;
-          }
-        });
-        document.body.addEventListener('mouseup', (e) => {
-          if (dragBPM) {
-            DOM.removeClass(document.body, 'dragging');
-            dragBPM = false;
-            saveZones();
-          }
-        });
-
-        const sendClockCheck = DOM.element('#sendClock');
-        if (zones.sendClock) {
-          DOM.addClass(sendClockCheck, 'selected');
-        }
-        midi.setSendClock(zones.sendClock);
-        sendClockCheck.addEventListener('click', (e) => {
-          zones.sendClock = !zones.sendClock;
-          if (zones.sendClock) {
-            DOM.addClass(sendClockCheck, 'selected');
-          } else {
-            DOM.removeClass(sendClockCheck, 'selected');
-          }
-          midi.setSendClock(zones.sendClock);
-          saveZones();
-        });
         let clockRunning = false;
         startClockButton.addEventListener('click', () => {
           clockRunning = !clockRunning;
@@ -396,11 +346,6 @@ document.addEventListener('DOMContentLoaded', function () {
         // midi settings
         DOM.empty(select_in);
         DOM.empty(select_in_clock);
-        DOM.addHTML(
-          select_in_clock,
-          'beforeend',
-          '<option value="*INTERNAL*">INTERNAL</option>'
-        );
         if (inputs.length > 0) {
           inputs.forEach((input) => {
             DOM.addHTML(

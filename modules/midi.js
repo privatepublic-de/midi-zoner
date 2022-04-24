@@ -1,5 +1,3 @@
-const MidiClock = require('./clock');
-
 /**
  * Web MIDI interface handler
  */
@@ -34,7 +32,6 @@ class MIDI {
     this.eventHandler = eventHandler;
     this.transportHandler = transportHandler;
     this.clockHandler = clockHandler;
-    this.sendInternalClock = false;
     this.midiAccess = null;
     this.deviceIdIn = localStorage.getItem('midiInId');
     this.deviceIdInClock = localStorage.getItem('midiInClockId');
@@ -47,17 +44,6 @@ class MIDI {
     setInterval(() => {
       this.hasClock = false;
     }, 1000);
-    this.internalClock = MidiClock(() => {
-      if (!this.deviceInClock && this.clockHandler) {
-        if (this.sendInternalClock) {
-          this.sendClock();
-        }
-        if (this.isClockRunning) {
-          this.clockHandler(this.songposition);
-        }
-        this.songposition++;
-      }
-    });
     let trueReported = false;
     const reportStatus = (available, msg, inputPorts, outputPorts) => {
       if ((available && !trueReported) || !available) {
@@ -158,23 +144,21 @@ class MIDI {
       console.log('MIDI: ', countIn, 'inputs,', countOut, 'outputs');
       const mapDescriptor = (port) => {
         let sName = port[1].name;
-        let words = sName.split(' ');
-        for (let i = 0; i < words.length; i++) {
-          if (words[i].length > 7) {
-            let short = '';
-            let lastCase = null;
-            for (let c = 0; c < words[i].length; c++) {
-              let code = words[i].charCodeAt(c);
-              let thisCase = code < 65 ? 1 : code < 97 ? 2 : 3;
-              if (thisCase != lastCase) {
-                short += words[i].charAt(c);
-                lastCase = thisCase;
-              }
-            }
-            words[i] = short;
-          }
+        // let words = sName.split(' ');
+        // if (words.length > 1) {
+        //   for (let i = 0; i < words.length; i++) {
+        //     if (words[i].length > 7) {
+        //       words[i] = words[i].substr(0, 6) + '…';
+        //     }
+        //   }
+        // }
+        // sName = words.join(' ');
+        if (sName.length > 20) {
+          sName =
+            sName.substr(0, 20 / 2) +
+            '…' +
+            sName.substr(sName.length - 20 / 2, 20 / 2);
         }
-        sName = words.join(' ');
         return {
           id: port[1].id,
           name: sName, //`${port[1].name}`, //`${name}`,
@@ -184,7 +168,6 @@ class MIDI {
       };
       const inputDescriptors = sortedInputs.map(mapDescriptor);
       const outputDescriptors = sortedOutputs.map(mapDescriptor);
-      // this.internalClock.start();
       if (countIn == 0 || countOut == 0) {
         let message;
         if (countIn > 0 && countOut == 0) {
@@ -279,9 +262,6 @@ class MIDI {
         if (this.deviceIn !== this.deviceInClock) {
           this.deviceInClock.onmidimessage = this.onMIDIClockMessage.bind(this);
         }
-        this.internalClock.stop();
-      } else {
-        // this.internalClock.start();
       }
     } else {
       console.log('MIDI: No input device selected!');
@@ -382,12 +362,6 @@ class MIDI {
   startClock() {
     this.songposition = 0;
     this.isClockRunning = true;
-    if (!this.deviceInClock) {
-      this.internalClock.start();
-      if (this.sendInternalClock) {
-        this.sendStart();
-      }
-    }
   }
 
   /**
@@ -397,28 +371,6 @@ class MIDI {
    */
   stopClock() {
     this.isClockRunning = false;
-    if (!this.deviceInClock) {
-      this.internalClock.stop();
-      if (this.sendInternalClock) {
-        this.sendStop();
-      }
-    }
-  }
-
-  /**
-   * Sets MIDI controller's sendInternalClock state.
-   * @param {Boolean} v
-   */
-  setSendClock(v) {
-    this.sendInternalClock = v;
-  }
-
-  /**
-   * Set bets-per-minute tempo of internal clock.
-   * @param {Number} bpm
-   */
-  setInternalClockTempo(bpm) {
-    this.internalClock.setTempo(bpm);
   }
 
   /**

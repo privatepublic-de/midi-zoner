@@ -58,7 +58,7 @@
           <div class="block">
             <label for="midiClockInDeviceId">Clock:</label>
             <select id="midiClockInDeviceId" tabindex="-1">
-              <option value="*INTERNAL*">INTERNAL</option>
+              <option>(No devices)</option>
             </select>
             <span class="hasClock" id="clockIndicator"></span>
             <span
@@ -66,15 +66,6 @@
               class="toggle"
               title="Start arpeggiators"
             ></span>
-          </div>
-          <div class="block onlyinternal">
-            <label>BPM:</label>
-            <span id="displayBPM">130</span>
-            <span id="sendClock" title="Send internal clock to MIDI-Out devices"
-              ><span class="material-icons sel">check_circle</span
-              ><span class="material-icons unsel">radio_button_unchecked</span>
-              Send clock</span
-            >
           </div>
         </div>
       </div>

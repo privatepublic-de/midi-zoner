@@ -643,13 +643,13 @@ function updateValuesForZone(index) {
     DOM.removeClass(`#zone${index}`, 'disabled');
     const rgb = zoneHasHeldArp && !zoneIsEnabled ? [50, 50, 50] : rgbZone;
     const style = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
-    DOM.element(`#zone${index}`).style.background = style;
+    DOM.element(`#zone${index}`).style.backgroundColor = style;
     DOM.element(`#zone${index}`).style.setProperty('--bg-color', style);
   } else {
     DOM.addClass(`#zone${index}`, 'disabled');
     const rgb = DOM.hslToRgb(zone.hue, 0, 0.25);
     const style = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
-    DOM.element(`#zone${index}`).style.background = style;
+    DOM.element(`#zone${index}`).style.backgroundColor = style;
     DOM.element(`#zone${index}`).style.setProperty('--bg-color', style);
   }
   if (zone.show_cc) {
