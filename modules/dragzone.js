@@ -34,7 +34,7 @@ module.exports = class DragZone {
     document.body.addEventListener('mousemove', this.moveHandler, true);
     document.body.addEventListener('mouseup', this.dropHandler, true);
     DOM.addClass(document.body, 'zonedrag');
-    this.findDropElement(this.startY);
+    this.findDropElement(startMouseEvent.screenY); // this.startY);
     setTimeout(() => {
       DOM.addClass('#zones', 'dragging');
     }, 100);
@@ -62,8 +62,8 @@ module.exports = class DragZone {
         targetIndex--;
       }
       zones.list.splice(targetIndex, 0, me[0]);
-      this.finishedCallback();
     }
+    this.finishedCallback();
   }
 
   findDropElement(screenY) {
