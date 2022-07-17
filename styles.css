@@ -700,7 +700,7 @@ select#midiInChannel {
   font-size: 12px;
   padding: 1px 0 0 0;
   text-align: center;
-  transition: 1s left, 1s right;
+  transition: 400ms left, 400ms right;
 }
 
 .marker.low {
@@ -710,10 +710,10 @@ select#midiInChannel {
   top: 10px;
 }
 
-.marker.hover {
-  background-color: var(--brighter-4);
+/* .marker.hover {
+  background-color: var(--brighter-1);
   color: var(--fg-channel-select);
-}
+} */
 
 .join {
   position: absolute;
