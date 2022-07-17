@@ -50,7 +50,7 @@ module.exports = {
               <span class="material-icons" data-action="${zoneindex}:cc_remove:${ix}">cancel</span>
               <span class="material-icons" data-action="${zoneindex}:cc_right:${ix}">arrow_forward</span>
               <br/>
-              <span data-action="${zoneindex}:cc_togglepolarity:${ix}">bi/uni-pol</span>
+              <span data-action="${zoneindex}:cc_togglepolarity:${ix}">mode</span>
             </div>
           </div>
       `;

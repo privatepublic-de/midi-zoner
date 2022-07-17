@@ -25,6 +25,7 @@ function createWindow() {
     icon: iconPath,
     webPreferences: {
       nodeIntegration: true,
+      contextIsolation: false,
       backgroundThrottling: false
     },
     show: false
@@ -178,7 +179,8 @@ function openAboutWindow() {
     minimizable: false,
     maximizable: false,
     webPreferences: {
-      nodeIntegration: true
+      nodeIntegration: true,
+      contextIsolation: false
     }
   });
   aboutWin.once('ready-to-show', () => {

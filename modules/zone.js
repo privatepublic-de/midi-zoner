@@ -572,7 +572,7 @@ module.exports = class Zone {
               Uint8Array.from([
                 MIDI.MESSAGE.NOTE_ON + this.channel,
                 note.number,
-                this.fixedvel ? 127 : note.velo
+                this.fixedvel ? this.fixedvel_value || 127 : note.velo
               ]),
               this.outputPortId
             );

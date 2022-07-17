@@ -906,7 +906,7 @@ li {
   width: 56px;
   height: 67px;
   vertical-align: top;
-  margin: 0 0 10px 0;
+  margin: 0 0 15px 5px;
   /* background-color: var(--darker-1); */
   /* background-image: linear-gradient(#ffffff10, #00000000); */
   /* border-radius: 4px; */
@@ -983,7 +983,7 @@ li {
   opacity: 0;
   position: absolute;
   text-align: center;
-  padding: 2px 2px 0 2px;
+  padding: 4px 2px 0 2px;
   top: 100%;
   width: 100%;
   font-size: 9px;
@@ -1001,7 +1001,7 @@ li {
 
 .ccpot .tools:hover {
   opacity: 1;
-  height: 28px;
+  height: 32px;
 }
 
 .ccpot .tools span:hover {
@@ -1040,9 +1040,9 @@ li {
 }
 
 .fixedvel select {
-  height: 8px;
+  height: 12px;
   font-size: 8px;
-  vertical-align: top;
+  vertical-align: middle;
 }
 
 .hasClock {
