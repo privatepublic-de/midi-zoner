@@ -598,14 +598,19 @@ select#midiInChannel {
   vertical-align: middle;
   margin: 0;
   text-align: center;
-  /* border-left: none; */
+  border-right: none;
 }
-.octselect:first-child {
-  border-left: 1px solid var(--brighter-2);
+.octselect:last-child {
+  border-right: 1px solid var(--brighter-2);
 }
 
 .octselect.selected {
   background-color: var(--brighter-2);
+  border: 1px solid var(--brighter-2);
+}
+
+.octselect.selected + .octselect {
+  border-left: none;
 }
 
 .zone select,
