@@ -4,6 +4,14 @@ const DIV_TICKS = [
   192, 144, 96, 72, 64, 48, 36, 32, 24, 18, 16, 12, 9, 8, 6, 4, 3, 2
 ]; // 24ppq
 
+const note_fill = 'rgba(255,255,255,.6)';
+const note_fill_arp = 'rgba(0,0,0,.2)';
+const note_fill_black = 'rgba(255,255,255,.3)';
+const note_top = 8;
+const note_top_black = 4;
+const note_height = 12;
+const note_height_black = 12;
+
 class Note {
   static isBlackKey = function (n) {
     const nn = n % 12;
@@ -225,17 +233,20 @@ module.exports = class Zone {
 
   removeNote(number) {
     let index = -1;
-    for (let i = 0; i < this.activeNotes.length; i++) {
-      if (this.activeNotes[i].number === number) {
-        index = i;
-        break;
+    do {
+      index = -1;
+      for (let i = 0; i < this.activeNotes.length; i++) {
+        if (this.activeNotes[i].number === number) {
+          index = i;
+          break;
+        }
       }
-    }
-    if (index > -1) {
-      this.activeNotes.splice(index, 1);
-    } else {
-      console.log(`Zone.removeNote: Note ${number} not found`);
-    }
+      if (index > -1) {
+        this.activeNotes.splice(index, 1);
+      } else {
+        console.log(`Zone.removeNote: Note ${number} not found`);
+      }
+    } while (index > -1);
   }
 
   handleMidi(message, data) {
@@ -379,37 +390,40 @@ module.exports = class Zone {
         this.canvasElement.height *
         (this.canvasElement.clientWidth / this.canvasElement.clientHeight);
       const cwidth = this.canvasElement.width;
-      const notewidth = cwidth / 127.0 - cwidth / 127.0 / 3.0;
+      const notewidth = cwidth / 127.0 - cwidth / 127.0 / 2.0;
       ctx.clearRect(0, 0, cwidth, this.canvasElement.height);
       ctx.fillStyle = this.arp_enabled
         ? 'rgba(0,0,0,.2)'
         : 'rgba(255,255,255,.6)';
-      // ctx.strokeStyle = 'rgba(0,0,0,.75)';
       const list =
         this.arp_hold && this.arp_enabled
           ? this.arp_holdlist
           : this.activeNotes;
       for (let i = 0; i < list.length; i++) {
         if (this.arp_enabled) {
+          ctx.fillStyle = note_fill_arp;
           for (let ao = 0; ao < this.arp_octaves + 1; ao++) {
             const number =
               list[i].number +
               (this.arp_transpose ? this.arp_transpose_amount : 0) +
               (this.octave + ao) * 12;
+            const isBlack = Note.isBlackKey(number);
             ctx.fillRect(
               (cwidth * number) / 127,
-              2 - (Note.isBlackKey(number) ? 2 : 0),
+              isBlack ? note_top_black : note_top,
               notewidth,
-              16
+              isBlack ? note_height_black : note_height
             );
           }
         } else {
           const number = list[i].number;
+          const isBlack = Note.isBlackKey(number);
+          ctx.fillStyle = isBlack ? note_fill_black : note_fill;
           ctx.fillRect(
             (cwidth * number) / 127,
-            2 - (Note.isBlackKey(number) ? 2 : 0),
+            isBlack ? note_top_black : note_top,
             notewidth,
-            16
+            isBlack ? note_height_black : note_height
           );
         }
       }
