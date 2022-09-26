@@ -398,9 +398,27 @@ select#midiInChannel {
 
 .ch.enabled.selected,
 .ch.selected {
-  background-color: var(--brighter-2);
-  color: var(--fg-channel-select);
   border-color: transparent;
+  background-color: var(--brighter-2);
+}
+
+.ch.selected {
+  color: var(--fg-channel-select);
+}
+
+.ch.enabled.selected {
+  color: var(--brighter-4);
+}
+
+.isdisabled {
+  display: none;
+}
+
+.disabled .isdisabled {
+  display: inline;
+}
+.disabled .isenabled {
+  display: none;
 }
 
 .ch.enabled,
@@ -685,7 +703,7 @@ select#midiInChannel {
   position: absolute;
   left: 0;
   bottom: 0;
-  height: 10px;
+  height: 20px;
   width: 100%;
 }
 

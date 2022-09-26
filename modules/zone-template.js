@@ -98,9 +98,10 @@ module.exports = {
         <div
           class="ch enabled"
           data-action="${index}:enabled"
-          title="Receive MIDI events"
+          title="Enable zone (send MIDI out)"
         >
-          R
+        <span class="material-icons isenabled"> check </span>
+        <span class="material-icons isdisabled"> close </span>
         </div>
         <div class="ch solo" data-action="${index}:solo" title="Solo Zone\n(Double click for this zone only)">
           S
@@ -138,7 +139,7 @@ module.exports = {
           <span class="current"></span>
           <span class="marker low">C-1</span>
           <span class="marker high">G9</span>
-          <canvas id="canvas${index}" width="100" height="18"></canvas>
+          <canvas id="canvas${index}" width="100" height="20"></canvas>
         </div>
       </div>
       <div class="settings">
