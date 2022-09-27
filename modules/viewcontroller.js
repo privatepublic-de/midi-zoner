@@ -1,24 +1,24 @@
 const DOM = require('./domutils');
 const MIDI = require('./midi');
 const DragZone = require('./dragzone');
-const Zone = require('./zone');
+const Zone = require('./zone').Zone;
 const zoneTemplate = require('./zone-template');
 const potDragHandler = require('./potdraghandler');
 
-const NOTENAMES = [
-  'C',
-  'C#',
-  'D',
-  'D#',
-  'E',
-  'F',
-  'F#',
-  'G',
-  'G#',
-  'A',
-  'A#',
-  'B'
-];
+// const MIDI.NOTENAMES = [
+//   'C',
+//   'C#',
+//   'D',
+//   'D#',
+//   'E',
+//   'F',
+//   'F#',
+//   'G',
+//   'G#',
+//   'A',
+//   'A#',
+//   'B'
+// ];
 
 let zones = {};
 /** @type {MIDI} */
@@ -168,22 +168,6 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
         }
       }
       break;
-    case 'prgdec':
-    case 'prginc':
-      {
-        const input = DOM.element(`#zone${zoneindex} input.programnumber`);
-        let v = parseInt(input.value);
-        v = Number.isInteger(v) ? v : 0;
-        if (params[1] == 'prginc') {
-          if (v < 128) v++;
-        } else {
-          if (v > 1) v--;
-        }
-        v = Math.min(128, Math.max(0, v));
-        input.value = v;
-        input.dispatchEvent(new Event('input'));
-      }
-      break;
     case 'enabled':
       zone.enabled = !zone.enabled;
       if (zone.solo && !zone.enabled) {
@@ -310,6 +294,114 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
         }
       }
       break;
+    case 'toggle_seq':
+      zone.sequence.active = !zone.sequence.active;
+      zone.sequence.selectedStep = -1;
+      updateValuesForZone(zoneindex);
+      break;
+    case 'select_step':
+      zone.sequence.selectedStep = parseInt(params[2]);
+      updateValuesForZone(zoneindex);
+      break;
+    case 'seq_division':
+      zone.sequence.division = element.selectedIndex;
+      updateValuesForZone(zoneindex);
+      break;
+    case 'seq_steps':
+      const v = parseInt(element.value);
+      zone.sequence.length = v;
+      break;
+    case 'seq_step_length':
+      const vl = parseInt(element.value);
+      if (zone.sequence.selectedStep > -1) {
+        zone.sequence.step[zone.sequence.selectedStep].length = vl;
+        updateValuesForZone(zoneindex);
+      }
+      break;
+    case 'seq_clear_all':
+      zone.sequence.step.length = 0;
+      updateValuesForZone(zoneindex);
+      zone.sequence.selectedStep = zone.sequence.selectedStep;
+      break;
+    case 'seq_clear_step':
+      if (zone.sequence.selectedStep > -1) {
+        zone.sequence.step[zone.sequence.selectedStep] = null;
+        updateValuesForZone(zoneindex);
+        zone.sequence.selectedStep = zone.sequence.selectedStep;
+      }
+      break;
+    case 'seq_probability':
+      if (
+        zone.sequence.selectedStep > -1 &&
+        zone.sequence.step[zone.sequence.selectedStep]
+      ) {
+        const percents = ev.offsetX / (element.offsetWidth * 0.95);
+        zone.sequence.step[zone.sequence.selectedStep].probability = Math.min(
+          1,
+          Math.max(0, Math.floor(percents * 24) / 24)
+        );
+        updateValuesForZone(zoneindex);
+      }
+      break;
+    case 'seq_copy_step':
+      if (
+        zone.sequence.selectedStep > -1 &&
+        zone.sequence.step[zone.sequence.selectedStep]
+      ) {
+        Zone.seqClipboardStep = zone.sequence.step[zone.sequence.selectedStep];
+      }
+      break;
+    case 'seq_paste_step':
+      if (zone.sequence.selectedStep > -1 && Zone.seqClipboardStep) {
+        zone.sequence.step[zone.sequence.selectedStep] = Zone.seqClipboardStep;
+        updateValuesForZone(zoneindex);
+      }
+      break;
+    case 'seq_step_move':
+      if (
+        zone.sequence.selectedStep > -1 &&
+        zone.sequence.step[zone.sequence.selectedStep]
+      ) {
+        const direction = parseInt(params[2]);
+        const newPos = (zone.sequence.selectedStep + direction) % 64;
+        if (newPos < 0) {
+          newPos = 63;
+        }
+        if (
+          !zone.sequence.step[newPos] ||
+          zone.sequence.step[newPos].length == 0
+        ) {
+          zone.sequence.step[newPos] =
+            zone.sequence.step[zone.sequence.selectedStep];
+          zone.sequence.step[zone.sequence.selectedStep] = null;
+          zone.sequence.selectedStep = newPos;
+          updateValuesForZone(zoneindex);
+        }
+      }
+      break;
+    case 'seq_move':
+      const direction = parseInt(params[2]);
+      const limit = zone.sequence.length;
+      const newSeq = [];
+      for (let i = 0; i < 64; i++) {
+        newSeq[i] = zone.sequence.step[i];
+      }
+      const srcOffset = direction > 0 ? limit - 1 : 1;
+      for (let i = 0; i < limit; i++) {
+        newSeq[i] = zone.sequence.step[(i + srcOffset) % limit];
+      }
+      zone.sequence.step = newSeq;
+      updateValuesForZone(zoneindex);
+      break;
+    case 'seq_copy':
+      Zone.seqClipboardSequence = zone.sequence;
+      break;
+    case 'seq_paste':
+      if (Zone.seqClipboardSequence) {
+        zone.sequence = Zone.seqClipboardSequence;
+        updateValuesForZone(zoneindex);
+      }
+      break;
   }
   triggerSave();
 }
@@ -391,6 +483,7 @@ function appendZone(/** @type {Zone} */ zone, index) {
   DOM.addHTML('#zones', 'beforeend', zoneTemplate.getHTML(zone, index));
   zone.canvasElement = DOM.element(`#canvas${index}`);
   zone.patternCanvas = DOM.element(`#canvasPattern${index}`);
+  zone.sequencerGridElement = DOM.element(`#zone${index} .seq .grid`);
   zone.dom.markerlow = DOM.element(`#zone${index} .marker.low`);
   zone.dom.markerhigh = DOM.element(`#zone${index} .marker.high`);
   zone.dom.join = DOM.element(`#zone${index} .join`);
@@ -411,7 +504,7 @@ function appendZone(/** @type {Zone} */ zone, index) {
   initOutputPortsForZone(index);
 
   DOM.all(
-    `#zone${index} .arp_probability,#zone${index} .arp_gatelength`
+    `#zone${index} .arp_probability,#zone${index} .arp_gatelength,#zone${index} .seq_probability`
   ).forEach((el) => {
     let active = false;
     el.addEventListener('mousedown', (e) => {
@@ -496,9 +589,10 @@ function renderMarkersForZone(index, tempLo, tempHigh) {
   const xpad = (0.75 / 127.0) * width;
   zone.dom.markerlow.style.left = `${xlow * width}px`;
   zone.dom.markerhigh.style.right = `${width - xhi * width - xpad}px`;
-  zone.dom.markerlow.innerHTML = NOTENAMES[low % 12] + (parseInt(low / 12) - 1);
+  zone.dom.markerlow.innerHTML =
+    MIDI.NOTENAMES[low % 12] + (parseInt(low / 12) - 1);
   zone.dom.markerhigh.innerHTML =
-    NOTENAMES[high % 12] + (parseInt(high / 12) - 1);
+    MIDI.NOTENAMES[high % 12] + (parseInt(high / 12) - 1);
   zone.dom.join.style.left = `${xlow * width}px`;
   zone.dom.join.style.right = `${width - xhi * width - xpad}px`;
   zone.dom.current.style.left = `${xclow * width}px`;
@@ -657,6 +751,59 @@ function updateValuesForZone(index) {
   } else {
     DOM.removeClass(`#zone${index}`, 'show-cc');
   }
+  if (zone.sequence.active) {
+    DOM.addClass(`#zone${index}`, 'show-seq');
+    DOM.removeClass(
+      `#zone${index} .seq .grid .step.selected-step`,
+      'selected-step'
+    );
+    DOM.all(`#zone${index} .seq .grid .step`).forEach((e, i) => {
+      if (i < zone.sequence.length) {
+        DOM.removeClass(e, 'unused');
+        if (zone.sequence.step[i] && zone.sequence.step[i].length > 0) {
+          DOM.addClass(e, 'active');
+        } else {
+          DOM.removeClass(e, 'active');
+        }
+      } else {
+        DOM.addClass(e, 'unused');
+      }
+    });
+    if (zone.sequence.selectedStep > -1) {
+      DOM.addClass(`#zone${index} .seq .grid`, 'has-selection');
+      DOM.all(`#zone${index} .seq .grid .step`)[
+        zone.sequence.selectedStep
+      ].classList.add('selected-step');
+      let step = zone.sequence.step[zone.sequence.selectedStep];
+      if (step && step.length > 0) {
+        const pcnt = parseInt(step.probability * 100);
+        DOM.element(
+          `#zone${index} .percent.seq_probability .inner`
+        ).style.width = `${pcnt}%`;
+        DOM.element(`#zone${index} .percent.seq_probability .pcnt`).innerHTML =
+          pcnt;
+
+        DOM.element(`#zone${index} .seq_step_length`).value =
+          zone.sequence.step[zone.sequence.selectedStep].length;
+      } else {
+        DOM.element(`#zone${index} .seq_step_length`).value = 1;
+        DOM.element(
+          // TODO generalize!
+          `#zone${index} .percent.seq_probability .inner`
+        ).style.width = `100%`;
+        DOM.element(`#zone${index} .percent.seq_probability .pcnt`).innerHTML =
+          '100';
+      }
+      zone.sequence.updateRecordingState();
+    } else {
+      DOM.removeClass(`#zone${index} .seq .grid`, 'has-selection');
+    }
+    DOM.element(`#zone${index} .seq_steps`).value = zone.sequence.length;
+    DOM.element(`#zone${index} .seq_division`).selectedIndex =
+      zone.sequence.division;
+  } else {
+    DOM.removeClass(`#zone${index}`, 'show-seq');
+  }
   [
     'cc',
     'mod',
@@ -686,6 +833,7 @@ function updateValuesForZone(index) {
     DOM.element(`#zone${index} .percent.${p} .inner`).style.width = `${pcnt}%`;
     DOM.element(`#zone${index} .percent.${p} .pcnt`).innerHTML = pcnt;
   });
+  // seq_probability
   if (zone.arp_enabled) {
     DOM.addClass(`#zone${index}`, 'arp-enabled');
   } else {

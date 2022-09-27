@@ -70,7 +70,30 @@ module.exports = {
     const octavemarkers = '<span class="oct"></span>'.repeat(10);
     const checkboxIcons = /*html*/ `<span class="material-icons sel">check_circle</span
       ><span class="material-icons unsel">radio_button_unchecked</span> `;
-
+    let sequencerGrid = '';
+    for (let i = 0; i < 64; i++) {
+      sequencerGrid += `<div class="step" data-action="${index}:select_step:${i}">${
+        i + 1
+      }</div>`;
+    }
+    const noteLengthOptions = `<option>2/1</option>
+      <option>1/1.</option>
+      <option>1/1 Note</option>
+      <option>1/2.</option>
+      <option>1/1t</option>
+      <option>1/2 Note</option>
+      <option>1/4.</option>
+      <option>1/2t</option>
+      <option>1/4 Note</option>
+      <option>1/8.</option>
+      <option>1/4t</option>
+      <option>1/8 Note</option>
+      <option>1/16.</option>
+      <option>1/8t</option>
+      <option>1/16 Note</option>
+      <option>1/32.</option>
+      <option>1/32 Note</option>
+      <option>1/16t</option>`;
     return /*html*/ `<section class="zone" id="zone${index}">
       <div
         class="delzone rtool"
@@ -93,6 +116,10 @@ module.exports = {
       <div class="showccs rtool" data-action="${index}:toggle_show_cc" 
         title="Show CC controllers">
         <i class="material-icons">tune</i>
+      </div>
+      <div class="showseq rtool" data-action="${index}:toggle_seq" 
+        title="Show step sequencer">
+        <i class="material-icons">play_arrow</i>
       </div>
       <div class="channels">
         <div
@@ -123,6 +150,47 @@ module.exports = {
         <div class="ccpotttools">
           <i class="material-icons" title="Add new control" data-action="${index}:add_cc_controller">add</i>
           <i class="material-icons" title="Send all values" data-action="${index}:send_all_cc">send</i>
+        </div>
+      </div>
+      <div class="seq" data-action="${index}:select_step:-1">
+        Sequencer:
+        <div class="val">
+          <input class="seq_steps" type="number" min="1" max="64" value="16" data-change="${index}:seq_steps" /> 
+          steps as
+        </div>
+        <div class="drop-down">
+          <select class="seq_division" data-change="${index}:seq_division">
+            ${noteLengthOptions}
+          </select>
+        </div>
+        <div class="action" data-action="${index}:seq_move:-1">&lt;</div>
+        <div class="action" data-action="${index}:seq_move:1">&gt;</div>
+        <div class="action" data-action="${index}:seq_copy"><i class="material-icons">content_copy</i></div>
+        <div class="action" data-action="${index}:seq_paste"><i class="material-icons">content_paste</i></div>
+        <div class="action" data-action="${index}:seq_clear_all"><i class="material-icons">delete</i></div>
+        <div class="grid">
+          ${sequencerGrid}
+          <div class="step-info" data-action="${index}:ignore">
+            <p class="no-selection"><i>(select a step above)</i></p>
+            <p class="step-notes"></p>
+            <div class="step-props">
+              Length <input class="seq_step_length" type="number" min="1" max="64" value="1" data-change="${index}:seq_step_length"/> 
+              Prob
+              <div
+                class="percent seq_probability"
+                data-action="${index}:seq_probability"
+                title="Step probability"
+              >
+                <span class="inner"></span>
+                <span class="pcnt">50</span>
+              </div>
+              <div class="action" data-action="${index}:seq_step_move:-1">&lt;</div>
+              <div class="action" data-action="${index}:seq_step_move:1">&gt;</div>
+              <div class="action" data-action="${index}:seq_copy_step"><i class="material-icons">content_copy</i></div>
+              <div class="action" data-action="${index}:seq_paste_step"><i class="material-icons">content_paste</i></div>
+              <div class="action" data-action="${index}:seq_clear_step"><i class="material-icons">delete</i></div>
+            </div>
+          </div>
         </div>
       </div>
       <div class="rangeholder">
@@ -221,12 +289,12 @@ module.exports = {
           <div class="prgm" title="Send program change message">
             <input
               class="programnumber"
-              type="text"
+              type="number"
               value=""
+              min="1" max="128"
+              placeholder="Prg#"
               data-change="${index}:changeprogram"
             />
-            <span class="valuestep" data-action="${index}:prgdec">&lt;</span>
-            <span class="valuestep" data-action="${index}:prginc">&gt;</span>
           </div>
         </div>
       </div>
@@ -255,24 +323,7 @@ module.exports = {
         </div>
         <div class="drop-down">
           <select class="arp_division" data-change="${index}:arp_division">
-            <option>2/1</option>
-            <option>1/1.</option>
-            <option>1/1 Note</option>
-            <option>1/2.</option>
-            <option>1/1t</option>
-            <option>1/2 Note</option>
-            <option>1/4.</option>
-            <option>1/2t</option>
-            <option>1/4 Note</option>
-            <option>1/8.</option>
-            <option>1/4t</option>
-            <option>1/8 Note</option>
-            <option>1/16.</option>
-            <option>1/8t</option>
-            <option>1/16 Note</option>
-            <option>1/32.</option>
-            <option>1/32 Note</option>
-            <option>1/16t</option>
+            ${noteLengthOptions}
           </select>
         </div>
         <div class="drop-down">

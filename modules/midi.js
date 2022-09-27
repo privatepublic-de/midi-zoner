@@ -2,6 +2,20 @@
  * Web MIDI interface handler
  */
 class MIDI {
+  static NOTENAMES = [
+    'C',
+    'C#',
+    'D',
+    'D#',
+    'E',
+    'F',
+    'F#',
+    'G',
+    'G#',
+    'A',
+    'A#',
+    'B'
+  ];
   static MESSAGE = {
     NOTE_OFF: 0x80,
     NOTE_ON: 0x90,

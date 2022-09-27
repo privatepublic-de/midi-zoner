@@ -17,6 +17,22 @@ class Note {
     const nn = n % 12;
     return nn == 1 || nn == 3 || nn == 6 || nn == 8 || nn == 10;
   };
+
+  static display(number) {
+    return MIDI.NOTENAMES[number % 12] + (parseInt(number / 12) - 1);
+  }
+
+  static clone(other) {
+    const result = new Note(
+      other.number,
+      other.velo,
+      other.channel,
+      other.portId
+    );
+    result.isBlackKey = other.isBlackKey;
+    return result;
+  }
+
   number = 0;
   velo = 0;
   channel = 0;
@@ -32,9 +48,10 @@ class Note {
     this.isBlackKey = Note.isBlackKey(number);
   }
 }
-
-module.exports = class Zone {
+class Zone {
   static solocount = 0;
+  static seqClipboardStep = null;
+  static seqClipboardSequence = null;
   channel = 0; // 0-based
   preferredOutputPortId = '*';
   outputPortId = '*';
@@ -104,6 +121,9 @@ module.exports = class Zone {
   rngArpOct = null;
   rngProb = null;
 
+  sequence = new Sequence(this);
+  sequencerGridElement = null;
+
   /**
    * Creates a new zone with default values.
    * @param {MIDI} midi
@@ -151,7 +171,8 @@ module.exports = class Zone {
       euclid_hits: this.euclid_hits,
       euclid_length: this.euclid_length,
       show_cc: this.show_cc,
-      cc_controllers: this.cc_controllers
+      cc_controllers: this.cc_controllers,
+      sequence: this.sequence
     };
   }
 
@@ -243,8 +264,6 @@ module.exports = class Zone {
       }
       if (index > -1) {
         this.activeNotes.splice(index, 1);
-      } else {
-        console.log(`Zone.removeNote: Note ${number} not found`);
       }
     } while (index > -1);
   }
@@ -286,6 +305,7 @@ module.exports = class Zone {
                 );
                 this.midiActiveNotes[srcKey] = playNote;
                 this.addNote(playNote);
+                this.sequence.recordNote(playNote, this.activeNotes.length);
               } else {
                 const srcNote = this.midiActiveNotes[srcKey];
                 if (srcNote) {
@@ -301,6 +321,7 @@ module.exports = class Zone {
                   console.log(`No src note for ${srcKey}, clearing ${key}`);
                   this.removeNote(key);
                 }
+                this.sequence.noteReleased(this.activeNotes.length);
               }
             }
             this.notesChanged();
@@ -475,7 +496,23 @@ module.exports = class Zone {
     }
   }
 
+  renderSequence() {
+    if (this.sequence.active) {
+      this.sequencerGridElement
+        .querySelectorAll('.step.playhead')
+        .forEach((e) => {
+          e.classList.remove('playhead');
+        });
+      if (this.sequence.currentStepNumber > -1) {
+        this.sequencerGridElement
+          .querySelectorAll('.step')
+          [this.sequence.currentStepNumber].classList.add('playhead');
+      }
+    }
+  }
+
   clock(pos) {
+    this.sequence.clock(pos);
     const tickn = pos % this.arp_ticks;
     const offtick = Math.min(
       this.arp_ticks * this.arp_gatelength,
@@ -627,7 +664,9 @@ module.exports = class Zone {
     this.arp.inc = 1;
     this.arp.octave = 0;
     this.arpNoteOff();
+    this.sequence.stopped();
     requestAnimationFrame(this.renderPattern.bind(this));
+    requestAnimationFrame(this.renderSequence.bind(this));
   }
 
   dismiss() {
@@ -698,4 +737,203 @@ module.exports = class Zone {
       this.sendCC(i);
     }
   }
+}
+
+class SeqStep {
+  notesArray = [];
+  lastPlayedArray = [];
+  length = 1;
+  probability = 1;
+  played = 0;
+  toJSON() {
+    return {
+      notesArray: this.notesArray,
+      length: this.length,
+      probability: this.probability
+    };
+  }
+}
+
+class Sequence {
+  active = false;
+  step = [];
+  _division = 14;
+  ticks = DIV_TICKS[this._division];
+  gatelength = 1;
+  currentStepNumber = -1;
+  length = 16;
+  zone = null;
+  _selectedStep = -1;
+  isHotRecordingNotes = false;
+  activeSteps = [];
+  rngProb = seedrandom();
+
+  constructor(zone) {
+    this.zone = zone;
+  }
+
+  toJSON() {
+    return {
+      active: this.active,
+      step: this.step,
+      ticks: this.ticks,
+      gatelength: this.gatelength,
+      length: this.length,
+      division: this._division
+    };
+  }
+
+  get division() {
+    return this._division;
+  }
+
+  set division(v) {
+    this._division = v;
+    this.ticks = DIV_TICKS[v];
+  }
+
+  get selectedStep() {
+    return this._selectedStep;
+  }
+
+  /**
+   * @param {number} v
+   */
+  set selectedStep(v) {
+    this._selectedStep = v;
+    if (this._selectedStep > -1) {
+      this.isHotRecordingNotes = true;
+      // console.log('Start recording', this._selectedStep);
+    } else {
+      this.isHotRecordingNotes = false;
+    }
+    this.updateRecordingState();
+  }
+
+  recordNote(note, count) {
+    if (this.isHotRecordingNotes && this.selectedStep > -1) {
+      let seqstep = null;
+      if (count == 1) {
+        seqstep = new SeqStep();
+      } else {
+        seqstep = this.step[this.selectedStep] || new SeqStep();
+      }
+      seqstep.notesArray.push(note);
+      this.step[this.selectedStep] = seqstep;
+      // console.log('Recorded note', seqstep.notesArray.length, note.number);
+      this.updateRecordingState();
+    }
+  }
+
+  noteReleased(count) {
+    if (this.isHotRecordingNotes && this.selectedStep > -1 && count === 0) {
+      // console.log('Stop recording', this.selectedStep);
+      this.isHotRecordingNotes = false;
+      this.updateRecordingState();
+    }
+  }
+
+  updateRecordingState() {
+    requestAnimationFrame(
+      (() => {
+        if (this.selectedStep > -1) {
+          const notesArray = this.step[this.selectedStep]
+            ? this.step[this.selectedStep].notesArray
+            : null;
+          let infoText = 'Step ' + (this.selectedStep + 1) + ': ';
+          if (notesArray) {
+            notesArray.forEach((note) => {
+              infoText +=
+                '<span class="note">' + Note.display(note.number) + '</span> ';
+            });
+          }
+          if (this.isHotRecordingNotes) {
+            infoText += ' [recording…]';
+          }
+          this.zone.sequencerGridElement.querySelector(
+            '.step-notes'
+          ).innerHTML = infoText;
+
+          if (this.isHotRecordingNotes) {
+            this.zone.sequencerGridElement.classList.add('hot');
+          } else {
+            this.zone.sequencerGridElement.classList.remove('hot');
+          }
+        }
+      }).bind(this)
+    );
+  }
+
+  clock(pos) {
+    const tickn = pos % this.ticks;
+    if (tickn === 0) {
+      const clearSteps = [];
+      this.activeSteps.forEach((astep) => {
+        astep.played++;
+        if (astep.played >= astep.length) {
+          clearSteps.push(astep);
+          for (let note of astep.lastPlayedArray) {
+            this.zone.midi.send(
+              Uint8Array.from([
+                MIDI.MESSAGE.NOTE_OFF + this.zone.channel,
+                note.number,
+                note.velo
+              ]),
+              this.zone.outputPortId
+            );
+          }
+        }
+      });
+      this.activeSteps = this.activeSteps.filter(
+        (item) => !clearSteps.includes(item)
+      );
+      this.currentStepNumber = (this.currentStepNumber + 1) % this.length;
+      const currentStep = this.step[this.currentStepNumber];
+      if (
+        currentStep &&
+        this.active &&
+        this.rngProb() < currentStep.probability
+      ) {
+        currentStep.played = 0;
+        this.activeSteps.push(currentStep);
+        currentStep.lastPlayedArray.length = 0;
+        for (let inote of currentStep.notesArray) {
+          let note = Note.clone(inote);
+          note.number = note.number + this.zone.octave * 12;
+          this.zone.midi.send(
+            Uint8Array.from([
+              MIDI.MESSAGE.NOTE_ON + this.zone.channel,
+              note.number,
+              note.velo
+            ]),
+            this.zone.outputPortId
+          );
+          currentStep.lastPlayedArray.push(note);
+        }
+      }
+      requestAnimationFrame(this.zone.renderSequence.bind(this.zone));
+    }
+  }
+
+  stopped() {
+    this.activeSteps.forEach((astep) => {
+      for (let note of astep.lastPlayedArray) {
+        this.zone.midi.send(
+          Uint8Array.from([
+            MIDI.MESSAGE.NOTE_OFF + this.zone.channel,
+            note.number,
+            note.velo
+          ]),
+          this.zone.outputPortId
+        );
+      }
+    });
+    this.activeSteps.length = 0;
+    this.currentStepNumber = -1;
+  }
+}
+
+module.exports = {
+  Zone,
+  Sequence
 };

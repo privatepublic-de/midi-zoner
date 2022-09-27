@@ -51,6 +51,7 @@
   --shadow-zone: #111;
   --fg-channel-select: #000;
 
+  --brighter-0: rgba(255, 255, 255, 0.07);
   --brighter-1: rgba(255, 255, 255, 0.1);
   --brighter-2: rgba(255, 255, 255, 0.3);
   --brighter-3: rgba(255, 255, 255, 0.5);
@@ -363,6 +364,16 @@ select#midiInChannel {
   display: none;
 }
 
+.zone input[type='number'] {
+  height: 20px;
+  padding: 0 6px;
+  min-width: 4em;
+}
+
+.zone input[type='number']:focus-visible {
+  outline-color: var(--brighter-1);
+}
+
 .channels {
   max-width: 900px;
 }
@@ -527,6 +538,7 @@ select#midiInChannel {
 }
 
 .check,
+.action,
 .val,
 .toggle,
 .drop-down,
@@ -536,6 +548,7 @@ select#midiInChannel {
 }
 
 .check,
+.action,
 .toggle,
 .percent {
   display: inline-block;
@@ -544,6 +557,10 @@ select#midiInChannel {
   background-color: var(--darker-1);
   cursor: pointer;
   min-width: 55px;
+}
+
+.action {
+  min-width: 0;
 }
 
 .check.patgen,
@@ -825,22 +842,7 @@ select#midiInChannel {
 .zone input.programnumber {
   width: 6em;
   font-size: 10px;
-  padding: 2px 0;
-}
-.valuestep {
-  position: absolute;
-  left: 0;
-  display: inline-block;
-  color: var(--brighter-2);
-  padding: 2px 2px;
-  cursor: pointer;
-}
-.valuestep + .valuestep {
-  right: 0;
-  left: auto;
-}
-.valuestep:hover {
-  background-color: var(--brighter-1);
+  padding: 2px 6px;
 }
 
 #loadsave {
@@ -890,7 +892,7 @@ li {
 }
 
 #loadsave li:hover {
-  border-color: var(--brigher-1);
+  border-color: var(--brighter-1);
 }
 
 #loadsave input {
@@ -1073,4 +1075,119 @@ li {
 }
 .hasClock.yes {
   border-color: #f00;
+}
+
+.seq {
+  display: none;
+  padding: 10px 10px;
+}
+
+.show-seq .seq {
+  display: block;
+}
+
+.seq .grid {
+  margin-top: 5px;
+  --step-size: 24px;
+}
+
+.seq .grid .step {
+  float: left;
+  display: flex;
+  margin: 2px 4px 2px 0;
+  width: var(--step-size);
+  height: var(--step-size);
+  justify-content: center;
+  align-items: center;
+  border: 1px solid var(--brighter-0);
+  color: var(--brighter-1);
+  font-size: 0.85em;
+  text-align: center;
+  cursor: pointer;
+}
+
+.seq .grid .step:nth-child(16n + 1) {
+  clear: both;
+}
+
+.seq .grid .step:hover {
+  background-color: var(--brighter-2);
+}
+
+.seq .grid .step.playhead {
+  background-color: var(--brighter-4) !important;
+  color: var(--darker-4);
+}
+
+.seq .grid .step.unused {
+  display: none;
+}
+
+.seq .grid .step.active {
+  background-color: var(--brighter-1);
+  border-color: var(--brighter-2);
+  color: var(--brighter-3);
+}
+
+.seq .grid.hot .step.selected-step {
+  background-color: var(--red-highlight);
+}
+
+.seq .grid .step.selected-step {
+  background-color: var(--green-highlight);
+  color: var(--brighter-4);
+  box-shadow: 0 0 10px var(--brighter-4);
+}
+
+.seq .grid .step:nth-child(4n + 1) {
+  border-width: 2px;
+}
+
+.seq .step-info {
+  clear: both;
+  min-height: 5em;
+  width: calc((var(--step-size) + 4px) * 16 - 5px);
+  padding: 5px;
+  color: var(--brighter-3);
+  border: 1px solid var(--brighter-1);
+}
+
+.seq .step-info .note {
+  background-color: var(--brighter-1);
+  color: var(--brighter-4);
+  padding: 0 4px;
+  box-shadow: 0 0 2px var(--darker-1);
+}
+
+.step-props,
+.step-notes {
+  display: none;
+}
+
+.has-selection .step-props,
+.has-selection .step-notes {
+  display: block;
+}
+
+.has-selection .no-selection {
+  display: none;
+}
+
+.step-notes {
+  border-bottom: 1px solid var(--brighter-1);
+  min-height: 20px;
+}
+
+.no-selection {
+  color: var(--brighter-1);
+  text-align: center;
+  padding: 5px 0 0 0;
+}
+
+.seq .has-selection .step-info {
+  background-color: var(--green-highlight);
+}
+
+.seq .hot.has-selection .step-info {
+  background-color: var(--red-highlight);
 }

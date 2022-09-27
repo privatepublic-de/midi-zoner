@@ -1,5 +1,6 @@
 const DOM = require('./modules/domutils');
-const Zone = require('./modules/zone');
+const Zone = require('./modules/zone').Zone;
+const Sequence = require('./modules/zone').Sequence;
 const MIDI = require('./modules/midi');
 const view = require('./modules/viewcontroller');
 
@@ -34,6 +35,14 @@ function applyStoredZones(storedZones, midi, append) {
     for (let i = 0; i < storedZones.list.length; i++) {
       const zone = new Zone(midi);
       Object.assign(zone, storedZones.list[i]);
+      const sequence = new Sequence(zone);
+      Object.assign(sequence, storedZones.list[i].sequence);
+      sequence.step.forEach((st) => {
+        if (st) {
+          st.lastPlayedArray = [];
+        }
+      });
+      zone.sequence = sequence;
       zones.list.push(zone);
     }
   }
