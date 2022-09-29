@@ -296,11 +296,11 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       break;
     case 'toggle_seq':
       zone.sequence.active = !zone.sequence.active;
-      zone.sequence.selectedStep = -1;
+      zone.sequence.selectedStepNumber = -1;
       updateValuesForZone(zoneindex);
       break;
     case 'select_step':
-      zone.sequence.selectedStep = parseInt(params[2]);
+      zone.sequence.selectedStepNumber = parseInt(params[2]);
       updateValuesForZone(zoneindex);
       break;
     case 'seq_division':
@@ -313,30 +313,27 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       break;
     case 'seq_step_length':
       const vl = parseInt(element.value);
-      if (zone.sequence.selectedStep > -1) {
-        zone.sequence.step[zone.sequence.selectedStep].length = vl;
+      if (zone.sequence.selectedStep) {
+        zone.sequence.selectedStep.length = vl;
         updateValuesForZone(zoneindex);
       }
       break;
     case 'seq_clear_all':
-      zone.sequence.step.length = 0;
+      zone.sequence.steps.length = 0;
       updateValuesForZone(zoneindex);
-      zone.sequence.selectedStep = zone.sequence.selectedStep;
+      zone.sequence.selectedStepNumber = zone.sequence.selectedStepNumber;
       break;
     case 'seq_clear_step':
-      if (zone.sequence.selectedStep > -1) {
-        zone.sequence.step[zone.sequence.selectedStep] = null;
+      if (zone.sequence.selectedStepNumber > -1) {
+        zone.sequence.steps[zone.sequence.selectedStepNumber] = null;
+        zone.sequence.selectedStepNumber = -1;
         updateValuesForZone(zoneindex);
-        zone.sequence.selectedStep = zone.sequence.selectedStep;
       }
       break;
     case 'seq_probability':
-      if (
-        zone.sequence.selectedStep > -1 &&
-        zone.sequence.step[zone.sequence.selectedStep]
-      ) {
+      if (zone.sequence.selectedStep) {
         const percents = ev.offsetX / (element.offsetWidth * 0.95);
-        zone.sequence.step[zone.sequence.selectedStep].probability = Math.min(
+        zone.sequence.selectedStep.probability = Math.min(
           1,
           Math.max(0, Math.floor(percents * 24) / 24)
         );
@@ -344,53 +341,50 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       }
       break;
     case 'seq_copy_step':
-      if (
-        zone.sequence.selectedStep > -1 &&
-        zone.sequence.step[zone.sequence.selectedStep]
-      ) {
-        Zone.seqClipboardStep = zone.sequence.step[zone.sequence.selectedStep];
+      if (zone.sequence.selectedStep) {
+        Zone.seqClipboardStep = zone.sequence.selectedStep;
       }
       break;
     case 'seq_paste_step':
-      if (zone.sequence.selectedStep > -1 && Zone.seqClipboardStep) {
-        zone.sequence.step[zone.sequence.selectedStep] = Zone.seqClipboardStep;
+      if (zone.sequence.selectedStepNumber > -1 && Zone.seqClipboardStep) {
+        zone.sequence.steps[zone.sequence.selectedStepNumber] =
+          Zone.seqClipboardStep;
         updateValuesForZone(zoneindex);
       }
       break;
     case 'seq_step_move':
-      if (
-        zone.sequence.selectedStep > -1 &&
-        zone.sequence.step[zone.sequence.selectedStep]
-      ) {
+      if (zone.sequence.selectedStep) {
         const direction = parseInt(params[2]);
-        const newPos = (zone.sequence.selectedStep + direction) % 64;
+        const newPos = (zone.sequence.selectedStepNumber + direction) % 64;
         if (newPos < 0) {
           newPos = 63;
         }
         if (
-          !zone.sequence.step[newPos] ||
-          zone.sequence.step[newPos].length == 0
+          !zone.sequence.steps[newPos] ||
+          zone.sequence.steps[newPos].length == 0
         ) {
-          zone.sequence.step[newPos] =
-            zone.sequence.step[zone.sequence.selectedStep];
-          zone.sequence.step[zone.sequence.selectedStep] = null;
-          zone.sequence.selectedStep = newPos;
+          zone.sequence.steps[newPos] =
+            zone.sequence.steps[zone.sequence.selectedStepNumber];
+          zone.sequence.steps[zone.sequence.selectedStepNumber] = null;
+          zone.sequence.selectedStepNumber = newPos;
+          zone.sequence.isHotRecordingNotes = false;
           updateValuesForZone(zoneindex);
         }
       }
       break;
     case 'seq_move':
+      zone.sequence.selectedStepNumber = -1;
       const direction = parseInt(params[2]);
       const limit = zone.sequence.length;
       const newSeq = [];
       for (let i = 0; i < 64; i++) {
-        newSeq[i] = zone.sequence.step[i];
+        newSeq[i] = zone.sequence.steps[i];
       }
       const srcOffset = direction > 0 ? limit - 1 : 1;
       for (let i = 0; i < limit; i++) {
-        newSeq[i] = zone.sequence.step[(i + srcOffset) % limit];
+        newSeq[i] = zone.sequence.steps[(i + srcOffset) % limit];
       }
-      zone.sequence.step = newSeq;
+      zone.sequence.steps = newSeq;
       updateValuesForZone(zoneindex);
       break;
     case 'seq_copy':
@@ -399,6 +393,12 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
     case 'seq_paste':
       if (Zone.seqClipboardSequence) {
         zone.sequence = Zone.seqClipboardSequence;
+        updateValuesForZone(zoneindex);
+      }
+      break;
+    case 'seq_step_condition':
+      if (zone.sequence.selectedStep) {
+        zone.sequence.selectedStep.condition = element.selectedIndex;
         updateValuesForZone(zoneindex);
       }
       break;
@@ -739,12 +739,19 @@ function updateValuesForZone(index) {
     const style = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
     DOM.element(`#zone${index}`).style.backgroundColor = style;
     DOM.element(`#zone${index}`).style.setProperty('--bg-color', style);
+    DOM.element(`#zone${index} .step-container`).style.backgroundColor = '';
   } else {
     DOM.addClass(`#zone${index}`, 'disabled');
     const rgb = DOM.hslToRgb(zone.hue, 0, 0.25);
     const style = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
     DOM.element(`#zone${index}`).style.backgroundColor = style;
     DOM.element(`#zone${index}`).style.setProperty('--bg-color', style);
+    if (zone.sequence.active) {
+      const rgb = rgbZone;
+      const style = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
+      DOM.element(`#zone${index} .step-container`).style.backgroundColor =
+        style;
+    }
   }
   if (zone.show_cc) {
     DOM.addClass(`#zone${index}`, 'show-cc');
@@ -760,7 +767,7 @@ function updateValuesForZone(index) {
     DOM.all(`#zone${index} .seq .grid .step`).forEach((e, i) => {
       if (i < zone.sequence.length) {
         DOM.removeClass(e, 'unused');
-        if (zone.sequence.step[i] && zone.sequence.step[i].length > 0) {
+        if (zone.sequence.steps[i] && zone.sequence.steps[i].length > 0) {
           DOM.addClass(e, 'active');
         } else {
           DOM.removeClass(e, 'active');
@@ -769,12 +776,12 @@ function updateValuesForZone(index) {
         DOM.addClass(e, 'unused');
       }
     });
-    if (zone.sequence.selectedStep > -1) {
+    if (zone.sequence.selectedStepNumber > -1) {
       DOM.addClass(`#zone${index} .seq .grid`, 'has-selection');
       DOM.all(`#zone${index} .seq .grid .step`)[
-        zone.sequence.selectedStep
+        zone.sequence.selectedStepNumber
       ].classList.add('selected-step');
-      let step = zone.sequence.step[zone.sequence.selectedStep];
+      let step = zone.sequence.steps[zone.sequence.selectedStepNumber];
       if (step && step.length > 0) {
         const pcnt = parseInt(step.probability * 100);
         DOM.element(
@@ -782,11 +789,13 @@ function updateValuesForZone(index) {
         ).style.width = `${pcnt}%`;
         DOM.element(`#zone${index} .percent.seq_probability .pcnt`).innerHTML =
           pcnt;
-
+        DOM.element(`#zone${index} .seq_step_condition`).selectedIndex =
+          zone.sequence.steps[zone.sequence.selectedStepNumber].condition;
         DOM.element(`#zone${index} .seq_step_length`).value =
-          zone.sequence.step[zone.sequence.selectedStep].length;
+          zone.sequence.steps[zone.sequence.selectedStepNumber].length;
       } else {
         DOM.element(`#zone${index} .seq_step_length`).value = 1;
+        DOM.element(`#zone${index} .seq_step_condition`).selectedIndex = 0;
         DOM.element(
           // TODO generalize!
           `#zone${index} .percent.seq_probability .inner`

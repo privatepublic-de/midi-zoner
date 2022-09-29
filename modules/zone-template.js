@@ -2,6 +2,53 @@ const Zone = require('./zone');
 function stripTooltips(/** @type {string} */ s) {
   return s.replace(/title=\".+?\"/g, '');
 }
+let cycleConditions = '<optgroup>';
+let lastCycleCond = 2;
+for (let cond of Zone.Sequence.CYCLE_CONDITIONS) {
+  if (cond[0] != lastCycleCond) {
+    cycleConditions += '</optgroup><optgroup>';
+    lastCycleCond = cond[0];
+  }
+  cycleConditions += `<option>${cond[1]} : ${cond[0]}</option>`;
+}
+cycleConditions += '</optgroup>';
+
+const noteLengthOptions = `<optgroup><option>2/1</option>
+      <option>1/1.</option>
+      <option>1/1 Note</option>
+      </optgroup>
+      <optgroup>
+      <option>1/2.</option>
+      <option>1/1t</option>
+      <option>1/2 Note</option>
+      </optgroup>
+      <optgroup>
+      <option>1/4.</option>
+      <option>1/2t</option>
+      <option>1/4 Note</option>
+      </optgroup>
+      <optgroup>
+      <option>1/8.</option>
+      <option>1/4t</option>
+      <option>1/8 Note</option>
+      </optgroup>
+      <optgroup>
+      <option>1/16.</option>
+      <option>1/8t</option>
+      <option>1/16 Note</option>
+      </optgroup>
+      <optgroup>
+      <option>1/32.</option>
+      <option>1/32 Note</option>
+      <option>1/16t</option>
+      </optgroup>
+      `;
+
+const octavemarkers = '<span class="oct"></span>'.repeat(10);
+
+const checkboxIcons = /*html*/ `<span class="material-icons sel">check_circle</span
+      ><span class="material-icons unsel">radio_button_unchecked</span> `;
+
 module.exports = {
   getControllerHTML: function (/** @type {Zone} */ zone, zoneindex) {
     let controllers = '';
@@ -67,33 +114,13 @@ module.exports = {
         zone.channel == i ? 'selected' : ''
       } no${i}" data-action="${index}:ch:${i}" title="${title}">${label}</div>`;
     }
-    const octavemarkers = '<span class="oct"></span>'.repeat(10);
-    const checkboxIcons = /*html*/ `<span class="material-icons sel">check_circle</span
-      ><span class="material-icons unsel">radio_button_unchecked</span> `;
     let sequencerGrid = '';
     for (let i = 0; i < 64; i++) {
       sequencerGrid += `<div class="step" data-action="${index}:select_step:${i}">${
         i + 1
       }</div>`;
     }
-    const noteLengthOptions = `<option>2/1</option>
-      <option>1/1.</option>
-      <option>1/1 Note</option>
-      <option>1/2.</option>
-      <option>1/1t</option>
-      <option>1/2 Note</option>
-      <option>1/4.</option>
-      <option>1/2t</option>
-      <option>1/4 Note</option>
-      <option>1/8.</option>
-      <option>1/4t</option>
-      <option>1/8 Note</option>
-      <option>1/16.</option>
-      <option>1/8t</option>
-      <option>1/16 Note</option>
-      <option>1/32.</option>
-      <option>1/32 Note</option>
-      <option>1/16t</option>`;
+
     return /*html*/ `<section class="zone" id="zone${index}">
       <div
         class="delzone rtool"
@@ -119,7 +146,7 @@ module.exports = {
       </div>
       <div class="showseq rtool" data-action="${index}:toggle_seq" 
         title="Show step sequencer">
-        <i class="material-icons">play_arrow</i>
+        <i class="material-icons">view_comfy</i>
       </div>
       <div class="channels">
         <div
@@ -148,33 +175,46 @@ module.exports = {
       </div>
       <div class="ccpots">
         <div class="ccpotttools">
+          <i class="material-icons" title="Send all values" data-action="${index}:send_all_cc">send</i><br/>
           <i class="material-icons" title="Add new control" data-action="${index}:add_cc_controller">add</i>
-          <i class="material-icons" title="Send all values" data-action="${index}:send_all_cc">send</i>
         </div>
       </div>
       <div class="seq" data-action="${index}:select_step:-1">
-        Sequencer:
-        <div class="val">
-          <input class="seq_steps" type="number" min="1" max="64" value="16" data-change="${index}:seq_steps" /> 
-          steps as
+        <div class="seqtools">
+          Sequencer:
+          <div class="val">
+            Steps
+            <input class="seq_steps" type="number" min="1" max="64" value="16" data-change="${index}:seq_steps" /> 
+          </div>
+          <div class="drop-down">
+            <select class="seq_division" data-change="${index}:seq_division">
+              ${noteLengthOptions}
+            </select>
+          </div>
+          <div class="action" data-action="${index}:seq_move:-1"><i class="material-icons">chevron_left</i></div>
+          <div class="action" data-action="${index}:seq_move:1"><i class="material-icons">chevron_right</i></div>
+          <div class="action" data-action="${index}:seq_copy"><i class="material-icons">content_copy</i></div>
+          <div class="action" data-action="${index}:seq_paste"><i class="material-icons">content_paste</i></div>
+          <div class="action" data-action="${index}:seq_clear_all"><i class="material-icons">clear</i></div>
         </div>
-        <div class="drop-down">
-          <select class="seq_division" data-change="${index}:seq_division">
-            ${noteLengthOptions}
-          </select>
-        </div>
-        <div class="action" data-action="${index}:seq_move:-1">&lt;</div>
-        <div class="action" data-action="${index}:seq_move:1">&gt;</div>
-        <div class="action" data-action="${index}:seq_copy"><i class="material-icons">content_copy</i></div>
-        <div class="action" data-action="${index}:seq_paste"><i class="material-icons">content_paste</i></div>
-        <div class="action" data-action="${index}:seq_clear_all"><i class="material-icons">delete</i></div>
         <div class="grid">
-          ${sequencerGrid}
+          <div class="step-container">${sequencerGrid}</div>
           <div class="step-info" data-action="${index}:ignore">
-            <p class="no-selection"><i>(select a step above)</i></p>
+            <p class="no-selection"><i>(select a step to edit)</i></p>
             <p class="step-notes"></p>
             <div class="step-props">
               Length <input class="seq_step_length" type="number" min="1" max="64" value="1" data-change="${index}:seq_step_length"/> 
+              Condition
+              <div class="drop-down">
+                <select class="seq_step_condition" data-change="${index}:seq_step_condition">
+                  <option>always</option>
+                    <option>Prev. played</option>
+                    <option>Prev. not played</option>
+                    <option>1st</option>
+                    <option>not 1st</option>
+                  ${cycleConditions}
+                </select>
+              </div>
               Prob
               <div
                 class="percent seq_probability"
@@ -184,13 +224,16 @@ module.exports = {
                 <span class="inner"></span>
                 <span class="pcnt">50</span>
               </div>
-              <div class="action" data-action="${index}:seq_step_move:-1">&lt;</div>
-              <div class="action" data-action="${index}:seq_step_move:1">&gt;</div>
-              <div class="action" data-action="${index}:seq_copy_step"><i class="material-icons">content_copy</i></div>
-              <div class="action" data-action="${index}:seq_paste_step"><i class="material-icons">content_paste</i></div>
-              <div class="action" data-action="${index}:seq_clear_step"><i class="material-icons">delete</i></div>
+              <p>
+                <div class="action" data-action="${index}:seq_step_move:-1"><i class="material-icons">chevron_left</i></div>
+                <div class="action" data-action="${index}:seq_step_move:1"><i class="material-icons">chevron_right</i></div>
+                <div class="action" data-action="${index}:seq_copy_step"><i class="material-icons">content_copy</i></div>
+                <div class="action" data-action="${index}:seq_paste_step"><i class="material-icons">content_paste</i></div>
+                <div class="action" data-action="${index}:seq_clear_step"><i class="material-icons">clear</i></div>
+              </p>
             </div>
           </div>
+          <div style="clear:both"></div>
         </div>
       </div>
       <div class="rangeholder">

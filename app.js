@@ -37,7 +37,7 @@ function applyStoredZones(storedZones, midi, append) {
       Object.assign(zone, storedZones.list[i]);
       const sequence = new Sequence(zone);
       Object.assign(sequence, storedZones.list[i].sequence);
-      sequence.step.forEach((st) => {
+      sequence.steps.forEach((st) => {
         if (st) {
           st.lastPlayedArray = [];
         }

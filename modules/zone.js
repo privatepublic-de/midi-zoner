@@ -744,22 +744,24 @@ class SeqStep {
   lastPlayedArray = [];
   length = 1;
   probability = 1;
+  condition = 0;
   played = 0;
   toJSON() {
     return {
       notesArray: this.notesArray,
       length: this.length,
-      probability: this.probability
+      probability: this.probability,
+      condition: this.condition
     };
   }
 }
 
 class Sequence {
+  static CYCLE_CONDITIONS = [];
   active = false;
-  step = [];
+  steps = [];
   _division = 14;
   ticks = DIV_TICKS[this._division];
-  gatelength = 1;
   currentStepNumber = -1;
   length = 16;
   zone = null;
@@ -767,6 +769,9 @@ class Sequence {
   isHotRecordingNotes = false;
   activeSteps = [];
   rngProb = seedrandom();
+  cycleCount = -1;
+  previousStepPlayed = false;
+  isFirstCycle = true;
 
   constructor(zone) {
     this.zone = zone;
@@ -775,9 +780,8 @@ class Sequence {
   toJSON() {
     return {
       active: this.active,
-      step: this.step,
+      steps: this.steps,
       ticks: this.ticks,
-      gatelength: this.gatelength,
       length: this.length,
       division: this._division
     };
@@ -792,14 +796,18 @@ class Sequence {
     this.ticks = DIV_TICKS[v];
   }
 
-  get selectedStep() {
+  get selectedStepNumber() {
     return this._selectedStep;
+  }
+
+  get selectedStep() {
+    return this._selectedStep > -1 ? this.steps[this._selectedStep] : null;
   }
 
   /**
    * @param {number} v
    */
-  set selectedStep(v) {
+  set selectedStepNumber(v) {
     this._selectedStep = v;
     if (this._selectedStep > -1) {
       this.isHotRecordingNotes = true;
@@ -811,24 +819,26 @@ class Sequence {
   }
 
   recordNote(note, count) {
-    if (this.isHotRecordingNotes && this.selectedStep > -1) {
-      let seqstep = null;
+    if (this.isHotRecordingNotes && this.selectedStepNumber > -1) {
+      let seqstep = this.steps[this.selectedStepNumber] || new SeqStep();
       if (count == 1) {
-        seqstep = new SeqStep();
-      } else {
-        seqstep = this.step[this.selectedStep] || new SeqStep();
+        seqstep.notesArray.length = 0;
       }
       seqstep.notesArray.push(note);
-      this.step[this.selectedStep] = seqstep;
+      this.steps[this.selectedStepNumber] = seqstep;
       // console.log('Recorded note', seqstep.notesArray.length, note.number);
       this.updateRecordingState();
     }
   }
 
   noteReleased(count) {
-    if (this.isHotRecordingNotes && this.selectedStep > -1 && count === 0) {
-      // console.log('Stop recording', this.selectedStep);
+    if (
+      this.isHotRecordingNotes &&
+      this.selectedStepNumber > -1 &&
+      count === 0
+    ) {
       this.isHotRecordingNotes = false;
+      this.selectedStep.notesArray.sort((a, b) => a.number - b.number);
       this.updateRecordingState();
     }
   }
@@ -836,19 +846,20 @@ class Sequence {
   updateRecordingState() {
     requestAnimationFrame(
       (() => {
-        if (this.selectedStep > -1) {
-          const notesArray = this.step[this.selectedStep]
-            ? this.step[this.selectedStep].notesArray
+        if (this.selectedStepNumber > -1) {
+          const notesArray = this.steps[this.selectedStepNumber]
+            ? this.steps[this.selectedStepNumber].notesArray
             : null;
-          let infoText = 'Step ' + (this.selectedStep + 1) + ': ';
+          let infoText = 'Step ' + (this.selectedStepNumber + 1) + ': ';
           if (notesArray) {
             notesArray.forEach((note) => {
               infoText +=
                 '<span class="note">' + Note.display(note.number) + '</span> ';
             });
           }
-          if (this.isHotRecordingNotes) {
-            infoText += ' [recording…]';
+          if (this.isHotRecordingNotes && this.zone.enabled) {
+            infoText +=
+              ' <span class="listen-indicator" title="Play notes on keyboard">&nbsp;<i class="material-icons">piano</i>&nbsp;</span>';
           }
           this.zone.sequencerGridElement.querySelector(
             '.step-notes'
@@ -875,11 +886,11 @@ class Sequence {
           for (let note of astep.lastPlayedArray) {
             this.zone.midi.send(
               Uint8Array.from([
-                MIDI.MESSAGE.NOTE_OFF + this.zone.channel,
+                MIDI.MESSAGE.NOTE_OFF + note.channel,
                 note.number,
                 note.velo
               ]),
-              this.zone.outputPortId
+              note.portId
             );
           }
         }
@@ -888,27 +899,39 @@ class Sequence {
         (item) => !clearSteps.includes(item)
       );
       this.currentStepNumber = (this.currentStepNumber + 1) % this.length;
-      const currentStep = this.step[this.currentStepNumber];
-      if (
-        currentStep &&
-        this.active &&
-        this.rngProb() < currentStep.probability
-      ) {
-        currentStep.played = 0;
-        this.activeSteps.push(currentStep);
-        currentStep.lastPlayedArray.length = 0;
-        for (let inote of currentStep.notesArray) {
-          let note = Note.clone(inote);
-          note.number = note.number + this.zone.octave * 12;
-          this.zone.midi.send(
-            Uint8Array.from([
-              MIDI.MESSAGE.NOTE_ON + this.zone.channel,
-              note.number,
-              note.velo
-            ]),
-            this.zone.outputPortId
-          );
-          currentStep.lastPlayedArray.push(note);
+      if (this.currentStepNumber === 0) {
+        this.cycleCount++;
+        if (this.cycleCount === 1) {
+          this.isFirstCycle = false;
+        }
+      }
+      const currentStep = this.steps[this.currentStepNumber];
+      if (this.active && currentStep) {
+        if (
+          this.checkCondition(currentStep) &&
+          this.rngProb() < currentStep.probability
+        ) {
+          currentStep.played = 0;
+          this.activeSteps.push(currentStep);
+          currentStep.lastPlayedArray.length = 0;
+          for (let inote of currentStep.notesArray) {
+            let note = Note.clone(inote);
+            note.number = note.number + this.zone.octave * 12;
+            note.channel = this.zone.channel;
+            note.portId = this.zone.outputPortId;
+            this.zone.midi.send(
+              Uint8Array.from([
+                MIDI.MESSAGE.NOTE_ON + note.channel,
+                note.number,
+                note.velo
+              ]),
+              note.portId
+            );
+            currentStep.lastPlayedArray.push(note);
+          }
+          this.previousStepPlayed = true;
+        } else {
+          this.previousStepPlayed = false;
         }
       }
       requestAnimationFrame(this.zone.renderSequence.bind(this.zone));
@@ -920,17 +943,47 @@ class Sequence {
       for (let note of astep.lastPlayedArray) {
         this.zone.midi.send(
           Uint8Array.from([
-            MIDI.MESSAGE.NOTE_OFF + this.zone.channel,
+            MIDI.MESSAGE.NOTE_OFF + note.channel,
             note.number,
             note.velo
           ]),
-          this.zone.outputPortId
+          note.portId
         );
       }
     });
     this.activeSteps.length = 0;
     this.currentStepNumber = -1;
+    this.cycleCount = -1;
+    this.previousStepPlayed = false;
+    this.isFirstCycle = true;
   }
+
+  checkCondition(step) {
+    switch (step.condition) {
+      case 0:
+        return true;
+      case 1:
+        return this.previousStepPlayed;
+      case 2:
+        return !this.previousStepPlayed;
+      case 3:
+        return this.isFirstCycle;
+      case 4:
+        return !this.isFirstCycle;
+    }
+    const condition = Sequence.CYCLE_CONDITIONS[step.condition - 5];
+    // console.log(condition, this.cycleCount, this.cycleCount % condition[0]);
+    return this.cycleCount % condition[0] === condition[1] - 1;
+  }
+}
+
+if (Sequence.CYCLE_CONDITIONS.length == 0) {
+  for (let cycles = 2; cycles < 9; cycles++) {
+    for (let b = 0; b < cycles; b++) {
+      Sequence.CYCLE_CONDITIONS.push([cycles, b + 1]);
+    }
+  }
+  console.log('Seq: Initialized cycle conditions: ', Sequence.CYCLE_CONDITIONS);
 }
 
 module.exports = {

@@ -356,7 +356,7 @@ select#midiInChannel {
 }
 
 .zone.disabled {
-  opacity: 0.4;
+  opacity: 0.5;
   box-shadow: none;
 }
 
@@ -916,13 +916,16 @@ li {
   display: block;
 }
 
-.showccs {
+.showccs,
+.showseq {
   padding: 0 4px;
 }
 
-.show-cc .showccs {
+.show-cc .showccs,
+.show-seq .showseq {
   box-shadow: 1px 1px 2px var(--darker-2) inset;
   color: var(--brighter-4);
+  background-color: var(--darker-1);
 }
 
 .ccpot {
@@ -1079,7 +1082,7 @@ li {
 
 .seq {
   display: none;
-  padding: 10px 10px;
+  padding: 8px 8px;
 }
 
 .show-seq .seq {
@@ -1091,6 +1094,11 @@ li {
   --step-size: 24px;
 }
 
+.step-container {
+  float: left;
+  width: calc((var(--step-size) + 4px) * 16 + 5px);
+}
+
 .seq .grid .step {
   float: left;
   display: flex;
@@ -1099,8 +1107,8 @@ li {
   height: var(--step-size);
   justify-content: center;
   align-items: center;
-  border: 1px solid var(--brighter-0);
-  color: var(--brighter-1);
+  border: 1px solid var(--darker-2);
+  color: var(--darker-2);
   font-size: 0.85em;
   text-align: center;
   cursor: pointer;
@@ -1129,14 +1137,31 @@ li {
   color: var(--brighter-3);
 }
 
-.seq .grid.hot .step.selected-step {
-  background-color: var(--red-highlight);
+.seq .grid.hot .listen-indicator {
+  /* background-color: var(--red-highlight); */
+  animation: indicator 1s infinite;
+}
+
+@keyframes indicator {
+  0% {
+    background-color: var(--red-highlight);
+  }
+  50% {
+    background-color: transparent;
+  }
+  100% {
+    background-color: var(--red-highlight);
+  }
 }
 
 .seq .grid .step.selected-step {
-  background-color: var(--green-highlight);
+  background-color: var(--brighter-2);
   color: var(--brighter-4);
   box-shadow: 0 0 10px var(--brighter-4);
+}
+
+.seq .grid.hot .step.selected-step {
+  animation: indicator 1s infinite;
 }
 
 .seq .grid .step:nth-child(4n + 1) {
@@ -1144,12 +1169,11 @@ li {
 }
 
 .seq .step-info {
-  clear: both;
-  min-height: 5em;
+  float: left;
   width: calc((var(--step-size) + 4px) * 16 - 5px);
   padding: 5px;
   color: var(--brighter-3);
-  border: 1px solid var(--brighter-1);
+  border: 1px solid transparent;
 }
 
 .seq .step-info .note {
@@ -1173,21 +1197,20 @@ li {
   display: none;
 }
 
+.zone.disabled .grid .step-info,
+.zone.disabled .seqtools {
+  visibility: hidden;
+}
+
 .step-notes {
   border-bottom: 1px solid var(--brighter-1);
   min-height: 20px;
 }
 
 .no-selection {
-  color: var(--brighter-1);
-  text-align: center;
-  padding: 5px 0 0 0;
+  color: var(--brighter-2);
 }
 
 .seq .has-selection .step-info {
-  background-color: var(--green-highlight);
-}
-
-.seq .hot.has-selection .step-info {
-  background-color: var(--red-highlight);
+  background-color: var(--brighter-1);
 }
