@@ -44,6 +44,12 @@ function initController({ saveData, data, midi }) {
   elAllSoloOff.addEventListener('click', allSoloOff);
   elAllHoldOff = DOM.element('#allHoldOff');
   elAllHoldOff.addEventListener('click', allHoldOff);
+  window.addEventListener(Zone.updateZoneViewEventName, (ev) => {
+    const index = zones.list.indexOf(ev.detail);
+    if (index > -1) {
+      updateValuesForZone(index);
+    }
+  });
 }
 
 function findTouchedNote(
@@ -401,6 +407,14 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
         zone.sequence.selectedStep.condition = element.selectedIndex;
         updateValuesForZone(zoneindex);
       }
+      break;
+    case 'seq-step-add-notes':
+      zone.sequence.stepAddNotes = !zone.sequence.stepAddNotes;
+      updateValuesForZone(zoneindex);
+      break;
+    case 'seq-step-advance':
+      zone.sequence.stepAdvance = !zone.sequence.stepAdvance;
+      updateValuesForZone(zoneindex);
       break;
   }
   triggerSave();
@@ -781,6 +795,12 @@ function updateValuesForZone(index) {
       DOM.all(`#zone${index} .seq .grid .step`)[
         zone.sequence.selectedStepNumber
       ].classList.add('selected-step');
+      if (zone.sequence.stepAddNotes) {
+        DOM.addClass(`#zone${index} .seq-step-add-notes`, 'selected');
+      }
+      if (zone.sequence.stepAdvance) {
+        DOM.addClass(`#zone${index} .seq-step-advance`, 'selected');
+      }
       let step = zone.sequence.steps[zone.sequence.selectedStepNumber];
       if (step && step.length > 0) {
         const pcnt = parseInt(step.probability * 100);

@@ -203,7 +203,24 @@ module.exports = {
             <p class="no-selection"><i>(select a step to edit)</i></p>
             <p class="step-notes"></p>
             <div class="step-props">
-              Length <input class="seq_step_length" type="number" min="1" max="64" value="1" data-change="${index}:seq_step_length"/> 
+            <p>
+              <div
+                class="check mini seq-step-add-notes"
+                data-action="${index}:seq-step-add-notes"
+                title=""
+              >
+                ${checkboxIcons}Add notes
+              </div>
+              <div
+                class="check mini seq-step-advance"
+                data-action="${index}:seq-step-advance"
+                title=""
+              >
+                ${checkboxIcons}Advance
+              </div>
+              </p>
+              Length
+              <input class="seq_step_length" type="number" min="1" max="64" value="1" data-change="${index}:seq_step_length"/> 
               Condition
               <div class="drop-down">
                 <select class="seq_step_condition" data-change="${index}:seq_step_condition">

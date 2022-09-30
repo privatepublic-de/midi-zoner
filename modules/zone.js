@@ -52,6 +52,7 @@ class Zone {
   static solocount = 0;
   static seqClipboardStep = null;
   static seqClipboardSequence = null;
+  static updateZoneViewEventName = 'update-zone-view';
   channel = 0; // 0-based
   preferredOutputPortId = '*';
   outputPortId = '*';
@@ -772,6 +773,8 @@ class Sequence {
   cycleCount = -1;
   previousStepPlayed = false;
   isFirstCycle = true;
+  stepAdvance = false;
+  stepAddNotes = false;
 
   constructor(zone) {
     this.zone = zone;
@@ -821,7 +824,7 @@ class Sequence {
   recordNote(note, count) {
     if (this.isHotRecordingNotes && this.selectedStepNumber > -1) {
       let seqstep = this.steps[this.selectedStepNumber] || new SeqStep();
-      if (count == 1) {
+      if (count == 1 && !this.stepAddNotes) {
         seqstep.notesArray.length = 0;
       }
       seqstep.notesArray.push(note);
@@ -839,6 +842,13 @@ class Sequence {
     ) {
       this.isHotRecordingNotes = false;
       this.selectedStep.notesArray.sort((a, b) => a.number - b.number);
+      if (this.stepAdvance) {
+        this.selectedStepNumber = (this.selectedStepNumber + 1) % this.length;
+        const event = new CustomEvent(Zone.updateZoneViewEventName, {
+          detail: this.zone
+        });
+        window.dispatchEvent(event);
+      }
       this.updateRecordingState();
     }
   }

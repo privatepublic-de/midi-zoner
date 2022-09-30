@@ -63,6 +63,7 @@
   --darker-4: rgba(0, 0, 0, 0.7);
 
   --red-highlight: rgba(196, 0, 0, 0.4);
+  --record-highlight: rgba(255, 0, 0, 0.8);
   --green-highlight: rgba(0, 196, 0, 0.4);
 }
 
@@ -579,6 +580,11 @@ select#midiInChannel {
 }
 .check.selected .material-icons {
   color: var(--darker-3);
+}
+
+.check.mini {
+  font-size: 0.66em;
+  height: 14px;
 }
 
 .sel,
@@ -1144,13 +1150,13 @@ li {
 
 @keyframes indicator {
   0% {
-    background-color: var(--red-highlight);
+    background-color: var(--record-highlight);
   }
   50% {
     background-color: transparent;
   }
   100% {
-    background-color: var(--red-highlight);
+    background-color: var(--record-highlight);
   }
 }
 
