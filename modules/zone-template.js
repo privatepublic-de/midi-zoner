@@ -200,7 +200,7 @@ module.exports = {
         <div class="grid">
           <div class="step-container">${sequencerGrid}</div>
           <div class="step-info" data-action="${index}:ignore">
-            <p class="no-selection"><i>(select a step to edit)</i></p>
+            <p class="no-selection"></p>
             <p class="step-notes"></p>
             <div class="step-props">
             <p>

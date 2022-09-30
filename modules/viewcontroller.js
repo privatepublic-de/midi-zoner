@@ -348,13 +348,14 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       break;
     case 'seq_copy_step':
       if (zone.sequence.selectedStep) {
-        Zone.seqClipboardStep = zone.sequence.selectedStep;
+        Zone.seqClipboardStep = JSON.stringify(zone.sequence.selectedStep);
       }
       break;
     case 'seq_paste_step':
       if (zone.sequence.selectedStepNumber > -1 && Zone.seqClipboardStep) {
-        zone.sequence.steps[zone.sequence.selectedStepNumber] =
-          Zone.seqClipboardStep;
+        zone.sequence.steps[zone.sequence.selectedStepNumber] = JSON.parse(
+          Zone.seqClipboardStep
+        );
         updateValuesForZone(zoneindex);
       }
       break;
@@ -394,11 +395,11 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       updateValuesForZone(zoneindex);
       break;
     case 'seq_copy':
-      Zone.seqClipboardSequence = zone.sequence;
+      Zone.seqClipboardSequence = JSON.stringify(zone.sequence);
       break;
     case 'seq_paste':
       if (Zone.seqClipboardSequence) {
-        zone.sequence = Zone.seqClipboardSequence;
+        Object.assign(zone.sequence, JSON.parse(Zone.seqClipboardSequence));
         updateValuesForZone(zoneindex);
       }
       break;
@@ -742,6 +743,10 @@ function updateValuesForZone(index) {
     '--bg-color-complement-dark',
     rgbZoneComplementDarkStyle
   );
+  DOM.element(`#zone${index}`).style.setProperty(
+    '--zone-color',
+    `rgba(${rgbZone[0]},${rgbZone[1]},${rgbZone[2]},1)`
+  );
   const colorInput = DOM.element(`#zone${index} input[type="color"]`);
   colorInput.value = DOM.rgbToHex(rgbZone);
   const zoneHasHeldArp =
@@ -761,10 +766,10 @@ function updateValuesForZone(index) {
     DOM.element(`#zone${index}`).style.backgroundColor = style;
     DOM.element(`#zone${index}`).style.setProperty('--bg-color', style);
     if (zone.sequence.active) {
-      const rgb = rgbZone;
-      const style = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
-      DOM.element(`#zone${index} .step-container`).style.backgroundColor =
-        style;
+      // const rgb = rgbZone;
+      // const style = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
+      // DOM.element(`#zone${index} .step-container`).style.backgroundColor =
+      //   style;
     }
   }
   if (zone.show_cc) {

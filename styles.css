@@ -357,7 +357,7 @@ select#midiInChannel {
 }
 
 .zone.disabled {
-  opacity: 0.5;
+  /* opacity: 0.5; */
   box-shadow: none;
 }
 
@@ -422,6 +422,11 @@ select#midiInChannel {
   color: var(--brighter-4);
 }
 
+.ch.enabled:not(.selected) {
+  background-color: var(--zone-color);
+  opacity: 0.75;
+}
+
 .isdisabled {
   display: none;
 }
@@ -470,11 +475,15 @@ select#midiInChannel {
   transition: opacity 2s;
 }
 
-.zone:hover .hidden *,
+.zone:not(.disabled):hover .hidden *,
 .zone:hover .mch,
 .mch.selected {
   opacity: 1;
   transition: opacity 200ms;
+}
+
+.zone.disabled .range {
+  pointer-events: none;
 }
 
 .arp-settings {
@@ -1120,6 +1129,22 @@ li {
   cursor: pointer;
 }
 
+.disabled .seq .grid .step {
+  height: 5px;
+  font-size: 0.3em;
+  overflow: hidden;
+}
+
+.zone.disabled .seq .grid .step {
+  border: none;
+  background-color: var(--zone-color);
+}
+
+.zone.disabled .seq .grid .step.active {
+  border-color: var(--brighter-1);
+  background-color: var(--bg-color-complement);
+}
+
 .seq .grid .step:nth-child(16n + 1) {
   clear: both;
 }
@@ -1205,7 +1230,7 @@ li {
 
 .zone.disabled .grid .step-info,
 .zone.disabled .seqtools {
-  visibility: hidden;
+  display: none;
 }
 
 .step-notes {

@@ -752,7 +752,8 @@ class SeqStep {
       notesArray: this.notesArray,
       length: this.length,
       probability: this.probability,
-      condition: this.condition
+      condition: this.condition,
+      lastPlayedArray: this.lastPlayedArray
     };
   }
 }
