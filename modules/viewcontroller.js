@@ -4,6 +4,7 @@ const DragZone = require('./dragzone');
 const Zone = require('./zone').Zone;
 const zoneTemplate = require('./zone-template');
 const potDragHandler = require('./potdraghandler');
+const { Sequence } = require('./zone');
 
 // const MIDI.NOTENAMES = [
 //   'C',
@@ -362,9 +363,10 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
     case 'seq_step_move':
       if (zone.sequence.selectedStep) {
         const direction = parseInt(params[2]);
-        const newPos = (zone.sequence.selectedStepNumber + direction) % 64;
+        const newPos =
+          (zone.sequence.selectedStepNumber + direction) % Sequence.MAX_STEPS;
         if (newPos < 0) {
-          newPos = 63;
+          newPos = Sequence.MAX_STEPS - 1;
         }
         if (
           !zone.sequence.steps[newPos] ||
@@ -384,7 +386,7 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       const direction = parseInt(params[2]);
       const limit = zone.sequence.length;
       const newSeq = [];
-      for (let i = 0; i < 64; i++) {
+      for (let i = 0; i < Sequence.MAX_STEPS; i++) {
         newSeq[i] = zone.sequence.steps[i];
       }
       const srcOffset = direction > 0 ? limit - 1 : 1;
@@ -752,16 +754,19 @@ function updateValuesForZone(index) {
   const zoneHasHeldArp =
     zone.arp_enabled && zone.arp_hold && zone.arp_holdlist.length > 0;
   const zoneIsEnabled = zone.enabled && (Zone.solocount === 0 || zone.solo);
-  if (zoneIsEnabled || zoneHasHeldArp) {
+  if (zoneIsEnabled) {
     DOM.removeClass(`#zone${index}`, 'disabled');
+  } else {
+    DOM.addClass(`#zone${index}`, 'disabled');
+  }
+  if (zoneIsEnabled || zoneHasHeldArp) {
     const rgb = zoneHasHeldArp && !zoneIsEnabled ? [50, 50, 50] : rgbZone;
     const style = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
     DOM.element(`#zone${index}`).style.backgroundColor = style;
     DOM.element(`#zone${index}`).style.setProperty('--bg-color', style);
     DOM.element(`#zone${index} .step-container`).style.backgroundColor = '';
   } else {
-    DOM.addClass(`#zone${index}`, 'disabled');
-    const rgb = DOM.hslToRgb(zone.hue, 0, 0.25);
+    const rgb = DOM.hslToRgb(zone.hue, 0, 0.15);
     const style = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
     DOM.element(`#zone${index}`).style.backgroundColor = style;
     DOM.element(`#zone${index}`).style.setProperty('--bg-color', style);

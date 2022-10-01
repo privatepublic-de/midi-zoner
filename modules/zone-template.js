@@ -115,7 +115,7 @@ module.exports = {
       } no${i}" data-action="${index}:ch:${i}" title="${title}">${label}</div>`;
     }
     let sequencerGrid = '';
-    for (let i = 0; i < 64; i++) {
+    for (let i = 0; i < Zone.Sequence.MAX_STEPS; i++) {
       sequencerGrid += `<div class="step" data-action="${index}:select_step:${i}">${
         i + 1
       }</div>`;
@@ -184,7 +184,7 @@ module.exports = {
           Sequencer:
           <div class="val">
             Steps
-            <input class="seq_steps" type="number" min="1" max="64" value="16" data-change="${index}:seq_steps" /> 
+            <input class="seq_steps" type="number" min="1" max="${Sequence.MAX_STEPS}" value="16" data-change="${index}:seq_steps" /> 
           </div>
           <div class="drop-down">
             <select class="seq_division" data-change="${index}:seq_division">
@@ -220,7 +220,7 @@ module.exports = {
               </div>
               </p>
               Length
-              <input class="seq_step_length" type="number" min="1" max="64" value="1" data-change="${index}:seq_step_length"/> 
+              <input class="seq_step_length" type="number" min="1" max="${Sequence.MAX_STEPS}" value="1" data-change="${index}:seq_step_length"/> 
               Condition
               <div class="drop-down">
                 <select class="seq_step_condition" data-change="${index}:seq_step_condition">

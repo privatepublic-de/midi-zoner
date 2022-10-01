@@ -759,6 +759,7 @@ class SeqStep {
 }
 
 class Sequence {
+  static MAX_STEPS = 256;
   static CYCLE_CONDITIONS = [];
   active = false;
   steps = [];
