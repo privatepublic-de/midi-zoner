@@ -184,18 +184,18 @@ module.exports = {
           Sequencer:
           <div class="val">
             Steps
-            <input class="seq_steps" type="number" min="1" max="${Sequence.MAX_STEPS}" value="16" data-change="${index}:seq_steps" /> 
+            <input title="Number of steps in sequence" class="seq_steps" type="number" min="1" max="${Sequence.MAX_STEPS}" value="16" data-change="${index}:seq_steps" /> 
           </div>
-          <div class="drop-down">
+          <div class="drop-down" title="Step resolution">
             <select class="seq_division" data-change="${index}:seq_division">
               ${noteLengthOptions}
             </select>
           </div>
-          <div class="action" data-action="${index}:seq_move:-1"><i class="material-icons">chevron_left</i></div>
-          <div class="action" data-action="${index}:seq_move:1"><i class="material-icons">chevron_right</i></div>
-          <div class="action" data-action="${index}:seq_copy"><i class="material-icons">content_copy</i></div>
-          <div class="action" data-action="${index}:seq_paste"><i class="material-icons">content_paste</i></div>
-          <div class="action" data-action="${index}:seq_clear_all"><i class="material-icons">clear</i></div>
+          <div class="action" title="Move whole sequence 1 step left" data-action="${index}:seq_move:-1"><i class="material-icons">chevron_left</i></div>
+          <div class="action" title="Move whole sequence 1 step right" data-action="${index}:seq_move:1"><i class="material-icons">chevron_right</i></div>
+          <div class="action" title="Copy sequence" data-action="${index}:seq_copy"><i class="material-icons">content_copy</i></div>
+          <div class="action" title="Paste sequence" data-action="${index}:seq_paste"><i class="material-icons">content_paste</i></div>
+          <div class="action" title="Clear complete sequence" data-action="${index}:seq_clear_all"><i class="material-icons">clear</i></div>
         </div>
         <div class="grid">
           <div class="step-container">${sequencerGrid}</div>
@@ -207,14 +207,14 @@ module.exports = {
               <div
                 class="check mini seq-step-add-notes"
                 data-action="${index}:seq-step-add-notes"
-                title=""
+                title="New notes are added (no overwrite)"
               >
                 ${checkboxIcons}Add notes
               </div>
               <div
                 class="check mini seq-step-advance"
                 data-action="${index}:seq-step-advance"
-                title=""
+                title="Advance one step after note inpute"
               >
                 ${checkboxIcons}Advance
               </div>
@@ -222,7 +222,7 @@ module.exports = {
               Length
               <input class="seq_step_length" type="number" min="1" max="${Sequence.MAX_STEPS}" value="1" data-change="${index}:seq_step_length"/> 
               Condition
-              <div class="drop-down">
+              <div class="drop-down" title="Select step play condition">
                 <select class="seq_step_condition" data-change="${index}:seq_step_condition">
                   <option>always</option>
                     <option>Prev. played</option>
@@ -242,11 +242,11 @@ module.exports = {
                 <span class="pcnt">50</span>
               </div>
               <p>
-                <div class="action" data-action="${index}:seq_step_move:-1"><i class="material-icons">chevron_left</i></div>
-                <div class="action" data-action="${index}:seq_step_move:1"><i class="material-icons">chevron_right</i></div>
-                <div class="action" data-action="${index}:seq_copy_step"><i class="material-icons">content_copy</i></div>
-                <div class="action" data-action="${index}:seq_paste_step"><i class="material-icons">content_paste</i></div>
-                <div class="action" data-action="${index}:seq_clear_step"><i class="material-icons">clear</i></div>
+                <div class="action" title="Move step left (if free space)" data-action="${index}:seq_step_move:-1"><i class="material-icons">chevron_left</i></div>
+                <div class="action" title="Move step right (if free space)" data-action="${index}:seq_step_move:1"><i class="material-icons">chevron_right</i></div>
+                <div class="action" title="Copy step" data-action="${index}:seq_copy_step"><i class="material-icons">content_copy</i></div>
+                <div class="action" title="Paste step" data-action="${index}:seq_paste_step"><i class="material-icons">content_paste</i></div>
+                <div class="action" title="Clear step" data-action="${index}:seq_clear_step"><i class="material-icons">clear</i></div>
               </p>
             </div>
           </div>
@@ -330,14 +330,8 @@ module.exports = {
             data-action="${index}:fixedvel"
             title="Use fixed velocity"
           >
-            ${checkboxIcons}Vel
-            <select id="fixedvel${index}" onclick="event.stopPropagation();" data-change="${index}:fixedvel_value">
-              <option>16</option>
-              <option>32</option>
-              <option>64</option>
-              <option>96</option>
-              <option>127</option>
-            </select>
+            ${checkboxIcons}FVel
+            <input type="number" id="fixedvel${index}" onclick="event.stopPropagation();" data-change="${index}:fixedvel_value" value="127" min="1" max="127"/>
           </div>
           <div
             class="check programchange"
@@ -345,15 +339,14 @@ module.exports = {
             title="Transmit program change messages"
           >
             ${checkboxIcons}Prg
-          </div>
-          <div class="prgm" title="Send program change message">
             <input
+              title="Send a program change message"
               class="programnumber"
               type="number"
               value=""
               min="1" max="128"
-              placeholder="Prg#"
               data-change="${index}:changeprogram"
+              onclick="event.stopPropagation();"
             />
           </div>
         </div>
@@ -433,15 +426,17 @@ module.exports = {
             <p>
               <input
                 id="euchits${index}"
-                type="text"
+                type="number"
+                min="1"
                 value="8"
                 size="3"
                 title="Steps"
               />
               in
               <input
-                type="text"
+                type="number"
                 id="euclen${index}"
+                min="1"
                 value="8"
                 size="3"
                 title="Length"

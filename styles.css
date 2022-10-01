@@ -327,13 +327,12 @@ select#midiInChannel {
   color: var(--brighter-4);
   font-size: 12px;
   margin: 5px auto;
-  padding: 8px 8px 8px 6px;
+  padding: 8px 8px 8px 8px;
   /* border-radius: 8px; */
   width: 100%;
   min-width: 960px;
   box-shadow: 0 2px 10px var(--shadow-zone);
   border: 1px solid var(--darker-3);
-  border-left-width: 2px;
   background-image: linear-gradient(#00000000, #00000040);
 }
 
@@ -360,7 +359,8 @@ select#midiInChannel {
 .zone.disabled {
   /* opacity: 0.5; */
   box-shadow: none;
-  border-left-color: var(--zone-color);
+  border-color: var(--zone-color);
+  border-style: inset;
   background-image: none;
 }
 
@@ -369,8 +369,8 @@ select#midiInChannel {
 }
 
 .zone input[type='number'] {
-  height: 20px;
-  padding: 0 6px;
+  /* height: 20px; */
+  padding: 0 0 4px 0;
   min-width: 4em;
 }
 
@@ -847,19 +847,6 @@ select#midiInChannel {
   font-size: 9px;
   margin-bottom: 4px;
   color: var(--brighter-4);
-}
-.prgm {
-  /* border-radius: 4px; */
-  display: inline-block;
-  font-size: 9px;
-  margin-bottom: 0.5em;
-  text-align: center;
-  position: relative;
-}
-.zone input.programnumber {
-  width: 6em;
-  font-size: 10px;
-  padding: 2px 6px;
 }
 
 #loadsave {

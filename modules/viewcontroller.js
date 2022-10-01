@@ -553,7 +553,7 @@ function appendZone(/** @type {Zone} */ zone, index) {
     e.addEventListener('mouseleave', hoverOutHandler);
     e.addEventListener('dblclick', dblClickHandler);
   });
-  DOM.all(`input[type="text"]`).forEach((e) => {
+  DOM.all(`input[type="text"],input[type="number"]`).forEach((e) => {
     e.addEventListener('keyup', (event) => {
       if (event.keyCode === 13) {
         event.preventDefault();
