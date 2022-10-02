@@ -357,11 +357,11 @@ select#midiInChannel {
 }
 
 .zone.disabled {
-  /* opacity: 0.5; */
   box-shadow: none;
-  border-color: var(--zone-color);
-  border-style: inset;
-  background-image: none;
+}
+
+.zone.disabled .ch.enabled {
+  background-color: var(--zone-color);
 }
 
 .zone input[type='color'] {
@@ -1124,9 +1124,13 @@ li {
   overflow: hidden;
 }
 
+.zone.disabled.show-seq .showseq {
+  background-color: var(--zone-color);
+}
+
 .zone.disabled .seq .grid .step {
   border: none;
-  background-color: var(--zone-color);
+  background-color: var(--brighter-0);
 }
 
 .zone.disabled .seq .grid .step.active {
