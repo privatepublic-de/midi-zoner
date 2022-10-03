@@ -384,17 +384,31 @@ select#midiInChannel {
 
 .ch {
   display: inline-block;
-  padding: 4px 0;
-  width: 24px;
+  padding: 2px 0;
+  width: 18px;
   height: 20px;
-  line-height: 12px;
-  font-size: 12px;
+  line-height: 15px;
+  font-size: 10px;
   margin-left: 8px;
   text-align: center;
   color: var(--brighter-3);
   background-color: var(--darker-1);
   cursor: pointer;
-  /* border-radius: 4px; */
+}
+
+.ch.state {
+  width: 24px;
+  padding: 4px 0;
+  height: 20px;
+  line-height: 12px;
+  font-size: 12px;
+}
+
+.channels input.output-config-name {
+  text-align: left;
+  width: 100px;
+  background-color: transparent;
+  height: 20px;
 }
 
 .sendClock {
@@ -451,8 +465,11 @@ select#midiInChannel {
   color: var(--brighter-3);
 }
 
-.ch.solo {
+.ch.showseq {
   margin-right: 13px;
+}
+
+.ch.solo {
   background-color: var(--darker-1);
 }
 
@@ -670,11 +687,11 @@ select#midiInChannel {
   border: none;
   background-color: var(--darker-1);
   /* border-radius: 4px; */
-  color: var(--brighter-4);
+  color: var(--brighter-3);
   font-size: 12px;
   padding: 0;
   text-align: center;
-  box-shadow: inset -1px -1px 2px var(--darker-1);
+  /* box-shadow: inset -1px -1px 2px var(--darker-1); */
 }
 
 .zone input {
@@ -682,8 +699,8 @@ select#midiInChannel {
 }
 
 .zone select.outport {
-  background-color: var(--brighter-2);
-  color: var(--fg-channel-select);
+  background-color: transparent;
+  /* color: var(--brighter-3); */
   vertical-align: top;
   width: 150px;
   transition: background-color 1s;
@@ -920,16 +937,18 @@ li {
   display: block;
 }
 
-.showccs,
-.showseq {
+.showccs {
   padding: 0 4px;
 }
 
-.show-cc .showccs,
-.show-seq .showseq {
+.show-cc .showccs {
   box-shadow: 1px 1px 2px var(--darker-2) inset;
   color: var(--brighter-4);
   background-color: var(--darker-1);
+}
+
+.show-seq .showseq {
+  background-color: var(--brighter-2);
 }
 
 .ccpot {

@@ -144,22 +144,25 @@ module.exports = {
         title="Show CC controllers">
         <i class="material-icons">tune</i>
       </div>
-      <div class="showseq rtool" data-action="${index}:toggle_seq" 
-        title="Show step sequencer">
-        <i class="material-icons">view_comfy</i>
-      </div>
       <div class="channels">
         <div
-          class="ch enabled"
+          class="ch state enabled"
           data-action="${index}:enabled"
           title="Enable zone (send MIDI out)"
         >
         <span class="material-icons isenabled"> check </span>
         <span class="material-icons isdisabled"> close </span>
         </div>
-        <div class="ch solo" data-action="${index}:solo" title="Solo Zone\n(Double click for this zone only)">
+        <div class="ch state solo" data-action="${index}:solo" title="Solo Zone\n(Double click for this zone only)">
           S
         </div>
+        <div class="ch state showseq" data-action="${index}:toggle_seq" 
+          title="Show step sequencer">
+          <i class="material-icons">view_comfy</i>
+        </div>
+        <input type="text" class="output-config-name" placeholder="(untitled)"
+          onKeyUp="event.stopPropagation();"
+          data-change="${index}:output_config_name"/>
         <select class="outport" data-change="${index}:outport">
           <option value="*"></option>
         </select>

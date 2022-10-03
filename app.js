@@ -9,7 +9,8 @@ const zones = {
   inChannel: 0,
   sendClock: false,
   brightTheme: false,
-  tempo: 120
+  tempo: 120,
+  outputConfigNames: {}
 };
 
 function saveZones() {

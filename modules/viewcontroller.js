@@ -106,8 +106,16 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       }
       break;
     case 'outport':
-      zone.preferredOutputPortId = zone.outputPortId = element.value;
-      midiController.updateUsedPorts(listUsedPorts());
+      if (element.value.charAt(0) == '$') {
+        const parts = element.value.substr(1).split(',');
+        zone.channel = parseInt(parts[1]);
+        zone.preferredOutputPortId = zone.outputPortId = parseInt(parts[0]);
+        updateValuesForZone(zoneindex);
+        midiController.updateUsedPorts(listUsedPorts());
+      } else {
+        zone.preferredOutputPortId = zone.outputPortId = element.value;
+        midiController.updateUsedPorts(listUsedPorts());
+      }
       break;
     case 'octave':
       zone.octave = parseInt(params[2]);
@@ -418,6 +426,15 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
     case 'seq-step-advance':
       zone.sequence.stepAdvance = !zone.sequence.stepAdvance;
       updateValuesForZone(zoneindex);
+      break;
+    case 'output_config_name':
+      if (element.value == '') {
+        delete zones.outputConfigNames[zone.configId];
+      } else {
+        zones.outputConfigNames[zone.configId] = element.value;
+      }
+      updateOutputPortsForAllZones(cachedOutputPorts);
+      updateValuesForAllZones();
       break;
   }
   triggerSave();
@@ -890,6 +907,8 @@ function updateValuesForZone(index) {
     ? zone.pgm_no
     : '';
   DOM.element(`#fixedvel${index}`).value = zone.fixedvel_value;
+  DOM.element(`#zone${index} .output-config-name`).value =
+    zones.outputConfigNames[zone.configId] || '';
   updateControllerValues(zone, index);
   updateGeneralButtons();
 }
@@ -953,7 +972,7 @@ let cachedOutputPorts;
  * @param {Array} outputs
  * @returns {Set} set of all currently used ports
  */
-function updateOutputPortsForAllZone(outputs) {
+function updateOutputPortsForAllZones(outputs) {
   cachedOutputPorts = outputs;
   for (let i = 0; i < zones.list.length; i++) {
     updateOutputPortsForZone(i, outputs);
@@ -986,6 +1005,7 @@ function updateOutputPortsForZone(index, outputs) {
     'beforeend',
     `<option value="*">${noSelectionLabel}</option>`
   );
+
   const preferredOutputPortId = zones.list[index].preferredOutputPortId;
   let preferredPortAvailable = false;
   outputs.forEach((port) => {
@@ -1004,6 +1024,23 @@ function updateOutputPortsForZone(index, outputs) {
   } else {
     select.value = '*';
     zones.list[index].outputPortId = '*';
+  }
+  DOM.element(`#zone${index} .output-config-name`).value =
+    zones.outputConfigNames[zones.list[index].configId] || '';
+  if (zones.outputConfigNames) {
+    let html = '<optgroup label="Presets (Port/Channel)">';
+    [...Object.keys(zones.outputConfigNames)]
+      .sort((a, b) =>
+        zones.outputConfigNames[a].localeCompare(zones.outputConfigNames[b])
+      )
+      .forEach((preset) => {
+        const psPort = preset.split(',')[0];
+        if (outputs.filter((p) => p.id == psPort).length > 0) {
+          html += `<option value="$${preset}">${zones.outputConfigNames[preset]}</option>`;
+        }
+      });
+    html += '</optgroup>';
+    DOM.addHTML(select, 'beforeend', html);
   }
 }
 
@@ -1037,7 +1074,7 @@ module.exports = {
   renderZones,
   renderLastZone,
   renderMarkersForAllZones,
-  updateOutputPortsForAllZone,
+  updateOutputPortsForAllZone: updateOutputPortsForAllZones,
   updateControllerValues,
   updateValuesForAllZones
 };

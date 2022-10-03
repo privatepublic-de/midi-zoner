@@ -177,6 +177,10 @@ class Zone {
     };
   }
 
+  get configId() {
+    return this.outputPortId + ',' + this.channel;
+  }
+
   get arp_division() {
     return this._arp_division;
   }
