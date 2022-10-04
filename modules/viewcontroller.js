@@ -111,6 +111,7 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
         zone.channel = parseInt(parts[1]);
         zone.preferredOutputPortId = zone.outputPortId = parseInt(parts[0]);
         updateValuesForZone(zoneindex);
+        updateOutputPortsForZone(zoneindex, cachedOutputPorts);
         midiController.updateUsedPorts(listUsedPorts());
       } else {
         zone.preferredOutputPortId = zone.outputPortId = element.value;
