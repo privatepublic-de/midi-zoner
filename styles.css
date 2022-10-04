@@ -698,6 +698,11 @@ select#midiInChannel {
   width: 30px;
 }
 
+::placeholder {
+  color: var(--brighter-2);
+  opacity: 1;
+}
+
 .zone select.outport {
   background-color: transparent;
   /* color: var(--brighter-3); */
