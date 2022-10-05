@@ -784,7 +784,7 @@ function updateValuesForZone(index) {
     DOM.element(`#zone${index}`).style.setProperty('--bg-color', style);
     DOM.element(`#zone${index} .step-container`).style.backgroundColor = '';
   } else {
-    const rgb = DOM.hslToRgb(zone.hue, 0, 0.15);
+    const rgb = DOM.hslToRgb(zone.hue, 0.5, 0.2);
     const style = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
     DOM.element(`#zone${index}`).style.backgroundColor = style;
     DOM.element(`#zone${index}`).style.setProperty('--bg-color', style);

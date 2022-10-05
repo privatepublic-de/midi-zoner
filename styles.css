@@ -358,6 +358,7 @@ select#midiInChannel {
 
 .zone.disabled {
   box-shadow: none;
+  background-image: url('res/bg-disabled.png');
 }
 
 .zone.disabled .ch.enabled {
@@ -369,8 +370,8 @@ select#midiInChannel {
 }
 
 .zone input[type='number'] {
-  /* height: 20px; */
-  padding: 0 0 4px 0;
+  height: 18px;
+  padding: 0 0 0 0;
   min-width: 4em;
 }
 
@@ -696,6 +697,7 @@ select#midiInChannel {
 
 .zone input {
   width: 30px;
+  vertical-align: middle;
 }
 
 ::placeholder {
