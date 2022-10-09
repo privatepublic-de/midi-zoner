@@ -1187,7 +1187,8 @@ li {
   color: var(--brighter-3);
 }
 
-.seq .grid.hot .listen-indicator {
+.seq .grid.hot .listen-indicator,
+.seq_record_live.selected {
   /* background-color: var(--red-highlight); */
   animation: indicator 1s infinite;
 }

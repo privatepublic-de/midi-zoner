@@ -774,6 +774,7 @@ class Sequence {
   zone = null;
   _selectedStep = -1;
   isHotRecordingNotes = false;
+  isLiveRecoding = false;
   activeSteps = [];
   rngProb = seedrandom();
   cycleCount = -1;
@@ -781,6 +782,9 @@ class Sequence {
   isFirstCycle = true;
   stepAdvance = false;
   stepAddNotes = false;
+  liveTargetStep = null;
+  liveTargetLength = 0;
+  tickn = 0;
 
   constructor(zone) {
     this.zone = zone;
@@ -828,19 +832,42 @@ class Sequence {
   }
 
   recordNote(note, count) {
-    if (this.isHotRecordingNotes && this.selectedStepNumber > -1) {
-      let seqstep = this.steps[this.selectedStepNumber] || new SeqStep();
-      if (count == 1 && !this.stepAddNotes) {
-        seqstep.notesArray.length = 0;
+    if (this.isLiveRecoding && this.currentStepNumber > -1) {
+      const rec2step =
+        this.tickn > this.ticks / 2
+          ? (this.currentStepNumber + 1) % this.length
+          : this.currentStepNumber;
+      if (this.liveTargetStep == null) {
+        if (!this.steps[rec2step]) {
+          this.steps[rec2step] = new SeqStep();
+        }
+        this.liveTargetStep = this.steps[rec2step];
+        this.liveTargetLength = 1;
       }
-      seqstep.notesArray.push(note);
-      this.steps[this.selectedStepNumber] = seqstep;
-      // console.log('Recorded note', seqstep.notesArray.length, note.number);
+      this.liveTargetStep.notesArray.push(note);
       this.updateRecordingState();
+      this.updateZoneView();
+    } else {
+      if (this.isHotRecordingNotes && this.selectedStepNumber > -1) {
+        let seqstep = this.steps[this.selectedStepNumber] || new SeqStep();
+        if (count == 1 && !this.stepAddNotes) {
+          seqstep.notesArray.length = 0;
+        }
+        seqstep.notesArray.push(note);
+        this.steps[this.selectedStepNumber] = seqstep;
+        // console.log('Recorded note', seqstep.notesArray.length, note.number);
+        this.updateRecordingState();
+      }
     }
   }
 
   noteReleased(count) {
+    if (this.isLiveRecoding && this.liveTargetStep) {
+      this.liveTargetStep.length = this.liveTargetLength;
+      this.liveTargetStep = null;
+      this.updateRecordingState();
+      this.updateZoneView();
+    }
     if (
       this.isHotRecordingNotes &&
       this.selectedStepNumber > -1 &&
@@ -850,13 +877,17 @@ class Sequence {
       this.selectedStep.notesArray.sort((a, b) => a.number - b.number);
       if (this.stepAdvance) {
         this.selectedStepNumber = (this.selectedStepNumber + 1) % this.length;
-        const event = new CustomEvent(Zone.updateZoneViewEventName, {
-          detail: this.zone
-        });
-        window.dispatchEvent(event);
+        this.updateZoneView();
       }
       this.updateRecordingState();
     }
+  }
+
+  updateZoneView() {
+    const event = new CustomEvent(Zone.updateZoneViewEventName, {
+      detail: this.zone
+    });
+    window.dispatchEvent(event);
   }
 
   updateRecordingState() {
@@ -892,8 +923,9 @@ class Sequence {
   }
 
   clock(pos) {
-    const tickn = pos % this.ticks;
-    if (tickn === 0) {
+    this.tickn = pos % this.ticks;
+    if (this.tickn === 0) {
+      this.liveTargetLength++;
       const clearSteps = [];
       this.activeSteps.forEach((astep) => {
         astep.played++;
@@ -929,7 +961,7 @@ class Sequence {
         ) {
           currentStep.played = 0;
           this.activeSteps.push(currentStep);
-          currentStep.lastPlayedArray.length = 0;
+          // currentStep.lastPlayedArray.length = 0;
           for (let inote of currentStep.notesArray) {
             let note = Note.clone(inote);
             note.number = note.number + this.zone.octave * 12;

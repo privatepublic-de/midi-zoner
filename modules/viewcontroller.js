@@ -428,6 +428,10 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       zone.sequence.stepAdvance = !zone.sequence.stepAdvance;
       updateValuesForZone(zoneindex);
       break;
+    case 'seq_record_live':
+      zone.sequence.isLiveRecoding = !zone.sequence.isLiveRecoding;
+      updateValuesForZone(zoneindex);
+      break;
     case 'output_config_name':
       if (element.value == '') {
         delete zones.outputConfigNames[zone.configId];
@@ -818,6 +822,11 @@ function updateValuesForZone(index) {
         DOM.addClass(e, 'unused');
       }
     });
+    if (zone.sequence.isLiveRecoding) {
+      DOM.addClass(`#zone${index} .seq_record_live`, 'selected');
+    } else {
+      DOM.removeClass(`#zone${index} .seq_record_live`, 'selected');
+    }
     if (zone.sequence.selectedStepNumber > -1) {
       DOM.addClass(`#zone${index} .seq .grid`, 'has-selection');
       DOM.all(`#zone${index} .seq .grid .step`)[
@@ -1007,6 +1016,24 @@ function updateOutputPortsForZone(index, outputs) {
     `<option value="*">${noSelectionLabel}</option>`
   );
 
+  DOM.element(`#zone${index} .output-config-name`).value =
+    zones.outputConfigNames[zones.list[index].configId] || '';
+  if (zones.outputConfigNames) {
+    let html = '<optgroup label="Presets (Port/Channel)">';
+    [...Object.keys(zones.outputConfigNames)]
+      .sort((a, b) =>
+        zones.outputConfigNames[a].localeCompare(zones.outputConfigNames[b])
+      )
+      .forEach((preset) => {
+        const psPort = preset.split(',')[0];
+        if (outputs.filter((p) => p.id == psPort).length > 0) {
+          html += `<option value="$${preset}">${zones.outputConfigNames[preset]}</option>`;
+        }
+      });
+    html += '</optgroup>';
+    DOM.addHTML(select, 'beforeend', html);
+  }
+
   const preferredOutputPortId = zones.list[index].preferredOutputPortId;
   let preferredPortAvailable = false;
   outputs.forEach((port) => {
@@ -1026,23 +1053,7 @@ function updateOutputPortsForZone(index, outputs) {
     select.value = '*';
     zones.list[index].outputPortId = '*';
   }
-  DOM.element(`#zone${index} .output-config-name`).value =
-    zones.outputConfigNames[zones.list[index].configId] || '';
-  if (zones.outputConfigNames) {
-    let html = '<optgroup label="Presets (Port/Channel)">';
-    [...Object.keys(zones.outputConfigNames)]
-      .sort((a, b) =>
-        zones.outputConfigNames[a].localeCompare(zones.outputConfigNames[b])
-      )
-      .forEach((preset) => {
-        const psPort = preset.split(',')[0];
-        if (outputs.filter((p) => p.id == psPort).length > 0) {
-          html += `<option value="$${preset}">${zones.outputConfigNames[preset]}</option>`;
-        }
-      });
-    html += '</optgroup>';
-    DOM.addHTML(select, 'beforeend', html);
-  }
+  updateValuesForAllZones();
 }
 
 function allMuteOff() {

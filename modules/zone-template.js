@@ -199,6 +199,7 @@ module.exports = {
           <div class="action" title="Copy sequence" data-action="${index}:seq_copy"><i class="material-icons">content_copy</i></div>
           <div class="action" title="Paste sequence" data-action="${index}:seq_paste"><i class="material-icons">content_paste</i></div>
           <div class="action" title="Clear complete sequence" data-action="${index}:seq_clear_all"><i class="material-icons">clear</i></div>
+          <div class="action seq_record_live" title="Live recording sequence is playing" data-action="${index}:seq_record_live"><i class="material-icons">piano</i></div>
         </div>
         <div class="grid">
           <div class="step-container">${sequencerGrid}</div>
