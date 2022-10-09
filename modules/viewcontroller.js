@@ -326,6 +326,7 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
     case 'seq_steps':
       const v = parseInt(element.value);
       zone.sequence.length = v;
+      updateValuesForZone(zoneindex);
       break;
     case 'seq_step_length':
       const vl = parseInt(element.value);
@@ -740,187 +741,198 @@ function updateGeneralButtons() {
 function updateValuesForZone(index) {
   /** @type {Zone} */
   const zone = zones.list[index];
-  DOM.removeClass(`#zone${index} *[data-action]`, 'selected');
-  DOM.addClass(`#zone${index} .no${zone.channel}`, 'selected');
-  if (Zone.solocount > 0 && !zone.solo) {
-    DOM.addClass(`#zone${index}`, 'soloed-out');
-  } else {
-    DOM.removeClass(`#zone${index}`, 'soloed-out');
-  }
-  const rgbZone = DOM.hslToRgb(
-    zone.hue,
-    zone.saturation,
-    zone.lightness + (zones.brightTheme ? 0.1 : 0)
-  );
-  const rgbZoneComplement = DOM.hslToRgb(
-    zone.hue,
-    zone.saturation / 2,
-    zone.lightness + (zones.brightTheme ? 0.2 : 0.1)
-  );
-  const rgbZoneComplementStyle = `rgba(${rgbZoneComplement[0]},${rgbZoneComplement[1]},${rgbZoneComplement[2]},1)`;
-  const rgbZoneComplementDarkStyle = `rgba(${rgbZoneComplement[0]},${rgbZoneComplement[1]},${rgbZoneComplement[2]},1)`;
-  DOM.element(`#zone${index}`).style.setProperty(
-    '--bg-color-complement',
-    rgbZoneComplementStyle
-  );
-  DOM.element(`#zone${index}`).style.setProperty(
-    '--bg-color-complement-dark',
-    rgbZoneComplementDarkStyle
-  );
-  DOM.element(`#zone${index}`).style.setProperty(
-    '--zone-color',
-    `rgba(${rgbZone[0]},${rgbZone[1]},${rgbZone[2]},1)`
-  );
-  const colorInput = DOM.element(`#zone${index} input[type="color"]`);
-  colorInput.value = DOM.rgbToHex(rgbZone);
-  const zoneHasHeldArp =
-    zone.arp_enabled && zone.arp_hold && zone.arp_holdlist.length > 0;
-  const zoneIsEnabled = zone.enabled && (Zone.solocount === 0 || zone.solo);
-  if (zoneIsEnabled) {
-    DOM.removeClass(`#zone${index}`, 'disabled');
-  } else {
-    DOM.addClass(`#zone${index}`, 'disabled');
-  }
-  if (zoneIsEnabled || zoneHasHeldArp) {
-    const rgb = zoneHasHeldArp && !zoneIsEnabled ? [50, 50, 50] : rgbZone;
-    const style = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
-    DOM.element(`#zone${index}`).style.backgroundColor = style;
-    DOM.element(`#zone${index}`).style.setProperty('--bg-color', style);
-    DOM.element(`#zone${index} .step-container`).style.backgroundColor = '';
-  } else {
-    const rgb = DOM.hslToRgb(zone.hue, 0.5, 0.2);
-    const style = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
-    DOM.element(`#zone${index}`).style.backgroundColor = style;
-    DOM.element(`#zone${index}`).style.setProperty('--bg-color', style);
-    if (zone.sequence.active) {
-      // const rgb = rgbZone;
-      // const style = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
-      // DOM.element(`#zone${index} .step-container`).style.backgroundColor =
-      //   style;
+  const zoneElement = DOM.element(`#zone${index}`);
+  if (zoneElement) {
+    DOM.removeClass(`#zone${index} *[data-action]`, 'selected');
+    DOM.addClass(`#zone${index} .no${zone.channel}`, 'selected');
+    if (Zone.solocount > 0 && !zone.solo) {
+      DOM.addClass(`#zone${index}`, 'soloed-out');
+    } else {
+      DOM.removeClass(`#zone${index}`, 'soloed-out');
     }
-  }
-  if (zone.show_cc) {
-    DOM.addClass(`#zone${index}`, 'show-cc');
-  } else {
-    DOM.removeClass(`#zone${index}`, 'show-cc');
-  }
-  if (zone.sequence.active) {
-    DOM.addClass(`#zone${index}`, 'show-seq');
-    DOM.removeClass(
-      `#zone${index} .seq .grid .step.selected-step`,
-      'selected-step'
+    const rgbZone = DOM.hslToRgb(
+      zone.hue,
+      zone.saturation,
+      zone.lightness + (zones.brightTheme ? 0.1 : 0)
     );
-    DOM.all(`#zone${index} .seq .grid .step`).forEach((e, i) => {
-      if (i < zone.sequence.length) {
-        DOM.removeClass(e, 'unused');
-        if (zone.sequence.steps[i] && zone.sequence.steps[i].length > 0) {
-          DOM.addClass(e, 'active');
+    const rgbZoneComplement = DOM.hslToRgb(
+      zone.hue,
+      zone.saturation / 2,
+      zone.lightness + (zones.brightTheme ? 0.2 : 0.1)
+    );
+    const rgbZoneComplementStyle = `rgba(${rgbZoneComplement[0]},${rgbZoneComplement[1]},${rgbZoneComplement[2]},1)`;
+    const rgbZoneComplementDarkStyle = `rgba(${rgbZoneComplement[0]},${rgbZoneComplement[1]},${rgbZoneComplement[2]},1)`;
+    zoneElement.style.setProperty(
+      '--bg-color-complement',
+      rgbZoneComplementStyle
+    );
+    zoneElement.style.setProperty(
+      '--bg-color-complement-dark',
+      rgbZoneComplementDarkStyle
+    );
+    zoneElement.style.setProperty(
+      '--zone-color',
+      `rgba(${rgbZone[0]},${rgbZone[1]},${rgbZone[2]},1)`
+    );
+    const colorInput = DOM.element(`#zone${index} input[type="color"]`);
+    colorInput.value = DOM.rgbToHex(rgbZone);
+    const zoneHasHeldArp =
+      zone.arp_enabled && zone.arp_hold && zone.arp_holdlist.length > 0;
+    const zoneIsEnabled = zone.enabled && (Zone.solocount === 0 || zone.solo);
+    if (zoneIsEnabled) {
+      DOM.removeClass(`#zone${index}`, 'disabled');
+    } else {
+      DOM.addClass(`#zone${index}`, 'disabled');
+    }
+    if (zoneIsEnabled || zoneHasHeldArp) {
+      const rgb = zoneHasHeldArp && !zoneIsEnabled ? [50, 50, 50] : rgbZone;
+      const style = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
+      zoneElement.style.backgroundColor = style;
+      zoneElement.style.setProperty('--bg-color', style);
+      DOM.element(`#zone${index} .step-container`).style.backgroundColor = '';
+    } else {
+      const rgb = DOM.hslToRgb(
+        zone.hue,
+        zone.saturation * 0.67,
+        zone.lightness * 0.5
+      );
+      const style = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
+      zoneElement.style.backgroundColor = style;
+      zoneElement.style.setProperty('--bg-color', style);
+      // if (zone.sequence.active) {
+      //   const rgb = rgbZone;
+      //   const style = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
+      //   DOM.element(`#zone${index} .step-container`).style.backgroundColor =
+      //     style;
+      // }
+    }
+    if (zone.show_cc) {
+      DOM.addClass(`#zone${index}`, 'show-cc');
+    } else {
+      DOM.removeClass(`#zone${index}`, 'show-cc');
+    }
+    if (zone.sequence.active) {
+      DOM.addClass(`#zone${index}`, 'show-seq');
+      DOM.removeClass(
+        `#zone${index} .seq .grid .step.selected-step`,
+        'selected-step'
+      );
+      DOM.all(`#zone${index} .seq .grid .step`).forEach((e, i) => {
+        if (i < zone.sequence.length) {
+          DOM.removeClass(e, 'unused');
+          if (zone.sequence.steps[i] && zone.sequence.steps[i].length > 0) {
+            DOM.addClass(e, 'active');
+          } else {
+            DOM.removeClass(e, 'active');
+          }
         } else {
-          DOM.removeClass(e, 'active');
+          DOM.addClass(e, 'unused');
         }
+      });
+      if (zone.sequence.isLiveRecoding) {
+        DOM.addClass(`#zone${index} .seq_record_live`, 'selected');
       } else {
-        DOM.addClass(e, 'unused');
+        DOM.removeClass(`#zone${index} .seq_record_live`, 'selected');
+      }
+      if (zone.sequence.selectedStepNumber > -1) {
+        DOM.addClass(`#zone${index} .seq .grid`, 'has-selection');
+        DOM.all(`#zone${index} .seq .grid .step`)[
+          zone.sequence.selectedStepNumber
+        ].classList.add('selected-step');
+        if (zone.sequence.stepAddNotes) {
+          DOM.addClass(`#zone${index} .seq-step-add-notes`, 'selected');
+        }
+        if (zone.sequence.stepAdvance) {
+          DOM.addClass(`#zone${index} .seq-step-advance`, 'selected');
+        }
+        let step = zone.sequence.steps[zone.sequence.selectedStepNumber];
+        if (step && step.length > 0) {
+          const pcnt = parseInt(step.probability * 100);
+          DOM.element(
+            `#zone${index} .percent.seq_probability .inner`
+          ).style.width = `${pcnt}%`;
+          DOM.element(
+            `#zone${index} .percent.seq_probability .pcnt`
+          ).innerHTML = pcnt;
+          DOM.element(`#zone${index} .seq_step_condition`).selectedIndex =
+            zone.sequence.steps[zone.sequence.selectedStepNumber].condition;
+          DOM.element(`#zone${index} .seq_step_length`).value =
+            zone.sequence.steps[zone.sequence.selectedStepNumber].length;
+        } else {
+          DOM.element(`#zone${index} .seq_step_length`).value = 1;
+          DOM.element(`#zone${index} .seq_step_condition`).selectedIndex = 0;
+          DOM.element(
+            // TODO generalize!
+            `#zone${index} .percent.seq_probability .inner`
+          ).style.width = `100%`;
+          DOM.element(
+            `#zone${index} .percent.seq_probability .pcnt`
+          ).innerHTML = '100';
+        }
+        zone.sequence.updateRecordingState();
+      } else {
+        DOM.removeClass(`#zone${index} .seq .grid`, 'has-selection');
+      }
+      DOM.element(`#zone${index} .seq_steps`).value = zone.sequence.length;
+      DOM.element(`#zone${index} .seq_division`).selectedIndex =
+        zone.sequence.division;
+    } else {
+      DOM.removeClass(`#zone${index}`, 'show-seq');
+    }
+    [
+      'cc',
+      'mod',
+      'sendClock',
+      'at2mod',
+      'sustain',
+      'fixedvel',
+      'pitchbend',
+      'enabled',
+      'solo',
+      'programchange',
+      'arp_enabled',
+      'arp_hold',
+      'arp_transpose',
+      'sustain_on',
+      'arp_repeat'
+    ].forEach((p) => {
+      if (zone[p]) {
+        DOM.addClass(`#zone${index} .${p}`, 'selected');
       }
     });
-    if (zone.sequence.isLiveRecoding) {
-      DOM.addClass(`#zone${index} .seq_record_live`, 'selected');
+    ['arp_direction', 'arp_division', 'arp_octaves'].forEach((p) => {
+      DOM.element(`#zone${index} .${p}`).selectedIndex = zone[p];
+    });
+    ['arp_gatelength', 'arp_probability'].forEach((p) => {
+      const pcnt = parseInt(zone[p] * 100);
+      DOM.element(
+        `#zone${index} .percent.${p} .inner`
+      ).style.width = `${pcnt}%`;
+      DOM.element(`#zone${index} .percent.${p} .pcnt`).innerHTML = pcnt;
+    });
+    // seq_probability
+    if (zone.arp_enabled) {
+      DOM.addClass(`#zone${index}`, 'arp-enabled');
     } else {
-      DOM.removeClass(`#zone${index} .seq_record_live`, 'selected');
+      DOM.removeClass(`#zone${index}`, 'arp-enabled');
     }
-    if (zone.sequence.selectedStepNumber > -1) {
-      DOM.addClass(`#zone${index} .seq .grid`, 'has-selection');
-      DOM.all(`#zone${index} .seq .grid .step`)[
-        zone.sequence.selectedStepNumber
-      ].classList.add('selected-step');
-      if (zone.sequence.stepAddNotes) {
-        DOM.addClass(`#zone${index} .seq-step-add-notes`, 'selected');
+    DOM.all(`#zone${index} .octselect`, (e) => {
+      const parts = e.getAttribute('data-action').split(':');
+      if (parts[2] == zone.octave) {
+        DOM.addClass(e, 'selected');
       }
-      if (zone.sequence.stepAdvance) {
-        DOM.addClass(`#zone${index} .seq-step-advance`, 'selected');
-      }
-      let step = zone.sequence.steps[zone.sequence.selectedStepNumber];
-      if (step && step.length > 0) {
-        const pcnt = parseInt(step.probability * 100);
-        DOM.element(
-          `#zone${index} .percent.seq_probability .inner`
-        ).style.width = `${pcnt}%`;
-        DOM.element(`#zone${index} .percent.seq_probability .pcnt`).innerHTML =
-          pcnt;
-        DOM.element(`#zone${index} .seq_step_condition`).selectedIndex =
-          zone.sequence.steps[zone.sequence.selectedStepNumber].condition;
-        DOM.element(`#zone${index} .seq_step_length`).value =
-          zone.sequence.steps[zone.sequence.selectedStepNumber].length;
-      } else {
-        DOM.element(`#zone${index} .seq_step_length`).value = 1;
-        DOM.element(`#zone${index} .seq_step_condition`).selectedIndex = 0;
-        DOM.element(
-          // TODO generalize!
-          `#zone${index} .percent.seq_probability .inner`
-        ).style.width = `100%`;
-        DOM.element(`#zone${index} .percent.seq_probability .pcnt`).innerHTML =
-          '100';
-      }
-      zone.sequence.updateRecordingState();
-    } else {
-      DOM.removeClass(`#zone${index} .seq .grid`, 'has-selection');
-    }
-    DOM.element(`#zone${index} .seq_steps`).value = zone.sequence.length;
-    DOM.element(`#zone${index} .seq_division`).selectedIndex =
-      zone.sequence.division;
-  } else {
-    DOM.removeClass(`#zone${index}`, 'show-seq');
+    });
+    DOM.element(`#euchits${index}`).value = zone.euclid_hits;
+    DOM.element(`#euclen${index}`).value = zone.euclid_length;
+    DOM.element(`#zone${index} input.programnumber`).value = zone.pgm_no
+      ? zone.pgm_no
+      : '';
+    DOM.element(`#fixedvel${index}`).value = zone.fixedvel_value;
+    DOM.element(`#zone${index} .output-config-name`).value =
+      zones.outputConfigNames[zone.configId] || '';
+    updateControllerValues(zone, index);
+    updateGeneralButtons();
   }
-  [
-    'cc',
-    'mod',
-    'sendClock',
-    'at2mod',
-    'sustain',
-    'fixedvel',
-    'pitchbend',
-    'enabled',
-    'solo',
-    'programchange',
-    'arp_enabled',
-    'arp_hold',
-    'arp_transpose',
-    'sustain_on',
-    'arp_repeat'
-  ].forEach((p) => {
-    if (zone[p]) {
-      DOM.addClass(`#zone${index} .${p}`, 'selected');
-    }
-  });
-  ['arp_direction', 'arp_division', 'arp_octaves'].forEach((p) => {
-    DOM.element(`#zone${index} .${p}`).selectedIndex = zone[p];
-  });
-  ['arp_gatelength', 'arp_probability'].forEach((p) => {
-    const pcnt = parseInt(zone[p] * 100);
-    DOM.element(`#zone${index} .percent.${p} .inner`).style.width = `${pcnt}%`;
-    DOM.element(`#zone${index} .percent.${p} .pcnt`).innerHTML = pcnt;
-  });
-  // seq_probability
-  if (zone.arp_enabled) {
-    DOM.addClass(`#zone${index}`, 'arp-enabled');
-  } else {
-    DOM.removeClass(`#zone${index}`, 'arp-enabled');
-  }
-  DOM.all(`#zone${index} .octselect`, (e) => {
-    const parts = e.getAttribute('data-action').split(':');
-    if (parts[2] == zone.octave) {
-      DOM.addClass(e, 'selected');
-    }
-  });
-  DOM.element(`#euchits${index}`).value = zone.euclid_hits;
-  DOM.element(`#euclen${index}`).value = zone.euclid_length;
-  DOM.element(`#zone${index} input.programnumber`).value = zone.pgm_no
-    ? zone.pgm_no
-    : '';
-  DOM.element(`#fixedvel${index}`).value = zone.fixedvel_value;
-  DOM.element(`#zone${index} .output-config-name`).value =
-    zones.outputConfigNames[zone.configId] || '';
-  updateControllerValues(zone, index);
-  updateGeneralButtons();
 }
 
 function polarToCartesian(centerX, centerY, radius, degrees) {
