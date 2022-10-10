@@ -950,6 +950,7 @@ class Sequence {
               note.portId
             );
           }
+          astep.lastPlayedArray.length = 0;
         }
       });
       this.activeSteps = this.activeSteps.filter(
@@ -1008,6 +1009,7 @@ class Sequence {
           note.portId
         );
       }
+      astep.lastPlayedArray.length = 0;
     });
     this.activeSteps.length = 0;
     this.currentStepNumber = this.previousStepNumber = -1;
