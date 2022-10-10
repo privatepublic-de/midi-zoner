@@ -504,13 +504,22 @@ class Zone {
 
   renderSequence() {
     if (this.sequence.active) {
-      this.sequencerGridStepElements.forEach((e) => {
-        e.classList.remove('playhead');
-      });
+      if (this.sequence.previousStepNumber > -1) {
+        this.sequencerGridStepElements[
+          this.sequence.previousStepNumber
+        ].classList.remove('playhead');
+      }
       if (this.sequence.currentStepNumber > -1) {
         this.sequencerGridStepElements[
           this.sequence.currentStepNumber
         ].classList.add('playhead');
+      } else if (
+        this.sequence.previousStepNumber == -1 &&
+        this.sequence.currentStepNumber == -1
+      ) {
+        this.sequencerGridStepElements.forEach((e) => {
+          e.classList.remove('playhead');
+        });
       }
     }
   }
@@ -769,6 +778,7 @@ class Sequence {
   _division = 14;
   ticks = DIV_TICKS[this._division];
   currentStepNumber = -1;
+  previousStepNumber = -1;
   length = 16;
   zone = null;
   _selectedStep = -1;
@@ -945,6 +955,7 @@ class Sequence {
       this.activeSteps = this.activeSteps.filter(
         (item) => !clearSteps.includes(item)
       );
+      this.previousStepNumber = this.currentStepNumber;
       this.currentStepNumber = (this.currentStepNumber + 1) % this.length;
       if (this.currentStepNumber === 0) {
         this.cycleCount++;
@@ -999,10 +1010,11 @@ class Sequence {
       }
     });
     this.activeSteps.length = 0;
-    this.currentStepNumber = -1;
+    this.currentStepNumber = this.previousStepNumber = -1;
     this.cycleCount = -1;
     this.previousStepPlayed = false;
     this.isFirstCycle = true;
+    requestAnimationFrame(this.zone.renderSequence.bind(this.zone));
   }
 
   checkCondition(step) {
