@@ -124,6 +124,7 @@ class Zone {
 
   sequence = new Sequence(this);
   sequencerGridElement = null;
+  sequencerGridStepElements = null;
 
   /**
    * Creates a new zone with default values.
@@ -503,15 +504,13 @@ class Zone {
 
   renderSequence() {
     if (this.sequence.active) {
-      this.sequencerGridElement
-        .querySelectorAll('.step.playhead')
-        .forEach((e) => {
-          e.classList.remove('playhead');
-        });
+      this.sequencerGridStepElements.forEach((e) => {
+        e.classList.remove('playhead');
+      });
       if (this.sequence.currentStepNumber > -1) {
-        this.sequencerGridElement
-          .querySelectorAll('.step')
-          [this.sequence.currentStepNumber].classList.add('playhead');
+        this.sequencerGridStepElements[
+          this.sequence.currentStepNumber
+        ].classList.add('playhead');
       }
     }
   }

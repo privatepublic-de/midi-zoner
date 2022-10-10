@@ -110,11 +110,11 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
         const parts = element.value.substr(1).split(',');
         zone.channel = parseInt(parts[1]);
         zone.preferredOutputPortId = zone.outputPortId = parseInt(parts[0]);
-        updateValuesForZone(zoneindex);
         updateOutputPortsForZone(zoneindex, cachedOutputPorts);
         midiController.updateUsedPorts(listUsedPorts());
       } else {
         zone.preferredOutputPortId = zone.outputPortId = element.value;
+        updateValuesForZone(zoneindex);
         midiController.updateUsedPorts(listUsedPorts());
       }
       break;
@@ -524,6 +524,7 @@ function appendZone(/** @type {Zone} */ zone, index) {
   zone.canvasElement = DOM.element(`#canvas${index}`);
   zone.patternCanvas = DOM.element(`#canvasPattern${index}`);
   zone.sequencerGridElement = DOM.element(`#zone${index} .seq .grid`);
+  zone.sequencerGridStepElements = DOM.all(`#zone${index} .seq .grid .step`);
   zone.dom.markerlow = DOM.element(`#zone${index} .marker.low`);
   zone.dom.markerhigh = DOM.element(`#zone${index} .marker.high`);
   zone.dom.join = DOM.element(`#zone${index} .join`);
