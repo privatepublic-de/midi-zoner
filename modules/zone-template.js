@@ -157,7 +157,7 @@ module.exports = {
           S
         </div>
         <div class="ch state showseq" data-action="${index}:toggle_seq" 
-          title="Show step sequencer">
+          title="Enable step sequencer">
           <i class="material-icons">view_comfy</i>
         </div>
         <input type="text" class="output-config-name" placeholder="(untitled)"
@@ -184,8 +184,8 @@ module.exports = {
       </div>
       <div class="seq" data-action="${index}:select_step:-1">
         <div class="seqtools">
-          Sequencer:
           <div class="val">
+            Sequencer:
             Steps
             <input title="Number of steps in sequence" class="seq_steps" type="number" min="1" max="${Sequence.MAX_STEPS}" value="16" data-change="${index}:seq_steps" /> 
           </div>
@@ -229,10 +229,10 @@ module.exports = {
               <div class="drop-down" title="Select step play condition">
                 <select class="seq_step_condition" data-change="${index}:seq_step_condition">
                   <option>always</option>
-                    <option>Prev. played</option>
-                    <option>Prev. not played</option>
-                    <option>1st</option>
-                    <option>not 1st</option>
+                    <option title="Previous was played">Prev.</option>
+                    <option title="Previous was not played">Not prev.</option>
+                    <option title="Only in first cycle">1st</option>
+                    <option title="Not in first cycle">Not 1st</option>
                   ${cycleConditions}
                 </select>
               </div>

@@ -1112,7 +1112,13 @@ li {
 
 .seq {
   display: none;
-  padding: 8px 8px;
+  margin: 4px 0;
+  border: 1px solid var(--brighter-2);
+}
+
+.seqtools {
+  background-color: var(--brighter-2);
+  padding: 4px 8px 2px 8px;
 }
 
 .show-seq .seq {
@@ -1120,8 +1126,9 @@ li {
 }
 
 .seq .grid {
+  padding: 4px 8px 8px 8px;
   margin-top: 5px;
-  --step-size: 24px;
+  --step-size: 18px;
 }
 
 .step-container {
@@ -1146,7 +1153,8 @@ li {
 
 .disabled .seq .grid .step {
   height: 5px;
-  font-size: 0.3em;
+  color: transparent;
+  font-size: 0;
   overflow: hidden;
 }
 
@@ -1221,8 +1229,8 @@ li {
 
 .seq .step-info {
   float: left;
-  width: calc((var(--step-size) + 4px) * 16 - 5px);
-  padding: 5px;
+  /* width: calc((var(--step-size) + 4px) * 16 - 5px); */
+  padding: 4px;
   color: var(--brighter-3);
   border: 1px solid transparent;
 }
