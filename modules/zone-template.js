@@ -204,25 +204,10 @@ module.exports = {
         <div class="grid">
           <div class="step-container">${sequencerGrid}</div>
           <div class="step-info" data-action="${index}:ignore">
-            <p class="no-selection"></p>
-            <p class="step-notes"></p>
+            <p class="step-notes">
+            </p>
+            <div class="step-info-close" data-action="${index}:select_step:-1"><i class="material-icons">close</i></div>
             <div class="step-props">
-            <p>
-              <div
-                class="check mini seq-step-add-notes"
-                data-action="${index}:seq-step-add-notes"
-                title="New notes are added (no overwrite)"
-              >
-                ${checkboxIcons}Add notes
-              </div>
-              <div
-                class="check mini seq-step-advance"
-                data-action="${index}:seq-step-advance"
-                title="Advance one step after note inpute"
-              >
-                ${checkboxIcons}Advance
-              </div>
-              </p>
               Length
               <input class="seq_step_length" type="number" min="1" max="${Sequence.MAX_STEPS}" value="1" data-change="${index}:seq_step_length"/> 
               Condition
@@ -251,6 +236,20 @@ module.exports = {
                 <div class="action" title="Copy step" data-action="${index}:seq_copy_step"><i class="material-icons">content_copy</i></div>
                 <div class="action" title="Paste step" data-action="${index}:seq_paste_step"><i class="material-icons">content_paste</i></div>
                 <div class="action" title="Clear step" data-action="${index}:seq_clear_step"><i class="material-icons">clear</i></div>
+                <div
+                  class="check seq-step-add-notes"
+                  data-action="${index}:seq-step-add-notes"
+                  title="New notes are added (no overwrite)"
+                >
+                  ${checkboxIcons}Add notes
+                </div>
+                <div
+                  class="check seq-step-advance"
+                  data-action="${index}:seq-step-advance"
+                  title="Advance step after note input"
+                >
+                  ${checkboxIcons}Advance
+                </div>
               </p>
             </div>
           </div>
@@ -425,7 +424,7 @@ module.exports = {
           title="Create or shift pattern"
           data-action="${index}:showeuclid"
         >
-          <div class="euclid" title="">
+          <div class="euclid hideonleave" title="">
             <p>Create euclidian pattern</p>
             <p>
               <input

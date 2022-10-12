@@ -591,20 +591,20 @@ function appendZone(/** @type {Zone} */ zone, index) {
   DOM.all(`#zone${index} .pattern, #zone${index} .ch.solo`).forEach((e) => {
     e.addEventListener('dblclick', dblClickHandler);
   });
-  let euclidHideTimeout = null;
-  const resetEuclidHideTimeout = () => {
-    if (euclidHideTimeout) {
-      clearTimeout(euclidHideTimeout);
+  let hideOnLeaveTimeout = null;
+  const resetHideOnLeaveTimeout = () => {
+    if (hideOnLeaveTimeout) {
+      clearTimeout(hideOnLeaveTimeout);
     }
   };
-  DOM.all(`#zone${index} .euclid`).forEach((e) => {
+  DOM.all(`#zone${index} .hideonleave`).forEach((e) => {
     e.addEventListener('mouseleave', function () {
-      euclidHideTimeout = setTimeout(() => {
+      hideOnLeaveTimeout = setTimeout(() => {
         e.style.display = 'none';
       }, 667);
     });
     e.addEventListener('mousemove', function () {
-      resetEuclidHideTimeout();
+      resetHideOnLeaveTimeout();
     });
   });
 }

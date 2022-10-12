@@ -1228,11 +1228,15 @@ li {
 }
 
 .seq .step-info {
-  float: left;
+  /* float: left; */
   /* width: calc((var(--step-size) + 4px) * 16 - 5px); */
   padding: 4px;
   color: var(--brighter-3);
   border: 1px solid transparent;
+  position: absolute;
+  left: calc((var(--step-size) + 4px) * 17);
+  z-index: 1;
+  display: none;
 }
 
 .seq .step-info .note {
@@ -1240,20 +1244,6 @@ li {
   color: var(--brighter-4);
   padding: 0 4px;
   box-shadow: 0 0 2px var(--darker-1);
-}
-
-.step-props,
-.step-notes {
-  display: none;
-}
-
-.has-selection .step-props,
-.has-selection .step-notes {
-  display: block;
-}
-
-.has-selection .no-selection {
-  display: none;
 }
 
 .zone.disabled .grid .step-info,
@@ -1266,10 +1256,15 @@ li {
   min-height: 20px;
 }
 
-.no-selection {
-  color: var(--brighter-2);
+.step-info-close {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  cursor: pointer;
 }
 
 .seq .has-selection .step-info {
-  background-color: var(--brighter-1);
+  display: block;
+  background-color: var(--bg-color);
+  box-shadow: 0 0 8px var(--shadow-topbar-button);
 }
