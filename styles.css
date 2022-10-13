@@ -17,7 +17,6 @@
   font-weight: normal;
   font-style: normal;
   display: inline-block;
-  line-height: 1;
   text-transform: none;
   letter-spacing: normal;
   word-wrap: normal;
@@ -124,7 +123,6 @@ select {
 ::-webkit-scrollbar-thumb:window-inactive,
 ::-webkit-scrollbar-thumb {
   background: var(--scrollbar);
-  /* border-radius: 4px; */
   padding: 4px;
 }
 
@@ -162,7 +160,8 @@ select {
 
 #midisettings .row {
   display: flex;
-  padding: 4px 8px;
+  align-items: center;
+  padding: 2px 8px;
   min-height: 24px;
 }
 
@@ -171,14 +170,9 @@ select {
   min-width: 38px;
 }
 
-/* #midisettings .clocksettings {
-  background-color: var(--darker-1);
-} */
-
 #midisettings select {
   width: 170px;
   border: 1px solid var(--darker-3);
-  /* border-radius: 4px; */
   background-color: var(--darker-2);
   color: var(--brighter-3);
   font-size: 12px;
@@ -226,7 +220,6 @@ select#midiInChannel {
   background: var(--bg-topbar-button);
   color: var(--fg-topbar-button);
   cursor: pointer;
-  /* border-radius: 4px; */
   border: none;
   min-width: 26px;
   text-align: center;
@@ -243,6 +236,14 @@ select#midiInChannel {
 
 .lightButton .material-icons {
   font-size: 14px;
+}
+
+.lsCancel {
+  position: absolute;
+  top: 0.5em;
+  right: 2px;
+  cursor: pointer;
+  font-size: 1.5em;
 }
 
 #midisettings .left,
@@ -265,7 +266,6 @@ select#midiInChannel {
   text-align: center;
   background-color: var(--darker-2);
   border: 1px solid var(--darker-3);
-  /* border-radius: 4px; */
   width: 50px;
   cursor: col-resize;
 }
@@ -299,7 +299,6 @@ select#midiInChannel {
   width: 100%;
   margin: 0 auto;
   padding: 4px 10px;
-  /* border-radius: 8px; */
 }
 
 .zonedrag #tools {
@@ -308,7 +307,6 @@ select#midiInChannel {
 
 #newzone {
   background: var(--bg-topbar-button);
-  /* border-radius: 8px; */
   width: 48px;
   height: 24px;
   line-height: 24px;
@@ -329,9 +327,8 @@ select#midiInChannel {
   font-size: 12px;
   margin: 5px auto;
   padding: 8px 8px 8px 8px;
-  /* border-radius: 8px; */
   width: 100%;
-  min-width: 960px;
+  min-width: 900px;
   box-shadow: 0 2px 10px var(--shadow-zone);
   border: 1px solid var(--darker-3);
   background-image: linear-gradient(#00000000, #00000040);
@@ -379,6 +376,7 @@ select#midiInChannel {
 .zone .check input[type='number'] {
   height: auto;
   vertical-align: baseline;
+  margin-left: 2px;
 }
 
 .zone input[type='number']:focus-visible {
@@ -386,7 +384,6 @@ select#midiInChannel {
 }
 
 .channels {
-  max-width: 900px;
   display: flex;
 }
 
@@ -417,12 +414,10 @@ select#midiInChannel {
 }
 
 .sendClock {
-  display: inline-block;
   font-size: 16px;
   color: var(--darker-2);
   margin-left: 8px;
   cursor: pointer;
-  line-height: 12px;
   height: 20px;
 }
 
@@ -516,7 +511,6 @@ select#midiInChannel {
   margin-top: 3px;
   padding: 6px;
   background-color: var(--bg-color-complement-dark);
-  /* border-radius: 0 4px 4px 4px; */
   display: none;
   text-align: left;
 }
@@ -539,14 +533,17 @@ select#midiInChannel {
 
 .check.arp_enabled.selected {
   background-color: var(--bg-color-complement);
-  /* border-radius: 5px 5px 0 0; */
+}
+
+.zonetools {
+  display: flex;
+  justify-content: flex-end;
+  flex-grow: 1;
 }
 
 .rtool {
-  float: right;
-  font-size: 18px;
+  font-size: 14px;
   color: var(--brighter-2);
-  /* border-radius: 5px; */
   margin-left: 6px;
   text-align: center;
 }
@@ -562,6 +559,10 @@ select#midiInChannel {
 .rtool,
 .rtool label {
   cursor: pointer;
+}
+
+.rtool .material-icons {
+  vertical-align: top;
 }
 
 .dragzone {
@@ -583,7 +584,7 @@ select#midiInChannel {
 .toggle,
 .drop-down,
 .percent {
-  margin: 0 4px;
+  margin: 0 8px 0 0;
   height: 20px;
   display: flex;
   align-items: center;
@@ -597,9 +598,7 @@ select#midiInChannel {
 .action,
 .toggle,
 .percent {
-  /* display: inline-block; */
   padding: 0 6px;
-  /* border-radius: 5px; */
   background-color: var(--darker-1);
   cursor: pointer;
   min-width: 55px;
@@ -609,9 +608,16 @@ select#midiInChannel {
   min-width: 0;
 }
 
-.check.patgen,
+.check .material-icons {
+  margin-right: 4px;
+}
+
 .check.mch {
   min-width: 0;
+}
+
+.patgen {
+  margin-left: 4px;
 }
 
 .check.mch {
@@ -670,17 +676,11 @@ select#midiInChannel {
   vertical-align: middle;
 }
 
-/* .val,
-.drop-down {
-  display: inline-block;
-} */
-
 .octselect {
   display: inline-block;
   width: 14px;
   height: 14px;
   border: 1px solid var(--brighter-2);
-  /* border-radius: 50%; */
   cursor: pointer;
   vertical-align: middle;
   margin: 0;
@@ -707,12 +707,10 @@ select#midiInChannel {
 .zone input {
   border: none;
   background-color: var(--darker-1);
-  /* border-radius: 4px; */
   color: var(--brighter-3);
   font-size: 12px;
   padding: 0;
   text-align: center;
-  /* box-shadow: inset -1px -1px 2px var(--darker-1); */
 }
 
 .zone input {
@@ -727,7 +725,6 @@ select#midiInChannel {
 
 .zone select.outport {
   background-color: transparent;
-  /* color: var(--brighter-3); */
   vertical-align: top;
   width: 150px;
   transition: background-color 1s;
@@ -741,11 +738,9 @@ select#midiInChannel {
   display: inline-block;
   color: var(--brighter-4);
   background-color: var(--darker-1);
-  /* border-radius: 4px; */
   padding: 2px 4px;
   cursor: pointer;
   margin: 0 4px;
-  /* font-size: 10px; */
 }
 
 .zone select option {
@@ -757,7 +752,6 @@ select#midiInChannel {
 }
 
 .rangeholder {
-  /* border: 2px solid var(--brighter-1); */
   margin: 6px auto;
 }
 
@@ -766,9 +760,7 @@ select#midiInChannel {
   height: 28px;
   cursor: pointer;
   width: 100%;
-  /* border: 2px solid var(--brighter-1); */
   overflow: hidden;
-  /* border-radius: 6px; */
 }
 
 .dragvalue .range,
@@ -810,11 +802,6 @@ select#midiInChannel {
 .marker.high {
   top: 10px;
 }
-
-/* .marker.hover {
-  background-color: var(--brighter-1);
-  color: var(--fg-channel-select);
-} */
 
 .join {
   position: absolute;
@@ -863,7 +850,6 @@ select#midiInChannel {
 
 .pattern {
   position: relative;
-  /* border-radius: 4px; */
   display: inline-block;
   height: 18px;
   vertical-align: middle;
@@ -878,9 +864,7 @@ select#midiInChannel {
   padding: 8px;
   background-color: var(--bg-color);
   box-shadow: 0 0 8px var(--shadow-topbar-button);
-  /* border-radius: 4px; */
   bottom: 20px;
-  right: 0;
   text-align: center;
   line-height: 1.2em;
   transition: opacity 667ms;
@@ -904,6 +888,8 @@ select#midiInChannel {
   display: none;
   min-width: 200px;
   box-shadow: 0 0 10px var(--shadow-zone);
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 ul {
@@ -917,7 +903,6 @@ li {
   margin: 0.5em 0;
   padding: 4px;
   background: var(--bg-loadsave-item);
-  /* border-radius: 5px; */
 }
 
 #loadsave li {
@@ -945,7 +930,6 @@ li {
 
 #loadsave input {
   border: 1px solid var(--darker-3);
-  /* border-radius: 4px; */
   background-color: var(--darker-1);
   color: var(--brighter-3);
   padding: 1px 2px;
@@ -955,7 +939,6 @@ li {
   display: none;
   margin-top: 8px;
   padding: 8px 0 0 0;
-  /* border-radius: 4px; */
   font-size: 10px;
   max-width: 500px;
 }
@@ -985,9 +968,6 @@ li {
   height: 67px;
   vertical-align: top;
   margin: 0 0 15px 5px;
-  /* background-color: var(--darker-1); */
-  /* background-image: linear-gradient(#ffffff10, #00000000); */
-  /* border-radius: 4px; */
   box-shadow: 0 0 2px var(--darker-2);
 }
 
@@ -1138,6 +1118,7 @@ li {
 
 .seqtools {
   display: flex;
+  align-items: center;
   background-color: var(--bg-color-complement-dark);
   padding: 4px 8px;
 }
@@ -1147,18 +1128,19 @@ li {
 }
 
 .seq .grid {
+  position: relative;
   padding: 4px 8px 8px 8px;
   margin-top: 5px;
   --step-size: 20px;
 }
 
 .step-container {
-  float: left;
+  display: flex;
+  flex-wrap: wrap;
   width: calc((var(--step-size) + 4px) * 16 + 5px);
 }
 
 .seq .grid .step {
-  float: left;
   display: flex;
   margin: 2px 4px 2px 0;
   width: var(--step-size);
@@ -1170,6 +1152,11 @@ li {
   font-size: 0.85em;
   text-align: center;
   cursor: pointer;
+}
+
+.seq .grid .step-info .step {
+  display: inline-flex;
+  cursor: default;
 }
 
 .disabled .seq .grid .step {
@@ -1218,19 +1205,18 @@ li {
 
 .seq .grid.hot .listen-indicator,
 .seq_record_live.selected {
-  /* background-color: var(--red-highlight); */
-  animation: indicator 1s infinite;
+  animation: indicator 2s infinite;
 }
 
 @keyframes indicator {
   0% {
-    background-color: var(--record-highlight);
+    background-color: inherit;
   }
   50% {
-    background-color: transparent;
+    background-color: var(--record-highlight);
   }
   100% {
-    background-color: var(--record-highlight);
+    background-color: inherit;
   }
 }
 
@@ -1241,7 +1227,7 @@ li {
 }
 
 .seq .grid.hot .step.selected-step {
-  animation: indicator 1s infinite;
+  animation: indicator 2s infinite;
 }
 
 .seq .grid .step:nth-child(4n + 1) {
@@ -1249,14 +1235,15 @@ li {
 }
 
 .seq .step-info {
-  /* float: left; */
-  /* width: calc((var(--step-size) + 4px) * 16 - 5px); */
   padding: 4px;
   color: var(--brighter-3);
   border: 1px solid transparent;
   position: absolute;
+  top: 5px;
   left: calc((var(--step-size) + 4px) * 17);
   z-index: 1;
+  background-color: var(--bg-color-complement-dark);
+  box-shadow: 0 0 8px var(--shadow-topbar-button);
   display: none;
 }
 
@@ -1293,6 +1280,4 @@ li {
 
 .seq .has-selection .step-info {
   display: block;
-  background-color: var(--bg-color);
-  box-shadow: 0 0 8px var(--shadow-topbar-button);
 }

@@ -921,16 +921,17 @@ class Sequence {
           const notesArray = this.steps[this.selectedStepNumber]
             ? this.steps[this.selectedStepNumber].notesArray
             : null;
-          let infoText = 'Step ' + (this.selectedStepNumber + 1) + ': ';
-          if (notesArray) {
+          let infoText =
+            '<div class="step listen-indicator">' +
+            (this.selectedStepNumber + 1) +
+            '</div> ';
+          if (notesArray && notesArray.length > 0) {
             notesArray.forEach((note) => {
               infoText +=
                 '<span class="note">' + Note.display(note.number) + '</span> ';
             });
-          }
-          if (this.isHotRecordingNotes && this.zone.enabled) {
-            infoText +=
-              ' <span class="listen-indicator" title="Play notes on keyboard">&nbsp;<i class="material-icons">piano</i>&nbsp;</span>';
+          } else {
+            infoText += '(... play notes on keyboard ...)';
           }
           this.zone.sequencerGridElement.querySelector(
             '.step-notes'

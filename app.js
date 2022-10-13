@@ -118,9 +118,9 @@ function openLoadDialog(midi) {
   DOM.addHTML(
     container,
     'beforeend',
-    `<h2>Load scene</h2>
-    ${existingScenesHtml('load')}
-    <p><button onclick="closeLoadSaveDialog()" class="lightButton">Cancel</button></p>`
+    `<div onclick="closeLoadSaveDialog()" class="lsCancel"><i class="material-icons">close</i></div>
+    <h2>Load scene</h2>
+    ${existingScenesHtml('load')}`
   );
   DOM.on('#loadsave li', 'click', (ev) => {
     const index = new Number(ev.target.getAttribute('data-index'));
@@ -151,12 +151,12 @@ function openSaveDialog() {
   DOM.addHTML(
     container,
     'beforeend',
-    `<h2>Save scene</h2>
+    `<div onclick="closeLoadSaveDialog()" class="lsCancel"><i class="material-icons">close</i></div>
+    <h2>Save scene</h2>
     <p><input type="text" placeholder="Enter name" id="newSceneName"/> 
     <button id="saveNew" class="lightButton">Save</button></p>
     <h2>Overwrite existing scene</h2>
-    ${existingScenesHtml('save')}
-    <p><button onclick="closeLoadSaveDialog()" class="lightButton">Cancel</button></p>`
+    ${existingScenesHtml('save')}`
   );
   function saveSceneWithKey(key) {
     const scenesJ = localStorage.getItem('scenes');

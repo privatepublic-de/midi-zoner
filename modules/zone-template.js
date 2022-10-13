@@ -122,28 +122,6 @@ module.exports = {
     }
 
     return /*html*/ `<section class="zone" id="zone${index}">
-      <div
-        class="delzone rtool"
-        data-action="${index}:delete"
-        title="Remove zone"
-      >
-        <i class="material-icons">cancel</i>
-      </div>
-      <div class="dragzone rtool" title="Drag zone">
-        <i class="material-icons">import_export</i>
-      </div>
-      <div class="randzonecolor rtool" title="Change color">
-        <label
-          ><input data-change="${index}:color" type="color" /><i
-            class="material-icons"
-            >palette</i
-          ></label
-        >
-      </div>
-      <div class="showccs rtool" data-action="${index}:toggle_show_cc" 
-        title="Show CC controllers">
-        <i class="material-icons">tune</i>
-      </div>
       <div class="channels">
         <div
           class="ch state enabled"
@@ -175,6 +153,20 @@ module.exports = {
           ><span class="material-icons unsel">query_builder</span>
         </div>
         ${channelselectors}
+        <div class="zonetools">
+            <div class="showccs rtool" data-action="${index}:toggle_show_cc" title="Show CC controllers">
+              <i class="material-icons">tune</i>
+            </div>
+            <div class="randzonecolor rtool" title="Change color">
+              <label><input data-change="${index}:color" type="color" /><i class="material-icons">palette</i></label>
+            </div>
+            <div class="dragzone rtool" title="Drag zone">
+              <i class="material-icons">import_export</i>
+            </div>
+            <div class="delzone rtool" data-action="${index}:delete" title="Remove zone">
+              <i class="material-icons">close</i>
+            </div>
+        </div>
       </div>
       <div class="ccpots">
         <div class="ccpotttools">
@@ -184,9 +176,9 @@ module.exports = {
       </div>
       <div class="seq" data-action="${index}:select_step:-1">
         <div class="seqtools">
+          <div class="label">Sequencer:</div>
+          <div class="label">Steps</div>
           <div class="val">
-            Sequencer:
-            Steps
             <input title="Number of steps in sequence" class="seq_steps" type="number" min="1" max="${Sequence.MAX_STEPS}" value="16" data-change="${index}:seq_steps" /> 
           </div>
           <div class="drop-down" title="Step resolution">
@@ -381,8 +373,8 @@ module.exports = {
             ${noteLengthOptions}
           </select>
         </div>
+        <div class="label">Octs</div>
         <div class="drop-down">
-          Octs
           <select class="arp_octaves" data-change="${index}:arp_octaves">
             <option>1</option>
             <option>2</option>
@@ -393,7 +385,7 @@ module.exports = {
         <div class="check arp_repeat" data-action="${index}:arp_repeat">
           ${checkboxIcons}Repeat
         </div>
-        <div>Len</div>
+        <div class="label">Len</div>
         <div
           class="percent arp_gatelength"
           data-action="${index}:arp_gatelength"
@@ -402,7 +394,7 @@ module.exports = {
           <span class="inner"></span>
           <span class="pcnt">50</span>
         </div>
-        <div>Prob</div>
+        <div class="label">Prob</div>
         <div
           class="percent arp_probability"
           data-action="${index}:arp_probability"
@@ -419,11 +411,11 @@ module.exports = {
           <canvas id="canvasPattern${index}" width="200" height="16"></canvas>
         </div>
         <div
-          class="check patgen"
+          class="action patgen"
           title="Create or shift pattern"
           data-action="${index}:showeuclid"
         >
-          <div class="euclid hideonleave" title="">
+          <div class="euclid hideonleave">
             <p>Create euclidian pattern</p>
             <p>
               <input
