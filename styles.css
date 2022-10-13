@@ -865,6 +865,7 @@ select#midiInChannel {
   background-color: var(--bg-color);
   box-shadow: 0 0 8px var(--shadow-topbar-button);
   bottom: 20px;
+  left: 660px;
   text-align: center;
   line-height: 1.2em;
   transition: opacity 667ms;
@@ -1205,18 +1206,15 @@ li {
 
 .seq .grid.hot .listen-indicator,
 .seq_record_live.selected {
-  animation: indicator 2s infinite;
+  animation: indicator 2s infinite alternate;
 }
 
 @keyframes indicator {
   0% {
     background-color: inherit;
   }
-  50% {
-    background-color: var(--record-highlight);
-  }
   100% {
-    background-color: inherit;
+    background-color: var(--record-highlight);
   }
 }
 
@@ -1227,7 +1225,7 @@ li {
 }
 
 .seq .grid.hot .step.selected-step {
-  animation: indicator 2s infinite;
+  animation: indicator 2s infinite alternate;
 }
 
 .seq .grid .step:nth-child(4n + 1) {
