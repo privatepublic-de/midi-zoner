@@ -476,24 +476,22 @@ class Zone {
       const cwidth = this.patternCanvas.width;
       const plen = this.arp_pattern.length;
       const width = cwidth / plen;
-      let radius = width / 2 - 1;
-      if (radius > 7) {
-        radius = 7;
-      }
       ctx.clearRect(0, 0, cwidth, this.patternCanvas.height);
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.3';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.5';
       for (let i = 0; i < plen; i++) {
         if (i === this.arp.patternPos) {
-          ctx.fillStyle = 'rgba(255,255,255,.15)';
-          ctx.fillRect(width * i, 0, width, 16);
+          if (this.arp_pattern[i]) {
+            ctx.fillStyle = 'rgba(255,255,255,.5)';
+            ctx.fillRect(width * i, 0, width, 16);
+          } else {
+            ctx.fillStyle = 'rgba(255,255,255,.25)';
+            ctx.fillRect(width * i + 2, 2, width - 4, 16 - 4);
+          }
         }
-        // ctx.arc(width * (i + 0.5), 8, radius, 0, 2 * Math.PI);
         if (this.arp_pattern[i]) {
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
           ctx.fillRect(width * i + 1, 1, width - 2, 16 - 2);
-          // ctx.fill();
         } else {
-          // ctx.stroke();
           ctx.beginPath();
           ctx.rect(width * i + 2, 2, width - 4, 16 - 4);
           ctx.stroke();
@@ -773,7 +771,7 @@ class SeqStep {
 class Sequence {
   static MAX_STEPS = 256;
   static CYCLE_CONDITIONS = [];
-  active = false;
+  _active = false;
   steps = [];
   _division = 14;
   ticks = DIV_TICKS[this._division];
@@ -807,6 +805,23 @@ class Sequence {
       length: this.length,
       division: this._division
     };
+  }
+
+  set active(v) {
+    this._active = v;
+    if (v && this.zone.sequencerGridStepElements) {
+      requestAnimationFrame(
+        (() => {
+          this.zone.sequencerGridStepElements.forEach((e) => {
+            e.classList.remove('playhead');
+          });
+        }).bind(this)
+      );
+    }
+  }
+
+  get active() {
+    return this._active;
   }
 
   get division() {
@@ -964,36 +979,39 @@ class Sequence {
           this.isFirstCycle = false;
         }
       }
-      const currentStep = this.steps[this.currentStepNumber];
-      if (this.active && currentStep) {
-        if (
-          this.checkCondition(currentStep) &&
-          this.rngProb() < currentStep.probability
-        ) {
-          currentStep.played = 0;
-          this.activeSteps.push(currentStep);
-          // currentStep.lastPlayedArray.length = 0;
-          for (let inote of currentStep.notesArray) {
-            let note = Note.clone(inote);
-            note.number = note.number + this.zone.octave * 12;
-            note.channel = this.zone.channel;
-            note.portId = this.zone.outputPortId;
-            this.zone.midi.send(
-              Uint8Array.from([
-                MIDI.MESSAGE.NOTE_ON + note.channel,
-                note.number,
-                note.velo
-              ]),
-              note.portId
-            );
-            currentStep.lastPlayedArray.push(note);
+
+      if (this.active) {
+        const currentStep = this.steps[this.currentStepNumber];
+        if (this.active && currentStep) {
+          if (
+            this.checkCondition(currentStep) &&
+            this.rngProb() < currentStep.probability
+          ) {
+            currentStep.played = 0;
+            this.activeSteps.push(currentStep);
+            // currentStep.lastPlayedArray.length = 0;
+            for (let inote of currentStep.notesArray) {
+              let note = Note.clone(inote);
+              note.number = note.number + this.zone.octave * 12;
+              note.channel = this.zone.channel;
+              note.portId = this.zone.outputPortId;
+              this.zone.midi.send(
+                Uint8Array.from([
+                  MIDI.MESSAGE.NOTE_ON + note.channel,
+                  note.number,
+                  note.velo
+                ]),
+                note.portId
+              );
+              currentStep.lastPlayedArray.push(note);
+            }
+            this.previousStepPlayed = true;
+          } else {
+            this.previousStepPlayed = false;
           }
-          this.previousStepPlayed = true;
-        } else {
-          this.previousStepPlayed = false;
         }
+        requestAnimationFrame(this.zone.renderSequence.bind(this.zone));
       }
-      requestAnimationFrame(this.zone.renderSequence.bind(this.zone));
     }
   }
 
