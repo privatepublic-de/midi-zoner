@@ -204,13 +204,11 @@ module.exports = {
         <div class="grid">
           <div class="step-container">${sequencerGrid}</div>
           <div class="step-info" data-action="${index}:ignore">
-            <p class="step-notes">
-            </p>
-            <div class="step-info-close" data-action="${index}:select_step:-1"><i class="material-icons">close</i></div>
-            <div class="step-props">
-              Length
+            <div class="step-notes"></div>
+            <div class="step-props step-controls">
+              <div class="label">Length</div>
               <input class="seq_step_length" type="number" min="1" max="${Sequence.MAX_STEPS}" value="1" data-change="${index}:seq_step_length"/> 
-              Condition
+              <div class="label">Condition</div>
               <div class="drop-down" title="Select step play condition">
                 <select class="seq_step_condition" data-change="${index}:seq_step_condition">
                   <option>always</option>
@@ -221,7 +219,7 @@ module.exports = {
                   ${cycleConditions}
                 </select>
               </div>
-              Prob
+              <div class="label">Prob</div>
               <div
                 class="percent seq_probability"
                 data-action="${index}:seq_probability"
@@ -230,7 +228,8 @@ module.exports = {
                 <span class="inner"></span>
                 <span class="pcnt">50</span>
               </div>
-              <p>
+            </div>
+            <div class="step-controls">
                 <div class="action" title="Move step left (if free space)" data-action="${index}:seq_step_move:-1"><i class="material-icons">chevron_left</i></div>
                 <div class="action" title="Move step right (if free space)" data-action="${index}:seq_step_move:1"><i class="material-icons">chevron_right</i></div>
                 <div class="action" title="Copy step" data-action="${index}:seq_copy_step"><i class="material-icons">content_copy</i></div>
@@ -250,9 +249,9 @@ module.exports = {
                 >
                   ${checkboxIcons}Advance
                 </div>
-              </p>
+              </div>
+              <div class="step-info-close" data-action="${index}:select_step:-1"><i class="material-icons">close</i></div>
             </div>
-          </div>
           <div style="clear:both"></div>
         </div>
       </div>
@@ -394,7 +393,7 @@ module.exports = {
         <div class="check arp_repeat" data-action="${index}:arp_repeat">
           ${checkboxIcons}Repeat
         </div>
-        Len
+        <div>Len</div>
         <div
           class="percent arp_gatelength"
           data-action="${index}:arp_gatelength"
@@ -403,7 +402,7 @@ module.exports = {
           <span class="inner"></span>
           <span class="pcnt">50</span>
         </div>
-        Prob
+        <div>Prob</div>
         <div
           class="percent arp_probability"
           data-action="${index}:arp_probability"

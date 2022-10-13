@@ -27,7 +27,6 @@
   text-rendering: optimizeLegibility;
   font-feature-settings: 'liga';
   vertical-align: middle;
-  padding-bottom: 2px;
 }
 
 :root {
@@ -152,6 +151,7 @@ select {
 #midisettings .controls {
   display: inline-block;
   text-align: left;
+  margin: 0 auto;
 }
 
 #midisettings .block {
@@ -161,6 +161,7 @@ select {
 }
 
 #midisettings .row {
+  display: flex;
   padding: 4px 8px;
   min-height: 24px;
 }
@@ -386,14 +387,15 @@ select#midiInChannel {
 
 .channels {
   max-width: 900px;
+  display: flex;
 }
 
 .ch {
-  display: inline-block;
-  padding: 2px 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   width: 18px;
   height: 20px;
-  line-height: 15px;
   font-size: 10px;
   margin-left: 8px;
   text-align: center;
@@ -404,9 +406,6 @@ select#midiInChannel {
 
 .ch.state {
   width: 24px;
-  padding: 4px 0;
-  height: 20px;
-  line-height: 12px;
   font-size: 12px;
 }
 
@@ -486,12 +485,13 @@ select#midiInChannel {
 .settings,
 .arp-settings {
   position: relative;
+  display: flex;
   color: var(--brighter-3);
   font-size: 12px;
 }
 
 .hidden {
-  display: inline-block;
+  display: flex;
 }
 
 .hidden *,
@@ -533,7 +533,8 @@ select#midiInChannel {
 
 .arp-enabled .arp-settings,
 .arp-enabled .arpanchor {
-  display: inline-block;
+  display: flex;
+  align-items: center;
 }
 
 .check.arp_enabled.selected {
@@ -572,15 +573,20 @@ select#midiInChannel {
   cursor: grabbing;
 }
 
+.label {
+  margin: 0 4px;
+}
+
 .check,
 .action,
 .val,
 .toggle,
 .drop-down,
 .percent {
-  margin-right: 8px;
+  margin: 0 4px;
   height: 20px;
-  vertical-align: middle;
+  display: flex;
+  align-items: center;
 }
 
 .valpadded {
@@ -591,8 +597,8 @@ select#midiInChannel {
 .action,
 .toggle,
 .percent {
-  display: inline-block;
-  padding: 3px 6px 0 6px;
+  /* display: inline-block; */
+  padding: 0 6px;
   /* border-radius: 5px; */
   background-color: var(--darker-1);
   cursor: pointer;
@@ -636,6 +642,7 @@ select#midiInChannel {
 
 .check.arp_enabled {
   width: 68px;
+  margin-left: 0;
   position: relative;
 }
 
@@ -663,10 +670,10 @@ select#midiInChannel {
   vertical-align: middle;
 }
 
-.val,
+/* .val,
 .drop-down {
   display: inline-block;
-}
+} */
 
 .octselect {
   display: inline-block;
@@ -679,6 +686,9 @@ select#midiInChannel {
   margin: 0;
   text-align: center;
   border-right: none;
+}
+.octselect:first-child {
+  margin-left: 0.3em;
 }
 .octselect:last-child {
   border-right: 1px solid var(--brighter-2);
@@ -1127,6 +1137,7 @@ li {
 }
 
 .seqtools {
+  display: flex;
   background-color: var(--bg-color-complement-dark);
   padding: 4px 8px;
 }
@@ -1138,7 +1149,7 @@ li {
 .seq .grid {
   padding: 4px 8px 8px 8px;
   margin-top: 5px;
-  --step-size: 18px;
+  --step-size: 20px;
 }
 
 .step-container {
@@ -1261,8 +1272,15 @@ li {
   display: none;
 }
 
+.step-controls {
+  border-top: 1px solid var(--brighter-1);
+  margin-top: 0.5em;
+  padding-top: 0.5em;
+  display: flex;
+  align-items: center;
+}
+
 .step-notes {
-  border-bottom: 1px solid var(--brighter-1);
   min-height: 20px;
 }
 
