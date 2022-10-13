@@ -283,7 +283,7 @@ module.exports = {
           ><span class="material-icons unsel">chevron_right</span>
           <span class="arpanchor"></span>
         </div>
-        <div class="val" title="Transpose octave">
+        <div class="val valpadded" title="Transpose octave">
           Oct
           <a class="octselect" data-action="${index}:octave:-2"></a><a 
           class="octselect" data-action="${index}:octave:-1"></a><a 

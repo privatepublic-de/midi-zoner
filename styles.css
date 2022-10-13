@@ -40,7 +40,7 @@
   --highlight-topbar: #3c3c3c;
   --bg-topbar-button: #464048;
   --fg-topbar-button: #777;
-  --shadow-topbar-button: #000;
+  --shadow-topbar-button: #0008;
   --bg-topbar-button-active: #666;
   --fg-topbar-button-active: #ccc;
   --highlight-bpm-value: #0cc;
@@ -370,9 +370,14 @@ select#midiInChannel {
 }
 
 .zone input[type='number'] {
-  height: 18px;
+  height: 20px;
   padding: 0 0 0 0;
   min-width: 4em;
+}
+
+.zone .check input[type='number'] {
+  height: auto;
+  vertical-align: baseline;
 }
 
 .zone input[type='number']:focus-visible {
@@ -575,6 +580,11 @@ select#midiInChannel {
 .percent {
   margin-right: 8px;
   height: 20px;
+  vertical-align: middle;
+}
+
+.valpadded {
+  padding: 3px 6px 0 6px;
 }
 
 .check,
@@ -1113,12 +1123,12 @@ li {
 .seq {
   display: none;
   margin: 4px 0;
-  border: 1px solid var(--brighter-2);
+  border: 1px solid var(--bg-color-complement-dark);
 }
 
 .seqtools {
-  background-color: var(--brighter-2);
-  padding: 4px 8px 2px 8px;
+  background-color: var(--bg-color-complement-dark);
+  padding: 4px 8px;
 }
 
 .show-seq .seq {
