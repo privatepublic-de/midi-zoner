@@ -291,7 +291,7 @@ document.addEventListener('DOMContentLoaded', function () {
           zones.list.forEach((/** @type {Zone} */ zone, index) => {
             zone.hue = index / zones.list.length;
             zone.saturation = 0.6;
-            zone.lightness = 0.3;
+            zone.lightness = 0.4;
           });
           view.renderZones();
           saveZones();
