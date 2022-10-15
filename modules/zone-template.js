@@ -79,7 +79,7 @@ module.exports = {
                 fill="none"
               />
             </svg>
-            <input class="label" type="text" value="${
+            <input class="cclabel" type="text" value="${
               cc.label
             }" data-change="${zoneindex}:cc_label:${ix}"/>
             <div class="cc">
@@ -170,8 +170,8 @@ module.exports = {
       </div>
       <div class="ccpots">
         <div class="ccpotttools">
-          <i class="material-icons" title="Send all values" data-action="${index}:send_all_cc">send</i><br/>
           <i class="material-icons" title="Add new control" data-action="${index}:add_cc_controller">add</i>
+          <div class="action" style="margin:5px 0 0 0" data-action="${index}:send_all_cc">send all</div>
         </div>
       </div>
       <div class="seq" data-action="${index}:select_step:-1">
@@ -274,7 +274,7 @@ module.exports = {
           ><span class="material-icons unsel">chevron_right</span>
           <span class="arpanchor"></span>
         </div>
-        <div class="val valpadded" title="Transpose octave">
+        <div class="val" title="Transpose octave">
           Oct
           <a class="octselect" data-action="${index}:octave:-2"></a><a 
           class="octselect" data-action="${index}:octave:-1"></a><a 

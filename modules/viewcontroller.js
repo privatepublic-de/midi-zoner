@@ -981,7 +981,7 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
       ? 'block'
       : 'none';
     DOM.element(`#pot_${zoneindex}_${ix} .cc`).value = c.number;
-    DOM.element(`#pot_${zoneindex}_${ix} .label`).value = c.label;
+    DOM.element(`#pot_${zoneindex}_${ix} .cclabel`).value = c.label;
     DOM.element(`#pot_${zoneindex}_${ix} .value`).innerHTML = c.isBipolar
       ? c.val - 64
       : c.val;
