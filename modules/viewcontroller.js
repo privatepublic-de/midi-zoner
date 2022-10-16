@@ -373,10 +373,10 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
     case 'seq_step_move':
       if (zone.sequence.selectedStep) {
         const direction = parseInt(params[2]);
-        const newPos =
-          (zone.sequence.selectedStepNumber + direction) % Sequence.MAX_STEPS;
+        let newPos =
+          (zone.sequence.selectedStepNumber + direction) % zone.sequence.length;
         if (newPos < 0) {
-          newPos = Sequence.MAX_STEPS - 1;
+          newPos = zone.sequence.length - 1;
         }
         if (
           !zone.sequence.steps[newPos] ||
