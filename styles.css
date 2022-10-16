@@ -127,6 +127,8 @@ select {
 }
 
 #midisettings {
+  display: flex;
+  align-items: center;
   position: fixed;
   z-index: 2;
   top: 0;
@@ -138,7 +140,6 @@ select {
   color: var(--brighter-3);
   box-shadow: 0 2px 5px var(--shadow-topbar);
   border-bottom: 1px solid var(--border-topbar);
-  text-align: center;
 }
 
 .bright #midisettings {
@@ -147,8 +148,6 @@ select {
 }
 
 #midisettings .controls {
-  display: inline-block;
-  text-align: left;
   margin: 0 auto;
 }
 
@@ -248,19 +247,21 @@ select#midiInChannel {
   font-size: 1.5em;
 }
 
-#midisettings .left,
+/* #midisettings .left,
 #midisettings .right {
   text-align: left;
   position: absolute;
   bottom: 5px;
 }
 
-#midisettings .left {
-  left: 15px;
-}
-#midisettings .right {
+
+/* #midisettings .right {
   right: 15px;
   text-align: right;
+} */
+
+#midisettings .left {
+  margin: 0 0 0 8px;
 }
 
 #displayBPM {
@@ -290,7 +291,7 @@ select#midiInChannel {
 }
 
 .padded {
-  padding: 30px 5px 0 5px;
+  padding: 25px 5px 0 5px;
 }
 
 #zones {
@@ -968,10 +969,6 @@ li {
   width: var(--ccpot-width);
   height: 67px;
   margin: 0 0 15px 5px;
-}
-
-.ccpot:hover {
-  box-shadow: 0 0 6px var(--darker-2);
 }
 
 .ccpot.moved {
