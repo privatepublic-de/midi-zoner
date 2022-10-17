@@ -90,7 +90,8 @@ module.exports = {
                 <span class="value">127</span>
               </div>
               <div class="ccpot-back">
-                <div class="cc" title="Enter input and output cc number">
+                <div>CC Number</div>
+                <div class="cc" title="Enter input and output cc number\nAny CC input from MIDI-In controller is learned now!">
                   <input type="text" class="cc-in" value="${
                     cc.number_in || cc.number
                   }" data-change="${zoneindex}:cc_number_in:${ix}"/>
