@@ -55,49 +55,58 @@ module.exports = {
     zone.cc_controllers.forEach((cc, ix) => {
       controllers += /*html*/ `
         <div class="ccpot" id="pot_${zoneindex}_${ix}">
-            <svg
-              width="100%"
-              height="100%"
-              viewBox="0 0 56 56"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                id="pot_range_${zoneindex}_${ix}"
-                d=""
-                stroke="var(--brighter-1)"
-                stroke-width="8"
-                fill="none"
-              />
-              <rect
-                id="pot_zero_${zoneindex}_${ix}"
-                x="26" y="13" width="4" height="10" fill="var(--bg-color)" />
-              <path
-                id="pot_value_${zoneindex}_${ix}"
-                d=""
-                stroke="var(--brighter-4)"
-                stroke-width="9"
-                fill="none"
-              />
-            </svg>
-            <input class="cclabel" type="text" value="${
-              cc.label
-            }" data-change="${zoneindex}:cc_label:${ix}"/>
-            <div class="cc">
-              <input type="text" value="${
-                cc.number_in || cc.number
-              }" data-change="${zoneindex}:cc_number_in:${ix}"/>
-              &rarr;
-              <input type="text" value="${
-                cc.number
-              }" data-change="${zoneindex}:cc_number:${ix}"/>
-            </div>
-            <span class="value">127</span>
-            <div class="tools">
-              <span class="material-icons" data-action="${zoneindex}:cc_left:${ix}">arrow_back</span>
-              <span class="material-icons" data-action="${zoneindex}:cc_remove:${ix}">cancel</span>
-              <span class="material-icons" data-action="${zoneindex}:cc_right:${ix}">arrow_forward</span>
-              <br/>
-              <span data-action="${zoneindex}:cc_togglepolarity:${ix}">mode</span>
+            <div class="ccpot-inner">
+              <div class="ccpot-front">
+                <svg
+                  width="100%"
+                  height="100%"
+                  viewBox="0 0 56 56"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    id="pot_range_${zoneindex}_${ix}"
+                    d=""
+                    stroke="var(--brighter-1)"
+                    stroke-width="8"
+                    fill="none"
+                  />
+                  <rect
+                    id="pot_zero_${zoneindex}_${ix}"
+                    x="26" y="13" width="4" height="10" fill="var(--bg-color)" />
+                  <path
+                    id="pot_value_${zoneindex}_${ix}"
+                    d=""
+                    stroke="var(--brighter-4)"
+                    stroke-width="9"
+                    fill="none"
+                  />
+                </svg>
+                <input class="cclabel" type="text" value="${
+                  cc.label
+                }" data-change="${zoneindex}:cc_label:${ix}"/>
+                <div class="cc-edit-action" data-action="${zoneindex}:cc_edit:${ix}" onMouseDown="event.stopPropagation()">
+                  edit
+                </div>
+                <span class="value">127</span>
+              </div>
+              <div class="ccpot-back">
+                <div class="cc" title="Enter input and output cc number">
+                  <input type="text" class="cc-in" value="${
+                    cc.number_in || cc.number
+                  }" data-change="${zoneindex}:cc_number_in:${ix}"/>
+                  <span>&rarr;</span>
+                  <input type="text" class="cc-out" value="${
+                    cc.number
+                  }" data-change="${zoneindex}:cc_number:${ix}"/>
+                </div>
+                <div class="cc_togglepolarity" data-action="${zoneindex}:cc_togglepolarity:${ix}">mode</div>
+                <div data-action="${zoneindex}:cc_remove:${ix}">remove</div>
+                <div class="cc_tools">
+                  <span class="material-icons" data-action="${zoneindex}:cc_left:${ix}">arrow_back</span>
+                  <span class="material-icons" data-action="${zoneindex}:cc_edit:-1">360</span>
+                  <span class="material-icons" data-action="${zoneindex}:cc_right:${ix}">arrow_forward</span>
+                </div>
+              </div>
             </div>
           </div>
       `;

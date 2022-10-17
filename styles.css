@@ -763,8 +763,7 @@ select#midiInChannel {
 }
 
 .dragvalue .range,
-.dragvalue .zone:not(.show-cc),
-.dragvalue .ccpot .tools {
+.dragvalue .zone:not(.show-cc) {
   pointer-events: none;
 }
 
@@ -969,10 +968,54 @@ li {
   width: var(--ccpot-width);
   height: 67px;
   margin: 0 0 15px 5px;
+  perspective: 1000px;
 }
 
-.ccpot.moved {
+.ccpot .ccpot-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.8s;
+  transform-style: preserve-3d;
+}
+
+.ccpot.cc-edit .ccpot-inner {
+  transform: rotateY(180deg);
+}
+
+.ccpot-front,
+.ccpot-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+}
+
+.ccpot-back {
+  transform: rotateY(180deg);
   background-color: var(--brighter-1);
+  font-size: 9px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-around;
+  box-shadow: 0 0 8px #00000080;
+}
+
+.ccpot-back .material-icons {
+  font-size: 12px;
+}
+
+.ccpot.cc-edit .ccpot-front {
+  pointer-events: none;
+}
+
+.cc_tools {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  align-content: center;
+  width: 100%;
 }
 
 .ccpot input {
@@ -1007,10 +1050,10 @@ li {
   text-align: center;
 }
 
-.ccpot .cc {
-  display: none;
+.ccpot .ccpot-front .cc-edit-action {
   position: absolute;
-  bottom: 0;
+  opacity: 0;
+  bottom: 4px;
   left: 0;
   right: 0;
   text-align: center;
@@ -1018,15 +1061,22 @@ li {
   color: var(--brighter-2);
 }
 
-.ccpot:hover .cc {
-  display: block;
+.ccpot .ccpot-front .cc-edit-action:hover {
+  opacity: 1;
+}
+
+.ccpot .cc {
+  display: flex;
+  width: 100%;
+  justify-content: space-evenly;
+  align-items: center;
 }
 
 .ccpot .cc input {
   width: 33%;
   text-align: center;
-  font-size: 9px;
-  color: var(--brighter-2);
+  font-size: 10px;
+  background-color: var(--darker-1);
 }
 
 .ccpotttools {
@@ -1043,35 +1093,6 @@ li {
 
 .ccpotttools .material-icons {
   font-size: 18px;
-}
-
-.ccpot .tools {
-  opacity: 0;
-  position: absolute;
-  text-align: center;
-  padding: 4px 2px 0 2px;
-  top: 100%;
-  width: 100%;
-  font-size: 9px;
-  z-index: 1;
-  color: var(--brighter-2);
-  background-color: var(--bg-color);
-  box-shadow: 0 1px 3px var(--darker-2);
-  transition: opacity 300ms, height 300ms;
-  height: 14px;
-  overflow: hidden;
-}
-.ccpot .tools .material-icons {
-  font-size: 12px;
-}
-
-.ccpot .tools:hover {
-  opacity: 1;
-  height: 32px;
-}
-
-.ccpot .tools span:hover {
-  color: var(--brighter-4);
 }
 
 .ccpots *[data-action] {

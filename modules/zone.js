@@ -74,6 +74,7 @@ class Zone {
     { number: 1, number_in: 1, label: 'Mod Wheel', val: 0, isBipolar: false }
   ];
   show_cc = false;
+  editCCIndex = -1;
   at2mod = false;
   pitchbend = true;
   euclid_hits = 5;
@@ -334,6 +335,10 @@ class Zone {
           }
           break;
         case MIDI.MESSAGE.CONTROLLER: // cc
+          if (this.editCCIndex > -1) {
+            this.cc_controllers[this.editCCIndex].number_in = data[1];
+            return 'updateCC';
+          }
           for (let i = 0; i < this.cc_controllers.length; i++) {
             if (this.cc_controllers[i].number_in == data[1]) {
               this.cc_controllers[i].val = data[2];

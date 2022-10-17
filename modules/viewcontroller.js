@@ -248,6 +248,10 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
     case 'send_all_cc':
       zone.sendAllCC();
       break;
+    case 'cc_edit':
+      zone.editCCIndex = params[2];
+      updateControllerValues(zone, zoneindex);
+      break;
     case 'cc_label':
       zone.cc_controllers[params[2]].label = element.value;
       break;
@@ -265,6 +269,7 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       break;
     case 'cc_remove':
       zone.cc_controllers.splice(params[2], 1);
+      zone.editCCIndex = -1;
       renderControllersForZone(zone, zoneindex);
       break;
     case 'cc_togglepolarity':
@@ -283,11 +288,8 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
           const v2 = zone.cc_controllers[targetPos];
           zone.cc_controllers[targetPos] = zone.cc_controllers[pos];
           zone.cc_controllers[pos] = v2;
+          zone.editCCIndex = targetPos;
           renderControllersForZone(zone, zoneindex);
-          DOM.addClass(
-            `#zone${zoneindex} .ccpot:nth-child(${targetPos + 1})`,
-            'moved'
-          );
         }
       }
       break;
@@ -302,11 +304,8 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
           const v2 = zone.cc_controllers[targetPos];
           zone.cc_controllers[targetPos] = zone.cc_controllers[pos];
           zone.cc_controllers[pos] = v2;
+          zone.editCCIndex = targetPos;
           renderControllersForZone(zone, zoneindex);
-          DOM.addClass(
-            `#zone${zoneindex} .ccpot:nth-child(${targetPos + 1})`,
-            'moved'
-          );
         }
       }
       break;
@@ -666,16 +665,6 @@ function renderControllersForZone(zone, index) {
   const suckEvent = (e) => {
     e.stopPropagation();
   };
-  DOM.on(
-    `#zone${index} .ccpots input, #zone${index} .ccpot .tools`,
-    'click',
-    suckEvent
-  );
-  DOM.on(
-    `#zone${index} .ccpots input, #zone${index} .ccpot .tools`,
-    'mousedown',
-    suckEvent
-  );
   DOM.on(`#zone${index} .ccpots input`, 'keyup', suckEvent);
   DOM.on(`#zone${index} .ccpots input`, 'focus', (e) => {
     e.target.select();
@@ -707,6 +696,7 @@ function renderControllersForZone(zone, index) {
     e.addEventListener('input', actionHandler);
   });
   updateValuesForZone(index);
+  updateControllerValues(zone, index);
 }
 
 function updateValuesForAllZones() {
@@ -980,12 +970,22 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
     DOM.element(`#pot_zero_${zoneindex}_${ix}`).style.display = c.isBipolar
       ? 'block'
       : 'none';
-    DOM.element(`#pot_${zoneindex}_${ix} .cc`).value = c.number;
+    DOM.element(`#pot_${zoneindex}_${ix} .cc .cc-in`).value =
+      c.number_in || c.number;
+    DOM.element(`#pot_${zoneindex}_${ix} .cc .cc-out`).value = c.number;
     DOM.element(`#pot_${zoneindex}_${ix} .cclabel`).value = c.label;
     DOM.element(`#pot_${zoneindex}_${ix} .value`).innerHTML = c.isBipolar
       ? c.val - 64
       : c.val;
+    DOM.element(`#pot_${zoneindex}_${ix} .cc_togglepolarity`).innerHTML =
+      c.isBipolar ? 'bipolar' : 'unipolar';
   });
+  DOM.removeClass(`#zone${zoneindex} .ccpot`, 'cc-edit');
+  if (zone.editCCIndex > -1) {
+    DOM.all(`#zone${zoneindex} .ccpot`)[zone.editCCIndex].classList.add(
+      'cc-edit'
+    );
+  }
 }
 
 let cachedOutputPorts;
