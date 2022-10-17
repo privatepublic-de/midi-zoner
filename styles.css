@@ -966,9 +966,9 @@ li {
 .ccpot {
   position: relative;
   width: var(--ccpot-width);
-  height: 67px;
-  margin: 0 0 15px 5px;
-  perspective: 1000px;
+  height: 64px;
+  margin: 0 0 0 5px;
+  perspective: 200px;
 }
 
 .ccpot .ccpot-inner {
@@ -1016,6 +1016,9 @@ li {
   align-items: center;
   align-content: center;
   width: 100%;
+  border: 1px solid var(--brighter-2);
+  border-left: none;
+  border-right: none;
 }
 
 .ccpot input {
@@ -1053,7 +1056,7 @@ li {
 .ccpot .ccpot-front .cc-edit-action {
   position: absolute;
   opacity: 0;
-  bottom: 4px;
+  bottom: 8px;
   left: 0;
   right: 0;
   text-align: center;

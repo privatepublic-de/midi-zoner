@@ -101,12 +101,12 @@ module.exports = {
                   }" data-change="${zoneindex}:cc_number:${ix}"/>
                 </div>
                 <div class="cc_togglepolarity" data-action="${zoneindex}:cc_togglepolarity:${ix}">mode</div>
-                <div data-action="${zoneindex}:cc_remove:${ix}">remove</div>
                 <div class="cc_tools">
                   <span class="material-icons" data-action="${zoneindex}:cc_left:${ix}">arrow_back</span>
                   <span class="material-icons" data-action="${zoneindex}:cc_edit:-1">360</span>
                   <span class="material-icons" data-action="${zoneindex}:cc_right:${ix}">arrow_forward</span>
                 </div>
+                <div data-action="${zoneindex}:cc_remove:${ix}">remove</div>
               </div>
             </div>
           </div>
