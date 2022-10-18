@@ -16,7 +16,7 @@
   "devDependencies": {
     "electron": "^18.1.0",
     "electron-builder": "22.5.1",
-    "electron-packager": "^15.1.0"
+    "electron-packager": "^16.0.0"
   },
   "build": {
     "appId": "de.privatepublic.midizoner",
