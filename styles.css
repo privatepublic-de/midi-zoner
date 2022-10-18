@@ -1145,7 +1145,7 @@ li {
 .seq {
   display: none;
   margin: 4px 0;
-  border: 1px solid var(--bg-color-complement-dark);
+  border: 1px solid var(--brighter-1);
 }
 
 .disabled .seq {
@@ -1155,7 +1155,7 @@ li {
 .seqtools {
   display: flex;
   align-items: center;
-  background-color: var(--bg-color-complement-dark);
+  background-color: var(--brighter-0);
   padding: 4px 8px;
 }
 
@@ -1183,8 +1183,9 @@ li {
   height: var(--step-size);
   justify-content: center;
   align-items: center;
-  border: 1px solid var(--darker-2);
-  color: var(--darker-2);
+  border: 1px solid var(--darker-1);
+  color: var(--bg-color);
+  background-color: var(--darker-1);
   font-size: 0.85em;
   text-align: center;
   cursor: pointer;
