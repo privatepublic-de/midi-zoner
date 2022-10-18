@@ -60,7 +60,12 @@ function findTouchedNote(
 ) {
   let num = parseInt(((ev.clientX - e.offsetLeft) / e.offsetWidth) * 128);
   const isLow =
-    ev.clientY - (e.offsetTop + e.offsetParent.offsetTop) < e.offsetHeight / 2;
+    zone.lastTouchedRangePoint === 1 ||
+    (zone.lastTouchedRangePoint === 0 &&
+      Math.abs(num - zone.low) < Math.abs(num - zone.high));
+  if (zone.lastTouchedRangePoint === 0) {
+    zone.lastTouchedRangePoint = isLow ? 1 : 2;
+  }
   if (ev.shiftKey) {
     // constrain to octaves
     num = Math.round(num / 12) * 12;
@@ -466,6 +471,7 @@ function hoverOutHandler(ev) {
   const action = e.getAttribute('data-hover');
   const params = action.split(':');
   const zoneindex = params[0];
+  zones.list[zoneindex].lastTouchedRangePoint = 0;
   renderMarkersForZone(zoneindex);
 }
 

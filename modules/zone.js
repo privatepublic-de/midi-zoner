@@ -127,6 +127,8 @@ class Zone {
   sequencerGridElement = null;
   sequencerGridStepElements = null;
 
+  lastTouchedRangePoint = 0; // 0=none, 1=low, 2=high
+
   /**
    * Creates a new zone with default values.
    * @param {MIDI} midi
