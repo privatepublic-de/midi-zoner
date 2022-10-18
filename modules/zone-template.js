@@ -158,9 +158,8 @@ module.exports = {
             class="mch sendClock"
             data-action="${index}:sendClock"
             title="Transmit clock to this device"
-          >
-          <span class="material-icons sel">watch_later</span
-          ><span class="material-icons unsel">query_builder</span>
+          ><i class="material-icons sel">watch_later</i
+          ><i class="material-icons unsel">query_builder</i>
         </div>
         ${channelselectors}
         <div class="zonetools">

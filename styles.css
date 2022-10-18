@@ -222,11 +222,11 @@ select#midiInChannel {
   color: var(--fg-topbar-button);
   cursor: pointer;
   border: none;
-  min-width: 26px;
+  min-width: 24px;
   text-align: center;
   height: 16px;
   vertical-align: top;
-  margin: 0 4px;
+  margin: 0 4px 0 0;
   box-shadow: 0 0 2px var(--shadow-topbar-button);
 }
 
@@ -246,19 +246,6 @@ select#midiInChannel {
   cursor: pointer;
   font-size: 1.5em;
 }
-
-/* #midisettings .left,
-#midisettings .right {
-  text-align: left;
-  position: absolute;
-  bottom: 5px;
-}
-
-
-/* #midisettings .right {
-  right: 15px;
-  text-align: right;
-} */
 
 #midisettings .left {
   margin: 0 0 0 8px;
@@ -404,6 +391,10 @@ select#midiInChannel {
   cursor: pointer;
 }
 
+.ch:first-child {
+  margin-left: 0;
+}
+
 .ch.state {
   width: 24px;
   font-size: 12px;
@@ -417,11 +408,13 @@ select#midiInChannel {
 }
 
 .sendClock {
+  display: flex;
+  justify-content: center;
+  align-items: center;
   font-size: 16px;
   color: var(--darker-2);
   margin-left: 8px;
   cursor: pointer;
-  height: 20px;
 }
 
 .sendClock.selected {
@@ -580,6 +573,14 @@ select#midiInChannel {
 
 .label {
   margin: 0 4px;
+}
+
+.action {
+  transition: background-color ease-out 200ms;
+}
+
+.action:active {
+  background-color: var(--brighter-4);
 }
 
 .check,
@@ -968,7 +969,6 @@ li {
   position: relative;
   width: var(--ccpot-width);
   height: 64px;
-  margin: 0 0 0 5px;
   perspective: 200px;
 }
 
@@ -1088,7 +1088,6 @@ li {
   color: var(--brighter-2);
   font-size: 9px;
   text-align: center;
-  margin-left: 5px;
   display: flex;
   flex-direction: column;
   justify-content: center;
