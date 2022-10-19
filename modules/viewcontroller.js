@@ -361,6 +361,16 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
         updateValuesForZone(zoneindex);
       }
       break;
+    case 'seq_gatelength':
+      if (zone.sequence.selectedStep) {
+        const percents = ev.offsetX / (element.offsetWidth * 0.95);
+        zone.sequence.selectedStep.gateLength = Math.min(
+          1,
+          Math.max(0, Math.floor(percents * 24) / 24)
+        );
+        updateValuesForZone(zoneindex);
+      }
+      break;
     case 'seq_copy_step':
       if (zone.sequence.selectedStep) {
         Zone.seqClipboardStep = JSON.stringify(zone.sequence.selectedStep);
@@ -550,7 +560,7 @@ function appendZone(/** @type {Zone} */ zone, index) {
   initOutputPortsForZone(index);
 
   DOM.all(
-    `#zone${index} .arp_probability,#zone${index} .arp_gatelength,#zone${index} .seq_probability`
+    `#zone${index} .arp_probability,#zone${index} .arp_gatelength,#zone${index} .seq_probability,#zone${index} .seq_gatelength`
   ).forEach((el) => {
     let active = false;
     el.addEventListener('mousedown', (e) => {
@@ -844,13 +854,21 @@ function updateValuesForZone(index) {
         }
         let step = zone.sequence.steps[zone.sequence.selectedStepNumber];
         if (step && step.length > 0) {
-          const pcnt = parseInt(step.probability * 100);
+          let pcnt = parseInt(step.probability * 100);
           DOM.element(
             `#zone${index} .percent.seq_probability .inner`
           ).style.width = `${pcnt}%`;
           DOM.element(
             `#zone${index} .percent.seq_probability .pcnt`
           ).innerHTML = pcnt;
+
+          pcnt = parseInt(step.gateLength * 100);
+          DOM.element(
+            `#zone${index} .percent.seq_gatelength .inner`
+          ).style.width = `${pcnt}%`;
+          DOM.element(`#zone${index} .percent.seq_gatelength .pcnt`).innerHTML =
+            pcnt;
+
           DOM.element(`#zone${index} .seq_step_condition`).selectedIndex =
             zone.sequence.steps[zone.sequence.selectedStepNumber].condition;
           DOM.element(`#zone${index} .seq_step_length`).value =

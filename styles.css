@@ -1251,6 +1251,7 @@ li {
   }
   100% {
     background-color: var(--record-highlight);
+    color: #fff;
   }
 }
 

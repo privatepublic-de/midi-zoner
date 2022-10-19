@@ -764,13 +764,15 @@ class SeqStep {
   probability = 1;
   condition = 0;
   played = 0;
+  gateLength = 1;
   toJSON() {
     return {
       notesArray: this.notesArray,
       length: this.length,
       probability: this.probability,
       condition: this.condition,
-      lastPlayedArray: this.lastPlayedArray
+      lastPlayedArray: this.lastPlayedArray,
+      gateLength: this.gateLength
     };
   }
 }
@@ -956,12 +958,13 @@ class Sequence {
 
   clock(pos) {
     this.tickn = pos % this.ticks;
-    if (this.tickn === 0) {
-      this.liveTargetLength++;
+    // check for active steps ending
+    if (this.activeSteps.length > 0) {
       const clearSteps = [];
       this.activeSteps.forEach((astep) => {
-        astep.played++;
-        if (astep.played >= astep.length) {
+        if (this.tickn === 0) astep.played++;
+        const offtick = Math.min(this.ticks * astep.gateLength, this.ticks - 1);
+        if (astep.length - 1 - astep.played === 0 && this.tickn >= offtick) {
           clearSteps.push(astep);
           for (let note of astep.lastPlayedArray) {
             this.zone.midi.send(
@@ -979,6 +982,30 @@ class Sequence {
       this.activeSteps = this.activeSteps.filter(
         (item) => !clearSteps.includes(item)
       );
+    }
+    if (this.tickn === 0) {
+      this.liveTargetLength++;
+      // const clearSteps = [];
+      // this.activeSteps.forEach((astep) => {
+      //   astep.played++;
+      //   if (astep.played >= astep.length) {
+      //     clearSteps.push(astep);
+      //     for (let note of astep.lastPlayedArray) {
+      //       this.zone.midi.send(
+      //         Uint8Array.from([
+      //           MIDI.MESSAGE.NOTE_OFF + note.channel,
+      //           note.number,
+      //           note.velo
+      //         ]),
+      //         note.portId
+      //       );
+      //     }
+      //     astep.lastPlayedArray.length = 0;
+      //   }
+      // });
+      // this.activeSteps = this.activeSteps.filter(
+      //   (item) => !clearSteps.includes(item)
+      // );
       this.previousStepNumber = this.currentStepNumber;
       this.currentStepNumber = (this.currentStepNumber + 1) % this.length;
       if (this.currentStepNumber === 0) {

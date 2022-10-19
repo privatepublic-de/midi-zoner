@@ -209,6 +209,14 @@ module.exports = {
             <div class="step-props step-controls">
               <div class="label">Length</div>
               <input class="seq_step_length" type="number" min="1" max="${Sequence.MAX_STEPS}" value="1" data-change="${index}:seq_step_length"/> 
+              <div
+                class="percent seq_gatelength"
+                data-action="${index}:seq_gatelength"
+                title="Gate length"
+              >
+                <span class="inner"></span>
+                <span class="pcnt">50</span>
+              </div>
               <div class="label">Condition</div>
               <div class="drop-down" title="Select step play condition">
                 <select class="seq_step_condition" data-change="${index}:seq_step_condition">
