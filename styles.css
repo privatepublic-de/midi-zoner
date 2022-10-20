@@ -506,7 +506,7 @@ select#midiInChannel {
   position: relative;
   margin-top: 3px;
   padding: 6px;
-  background-color: var(--bg-color-complement-dark);
+  background-color: var(--bg-color-alternative);
   display: none;
   text-align: left;
 }
@@ -518,7 +518,7 @@ select#midiInChannel {
   width: 100%;
   height: 15px;
   left: 0;
-  background-color: var(--bg-color-complement-dark);
+  background-color: var(--bg-color-alternative);
 }
 
 .arp-enabled .arp-settings,
@@ -528,7 +528,7 @@ select#midiInChannel {
 }
 
 .check.arp_enabled.selected {
-  background-color: var(--bg-color-complement);
+  background-color: var(--bg-color-alternative);
 }
 
 .zonetools {
@@ -1214,7 +1214,7 @@ li {
 
 .zone.disabled .seq .grid .step.active {
   border-color: var(--brighter-1);
-  background-color: var(--bg-color-complement);
+  background-color: var(--bg-color-alternative);
 }
 
 .seq .grid .step:nth-child(16n + 1) {
@@ -1277,7 +1277,7 @@ li {
   top: 5px;
   left: calc((var(--step-size) + 4px) * 17);
   z-index: 1;
-  background-color: var(--bg-color-complement-dark);
+  background-color: var(--bg-color-alternative);
   box-shadow: 0 0 8px var(--shadow-topbar-button);
   display: none;
 }
