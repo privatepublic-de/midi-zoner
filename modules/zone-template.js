@@ -246,14 +246,14 @@ module.exports = {
                 <div class="action" title="Clear step" data-action="${index}:seq_clear_step"><i class="material-icons">clear</i></div>
                 <div
                   class="check seq-step-add-notes"
-                  data-action="${index}:seq-step-add-notes"
+                  data-action="${index}:seq_step_add_notes"
                   title="New notes are added (no overwrite)"
                 >
                   ${checkboxIcons}Add notes
                 </div>
                 <div
                   class="check seq-step-advance"
-                  data-action="${index}:seq-step-advance"
+                  data-action="${index}:seq_step_advance"
                   title="Advance step after note input"
                 >
                   ${checkboxIcons}Advance
@@ -455,11 +455,11 @@ module.exports = {
               <span class="submit" data-action="${index}:euclid">OK</span>
             </p>
             <p>
-              <span class="submit" data-action="${index}:pattern-shift-left"
+              <span class="submit" data-action="${index}:pattern_shift:-1"
                 >&lt;</span
               >
               Shift pattern
-              <span class="submit" data-action="${index}:pattern-shift-right"
+              <span class="submit" data-action="${index}:pattern_shift:1"
                 >&gt;</span
               >
             </p>

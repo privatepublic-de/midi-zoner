@@ -93,24 +93,40 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
   /** @type {Zone} */
   const zone = zones.list[zoneindex];
   ev.stopPropagation();
-  switch (params[1]) {
-    case 'range':
-      const result = findTouchedNote(ev, element, zone);
-      if (result.isLow) {
-        zone.low = result.low;
+  const applyParamToggle = () => {
+    zone[params[1]] = !zone[params[1]];
+    updateValuesForZone(zoneindex);
+  };
+  const applySelectedIndex = () => {
+    zone[params[1]] = element.selectedIndex;
+    updateValuesForZone(zoneindex);
+  };
+  const calcPercentage = () => {
+    const percent = ev.offsetX / (element.offsetWidth * 0.95);
+    return Math.min(1, Math.max(0, Math.floor(percent * 24) / 24));
+  };
+  const applyPercentage = () => {
+    zone[params[1]] = calcPercentage();
+    updateValuesForZone(zoneindex);
+  };
+  const actions = {
+    range: () => {
+      const touchedNote = findTouchedNote(ev, element, zone);
+      if (touchedNote.isLow) {
+        zone.low = touchedNote.low;
       } else {
-        zone.high = result.high;
+        zone.high = touchedNote.high;
       }
       renderMarkersForZone(zoneindex);
-      break;
-    case 'ch':
-      let number = parseInt(params[2]);
-      if (number < 16) {
-        zone.channel = number;
+    },
+    ch: () => {
+      const channelnumber = parseInt(params[2]);
+      if (channelnumber < 16) {
+        zone.channel = channelnumber;
         updateValuesForZone(zoneindex);
       }
-      break;
-    case 'outport':
+    },
+    outport: () => {
       if (element.value.charAt(0) == '$') {
         const parts = element.value.substr(1).split(',');
         zone.channel = parseInt(parts[1]);
@@ -122,56 +138,46 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
         updateValuesForZone(zoneindex);
         midiController.updateUsedPorts(listUsedPorts());
       }
-      break;
-    case 'octave':
+    },
+    octave: () => {
       zone.octave = parseInt(params[2]);
       updateValuesForZone(zoneindex);
-      break;
-    case 'fixedvel_value':
+    },
+    fixedvel_value: () => {
       zone.fixedvel_value = document.getElementById(
         'fixedvel' + zoneindex
       ).value;
-      break;
-    case 'fixedvel':
-      zone.fixedvel_value = document.getElementById(
-        'fixedvel' + zoneindex
-      ).value;
-    case 'cc':
-    case 'sustain':
-    case 'sustain_on':
-    case 'mod':
-    case 'at2mod':
-    case 'pitchbend':
-    case 'programchange':
-    case 'arp_hold':
-    case 'arp_transpose':
-    case 'arp_repeat':
-    case 'arp_enabled':
-      zone[params[1]] = !zone[params[1]];
-      updateValuesForZone(zoneindex);
-      break;
-    case 'sendClock':
-      zone.sendClock = !zone.sendClock;
+    },
+    fixedvel: () => {
+      actions.fixedvel_value();
+      applyParamToggle();
+    },
+    cc: applyParamToggle,
+    sustain: applyParamToggle,
+    sustain_on: applyParamToggle,
+    mod: applyParamToggle,
+    at2mod: applyParamToggle,
+    pitchbend: applyParamToggle,
+    programchange: applyParamToggle,
+    arp_hold: applyParamToggle,
+    arp_transpose: applyParamToggle,
+    arp_repeat: applyParamToggle,
+    arp_enabled: applyParamToggle,
+    sendClock: () => {
+      applyParamToggle();
       for (let i = 0; i < zones.list.length; i++) {
         if (zones.list[i].outputPortId == zone.outputPortId) {
           zones.list[i].sendClock = zone.sendClock;
         }
       }
       updateValuesForAllZones();
-      break;
-    case 'arp_direction':
-    case 'arp_octaves':
-    case 'arp_division':
-      zone[params[1]] = element.selectedIndex;
-      updateValuesForZone(zoneindex);
-      break;
-    case 'arp_probability':
-    case 'arp_gatelength':
-      const percent = ev.offsetX / (element.offsetWidth * 0.95);
-      zone[params[1]] = Math.min(1, Math.max(0, Math.floor(percent * 24) / 24));
-      updateValuesForZone(zoneindex);
-      break;
-    case 'arp_pattern':
+    },
+    arp_direction: applySelectedIndex,
+    arp_octaves: applySelectedIndex,
+    arp_division: applySelectedIndex,
+    arp_probability: applyPercentage,
+    arp_gatelength: applyPercentage,
+    arp_pattern: () => {
       if (ev.target.tagName == 'CANVAS') {
         const index = parseInt(
           (ev.offsetX / element.offsetWidth) * zone.arp_pattern.length
@@ -179,17 +185,15 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
         zone.arp_pattern[index] = !zone.arp_pattern[index];
         zone.renderPattern();
       }
-      break;
-    case 'changeprogram':
-      {
-        const v = parseInt(element.value);
-        if (v > 0 && v < 129) {
-          zone.pgm_no = v;
-          zone.sendProgramChange();
-        }
+    },
+    changeprogram: () => {
+      const v = parseInt(element.value);
+      if (v > 0 && v < 129) {
+        zone.pgm_no = v;
+        zone.sendProgramChange();
       }
-      break;
-    case 'enabled':
+    },
+    enabled: () => {
       zone.enabled = !zone.enabled;
       if (zone.solo && !zone.enabled) {
         zone.solo = false;
@@ -197,33 +201,32 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       } else {
         updateValuesForZone(zoneindex);
       }
-      break;
-    case 'solo':
+    },
+    solo: () => {
       zone.solo = !zone.solo;
       if (zone.solo) {
         zone.enabled = true;
       }
       updateValuesForAllZones();
-      break;
-    case 'delete':
+    },
+    delete: () => {
       const scrollPos = window.scrollY;
       zone.dismiss();
       zones.list.splice(zoneindex, 1);
       renderZones();
       window.scrollTo({ top: scrollPos });
-      break;
-    case 'color':
+    },
+    color: () => {
       const hsl = DOM.rgb2hsl(DOM.hexToRgb(element.value));
       zone.hue = hsl[0];
       zone.saturation = hsl[1];
       zone.lightness = hsl[2];
       updateValuesForZone(zoneindex);
-      break;
-    case 'showeuclid':
+    },
+    showeuclid: () => {
       DOM.element(`#zone${zoneindex} .euclid`).style.display = 'block';
-      break;
-    case 'euclid':
-      ev.stopPropagation();
+    },
+    euclid: () => {
       let hits = parseInt(DOM.element(`#euchits${zoneindex}`).value);
       let len = parseInt(DOM.element(`#euclen${zoneindex}`).value);
       if (!isNaN(hits) && !isNaN(len)) {
@@ -233,158 +236,151 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
         DOM.element(`#zone${zoneindex} .euclid`).style.display = 'none';
         console.log('Created euclid', hits, len);
       }
-      break;
-    case 'pattern-shift-left':
-      zone.arp_pattern.push(zone.arp_pattern.shift());
+    },
+    pattern_shift: () => {
+      if (params[2] == -1) {
+        zone.arp_pattern.push(zone.arp_pattern.shift());
+      } else if (params[2] == 1) {
+        zone.arp_pattern.unshift(zone.arp_pattern.pop());
+      }
       zone.renderPattern();
-      break;
-    case 'pattern-shift-right':
-      zone.arp_pattern.unshift(zone.arp_pattern.pop());
-      zone.renderPattern();
-      break;
-    case 'toggle_show_cc':
+    },
+    toggle_show_cc: () => {
       zone.show_cc = !zone.show_cc;
       updateValuesForZone(zoneindex);
-      break;
-    case 'add_cc_controller':
+    },
+    add_cc_controller: () => {
       zone.cc_controllers.push({ number: 1, label: 'Controller', val: 0 });
       renderControllersForZone(zone, zoneindex);
-      break;
-    case 'send_all_cc':
+    },
+    send_all_cc: () => {
       zone.sendAllCC();
-      break;
-    case 'cc_edit':
+    },
+    cc_edit: () => {
       zone.editCCIndex = params[2];
       updateControllerValues(zone, zoneindex);
-      break;
-    case 'cc_label':
+    },
+    cc_label: () => {
       zone.cc_controllers[params[2]].label = element.value;
-      break;
-    case 'cc_number':
+    },
+    cc_number: () => {
       element.value = element.value.replace(/[^0-9]/, '');
       if (element.value != '') {
         zone.cc_controllers[params[2]].number = parseInt(element.value);
       }
-      break;
-    case 'cc_number_in':
-      element.value = element.value.replace(/[^0-9]/, '');
+    },
+    cc_number_in: () => {
+      element.value = element.value.replace(/[^0-9]/, ''); // TODO generalize
       if (element.value != '') {
         zone.cc_controllers[params[2]].number_in = parseInt(element.value);
       }
-      break;
-    case 'cc_remove':
+    },
+    cc_remove: () => {
       zone.cc_controllers.splice(params[2], 1);
       zone.editCCIndex = -1;
       renderControllersForZone(zone, zoneindex);
-      break;
-    case 'cc_togglepolarity':
+    },
+    cc_togglepolarity: () => {
       zone.cc_controllers[params[2]].isBipolar =
         !zone.cc_controllers[params[2]].isBipolar;
       updateControllerValues(zone, zoneindex);
-      break;
-    case 'cc_left':
-      {
-        const pos = Number(params[2]);
+    },
+    _cc_move: (direction) => {
+      const pos = Number(params[2]);
+      let targetPos = pos;
+      if (direction < 0) {
         if (pos > 0) {
-          let targetPos = pos - (ev.shiftKey ? 4 : 1);
+          targetPos = pos - (ev.shiftKey ? 4 : 1);
           if (targetPos < 0) {
             targetPos = 0;
           }
-          const v2 = zone.cc_controllers[targetPos];
-          zone.cc_controllers[targetPos] = zone.cc_controllers[pos];
-          zone.cc_controllers[pos] = v2;
-          zone.editCCIndex = targetPos;
-          renderControllersForZone(zone, zoneindex);
         }
-      }
-      break;
-    case 'cc_right':
-      {
-        const pos = Number(params[2]);
+      } else {
         if (pos < zone.cc_controllers.length - 1) {
-          let targetPos = pos + (ev.shiftKey ? 4 : 1);
+          targetPos = pos + (ev.shiftKey ? 4 : 1);
           if (targetPos >= zone.cc_controllers.length) {
             targetPos = zone.cc_controllers.length - 1;
           }
-          const v2 = zone.cc_controllers[targetPos];
-          zone.cc_controllers[targetPos] = zone.cc_controllers[pos];
-          zone.cc_controllers[pos] = v2;
-          zone.editCCIndex = targetPos;
-          renderControllersForZone(zone, zoneindex);
         }
       }
-      break;
-    case 'toggle_seq':
+      console.log('direction', direction, 'from', pos, 'to', targetPos);
+      if (pos != targetPos) {
+        const v2 = zone.cc_controllers[targetPos];
+        zone.cc_controllers[targetPos] = zone.cc_controllers[pos];
+        zone.cc_controllers[pos] = v2;
+        zone.editCCIndex = targetPos;
+        renderControllersForZone(zone, zoneindex);
+      }
+    },
+    cc_left: () => {
+      actions._cc_move(-1);
+    },
+    cc_right: () => {
+      actions._cc_move(1);
+    },
+    toggle_seq: () => {
       zone.sequence.active = !zone.sequence.active;
       zone.sequence.selectedStepNumber = -1;
       updateValuesForZone(zoneindex);
-      break;
-    case 'select_step':
+    },
+    select_step: () => {
       zone.sequence.selectedStepNumber = parseInt(params[2]);
       updateValuesForZone(zoneindex);
-      break;
-    case 'seq_division':
+    },
+    seq_division: () => {
       zone.sequence.division = element.selectedIndex;
       updateValuesForZone(zoneindex);
-      break;
-    case 'seq_steps':
+    },
+    seq_steps: () => {
       const v = parseInt(element.value);
       zone.sequence.length = v;
       updateValuesForZone(zoneindex);
-      break;
-    case 'seq_step_length':
-      const vl = parseInt(element.value);
+    },
+    seq_step_length: () => {
+      const v = parseInt(element.value);
       if (zone.sequence.selectedStep) {
-        zone.sequence.selectedStep.length = vl;
+        zone.sequence.selectedStep.length = v;
         updateValuesForZone(zoneindex);
       }
-      break;
-    case 'seq_clear_all':
+    },
+    seq_clear_all: () => {
       zone.sequence.steps.length = 0;
       updateValuesForZone(zoneindex);
       zone.sequence.selectedStepNumber = zone.sequence.selectedStepNumber;
-      break;
-    case 'seq_clear_step':
+    },
+    seq_clear_step: () => {
       if (zone.sequence.selectedStepNumber > -1) {
         zone.sequence.steps[zone.sequence.selectedStepNumber] = null;
         zone.sequence.selectedStepNumber = -1;
         updateValuesForZone(zoneindex);
       }
-      break;
-    case 'seq_probability':
+    },
+    seq_probability: () => {
       if (zone.sequence.selectedStep) {
-        const percents = ev.offsetX / (element.offsetWidth * 0.95);
-        zone.sequence.selectedStep.probability = Math.min(
-          1,
-          Math.max(0, Math.floor(percents * 24) / 24)
-        );
+        zone.sequence.selectedStep.probability = calcPercentage();
         updateValuesForZone(zoneindex);
       }
-      break;
-    case 'seq_gatelength':
+    },
+    seq_gatelength: () => {
       if (zone.sequence.selectedStep) {
-        const percents = ev.offsetX / (element.offsetWidth * 0.95);
-        zone.sequence.selectedStep.gateLength = Math.min(
-          1,
-          Math.max(0, Math.floor(percents * 24) / 24)
-        );
+        zone.sequence.selectedStep.gateLength = calcPercentage();
         updateValuesForZone(zoneindex);
       }
-      break;
-    case 'seq_copy_step':
+    },
+    seq_copy_step: () => {
       if (zone.sequence.selectedStep) {
         Zone.seqClipboardStep = JSON.stringify(zone.sequence.selectedStep);
       }
-      break;
-    case 'seq_paste_step':
+    },
+    seq_paste_step: () => {
       if (zone.sequence.selectedStepNumber > -1 && Zone.seqClipboardStep) {
         zone.sequence.steps[zone.sequence.selectedStepNumber] = JSON.parse(
           Zone.seqClipboardStep
         );
         updateValuesForZone(zoneindex);
       }
-      break;
-    case 'seq_step_move':
+    },
+    seq_step_move: () => {
       if (zone.sequence.selectedStep) {
         const direction = parseInt(params[2]);
         let newPos =
@@ -404,8 +400,8 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
           updateValuesForZone(zoneindex);
         }
       }
-      break;
-    case 'seq_move':
+    },
+    seq_move: () => {
       zone.sequence.selectedStepNumber = -1;
       const direction = parseInt(params[2]);
       const limit = zone.sequence.length;
@@ -419,35 +415,35 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       }
       zone.sequence.steps = newSeq;
       updateValuesForZone(zoneindex);
-      break;
-    case 'seq_copy':
+    },
+    seq_copy: () => {
       Zone.seqClipboardSequence = JSON.stringify(zone.sequence);
-      break;
-    case 'seq_paste':
+    },
+    seq_paste: () => {
       if (Zone.seqClipboardSequence) {
         Object.assign(zone.sequence, JSON.parse(Zone.seqClipboardSequence));
         updateValuesForZone(zoneindex);
       }
-      break;
-    case 'seq_step_condition':
+    },
+    seq_step_condition: () => {
       if (zone.sequence.selectedStep) {
         zone.sequence.selectedStep.condition = element.selectedIndex;
         updateValuesForZone(zoneindex);
       }
-      break;
-    case 'seq-step-add-notes':
+    },
+    seq_step_add_notes: () => {
       zone.sequence.stepAddNotes = !zone.sequence.stepAddNotes;
       updateValuesForZone(zoneindex);
-      break;
-    case 'seq-step-advance':
+    },
+    seq_step_advance: () => {
       zone.sequence.stepAdvance = !zone.sequence.stepAdvance;
       updateValuesForZone(zoneindex);
-      break;
-    case 'seq_record_live':
+    },
+    seq_record_live: () => {
       zone.sequence.isLiveRecoding = !zone.sequence.isLiveRecoding;
       updateValuesForZone(zoneindex);
-      break;
-    case 'output_config_name':
+    },
+    output_config_name: () => {
       if (element.value == '') {
         delete zones.outputConfigNames[zone.configId];
       } else {
@@ -455,8 +451,9 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       }
       updateOutputPortsForAllZones(cachedOutputPorts);
       updateValuesForAllZones();
-      break;
-  }
+    }
+  };
+  actions[params[1]]?.();
   triggerSave();
 }
 
@@ -762,20 +759,14 @@ function updateValuesForZone(index) {
       zone.saturation,
       zone.lightness + (zones.brightTheme ? 0.1 : 0)
     );
-    const rgbZoneComplement = DOM.hslToRgb(
+    const rgbZoneAlternative = DOM.hslToRgb(
       zone.hue,
       zone.saturation / 2,
       zone.lightness + (zones.brightTheme ? 0.2 : 0.1)
     );
-    const rgbZoneComplementStyle = `rgba(${rgbZoneComplement[0]},${rgbZoneComplement[1]},${rgbZoneComplement[2]},1)`;
-    const rgbZoneComplementDarkStyle = `rgba(${rgbZoneComplement[0]},${rgbZoneComplement[1]},${rgbZoneComplement[2]},1)`;
     zoneElement.style.setProperty(
-      '--bg-color-complement',
-      rgbZoneComplementStyle
-    );
-    zoneElement.style.setProperty(
-      '--bg-color-complement-dark',
-      rgbZoneComplementDarkStyle
+      '--bg-color-alternative',
+      `rgba(${rgbZoneAlternative[0]},${rgbZoneAlternative[1]},${rgbZoneAlternative[2]},1)`
     );
     zoneElement.style.setProperty(
       '--zone-color',
