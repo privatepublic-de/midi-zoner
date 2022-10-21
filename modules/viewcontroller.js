@@ -757,12 +757,12 @@ function updateValuesForZone(index) {
     const rgbZone = DOM.hslToRgb(
       zone.hue,
       zone.saturation,
-      zone.lightness + (zones.brightTheme ? 0.1 : 0)
+      zone.lightness + (zones.altTheme ? 0.6 : 0)
     );
     const rgbZoneAlternative = DOM.hslToRgb(
       zone.hue,
       zone.saturation / 2,
-      zone.lightness + (zones.brightTheme ? 0.2 : 0.1)
+      zone.lightness + (zones.altTheme ? 0.4 : 0.1)
     );
     zoneElement.style.setProperty(
       '--bg-color-alternative',
@@ -792,7 +792,7 @@ function updateValuesForZone(index) {
       const rgb = DOM.hslToRgb(
         zone.hue,
         zone.saturation * 0.67,
-        zone.lightness * 0.5
+        zone.lightness * 0.4
       );
       const style = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
       zoneElement.style.backgroundColor = style;

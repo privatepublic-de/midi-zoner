@@ -65,20 +65,17 @@
   --green-highlight: rgba(0, 196, 0, 0.4);
 }
 
-body.bright {
-  --bg-window: #f8f8f8;
-  --fg-window: #272422;
-  --scrollbar: #bbb;
-  --bg-topbar: #eeeeee;
-  --border-topbar: #ddd;
-  --highlight-topbar: #88888f;
-  --bg-topbar-button: rgba(0, 0, 0, 0.1);
-  --fg-topbar-button: rgba(0, 0, 0, 0.3);
-  --shadow-topbar-button: rgba(0, 0, 0, 0.3);
-  --bg-loadsave: #fff;
-  --bg-loadsave-item: #eee;
-  --shadow-zone: #888;
-  --highlight-bpm-value: #066;
+body.altTheme {
+  --brighter-0: rgba(255, 255, 255, 0.2);
+  --brighter-1: rgba(255, 255, 255, 0.4);
+  --brighter-2: rgba(255, 255, 255, 0.6);
+  --brighter-3: rgba(255, 255, 255, 0.8);
+  --brighter-4: rgba(255, 255, 255, 1);
+
+  --darker-1: rgba(0, 0, 0, 0.3);
+  --darker-2: rgba(0, 0, 0, 0.5);
+  --darker-3: rgba(0, 0, 0, 0.7);
+  --darker-4: rgba(0, 0, 0, 1);
 }
 
 html {
@@ -142,11 +139,6 @@ select {
   border-bottom: 1px solid var(--border-topbar);
 }
 
-.bright #midisettings {
-  color: var(--darker-4);
-  box-shadow: none;
-}
-
 #midisettings .controls {
   margin: 0 auto;
 }
@@ -182,12 +174,6 @@ select {
 #midisettings select option {
   color: var(--brighter-4);
   background-color: var(--darker-4);
-}
-
-.bright #midisettings select {
-  color: var(--darker-4);
-  background-color: var(--darker-1);
-  border: 1px solid var(--darker-1);
 }
 
 .updated #midisettings select,
@@ -260,11 +246,6 @@ select#midiInChannel {
   cursor: col-resize;
 }
 
-.bright #displayBPM {
-  background-color: var(--darker-1);
-  border: 1px solid var(--darker-1);
-}
-
 #displayBPM:hover,
 .dragging #displayBPM {
   color: var(--highlight-bpm-value);
@@ -322,10 +303,6 @@ select#midiInChannel {
   box-shadow: 0 2px 10px var(--shadow-zone);
   border: 1px solid var(--darker-3);
   background-image: linear-gradient(#00000000, #00000040);
-}
-
-.bright .zone {
-  border: 1px solid var(--darker-2);
 }
 
 .zone.dragged {
@@ -747,9 +724,6 @@ select#midiInChannel {
 .zone select option {
   background-color: var(--bg-topbar);
   color: var(--brighter-4);
-}
-.bright .zone select option {
-  color: var(--darker-4);
 }
 
 .rangeholder {

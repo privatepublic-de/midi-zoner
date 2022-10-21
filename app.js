@@ -8,7 +8,7 @@ const zones = {
   list: [],
   inChannel: 0,
   sendClock: false,
-  brightTheme: false,
+  alternativeTheme: false,
   tempo: 120,
   outputConfigNames: {}
 };
@@ -189,10 +189,10 @@ function closeLoadSaveDialog() {
 }
 
 function updateThemeDisplay() {
-  if (zones.brightTheme) {
-    DOM.addClass(document.body, 'bright');
+  if (zones.alternativeTheme) {
+    DOM.addClass(document.body, 'altTheme');
   } else {
-    DOM.removeClass(document.body, 'bright');
+    DOM.removeClass(document.body, 'altTheme');
   }
 }
 
@@ -297,7 +297,7 @@ document.addEventListener('DOMContentLoaded', function () {
           saveZones();
         });
         DOM.element('#toggleTheme').addEventListener('click', () => {
-          zones.brightTheme = !zones.brightTheme;
+          zones.alternativeTheme = !zones.alternativeTheme;
           saveZones();
           updateThemeDisplay();
           view.updateValuesForAllZones();
