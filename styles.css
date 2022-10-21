@@ -37,7 +37,7 @@
   --border-topbar: #000;
   --highlight-topbar: #3c3c3c;
   --bg-topbar-button: #464048;
-  --fg-topbar-button: #777;
+  --fg-topbar-button: var(--brighter-3);
   --shadow-topbar-button: #0008;
   --bg-topbar-button-active: #666;
   --fg-topbar-button-active: #ccc;
@@ -70,12 +70,14 @@ body.altTheme {
   --brighter-1: rgba(255, 255, 255, 0.4);
   --brighter-2: rgba(255, 255, 255, 0.6);
   --brighter-3: rgba(255, 255, 255, 0.8);
-  --brighter-4: rgba(255, 255, 255, 1);
+  --brighter-4: rgba(255, 255, 255, 0.9);
 
   --darker-1: rgba(0, 0, 0, 0.3);
   --darker-2: rgba(0, 0, 0, 0.5);
   --darker-3: rgba(0, 0, 0, 0.7);
   --darker-4: rgba(0, 0, 0, 1);
+
+  --fg-topbar-button: var(--brighter-3);
 }
 
 html {
