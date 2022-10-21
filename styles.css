@@ -1008,7 +1008,7 @@ li {
   position: absolute;
   top: 0;
   left: 0;
-  cursor: move;
+  cursor: crosshair;
 }
 
 .ccpot .cclabel {
@@ -1023,7 +1023,7 @@ li {
 
 .ccpot .value {
   position: absolute;
-  cursor: move;
+  cursor: crosshair;
   top: 44%;
   left: 0;
   right: 0;

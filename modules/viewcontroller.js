@@ -687,9 +687,10 @@ function renderControllersForZone(zone, index) {
     pot.addEventListener('wheel', (e) => {
       e.preventDefault();
       const newV = Math.min(
-        Math.max(parseInt(zone.cc_controllers[ix].val + e.deltaY * -0.1), 0),
+        Math.max(parseInt(zone.cc_controllers[ix].val + e.deltaY * -0.01), 0),
         127
       );
+      console.log(newV);
       if (newV != zone.cc_controllers[ix].val) {
         zone.cc_controllers[ix].val = newV;
         zone.sendCC(ix);
