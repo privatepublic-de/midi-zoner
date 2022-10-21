@@ -377,7 +377,6 @@ class MIDI {
    */
   startClock() {
     if (this.deviceIdInClock === '*') {
-      this.sendStart();
       internalClock.start(this.onMIDIClockMessage.bind(this));
     }
     this.songposition = 0;

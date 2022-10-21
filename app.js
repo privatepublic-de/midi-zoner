@@ -325,8 +325,12 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         DOM.element('#bpm').addEventListener('input', (e) => {
           const bpm = parseInt(e.target.value);
+          zones.tempo = bpm;
           midi.setInternalBPM(bpm);
+          saveZones();
         });
+        DOM.element('#bpm').value = zones.tempo;
+        midi.setInternalBPM(zones.tempo);
         document.body.addEventListener('keyup', (ev) => {
           if (!isLoadSaveDialogOpenend && ev.key == ' ') {
             startClockButton.click();
