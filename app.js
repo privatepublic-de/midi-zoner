@@ -323,6 +323,10 @@ document.addEventListener('DOMContentLoaded', function () {
             }
           }
         });
+        DOM.element('#bpm').addEventListener('input', (e) => {
+          const bpm = parseInt(e.target.value);
+          midi.setInternalBPM(bpm);
+        });
         document.body.addEventListener('keyup', (ev) => {
           if (!isLoadSaveDialogOpenend && ev.key == ' ') {
             startClockButton.click();
@@ -356,6 +360,11 @@ document.addEventListener('DOMContentLoaded', function () {
         // midi settings
         DOM.empty(select_in);
         DOM.empty(select_in_clock);
+        DOM.addHTML(
+          select_in_clock,
+          'beforeend',
+          `<option value="*">Internal</option>`
+        );
         if (inputs.length > 0) {
           inputs.forEach((input) => {
             DOM.addHTML(

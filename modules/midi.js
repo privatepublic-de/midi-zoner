@@ -1,3 +1,5 @@
+const internalClock = require('./internal-clock');
+
 /**
  * Web MIDI interface handler
  */
@@ -374,6 +376,10 @@ class MIDI {
    * @see MIDI.setSendClock
    */
   startClock() {
+    if (this.deviceIdInClock === '*') {
+      this.sendStart();
+      internalClock.start(this.onMIDIClockMessage.bind(this));
+    }
     this.songposition = 0;
     this.isClockRunning = true;
   }
@@ -384,7 +390,15 @@ class MIDI {
    * @see MIDI.setSendClock
    */
   stopClock() {
+    if (this.deviceIdInClock === '*') {
+      this.sendStop();
+      internalClock.stop();
+    }
     this.isClockRunning = false;
+  }
+
+  setInternalBPM(v) {
+    internalClock.setBPM(v);
   }
 
   /**
