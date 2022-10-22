@@ -231,6 +231,17 @@ class MIDI {
       this.hasClock = true;
     }
     if (
+      event.data[0] === MIDI.MESSAGE.CLOCK ||
+      event.data[0] === MIDI.MESSAGE.START ||
+      event.data[0] === MIDI.MESSAGE.STOP
+    ) {
+      for (const [portid, enabled] of Object.entries(this.clockOutputPorts)) {
+        if (enabled) {
+          this.send(event.data, portid);
+        }
+      }
+    }
+    if (
       this.isClockRunning &&
       this.clockHandler &&
       event.data[0] === MIDI.MESSAGE.CLOCK
@@ -251,22 +262,16 @@ class MIDI {
         this.transportHandler(false);
       }
     }
-    if (
-      event.data[0] === MIDI.MESSAGE.CLOCK ||
-      event.data[0] === MIDI.MESSAGE.START ||
-      event.data[0] === MIDI.MESSAGE.STOP
-    ) {
-      for (const [portid, enabled] of Object.entries(this.clockOutputPorts)) {
-        if (enabled) {
-          this.send(event.data, portid);
-        }
-      }
-    }
   }
 
   selectDevices(deviceIdIn, deviceIdInClock) {
     this.deviceIdIn = deviceIdIn;
     this.deviceIdInClock = deviceIdInClock;
+    if (deviceIdInClock == '*') {
+      internalClock.setHandler(this.onMIDIClockMessage.bind(this));
+    } else {
+      internalClock.setHandler(null);
+    }
     this.deviceIn = this.midiAccess.inputs.get(this.deviceIdIn);
     this.deviceInClock = this.midiAccess.inputs.get(this.deviceIdInClock);
     if (this.deviceIn) {
@@ -377,7 +382,8 @@ class MIDI {
    */
   startClock() {
     if (this.deviceIdInClock === '*') {
-      internalClock.start(this.onMIDIClockMessage.bind(this));
+      this.sendStart();
+      // internalClock.start(this.onMIDIClockMessage.bind(this));
     }
     this.songposition = 0;
     this.isClockRunning = true;
@@ -391,7 +397,7 @@ class MIDI {
   stopClock() {
     if (this.deviceIdInClock === '*') {
       this.sendStop();
-      internalClock.stop();
+      // internalClock.stop();
     }
     this.isClockRunning = false;
   }

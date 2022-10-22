@@ -7,49 +7,52 @@ let nextClockTime = 0.0; // when the next note is due.
 let startTime = 0;
 let tickHandler = null;
 let timerID = null;
-let hasStarted = false;
+// let hasStarted = false;
 
 const scheduleClock = function () {
   let currentTime = audioContext.currentTime;
   currentTime -= startTime;
   while (nextClockTime < currentTime + scheduleAheadTime) {
-    if (hasStarted) {
-      hasStarted = false;
-      setTimeout(function () {
-        tickHandler?.(startMSG);
-        tickHandler?.(clockMSG);
-      }, currentTime + nextClockTime);
-    }
-    advanceClock();
+    // if (hasStarted) {
+    //   hasStarted = false;
+    //   setTimeout(function () {
+    //     tickHandler?.(startMSG);
+    //     // tickHandler?.(clockMSG);
+    //   }, currentTime + nextClockTime);
+    // }
+    tickHandler?.(clockMSG);
+    nextClockTime += tempo;
   }
   timerID = setTimeout(scheduleClock, 0);
 };
 
-function advanceClock() {
-  tickHandler?.(clockMSG);
-  nextClockTime += tempo;
+function setHandler(clockHandler) {
+  // hasStarted = true;
+  tickHandler = clockHandler;
+  // startTime = audioContext.currentTime + 0.005;
+  // nextClockTime = 0;
 }
 
 function start(clockHandler) {
-  hasStarted = true;
+  // hasStarted = true;
   tickHandler = clockHandler;
-  isRunning = true;
-  startTime = audioContext.currentTime + 0.005;
-  nextClockTime = 0;
-  scheduleClock();
+  // startTime = audioContext.currentTime + 0.005;
+  // nextClockTime = 0;
 }
 
 function stop() {
-  tickHandler = null;
-  clearTimeout(timerID);
+  // tickHandler = null;
+  // clearTimeout(timerID);
 }
 
 function setBPM(bpm) {
   tempo = 60 / bpm / 24;
 }
 
+startTime = audioContext.currentTime + 0.005;
+scheduleClock();
+
 module.exports = {
-  start,
-  stop,
+  setHandler,
   setBPM
 };

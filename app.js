@@ -324,7 +324,7 @@ document.addEventListener('DOMContentLoaded', function () {
           }
         });
         DOM.element('#bpm').addEventListener('input', (e) => {
-          const bpm = parseInt(e.target.value);
+          const bpm = Math.min(Math.max(parseInt(e.target.value), 30), 240);
           zones.tempo = bpm;
           midi.setInternalBPM(bpm);
           saveZones();
