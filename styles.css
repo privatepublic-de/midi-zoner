@@ -718,6 +718,7 @@ select#midiInChannel {
   background-color: transparent;
   vertical-align: top;
   width: 150px;
+  text-align: left;
   transition: background-color 1s;
 }
 
