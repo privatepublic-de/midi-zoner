@@ -204,7 +204,25 @@ document.addEventListener('DOMContentLoaded', function () {
   let activeUpdateTimer = null;
   const midi = new MIDI({
     eventHandler: (event) => {
+      if (event.data[0] == 0xf0 && event.data[1] == 0x7f) {
+        // realtime sysex
+        if (event.data[2] == 0x7f && event.data[3] == 0x06) {
+          if (event.data[4] == 0x01) {
+            // stop/pause
+            midi.stopClock();
+            zones.list.forEach((z) => {
+              z.stopped();
+            });
+          }
+          if (event.data[4] == 0x02 || event.data[4] == 0x09) {
+            // start/continue
+            midi.startClock();
+          }
+        }
+        return;
+      }
       const channel = event.data[0] & 0x0f;
+      console.log(event);
       let msgtype = event.data[0] & 0xf0;
       if (msgtype === MIDI.MESSAGE.NOTE_ON && event.data[2] === 0) {
         msgtype = MIDI.MESSAGE.NOTE_OFF;

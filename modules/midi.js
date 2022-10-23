@@ -384,6 +384,9 @@ class MIDI {
     if (this.deviceIdInClock === '*') {
       this.sendStart();
       // internalClock.start(this.onMIDIClockMessage.bind(this));
+      if (this.transportHandler) {
+        this.transportHandler(true);
+      }
     }
     this.songposition = 0;
     this.isClockRunning = true;
@@ -398,6 +401,9 @@ class MIDI {
     if (this.deviceIdInClock === '*') {
       this.sendStop();
       // internalClock.stop();
+      if (this.transportHandler) {
+        this.transportHandler(false);
+      }
     }
     this.isClockRunning = false;
   }
