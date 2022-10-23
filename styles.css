@@ -702,7 +702,7 @@ select#midiInChannel {
   border: 1px solid var(--brighter-2);
 }
 
-.octselect.selected+.octselect {
+.octselect.selected + .octselect {
   border-left: none;
 }
 
@@ -1235,8 +1235,9 @@ li {
 }
 
 .seq .grid .step.playhead {
-  background-color: var(--brighter-4) !important;
-  color: var(--darker-4);
+  outline: 1px solid var(--brighter-4);
+  /* background-color: var(--brighter-2) !important;
+  color: var(--darker-4); */
 }
 
 .seq .grid .step.unused {
