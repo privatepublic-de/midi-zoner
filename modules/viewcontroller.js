@@ -26,7 +26,7 @@ let zones = {};
 let midiController;
 let elAllMuteOff, elAllSoloOff, elAllHoldOff;
 
-let triggerSave = () => { };
+let triggerSave = () => {};
 
 /**
  * Init view controller with references to data and MIDI controller.
@@ -805,8 +805,8 @@ function updateValuesForZone(index) {
     } else {
       const rgb = DOM.hslToRgb(
         zone.hue,
-        zone.saturation * .3,
-        zone.lightness * 0.7
+        zone.saturation * 0.5,
+        zone.lightness * 0.67
       );
       const style = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
       zoneElement.style.backgroundColor = style;

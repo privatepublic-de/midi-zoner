@@ -361,6 +361,8 @@ select#midiInChannel {
   height: auto;
   vertical-align: baseline;
   margin-left: 2px;
+  background-color: transparent;
+  border: 1px solid var(--brighter-1);
 }
 
 .zone input[type='number']:focus-visible {
@@ -1278,6 +1280,7 @@ li {
 
 .seq .grid .step:nth-child(4n + 1) {
   border-width: 2px;
+  border-color: var(--darker-2);
 }
 
 .seq .step-info {
