@@ -340,7 +340,7 @@ select#midiInChannel {
 
 .zone.disabled {
   box-shadow: none;
-  background-image: url('res/bg-disabled.png');
+  background-image: none;
 }
 
 .zone.disabled .ch.enabled {
@@ -486,6 +486,7 @@ select#midiInChannel {
 .mch {
   opacity: 0;
   transition: opacity 2s;
+  pointer-events: none;
 }
 
 .zone:not(.disabled):hover .hidden *,
@@ -493,6 +494,7 @@ select#midiInChannel {
 .mch.selected {
   opacity: 1;
   transition: opacity 200ms;
+  pointer-events: all;
 }
 
 .zone.disabled .range {

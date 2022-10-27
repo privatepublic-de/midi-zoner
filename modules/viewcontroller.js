@@ -803,12 +803,12 @@ function updateValuesForZone(index) {
       zoneElement.style.setProperty('--bg-color', style);
       DOM.element(`#zone${index} .step-container`).style.backgroundColor = '';
     } else {
-      const rgb = DOM.hslToRgb(
-        zone.hue,
-        zone.saturation * 0.5,
-        zone.lightness * 0.67
-      );
-      const style = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
+      // const rgb = DOM.hslToRgb(
+      //   zone.hue,
+      //   zone.saturation * 0.5,
+      //   zone.lightness * 0.67
+      // );
+      const style = 'inherit'; //`rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
       zoneElement.style.backgroundColor = style;
       zoneElement.style.setProperty('--bg-color', style);
       // if (zone.sequence.active) {
