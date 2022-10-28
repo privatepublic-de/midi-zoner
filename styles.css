@@ -1209,7 +1209,7 @@ li {
   cursor: default;
 }
 
-.disabled .seq .grid .step {
+.disabled:not(.soloed-out) .seq .grid .step {
   height: 5px;
   color: transparent;
   font-size: 0;
@@ -1306,7 +1306,7 @@ li {
 }
 
 .zone.disabled .grid .step-info,
-.zone.disabled .seqtools {
+.zone.disabled:not(.soloed-out) .seqtools {
   display: none;
 }
 
