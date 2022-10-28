@@ -482,9 +482,7 @@ class Zone {
       const ctx = this.patternCanvas.getContext('2d');
       const cwidth = this.patternCanvas.width;
       const plen = this.arp_pattern.length;
-      const width = cwidth / plen;
-      ctx.save();
-      ctx.translate(0.5, 0.5);
+      const width = Math.floor(cwidth / plen);
       ctx.clearRect(0, 0, cwidth, this.patternCanvas.height);
       ctx.lineWidth = 1;
       for (let i = 0; i < plen; i++) {
@@ -504,16 +502,17 @@ class Zone {
             : 'rgba(0, 0, 0, 0.2)';
           ctx.fillRect(width * i + 1, 1, width - 2, 16 - 2);
         } else {
-          ctx.store;
+          ctx.save();
+          ctx.translate(0.5, 0.5);
           ctx.beginPath();
-          ctx.rect(width * i + 2, 2, width - 4, 16 - 4);
+          ctx.rect(width * i + 1, 1, width - 3, 16 - 3);
           ctx.strokeStyle = isCurrent
             ? 'rgba(255, 255, 255, 0.75)'
             : 'rgba(0, 0, 0, 0.2)';
           ctx.stroke();
+          ctx.restore();
         }
       }
-      ctx.restore();
     }
   }
 
