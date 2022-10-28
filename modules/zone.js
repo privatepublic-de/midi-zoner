@@ -483,27 +483,37 @@ class Zone {
       const cwidth = this.patternCanvas.width;
       const plen = this.arp_pattern.length;
       const width = cwidth / plen;
+      ctx.save();
+      ctx.translate(0.5, 0.5);
       ctx.clearRect(0, 0, cwidth, this.patternCanvas.height);
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.5';
+      ctx.lineWidth = 1;
       for (let i = 0; i < plen; i++) {
-        if (i === this.arp.patternPos) {
-          if (this.arp_pattern[i]) {
-            ctx.fillStyle = 'rgba(255,255,255,.5)';
-            ctx.fillRect(width * i, 0, width, 16);
-          } else {
-            ctx.fillStyle = 'rgba(255,255,255,.25)';
-            ctx.fillRect(width * i + 2, 2, width - 4, 16 - 4);
-          }
-        }
+        const isCurrent = i === this.arp.patternPos;
+        // if (isCurrent) {
+        //   if (this.arp_pattern[i]) {
+        //     ctx.fillStyle = 'rgba(255,255,255,.5)';
+        //     ctx.fillRect(width * i, 0, width, 16);
+        //   } else {
+        //     ctx.fillStyle = 'rgba(255,255,255,.25)';
+        //     ctx.fillRect(width * i + 2, 2, width - 4, 16 - 4);
+        //   }
+        // }
         if (this.arp_pattern[i]) {
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+          ctx.fillStyle = isCurrent
+            ? 'rgba(255, 255, 255, 0.75)'
+            : 'rgba(0, 0, 0, 0.2)';
           ctx.fillRect(width * i + 1, 1, width - 2, 16 - 2);
         } else {
+          ctx.store;
           ctx.beginPath();
           ctx.rect(width * i + 2, 2, width - 4, 16 - 4);
+          ctx.strokeStyle = isCurrent
+            ? 'rgba(255, 255, 255, 0.75)'
+            : 'rgba(0, 0, 0, 0.2)';
           ctx.stroke();
         }
       }
+      ctx.restore();
     }
   }
 
