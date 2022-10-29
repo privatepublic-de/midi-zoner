@@ -474,6 +474,7 @@ select#midiInChannel {
 .arp-settings {
   position: relative;
   display: flex;
+  align-items: center;
   color: var(--brighter-3);
   font-size: 12px;
 }
@@ -681,24 +682,25 @@ select#midiInChannel {
   vertical-align: middle;
 }
 
+.octaves {
+  border-right: 1px solid var(--brighter-2);
+  height: 14px !important;
+}
+
 .octselect {
-  display: inline-block;
+  display: inline-flex;
   width: 12px;
   height: 14px;
   border: 1px solid var(--brighter-2);
-  cursor: pointer;
-  vertical-align: middle;
-  margin: 0;
-  text-align: center;
   border-right: none;
+  cursor: pointer;
+  margin: 0;
+  justify-content: center;
+  align-items: center;
 }
 
-.octselect:first-child {
-  margin-left: 0.3em;
-}
-
-.octselect:last-child {
-  border-right: 1px solid var(--brighter-2);
+.octselect.octcenter {
+  background-color: var(--darker-2);
 }
 
 .octselect.selected {

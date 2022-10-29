@@ -291,15 +291,15 @@ module.exports = {
           ><span class="material-icons unsel">chevron_right</span>
           <span class="arpanchor"></span>
         </div>
-        <div class="val" title="Transpose octave">
-          Oct
-          <a class="octselect" data-action="${index}:octave:-3">
-          </a><a class="octselect" data-action="${index}:octave:-2"></a><a 
-          class="octselect" data-action="${index}:octave:-1"></a><a 
-          class="octselect selected" data-action="${index}:octave:0"></a><a 
-          class="octselect" data-action="${index}:octave:1"></a><a 
-          class="octselect" data-action="${index}:octave:2"></a><a 
-          class="octselect" data-action="${index}:octave:3"></a>
+        <div class="val label">Oct</div>
+        <div class="val octaves" title="Transpose octave">
+          <a class="octselect" data-action="${index}:octave:-3"></a>
+          <a class="octselect" data-action="${index}:octave:-2"></a>
+          <a class="octselect" data-action="${index}:octave:-1"></a>
+          <a class="octselect octcenter selected" data-action="${index}:octave:0"></a>
+          <a class="octselect" data-action="${index}:octave:1"></a>
+          <a class="octselect" data-action="${index}:octave:2"></a>
+          <a class="octselect" data-action="${index}:octave:3"></a>
         </div>
         <div class="hidden">
           <div
