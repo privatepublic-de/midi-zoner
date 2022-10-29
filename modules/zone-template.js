@@ -144,6 +144,9 @@ module.exports = {
         <div class="ch state solo" data-action="${index}:solo" title="Solo Zone\n(Double click for this zone only)">
           S
         </div>
+        <div class="ch state showccs" data-action="${index}:toggle_show_cc" title="Show CC controllers">
+              <i class="material-icons">tune</i>
+            </div>
         <div class="ch state showseq" data-action="${index}:toggle_seq" 
           title="Enable step sequencer">
           <i class="material-icons">view_comfy</i>
@@ -163,9 +166,6 @@ module.exports = {
         </div>
         ${channelselectors}
         <div class="zonetools">
-            <div class="showccs rtool" data-action="${index}:toggle_show_cc" title="Show CC controllers">
-              <i class="material-icons">tune</i>
-            </div>
             <div class="randzonecolor rtool" title="Change color">
               <label><input data-change="${index}:color" type="color" /><i class="material-icons">palette</i></label>
             </div>
@@ -432,39 +432,39 @@ module.exports = {
           title="Create or shift pattern"
           data-action="${index}:showeuclid"
         >
-          <div class="euclid hideonleave">
-            <p>Create euclidian pattern</p>
-            <p>
-              <input
-                id="euchits${index}"
-                type="number"
-                min="1"
-                value="8"
-                size="3"
-                title="Steps"
-              />
-              in
-              <input
-                type="number"
-                id="euclen${index}"
-                min="1"
-                value="8"
-                size="3"
-                title="Length"
-              />
-              <span class="submit" data-action="${index}:euclid">OK</span>
-            </p>
-            <p>
-              <span class="submit" data-action="${index}:pattern_shift:-1"
-                >&lt;</span
-              >
-              Shift pattern
-              <span class="submit" data-action="${index}:pattern_shift:1"
-                >&gt;</span
-              >
-            </p>
-          </div>
           <i class="material-icons">settings</i>
+        </div>
+        <div class="euclid hideonleave">
+          <p>Create euclidian pattern</p>
+          <p>
+            <input
+              id="euchits${index}"
+              type="number"
+              min="1"
+              value="8"
+              size="3"
+              title="Steps"
+            />
+            in
+            <input
+              type="number"
+              id="euclen${index}"
+              min="1"
+              value="8"
+              size="3"
+              title="Length"
+            />
+            <span class="submit" data-action="${index}:euclid">OK</span>
+          </p>
+          <p>
+            <span class="submit" data-action="${index}:pattern_shift:-1"
+              >&lt;</span
+            >
+            Shift pattern
+            <span class="submit" data-action="${index}:pattern_shift:1"
+              >&gt;</span
+            >
+          </p>
         </div>
       </div>
     </section>`;

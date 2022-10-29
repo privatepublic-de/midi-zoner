@@ -487,15 +487,6 @@ class Zone {
       ctx.lineWidth = 1;
       for (let i = 0; i < plen; i++) {
         const isCurrent = i === this.arp.patternPos;
-        // if (isCurrent) {
-        //   if (this.arp_pattern[i]) {
-        //     ctx.fillStyle = 'rgba(255,255,255,.5)';
-        //     ctx.fillRect(width * i, 0, width, 16);
-        //   } else {
-        //     ctx.fillStyle = 'rgba(255,255,255,.25)';
-        //     ctx.fillRect(width * i + 2, 2, width - 4, 16 - 4);
-        //   }
-        // }
         if (this.arp_pattern[i]) {
           ctx.fillStyle = isCurrent
             ? 'rgba(255, 255, 255, 0.75)'

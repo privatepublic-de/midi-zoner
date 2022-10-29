@@ -958,15 +958,8 @@ li {
   display: flex;
 }
 
-.showccs {
-  padding: 0 4px;
-}
-
 .show-cc .showccs {
-  box-shadow: 1px 1px 2px var(--darker-2) inset;
-  color: var(--brighter-4);
-  background-color: var(--darker-1);
-  padding-top: 4px;
+  background-color: var(--brighter-2);
 }
 
 .show-seq .showseq {
@@ -1259,6 +1252,10 @@ li {
   animation: indicator 2s infinite alternate;
 }
 
+.seq_gatelength {
+  margin-left: 4px;
+}
+
 @keyframes indicator {
   0% {
     background-color: inherit;
@@ -1293,7 +1290,7 @@ li {
   top: 5px;
   left: calc((var(--step-size) + 4px) * 17);
   z-index: 1;
-  background-color: var(--bg-color-alternative);
+  background-color: var(--bg-color);
   box-shadow: 0 0 8px var(--shadow-topbar-button);
   display: none;
 }

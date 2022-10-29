@@ -159,7 +159,10 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
     at2mod: applyParamToggle,
     pitchbend: applyParamToggle,
     programchange: applyParamToggle,
-    arp_hold: applyParamToggle,
+    arp_hold: () => {
+      applyParamToggle();
+      zone.renderNotes();
+    },
     arp_transpose: applyParamToggle,
     arp_repeat: applyParamToggle,
     arp_enabled: applyParamToggle,
@@ -224,7 +227,12 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       updateValuesForZone(zoneindex);
     },
     showeuclid: () => {
-      DOM.element(`#zone${zoneindex} .euclid`).style.display = 'block';
+      const dialog = DOM.element(`#zone${zoneindex} .euclid`);
+      if (dialog.style.display == 'block') {
+        DOM.hide(dialog);
+      } else {
+        DOM.show(dialog);
+      }
     },
     euclid: () => {
       let hits = parseInt(DOM.element(`#euchits${zoneindex}`).value);
@@ -233,8 +241,6 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
         hits = Math.min(32, Math.max(1, hits));
         len = Math.min(32, Math.max(2, len));
         zone.createEuclidianPattern(len, hits);
-        DOM.element(`#zone${zoneindex} .euclid`).style.display = 'none';
-        console.log('Created euclid', hits, len);
       }
     },
     pattern_shift: () => {
@@ -775,7 +781,7 @@ function updateValuesForZone(index) {
     );
     const rgbZoneAlternative = DOM.hslToRgb(
       zone.hue,
-      zone.saturation / 2,
+      zone.saturation * 0.9,
       zone.lightness + (zones.altTheme ? 0.4 : 0.1)
     );
     zoneElement.style.setProperty(
