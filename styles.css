@@ -683,7 +683,7 @@ select#midiInChannel {
 
 .octselect {
   display: inline-block;
-  width: 14px;
+  width: 12px;
   height: 14px;
   border: 1px solid var(--brighter-2);
   cursor: pointer;

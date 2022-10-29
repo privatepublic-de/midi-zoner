@@ -222,7 +222,6 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
       }
       const channel = event.data[0] & 0x0f;
-      console.log(event);
       let msgtype = event.data[0] & 0xf0;
       if (msgtype === MIDI.MESSAGE.NOTE_ON && event.data[2] === 0) {
         msgtype = MIDI.MESSAGE.NOTE_OFF;
