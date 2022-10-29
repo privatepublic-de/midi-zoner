@@ -985,27 +985,6 @@ class Sequence {
     }
     if (this.tickn === 0) {
       this.liveTargetLength++;
-      // const clearSteps = [];
-      // this.activeSteps.forEach((astep) => {
-      //   astep.played++;
-      //   if (astep.played >= astep.length) {
-      //     clearSteps.push(astep);
-      //     for (let note of astep.lastPlayedArray) {
-      //       this.zone.midi.send(
-      //         Uint8Array.from([
-      //           MIDI.MESSAGE.NOTE_OFF + note.channel,
-      //           note.number,
-      //           note.velo
-      //         ]),
-      //         note.portId
-      //       );
-      //     }
-      //     astep.lastPlayedArray.length = 0;
-      //   }
-      // });
-      // this.activeSteps = this.activeSteps.filter(
-      //   (item) => !clearSteps.includes(item)
-      // );
       this.previousStepNumber = this.currentStepNumber;
       this.currentStepNumber = (this.currentStepNumber + 1) % this.length;
       if (this.currentStepNumber === 0) {
@@ -1034,7 +1013,7 @@ class Sequence {
                 Uint8Array.from([
                   MIDI.MESSAGE.NOTE_ON + note.channel,
                   note.number,
-                  note.velo
+                  this.zone.fixedvel ? this.zone.fixedvel_value : note.velo
                 ]),
                 note.portId
               );
