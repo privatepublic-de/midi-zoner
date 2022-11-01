@@ -13,9 +13,21 @@ const zones = {
   outputConfigNames: {}
 };
 
-function saveZones() {
+const debounce = function (func, delay) {
+  let timer;
+  return function () {
+    const context = this;
+    const args = arguments;
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      func.apply(context, args);
+    }, delay);
+  };
+};
+
+const saveZones = debounce(() => {
   localStorage.setItem('zones', JSON.stringify(zones));
-}
+}, 500);
 
 function loadZones(midi) {
   const zonesJson = localStorage.getItem('zones');
@@ -200,7 +212,17 @@ document.addEventListener('DOMContentLoaded', function () {
   const select_in = DOM.element('#midiInDeviceId');
   const select_in_clock = DOM.element('#midiClockInDeviceId');
   const startClockButton = DOM.element('#startClockButton');
+  const bpmInput = DOM.element('#bpm');
   const optionNoDevice = '<option value="">(No devices available)</option>';
+  function updateBpmInput() {
+    if (midi.deviceIdInClock == '*') {
+      bpmInput.removeAttribute('disabled');
+      bpmInput.value = zones.tempo;
+    } else {
+      bpmInput.setAttribute('disabled', '');
+      bpmInput.value = '';
+    }
+  }
   let activeUpdateTimer = null;
   const midi = new MIDI({
     eventHandler: (event) => {
@@ -340,13 +362,13 @@ document.addEventListener('DOMContentLoaded', function () {
             }
           }
         });
-        DOM.element('#bpm').addEventListener('input', (e) => {
+        bpmInput.addEventListener('input', (e) => {
           const bpm = Math.min(Math.max(parseInt(e.target.value), 30), 240);
           zones.tempo = bpm;
           midi.setInternalBPM(bpm);
           saveZones();
         });
-        DOM.element('#bpm').value = zones.tempo;
+        updateBpmInput();
         midi.setInternalBPM(zones.tempo);
         document.body.addEventListener('keyup', (ev) => {
           if (!isLoadSaveDialogOpenend && ev.key == ' ') {
@@ -430,6 +452,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const inId = DOM.find(select_in, 'option:checked')[0].value;
       const inClockId = DOM.find(select_in_clock, 'option:checked')[0].value;
       midi.selectDevices(inId, inClockId);
+      updateBpmInput();
       localStorage.setItem('midiInId', inId);
       localStorage.setItem('midiInClockId', inClockId);
     });
