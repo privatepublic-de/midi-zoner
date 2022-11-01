@@ -424,7 +424,7 @@ class Zone {
         this.canvasElement.height *
         (this.canvasElement.clientWidth / this.canvasElement.clientHeight);
       const cwidth = this.canvasElement.width;
-      const notewidth = cwidth / 127.0 - cwidth / 127.0 / 2.0;
+      const notewidth = Math.floor(cwidth / 127.0 - cwidth / 127.0 / 2.0);
       ctx.clearRect(0, 0, cwidth, this.canvasElement.height);
       ctx.fillStyle = this.arp_enabled
         ? 'rgba(0,0,0,.2)'
@@ -443,7 +443,7 @@ class Zone {
               (this.octave + ao) * 12;
             const isBlack = Note.isBlackKey(number);
             ctx.fillRect(
-              (cwidth * number) / 127,
+              Math.floor((cwidth * number) / 127),
               isBlack ? note_top_black : note_top,
               notewidth,
               isBlack ? note_height_black : note_height
@@ -454,7 +454,7 @@ class Zone {
           const isBlack = Note.isBlackKey(number);
           ctx.fillStyle = isBlack ? note_fill_black : note_fill;
           ctx.fillRect(
-            (cwidth * number) / 127,
+            Math.floor((cwidth * number) / 127),
             isBlack ? note_top_black : note_top,
             notewidth,
             isBlack ? note_height_black : note_height
@@ -466,7 +466,7 @@ class Zone {
         if (note) {
           ctx.fillStyle = 'rgba(255,255,255,.7)';
           ctx.fillRect(
-            (cwidth * note.number) / 127,
+            Math.floor((cwidth * note.number) / 127),
             2 - (note.isBlackKey ? 2 : 0),
             notewidth,
             16
