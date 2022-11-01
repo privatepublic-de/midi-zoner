@@ -777,12 +777,12 @@ function updateValuesForZone(index) {
     const rgbZone = DOM.hslToRgb(
       zone.hue,
       zone.saturation,
-      zone.lightness + (zones.altTheme ? 0.6 : 0)
+      zone.lightness * (zones.altTheme ? 0.6 : 1)
     );
     const rgbZoneAlternative = DOM.hslToRgb(
       zone.hue,
       zone.saturation * 0.9,
-      zone.lightness + (zones.altTheme ? 0.4 : 0.1)
+      zone.lightness * (zones.altTheme ? 1.2 : 1.3)
     );
     zoneElement.style.setProperty(
       '--bg-color-alternative',
