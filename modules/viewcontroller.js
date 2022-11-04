@@ -165,7 +165,15 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
     },
     arp_transpose: applyParamToggle,
     arp_repeat: applyParamToggle,
-    arp_enabled: applyParamToggle,
+    arp_enabled: () => {
+      applyParamToggle();
+      if (zone.arp_enabled) {
+        zone.sequence.active = false;
+        zone.sequence.selectedStepNumber = -1;
+        updateValuesForZone(zoneindex);
+      }
+      zone.renderNotes();
+    },
     sendClock: () => {
       applyParamToggle();
       for (let i = 0; i < zones.list.length; i++) {
@@ -309,7 +317,6 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
           }
         }
       }
-      console.log('direction', direction, 'from', pos, 'to', targetPos);
       if (pos != targetPos) {
         const v2 = zone.cc_controllers[targetPos];
         zone.cc_controllers[targetPos] = zone.cc_controllers[pos];
@@ -327,6 +334,10 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
     toggle_seq: () => {
       zone.sequence.active = !zone.sequence.active;
       zone.sequence.selectedStepNumber = -1;
+      if (zone.sequence.active) {
+        zone.arp_enabled = false;
+        zone.renderNotes();
+      }
       updateValuesForZone(zoneindex);
     },
     select_step: () => {
