@@ -700,7 +700,7 @@ select#midiInChannel {
 }
 
 .octselect.octcenter::after {
-  content: '0';
+  content: '·';
   color: var(--brighter-2);
   font-size: 0.75em;
 }
