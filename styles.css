@@ -1188,6 +1188,7 @@ li {
 
 .seq .grid .step {
   display: flex;
+  position: relative;
   margin: 2px 4px 2px 0;
   width: var(--step-size);
   height: var(--step-size);
@@ -1233,8 +1234,6 @@ li {
 
 .seq .grid .step.playhead {
   outline: 1px solid var(--brighter-4);
-  /* background-color: var(--brighter-2) !important;
-  color: var(--darker-4); */
 }
 
 .seq .grid .step.unused {
@@ -1277,13 +1276,13 @@ li {
   animation: indicator 2s infinite alternate;
 }
 
-.seq .grid .step:nth-child(4n + 1) {
-  border-bottom-width: 2px;
-  border-bottom-color: var(--darker-2);
-}
-
-.seq .grid .step:nth-child(4n + 1).active {
-  border-bottom-color: var(--brighter-3);
+.seq .grid .step:nth-child(4n + 1)::before {
+  content: '◤';
+  display: block;
+  position: absolute;
+  top: -1px;
+  left: 0;
+  font-size: 50%;
 }
 
 .seq .step-info {
