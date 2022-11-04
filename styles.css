@@ -816,7 +816,7 @@ select#midiInChannel {
   position: absolute;
   top: 0;
   height: 28px;
-  background-color: var(--brighter-1);
+  background-color: var(--brighter-0);
 }
 
 .current {
@@ -834,8 +834,8 @@ select#midiInChannel {
 .oct {
   position: absolute;
   top: 0;
-  background-color: var(--brighter-1);
-  color: var(--brighter-2);
+  background-color: var(--brighter-0);
+  color: var(--brighter-1);
   width: 1px;
   bottom: 0;
   font-size: 8px;
@@ -1160,6 +1160,7 @@ li {
 
 .disabled .seq {
   border-color: var(--brighter-1);
+  background-color: var(--zone-color);
 }
 
 .seqtools {
@@ -1221,7 +1222,7 @@ li {
 
 .zone.disabled .seq .grid .step {
   border: none;
-  background-color: var(--brighter-0);
+  background-color: var(--darker-2);
 }
 
 .zone.disabled .seq .grid .step.active {
