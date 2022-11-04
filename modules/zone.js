@@ -461,15 +461,29 @@ class Zone {
           );
         }
       }
+      if (this.sequence.active) {
+        ctx.fillStyle = 'rgba(255,255,255,.6)';
+        for (let snote of this.sequence.activeNotes()) {
+          const number = snote.number;
+          const isBlack = Note.isBlackKey(number);
+          ctx.fillStyle = isBlack ? note_fill_black : note_fill;
+          ctx.fillRect(
+            Math.floor((cwidth * number) / 127),
+            isBlack ? note_top_black : note_top,
+            notewidth,
+            isBlack ? note_height_black : note_height
+          );
+        }
+      }
       if (this.arp_enabled) {
         const note = this.arp.lastnote;
         if (note) {
           ctx.fillStyle = 'rgba(255,255,255,.7)';
           ctx.fillRect(
             Math.floor((cwidth * note.number) / 127),
-            2 - (note.isBlackKey ? 2 : 0),
+            note.isBlackKey ? note_top_black : note_top,
             notewidth,
-            16
+            note.isBlackKey ? note_height_black : note_height
           );
         }
       }
@@ -958,6 +972,7 @@ class Sequence {
 
   clock(pos) {
     this.tickn = pos % this.ticks;
+    let refreshNotesDisplay = false;
     // check for active steps ending
     if (this.activeSteps.length > 0) {
       const clearSteps = [];
@@ -977,6 +992,7 @@ class Sequence {
             );
           }
           astep.lastPlayedArray.length = 0;
+          refreshNotesDisplay = true;
         }
       });
       this.activeSteps = this.activeSteps.filter(
@@ -993,7 +1009,6 @@ class Sequence {
           this.isFirstCycle = false;
         }
       }
-
       if (this.active) {
         const currentStep = this.steps[this.currentStepNumber];
         if (this.active && currentStep) {
@@ -1018,6 +1033,7 @@ class Sequence {
                 note.portId
               );
               currentStep.lastPlayedArray.push(note);
+              refreshNotesDisplay = true;
             }
             this.previousStepPlayed = true;
           } else {
@@ -1026,6 +1042,9 @@ class Sequence {
         }
         requestAnimationFrame(this.zone.renderSequence.bind(this.zone));
       }
+    }
+    if (refreshNotesDisplay) {
+      requestAnimationFrame(this.zone.renderNotes.bind(this.zone));
     }
   }
 
@@ -1049,6 +1068,15 @@ class Sequence {
     this.previousStepPlayed = false;
     this.isFirstCycle = true;
     requestAnimationFrame(this.zone.renderSequence.bind(this.zone));
+    requestAnimationFrame(this.zone.renderNotes.bind(this.zone));
+  }
+
+  activeNotes() {
+    const result = [];
+    this.activeSteps.forEach((astep) => {
+      result.push(...astep.lastPlayedArray);
+    });
+    return result;
   }
 
   checkCondition(step) {
