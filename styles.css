@@ -1227,10 +1227,6 @@ li {
   background-color: var(--bg-color-alternative);
 }
 
-.seq .grid .step:nth-child(16n + 1) {
-  clear: both;
-}
-
 .seq .grid .step:hover {
   background-color: var(--brighter-2);
 }
@@ -1282,8 +1278,12 @@ li {
 }
 
 .seq .grid .step:nth-child(4n + 1) {
-  border-width: 2px;
-  border-color: var(--darker-2);
+  border-bottom-width: 2px;
+  border-bottom-color: var(--darker-2);
+}
+
+.seq .grid .step:nth-child(4n + 1).active {
+  border-bottom-color: var(--brighter-3);
 }
 
 .seq .step-info {
