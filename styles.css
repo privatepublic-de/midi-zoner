@@ -1186,7 +1186,8 @@ li {
   width: calc((var(--step-size) + 4px) * 16 + 5px);
 }
 
-.seq .grid .step {
+.seq .grid .step,
+.step-info .stepmarker {
   display: flex;
   position: relative;
   margin: 2px 4px 2px 0;
@@ -1202,7 +1203,7 @@ li {
   cursor: pointer;
 }
 
-.seq .grid .step-info .step {
+.step-info .stepmarker {
   display: inline-flex;
   cursor: default;
 }

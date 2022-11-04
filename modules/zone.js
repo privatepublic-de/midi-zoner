@@ -930,7 +930,7 @@ class Sequence {
             ? this.steps[this.selectedStepNumber].notesArray
             : null;
           let infoText =
-            '<div class="step listen-indicator">' +
+            '<div class="stepmarker listen-indicator">' +
             (this.selectedStepNumber + 1) +
             '</div> ';
           if (notesArray && notesArray.length > 0) {
