@@ -7,7 +7,7 @@ const view = require('./modules/viewcontroller');
 const zones = {
   list: [],
   inChannel: 0,
-  sendClock: false,
+  clockOutputPorts: {},
   alternativeTheme: false,
   tempo: 120,
   outputConfigNames: {}
@@ -58,6 +58,7 @@ function applyStoredZones(storedZones, midi, append) {
       zone.sequence = sequence;
       zones.list.push(zone);
     }
+    midi.clockOutputPorts = zones.clockOutputPorts;
   }
 }
 

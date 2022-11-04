@@ -6,21 +6,6 @@ const zoneTemplate = require('./zone-template');
 const potDragHandler = require('./potdraghandler');
 const { Sequence } = require('./zone');
 
-// const MIDI.NOTENAMES = [
-//   'C',
-//   'C#',
-//   'D',
-//   'D#',
-//   'E',
-//   'F',
-//   'F#',
-//   'G',
-//   'G#',
-//   'A',
-//   'A#',
-//   'B'
-// ];
-
 let zones = {};
 /** @type {MIDI} */
 let midiController;
@@ -175,12 +160,16 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       zone.renderNotes();
     },
     sendClock: () => {
-      applyParamToggle();
-      for (let i = 0; i < zones.list.length; i++) {
-        if (zones.list[i].outputPortId == zone.outputPortId) {
-          zones.list[i].sendClock = zone.sendClock;
-        }
-      }
+      let state = !(
+        midiController.clockOutputPorts[zone.outputPortId] === true
+      );
+      midiController.updateClockOutputReceiver(
+        zone.outputPortId != '*'
+          ? zone.outputPortId
+          : zone.preferredOutputPortId,
+        state
+      );
+      zones.clockOutputPorts = midiController.clockOutputPorts;
       updateValuesForAllZones();
     },
     arp_direction: applySelectedIndex,
@@ -560,6 +549,7 @@ function appendZone(/** @type {Zone} */ zone, index) {
   zone.dom.current = DOM.element(`#zone${index} .current`);
   renderMarkersForZone(index);
   renderControllersForZone(zone, index);
+  initOutputPortsForZone(index);
   updateValuesForZone(index);
   zone.renderPattern();
   const dragHandler = DOM.element(`#zone${index} .dragzone`);
@@ -571,7 +561,6 @@ function appendZone(/** @type {Zone} */ zone, index) {
       });
     }
   });
-  initOutputPortsForZone(index);
 
   DOM.all(
     `#zone${index} .arp_probability,#zone${index} .arp_gatelength,#zone${index} .seq_probability,#zone${index} .seq_gatelength`
@@ -820,20 +809,9 @@ function updateValuesForZone(index) {
       zoneElement.style.setProperty('--bg-color', style);
       DOM.element(`#zone${index} .step-container`).style.backgroundColor = '';
     } else {
-      // const rgb = DOM.hslToRgb(
-      //   zone.hue,
-      //   zone.saturation * 0.5,
-      //   zone.lightness * 0.67
-      // );
       const style = 'inherit'; //`rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
       zoneElement.style.backgroundColor = style;
       zoneElement.style.setProperty('--bg-color', style);
-      // if (zone.sequence.active) {
-      //   const rgb = rgbZone;
-      //   const style = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
-      //   DOM.element(`#zone${index} .step-container`).style.backgroundColor =
-      //     style;
-      // }
     }
     if (zone.show_cc) {
       DOM.addClass(`#zone${index}`, 'show-cc');
@@ -919,7 +897,6 @@ function updateValuesForZone(index) {
     [
       'cc',
       'mod',
-      'sendClock',
       'at2mod',
       'sustain',
       'fixedvel',
@@ -967,6 +944,9 @@ function updateValuesForZone(index) {
     DOM.element(`#fixedvel${index}`).value = zone.fixedvel_value;
     DOM.element(`#zone${index} .output-config-name`).value =
       zones.outputConfigNames[zone.configId] || '';
+    if (midiController.clockOutputPorts[zone.outputPortId] === true) {
+      DOM.addClass(`#zone${index} .sendClock`, 'selected');
+    }
     updateControllerValues(zone, index);
     updateGeneralButtons();
   }

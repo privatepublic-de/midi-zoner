@@ -65,7 +65,6 @@ class Zone {
   fixedvel = false;
   fixedvel_value = 127;
   mod = true;
-  _sendClock = false;
   sustain = true;
   _sustain_on = false;
   cc = false;
@@ -154,7 +153,6 @@ class Zone {
       fixedvel: this.fixedvel,
       fixedvel_value: this.fixedvel_value,
       mod: this.mod,
-      sendClock: this.sendClock,
       sustain: this.sustain,
       cc: this.cc,
       at2mod: this.at2mod,
@@ -231,18 +229,6 @@ class Zone {
         v ? 127 : 0
       ]),
       this.outputPortId
-    );
-  }
-
-  get sendClock() {
-    return this._sendClock;
-  }
-
-  set sendClock(v) {
-    this._sendClock = v;
-    this.midi.updateClockOutputReceiver(
-      this.outputPortId != '*' ? this.outputPortId : this.preferredOutputPortId,
-      this._sendClock
     );
   }
 
@@ -702,7 +688,6 @@ class Zone {
   }
 
   dismiss() {
-    this.sendClock = false;
     this.solo = false;
     this.arp_enabled = false;
     this.enabled = false;
