@@ -710,7 +710,7 @@ class Zone {
   randomizeColor() {
     this.hue = Math.random();
     this.saturation = Math.random() * 0.7;
-    this.lightness = 0.4 + Math.random() * 0.2;
+    this.lightness = this.hue > 0.1 && this.hue < 0.55 ? 0.4 : 0.6;
   }
 
   createEuclidianPattern(length, hits) {

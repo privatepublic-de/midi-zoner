@@ -247,7 +247,7 @@ module.exports = {
                 <div
                   class="check seq-step-add-notes"
                   data-action="${index}:seq_step_add_notes"
-                  title="New notes are added (no overwrite)"
+                  title="New notes are added (not overwritten)"
                 >
                   ${checkboxIcons}Add notes
                 </div>

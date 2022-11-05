@@ -342,8 +342,8 @@ document.addEventListener('DOMContentLoaded', function () {
         DOM.element('#shuffleColors').addEventListener('dblclick', () => {
           zones.list.forEach((/** @type {Zone} */ zone, index) => {
             zone.hue = index / zones.list.length;
-            zone.saturation = 0.6;
-            zone.lightness = 0.4;
+            zone.saturation = 0.7;
+            zone.lightness = zone.hue > 0.1 && zone.hue < 0.55 ? 0.4 : 0.6;
           });
           view.renderZones();
           saveZones();
