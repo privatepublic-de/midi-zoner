@@ -663,6 +663,7 @@ select#midiInChannel {
   padding: 1px 5px 1px 5px;
   overflow: hidden;
   vertical-align: middle;
+  cursor: col-resize;
 }
 
 .percent::after {
@@ -675,7 +676,7 @@ select#midiInChannel {
   bottom: 0;
   left: 0;
   width: 50%;
-  background-color: var(--brighter-2);
+  background-color: var(--darker-1);
 }
 
 .percent .pcnt {

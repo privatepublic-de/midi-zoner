@@ -361,13 +361,13 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
         updateValuesForZone(zoneindex);
       }
     },
-    seq_probability: () => {
+    seq_step_probability: () => {
       if (zone.sequence.selectedStep) {
         zone.sequence.selectedStep.probability = calcPercentage();
         updateValuesForZone(zoneindex);
       }
     },
-    seq_probability_all: () => {
+    seq_step_probability_all: () => {
       if (zone.sequence.selectedStep) {
         zone.sequence.steps.forEach((s) => {
           if (s) {
@@ -573,7 +573,7 @@ function appendZone(/** @type {Zone} */ zone, index) {
   });
 
   DOM.all(
-    `#zone${index} .arp_probability,#zone${index} .arp_gatelength,#zone${index} .seq_probability,#zone${index} .seq_gatelength`
+    `#zone${index} .arp_probability,#zone${index} .arp_gatelength,#zone${index} .seq_step_probability,#zone${index} .seq_gatelength`
   ).forEach((el) => {
     let active = false;
     el.addEventListener('mousedown', (e) => {
@@ -866,10 +866,10 @@ function updateValuesForZone(index) {
         if (step && step.length > 0) {
           let pcnt = parseInt(step.probability * 100);
           DOM.element(
-            `#zone${index} .percent.seq_probability .inner`
+            `#zone${index} .percent.seq_step_probability .inner`
           ).style.width = `${pcnt}%`;
           DOM.element(
-            `#zone${index} .percent.seq_probability .pcnt`
+            `#zone${index} .percent.seq_step_probability .pcnt`
           ).innerHTML = pcnt;
 
           pcnt = parseInt(step.gateLength * 100);
@@ -888,10 +888,10 @@ function updateValuesForZone(index) {
           DOM.element(`#zone${index} .seq_step_condition`).selectedIndex = 0;
           DOM.element(
             // TODO generalize!
-            `#zone${index} .percent.seq_probability .inner`
+            `#zone${index} .percent.seq_step_probability .inner`
           ).style.width = `100%`;
           DOM.element(
-            `#zone${index} .percent.seq_probability .pcnt`
+            `#zone${index} .percent.seq_step_probability .pcnt`
           ).innerHTML = '100';
         }
         zone.sequence.updateRecordingState();
@@ -934,7 +934,7 @@ function updateValuesForZone(index) {
       ).style.width = `${pcnt}%`;
       DOM.element(`#zone${index} .percent.${p} .pcnt`).innerHTML = pcnt;
     });
-    // seq_probability
+    // seq_step_probability
     if (zone.arp_enabled) {
       DOM.addClass(`#zone${index}`, 'arp-enabled');
     } else {

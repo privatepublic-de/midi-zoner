@@ -230,14 +230,14 @@ module.exports = {
               </div>
               <div class="label">Prob</div>
               <div
-                class="percent seq_probability"
-                data-action="${index}:seq_probability"
+                class="percent seq_step_probability"
+                data-action="${index}:seq_step_probability"
                 title="Step probability"
               >
                 <span class="inner"></span>
                 <span class="pcnt">50</span>
               </div>
-              <div class="action" title="Apply probability to all steps" data-action="${index}:seq_probability_all"><i class="material-icons">keyboard_double_arrow_right</i></div>
+              <div class="action" title="Apply probability to all steps" data-action="${index}:seq_step_probability_all"><i class="material-icons">keyboard_double_arrow_right</i></div>
             </div>
             <div class="step-controls">
                 <div class="action" title="Move step left (if free space)" data-action="${index}:seq_step_move:-1"><i class="material-icons">chevron_left</i></div>
