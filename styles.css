@@ -1240,7 +1240,7 @@ li {
 }
 
 .seq .grid .step.playhead {
-  outline: 1px solid var(--brighter-4);
+  outline: 2px solid var(--brighter-4);
 }
 
 .seq .grid .step.unused {

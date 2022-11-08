@@ -11,7 +11,7 @@ let zones = {};
 let midiController;
 let elAllMuteOff, elAllSoloOff, elAllHoldOff;
 
-let triggerSave = () => { };
+let triggerSave = () => {};
 
 /**
  * Init view controller with references to data and MIDI controller.
@@ -364,6 +364,16 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
     seq_probability: () => {
       if (zone.sequence.selectedStep) {
         zone.sequence.selectedStep.probability = calcPercentage();
+        updateValuesForZone(zoneindex);
+      }
+    },
+    seq_probability_all: () => {
+      if (zone.sequence.selectedStep) {
+        zone.sequence.steps.forEach((s) => {
+          if (s) {
+            s.probability = zone.sequence.selectedStep.probability;
+          }
+        });
         updateValuesForZone(zoneindex);
       }
     },
@@ -781,7 +791,7 @@ function updateValuesForZone(index) {
     );
     const rgbZoneAlternative = DOM.hslToRgb(
       zone.hue,
-      Math.min(zone.saturation + .2, 1),
+      Math.min(zone.saturation + 0.2, 1),
       zone.lightness * (zones.altTheme ? 1.2 : 1.3)
     );
     zoneElement.style.setProperty(
