@@ -380,12 +380,12 @@ module.exports = {
           </span>
         </div>
         <div class="drop-down">
-          <select class="arp_direction" data-change="${index}:arp_direction">
-            <option>UP</option>
-            <option>DOWN</option>
-            <option>UP / DOWN</option>
-            <option>RANDOM</option>
-            <option>ORDER</option>
+          <select class="arp_direction" data-change="${index}:arp_direction" title="Arp play direction">
+            <option>Up</option>
+            <option>Down</option>
+            <option>Up / Down</option>
+            <option>Random</option>
+            <option>Order</option>
           </select>
         </div>
         <div class="drop-down">

@@ -549,6 +549,7 @@ select#midiInChannel {
   color: var(--brighter-4);
 }
 
+.step-info-close:hover,
 .rtool.delzone:hover {
   color: #900;
   text-shadow: 0 0 2px #fff;
@@ -1169,7 +1170,7 @@ li {
 .seqtools {
   display: flex;
   align-items: center;
-  background-color: var(--darker-1);
+  /* background-color: var(--darker-1); */
   padding: 4px;
 }
 
@@ -1180,7 +1181,7 @@ li {
 .seq .grid {
   position: relative;
   padding: 4px 8px 8px 8px;
-  margin-top: 5px;
+  /* margin-top: 5px; */
   --step-size: 20px;
 }
 
@@ -1257,7 +1258,7 @@ li {
 
 .seq .grid.hot .listen-indicator,
 .seq_record_live.selected {
-  animation: indicator 2s infinite alternate;
+  animation: indicator 1s infinite alternate;
 }
 
 .seq_gatelength {
@@ -1282,7 +1283,8 @@ li {
 }
 
 .seq .grid.hot .step.selected-step {
-  animation: indicator 2s infinite alternate;
+  /* animation: indicator 2s infinite alternate; */
+  background-color: var(--record-highlight) !important;
 }
 
 .seq .grid .step:nth-child(4n + 1)::before {
@@ -1300,10 +1302,10 @@ li {
   /* border: 1px solid transparent; */
   position: absolute;
   top: 0px;
-  left: calc((var(--step-size) + 4px) * 17);
+  left: calc((var(--step-size) + 4px) * 16 + var(--step-size) / 2);
   z-index: 1;
   background-color: var(--bg-color-alternative);
-  box-shadow: 0 0 8px var(--shadow-topbar-button);
+  box-shadow: 0 0 32px var(--shadow-topbar-button);
   display: none;
 }
 
