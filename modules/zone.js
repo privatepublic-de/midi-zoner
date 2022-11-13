@@ -3,7 +3,20 @@ const MIDI = require('./midi');
 const DIV_TICKS = [
   192, 144, 96, 72, 64, 48, 36, 32, 24, 18, 16, 12, 9, 8, 6, 4, 3, 2
 ]; // 24ppq
-
+const COLOR_PALETTE = [
+  [0, 0.5, 0.39330582617584076],
+  [0.08333333333333333, 0.7, 0.37712963585693327],
+  [0.16666666666666666, 0.5, 0.37712963585693327],
+  [0.25, 0.5, 0.39330582617584076],
+  [0.3333333333333333, 0.5, 0.42132380968109245],
+  [0.4166666666666667, 0.5, 0.45367619031890755],
+  [0.5, 0.7, 0.4],
+  [0.5833333333333334, 0.5, 0.4978703641430668],
+  [0.6666666666666666, 0.7, 0.6],
+  [0.75, 0.5, 0.48169417382415924],
+  [0.8333333333333334, 0.5, 0.45367619031890755],
+  [0.9166666666666666, 0.5, 0.4213238096810925]
+];
 const note_fill = 'rgba(255,255,255,.6)';
 const note_fill_arp = 'rgba(0,0,0,.2)';
 const note_fill_black = 'rgba(255,255,255,.3)';
@@ -113,9 +126,11 @@ class Zone {
   /** @type {MIDI} */
   midi = null;
   dom = {};
+
   hue = 0;
   saturation = 0;
   lightness = 0.3;
+
   pgm_no = null; // 1-based: 1-128
 
   rngArp = null;
@@ -707,10 +722,14 @@ class Zone {
     this.notesChanged();
   }
 
-  randomizeColor() {
-    this.hue = Math.random();
-    this.saturation = Math.random() * 0.7;
-    this.lightness = this.hue > 0.1 && this.hue < 0.55 ? 0.4 : 0.6;
+  randomizeColor(index) {
+    const paletteIndex =
+      typeof index != 'undefined'
+        ? index % COLOR_PALETTE.length
+        : parseInt(Math.random() * COLOR_PALETTE.length);
+    this.hue = COLOR_PALETTE[paletteIndex][0];
+    this.saturation = COLOR_PALETTE[paletteIndex][1];
+    this.lightness = COLOR_PALETTE[paletteIndex][2];
   }
 
   createEuclidianPattern(length, hits) {
