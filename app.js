@@ -340,8 +340,9 @@ document.addEventListener('DOMContentLoaded', function () {
           saveZones();
         });
         DOM.element('#shuffleColors').addEventListener('dblclick', () => {
+          const factor = zones.list.length > 11 ? 1 : 12 / zones.list.length;
           zones.list.forEach((/** @type {Zone} */ zone, index) => {
-            zone.randomizeColor(index);
+            zone.randomizeColor(parseInt(index * factor));
           });
           view.renderZones();
           saveZones();
