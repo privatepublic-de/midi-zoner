@@ -4,7 +4,7 @@ const DIV_TICKS = [
   192, 144, 96, 72, 64, 48, 36, 32, 24, 18, 16, 12, 9, 8, 6, 4, 3, 2
 ]; // 24ppq
 const COLOR_PALETTE = [
-  [0, 0.5, 0.39330582617584076],
+  [0, 0.6, 0.5],
   [0.08333333333333333, 0.7, 0.37712963585693327],
   [0.16666666666666666, 0.5, 0.37712963585693327],
   [0.25, 0.5, 0.39330582617584076],
@@ -726,10 +726,21 @@ class Zone {
     const paletteIndex =
       typeof index != 'undefined'
         ? index % COLOR_PALETTE.length
-        : parseInt(Math.random() * COLOR_PALETTE.length);
-    this.hue = COLOR_PALETTE[paletteIndex][0];
-    this.saturation = COLOR_PALETTE[paletteIndex][1];
-    this.lightness = COLOR_PALETTE[paletteIndex][2];
+        : Math.random() * COLOR_PALETTE.length;
+    const i1 = parseInt(paletteIndex);
+    const interp = paletteIndex - i1;
+    const i2 = (i1 + 1) % COLOR_PALETTE.length;
+
+    const irgb = [];
+    for (let i = 0; i < 3; i++) {
+      irgb.push(
+        COLOR_PALETTE[i1][i] * (1 - interp) + COLOR_PALETTE[i2][i] * interp
+      );
+    }
+
+    this.hue = irgb[0];
+    this.saturation = irgb[1];
+    this.lightness = irgb[2];
   }
 
   createEuclidianPattern(length, hits) {

@@ -43,8 +43,8 @@
   --bg-topbar-button-active: #666;
   --fg-topbar-button-active: #ccc;
   --highlight-bpm-value: #0cc;
-  --bg-midi-update: #fff;
-  --fg-midi-update: #000;
+  --fg-midi-update: #fff;
+  --bg-midi-update: transparent;
   --bg-loadsave: #444;
   --bg-loadsave-item: #555;
   --shadow-zone: #111;
@@ -171,6 +171,10 @@ select {
   color: var(--brighter-3);
   font-size: 12px;
   padding: 0;
+}
+
+#midisettings select,
+.zone select.outport {
   transition: background-color 1s, color 1s;
 }
 
@@ -181,7 +185,7 @@ select {
 
 .updated #midisettings select,
 .updated .zone select.outport {
-  background-color: var(--bg-midi-update);
+  background-color: var(--green-highlight);
   color: var(--fg-midi-update);
 }
 
@@ -742,7 +746,6 @@ select#midiInChannel {
   vertical-align: top;
   width: 150px;
   text-align: left;
-  transition: background-color 1s;
 }
 
 .zone select {
