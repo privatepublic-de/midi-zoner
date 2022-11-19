@@ -927,6 +927,7 @@ class Sequence {
     if (this.isLiveRecoding && this.liveTargetStep) {
       this.liveTargetStep.length = this.liveTargetLength;
       this.liveTargetStep = null;
+      this.liveTargetLength = 0;
       this.updateRecordingState();
       this.updateZoneView();
     }
@@ -1014,8 +1015,11 @@ class Sequence {
         (item) => !clearSteps.includes(item)
       );
     }
-    if (this.tickn === 0) {
+    if (this.tickn == this.ticks / 2) {
+      // quantized record note lengths
       this.liveTargetLength++;
+    }
+    if (this.tickn === 0) {
       this.previousStepNumber = this.currentStepNumber;
       this.currentStepNumber = (this.currentStepNumber + 1) % this.length;
       if (this.currentStepNumber === 0) {
@@ -1082,8 +1086,13 @@ class Sequence {
     this.cycleCount = -1;
     this.previousStepPlayed = false;
     this.isFirstCycle = true;
+    this.liveTargetLength = 0;
+    this.liveTargetStep = null;
+    this.isLiveRecoding = false;
+    this.updateRecordingState();
     requestAnimationFrame(this.zone.renderSequence.bind(this.zone));
     requestAnimationFrame(this.zone.renderNotes.bind(this.zone));
+    this.updateZoneView();
   }
 
   activeNotes() {

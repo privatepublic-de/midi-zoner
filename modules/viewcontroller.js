@@ -213,6 +213,7 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       const scrollPos = window.scrollY;
       zone.dismiss();
       zones.list.splice(zoneindex, 1);
+      midiController.updateUsedPorts(listUsedPorts());
       renderZones();
       window.scrollTo({ top: scrollPos });
     },

@@ -419,7 +419,26 @@ class MIDI {
    */
   updateUsedPorts(set) {
     this.usedPorts = set;
-    console.log('MIDI: Used ports updated', this.usedPorts);
+    // disable clock output for unused ports
+    for (let pid in this.clockOutputPorts) {
+      console.log('clockport ', pid, this.usedPorts.has(pid));
+      let stillused = false;
+      this.usedPorts.forEach((upid) => {
+        if (upid == pid) {
+          stillused = true;
+        }
+      });
+      console.log('stillused', stillused);
+      if (!stillused) {
+        this.clockOutputPorts[pid] = false;
+      }
+    }
+    console.log(
+      'MIDI: Used ports updated. Used:',
+      this.usedPorts,
+      ', clock:',
+      this.clockOutputPorts
+    );
   }
 
   updateClockOutputReceiver(portid, enabled) {
