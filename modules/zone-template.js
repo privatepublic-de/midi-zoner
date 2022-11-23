@@ -304,18 +304,18 @@ module.exports = {
         </div>
         <div class="hidden">
           <div
+            class="check pitchbend"
+            data-action="${index}:pitchbend"
+            title="Transmit pitch bend messages"
+          >
+            ${checkboxIcons}PB
+          </div>
+          <div
             class="check mod"
             data-action="${index}:mod"
             title="Transmit mod wheel messages (CC 1)"
           >
             ${checkboxIcons}MW
-          </div>
-          <div
-            class="check at2mod"
-            data-action="${index}:at2mod"
-            title="Convert channel pressure (aftertouch) to mod (CC 1)"
-          >
-            ${checkboxIcons}AT&gt;MW
           </div>
           <div
             class="check sustain"
@@ -326,6 +326,14 @@ module.exports = {
             <span class="innertoggle sustain_on" data-action="${index}:sustain_on">ON</span>
           </div>
           <div
+            class="check fixedvel"
+            data-action="${index}:fixedvel"
+            title="Use fixed velocity"
+          >
+            ${checkboxIcons}FVel
+            <input type="number" id="fixedvel${index}" onclick="event.stopPropagation();" data-change="${index}:fixedvel_value" value="127" min="1" max="127"/>
+          </div>
+          <div
             class="check cc"
             data-action="${index}:cc"
             title="Transmit control change messages"
@@ -333,19 +341,11 @@ module.exports = {
             ${checkboxIcons}CC
           </div>
           <div
-            class="check pitchbend"
-            data-action="${index}:pitchbend"
-            title="Transmit pitch bend messages"
+            class="check at2mod"
+            data-action="${index}:at2mod"
+            title="Convert channel pressure (aftertouch) to mod (CC 1)"
           >
-            ${checkboxIcons}PB
-          </div>
-          <div
-            class="check fixedvel"
-            data-action="${index}:fixedvel"
-            title="Use fixed velocity"
-          >
-            ${checkboxIcons}FVel
-            <input type="number" id="fixedvel${index}" onclick="event.stopPropagation();" data-change="${index}:fixedvel_value" value="127" min="1" max="127"/>
+            ${checkboxIcons}AT&gt;MW
           </div>
           <div
             class="check programchange"

@@ -1220,7 +1220,7 @@ li {
   cursor: default;
 }
 
-.disabled:not(.soloed-out) .seq .grid .step {
+.disabled .seq .grid .step {
   height: 5px;
   color: transparent;
   font-size: 0;
@@ -1237,8 +1237,8 @@ li {
 }
 
 .zone.disabled .seq .grid .step.active {
-  border-color: var(--brighter-1);
-  background-color: var(--bg-color-alternative);
+  border-color: var(--brighter-3);
+  background-color: var(--brighter-2);
 }
 
 .seq .grid .step:hover {
@@ -1320,7 +1320,7 @@ li {
 }
 
 .zone.disabled .grid .step-info,
-.zone.disabled:not(.soloed-out) .seqtools {
+.zone.disabled .seqtools {
   display: none;
 }
 
