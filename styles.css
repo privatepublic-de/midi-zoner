@@ -405,6 +405,11 @@ select#midiInChannel {
   width: 100px;
   background-color: transparent;
   height: 20px;
+  padding: 0 4px;
+}
+
+.disabled .channels input.output-config-name {
+  background-color: var(--zone-color);
 }
 
 .sendClock {
