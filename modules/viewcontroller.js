@@ -820,7 +820,7 @@ function updateValuesForZone(index) {
       zoneElement.style.setProperty('--bg-color', style);
       DOM.element(`#zone${index} .step-container`).style.backgroundColor = '';
     } else {
-      const style = 'inherit'; //`rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
+      const style = 'var(--bg-zone-disabled)'; //`rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
       zoneElement.style.backgroundColor = style;
       zoneElement.style.setProperty('--bg-color', style);
     }

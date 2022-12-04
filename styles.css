@@ -50,6 +50,8 @@
   --shadow-zone: #111;
   --fg-channel-select: #000;
 
+  --bg-zone-disabled: rgba(255, 255, 255, 0.07);
+
   --brighter-0: rgba(255, 255, 255, 0.07);
   --brighter-1: rgba(255, 255, 255, 0.1);
   --brighter-2: rgba(255, 255, 255, 0.3);
@@ -422,7 +424,7 @@ select#midiInChannel {
 /* .disabled .ch.selected, */
 /* .disabled .channels select.outport, */
 .disabled .channels input.output-config-name {
-  background-color: var(--zone-color);
+  color: var(--zone-color);
 }
 
 .sendClock {
