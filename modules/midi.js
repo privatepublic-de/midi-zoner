@@ -4,6 +4,7 @@ const internalClock = require('./internal-clock');
  * Web MIDI interface handler
  */
 class MIDI {
+  static INTERNAL_PORT_ID = '*';
   static NOTENAMES = [
     'C',
     'C#',
@@ -267,7 +268,7 @@ class MIDI {
   selectDevices(deviceIdIn, deviceIdInClock) {
     this.deviceIdIn = deviceIdIn;
     this.deviceIdInClock = deviceIdInClock;
-    if (deviceIdInClock == '*') {
+    if (deviceIdInClock == MIDI.INTERNAL_PORT_ID) {
       internalClock.setHandler(this.onMIDIClockMessage.bind(this));
     } else {
       internalClock.setHandler(null);
@@ -317,7 +318,7 @@ class MIDI {
    * @param {*} portId
    */
   send(msg, portId) {
-    if (!portId || portId === '*') {
+    if (!portId || portId == MIDI.INTERNAL_PORT_ID) {
       // do nothing
     } else {
       const deviceOut = this.knownPorts[portId];
@@ -381,7 +382,7 @@ class MIDI {
    * @see MIDI.setSendClock
    */
   startClock() {
-    if (this.deviceIdInClock === '*') {
+    if (this.deviceIdInClock == MIDI.INTERNAL_PORT_ID) {
       this.sendStart();
       // internalClock.start(this.onMIDIClockMessage.bind(this));
       if (this.transportHandler) {
@@ -398,7 +399,7 @@ class MIDI {
    * @see MIDI.setSendClock
    */
   stopClock() {
-    if (this.deviceIdInClock === '*') {
+    if (this.deviceIdInClock == MIDI.INTERNAL_PORT_ID) {
       this.sendStop();
       // internalClock.stop();
       if (this.transportHandler) {
@@ -421,14 +422,12 @@ class MIDI {
     this.usedPorts = set;
     // disable clock output for unused ports
     for (let pid in this.clockOutputPorts) {
-      console.log('clockport ', pid, this.usedPorts.has(pid));
       let stillused = false;
       this.usedPorts.forEach((upid) => {
         if (upid == pid) {
           stillused = true;
         }
       });
-      console.log('stillused', stillused);
       if (!stillused) {
         this.clockOutputPorts[pid] = false;
       }

@@ -216,18 +216,18 @@ document.addEventListener('DOMContentLoaded', function () {
   const bpmInput = DOM.element('#bpm');
   const optionNoDevice = '<option value="">(No devices available)</option>';
   function updateBpmInput() {
-    if (midi.deviceIdInClock == '*') {
-      bpmInput.removeAttribute('disabled');
+    if (midi.deviceIdInClock == MIDI.INTERNAL_PORT_ID) {
+      DOM.addClass('.clocksettings', 'isInternal');
       bpmInput.value = zones.tempo;
     } else {
-      bpmInput.setAttribute('disabled', '');
+      DOM.removeClass('.clocksettings', 'isInternal');
       bpmInput.value = '';
     }
   }
   let activeUpdateTimer = null;
   const midi = new MIDI({
     eventHandler: (event) => {
-      if (midi.deviceIdInClock == '*') {
+      if (midi.deviceIdInClock == MIDI.INTERNAL_PORT_ID) {
         // handle start/stop messages with internal clock active
         if (event.data[0] == 0xf0 && event.data[1] == 0x7f) {
           // realtime sysex
@@ -443,6 +443,15 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         // zones
         midi.updateUsedPorts(view.updateOutputPortsForAllZone(outputs));
+        if (midi.knownPorts[midi.deviceIdInClock] == null) {
+          console.log(
+            'app: Clock in port',
+            midi.deviceIdInClock,
+            'not available. Switching to internal clock.'
+          );
+          midi.selectDevices(midi.deviceIdIn, MIDI.INTERNAL_PORT_ID);
+        }
+        updateBpmInput();
         DOM.addClass(document.body, 'updated');
         setTimeout(() => {
           DOM.removeClass(document.body, 'updated');

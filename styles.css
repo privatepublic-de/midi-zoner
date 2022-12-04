@@ -211,6 +211,14 @@ select#midiInChannel {
   padding: 0 10px;
 }
 
+#midisettings .internal {
+  visibility: hidden;
+}
+
+#midisettings .isInternal .internal {
+  visibility: visible;
+}
+
 .toolbar {
   margin-bottom: 6px;
 }
@@ -397,6 +405,10 @@ select#midiInChannel {
 .ch.state {
   width: 24px;
   font-size: 12px;
+}
+
+.state.selected {
+  box-shadow: 0 0 8px var(--darker-2);
 }
 
 .channels input.output-config-name {

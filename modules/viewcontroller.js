@@ -164,7 +164,7 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
         midiController.clockOutputPorts[zone.outputPortId] === true
       );
       midiController.updateClockOutputReceiver(
-        zone.outputPortId != '*'
+        zone.outputPortId != MIDI.INTERNAL_PORT_ID
           ? zone.outputPortId
           : zone.preferredOutputPortId,
         state
@@ -1100,8 +1100,8 @@ function updateOutputPortsForZone(index, outputs) {
     select.value = preferredOutputPortId;
     zones.list[index].outputPortId = preferredOutputPortId;
   } else {
-    select.value = '*';
-    zones.list[index].outputPortId = '*';
+    select.value = MIDI.INTERNAL_PORT_ID;
+    zones.list[index].outputPortId = MIDI.INTERNAL_PORT_ID;
   }
   updateValuesForAllZones();
 }

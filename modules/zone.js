@@ -50,7 +50,7 @@ class Note {
   velo = 0;
   channel = 0;
   isBlackKey = false;
-  portId = '*';
+  portId = MIDI.INTERNAL_PORT_ID;
   constructor(number, velo, channel, portId) {
     this.number = number;
     this.velo = velo;
@@ -67,8 +67,8 @@ class Zone {
   static seqClipboardSequence = null;
   static updateZoneViewEventName = 'update-zone-view';
   channel = 0; // 0-based
-  preferredOutputPortId = '*';
-  outputPortId = '*';
+  preferredOutputPortId = MIDI.INTERNAL_PORT_ID;
+  outputPortId = MIDI.INTERNAL_PORT_ID;
   enabled = true;
   _solo = false;
   programchange = false;
