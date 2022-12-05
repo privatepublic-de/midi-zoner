@@ -172,9 +172,9 @@ class MIDI {
         // sName = words.join(' ');
         if (sName.length > 20) {
           sName =
-            sName.substr(0, 20 / 2) +
+            sName.substr(0, 20 / 2).trim() +
             '…' +
-            sName.substr(sName.length - 20 / 2, 20 / 2);
+            sName.substr(sName.length - 20 / 2, 20 / 2).trim();
         }
         return {
           id: port[1].id,

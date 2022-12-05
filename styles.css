@@ -1228,6 +1228,7 @@ li {
   justify-content: center;
   align-items: center;
   border: 1px solid var(--darker-1);
+  border-radius: 4px;
   color: var(--darker-2);
   background-color: var(--darker-1);
   font-size: 0.85em;
@@ -1310,13 +1311,17 @@ li {
   background-color: var(--record-highlight) !important;
 }
 
-.seq .grid .step:nth-child(4n + 1)::before {
+/* .seq .grid .step:nth-child(4n + 1)::before {
   content: '◤';
   display: block;
   position: absolute;
-  top: -1px;
-  left: 0;
+  top: 0px;
+  left: 1px;
   font-size: 50%;
+} */
+
+.seq .grid .step:nth-child(4n + 1) {
+  text-decoration: underline;
 }
 
 .seq .step-info {

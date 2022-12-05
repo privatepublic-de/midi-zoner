@@ -11,7 +11,7 @@ let zones = {};
 let midiController;
 let elAllMuteOff, elAllSoloOff, elAllHoldOff;
 
-let triggerSave = () => { };
+let triggerSave = () => {};
 
 /**
  * Init view controller with references to data and MIDI controller.
@@ -457,6 +457,7 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       updateValuesForZone(zoneindex);
     },
     seq_record_live: () => {
+      zone.sequence.selectedStepNumber = -1;
       zone.sequence.isLiveRecoding = !zone.sequence.isLiveRecoding;
       updateValuesForZone(zoneindex);
     },

@@ -885,6 +885,7 @@ class Sequence {
   set selectedStepNumber(v) {
     this._selectedStep = v;
     if (this._selectedStep > -1) {
+      this.isLiveRecoding = false;
       this.isHotRecordingNotes = true;
       // console.log('Start recording', this._selectedStep);
     } else {
