@@ -383,8 +383,14 @@ document.addEventListener('DOMContentLoaded', function () {
         updateBpmInput();
         midi.setInternalBPM(zones.tempo);
         document.body.addEventListener('keyup', (ev) => {
-          if (!isLoadSaveDialogOpenend && ev.key == ' ') {
-            startClockButton.click();
+          if (!isLoadSaveDialogOpenend) {
+            if (ev.key == ' ') {
+              startClockButton.click();
+            }
+            const numIndex = '1234567890'.indexOf(ev.key);
+            if (numIndex > -1) {
+              view.soloZone(numIndex);
+            }
           }
         });
         DOM.element('#save').addEventListener('click', (e) => {

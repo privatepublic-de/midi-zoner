@@ -1132,6 +1132,17 @@ function allHoldOff() {
   triggerSave();
 }
 
+function soloZone(index) {
+  if (index < zones.list.length) {
+    for (var i = 0; i < zones.list.length; i++) {
+      zones.list[i].solo = false;
+    }
+    zones.list[index].solo = true;
+    zones.list[index].enabled = true;
+    updateValuesForAllZones();
+  }
+}
+
 module.exports = {
   initController,
   renderZones,
@@ -1139,5 +1150,6 @@ module.exports = {
   renderMarkersForAllZones,
   updateOutputPortsForAllZone: updateOutputPortsForAllZones,
   updateControllerValues,
-  updateValuesForAllZones
+  updateValuesForAllZones,
+  soloZone
 };
