@@ -1081,7 +1081,7 @@ function updateOutputPortsForZone(index, outputs) {
   DOM.element(`#zone${index} .output-config-name`).value =
     zones.outputConfigNames[zones.list[index].configId] || '';
   if (zones.outputConfigNames) {
-    let html = '<optgroup label="Presets (Port/Channel)">';
+    let html = '<optgroup label="---- PRESETS ----"></optgroup>';
     [...Object.keys(zones.outputConfigNames)]
       .sort((a, b) =>
         zones.outputConfigNames[a].localeCompare(zones.outputConfigNames[b])
@@ -1092,10 +1092,14 @@ function updateOutputPortsForZone(index, outputs) {
           html += `<option value="$${preset}">${zones.outputConfigNames[preset]}</option>`;
         }
       });
-    html += '</optgroup>';
     DOM.addHTML(select, 'beforeend', html);
   }
 
+  DOM.addHTML(
+    select,
+    'beforeend',
+    '<optgroup label="---- PORTS ----"></optgroup>'
+  );
   const preferredOutputPortId = zones.list[index].preferredOutputPortId;
   let preferredPortAvailable = false;
   outputs.forEach((port) => {
