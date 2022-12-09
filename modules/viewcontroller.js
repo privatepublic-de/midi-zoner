@@ -137,6 +137,15 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       actions.fixedvel_value();
       applyParamToggle();
     },
+    scale_velocity_value: () => {
+      zone.scale_velocity_value = document.getElementById(
+        'scalevel' + zoneindex
+      ).value;
+    },
+    scale_velocity: () => {
+      actions.scale_velocity_value();
+      applyParamToggle();
+    },
     cc: applyParamToggle,
     sustain: applyParamToggle,
     sustain_on: applyParamToggle,
@@ -912,6 +921,7 @@ function updateValuesForZone(index) {
       'at2mod',
       'sustain',
       'fixedvel',
+      'scale_velocity',
       'pitchbend',
       'enabled',
       'solo',
@@ -954,6 +964,7 @@ function updateValuesForZone(index) {
       ? zone.pgm_no
       : '';
     DOM.element(`#fixedvel${index}`).value = zone.fixedvel_value;
+    DOM.element(`#scalevel${index}`).value = zone.scale_velocity_value;
     DOM.element(`#zone${index} .output-config-name`).value =
       zones.outputConfigNames[zone.configId] || '';
     if (midiController.clockOutputPorts[zone.outputPortId] === true) {
@@ -1151,5 +1162,6 @@ module.exports = {
   updateOutputPortsForAllZone: updateOutputPortsForAllZones,
   updateControllerValues,
   updateValuesForAllZones,
-  soloZone
+  soloZone,
+  allSoloOff
 };

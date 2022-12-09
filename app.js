@@ -383,13 +383,19 @@ document.addEventListener('DOMContentLoaded', function () {
         updateBpmInput();
         midi.setInternalBPM(zones.tempo);
         document.body.addEventListener('keyup', (ev) => {
-          if (!isLoadSaveDialogOpenend) {
+          if (
+            !isLoadSaveDialogOpenend &&
+            document.activeElement.tagName != 'INPUT'
+          ) {
             if (ev.key == ' ') {
               startClockButton.click();
             }
             const numIndex = '1234567890'.indexOf(ev.key);
             if (numIndex > -1) {
               view.soloZone(numIndex);
+            }
+            if (ev.key == 's') {
+              view.allSoloOff();
             }
           }
         });

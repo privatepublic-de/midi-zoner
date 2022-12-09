@@ -334,6 +334,13 @@ module.exports = {
             ${checkboxIcons}FVel
             <input type="number" id="fixedvel${index}" onclick="event.stopPropagation();" data-change="${index}:fixedvel_value" value="127" min="1" max="127"/>
           </div>
+          <div class="check scale_velocity"
+            data-action="${index}:scale_velocity"
+            title="Scale velocity %"
+          >
+            ${checkboxIcons}SVel
+            <input type="number" id="scalevel${index}" onclick="event.stopPropagation();" data-change="${index}:scale_velocity_value" value="100" min="1" max="200"/>
+          </div>
           <div
             class="check cc"
             data-action="${index}:cc"
