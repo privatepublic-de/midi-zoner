@@ -70,9 +70,6 @@ module.exports = {
                     stroke-width="8"
                     fill="none"
                   />
-                  <rect
-                    id="pot_zero_${zoneindex}_${ix}"
-                    x="26" y="13" width="4" height="10" fill="var(--bg-color)" />
                   <path
                     id="pot_value_${zoneindex}_${ix}"
                     d=""
@@ -80,6 +77,9 @@ module.exports = {
                     stroke-width="9"
                     fill="none"
                   />
+                  <rect
+                    id="pot_zero_${zoneindex}_${ix}"
+                    x="28" y="7" width="1" height="10" fill="#000000" />
                 </svg>
                 <input class="cclabel" type="text" value="${
                   cc.label
