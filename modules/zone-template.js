@@ -338,7 +338,7 @@ module.exports = {
             data-action="${index}:scale_velocity"
             title="Scale velocity %"
           >
-            ${checkboxIcons}SVel
+            ${checkboxIcons}Vel%
             <input type="number" id="scalevel${index}" onclick="event.stopPropagation();" data-change="${index}:scale_velocity_value" value="100" min="1" max="200"/>
           </div>
           <div

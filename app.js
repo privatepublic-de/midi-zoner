@@ -471,12 +471,12 @@ document.addEventListener('DOMContentLoaded', function () {
       }, 100);
     }
   });
-  const clockIndicator = DOM.element('#clockIndicator');
+  const clockIndicator = DOM.element('.clockIndicator');
   setInterval(() => {
     if (midi.hasClock) {
-      clockIndicator.classList.add('yes');
+      clockIndicator.classList.add('hasClock');
     } else {
-      clockIndicator.classList.remove('yes');
+      clockIndicator.classList.remove('hasClock');
     }
   }, 999);
   const list = [select_in, select_in_clock];

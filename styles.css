@@ -375,7 +375,8 @@ select#midiInChannel {
   vertical-align: baseline;
   margin-left: 2px;
   background-color: transparent;
-  border: 1px solid var(--brighter-1);
+  /* border-bottom: 1px solid var(--brighter-1);
+  border-top: 1px solid transparent; */
 }
 
 .zone input[type='number']:focus-visible {
@@ -1170,12 +1171,8 @@ li {
   vertical-align: middle;
 }
 
-.hasClock {
-  border-right: 2px solid #00000000;
-}
-
-.hasClock.yes {
-  border-color: #0a0;
+.clockIndicator.hasClock {
+  border-right-color: #0a0 !important;
 }
 
 .seq {

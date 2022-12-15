@@ -41,10 +41,13 @@
         <div class="row clocksettings">
           <div class="block">
             <label for="midiClockInDeviceId">Clock:</label>
-            <select id="midiClockInDeviceId" tabindex="-1">
+            <select
+              id="midiClockInDeviceId"
+              class="clockIndicator"
+              tabindex="-1"
+            >
               <option>(No devices)</option>
             </select>
-            <span class="hasClock" id="clockIndicator"></span>
           </div>
           <div
             id="startClockButton"
