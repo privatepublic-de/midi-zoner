@@ -869,6 +869,34 @@ select#midiInChannel {
   text-indent: 4px;
 }
 
+.show-seq .rangeholder {
+  margin-top: 0;
+}
+
+.show-seq .range,
+.show-seq .join {
+  height: 14px;
+}
+
+.show-seq .current {
+  top: 2px;
+  height: 10px;
+}
+
+.show-seq .marker {
+  font-size: 50%;
+  width: 16px;
+}
+
+.show-seq .marker.high {
+  top: 5px;
+  padding-right: 6px;
+}
+
+.show-seq .oct {
+  overflow: hidden;
+}
+
 .toggle {
   margin-left: 7px;
   width: 50px;
@@ -1225,7 +1253,7 @@ li {
   justify-content: center;
   align-items: center;
   border: 1px solid var(--darker-1);
-  border-radius: 4px;
+  border-radius: 2px;
   color: var(--darker-2);
   background-color: var(--darker-1);
   font-size: 0.85em;
@@ -1318,7 +1346,8 @@ li {
 } */
 
 .seq .grid .step:nth-child(4n + 1) {
-  text-decoration: underline;
+  border-width: 2px;
+  border-color: var(--darker-2);
 }
 
 .seq .step-info {
