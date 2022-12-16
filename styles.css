@@ -1296,7 +1296,7 @@ li {
 
 .seq .grid .step.active {
   background-color: var(--brighter-1);
-  border-color: var(--brighter-4);
+  border-color: var(--brighter-4) !important;
   color: var(--brighter-4);
 }
 
