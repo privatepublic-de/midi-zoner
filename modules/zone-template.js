@@ -185,24 +185,6 @@ module.exports = {
         </div>
       </div>
       <div class="seq" data-action="${index}:select_step:-1">
-        <div class="seqtools">
-          <div class="label">Sequencer:</div>
-          <div class="label">Steps</div>
-          <div class="val">
-            <input title="Number of steps in sequence" class="seq_steps" type="number" min="1" max="${Sequence.MAX_STEPS}" value="16" data-change="${index}:seq_steps" /> 
-          </div>
-          <div class="drop-down" title="Step resolution">
-            <select class="seq_division" data-change="${index}:seq_division">
-              ${noteLengthOptions}
-            </select>
-          </div>
-          <div class="action" title="Move whole sequence 1 step left" data-action="${index}:seq_move:-1"><i class="material-icons">chevron_left</i></div>
-          <div class="action" title="Move whole sequence 1 step right" data-action="${index}:seq_move:1"><i class="material-icons">chevron_right</i></div>
-          <div class="action" title="Copy sequence" data-action="${index}:seq_copy"><i class="material-icons">content_copy</i></div>
-          <div class="action" title="Paste sequence" data-action="${index}:seq_paste"><i class="material-icons">content_paste</i></div>
-          <div class="action" title="Clear complete sequence" data-action="${index}:seq_clear_all"><i class="material-icons">clear</i></div>
-          <div class="action seq_record_live" title="Live recording while sequence is playing" data-action="${index}:seq_record_live"><i class="material-icons">piano</i></div>
-        </div>
         <div class="grid">
           <div class="step-container">${sequencerGrid}</div>
           <div class="step-info" data-action="${index}:ignore">
@@ -263,7 +245,23 @@ module.exports = {
               </div>
               <div class="step-info-close" data-action="${index}:select_step:-1"><i class="material-icons">close</i></div>
             </div>
-          <div style="clear:both"></div>
+        </div>
+        <div class="seqtools">
+          <div class="label">Steps</div>
+          <div class="val">
+            <input title="Number of steps in sequence" class="seq_steps" type="number" min="1" max="${Sequence.MAX_STEPS}" value="16" data-change="${index}:seq_steps" /> 
+          </div>
+          <div class="drop-down" title="Step resolution">
+            <select class="seq_division" data-change="${index}:seq_division">
+              ${noteLengthOptions}
+            </select>
+          </div>
+          <div class="action" title="Move whole sequence 1 step left" data-action="${index}:seq_move:-1"><i class="material-icons">chevron_left</i></div>
+          <div class="action" title="Move whole sequence 1 step right" data-action="${index}:seq_move:1"><i class="material-icons">chevron_right</i></div>
+          <div class="action" title="Copy sequence" data-action="${index}:seq_copy"><i class="material-icons">content_copy</i></div>
+          <div class="action" title="Paste sequence" data-action="${index}:seq_paste"><i class="material-icons">content_paste</i></div>
+          <div class="action" title="Clear complete sequence" data-action="${index}:seq_clear_all"><i class="material-icons">clear</i></div>
+          <div class="action seq_record_live" title="Live recording while sequence is playing" data-action="${index}:seq_record_live"><i class="material-icons">piano</i></div>
         </div>
       </div>
       <div class="rangeholder">

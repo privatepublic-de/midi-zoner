@@ -372,11 +372,8 @@ select#midiInChannel {
 
 .zone .check input[type='number'] {
   height: auto;
-  vertical-align: baseline;
   margin-left: 2px;
-  background-color: transparent;
-  /* border-bottom: 1px solid var(--brighter-1);
-  border-top: 1px solid transparent; */
+  padding-top: 2px;
 }
 
 .zone input[type='number']:focus-visible {
@@ -1211,25 +1208,23 @@ li {
 }
 
 .disabled .seq {
-  /* border-color: var(--brighter-1); */
   background-color: var(--zone-color);
 }
 
 .seqtools {
   display: flex;
   align-items: center;
-  /* background-color: var(--darker-1); */
   padding: 4px;
 }
 
 .show-seq .seq {
-  display: block;
+  display: flex;
+  align-items: flex-start;
 }
 
 .seq .grid {
   position: relative;
-  padding: 4px 8px 8px 8px;
-  /* margin-top: 5px; */
+  padding: 4px 8px;
   --step-size: 20px;
 }
 
@@ -1351,15 +1346,14 @@ li {
 }
 
 .seq .step-info {
-  padding: 4px;
+  padding: 8px 4px 4px 4px;
   color: var(--brighter-3);
-  /* border: 1px solid transparent; */
   position: absolute;
-  top: 0px;
+  top: -4px;
   left: calc((var(--step-size) + 4px) * 16 + var(--step-size) / 2);
   z-index: 1;
-  background-color: var(--bg-color-alternative);
-  box-shadow: 0 0 32px var(--shadow-topbar-button);
+  background-color: var(--bg-color);
+  box-shadow: 0 0 6px var(--shadow-topbar-button);
   display: none;
 }
 
