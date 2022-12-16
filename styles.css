@@ -1214,7 +1214,7 @@ li {
 .seqtools {
   display: flex;
   align-items: center;
-  padding: 4px;
+  padding: 6px 4px;
 }
 
 .show-seq .seq {
