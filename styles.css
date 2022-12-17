@@ -426,6 +426,10 @@ select#midiInChannel {
   color: var(--zone-color);
 }
 
+.disabled .channels input.output-config-name::placeholder {
+  color: var(--zone-color);
+}
+
 .sendClock {
   display: flex;
   justify-content: center;
