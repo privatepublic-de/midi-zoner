@@ -69,10 +69,10 @@
 }
 
 body.altTheme {
-  --brighter-0: rgba(255, 255, 255, 0.2);
-  --brighter-1: rgba(255, 255, 255, 0.3);
-  --brighter-2: rgba(255, 255, 255, 0.6);
-  --brighter-3: rgba(255, 255, 255, 0.75);
+  --brighter-0: rgba(255, 255, 255, 0.125);
+  --brighter-1: rgba(255, 255, 255, 0.2);
+  --brighter-2: rgba(255, 255, 255, 0.5);
+  --brighter-3: rgba(255, 255, 255, 0.66);
   --brighter-4: rgba(255, 255, 255, 0.9);
 
   --darker-1: rgba(0, 0, 0, 0.15);
@@ -354,10 +354,10 @@ select#midiInChannel {
 .zone.disabled {
   box-shadow: none;
   background-image: none;
-  border: none;
+  border-color: transparent;
 }
 
-.zone.disabled .ch.enabled {
+.zone.disabled:not(.soloed-out) .ch.enabled:not(.selected) {
   background-color: var(--zone-color);
 }
 
