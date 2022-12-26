@@ -1447,3 +1447,7 @@ li {
   right: 5px;
   cursor: pointer;
 }
+
+#clockOutPortsCount {
+  font-family: monospace;
+}
