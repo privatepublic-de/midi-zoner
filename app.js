@@ -394,8 +394,13 @@ document.addEventListener('DOMContentLoaded', function () {
           );
         }
         DOM.element('#shuffleColors').addEventListener('click', () => {
-          zones.list.forEach((zone) => {
-            zone.randomizeColor();
+          zones.list.forEach((/** @type {Zone} */ zone, index) => {
+            do {
+              zone.randomizeColor();
+            } while (
+              index > 0 &&
+              Math.abs(zones.list[index - 1].hue - zone.hue) < 0.15
+            );
           });
           view.renderZones();
           saveZones();
