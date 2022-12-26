@@ -28,6 +28,7 @@ function createWindow() {
       contextIsolation: false,
       backgroundThrottling: false
     },
+    acceptFirstMouse: true,
     show: false
   });
   win.once('ready-to-show', () => {
