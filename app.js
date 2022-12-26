@@ -225,7 +225,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
   function updateClockOutputCount() {
-    console.log('UPDATING COUNT');
     let count = 0;
     for (const [portid, enabled] of Object.entries(midi.clockOutputPorts)) {
       let present = false;
@@ -234,7 +233,6 @@ document.addEventListener('DOMContentLoaded', function () {
           present = true;
         }
       });
-      console.log('  ', portid, enabled, present);
       if (enabled && present) {
         count++;
       }

@@ -289,7 +289,6 @@ class Zone {
         case MIDI.MESSAGE.NOTE_ON: // note on
           let key = data[1];
           const srcKey = key;
-          console.log('>>', this.scale_velocity);
           let velo = this.scale_velocity
             ? Math.max(
                 1,
