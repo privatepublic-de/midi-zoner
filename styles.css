@@ -731,7 +731,7 @@ select#midiInChannel {
   align-items: center;
 }
 
-.octselect.octcenter::after {
+.octselect.octcenter:not(.selected)::after {
   content: '·';
   color: var(--brighter-2);
   font-size: 0.75em;
