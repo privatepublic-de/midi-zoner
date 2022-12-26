@@ -224,6 +224,67 @@ document.addEventListener('DOMContentLoaded', function () {
       bpmInput.value = '';
     }
   }
+  function updateClockOutputCount() {
+    console.log('UPDATING COUNT');
+    let count = 0;
+    for (const [portid, enabled] of Object.entries(midi.clockOutputPorts)) {
+      let present = false;
+      midi.outputPortsRegistered.forEach((p) => {
+        if (parseInt(p.id) == parseInt(portid)) {
+          present = true;
+        }
+      });
+      console.log('  ', portid, enabled, present);
+      if (enabled && present) {
+        count++;
+      }
+    }
+    DOM.element('#clockOutPortsCount').innerHTML = count > 0 ? count : '-';
+  }
+
+  function updateClockReceivers(outputs) {
+    const clockOutListContainer = DOM.element(
+      '#clockOutPortWindow #clockOutPortList'
+    );
+    DOM.empty(clockOutListContainer);
+    if (!outputs) {
+      return;
+    }
+    outputs.forEach((outport) => {
+      const isSelected = midi.clockOutputPorts[outport.id] === true;
+      DOM.addHTML(
+        clockOutListContainer,
+        'beforeend',
+        `<div class="clockOutOption ${
+          isSelected ? 'selected' : ''
+        }" data-portid="${
+          outport.id
+        }"><span class="material-icons sel">check_circle</span
+        ><span class="material-icons unsel">radio_button_unchecked</span> ${
+          outport.fullName
+        }</div>`
+      );
+    });
+    DOM.all('#clockOutPortWindow #clockOutPortList .clockOutOption').forEach(
+      (option) => {
+        option.addEventListener('click', (e) => {
+          const portid = parseInt(option.getAttribute('data-portid'));
+          const state = !(midi.clockOutputPorts[portid] === true);
+          if (state) {
+            DOM.addClass(option, 'selected');
+          } else {
+            DOM.removeClass(option, 'selected');
+          }
+          midi.updateClockOutputReceiver(portid, state);
+          view.updateValuesForAllZones();
+          zones.clockOutputPorts = midi.clockOutputPorts;
+          saveZones();
+          updateClockOutputCount();
+        });
+      }
+    );
+    updateClockOutputCount();
+  }
   let activeUpdateTimer = null;
   const midi = new MIDI({
     eventHandler: (event) => {
@@ -381,6 +442,7 @@ document.addEventListener('DOMContentLoaded', function () {
           saveZones();
         });
         updateBpmInput();
+        updateClockOutputCount();
         midi.setInternalBPM(zones.tempo);
         document.body.addEventListener('keyup', (ev) => {
           if (
@@ -430,7 +492,7 @@ document.addEventListener('DOMContentLoaded', function () {
         DOM.addHTML(
           select_in_clock,
           'beforeend',
-          `<option value="*">Internal</option>`
+          `<option value="*">midi-zoner</option>`
         );
         if (inputs.length > 0) {
           inputs.forEach((input) => {
@@ -464,12 +526,14 @@ document.addEventListener('DOMContentLoaded', function () {
           midi.selectDevices(midi.deviceIdIn, MIDI.INTERNAL_PORT_ID);
         }
         updateBpmInput();
+        updateClockReceivers(outputs);
         DOM.addClass(document.body, 'updated');
         setTimeout(() => {
           DOM.removeClass(document.body, 'updated');
         }, 1000);
       }, 100);
-    }
+    },
+    updateClockReceiverHandler: updateClockReceivers
   });
   const clockIndicator = DOM.element('.clockIndicator');
   setInterval(() => {
@@ -489,6 +553,11 @@ document.addEventListener('DOMContentLoaded', function () {
       localStorage.setItem('midiInId', inId);
       localStorage.setItem('midiInClockId', inClockId);
     });
+  });
+  DOM.element('#clockSendButton').addEventListener('click', (e) => {
+    const clockoutcontainer = DOM.element('#clockOutPortWindow');
+    clockoutcontainer.style.display =
+      clockoutcontainer.style.display == 'block' ? 'none' : 'block';
   });
   view.initController({ saveData: saveZones, data: zones, midi });
 });

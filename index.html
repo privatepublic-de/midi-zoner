@@ -50,8 +50,16 @@
             </select>
           </div>
           <div
+            class="lightButton"
+            title="Select clock output ports"
+            id="clockSendButton"
+          >
+            <i class="material-icons">keyboard_double_arrow_right</i>
+            <span id="clockOutPortsCount">-</span>
+          </div>
+          <div
             id="startClockButton"
-            class="toggle"
+            class="toggle internal"
             title="Start arpeggiators & sequencers"
           ></div>
           <div class="internal">
@@ -90,5 +98,24 @@
       </section>
     </div>
     <div id="loadsave"></div>
+    <div
+      id="clockOutPortWindow"
+      onmouseleave="document.getElementById('clockOutPortWindow').style.display='none'"
+    >
+      <div
+        onclick="document.getElementById('clockOutPortWindow').style.display='none'"
+        class="sendCancel"
+      >
+        <i class="material-icons">close</i>
+      </div>
+      <p>Select clock output ports</p>
+      <p>
+        <small
+          >All clock and start/stop messages are forwarded to the selected
+          ports.</small
+        >
+      </p>
+      <div id="clockOutPortList"></div>
+    </div>
   </body>
 </html>

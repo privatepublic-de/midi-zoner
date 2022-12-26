@@ -261,6 +261,13 @@ select#midiInChannel {
   font-size: 1.5em;
 }
 
+.sendCancel {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  cursor: pointer;
+}
+
 #midisettings .left {
   margin: 0 0 0 8px;
 }
@@ -1397,4 +1404,46 @@ li {
 
 .seq .has-selection .step-info {
   display: block;
+}
+
+#clockOutPortWindow {
+  position: fixed;
+  background: var(--bg-loadsave);
+  color: var(--brighter-3);
+  padding: 5px;
+  top: 50px;
+  right: calc(50% - 125px);
+  z-index: 2;
+  font-size: 12px;
+  display: none;
+  width: 250px;
+  box-shadow: 0 0 10px var(--shadow-zone);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+#clockOutPortList {
+  margin-top: 5px;
+  padding-top: 5px;
+  border-top: 1px solid var(--brighter-0);
+}
+
+.clockOutOption {
+  display: flex;
+  align-items: flex-start;
+  color: var(--brighter-2);
+  margin-bottom: 3px;
+  font-size: 11px;
+}
+
+.clockOutOption:hover {
+  background-color: var(--brighter-0);
+}
+
+.clockOutOption.selected {
+  color: var(--brighter-4);
+}
+
+.clockOutOption span {
+  margin-right: 5px;
 }

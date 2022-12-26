@@ -42,12 +42,14 @@ class MIDI {
     eventHandler,
     clockHandler,
     transportHandler,
-    panicHandler
+    panicHandler,
+    updateClockReceiverHandler
   }) {
     console.log('MIDI: Initializing...');
     this.panicHandler = panicHandler;
     this.eventHandler = eventHandler;
     this.transportHandler = transportHandler;
+    this.updateClockReceiverHandler = updateClockReceiverHandler;
     this.clockHandler = clockHandler;
     this.midiAccess = null;
     this.deviceIdIn = localStorage.getItem('midiInId');
@@ -55,6 +57,7 @@ class MIDI {
     this.knownPorts = {};
     this.usedPorts = new Set();
     this.clockOutputPorts = {};
+    this.outputPortsRegistered = [];
     this.songposition = 0;
     this.isClockRunning = false;
     this.hasClock = false;
@@ -63,6 +66,7 @@ class MIDI {
     }, 1000);
     let trueReported = false;
     const reportStatus = (available, msg, inputPorts, outputPorts) => {
+      this.outputPortsRegistered = outputPorts;
       if ((available && !trueReported) || !available) {
         trueReported = available;
         if (completeHandler) {
@@ -161,15 +165,6 @@ class MIDI {
       console.log('MIDI: ', countIn, 'inputs,', countOut, 'outputs');
       const mapDescriptor = (port) => {
         let sName = port[1].name;
-        // let words = sName.split(' ');
-        // if (words.length > 1) {
-        //   for (let i = 0; i < words.length; i++) {
-        //     if (words[i].length > 7) {
-        //       words[i] = words[i].substr(0, 6) + '…';
-        //     }
-        //   }
-        // }
-        // sName = words.join(' ');
         if (sName.length > 20) {
           sName =
             sName.substr(0, 20 / 2).trim() +
@@ -178,7 +173,8 @@ class MIDI {
         }
         return {
           id: port[1].id,
-          name: sName, //`${port[1].name}`, //`${name}`,
+          name: sName,
+          fullName: port[1].name,
           isSelectedInput: port[1].id == selectedIn,
           isSelectedClockInput: port[1].id == selectedInClock
         };
@@ -341,26 +337,37 @@ class MIDI {
     });
   }
 
-  /**
-   * Send MIDI clock tick message (0xf8) to all used ports.
-   */
-  sendClock() {
-    this.sendToAllUsedPorts(clockMSG);
+  sendToAllClockReceiverPorts(msg) {
+    for (const [portid, enabled] of Object.entries(this.clockOutputPorts)) {
+      if (enabled) {
+        const deviceOut = this.knownPorts[portid];
+        if (deviceOut) {
+          deviceOut.send(msg);
+        }
+      }
+    }
   }
+
+  // /**
+  //  * Send MIDI clock tick message (0xf8) to all used ports.
+  //  */
+  // sendClock() {
+  //   this.sendToAllUsedPorts(clockMSG);
+  // }
 
   /**
    * Send MIDI start message (0xfa) to all used ports.
    */
   sendStart() {
-    this.sendToAllUsedPorts(startMSG);
+    this.sendToAllClockReceiverPorts(startMSG);
   }
 
   /**
    * Send MIDI stop message (0xfc) and song position start (0xf2, 0, 0) to all used ports.
    */
   sendStop() {
-    this.sendToAllUsedPorts(stopMSG);
-    this.sendToAllUsedPorts(songPosStart);
+    this.sendToAllClockReceiverPorts(stopMSG);
+    this.sendToAllClockReceiverPorts(songPosStart);
   }
 
   /**
@@ -420,18 +427,6 @@ class MIDI {
    */
   updateUsedPorts(set) {
     this.usedPorts = set;
-    // disable clock output for unused ports
-    for (let pid in this.clockOutputPorts) {
-      let stillused = false;
-      this.usedPorts.forEach((upid) => {
-        if (upid == pid) {
-          stillused = true;
-        }
-      });
-      if (!stillused) {
-        this.clockOutputPorts[pid] = false;
-      }
-    }
     console.log(
       'MIDI: Used ports updated. Used:',
       this.usedPorts,
@@ -442,6 +437,9 @@ class MIDI {
 
   updateClockOutputReceiver(portid, enabled) {
     this.clockOutputPorts[portid] = enabled;
+    if (this.updateClockReceiverHandler) {
+      this.updateClockReceiverHandler(this.outputPortsRegistered);
+    }
     console.log(
       `MIDI: Update clock output receiver ${portid}, ${enabled}`,
       this.clockOutputPorts
