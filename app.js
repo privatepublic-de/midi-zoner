@@ -131,7 +131,7 @@ function openLoadDialog(midi) {
   DOM.addHTML(
     container,
     'beforeend',
-    `<div onclick="closeLoadSaveDialog()" class="lsCancel"><i class="material-icons">close</i></div>
+    /*html*/ `<div onclick="closeLoadSaveDialog()" class="lsCancel"><i class="material-icons">close</i></div>
     <h2>Load scene</h2>
     ${existingScenesHtml('load')}`
   );
@@ -164,7 +164,7 @@ function openSaveDialog() {
   DOM.addHTML(
     container,
     'beforeend',
-    `<div onclick="closeLoadSaveDialog()" class="lsCancel"><i class="material-icons">close</i></div>
+    /*html*/ `<div onclick="closeLoadSaveDialog()" class="lsCancel"><i class="material-icons">close</i></div>
     <h2>Save scene</h2>
     <p><input type="text" placeholder="Enter name" id="newSceneName"/> 
     <button id="saveNew" class="lightButton">Save</button></p>
@@ -288,31 +288,13 @@ document.addEventListener('DOMContentLoaded', function () {
     eventHandler: (event) => {
       if (midi.deviceIdInClock == MIDI.INTERNAL_PORT_ID) {
         // handle start/stop messages with internal clock active
-        if (event.data[0] == 0xf0 && event.data[1] == 0x7f) {
-          // realtime sysex
-          if (event.data[2] == 0x7f && event.data[3] == 0x06) {
-            if (event.data[4] == 0x01) {
-              // stop/pause
-              midi.stopClock();
-              zones.list.forEach((z) => {
-                z.stopped();
-              });
-            }
-            if (event.data[4] == 0x02 || event.data[4] == 0x09) {
-              // start/continue
-              midi.startClock();
-            }
-          }
-          return;
-        } else {
-          if (event.data[0] == MIDI.MESSAGE.START) {
-            midi.startClock();
-          } else if (event.data[0] == MIDI.MESSAGE.STOP) {
-            midi.stopClock();
-            zones.list.forEach((z) => {
-              z.stopped();
-            });
-          }
+        if (event.data[0] == MIDI.MESSAGE.START) {
+          midi.startClock();
+        } else if (event.data[0] == MIDI.MESSAGE.STOP) {
+          midi.stopClock();
+          zones.list.forEach((z) => {
+            z.stopped();
+          });
         }
       }
       const channel = event.data[0] & 0x0f;
@@ -459,9 +441,6 @@ document.addEventListener('DOMContentLoaded', function () {
             if (numIndex > -1) {
               view.soloZone(numIndex);
             }
-            if (ev.key == 's') {
-              view.allSoloOff();
-            }
           }
         });
         DOM.element('#save').addEventListener('click', (e) => {
@@ -495,7 +474,7 @@ document.addEventListener('DOMContentLoaded', function () {
         DOM.addHTML(
           select_in_clock,
           'beforeend',
-          `<option value="*">midi-zoner</option>`
+          /*html*/ `<option value="*">midi-zoner internal</option>`
         );
         if (inputs.length > 0) {
           inputs.forEach((input) => {

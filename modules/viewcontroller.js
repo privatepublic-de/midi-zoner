@@ -1150,14 +1150,20 @@ function allHoldOff() {
 }
 
 function soloZone(index) {
-  if (index < zones.list.length) {
-    for (var i = 0; i < zones.list.length; i++) {
-      zones.list[i].solo = false;
+  const zone = zones.list[index];
+  if (!zone.solo) {
+    if (index < zones.list.length) {
+      for (var i = 0; i < zones.list.length; i++) {
+        zones.list[i].solo = false;
+      }
+      zone.solo = true;
+      zone.enabled = true;
     }
-    zones.list[index].solo = true;
-    zones.list[index].enabled = true;
-    updateValuesForAllZones();
+  } else {
+    zone.solo = false;
   }
+  updateValuesForAllZones();
+  triggerSave();
 }
 
 module.exports = {
