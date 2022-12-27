@@ -28,32 +28,19 @@
       </div>
       <div class="controls" id="controls">
         <div class="row">
-          <div class="block">
-            <label for="midiInDeviceId">In:</label>
-            <select id="midiInDeviceId" tabindex="-1">
-              <option>(No devices)</option>
-            </select>
-          </div>
-          <div class="block">
-            <select id="midiInChannel" tabindex="-1"></select>
-          </div>
+          <label for="midiInDeviceId">In:</label>
+          <select id="midiInDeviceId" tabindex="-1">
+            <option>(No devices)</option>
+          </select>
+          <select id="midiInChannel" tabindex="-1"></select>
         </div>
         <div class="row clocksettings">
-          <div class="block">
-            <label for="midiClockInDeviceId">Clock:</label>
-            <select
-              id="midiClockInDeviceId"
-              class="clockIndicator"
-              tabindex="-1"
-            >
-              <option>(No devices)</option>
-            </select>
-          </div>
-          <div
-            class="lightButton"
-            title="Select clock output ports"
-            id="clockSendButton"
-          >
+          <label for="midiClockInDeviceId">Clock:</label>
+          <select id="midiClockInDeviceId" class="clockIndicator" tabindex="-1">
+            <option>(No devices)</option>
+          </select>
+          <div class="" title="Select clock output ports" id="clockSendButton">
+            <i class="material-icons unsel">query_builder</i>
             <i class="material-icons">keyboard_double_arrow_right</i>
             <span id="clockOutPortsCount">-</span>
           </div>
