@@ -298,7 +298,7 @@ select#midiInChannel {
 }
 
 .padded {
-  padding: 25px 5px 0 5px;
+  padding: 25px 5px 18px 5px;
 }
 
 #zones {
@@ -308,7 +308,7 @@ select#midiInChannel {
 #tools {
   position: fixed;
   bottom: 0;
-  right: 30px;
+  left: 8px;
 }
 
 .zonedrag #tools {
@@ -316,8 +316,9 @@ select#midiInChannel {
 }
 
 #newzone {
-  background: var(--bg-topbar-button);
-  width: 48px;
+  background: var(--bg-topbar);
+  font-size: 12px;
+  width: 36px;
   height: 16px;
   line-height: 16px;
   display: block;
@@ -325,6 +326,7 @@ select#midiInChannel {
   color: var(--fg-topbar-button);
   cursor: pointer;
   border-radius: 4px 4px 0 0;
+  box-shadow: 0 2px 5px var(--shadow-topbar);
 }
 
 #newzone:hover {

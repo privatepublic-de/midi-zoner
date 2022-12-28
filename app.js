@@ -374,21 +374,10 @@ document.addEventListener('DOMContentLoaded', function () {
           );
         }
         DOM.element('#shuffleColors').addEventListener('click', () => {
-          zones.list.forEach((/** @type {Zone} */ zone, index) => {
-            do {
-              zone.randomizeColor();
-            } while (
-              index > 0 &&
-              Math.abs(zones.list[index - 1].hue - zone.hue) < 0.15
-            );
-          });
-          view.renderZones();
-          saveZones();
-        });
-        DOM.element('#shuffleColors').addEventListener('dblclick', () => {
           const factor = zones.list.length > 11 ? 1 : 12 / zones.list.length;
+          const offset = Math.random() * zones.list.length * 0.75;
           zones.list.forEach((/** @type {Zone} */ zone, index) => {
-            zone.randomizeColor(parseInt(index * factor));
+            zone.randomizeColor(offset + index * factor);
           });
           view.renderZones();
           saveZones();
