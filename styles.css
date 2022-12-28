@@ -498,7 +498,7 @@ select#midiInChannel {
   color: var(--brighter-3);
 }
 
-.ch.showseq {
+.ch.showccs {
   margin-right: 13px;
 }
 
