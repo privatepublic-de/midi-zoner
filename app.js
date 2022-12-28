@@ -360,7 +360,7 @@ document.addEventListener('DOMContentLoaded', function () {
           zones.list.push(newZone);
           saveZones();
           view.renderLastZone();
-          DOM.element('#tools').scrollIntoView();
+          DOM.element(`#zone${zones.list.length - 1}`).scrollIntoView();
         }
         window.addEventListener('resize', () => {
           requestAnimationFrame(view.renderMarkersForAllZones);
