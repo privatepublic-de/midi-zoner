@@ -52,11 +52,11 @@ class MIDI {
     this.updateClockReceiverHandler = updateClockReceiverHandler;
     this.clockHandler = clockHandler;
     this.midiAccess = null;
-    this.deviceIdIn = localStorage.getItem('midiInId');
     this.deviceIdInClock = localStorage.getItem('midiInClockId');
     this.knownPorts = {};
     this.usedPorts = new Set();
     this.clockOutputPorts = {};
+    this.selectedInputPorts = {};
     this.outputPortsRegistered = [];
     this.songposition = 0;
     this.isClockRunning = false;
@@ -85,7 +85,7 @@ class MIDI {
       console.log('MIDI: ready');
       this.midiAccess = midiAccess;
       const initResult = listInputsAndOutputs();
-      this.selectDevices(this.deviceIdIn, this.deviceIdInClock);
+      this.selectDevices(this.deviceIdInClock);
       this.midiAccess.onstatechange = onStateChange;
       reportStatus(
         initResult.success,
@@ -218,9 +218,20 @@ class MIDI {
 
   onMIDIMessage(event) {
     if (this.deviceInClock === this.deviceIn) {
-      this.onMIDIClockMessage(event);
+      this.onMIDIClockMessage(event); // what is this?
     }
-    this.eventHandler(event);
+    const channel = event.data[0] & 0x0f;
+    const portId = event.srcElement.id;
+    if (
+      this.selectedInputPorts[portId] &&
+      this.selectedInputPorts[portId].isSelected &&
+      this.selectedInputPorts[portId].ch === channel
+    ) {
+      this.eventHandler(event);
+    } else {
+      // forward messages from other channels
+      sendToAllUsedPorts(event.data);
+    }
   }
 
   onMIDIClockMessage(event) {
@@ -261,29 +272,40 @@ class MIDI {
     }
   }
 
-  selectDevices(deviceIdIn, deviceIdInClock) {
-    this.deviceIdIn = deviceIdIn;
+  selectDevices(deviceIdInClock) {
     this.deviceIdInClock = deviceIdInClock;
     if (deviceIdInClock == MIDI.INTERNAL_PORT_ID) {
       internalClock.setHandler(this.onMIDIClockMessage.bind(this));
     } else {
       internalClock.setHandler(null);
     }
-    this.deviceIn = this.midiAccess.inputs.get(this.deviceIdIn);
     this.deviceInClock = this.midiAccess.inputs.get(this.deviceIdInClock);
-    if (this.deviceIn) {
-      this.midiAccess.inputs.forEach((entry) => {
-        entry.onmidimessage = undefined;
-      });
-      this.deviceIn.onmidimessage = this.onMIDIMessage.bind(this);
-      if (this.deviceInClock) {
-        if (this.deviceIn !== this.deviceInClock) {
-          this.deviceInClock.onmidimessage = this.onMIDIClockMessage.bind(this);
+    this.midiAccess.inputs.forEach((entry) => {
+      entry.onmidimessage = undefined;
+    });
+    Object.values(this.selectedInputPorts).forEach((inputDef) => {
+      if (inputDef.isSelected) {
+        const deviceIn = this.midiAccess.inputs.get(inputDef.id);
+        console.log('Input from', inputDef, deviceIn);
+        if (deviceIn) {
+          deviceIn.onmidimessage = this.onMIDIMessage.bind(this);
+          if (this.deviceInClock) {
+            if (deviceIn !== this.deviceInClock) {
+              this.deviceInClock.onmidimessage =
+                this.onMIDIClockMessage.bind(this);
+            }
+          }
         }
       }
-    } else {
-      console.log('MIDI: No input device selected!');
-    }
+    });
+  }
+
+  selectInputPort(portId, channel, isSelected) {
+    this.selectedInputPorts[portId] = {
+      id: portId,
+      ch: channel,
+      isSelected: isSelected
+    };
   }
 
   /**

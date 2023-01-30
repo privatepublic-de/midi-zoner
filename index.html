@@ -28,11 +28,8 @@
       </div>
       <div class="controls" id="controls">
         <div class="row">
-          <label for="midiInDeviceId">In:</label>
-          <select id="midiInDeviceId" tabindex="-1">
-            <option>(No devices)</option>
-          </select>
-          <select id="midiInChannel" tabindex="-1"></select>
+          <label>In:</label>
+          <span id="midiInputSelector">Choose inputs</span>
         </div>
         <div class="row clocksettings">
           <label for="midiClockInDeviceId">Clock:</label>
@@ -82,6 +79,16 @@
       </section>
     </div>
     <div id="loadsave"></div>
+    <div id="inputPortWindow">
+      <div
+        onclick="document.getElementById('inputPortWindow').style.display='none'"
+        class="sendCancel"
+      >
+        <i class="material-icons">close</i>
+      </div>
+      <p>Select active inputs</p>
+      <div id="inputPortList"></div>
+    </div>
     <div
       id="clockOutPortWindow"
       onmouseleave="document.getElementById('clockOutPortWindow').style.display='none'"

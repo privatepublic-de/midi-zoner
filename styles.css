@@ -147,12 +147,6 @@ select {
 #midisettings .controls {
   margin: 0 auto;
 }
-/* 
-#midisettings .block {
-  display: inline-block;
-  vertical-align: top;
-  margin-right: 10px;
-} */
 
 #midisettings .row {
   display: flex;
@@ -166,7 +160,32 @@ select {
   min-width: 38px;
 }
 
-#midisettings select {
+#midiInputSelector {
+  position: relative;
+  cursor: pointer;
+  display: inline-block;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  width: 380px;
+  border: 1px solid var(--darker-3);
+  background-color: var(--darker-2);
+  color: var(--brighter-3);
+  font-family: Arial;
+  font-size: 12px;
+  padding: 0 0 0 4px;
+  margin: 0 0 0 2px;
+}
+
+#midiInputSelector::after {
+  content: '⌄';
+  position: absolute;
+  right: 0;
+  top: -25%;
+}
+
+#midisettings select,
+.clockOutOption select {
   width: 170px;
   border: 1px solid var(--darker-3);
   background-color: var(--darker-2);
@@ -176,22 +195,25 @@ select {
   margin: 0 2px;
 }
 
+#midiInputSelector,
 #midisettings select {
   transition: background-color 1s, color 1s;
 }
 
-#midisettings select option {
+#midisettings select option,
+.clockOutOption select option {
   color: var(--brighter-4);
   background-color: var(--darker-4);
 }
 
-.updated #midisettings select {
+.updated #midisettings select,
+.updated #midiInputSelector {
   background-color: var(--bg-midi-update) !important;
   color: var(--fg-midi-update);
 }
 
-select#midiInChannel {
-  width: auto;
+.clockOutOption select {
+  width: auto !important;
 }
 
 #midisettings input {
@@ -298,7 +320,7 @@ select#midiInChannel {
 }
 
 .padded {
-  padding: 25px 5px 18px 5px;
+  padding: 25px 5px 0 5px;
 }
 
 #zones {
@@ -306,9 +328,7 @@ select#midiInChannel {
 }
 
 #tools {
-  position: fixed;
-  bottom: 0;
-  left: 8px;
+  padding: 0 0 0 8px;
 }
 
 .zonedrag #tools {
@@ -325,7 +345,7 @@ select#midiInChannel {
   text-align: center;
   color: var(--fg-topbar-button);
   cursor: pointer;
-  border-radius: 4px 4px 0 0;
+  border-radius: 4px;
   box-shadow: 0 2px 5px var(--shadow-topbar);
 }
 
@@ -343,7 +363,7 @@ select#midiInChannel {
   width: 100%;
   min-width: 900px;
   box-shadow: 0 2px 10px var(--shadow-zone);
-  border: 1px solid var(--darker-3);
+  /* border: 1px solid var(--zone-color); */
   background-image: linear-gradient(#00000000, #00000040);
   border-radius: 6px;
 }
@@ -368,7 +388,7 @@ select#midiInChannel {
 .zone.disabled {
   box-shadow: none;
   background-image: none;
-  border-color: transparent;
+  /* border-color: transparent; */
 }
 
 .zone.disabled:not(.soloed-out) .ch.enabled:not(.selected) {
@@ -1413,7 +1433,8 @@ li {
   display: block;
 }
 
-#clockOutPortWindow {
+#clockOutPortWindow,
+#inputPortWindow {
   position: fixed;
   background: var(--bg-loadsave);
   color: var(--brighter-3);
@@ -1429,7 +1450,13 @@ li {
   overflow-y: auto;
 }
 
-#clockOutPortList {
+#inputPortWindow {
+  top: 25px;
+  right: calc(50% - 75px);
+}
+
+#clockOutPortList,
+#inputPortList {
   margin-top: 5px;
   padding-top: 5px;
   border-top: 1px solid var(--brighter-0);
@@ -1442,18 +1469,32 @@ li {
   color: var(--brighter-2);
   margin-bottom: 3px;
   font-size: 11px;
+  justify-content: space-between;
 }
 
 .clockOutOption:hover {
   background-color: var(--brighter-0);
 }
 
+.clockOutOption select {
+  visibility: hidden;
+}
+
 .clockOutOption.selected {
   color: var(--brighter-4);
 }
 
+.clockOutOption.selected select {
+  visibility: visible;
+}
+
 .clockOutOption span {
   margin: 1px 5px 0 5px;
+}
+
+.clockOutOption .chsel {
+  flex-grow: 1;
+  text-align: right;
 }
 
 .sendCancel {
