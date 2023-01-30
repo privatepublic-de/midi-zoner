@@ -266,7 +266,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
     if (count == 0) {
-      displayString = '(on devices available)';
+      displayString = '(no input devices available)';
     }
     displayString = count + ': ' + displayString;
     DOM.element('#midiInputSelector').innerHTML = displayString;
@@ -285,10 +285,8 @@ document.addEventListener('DOMContentLoaded', function () {
       DOM.addHTML(
         listContainer,
         'beforeend',
-        `<div class="clockOutOption ${
-          isSelected ? 'selected' : ''
-        }" data-portid="${
-          inport.id
+        `<div class="clockOutOption ${isSelected ? 'selected' : ''
+        }" data-portid="${inport.id
         }"><span class="material-icons sel">check_circle</span
         ><span class="material-icons unsel">radio_button_unchecked</span>
         <span>${inport.fullName}</span>
@@ -347,13 +345,10 @@ document.addEventListener('DOMContentLoaded', function () {
       DOM.addHTML(
         clockOutListContainer,
         'beforeend',
-        `<div class="clockOutOption ${
-          isSelected ? 'selected' : ''
-        }" data-portid="${
-          outport.id
+        `<div class="clockOutOption ${isSelected ? 'selected' : ''
+        }" data-portid="${outport.id
         }"><span class="material-icons sel">check_circle</span
-        ><span class="material-icons unsel">radio_button_unchecked</span> ${
-          outport.fullName
+        ><span class="material-icons unsel">radio_button_unchecked</span> ${outport.fullName
         }</div>`
       );
     });
@@ -546,8 +541,7 @@ document.addEventListener('DOMContentLoaded', function () {
             DOM.addHTML(
               select_in_clock,
               'beforeend',
-              `<option value="${input.id}" ${
-                input.isSelectedClockInput ? 'selected' : ''
+              `<option value="${input.id}" ${input.isSelectedClockInput ? 'selected' : ''
               }>${input.name}</option>`
             );
           });
