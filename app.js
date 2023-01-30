@@ -285,8 +285,10 @@ document.addEventListener('DOMContentLoaded', function () {
       DOM.addHTML(
         listContainer,
         'beforeend',
-        `<div class="clockOutOption ${isSelected ? 'selected' : ''
-        }" data-portid="${inport.id
+        `<div class="clockOutOption ${
+          isSelected ? 'selected' : ''
+        }" data-portid="${
+          inport.id
         }"><span class="material-icons sel">check_circle</span
         ><span class="material-icons unsel">radio_button_unchecked</span>
         <span>${inport.fullName}</span>
@@ -345,11 +347,14 @@ document.addEventListener('DOMContentLoaded', function () {
       DOM.addHTML(
         clockOutListContainer,
         'beforeend',
-        `<div class="clockOutOption ${isSelected ? 'selected' : ''
-        }" data-portid="${outport.id
+        `<div class="clockOutOption ${
+          isSelected ? 'selected' : ''
+        }" data-portid="${
+          outport.id
         }"><span class="material-icons sel">check_circle</span
-        ><span class="material-icons unsel">radio_button_unchecked</span> ${outport.fullName
-        }</div>`
+        ><span class="material-icons unsel">radio_button_unchecked</span>
+        <span class="outname">${outport.fullName}</span>
+        </div>`
       );
     });
     DOM.all('#clockOutPortWindow #clockOutPortList .clockOutOption').forEach(
@@ -541,7 +546,8 @@ document.addEventListener('DOMContentLoaded', function () {
             DOM.addHTML(
               select_in_clock,
               'beforeend',
-              `<option value="${input.id}" ${input.isSelectedClockInput ? 'selected' : ''
+              `<option value="${input.id}" ${
+                input.isSelectedClockInput ? 'selected' : ''
               }>${input.name}</option>`
             );
           });

@@ -286,7 +286,6 @@ class MIDI {
     Object.values(this.selectedInputPorts).forEach((inputDef) => {
       if (inputDef.isSelected) {
         const deviceIn = this.midiAccess.inputs.get(inputDef.id);
-        console.log('Input from', inputDef, deviceIn);
         if (deviceIn) {
           deviceIn.onmidimessage = this.onMIDIMessage.bind(this);
           if (this.deviceInClock) {

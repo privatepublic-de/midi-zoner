@@ -1499,6 +1499,10 @@ li {
   text-align: right;
 }
 
+.clockOutOption .outname {
+  flex-grow: 1;
+}
+
 .sendCancel {
   position: absolute;
   top: 3px;
