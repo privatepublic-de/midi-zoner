@@ -180,8 +180,10 @@ select {
 #midiInputSelector::after {
   content: '⌄';
   position: absolute;
+  font-size: 15px;
+  color: var(--brighter-3);
   right: 0;
-  top: -25%;
+  top: -40%;
 }
 
 #midisettings select,
