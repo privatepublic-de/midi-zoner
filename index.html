@@ -100,13 +100,27 @@
         <i class="material-icons">close</i>
       </div>
       <p>Select clock output ports</p>
-      <p>
-        <small
-          >All clock and start/stop messages are forwarded to the selected
-          ports.</small
-        >
+      <p class="smaller">
+        All clock and start/stop messages are forwarded to the selected ports.
       </p>
       <div id="clockOutPortList"></div>
+      <p class="smaller">
+        Send internal clock<br />
+        <input
+          type="radio"
+          name="sendinternal"
+          value="0"
+          id="sendinternalalways"
+        />
+        <label for="sendinternalalways">Always</label>
+        <input
+          type="radio"
+          name="sendinternal"
+          value="1"
+          id="sendinternalplaying"
+        />
+        <label for="sendinternalplaying">Only when playing</label>
+      </p>
     </div>
   </body>
 </html>

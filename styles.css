@@ -1452,6 +1452,14 @@ li {
   overflow-y: auto;
 }
 
+#clockOutPortWindow input {
+  vertical-align: bottom;
+}
+
+.smaller {
+  font-size: 0.85em;
+}
+
 #inputPortWindow {
   top: 25px;
   right: calc(50% - 75px);

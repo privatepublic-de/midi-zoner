@@ -11,6 +11,7 @@ const zones = {
   selectedInputPorts: {},
   alternativeTheme: false,
   tempo: 120,
+  sendInternalClockIfPlaying: false,
   outputConfigNames: {}
 };
 
@@ -251,7 +252,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function updateInputDisplay(inputs) {
     let displayString = '';
-    let count = 0;
+    const count = inputs.reduce((selcount, inp) => {
+      if (
+        midi.selectedInputPorts[inp.id] &&
+        midi.selectedInputPorts[inp.id].isSelected
+      ) {
+        return selcount + 1;
+      } else {
+        return selcount;
+      }
+    }, 0);
     inputs.forEach((inp) => {
       if (
         midi.selectedInputPorts[inp.id] &&
@@ -261,8 +271,9 @@ document.addEventListener('DOMContentLoaded', function () {
           displayString += ', ';
         }
         displayString +=
-          inp.name.substr(0, 10).trim() + (inp.name.length > 10 ? '…' : '');
-        count++;
+          count < 3
+            ? inp.fullName
+            : inp.name.substr(0, 10).trim() + (inp.name.length > 10 ? '…' : '');
       }
     });
     if (count == 0) {
@@ -376,6 +387,15 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     );
     updateClockOutputCount();
+    DOM.all('#clockOutPortWindow input[name="sendinternal"]').forEach((el) => {
+      if (el.id == 'sendinternalplaying' && zones.sendInternalClockIfPlaying) {
+        el.checked = true;
+      }
+      if (el.id == 'sendinternalalways' && !zones.sendInternalClockIfPlaying) {
+        el.checked = true;
+      }
+    });
+    midi.sendInternalClockIfPlaying = zones.sendInternalClockIfPlaying;
   }
   let activeUpdateTimer = null;
   const midi = new MIDI({
@@ -601,6 +621,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const container = DOM.element('#inputPortWindow');
     container.style.display =
       container.style.display == 'block' ? 'none' : 'block';
+  });
+  DOM.on('#clockOutPortWindow input[name="sendinternal"]', 'change', () => {
+    midi.sendInternalClockIfPlaying = zones.sendInternalClockIfPlaying =
+      document.querySelector('input[name="sendinternal"]:checked').value == '1';
+    saveZones();
   });
   view.initController({ saveData: saveZones, data: zones, midi });
 });

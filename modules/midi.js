@@ -61,6 +61,7 @@ class MIDI {
     this.songposition = 0;
     this.isClockRunning = false;
     this.hasClock = false;
+    this.sendInternalClockIfPlaying = false;
     setInterval(() => {
       this.hasClock = false;
     }, 1000);
@@ -243,9 +244,15 @@ class MIDI {
       event.data[0] === MIDI.MESSAGE.START ||
       event.data[0] === MIDI.MESSAGE.STOP
     ) {
-      for (const [portid, enabled] of Object.entries(this.clockOutputPorts)) {
-        if (enabled) {
-          this.send(event.data, portid);
+      const propagate =
+        this.deviceIdInClock != MIDI.INTERNAL_PORT_ID ||
+        !this.sendInternalClockIfPlaying ||
+        (this.sendInternalClockIfPlaying && this.isClockRunning);
+      if (propagate) {
+        for (const [portid, enabled] of Object.entries(this.clockOutputPorts)) {
+          if (enabled) {
+            this.send(event.data, portid);
+          }
         }
       }
     }
