@@ -1291,7 +1291,7 @@ li {
   justify-content: center;
   align-items: center;
   border: 1px solid var(--darker-1);
-  border-radius: 2px;
+  /* border-radius: 2px; */
   color: var(--darker-2);
   background-color: var(--darker-1);
   font-size: 0.85em;
@@ -1321,7 +1321,7 @@ li {
 }
 
 .zone.disabled .seq .grid .step.active {
-  border-color: var(--brighter-3);
+  /* border-color: var(--brighter-3); */
   background-color: var(--brighter-2);
 }
 
@@ -1339,7 +1339,7 @@ li {
 
 .seq .grid .step.active {
   background-color: var(--brighter-1);
-  border-color: var(--brighter-4) !important;
+  border-color: var(--brighter-3) !important;
   color: var(--brighter-4);
 }
 
@@ -1384,8 +1384,11 @@ li {
 } */
 
 .seq .grid .step:nth-child(4n + 1) {
-  border-width: 2px;
-  border-color: var(--darker-2);
+  border-bottom-color: var(--darker-3);
+}
+
+.seq .grid .step.active:nth-child(4n + 1) {
+  border-bottom-color: var(--brighter-4) !important;
 }
 
 .seq .step-info {
