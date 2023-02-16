@@ -1094,13 +1094,12 @@ li {
 
 .ccpot-back {
   transform: rotateY(-180deg);
-  background-color: var(--brighter-1);
   font-size: 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: space-around;
-  box-shadow: 0 0 8px #00000080;
+  box-shadow: 0 0 8px #00000060;
 }
 
 .ccpot-back .material-icons {
@@ -1136,9 +1135,9 @@ li {
 }
 
 .ccpot .cclabel {
-  position: absolute;
+  /* position: absolute;
   top: 0;
-  left: 0;
+  left: 0; */
   width: 100%;
   overflow: hidden;
   text-align: center;

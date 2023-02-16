@@ -265,6 +265,10 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
     add_cc_controller: () => {
       zone.cc_controllers.push({ number: 1, label: 'Controller', val: 0 });
       renderControllersForZone(zone, zoneindex);
+      setTimeout(() => {
+        zone.editCCIndex = zone.cc_controllers.length - 1;
+        updateControllerValues(zone, zoneindex);
+      }, 0);
     },
     send_all_cc: () => {
       zone.sendAllCC();
@@ -289,9 +293,13 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       }
     },
     cc_remove: () => {
-      zone.cc_controllers.splice(params[2], 1);
-      zone.editCCIndex = -1;
-      renderControllersForZone(zone, zoneindex);
+      if (
+        confirm(`Delete control "${zone.cc_controllers[params[2]].label}"?`)
+      ) {
+        zone.cc_controllers.splice(params[2], 1);
+        zone.editCCIndex = -1;
+        renderControllersForZone(zone, zoneindex);
+      }
     },
     cc_togglepolarity: () => {
       zone.cc_controllers[params[2]].isBipolar =
@@ -1024,7 +1032,8 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
     DOM.element(`#pot_${zoneindex}_${ix} .cc .cc-in`).value =
       c.number_in || c.number;
     DOM.element(`#pot_${zoneindex}_${ix} .cc .cc-out`).value = c.number;
-    DOM.element(`#pot_${zoneindex}_${ix} .cclabel`).value = c.label;
+    DOM.element(`#pot_${zoneindex}_${ix} input.cclabel`).value = c.label;
+    DOM.element(`#pot_${zoneindex}_${ix} div.cclabel`).innerHTML = c.label;
     DOM.element(`#pot_${zoneindex}_${ix} .value`).innerHTML = c.isBipolar
       ? c.val - 64
       : c.val;

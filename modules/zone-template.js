@@ -81,16 +81,17 @@ module.exports = {
                     id="pot_zero_${zoneindex}_${ix}"
                     x="28" y="7" width="1" height="10" fill="#000000" />
                 </svg>
-                <input class="cclabel" type="text" value="${
-                  cc.label
-                }" data-change="${zoneindex}:cc_label:${ix}"/>
+                <div class="cclabel">${cc.label}</div>
                 <div class="cc-edit-action" data-action="${zoneindex}:cc_edit:${ix}" onMouseDown="event.stopPropagation()">
-                  edit
+                  <span class="material-icons">edit</span>
                 </div>
                 <span class="value">127</span>
               </div>
               <div class="ccpot-back">
-                <div>CC Number</div>
+                <div><input class="cclabel" type="text" value="${
+                  cc.label
+                }" data-change="${zoneindex}:cc_label:${ix}"/>
+                </div>
                 <div class="cc" title="Enter input and output cc number\nAny CC input from MIDI-In controller is learned now!">
                   <input type="text" class="cc-in" value="${
                     cc.number_in || cc.number
@@ -103,10 +104,10 @@ module.exports = {
                 <div class="cc_togglepolarity" data-action="${zoneindex}:cc_togglepolarity:${ix}">mode</div>
                 <div class="cc_tools">
                   <span class="material-icons" data-action="${zoneindex}:cc_left:${ix}">arrow_back</span>
-                  <span class="material-icons" data-action="${zoneindex}:cc_edit:-1">360</span>
+                  <span class="material-icons" data-action="${zoneindex}:cc_remove:${ix}">close</span>
                   <span class="material-icons" data-action="${zoneindex}:cc_right:${ix}">arrow_forward</span>
                 </div>
-                <div data-action="${zoneindex}:cc_remove:${ix}">remove</div>
+                <div data-action="${zoneindex}:cc_edit:-1">OK</div>
               </div>
             </div>
           </div>
