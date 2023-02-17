@@ -84,9 +84,6 @@ module.exports = {
                 <div class="cclabel">
                   ${cc.label}
                 </div>
-                <div class="cc-edit-action" data-action="${zoneindex}:cc_edit:${ix}" onMouseDown="event.stopPropagation()">
-                  <span class="material-icons">edit</span>
-                </div>
                 <span class="value">127</span>
               </div>
               <div class="ccpot-back">
@@ -109,7 +106,6 @@ module.exports = {
                   <span class="material-icons" data-action="${zoneindex}:cc_remove:${ix}">close</span>
                   <span class="material-icons" data-action="${zoneindex}:cc_right:${ix}">arrow_forward</span>
                 </div>
-                <div data-action="${zoneindex}:cc_edit:-1">OK</div>
               </div>
             </div>
           </div>
@@ -183,7 +179,10 @@ module.exports = {
       </div>
       <div class="ccpots">
         <div class="ccpotttools">
-          <i class="material-icons" title="Add new control" data-action="${index}:add_cc_controller">add</i>
+          <div>
+            <i class="material-icons" title="Edit controls"  data-action="${index}:cc_edit:1">edit</i>
+            <i class="material-icons" title="Add new control" data-action="${index}:add_cc_controller">add</i>
+          </div>
           <div class="action" style="margin:5px 0 0 0" data-action="${index}:send_all_cc">send all</div>
         </div>
       </div>

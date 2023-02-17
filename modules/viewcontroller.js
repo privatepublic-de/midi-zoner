@@ -271,7 +271,7 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       });
       renderControllersForZone(zone, zoneindex);
       setTimeout(() => {
-        zone.editCCIndex = zone.cc_controllers.length - 1;
+        zone.editCCIndex = 1;
         updateControllerValues(zone, zoneindex);
       }, 0);
     },
@@ -279,7 +279,8 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       zone.sendAllCC();
     },
     cc_edit: () => {
-      zone.editCCIndex = params[2];
+      // TODO rename to toggle
+      zone.editCCIndex = zone.editCCIndex < 0 ? 1 : -1;
       updateControllerValues(zone, zoneindex);
     },
     cc_label: () => {
@@ -302,7 +303,6 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
         confirm(`Delete control "${zone.cc_controllers[params[2]].label}"?`)
       ) {
         zone.cc_controllers.splice(params[2], 1);
-        zone.editCCIndex = -1;
         renderControllersForZone(zone, zoneindex);
       }
     },
@@ -333,7 +333,6 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
         const v2 = zone.cc_controllers[targetPos];
         zone.cc_controllers[targetPos] = zone.cc_controllers[pos];
         zone.cc_controllers[pos] = v2;
-        zone.editCCIndex = targetPos;
         renderControllersForZone(zone, zoneindex);
       }
     },
@@ -1045,11 +1044,11 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
     DOM.element(`#pot_${zoneindex}_${ix} .cc_togglepolarity`).innerHTML =
       c.isBipolar ? 'bipolar' : 'unipolar';
   });
-  DOM.removeClass(`#zone${zoneindex} .ccpot`, 'cc-edit');
+
   if (zone.editCCIndex > -1) {
-    DOM.all(`#zone${zoneindex} .ccpot`)[zone.editCCIndex].classList.add(
-      'cc-edit'
-    );
+    DOM.addClass(`#zone${zoneindex} .ccpots`, 'cc-edit');
+  } else {
+    DOM.removeClass(`#zone${zoneindex} .ccpots`, 'cc-edit');
   }
 }
 
