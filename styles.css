@@ -1131,7 +1131,6 @@ li {
   position: absolute;
   top: 0;
   left: 0;
-  cursor: crosshair;
 }
 
 .ccpot .cclabel {
@@ -1142,12 +1141,13 @@ li {
   overflow: hidden;
   text-align: center;
   font-size: 9px;
+  color: var(--brighter-3);
 }
 
 .ccpot .value {
   position: absolute;
-  cursor: crosshair;
-  top: 44%;
+  cursor: default;
+  top: 42%;
   left: 0;
   right: 0;
   text-align: center;

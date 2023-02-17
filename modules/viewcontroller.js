@@ -263,7 +263,12 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       updateValuesForZone(zoneindex);
     },
     add_cc_controller: () => {
-      zone.cc_controllers.push({ number: 1, label: 'Controller', val: 0 });
+      zone.cc_controllers.push({
+        number: 1,
+        number_in: 1,
+        label: `Ctrl #${zone.cc_controllers.length + 1}`,
+        val: 0
+      });
       renderControllersForZone(zone, zoneindex);
       setTimeout(() => {
         zone.editCCIndex = zone.cc_controllers.length - 1;

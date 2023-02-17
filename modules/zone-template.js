@@ -81,7 +81,9 @@ module.exports = {
                     id="pot_zero_${zoneindex}_${ix}"
                     x="28" y="7" width="1" height="10" fill="#000000" />
                 </svg>
-                <div class="cclabel">${cc.label}</div>
+                <div class="cclabel">
+                  ${cc.label}
+                </div>
                 <div class="cc-edit-action" data-action="${zoneindex}:cc_edit:${ix}" onMouseDown="event.stopPropagation()">
                   <span class="material-icons">edit</span>
                 </div>
