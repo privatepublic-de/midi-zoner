@@ -1098,9 +1098,8 @@ li {
   display: flex;
   flex-direction: column;
   align-items: center;
-  background-color: var(--brighter-0);
-  /* box-shadow: 0 0 8px #00000060; */
-  border: 1px solid var(--darker-1);
+  /* background-color: var(--brighter-0); */
+  border: 1px solid var(--brighter-0);
   justify-content: space-between;
 }
 
@@ -1117,12 +1116,19 @@ li {
 }
 
 .cc_tools {
+  opacity: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
   align-content: center;
   width: 100%;
-  border-top: 1px solid var(--darker-1);
+  /* border-top: 1px solid var(--darker-1); */
+  color: var(--brighter-2);
+  transition: opacity 500ms;
+}
+
+.ccpot:hover .cc_tools {
+  opacity: 1;
 }
 
 .ccpot input {
@@ -1146,6 +1152,12 @@ li {
   text-align: center;
   font-size: 9px;
   color: var(--brighter-3);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ccpot input.cclabel {
+  color: inherit;
 }
 
 .ccpot .value {
