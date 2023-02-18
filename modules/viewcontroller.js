@@ -71,8 +71,15 @@ function findTouchedNote(
 
 function actionHandler(/** @type {MouseEvent} */ ev) {
   const element = ev.currentTarget;
-  const action =
+  let action =
     element.getAttribute('data-action') || element.getAttribute('data-change');
+  if (
+    (ev.type == 'blur' || ev.type == 'focus') &&
+    element.hasAttribute('data-focus-change')
+  ) {
+    action = element.getAttribute('data-focus-change');
+    action += ':' + (ev.type == 'focus' ? 1 : 0);
+  }
   const params = action.split(':');
   const zoneindex = params[0];
   /** @type {Zone} */
@@ -271,7 +278,7 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       });
       renderControllersForZone(zone, zoneindex);
       setTimeout(() => {
-        zone.editCCIndex = 1;
+        zone.editCC = true;
         updateControllerValues(zone, zoneindex);
       }, 0);
     },
@@ -280,7 +287,7 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
     },
     cc_edit: () => {
       // TODO rename to toggle
-      zone.editCCIndex = zone.editCCIndex < 0 ? 1 : -1;
+      zone.editCC = !zone.editCC;
       updateControllerValues(zone, zoneindex);
     },
     cc_label: () => {
@@ -310,6 +317,9 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       zone.cc_controllers[params[2]].isBipolar =
         !zone.cc_controllers[params[2]].isBipolar;
       updateControllerValues(zone, zoneindex);
+    },
+    cc_focused: () => {
+      zone.listenCCIndex = params[3] == 1 ? params[2] : -1;
     },
     _cc_move: (direction) => {
       const pos = Number(params[2]);
@@ -622,6 +632,10 @@ function appendZone(/** @type {Zone} */ zone, index) {
   });
   DOM.all(`#zone${index} *[data-change]`).forEach((e) => {
     e.addEventListener('input', actionHandler);
+  });
+  DOM.all(`#zone${index} *[data-focus-change]`).forEach((e) => {
+    e.addEventListener('focus', actionHandler);
+    e.addEventListener('blur', actionHandler);
   });
   DOM.all(`#zone${index} *[data-hover]`).forEach((e) => {
     e.addEventListener('mousemove', hoverHandler);
@@ -1045,7 +1059,7 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
       c.isBipolar ? 'bipolar' : 'unipolar';
   });
 
-  if (zone.editCCIndex > -1) {
+  if (zone.editCC) {
     DOM.addClass(`#zone${zoneindex} .ccpots`, 'cc-edit');
   } else {
     DOM.removeClass(`#zone${zoneindex} .ccpots`, 'cc-edit');

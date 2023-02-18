@@ -1112,6 +1112,10 @@ li {
   pointer-events: none;
 }
 
+.ccpots.cc-edit .edit-cc-button {
+  background-color: var(--brighter-1);
+}
+
 .cc_tools {
   display: flex;
   justify-content: space-between;

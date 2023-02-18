@@ -91,14 +91,19 @@ module.exports = {
                   cc.label
                 }" data-change="${zoneindex}:cc_label:${ix}"/>
                 </div>
-                <div class="cc" title="Enter input and output cc number\nAny CC input from MIDI-In controller is learned now!">
-                  <input type="text" class="cc-in" value="${
-                    cc.number_in || cc.number
-                  }" data-change="${zoneindex}:cc_number_in:${ix}"/>
+                <div class="cc">
+                  <input type="text" class="cc-in" 
+                    value="${cc.number_in || cc.number}" 
+                    data-change="${zoneindex}:cc_number_in:${ix}" 
+                    data-focus-change="${zoneindex}:cc_focused:${ix}"
+                    title="Enter input cc number.\nAny CC input from MIDI-In controller is learned if this control is selected!"
+                   />
                   <span>&rarr;</span>
-                  <input type="text" class="cc-out" value="${
-                    cc.number
-                  }" data-change="${zoneindex}:cc_number:${ix}"/>
+                  <input type="text" class="cc-out"
+                    value="${cc.number}" 
+                    data-change="${zoneindex}:cc_number:${ix}"
+                    title="Output cc number"
+                  />
                 </div>
                 <div class="cc_togglepolarity" data-action="${zoneindex}:cc_togglepolarity:${ix}">mode</div>
                 <div class="cc_tools">
@@ -149,7 +154,7 @@ module.exports = {
           <i class="material-icons">view_comfy</i>
         </div>
         <div class="ch state showccs" data-action="${index}:toggle_show_cc" title="Show CC controllers">
-          <i class="material-icons">tune</i>
+          <i class="material-icons">adjust</i>
         </div>
         <input type="text" class="output-config-name" placeholder="(untitled)"
           onKeyUp="event.stopPropagation();"
@@ -180,7 +185,7 @@ module.exports = {
       <div class="ccpots">
         <div class="ccpotttools">
           <div>
-            <i class="material-icons" title="Edit controls"  data-action="${index}:cc_edit:1">edit</i>
+            <i class="material-icons edit-cc-button" title="Edit controls"  data-action="${index}:cc_edit:1">edit</i>
             <i class="material-icons" title="Add new control" data-action="${index}:add_cc_controller">add</i>
           </div>
           <div class="action" style="margin:5px 0 0 0" data-action="${index}:send_all_cc">send all</div>
