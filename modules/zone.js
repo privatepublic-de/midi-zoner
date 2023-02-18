@@ -355,6 +355,7 @@ class Zone {
             this.cc_controllers[this.listenCCIndex].number_in = data[1];
             return 'updateCC';
           }
+          let handledByCCControl = false;
           for (let i = 0; i < this.cc_controllers.length; i++) {
             if (this.cc_controllers[i].number_in == data[1]) {
               this.cc_controllers[i].val = data[2];
@@ -363,8 +364,11 @@ class Zone {
               outevent[1] = this.cc_controllers[i].number;
               outevent[2] = data[2];
               this.midi.send(outevent, this.outputPortId);
-              return 'updateCC';
+              handledByCCControl = true;
             }
+          }
+          if (handledByCCControl) {
+            return 'updateCC';
           }
           if (data[1] == 0x40 && !this.sustain) {
             // no sustain pedal
