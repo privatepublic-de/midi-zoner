@@ -450,6 +450,7 @@ document.addEventListener('DOMContentLoaded', function () {
           midi.panic();
         });
         loadZones(midi);
+        midi.selectDevices(midi.deviceIdInClock);
         const updateClockInterface = function () {
           console.log('app: Clock input device changed');
         };
