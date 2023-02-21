@@ -54,7 +54,9 @@ module.exports = {
     let controllers = '';
     zone.cc_controllers.forEach((cc, ix) => {
       controllers += /*html*/ `
-        <div class="ccpot" id="pot_${zoneindex}_${ix}">
+        <div class="ccpot ${
+          cc.type == 2 ? 'spacer' : ''
+        }" id="pot_${zoneindex}_${ix}">
             <div class="ccpot-inner">
               <div class="ccpot-front">
                 <svg
@@ -79,7 +81,7 @@ module.exports = {
                   />
                   <rect
                     id="pot_zero_${zoneindex}_${ix}"
-                    x="28" y="7" width="1" height="10" fill="#000000" />
+                    x="28" y="8" width="1" height="8" fill="var(--darker-2)" />
                 </svg>
                 <div class="cclabel">
                   ${cc.label}

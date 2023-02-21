@@ -84,8 +84,9 @@ class Zone {
   _sustain_on = false;
   cc = false;
   cc_controllers = [
-    { number: 7, number_in: 7, label: 'Volume', val: 100, isBipolar: false },
-    { number: 1, number_in: 1, label: 'Mod Wheel', val: 0, isBipolar: false }
+    // type 0: unipolar, 1: bipolar, 2: spacer
+    { number: 7, number_in: 7, label: 'Volume', val: 100, type: 0 },
+    { number: 1, number_in: 1, label: 'Mod Wheel', val: 0, type: 0 }
   ];
   show_cc = false;
   editCC = false;
@@ -357,7 +358,10 @@ class Zone {
           }
           let handledByCCControl = false;
           for (let i = 0; i < this.cc_controllers.length; i++) {
-            if (this.cc_controllers[i].number_in == data[1]) {
+            if (
+              this.cc_controllers[i].type != 2 &&
+              this.cc_controllers[i].number_in == data[1]
+            ) {
               this.cc_controllers[i].val = data[2];
               const outevent = new Uint8Array(3);
               outevent[0] = MIDI.MESSAGE.CONTROLLER + this.channel;

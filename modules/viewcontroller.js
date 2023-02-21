@@ -314,8 +314,11 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       }
     },
     cc_togglepolarity: () => {
-      zone.cc_controllers[params[2]].isBipolar =
-        !zone.cc_controllers[params[2]].isBipolar;
+      // TODO rename
+      zone.cc_controllers[params[2]].type =
+        zone.cc_controllers[params[2]].type || 0;
+      zone.cc_controllers[params[2]].type =
+        (zone.cc_controllers[params[2]].type + 1) % 3;
       updateControllerValues(zone, zoneindex);
     },
     cc_focused: () => {
@@ -1038,25 +1041,42 @@ function describeArc(x, y, radius, startAngle, endAngle) {
 function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
   zone.cc_controllers.forEach((c, ix) => {
     const rangePath = describeArc(28, 30, 18, -135, 135);
-    const valDegrees = 270 * (c.isBipolar ? (c.val - 64) / 64 : c.val / 127);
-    const valuePath = c.isBipolar
-      ? describeArc(28, 30, 18, 0, valDegrees / 2)
-      : describeArc(28, 30, 18, -135, -135 + valDegrees);
+    const valDegrees = 270 * (c.type == 1 ? (c.val - 64) / 64 : c.val / 127);
+    const valuePath =
+      c.type == 1
+        ? describeArc(28, 30, 18, 0, valDegrees / 2)
+        : describeArc(28, 30, 18, -135, -135 + valDegrees);
     DOM.element(`#pot_range_${zoneindex}_${ix}`).setAttribute('d', rangePath);
     DOM.element(`#pot_value_${zoneindex}_${ix}`).setAttribute('d', valuePath);
-    DOM.element(`#pot_zero_${zoneindex}_${ix}`).style.display = c.isBipolar
-      ? 'block'
-      : 'none';
+    DOM.element(`#pot_zero_${zoneindex}_${ix}`).style.display =
+      c.type == 1 ? 'block' : 'none';
     DOM.element(`#pot_${zoneindex}_${ix} .cc .cc-in`).value =
       c.number_in || c.number;
     DOM.element(`#pot_${zoneindex}_${ix} .cc .cc-out`).value = c.number;
     DOM.element(`#pot_${zoneindex}_${ix} input.cclabel`).value = c.label;
     DOM.element(`#pot_${zoneindex}_${ix} div.cclabel`).innerHTML = c.label;
-    DOM.element(`#pot_${zoneindex}_${ix} .value`).innerHTML = c.isBipolar
-      ? c.val - 64
-      : c.val;
+    DOM.element(`#pot_${zoneindex}_${ix} .value`).innerHTML =
+      c.type == 1 ? c.val - 64 : c.val;
+    var typeLabel = '';
+    switch (c.type) {
+      case 1:
+        typeLabel = 'bipolar';
+        break;
+      case 2:
+        typeLabel = 'spacer';
+        break;
+      case 0:
+      default:
+        typeLabel = 'unipolar';
+        break;
+    }
     DOM.element(`#pot_${zoneindex}_${ix} .cc_togglepolarity`).innerHTML =
-      c.isBipolar ? 'bipolar' : 'unipolar';
+      typeLabel;
+    if (c.type == 2) {
+      DOM.addClass(`#pot_${zoneindex}_${ix}`, 'spacer');
+    } else {
+      DOM.removeClass(`#pot_${zoneindex}_${ix}`, 'spacer');
+    }
   });
 
   if (zone.editCC) {
