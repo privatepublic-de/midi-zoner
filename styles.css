@@ -1072,6 +1072,39 @@ li {
   perspective: 200px;
 }
 
+.ccpot.moved-left,
+.ccpot.moved-right {
+  animation-duration: 500ms;
+  animation-iteration-count: 1;
+}
+.ccpot.moved-left {
+  animation-name: moved-left;
+}
+.ccpot.moved-right {
+  animation-name: moved-right;
+}
+
+@keyframes moved-left {
+  from {
+    left: var(--ccpot-width);
+    background-color: var(--brighter-1);
+  }
+  to {
+    left: 0;
+    background-color: transparent;
+  }
+}
+@keyframes moved-right {
+  from {
+    left: calc(var(--ccpot-width) * -1);
+    background-color: var(--brighter-1);
+  }
+  to {
+    left: 0;
+    background-color: transparent;
+  }
+}
+
 .ccpot .ccpot-inner {
   position: relative;
   width: 100%;
@@ -1146,6 +1179,11 @@ li {
 .ccpot.spacer .ccpot-front {
   display: none;
   pointer-events: none;
+}
+
+.ccpot.spacer .ccpot-back .cc,
+.ccpot.spacer .ccpot-back .cclabel {
+  visibility: hidden;
 }
 
 .ccpot .cclabel {

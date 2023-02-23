@@ -346,7 +346,10 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
         const v2 = zone.cc_controllers[targetPos];
         zone.cc_controllers[targetPos] = zone.cc_controllers[pos];
         zone.cc_controllers[pos] = v2;
-        renderControllersForZone(zone, zoneindex);
+        renderControllersForZone(zone, zoneindex, {
+          index: targetPos,
+          direction: direction
+        });
       }
     },
     cc_left: () => {
@@ -724,7 +727,7 @@ function renderMarkersForZone(index, tempLo, tempHigh) {
   }
 }
 
-function renderControllersForZone(zone, index) {
+function renderControllersForZone(zone, index, movement) {
   DOM.all(`#zone${index} .ccpots .ccpot`).forEach((e) => e.remove());
   DOM.addHTML(
     `#zone${index} .ccpots`,
@@ -738,7 +741,11 @@ function renderControllersForZone(zone, index) {
   DOM.on(`#zone${index} .ccpots input`, 'focus', (e) => {
     e.target.select();
   });
-
+  if (movement) {
+    DOM.all(`#zone${index} .ccpots .ccpot`)[movement.index].classList.add(
+      movement.direction < 0 ? 'moved-left' : 'moved-right'
+    );
+  }
   DOM.all(`#zone${index} .ccpots .ccpot .ccpot-front`).forEach((pot, ix) => {
     pot.addEventListener('wheel', (e) => {
       e.preventDefault();
