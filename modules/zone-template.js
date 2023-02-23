@@ -69,19 +69,19 @@ module.exports = {
                     id="pot_range_${zoneindex}_${ix}"
                     d=""
                     stroke="var(--brighter-1)"
-                    stroke-width="8"
+                    stroke-width="5"
                     fill="none"
                   />
                   <path
                     id="pot_value_${zoneindex}_${ix}"
                     d=""
                     stroke="var(--brighter-4)"
-                    stroke-width="9"
+                    stroke-width="7"
                     fill="none"
                   />
                   <rect
                     id="pot_zero_${zoneindex}_${ix}"
-                    x="28" y="8" width="1" height="8" fill="var(--darker-2)" />
+                    x="27" y="8" width="2" height="8" fill="var(--brighter-2)" />
                 </svg>
                 <div class="cclabel">
                   ${cc.label}
