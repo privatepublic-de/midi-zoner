@@ -863,6 +863,7 @@ select {
 
 .marker {
   position: absolute;
+  display: none;
   top: 7px;
   width: 32px;
   font-size: 12px;
@@ -877,6 +878,10 @@ select {
 
 .marker.high {
   top: 10px;
+}
+
+.rangeholder:hover .marker {
+  display: block;
 }
 
 .join {
