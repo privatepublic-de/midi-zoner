@@ -745,6 +745,9 @@ function renderControllersForZone(zone, index, movement) {
     DOM.all(`#zone${index} .ccpots .ccpot`)[movement.index].classList.add(
       movement.direction < 0 ? 'moved-left' : 'moved-right'
     );
+    DOM.all(`#zone${index} .ccpots .ccpot`)[
+      movement.index - movement.direction
+    ].classList.add(movement.direction > 0 ? 'moved-left' : 'moved-right');
   }
   DOM.all(`#zone${index} .ccpots .ccpot .ccpot-front`).forEach((pot, ix) => {
     pot.addEventListener('wheel', (e) => {

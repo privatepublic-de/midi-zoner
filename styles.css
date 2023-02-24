@@ -1092,7 +1092,7 @@ li {
 @keyframes moved-left {
   from {
     left: var(--ccpot-width);
-    background-color: var(--brighter-1);
+    background-color: var(--darker-1);
   }
   to {
     left: 0;
@@ -1102,7 +1102,7 @@ li {
 @keyframes moved-right {
   from {
     left: calc(var(--ccpot-width) * -1);
-    background-color: var(--brighter-1);
+    background-color: var(--darker-1);
   }
   to {
     left: 0;

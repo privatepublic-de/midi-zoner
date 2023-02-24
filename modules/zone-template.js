@@ -156,7 +156,7 @@ module.exports = {
           <i class="material-icons">view_comfy</i>
         </div>
         <div class="ch state showccs" data-action="${index}:toggle_show_cc" title="Show CC controllers">
-          <i class="material-icons">adjust</i>
+          CC
         </div>
         <input type="text" class="output-config-name" placeholder="(untitled)"
           onKeyUp="event.stopPropagation();"
