@@ -1310,7 +1310,7 @@ li {
 }
 
 .disabled .seq {
-  background-color: var(--zone-color);
+  background-color: transparent;
 }
 
 .seqtools {
@@ -1380,8 +1380,7 @@ li {
 }
 
 .zone.disabled .seq .grid .step.active {
-  /* border-color: var(--brighter-3); */
-  background-color: var(--brighter-2);
+  background-color: var(--zone-color);
 }
 
 .seq .grid .step:hover {
