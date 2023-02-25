@@ -460,13 +460,13 @@ select {
 
 /* .disabled .ch.selected, */
 /* .disabled .channels select.outport, */
-.disabled .channels input.output-config-name {
-  color: var(--zone-color);
-}
+/* .disabled .channels input.output-config-name {
+  background-image: linear-gradient(90deg, var(--zone-color), transparent);
+} */
 
-.disabled .channels input.output-config-name::placeholder {
+/* .disabled .channels input.output-config-name::placeholder {
   color: var(--zone-color);
-}
+} */
 
 .sendClock {
   display: flex;
