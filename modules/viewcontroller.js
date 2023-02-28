@@ -305,6 +305,15 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
         zone.cc_controllers[params[2]].number_in = parseInt(element.value);
       }
     },
+    cc_add: () => {
+      zone.cc_controllers.splice(parseInt(params[2]) + 1, 0, {
+        number: 1,
+        number_in: 1,
+        label: `Ctrl #${parseInt(params[2]) + 1}`,
+        val: 0
+      });
+      renderControllersForZone(zone, zoneindex);
+    },
     cc_remove: () => {
       if (
         confirm(`Delete control "${zone.cc_controllers[params[2]].label}"?`)

@@ -68,7 +68,7 @@ module.exports = {
                   <path
                     id="pot_range_${zoneindex}_${ix}"
                     d=""
-                    stroke="var(--brighter-1)"
+                    stroke="var(--darker-3)"
                     stroke-width="7"
                     fill="none"
                   />
@@ -109,9 +109,10 @@ module.exports = {
                 </div>
                 <div class="cc_togglepolarity" data-action="${zoneindex}:cc_togglepolarity:${ix}">mode</div>
                 <div class="cc_tools">
-                  <span class="material-icons" data-action="${zoneindex}:cc_left:${ix}">arrow_back</span>
-                  <span class="material-icons" data-action="${zoneindex}:cc_remove:${ix}">close</span>
-                  <span class="material-icons" data-action="${zoneindex}:cc_right:${ix}">arrow_forward</span>
+                  <span class="material-icons" title="Move left" data-action="${zoneindex}:cc_left:${ix}">arrow_back</span>
+                  <span class="material-icons" title="Remove" data-action="${zoneindex}:cc_remove:${ix}">close</span>
+                  <span class="material-icons" title="Add new" data-action="${zoneindex}:cc_add:${ix}">add</span>
+                  <span class="material-icons" title="Move right" data-action="${zoneindex}:cc_right:${ix}">arrow_forward</span>
                 </div>
               </div>
             </div>
