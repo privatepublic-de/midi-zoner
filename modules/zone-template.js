@@ -54,8 +54,7 @@ module.exports = {
     let controllers = '';
     zone.cc_controllers.forEach((cc, ix) => {
       controllers += /*html*/ `
-        <div class="ccpot ${
-          cc.type == 2 ? 'spacer' : ''
+        <div class="ccpot ${cc.type == 2 ? 'spacer' : ''
         }" id="pot_${zoneindex}_${ix}">
             <div class="ccpot-inner">
               <div class="ccpot-front">
@@ -68,7 +67,7 @@ module.exports = {
                   <path
                     id="pot_range_${zoneindex}_${ix}"
                     d=""
-                    stroke="var(--darker-3)"
+                    stroke="var(--darker-2)"
                     stroke-width="7"
                     fill="none"
                   />
@@ -89,9 +88,8 @@ module.exports = {
                 <span class="value">127</span>
               </div>
               <div class="ccpot-back">
-                <div><input class="cclabel" type="text" value="${
-                  cc.label
-                }" data-change="${zoneindex}:cc_label:${ix}"/>
+                <div><input class="cclabel" type="text" value="${cc.label
+        }" data-change="${zoneindex}:cc_label:${ix}"/>
                 </div>
                 <div class="cc">
                   <input type="text" class="cc-in" 
@@ -127,15 +125,13 @@ module.exports = {
     for (let i = 0; i < 16; i++) {
       const label = i + 1;
       const title = `Select MIDI channel ${i + 1}`;
-      channelselectors += `<div class="ch mch ${
-        zone.channel == i ? 'selected' : ''
-      } no${i}" data-action="${index}:ch:${i}" title="${title}">${label}</div>`;
+      channelselectors += `<div class="ch mch ${zone.channel == i ? 'selected' : ''
+        } no${i}" data-action="${index}:ch:${i}" title="${title}">${label}</div>`;
     }
     let sequencerGrid = '';
     for (let i = 0; i < Zone.Sequence.MAX_STEPS; i++) {
-      sequencerGrid += `<div class="step" data-action="${index}:select_step:${i}">${
-        i + 1
-      }</div>`;
+      sequencerGrid += `<div class="step" data-action="${index}:select_step:${i}">${i + 1
+        }</div>`;
     }
     const zoneSoloKeyboardHint =
       index < 10 ? `or press '${(index + 1) % 10}' on computer keyboard` : '';
