@@ -475,11 +475,11 @@ document.addEventListener('DOMContentLoaded', function () {
           requestAnimationFrame(view.renderMarkersForAllZones);
         });
         DOM.element('#newzone').addEventListener('click', createNewZone);
-
+        let colorOffset = 0;
         DOM.element('#shuffleColors').addEventListener('click', () => {
-          const offset = parseInt(Math.random() * 5);
+          colorOffset++;
           zones.list.forEach((/** @type {Zone} */ zone, index) => {
-            zone.randomizeColor(offset + index);
+            zone.randomizeColor(colorOffset + index);
           });
           view.renderZones();
           saveZones();
