@@ -1,9 +1,11 @@
 const seedrandom = require('seedrandom');
+const DOM = require('./domutils');
 const MIDI = require('./midi');
 const DIV_TICKS = [
   192, 144, 96, 72, 64, 48, 36, 32, 24, 18, 16, 12, 9, 8, 6, 4, 3, 2
 ]; // 24ppq
 const COLOR_PALETTE = [
+  /*
   [0.0, 0.6, 0.5],
   [0.08, 0.7, 0.38],
   [0.17, 0.5, 0.38],
@@ -15,8 +17,22 @@ const COLOR_PALETTE = [
   [0.67, 0.7, 0.6],
   [0.75, 0.5, 0.48],
   [0.83, 0.5, 0.45],
-  [0.92, 0.5, 0.42]
+  [0.92, 0.5, 0.42] */
+  DOM.rgb2hsl(DOM.hexToRgb('264653')),
+  DOM.rgb2hsl(DOM.hexToRgb('2A9D8F')),
+  DOM.rgb2hsl(DOM.hexToRgb('E9C46A')),
+  DOM.rgb2hsl(DOM.hexToRgb('F4A261')),
+  DOM.rgb2hsl(DOM.hexToRgb('E76F51'))
 ];
+
+/* 
+264653
+2A9D8F
+E9C46A
+F4A261
+E76F51
+*/
+
 const note_fill = 'rgba(255,255,255,.6)';
 const note_fill_arp = 'rgba(0,0,0,.2)';
 const note_fill_black = 'rgba(255,255,255,.3)';
@@ -746,8 +762,12 @@ class Zone {
   randomizeColor(index) {
     const paletteIndex =
       typeof index != 'undefined'
-        ? index % COLOR_PALETTE.length
-        : Math.random() * COLOR_PALETTE.length;
+        ? parseInt(index % COLOR_PALETTE.length)
+        : parseInt(Math.random() * COLOR_PALETTE.length);
+    this.hue = COLOR_PALETTE[paletteIndex][0];
+    this.saturation = COLOR_PALETTE[paletteIndex][1];
+    this.lightness = COLOR_PALETTE[paletteIndex][2];
+    /*
     const i1 = parseInt(paletteIndex);
     const interp = paletteIndex - i1;
     const i2 = (i1 + 1) % COLOR_PALETTE.length;
@@ -761,7 +781,7 @@ class Zone {
 
     this.hue = irgb[0];
     this.saturation = irgb[1];
-    this.lightness = irgb[2];
+    this.lightness = irgb[2]; */
   }
 
   createEuclidianPattern(length, hits) {

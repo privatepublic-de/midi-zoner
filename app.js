@@ -477,10 +477,9 @@ document.addEventListener('DOMContentLoaded', function () {
         DOM.element('#newzone').addEventListener('click', createNewZone);
 
         DOM.element('#shuffleColors').addEventListener('click', () => {
-          const factor = zones.list.length > 11 ? 1 : 12 / zones.list.length;
-          const offset = Math.random() * zones.list.length * 0.75 * factor;
+          const offset = parseInt(Math.random() * 5);
           zones.list.forEach((/** @type {Zone} */ zone, index) => {
-            zone.randomizeColor(offset + index * factor);
+            zone.randomizeColor(offset + index);
           });
           view.renderZones();
           saveZones();

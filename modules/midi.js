@@ -231,7 +231,7 @@ class MIDI {
       this.eventHandler(event);
     } else {
       // forward messages from other channels
-      sendToAllUsedPorts(event.data);
+      this.sendToAllUsedPorts(event.data);
     }
   }
 
