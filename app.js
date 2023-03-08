@@ -75,14 +75,14 @@ function applyStoredZones(storedZones, midi, append) {
 
 const closeQueue = [];
 
-function bodyClickHandler() { 
+function bodyClickHandler() {
   let callback = closeQueue.pop();
-  if (callback) { 
+  if (callback) {
     callback();
   }
 }
 
-function onBackgroundClick(callback, filterElement) { 
+function onBackgroundClick(callback, filterElement) {
   DOM.on(filterElement, 'click', (ev) => { ev.stopPropagation(); });
   closeQueue.push(callback);
 }
@@ -296,7 +296,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
     if (count == 0) {
-      displayString = '(no input devices available)';
+      displayString = '(no input device selected)';
     }
     displayString = count + ': ' + displayString;
     DOM.element('#midiInputSelector').innerHTML = displayString;
@@ -315,10 +315,8 @@ document.addEventListener('DOMContentLoaded', function () {
       DOM.addHTML(
         listContainer,
         'beforeend',
-        `<div class="clockOutOption ${
-          isSelected ? 'selected' : ''
-        }" data-portid="${
-          inport.id
+        `<div class="clockOutOption ${isSelected ? 'selected' : ''
+        }" data-portid="${inport.id
         }"><span class="material-icons sel">check_circle</span
         ><span class="material-icons unsel">radio_button_unchecked</span>
         <span>${inport.fullName}</span>
@@ -377,10 +375,8 @@ document.addEventListener('DOMContentLoaded', function () {
       DOM.addHTML(
         clockOutListContainer,
         'beforeend',
-        `<div class="clockOutOption ${
-          isSelected ? 'selected' : ''
-        }" data-portid="${
-          outport.id
+        `<div class="clockOutOption ${isSelected ? 'selected' : ''
+        }" data-portid="${outport.id
         }"><span class="material-icons sel">check_circle</span
         ><span class="material-icons unsel">radio_button_unchecked</span>
         <span class="outname">${outport.fullName}</span>
@@ -585,8 +581,7 @@ document.addEventListener('DOMContentLoaded', function () {
             DOM.addHTML(
               select_in_clock,
               'beforeend',
-              `<option value="${input.id}" ${
-                input.isSelectedClockInput ? 'selected' : ''
+              `<option value="${input.id}" ${input.isSelectedClockInput ? 'selected' : ''
               }>${input.name}</option>`
             );
           });
@@ -636,21 +631,21 @@ document.addEventListener('DOMContentLoaded', function () {
     const isVisible = (clockoutcontainer.style.display == 'block');
     clockoutcontainer.style.display =
       isVisible ? 'none' : 'block';
-    if (!isVisible) { 
+    if (!isVisible) {
       setTimeout(() => {
         onBackgroundClick(() => { clockoutcontainer.style.display = 'none'; }, '#clockOutPortWindow')
-      },0);
+      }, 0);
     }
   });
   DOM.element('#midiInputSelector').addEventListener('click', () => {
     const container = DOM.element('#inputPortWindow');
     const isVisible = (container.style.display == 'block');
-    container.style.display = 
+    container.style.display =
       isVisible ? 'none' : 'block';
-    if (!isVisible) { 
+    if (!isVisible) {
       setTimeout(() => {
         onBackgroundClick(() => { container.style.display = 'none'; }, '#inputPortWindow')
-      },0);
+      }, 0);
     }
   });
   DOM.on('#clockOutPortWindow input[name="sendinternal"]', 'change', () => {
