@@ -73,6 +73,22 @@ function applyStoredZones(storedZones, midi, append) {
   }
 }
 
+const closeQueue = [];
+
+function bodyClickHandler() { 
+  let callback = closeQueue.pop();
+  if (callback) { 
+    callback();
+  }
+}
+
+function onBackgroundClick(callback, filterElement) { 
+  DOM.on(filterElement, 'click', (ev) => { ev.stopPropagation(); });
+  closeQueue.push(callback);
+}
+
+
+
 function savedScenesKeys() {
   const scenesj = localStorage.getItem('scenes');
   if (scenesj) {
@@ -166,6 +182,7 @@ function openLoadDialog(midi) {
     midi
   );
   DOM.show(container);
+  onBackgroundClick(closeLoadSaveDialog, '#loadsave');
   isLoadSaveDialogOpenend = true;
 }
 
@@ -205,6 +222,7 @@ function openSaveDialog() {
   nameInput.value = '';
   nameInput.focus();
   isLoadSaveDialogOpenend = true;
+  onBackgroundClick(closeLoadSaveDialog, '#loadsave');
 }
 
 function closeLoadSaveDialog() {
@@ -221,6 +239,7 @@ function updateThemeDisplay() {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
+  DOM.on(document, 'click', bodyClickHandler);
   const select_in_clock = DOM.element('#midiClockInDeviceId');
   const startClockButton = DOM.element('#startClockButton');
   const bpmInput = DOM.element('#bpm');
@@ -540,7 +559,7 @@ document.addEventListener('DOMContentLoaded', function () {
         DOM.element('#loadsave').addEventListener('click', (e) =>
           e.stopPropagation()
         );
-        document.body.addEventListener('click', closeLoadSaveDialog);
+        // document.body.addEventListener('click', closeLoadSaveDialog);
       } else {
         console.log('app:', message);
       }
@@ -614,13 +633,25 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   DOM.element('#clockSendButton').addEventListener('click', (e) => {
     const clockoutcontainer = DOM.element('#clockOutPortWindow');
+    const isVisible = (clockoutcontainer.style.display == 'block');
     clockoutcontainer.style.display =
-      clockoutcontainer.style.display == 'block' ? 'none' : 'block';
+      isVisible ? 'none' : 'block';
+    if (!isVisible) { 
+      setTimeout(() => {
+        onBackgroundClick(() => { clockoutcontainer.style.display = 'none'; }, '#clockOutPortWindow')
+      },0);
+    }
   });
   DOM.element('#midiInputSelector').addEventListener('click', () => {
     const container = DOM.element('#inputPortWindow');
-    container.style.display =
-      container.style.display == 'block' ? 'none' : 'block';
+    const isVisible = (container.style.display == 'block');
+    container.style.display = 
+      isVisible ? 'none' : 'block';
+    if (!isVisible) { 
+      setTimeout(() => {
+        onBackgroundClick(() => { container.style.display = 'none'; }, '#inputPortWindow')
+      },0);
+    }
   });
   DOM.on('#clockOutPortWindow input[name="sendinternal"]', 'change', () => {
     midi.sendInternalClockIfPlaying = zones.sendInternalClockIfPlaying =

@@ -1,126 +1,80 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="styles.css" />
-    <script src="app.js"></script>
-    <title>midi-zoner</title>
-  </head>
-  <body>
-    <section id="midisettings">
-      <div class="left">
-        <div class="toolbar">
-          <a id="load" class="lightButton" title="Load scene"
-            ><i class="material-icons">folder_open</i></a
-          >
-          <a id="save" class="lightButton" title="Save scene"
-            ><i class="material-icons">save</i> Save</a
-          >
-        </div>
-        <a id="allMuteOff" class="lightButton" title="Enable all"
-          ><span class="material-icons"> check </span></a
-        >
-        <a id="allSoloOff" class="lightButton" title="Un-solo all">S</a>
-        <a id="allHoldOff" class="lightButton" title="All arpeggiator hold off"
-          >H</a
-        >
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="app.js"></script>
+  <title>midi-zoner</title>
+</head>
+
+<body>
+  <section id="midisettings">
+    <div class="left">
+      <div class="toolbar">
+        <a id="load" class="lightButton" title="Load scene"><i class="material-icons">folder_open</i></a>
+        <a id="save" class="lightButton" title="Save scene"><i class="material-icons">save</i> Save</a>
       </div>
-      <div class="controls" id="controls">
-        <div class="row">
-          <label>In:</label>
-          <span id="midiInputSelector">Choose inputs</span>
+      <a id="allMuteOff" class="lightButton" title="Enable all"><span class="material-icons"> check </span></a>
+      <a id="allSoloOff" class="lightButton" title="Un-solo all">S</a>
+      <a id="allHoldOff" class="lightButton" title="All arpeggiator hold off">H</a>
+    </div>
+    <div class="controls" id="controls">
+      <div class="row">
+        <label>In:</label>
+        <span id="midiInputSelector">Choose inputs</span>
+      </div>
+      <div class="row clocksettings">
+        <label for="midiClockInDeviceId">Clock:</label>
+        <select id="midiClockInDeviceId" class="clockIndicator" tabindex="-1">
+          <option>(No devices)</option>
+        </select>
+        <div class="" title="Select clock output ports" id="clockSendButton">
+          <i class="material-icons unsel">query_builder</i>
+          <i class="material-icons">keyboard_double_arrow_right</i>
+          <span id="clockOutPortsCount">-</span>
         </div>
-        <div class="row clocksettings">
-          <label for="midiClockInDeviceId">Clock:</label>
-          <select id="midiClockInDeviceId" class="clockIndicator" tabindex="-1">
-            <option>(No devices)</option>
-          </select>
-          <div class="" title="Select clock output ports" id="clockSendButton">
-            <i class="material-icons unsel">query_builder</i>
-            <i class="material-icons">keyboard_double_arrow_right</i>
-            <span id="clockOutPortsCount">-</span>
-          </div>
-          <div
-            id="startClockButton"
-            class="toggle internal"
-            title="Start arpeggiators & sequencers"
-          ></div>
-          <div class="internal">
-            <label for="bpm">BPM:</label>
-            <input type="number" value="120" min="30" max="240" id="bpm" />
-          </div>
+        <div id="startClockButton" class="toggle internal" title="Start arpeggiators & sequencers"></div>
+        <div class="internal">
+          <label for="bpm">BPM:</label>
+          <input type="number" value="120" min="30" max="240" id="bpm" />
         </div>
       </div>
-      <div class="right">
-        <a id="toggleTheme" class="lightButton" title="Toggle contrast"
-          ><i class="material-icons">contrast</i></a
-        >
-        <a id="shuffleColors" class="lightButton" title="Shuffle colors"
-          ><i class="material-icons">palette</i></a
-        >
-        <a
-          id="midiPanic"
-          class="lightButton"
-          title="Send 'All notes off' to all outputs"
-        >
-          Panic
-        </a>
-      </div>
+    </div>
+    <div class="right">
+      <a id="toggleTheme" class="lightButton" title="Toggle contrast"><i class="material-icons">contrast</i></a>
+      <a id="shuffleColors" class="lightButton" title="Shuffle colors"><i class="material-icons">palette</i></a>
+      <a id="midiPanic" class="lightButton" title="Send 'All notes off' to all outputs">
+        Panic
+      </a>
+    </div>
+  </section>
+  <div class="padded">
+    <section id="zones">
+      <div class="zone initialising">INITIALISING ...</div>
     </section>
-    <div class="padded">
-      <section id="zones">
-        <div class="zone initialising">INITIALISING ...</div>
-      </section>
-      <section id="tools">
-        <a id="newzone" title="Add new zone"
-          ><span class="material-icons"> add </span></a
-        >
-      </section>
-    </div>
-    <div id="loadsave"></div>
-    <div id="inputPortWindow">
-      <div
-        onclick="document.getElementById('inputPortWindow').style.display='none'"
-        class="sendCancel"
-      >
-        <i class="material-icons">close</i>
-      </div>
-      <p>Select active inputs</p>
-      <div id="inputPortList"></div>
-    </div>
-    <div
-      id="clockOutPortWindow"
-      onmouseleave="document.getElementById('clockOutPortWindow').style.display='none'"
-    >
-      <div
-        onclick="document.getElementById('clockOutPortWindow').style.display='none'"
-        class="sendCancel"
-      >
-        <i class="material-icons">close</i>
-      </div>
-      <p>Select clock output ports</p>
-      <p class="smaller">
-        All clock and start/stop messages are forwarded to the selected ports.
-      </p>
-      <div id="clockOutPortList"></div>
-      <p class="smaller">
-        Send internal clock<br />
-        <input
-          type="radio"
-          name="sendinternal"
-          value="0"
-          id="sendinternalalways"
-        />
-        <label for="sendinternalalways">Always</label>
-        <input
-          type="radio"
-          name="sendinternal"
-          value="1"
-          id="sendinternalplaying"
-        />
-        <label for="sendinternalplaying">Only when playing</label>
-      </p>
-    </div>
-  </body>
+    <section id="tools">
+      <a id="newzone" title="Add new zone"><span class="material-icons"> add </span></a>
+    </section>
+  </div>
+  <div id="loadsave"></div>
+  <div id="inputPortWindow">
+    <div id="inputPortList"></div>
+  </div>
+  <div id="clockOutPortWindow">
+    <div id="clockOutPortList"></div>
+    <p class="selectWindowHint">
+      All clock and start/stop messages are forwarded to the selected ports.
+    </p>
+    <p class="selectWindowHint">
+      Send internal clock<br />
+      <input type="radio" name="sendinternal" value="0" id="sendinternalalways" />
+      <label for="sendinternalalways">Always</label>
+      <input type="radio" name="sendinternal" value="1" id="sendinternalplaying" />
+      <label for="sendinternalplaying">Only when playing</label>
+    </p>
+  </div>
+</body>
+
 </html>

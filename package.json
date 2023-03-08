@@ -6,6 +6,7 @@
   "scripts": {
     "start": "electron .",
     "pack:osx": "electron-packager . --out=dist/osx --platform=darwin --arch=x64 --icon='./assets/zoner.icns' --overwrite --ignore='assets'",
+    "pack:osx:arm": "electron-packager . --out=dist/osx --platform=darwin --arch=arm64 --icon='./assets/zoner.icns' --overwrite --ignore='assets'",
     "build:win": "electron-builder -w",
     "build:mac": "electron-builder -m",
     "build:linux": "electron-builder -l",

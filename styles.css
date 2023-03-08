@@ -47,6 +47,7 @@
   --bg-midi-update: #fff;
   --bg-loadsave: #444;
   --bg-loadsave-item: #555;
+  --bg-select-window: #111;
   --shadow-zone: #111;
   --fg-channel-select: #000;
 
@@ -162,6 +163,7 @@ select {
 
 #midiInputSelector {
   position: relative;
+  height: 18px;
   cursor: pointer;
   display: inline-block;
   white-space: nowrap;
@@ -177,6 +179,7 @@ select {
   margin: 0 0 0 2px;
 }
 
+#clockSendButton::after,
 #midiInputSelector::after {
   content: '⌄';
   position: absolute;
@@ -245,11 +248,12 @@ select {
 }
 
 #clockSendButton {
+  position: relative;
   background-color: var(--darker-2);
   border: 1px solid var(--darker-3);
   cursor: pointer;
   display: flex;
-  height: 20px;
+  height: 18px;
   padding: 0 4px;
   align-items: center;
   margin-left: 2px;
@@ -778,7 +782,7 @@ select {
   border: 1px solid var(--brighter-2);
 }
 
-.octselect.selected + .octselect {
+.octselect.selected+.octselect {
   border-left: none;
 }
 
@@ -1082,9 +1086,11 @@ li {
   animation-duration: 500ms;
   animation-iteration-count: 1;
 }
+
 .ccpot.moved-left {
   animation-name: moved-left;
 }
+
 .ccpot.moved-right {
   animation-name: moved-right;
 }
@@ -1094,16 +1100,19 @@ li {
     left: var(--ccpot-width);
     background-color: var(--darker-1);
   }
+
   to {
     left: 0;
     background-color: transparent;
   }
 }
+
 @keyframes moved-right {
   from {
     left: calc(var(--ccpot-width) * -1);
     background-color: var(--darker-1);
   }
+
   to {
     left: 0;
     background-color: transparent;
@@ -1504,11 +1513,11 @@ li {
 #clockOutPortWindow,
 #inputPortWindow {
   position: fixed;
-  background: var(--bg-loadsave);
+  background: var(--bg-select-window);
   color: var(--brighter-3);
   padding: 5px;
-  top: 45px;
-  right: calc(50% - 125px);
+  top: 50px;
+  right: calc(50% - 210px);
   z-index: 2;
   font-size: 12px;
   display: none;
@@ -1522,26 +1531,31 @@ li {
   vertical-align: bottom;
 }
 
-.smaller {
+.selectWindowHint {
   font-size: 0.85em;
+  margin: 1em 0;
 }
 
 #inputPortWindow {
   top: 25px;
-  right: calc(50% - 75px);
+  right: calc(50% - 206px);
+  width: 380px;
 }
 
 #clockOutPortList,
 #inputPortList {
-  margin-top: 5px;
   padding-top: 5px;
-  border-top: 1px solid var(--brighter-0);
-  background-color: var(--darker-1);
+  /* border-top: 1px solid var(--brighter-0); */
+  /* background-color: var(--darker-1); */
+}
+
+#clockOutPortList {
+  margin: 5px 0;
 }
 
 .clockOutOption {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   color: var(--brighter-2);
   margin-bottom: 3px;
   font-size: 11px;
