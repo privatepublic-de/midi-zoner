@@ -414,9 +414,9 @@ select {
 .zone .check input[type='number'] {
   height: auto;
   margin-left: 2px;
-  padding-top: 3px;
+  /* padding-top: 3px; */
   background-color: transparent;
-  border-bottom: 1px solid var(--brighter-1);
+  /* border-bottom: 1px solid var(--brighter-1); */
 }
 
 .zone input[type='number']:focus-visible {
@@ -782,7 +782,7 @@ select {
   border: 1px solid var(--brighter-2);
 }
 
-.octselect.selected+.octselect {
+.octselect.selected + .octselect {
   border-left: none;
 }
 

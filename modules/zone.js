@@ -5,19 +5,6 @@ const DIV_TICKS = [
   192, 144, 96, 72, 64, 48, 36, 32, 24, 18, 16, 12, 9, 8, 6, 4, 3, 2
 ]; // 24ppq
 const COLOR_PALETTE = [
-  /*
-  [0.0, 0.6, 0.5],
-  [0.08, 0.7, 0.38],
-  [0.17, 0.5, 0.38],
-  [0.25, 0.5, 0.4],
-  [0.33, 0.5, 0.42],
-  [0.41, 0.5, 0.46],
-  [0.5, 0.7, 0.4],
-  [0.58, 0.5, 0.5],
-  [0.67, 0.7, 0.6],
-  [0.75, 0.5, 0.48],
-  [0.83, 0.5, 0.45],
-  [0.92, 0.5, 0.42] */
   DOM.rgb2hsl(DOM.hexToRgb('264653')),
   DOM.rgb2hsl(DOM.hexToRgb('2A9D8F')),
   DOM.rgb2hsl(DOM.hexToRgb('E9C46A')),
@@ -25,17 +12,9 @@ const COLOR_PALETTE = [
   DOM.rgb2hsl(DOM.hexToRgb('E76F51'))
 ];
 
-/* 
-264653
-2A9D8F
-E9C46A
-F4A261
-E76F51
-*/
-
 const note_fill = 'rgba(255,255,255,.6)';
 const note_fill_arp = 'rgba(0,0,0,.2)';
-const note_fill_black = 'rgba(255,255,255,.3)';
+const note_fill_black = '#000'; // 'rgba(255,255,255,.3)';
 const note_top = 8;
 const note_top_black = 4;
 const note_height = 12;
