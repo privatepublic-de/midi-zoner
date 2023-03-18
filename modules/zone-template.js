@@ -69,14 +69,14 @@ module.exports = {
                     id="pot_range_${zoneindex}_${ix}"
                     d=""
                     stroke="var(--darker-1)"
-                    stroke-width="7"
+                    stroke-width="10"
                     fill="none"
                   />
                   <path
                     id="pot_value_${zoneindex}_${ix}"
                     d=""
                     stroke="var(--brighter-4)"
-                    stroke-width="4"
+                    stroke-width="6"
                     fill="none"
                   />
                   <rect

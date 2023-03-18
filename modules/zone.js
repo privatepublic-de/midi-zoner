@@ -5,7 +5,7 @@ const DIV_TICKS = [
   192, 144, 96, 72, 64, 48, 36, 32, 24, 18, 16, 12, 9, 8, 6, 4, 3, 2
 ]; // 24ppq
 const COLOR_PALETTE = [
-  DOM.rgb2hsl(DOM.hexToRgb('264653')),
+  DOM.rgb2hsl(DOM.hexToRgb('2A4F5F')),
   DOM.rgb2hsl(DOM.hexToRgb('2A9D8F')),
   DOM.rgb2hsl(DOM.hexToRgb('E9C46A')),
   DOM.rgb2hsl(DOM.hexToRgb('F4A261')),
@@ -14,7 +14,7 @@ const COLOR_PALETTE = [
 
 const note_fill = 'rgba(255,255,255,.6)';
 const note_fill_arp = 'rgba(0,0,0,.2)';
-const note_fill_black = '#000'; // 'rgba(255,255,255,.3)';
+const note_fill_black = 'rgba(255,255,255,.4)';
 const note_top = 8;
 const note_top_black = 4;
 const note_height = 12;
@@ -443,9 +443,9 @@ class Zone {
       const cwidth = this.canvasElement.width;
       const notewidth = Math.floor(cwidth / 127.0 - cwidth / 127.0 / 2.0);
       ctx.clearRect(0, 0, cwidth, this.canvasElement.height);
-      ctx.fillStyle = this.arp_enabled
-        ? 'rgba(0,0,0,.2)'
-        : 'rgba(255,255,255,.6)';
+      // ctx.fillStyle = this.arp_enabled
+      //   ? 'rgba(0,0,0,.2)'
+      //   : 'rgba(255,255,255,.6)';
       const list =
         this.arp_hold && this.arp_enabled
           ? this.arp_holdlist
