@@ -1415,6 +1415,12 @@ li {
   color: var(--brighter-4);
 }
 
+.steps-changed .step.active,
+.seq .grid.hot.steps-changed .step.selected-step {
+  background-color: var(--brighter-4) !important;
+  transition: background-color 200ms ease-in;
+}
+
 .seq .grid.hot .listen-indicator,
 .seq_record_live.selected {
   animation: indicator 1s infinite alternate;

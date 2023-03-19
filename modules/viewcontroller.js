@@ -436,8 +436,12 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
           }
         });
         updateValuesForZone(zoneindex);
+        DOM.addClass(element.closest('.grid'), 'steps-changed');
+      }
+      if (actionIndex > 0) {
         setTimeout(() => {
           element.selectedIndex = 0;
+          DOM.removeClass(element.closest('.grid'), 'steps-changed');
         }, 1000);
       }
     },
