@@ -414,14 +414,31 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
         updateValuesForZone(zoneindex);
       }
     },
-    seq_step_probability_all: () => {
-      if (zone.sequence.selectedStep) {
+    seq_step_apply_to_all: () => {
+      const actionIndex = element.selectedIndex;
+      if (zone.sequence.selectedStep && actionIndex > 0) {
         zone.sequence.steps.forEach((s) => {
           if (s) {
-            s.probability = zone.sequence.selectedStep.probability;
+            switch (actionIndex) {
+              case 1:
+                s.length = zone.sequence.selectedStep.length;
+                break;
+              case 2:
+                s.gateLength = zone.sequence.selectedStep.gateLength;
+                break;
+              case 3:
+                s.condition = zone.sequence.selectedStep.condition;
+                break;
+              case 4:
+                s.probability = zone.sequence.selectedStep.probability;
+                break;
+            }
           }
         });
         updateValuesForZone(zoneindex);
+        setTimeout(() => {
+          element.selectedIndex = 0;
+        }, 1000);
       }
     },
     seq_gatelength: () => {

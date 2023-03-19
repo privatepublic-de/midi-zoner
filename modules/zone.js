@@ -14,6 +14,7 @@ const COLOR_PALETTE = [
 
 const note_fill = 'rgba(255,255,255,.6)';
 const note_fill_arp = 'rgba(0,0,0,.2)';
+const note_fill_arp_played = 'rgba(255,255,255,.7)';
 const note_fill_black = 'rgba(255,255,255,.4)';
 const note_top = 8;
 const note_top_black = 4;
@@ -443,64 +444,54 @@ class Zone {
       const cwidth = this.canvasElement.width;
       const notewidth = Math.floor(cwidth / 127.0 - cwidth / 127.0 / 2.0);
       ctx.clearRect(0, 0, cwidth, this.canvasElement.height);
-      // ctx.fillStyle = this.arp_enabled
-      //   ? 'rgba(0,0,0,.2)'
-      //   : 'rgba(255,255,255,.6)';
+
+      function drawNote(number, isBlack, fillStyle, fillStyleBlack) {
+        ctx.fillStyle = isBlack ? fillStyleBlack : fillStyle;
+        ctx.fillRect(
+          Math.floor((cwidth * number) / 127),
+          isBlack ? note_top_black : note_top,
+          notewidth,
+          isBlack ? note_height_black : note_height
+        );
+      }
+
       const list =
         this.arp_hold && this.arp_enabled
           ? this.arp_holdlist
           : this.activeNotes;
       for (let i = 0; i < list.length; i++) {
         if (this.arp_enabled) {
-          ctx.fillStyle = note_fill_arp;
           for (let ao = 0; ao < this.arp_octaves + 1; ao++) {
             const number =
               list[i].number +
               (this.arp_transpose ? this.arp_transpose_amount : 0) +
               (this.octave + ao) * 12;
-            const isBlack = Note.isBlackKey(number);
-            ctx.fillRect(
-              Math.floor((cwidth * number) / 127),
-              isBlack ? note_top_black : note_top,
-              notewidth,
-              isBlack ? note_height_black : note_height
+            drawNote(
+              number,
+              Note.isBlackKey(number),
+              note_fill_arp,
+              note_fill_arp
             );
           }
         } else {
           const number = list[i].number;
-          const isBlack = Note.isBlackKey(number);
-          ctx.fillStyle = isBlack ? note_fill_black : note_fill;
-          ctx.fillRect(
-            Math.floor((cwidth * number) / 127),
-            isBlack ? note_top_black : note_top,
-            notewidth,
-            isBlack ? note_height_black : note_height
-          );
+          drawNote(number, Note.isBlackKey(number), note_fill, note_fill_black);
         }
       }
       if (this.sequence.active) {
-        ctx.fillStyle = 'rgba(255,255,255,.6)';
         for (let snote of this.sequence.activeNotes()) {
           const number = snote.number;
-          const isBlack = Note.isBlackKey(number);
-          ctx.fillStyle = isBlack ? note_fill_black : note_fill;
-          ctx.fillRect(
-            Math.floor((cwidth * number) / 127),
-            isBlack ? note_top_black : note_top,
-            notewidth,
-            isBlack ? note_height_black : note_height
-          );
+          drawNote(number, Note.isBlackKey(number), note_fill, note_fill_black);
         }
       }
       if (this.arp_enabled) {
         const note = this.arp.lastnote;
         if (note) {
-          ctx.fillStyle = 'rgba(255,255,255,.7)';
-          ctx.fillRect(
-            Math.floor((cwidth * note.number) / 127),
-            note.isBlackKey ? note_top_black : note_top,
-            notewidth,
-            note.isBlackKey ? note_height_black : note_height
+          drawNote(
+            note.number,
+            note.isBlackKey,
+            note_fill_arp_played,
+            note_fill_arp_played
           );
         }
       }

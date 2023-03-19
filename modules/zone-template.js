@@ -230,7 +230,6 @@ module.exports = {
                 <span class="inner"></span>
                 <span class="pcnt">50</span>
               </div>
-              <div class="action" title="Apply probability to all steps" data-action="${index}:seq_step_probability_all"><i class="material-icons">keyboard_double_arrow_right</i></div>
             </div>
             <div class="step-controls">
                 <div class="action" title="Move step left (if free space)" data-action="${index}:seq_step_move:-1"><i class="material-icons">chevron_left</i></div>
@@ -251,6 +250,15 @@ module.exports = {
                   title="Advance step after note input"
                 >
                   ${checkboxIcons}Advance
+                </div>
+                <div class="drop-down" title="Apply step properties to all active steps in sequence">
+                  <select class="" data-change="${index}:seq_step_apply_to_all">
+                    <option>Apply to all…</option>
+                    <option>» Step Length</option>
+                    <option>» Gate Length</option>
+                    <option>» Condition</option>
+                    <option>» Probability</option>
+                  </select>
                 </div>
               </div>
               <div class="step-info-close" data-action="${index}:select_step:-1"><i class="material-icons">close</i></div>
