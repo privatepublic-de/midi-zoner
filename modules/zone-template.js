@@ -159,12 +159,14 @@ module.exports = {
         <div class="ch state showccs" data-action="${index}:toggle_show_cc" title="Show CC controllers">
           CC
         </div>
-        <input type="text" class="output-config-name" placeholder="(untitled)"
-          onKeyUp="event.stopPropagation();"
-          data-change="${index}:output_config_name"/>
-        <select class="outport" data-change="${index}:outport">
-          <option value="*"></option>
-        </select>
+        <div class="outselection">
+          <select class="outport" data-change="${index}:outport">
+            <option value="*"></option>
+          </select>
+          <input type="text" class="output-config-name" placeholder="(untitled)"
+            onKeyUp="event.stopPropagation();"
+            data-change="${index}:output_config_name"/>
+        </div>
         <div
             class="mch sendClock"
             data-action="${index}:sendClock"

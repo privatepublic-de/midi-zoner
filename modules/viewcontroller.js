@@ -1036,8 +1036,17 @@ function updateValuesForZone(index) {
       : '';
     DOM.element(`#fixedvel${index}`).value = zone.fixedvel_value;
     DOM.element(`#scalevel${index}`).value = zone.scale_velocity_value;
-    DOM.element(`#zone${index} .output-config-name`).value =
-      zones.outputConfigNames[zone.configId] || '';
+    const nameField = DOM.element(`#zone${index} .output-config-name`);
+    if (zones.outputConfigNames[zones.list[index].configId]) {
+      nameField.value = zones.outputConfigNames[zones.list[index].configId];
+    } else {
+      nameField.value = '';
+      nameField.placeholder = DOM.element(
+        `#zone${index} select.outport`
+      ).selectedOptions[0].innerHTML;
+    }
+    //   DOM.element(`#zone${index} .output-config-name`).value =
+    //     zones.outputConfigNames[zone.configId] || '';
     if (midiController.clockOutputPorts[zone.outputPortId] === true) {
       DOM.addClass(`#zone${index} .sendClock`, 'selected');
     }
@@ -1166,9 +1175,8 @@ function updateOutputPortsForZone(index, outputs) {
     'beforeend',
     `<option value="*">${noSelectionLabel}</option>`
   );
-
-  DOM.element(`#zone${index} .output-config-name`).value =
-    zones.outputConfigNames[zones.list[index].configId] || '';
+  // DOM.element(`#zone${index} .output-config-name`).value =
+  //   zones.outputConfigNames[zones.list[index].configId] || '';
   if (zones.outputConfigNames) {
     let html = '<optgroup label="---- PRESETS ----"></optgroup>';
     [...Object.keys(zones.outputConfigNames)]
@@ -1208,6 +1216,13 @@ function updateOutputPortsForZone(index, outputs) {
     select.value = MIDI.INTERNAL_PORT_ID;
     zones.list[index].outputPortId = MIDI.INTERNAL_PORT_ID;
   }
+  // const nameField = DOM.element(`#zone${index} .output-config-name`);
+  // if (zones.outputConfigNames[zones.list[index].configId]) {
+  //   nameField.value = zones.outputConfigNames[zones.list[index].configId];
+  // } else {
+  //   nameField.value = '';
+  //   nameField.placeholder = select.selectedOptions[0].innerHTML;
+  // }
   updateValuesForAllZones();
 }
 
