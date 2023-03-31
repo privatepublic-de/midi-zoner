@@ -160,11 +160,12 @@ module.exports = {
           CC
         </div>
         <div class="outselection">
-          <select class="outport" data-change="${index}:outport">
+          <select class="outport" data-change="${index}:outport" title="Select output port or preset">
             <option value="*"></option>
           </select>
           <input type="text" class="output-config-name" placeholder="(untitled)"
             onKeyUp="event.stopPropagation();"
+            title="Edit output preset name"
             data-change="${index}:output_config_name"/>
         </div>
         <div

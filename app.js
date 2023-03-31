@@ -83,11 +83,11 @@ function bodyClickHandler() {
 }
 
 function onBackgroundClick(callback, filterElement) {
-  DOM.on(filterElement, 'click', (ev) => { ev.stopPropagation(); });
+  DOM.on(filterElement, 'click', (ev) => {
+    ev.stopPropagation();
+  });
   closeQueue.push(callback);
 }
-
-
 
 function savedScenesKeys() {
   const scenesj = localStorage.getItem('scenes');
@@ -107,7 +107,6 @@ function existingScenesHtml(className) {
       existingHtml += /*html*/ `
         <li data-index="${index}">
           <i data-act="delete" class="material-icons">delete</i>
-          <i data-act="add" class="material-icons" title="Add to exisiting zones">add</i>
           ${k}
         </li>`;
     });
@@ -133,21 +132,6 @@ function attachSceneActionHandlers(container, reloadFunction, midi) {
       }
     });
   });
-  DOM.find(container, 'li *[data-act="add"]').forEach((e) => {
-    e.addEventListener('click', (ev) => {
-      ev.stopPropagation();
-      const index = new Number(e.parentElement.getAttribute('data-index'));
-      const scenesJ = localStorage.getItem('scenes');
-      const scenes = scenesJ ? JSON.parse(scenesJ) : {};
-      const scene = scenes[savedScenesKeys()[index]];
-      if (scene) {
-        applyStoredZones(JSON.parse(scene), midi, true);
-        view.renderZones();
-        saveZones();
-      }
-      closeLoadSaveDialog();
-    });
-  });
 }
 
 let isLoadSaveDialogOpenend = false;
@@ -168,7 +152,7 @@ function openLoadDialog(midi) {
     const scenes = scenesJ ? JSON.parse(scenesJ) : {};
     const scene = scenes[savedScenesKeys()[index]];
     if (scene) {
-      applyStoredZones(JSON.parse(scene), midi);
+      applyStoredZones(JSON.parse(scene), midi, true);
       view.renderZones();
       saveZones();
     }
@@ -315,8 +299,10 @@ document.addEventListener('DOMContentLoaded', function () {
       DOM.addHTML(
         listContainer,
         'beforeend',
-        `<div class="clockOutOption ${isSelected ? 'selected' : ''
-        }" data-portid="${inport.id
+        `<div class="clockOutOption ${
+          isSelected ? 'selected' : ''
+        }" data-portid="${
+          inport.id
         }"><span class="material-icons sel">check_circle</span
         ><span class="material-icons unsel">radio_button_unchecked</span>
         <span>${inport.fullName}</span>
@@ -375,8 +361,10 @@ document.addEventListener('DOMContentLoaded', function () {
       DOM.addHTML(
         clockOutListContainer,
         'beforeend',
-        `<div class="clockOutOption ${isSelected ? 'selected' : ''
-        }" data-portid="${outport.id
+        `<div class="clockOutOption ${
+          isSelected ? 'selected' : ''
+        }" data-portid="${
+          outport.id
         }"><span class="material-icons sel">check_circle</span
         ><span class="material-icons unsel">radio_button_unchecked</span>
         <span class="outname">${outport.fullName}</span>
@@ -417,7 +405,22 @@ document.addEventListener('DOMContentLoaded', function () {
     eventHandler: (event) => {
       if (midi.deviceIdInClock == MIDI.INTERNAL_PORT_ID) {
         // handle start/stop messages with internal clock active
-        if (event.data[0] == MIDI.MESSAGE.START) {
+        if (
+          event.data[0] == MIDI.MESSAGE.SYSTEM_EXCLUSIVE &&
+          event.data[1] == MIDI.MESSAGE.SYSTEM_EXCLUSIVE_REAL_TIME &&
+          event.data[3] == 6
+        ) {
+          if (event.data[4] == 2) {
+            // MMC PLAY
+            midi.startClock();
+          } else if (event.data[4] == 1) {
+            // MMC STOP
+            midi.stopClock();
+            zones.list.forEach((z) => {
+              z.stopped();
+            });
+          }
+        } else if (event.data[0] == MIDI.MESSAGE.START) {
           midi.startClock();
         } else if (event.data[0] == MIDI.MESSAGE.STOP) {
           midi.stopClock();
@@ -426,6 +429,7 @@ document.addEventListener('DOMContentLoaded', function () {
           });
         }
       }
+
       let msgtype = event.data[0] & 0xf0;
       if (msgtype === MIDI.MESSAGE.NOTE_ON && event.data[2] === 0) {
         msgtype = MIDI.MESSAGE.NOTE_OFF;
@@ -581,7 +585,8 @@ document.addEventListener('DOMContentLoaded', function () {
             DOM.addHTML(
               select_in_clock,
               'beforeend',
-              `<option value="${input.id}" ${input.isSelectedClockInput ? 'selected' : ''
+              `<option value="${input.id}" ${
+                input.isSelectedClockInput ? 'selected' : ''
               }>${input.name}</option>`
             );
           });
@@ -628,23 +633,25 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   DOM.element('#clockSendButton').addEventListener('click', (e) => {
     const clockoutcontainer = DOM.element('#clockOutPortWindow');
-    const isVisible = (clockoutcontainer.style.display == 'block');
-    clockoutcontainer.style.display =
-      isVisible ? 'none' : 'block';
+    const isVisible = clockoutcontainer.style.display == 'block';
+    clockoutcontainer.style.display = isVisible ? 'none' : 'block';
     if (!isVisible) {
       setTimeout(() => {
-        onBackgroundClick(() => { clockoutcontainer.style.display = 'none'; }, '#clockOutPortWindow')
+        onBackgroundClick(() => {
+          clockoutcontainer.style.display = 'none';
+        }, '#clockOutPortWindow');
       }, 0);
     }
   });
   DOM.element('#midiInputSelector').addEventListener('click', () => {
     const container = DOM.element('#inputPortWindow');
-    const isVisible = (container.style.display == 'block');
-    container.style.display =
-      isVisible ? 'none' : 'block';
+    const isVisible = container.style.display == 'block';
+    container.style.display = isVisible ? 'none' : 'block';
     if (!isVisible) {
       setTimeout(() => {
-        onBackgroundClick(() => { container.style.display = 'none'; }, '#inputPortWindow')
+        onBackgroundClick(() => {
+          container.style.display = 'none';
+        }, '#inputPortWindow');
       }, 0);
     }
   });
