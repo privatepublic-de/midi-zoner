@@ -569,6 +569,20 @@ select {
   pointer-events: none;
 }
 
+.mch {
+  overflow: hidden;
+  width: 0;
+  transition: all 1s ease-out;
+  margin: 0;
+}
+
+.zone:hover .mch,
+.mch.selected,
+.mch.sendClock {
+  width: 24px;
+  margin: 0 5px;
+}
+
 .zone:not(.disabled):hover .hidden *,
 .zone:hover .mch,
 .mch.selected {
