@@ -1200,6 +1200,16 @@ li {
   left: 0;
 }
 
+.ccpot.spacer .ccpot-inner::after {
+  content: ' ';
+  position: absolute;
+  top: 5%;
+  bottom: 5%;
+  left: 50%;
+  width: 1%;
+  background-color: var(--brighter-2);
+}
+
 .ccpot.spacer .ccpot-front {
   display: none;
   pointer-events: none;
