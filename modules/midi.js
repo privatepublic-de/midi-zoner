@@ -230,10 +230,11 @@ class MIDI {
       this.selectedInputPorts[portId].ch === channel
     ) {
       this.eventHandler(event);
-    } else {
-      // forward messages from other channels
-      this.sendToAllUsedPorts(event.data);
     }
+    // else {
+    //   // forward messages from other channels
+    //   this.sendToAllUsedPorts(event.data);
+    // }
   }
 
   onMIDIClockMessage(event) {
