@@ -565,14 +565,13 @@ select {
 .hidden *,
 .mch {
   opacity: 0;
-  transition: opacity 2s;
+  transition: all 2s;
   pointer-events: none;
 }
 
 .mch {
   overflow: hidden;
   width: 0;
-  transition: all 1s ease-out;
   margin: 0;
 }
 
@@ -580,14 +579,14 @@ select {
 .mch.selected,
 .mch.sendClock {
   width: 24px;
-  margin: 0 5px;
+  margin-left: 8px;
 }
 
 .zone:not(.disabled):hover .hidden *,
 .zone:hover .mch,
 .mch.selected {
   opacity: 1;
-  transition: opacity 200ms;
+  transition: all 200ms;
   pointer-events: all;
 }
 
