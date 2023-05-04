@@ -565,7 +565,7 @@ select {
 .hidden *,
 .mch {
   opacity: 0;
-  transition: all 2s;
+  transition: opacity 2s, width 200ms linear, margin 200ms linear;
   pointer-events: none;
 }
 
@@ -586,7 +586,7 @@ select {
 .zone:hover .mch,
 .mch.selected {
   opacity: 1;
-  transition: all 200ms;
+  transition: opacity 200ms, width 100ms linear, margin 100ms linear;
   pointer-events: all;
 }
 
