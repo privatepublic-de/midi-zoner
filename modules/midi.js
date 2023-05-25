@@ -112,6 +112,7 @@ class MIDI {
           initResult.inputs,
           initResult.outputs
         );
+        this.selectDevices(this.deviceIdInClock);
       } else if (state === 'connected') {
         if (!this.knownPorts[port.id]) {
           const initResult = listInputsAndOutputs();
@@ -122,6 +123,7 @@ class MIDI {
             initResult.outputs
           );
         }
+        this.selectDevices(this.deviceIdInClock);
       }
     };
     const listInputsAndOutputs = () => {
@@ -292,11 +294,14 @@ class MIDI {
     this.midiAccess.inputs.forEach((entry) => {
       entry.onmidimessage = undefined;
     });
+    console.log('Unbound all inputs');
     Object.values(this.selectedInputPorts).forEach((inputDef) => {
       if (inputDef.isSelected) {
         const deviceIn = this.midiAccess.inputs.get(inputDef.id);
+        console.log('Try to bind', inputDef.id);
         if (deviceIn) {
           deviceIn.onmidimessage = this.onMIDIMessage.bind(this);
+          console.log('       bound', inputDef.id);
           if (this.deviceInClock) {
             if (deviceIn !== this.deviceInClock) {
               this.deviceInClock.onmidimessage =
