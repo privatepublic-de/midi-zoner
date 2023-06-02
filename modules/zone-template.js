@@ -15,31 +15,31 @@ cycleConditions += '</optgroup>';
 
 const noteLengthOptions = `<optgroup><option>2/1</option>
       <option>1/1.</option>
-      <option>1/1 Note</option>
+      <option>1/1</option>
       </optgroup>
       <optgroup>
       <option>1/2.</option>
       <option>1/1t</option>
-      <option>1/2 Note</option>
+      <option>1/2</option>
       </optgroup>
       <optgroup>
       <option>1/4.</option>
       <option>1/2t</option>
-      <option>1/4 Note</option>
+      <option>1/4</option>
       </optgroup>
       <optgroup>
       <option>1/8.</option>
       <option>1/4t</option>
-      <option>1/8 Note</option>
+      <option>1/8</option>
       </optgroup>
       <optgroup>
       <option>1/16.</option>
       <option>1/8t</option>
-      <option>1/16 Note</option>
+      <option>1/16</option>
       </optgroup>
       <optgroup>
       <option>1/32.</option>
-      <option>1/32 Note</option>
+      <option>1/32</option>
       <option>1/16t</option>
       </optgroup>
       `;
@@ -177,8 +177,8 @@ module.exports = {
         </div>
         ${channelselectors}
         <div class="zonetools">
-            <div class="randzonecolor rtool" title="Change color">
-              <label><input data-change="${index}:color" type="color" /><i class="material-icons">palette</i></label>
+            <div class="randzonecolor rtool" data-action="${index}:changeColor" title="Change color">
+              <label><i class="material-icons">palette</i></label>
             </div>
             <div class="dragzone rtool" title="Drag zone">
               <i class="material-icons">import_export</i>

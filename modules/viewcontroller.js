@@ -233,11 +233,8 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       renderZones();
       window.scrollTo({ top: scrollPos });
     },
-    color: () => {
-      const hsl = DOM.rgb2hsl(DOM.hexToRgb(element.value));
-      zone.hue = hsl[0];
-      zone.saturation = hsl[1];
-      zone.lightness = hsl[2];
+    changeColor: () => {
+      zone.randomizeColor();
       updateValuesForZone(zoneindex);
     },
     showeuclid: () => {
@@ -884,8 +881,6 @@ function updateValuesForZone(index) {
       '--zone-color',
       `rgba(${rgbZone[0]},${rgbZone[1]},${rgbZone[2]},1)`
     );
-    const colorInput = DOM.element(`#zone${index} input[type="color"]`);
-    colorInput.value = DOM.rgbToHex(rgbZone);
     const zoneHasHeldArp =
       zone.arp_enabled && zone.arp_hold && zone.arp_holdlist.length > 0;
     const zoneIsEnabled = zone.enabled && (Zone.solocount === 0 || zone.solo);
