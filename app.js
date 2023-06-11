@@ -546,6 +546,10 @@ document.addEventListener('DOMContentLoaded', function () {
             if (numIndex > -1) {
               view.soloZone(numIndex);
             }
+            const letterIndex = 'QWERTYUIOP'.indexOf(ev.code.charAt(3));
+            if (letterIndex > -1) {
+              view.toggleSequenzerOnZone(letterIndex);
+            }
           }
         });
         DOM.element('#save').addEventListener('click', (e) => {

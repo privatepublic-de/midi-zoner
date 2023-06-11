@@ -1248,19 +1248,30 @@ function allHoldOff() {
 
 function soloZone(index) {
   const zone = zones.list[index];
-  if (!zone.solo) {
-    if (index < zones.list.length) {
-      for (var i = 0; i < zones.list.length; i++) {
-        zones.list[i].solo = false;
+  if (zone) {
+    if (!zone.solo) {
+      if (index < zones.list.length) {
+        for (var i = 0; i < zones.list.length; i++) {
+          zones.list[i].solo = false;
+        }
+        zone.solo = true;
+        zone.enabled = true;
       }
-      zone.solo = true;
-      zone.enabled = true;
+    } else {
+      zone.solo = false;
     }
-  } else {
-    zone.solo = false;
+    updateValuesForAllZones();
+    triggerSave();
   }
-  updateValuesForAllZones();
-  triggerSave();
+}
+
+function toggleSequenzerOnZone(index) {
+  const zone = zones.list[index];
+  if (zone) {
+    zone.sequence.active = !zone.sequence.active;
+    updateValuesForAllZones();
+    triggerSave();
+  }
 }
 
 module.exports = {
@@ -1272,5 +1283,6 @@ module.exports = {
   updateControllerValues,
   updateValuesForAllZones,
   soloZone,
-  allSoloOff
+  allSoloOff,
+  toggleSequenzerOnZone
 };
