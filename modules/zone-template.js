@@ -279,6 +279,35 @@ module.exports = {
           </div>
           <div class="action" title="Move whole sequence 1 step left" data-action="${index}:seq_move:-1"><i class="material-icons">chevron_left</i></div>
           <div class="action" title="Move whole sequence 1 step right" data-action="${index}:seq_move:1"><i class="material-icons">chevron_right</i></div>
+          <div class="drop-down" title="Transpose whole sequence">
+            <select class="seq_division" data-changex="${index}:seq_division">
+              <option>Transp.</option>
+              <option>-12</option>
+              <option>-11</option>
+              <option>-10</option>
+              <option>-9</option>
+              <option>-8</option>
+              <option>-7</option>
+              <option>-6</option>
+              <option>-5</option>
+              <option>-4</option>
+              <option>-3</option>
+              <option>-2</option>
+              <option>-1</option>
+              <option>1</option>
+              <option>2</option>
+              <option>3</option>
+              <option>4</option>
+              <option>5</option>
+              <option>6</option>
+              <option>7</option>
+              <option>8</option>
+              <option>9</option>
+              <option>10</option>
+              <option>11</option>
+              <option>12</option>
+            </select>
+          </div>
           <div class="action" title="Copy sequence" data-action="${index}:seq_copy"><i class="material-icons">content_copy</i></div>
           <div class="action" title="Paste sequence" data-action="${index}:seq_paste"><i class="material-icons">content_paste</i></div>
           <div class="action" title="Clear complete sequence" data-action="${index}:seq_clear_all"><i class="material-icons">clear</i></div>
