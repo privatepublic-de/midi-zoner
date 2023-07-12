@@ -280,9 +280,11 @@ module.exports = {
           <div class="action" title="Move whole sequence 1 step left" data-action="${index}:seq_move:-1"><i class="material-icons">chevron_left</i></div>
           <div class="action" title="Move whole sequence 1 step right" data-action="${index}:seq_move:1"><i class="material-icons">chevron_right</i></div>
           <div class="drop-down" title="Transpose whole sequence">
-            <select class="seq_division" data-changex="${index}:seq_division">
+            <select class="seq_division" data-change="${index}:seq_transpose">
               <option>Transp.</option>
+              <optgroup>
               <option>-12</option>
+              </optgroup><optgroup>
               <option>-11</option>
               <option>-10</option>
               <option>-9</option>
@@ -294,6 +296,7 @@ module.exports = {
               <option>-3</option>
               <option>-2</option>
               <option>-1</option>
+              </optgroup><optgroup>
               <option>1</option>
               <option>2</option>
               <option>3</option>
@@ -305,7 +308,9 @@ module.exports = {
               <option>9</option>
               <option>10</option>
               <option>11</option>
+              </optgroup><optgroup>
               <option>12</option>
+              </optgroup>
             </select>
           </div>
           <div class="action" title="Copy sequence" data-action="${index}:seq_copy"><i class="material-icons">content_copy</i></div>

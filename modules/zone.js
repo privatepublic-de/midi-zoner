@@ -42,6 +42,14 @@ class Note {
     return result;
   }
 
+  static transpose(note, semitones) {
+    let newnumber = note.number + semitones;
+    if (newnumber < 128 && newnumber > -1) {
+      note.number = newnumber;
+      note.isBlackKey = Note.isBlackKey(note.number);
+    }
+  }
+
   number = 0;
   velo = 0;
   channel = 0;
@@ -737,21 +745,6 @@ class Zone {
     this.hue = COLOR_PALETTE[paletteIndex][0];
     this.saturation = COLOR_PALETTE[paletteIndex][1];
     this.lightness = COLOR_PALETTE[paletteIndex][2];
-    /*
-    const i1 = parseInt(paletteIndex);
-    const interp = paletteIndex - i1;
-    const i2 = (i1 + 1) % COLOR_PALETTE.length;
-
-    const irgb = [];
-    for (let i = 0; i < 3; i++) {
-      irgb.push(
-        COLOR_PALETTE[i1][i] * (1 - interp) + COLOR_PALETTE[i2][i] * interp
-      );
-    }
-
-    this.hue = irgb[0];
-    this.saturation = irgb[1];
-    this.lightness = irgb[2]; */
   }
 
   createEuclidianPattern(length, hits) {
@@ -1052,7 +1045,7 @@ class Sequence {
             // currentStep.lastPlayedArray.length = 0;
             for (let inote of currentStep.notesArray) {
               let note = Note.clone(inote);
-              note.number = note.number + this.zone.octave * 12;
+              note.number = note.number; // + this.zone.octave * 12;
               note.channel = this.zone.channel;
               note.portId = this.zone.outputPortId;
               this.zone.midi.send(
@@ -1113,6 +1106,18 @@ class Sequence {
       result.push(...astep.lastPlayedArray);
     });
     return result;
+  }
+
+  transpose(semitones) {
+    this.steps.forEach((astep) => {
+      if (astep) {
+        astep.notesArray.forEach((anote) => {
+          if (anote) {
+            Note.transpose(anote, semitones);
+          }
+        });
+      }
+    });
   }
 
   checkCondition(step) {

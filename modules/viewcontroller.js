@@ -398,6 +398,16 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       updateValuesForZone(zoneindex);
       zone.sequence.selectedStepNumber = zone.sequence.selectedStepNumber;
     },
+    seq_transpose: () => {
+      let idx = element.selectedIndex;
+      let semitones = idx - (idx < 13 ? 13 : 12);
+      zone.sequence.transpose(semitones);
+      DOM.addClass(`#zone${zoneindex} .grid`, 'steps-changed');
+      setTimeout(() => {
+        element.selectedIndex = 0;
+        DOM.removeClass(`#zone${zoneindex} .grid`, 'steps-changed');
+      }, 1000);
+    },
     seq_clear_step: () => {
       if (zone.sequence.selectedStepNumber > -1) {
         zone.sequence.steps[zone.sequence.selectedStepNumber] = null;

@@ -1403,6 +1403,7 @@ li {
   font-size: 0.85em;
   text-align: center;
   cursor: pointer;
+  transition: background-color 200ms ease-out;
 }
 
 .step-info .stepmarker {
@@ -1451,7 +1452,7 @@ li {
 .steps-changed .step.active,
 .seq .grid.hot.steps-changed .step.selected-step {
   background-color: var(--brighter-4) !important;
-  transition: background-color 200ms ease-in;
+  transition: background-color 200ms ease-out;
 }
 
 .seq .grid.hot .listen-indicator,
