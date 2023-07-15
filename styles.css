@@ -205,11 +205,15 @@ select {
   transition: background-color 1s, color 1s;
 }
 
-#midisettings select option,
+option {
+  color: black;
+}
+
+/* #midisettings select option,
 .clockOutOption select option {
   color: var(--brighter-4);
   background-color: var(--darker-4);
-}
+} */
 
 .updated #midisettings select,
 .updated #midiInputSelector {
@@ -849,10 +853,10 @@ select {
   margin: 0 4px;
 }
 
-.zone select option {
+/* .zone select option {
   background-color: var(--bg-topbar);
   color: var(--brighter-4);
-}
+} */
 
 .rangeholder {
   margin: 6px auto;
