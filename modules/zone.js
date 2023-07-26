@@ -155,12 +155,12 @@ class Zone {
    * Creates a new zone with default values.
    * @param {MIDI} midi
    */
-  constructor(midi) {
+  constructor(midi, newIndex) {
     this.midi = midi;
     this.rngArp = seedrandom();
     this.rngArpOct = seedrandom();
     this.rngProb = seedrandom();
-    this.randomizeColor();
+    this.randomizeColor(newIndex);
   }
 
   toJSON() {

@@ -431,6 +431,22 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       let msgtype = event.data[0] & 0xf0;
+      if (
+        msgtype === MIDI.MESSAGE.NOTE_ON &&
+        event.data[1] < 16 &&
+        event.data[2] > 0
+      ) {
+        // handle key switches
+        if (event.data[1] < 8) {
+          // toggle solo
+          view.soloZone(event.data[1]);
+        } else {
+          // toggle sequencer
+          view.toggleSequenzerOnZone(event.data[1] - 8);
+        }
+        // do nothing else
+        return;
+      }
       if (msgtype === MIDI.MESSAGE.NOTE_ON && event.data[2] === 0) {
         msgtype = MIDI.MESSAGE.NOTE_OFF;
       }
