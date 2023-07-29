@@ -357,6 +357,7 @@ option {
   cursor: pointer;
   border-radius: 4px;
   /* box-shadow: 0 2px 5px var(--shadow-topbar); */
+  transition: all 1s ease-in;
 }
 
 #newzone:hover {
