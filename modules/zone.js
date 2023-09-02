@@ -94,7 +94,7 @@ class Zone {
   ];
   show_cc = false;
   editCC = false;
-  listenCCIndex = -1;
+  learnCCIndex = -1;
   at2mod = false;
   pitchbend = true;
   euclid_hits = 5;
@@ -356,8 +356,8 @@ class Zone {
           }
           break;
         case MIDI.MESSAGE.CONTROLLER: // cc
-          if (this.editCC && this.listenCCIndex > -1) {
-            this.cc_controllers[this.listenCCIndex].number_in = data[1];
+          if (this.editCC && this.learnCCIndex > -1) {
+            this.cc_controllers[this.learnCCIndex].number_in = data[1];
             return 'updateCC';
           }
           let handledByCCControl = false;

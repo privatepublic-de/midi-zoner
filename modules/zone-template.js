@@ -107,7 +107,7 @@ module.exports = {
                     title="Output cc number"
                   />
                 </div>
-                <div class="cc_togglepolarity" data-action="${zoneindex}:cc_togglepolarity:${ix}">mode</div>
+                <div class="cc_change_type" data-action="${zoneindex}:cc_change_type:${ix}">mode</div>
                 <div class="cc_tools">
                   <span class="material-icons" title="Move left" data-action="${zoneindex}:cc_left:${ix}">arrow_back</span>
                   <span class="material-icons" title="Remove" data-action="${zoneindex}:cc_remove:${ix}">close</span>

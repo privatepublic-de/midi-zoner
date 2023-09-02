@@ -319,8 +319,7 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
         renderControllersForZone(zone, zoneindex);
       }
     },
-    cc_togglepolarity: () => {
-      // TODO rename
+    cc_change_type: () => {
       zone.cc_controllers[params[2]].type =
         zone.cc_controllers[params[2]].type || 0;
       zone.cc_controllers[params[2]].type =
@@ -328,7 +327,8 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       updateControllerValues(zone, zoneindex);
     },
     cc_focused: () => {
-      zone.listenCCIndex = params[3] == 1 ? params[2] : -1;
+      zone.learnCCIndex = params[3] == 1 ? params[2] : -1;
+      console.log('Learning CC: ', zone.learnCCIndex);
     },
     _cc_move: (direction) => {
       const pos = Number(params[2]);
@@ -1124,7 +1124,7 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
         typeLabel = 'unipolar';
         break;
     }
-    DOM.element(`#pot_${zoneindex}_${ix} .cc_togglepolarity`).innerHTML =
+    DOM.element(`#pot_${zoneindex}_${ix} .cc_change_type`).innerHTML =
       typeLabel;
     if (c.type == 2) {
       DOM.addClass(`#pot_${zoneindex}_${ix}`, 'spacer');

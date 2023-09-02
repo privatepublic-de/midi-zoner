@@ -298,7 +298,6 @@ class MIDI {
     Object.values(this.selectedInputPorts).forEach((inputDef) => {
       if (inputDef.isSelected) {
         const deviceIn = this.midiAccess.inputs.get(inputDef.id);
-        console.log('Try to bind', inputDef.id);
         if (deviceIn) {
           deviceIn.onmidimessage = this.onMIDIMessage.bind(this);
           console.log('       bound', inputDef.id);
