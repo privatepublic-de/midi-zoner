@@ -15,9 +15,9 @@
   "author": "Peter Witzel - privatepublic.de",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^25.3.0",
-    "electron-builder": "24.4.0",
-    "electron-packager": "17.1.1"
+    "electron": "^26.1.0",
+    "electron-builder": "24.6.3",
+    "electron-packager": "17.1.2"
   },
   "build": {
     "appId": "de.privatepublic.midizoner",
