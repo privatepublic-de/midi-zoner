@@ -348,7 +348,7 @@ option {
 #newzone {
   background: var(--bg-topbar);
   font-size: 12px;
-  /* width: 36px; */
+  width: 36px;
   height: 24px;
   line-height: 24px;
   display: block;
@@ -356,8 +356,9 @@ option {
   color: var(--brighter-0);
   cursor: pointer;
   border-radius: 4px;
-  /* box-shadow: 0 2px 5px var(--shadow-topbar); */
-  transition: all 1s ease-in;
+  box-shadow: 0 2px 5px var(--shadow-topbar);
+  /* transition: all 1s ease-in; */
+  margin: 1em 20px;
 }
 
 #newzone:hover {
