@@ -246,6 +246,7 @@ class MIDI {
     if (
       event.data[0] === MIDI.MESSAGE.CLOCK ||
       event.data[0] === MIDI.MESSAGE.START ||
+      event.data[0] === MIDI.MESSAGE.CONTINUE ||
       event.data[0] === MIDI.MESSAGE.STOP
     ) {
       const propagate =
@@ -268,7 +269,10 @@ class MIDI {
       this.clockHandler(this.songposition);
       this.songposition++;
     }
-    if (event.data[0] === MIDI.MESSAGE.START) {
+    if (
+      event.data[0] === MIDI.MESSAGE.START ||
+      event.data[0] === MIDI.MESSAGE.CONTINUE
+    ) {
       // start
       this.isClockRunning = true;
       if (this.transportHandler) {
