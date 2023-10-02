@@ -563,11 +563,10 @@ class Zone {
         this.sequence.currentStepNumber > -1 &&
         this.sequence.steps.length > 0
       ) {
-        this.sequencerProgressElement.innerHTML = `${
-          this.sequence.currentStepNumber + 1
-        } / ${this.sequence.length}`;
+        this.sequencerProgressElement.value =
+          ((this.sequence.currentStepNumber + 1) / this.sequence.length) * 100;
       } else {
-        this.sequencerProgressElement.innerHTML = `1 / ${this.sequence.length}`;
+        this.sequencerProgressElement.value = 0;
       }
     }
   }

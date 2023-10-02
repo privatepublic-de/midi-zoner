@@ -155,7 +155,7 @@ module.exports = {
         <div class="ch state showseq" data-action="${index}:toggle_seq" 
           title="Enable step sequencer">
           <i class="material-icons">view_comfy</i>
-          <div class="seqprogress"></div>
+          <progress max="100" value="0" class="seqprogress"></progress>
         </div>
         <div class="ch state showccs" data-action="${index}:toggle_show_cc" title="Show CC controllers">
           CC
