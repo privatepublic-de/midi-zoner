@@ -420,7 +420,10 @@ document.addEventListener('DOMContentLoaded', function () {
               z.stopped();
             });
           }
-        } else if (event.data[0] == MIDI.MESSAGE.START) {
+        } else if (
+          event.data[0] == MIDI.MESSAGE.START ||
+          event.data[0] == MIDI.MESSAGE.CONTINUE
+        ) {
           midi.startClock();
         } else if (event.data[0] == MIDI.MESSAGE.STOP) {
           midi.stopClock();
@@ -467,8 +470,10 @@ document.addEventListener('DOMContentLoaded', function () {
     transportHandler: (started) => {
       if (started) {
         startClockButton.classList.add('selected');
+        DOM.addClass(document.body, 'running');
       } else {
         startClockButton.classList.remove('selected');
+        DOM.removeClass(document.body, 'running');
         zones.list.forEach((z) => {
           z.stopped();
         });
