@@ -148,6 +148,7 @@ class Zone {
   sequence = new Sequence(this);
   sequencerGridElement = null;
   sequencerGridStepElements = null;
+  sequencerProgressElement = null;
 
   lastTouchedRangePoint = 0; // 0=none, 1=low, 2=high
 
@@ -160,7 +161,8 @@ class Zone {
     this.rngArp = seedrandom();
     this.rngArpOct = seedrandom();
     this.rngProb = seedrandom();
-    this.randomizeColor(newIndex);
+    newIndex = newIndex || 0;
+    this.randomizeColor(newIndex + 1);
   }
 
   toJSON() {
@@ -556,6 +558,17 @@ class Zone {
           e.classList.remove('playhead');
         });
       }
+    } else {
+      if (
+        this.sequence.currentStepNumber > -1 &&
+        this.sequence.steps.length > 0
+      ) {
+        this.sequencerProgressElement.innerHTML = `${
+          this.sequence.currentStepNumber + 1
+        } / ${this.sequence.length}`;
+      } else {
+        this.sequencerProgressElement.innerHTML = `1 / ${this.sequence.length}`;
+      }
     }
   }
 
@@ -739,7 +752,7 @@ class Zone {
 
   randomizeColor(index) {
     const paletteIndex =
-      typeof index != 'undefined'
+      typeof index == 'number'
         ? parseInt(index % COLOR_PALETTE.length)
         : parseInt(Math.random() * COLOR_PALETTE.length);
     this.hue = COLOR_PALETTE[paletteIndex][0];
@@ -1064,8 +1077,8 @@ class Sequence {
             this.previousStepPlayed = false;
           }
         }
-        requestAnimationFrame(this.zone.renderSequence.bind(this.zone));
       }
+      requestAnimationFrame(this.zone.renderSequence.bind(this.zone));
     }
     if (refreshNotesDisplay) {
       requestAnimationFrame(this.zone.renderNotes.bind(this.zone));

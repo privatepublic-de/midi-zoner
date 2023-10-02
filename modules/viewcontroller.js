@@ -628,6 +628,7 @@ function appendZone(/** @type {Zone} */ zone, index) {
   zone.canvasElement = DOM.element(`#canvas${index}`);
   zone.patternCanvas = DOM.element(`#canvasPattern${index}`);
   zone.sequencerGridElement = DOM.element(`#zone${index} .seq .grid`);
+  zone.sequencerProgressElement = DOM.element(`#zone${index} .seqprogress`);
   zone.sequencerGridStepElements = DOM.all(`#zone${index} .seq .grid .step`);
   zone.dom.markerlow = DOM.element(`#zone${index} .marker.low`);
   zone.dom.markerhigh = DOM.element(`#zone${index} .marker.high`);
@@ -917,6 +918,7 @@ function updateValuesForZone(index) {
     }
     if (zone.sequence.active) {
       DOM.addClass(`#zone${index}`, 'show-seq');
+      DOM.hide(zone.sequencerProgressElement);
       DOM.removeClass(
         `#zone${index} .seq .grid .step.selected-step`,
         'selected-step'
@@ -990,6 +992,11 @@ function updateValuesForZone(index) {
         zone.sequence.division;
     } else {
       DOM.removeClass(`#zone${index}`, 'show-seq');
+      if (zone.sequence.steps.length > 0) {
+        DOM.show(zone.sequencerProgressElement);
+      } else {
+        DOM.hide(zone.sequencerProgressElement);
+      }
     }
     [
       'cc',
