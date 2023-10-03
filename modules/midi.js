@@ -167,6 +167,7 @@ class MIDI {
         countOut++;
       });
       console.log('MIDI: ', countIn, 'inputs,', countOut, 'outputs');
+      this.deviceIdInClock = selectedInClock;
       const mapDescriptor = (port) => {
         let sName = port[1].name;
         if (sName.length > 20) {
@@ -288,6 +289,7 @@ class MIDI {
   }
 
   selectDevices(deviceIdInClock) {
+    console.log('MIDI: selectDevices(), inClock', deviceIdInClock);
     this.deviceIdInClock = deviceIdInClock;
     if (deviceIdInClock == MIDI.INTERNAL_PORT_ID) {
       internalClock.setHandler(this.onMIDIClockMessage.bind(this));
@@ -298,13 +300,11 @@ class MIDI {
     this.midiAccess.inputs.forEach((entry) => {
       entry.onmidimessage = undefined;
     });
-    console.log('Unbound all inputs');
     Object.values(this.selectedInputPorts).forEach((inputDef) => {
       if (inputDef.isSelected) {
         const deviceIn = this.midiAccess.inputs.get(inputDef.id);
         if (deviceIn) {
           deviceIn.onmidimessage = this.onMIDIMessage.bind(this);
-          console.log('       bound', inputDef.id);
           if (this.deviceInClock) {
             if (deviceIn !== this.deviceInClock) {
               this.deviceInClock.onmidimessage =
