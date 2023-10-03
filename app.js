@@ -501,7 +501,7 @@ document.addEventListener('DOMContentLoaded', function () {
         updateClockInterface();
         view.renderZones();
         function createNewZone() {
-          const newZone = new Zone(midi, zones.list.length);
+          const newZone = new Zone(midi, zones.list.length + 1);
           if (zones.list.length > 0) {
             newZone.preferredOutputPortId = newZone.outputPortId =
               zones.list[zones.list.length - 1].outputPortId;

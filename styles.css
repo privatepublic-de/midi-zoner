@@ -71,14 +71,14 @@
 
 body.altTheme {
   --brighter-0: rgba(255, 255, 255, 0.125);
-  --brighter-1: rgba(255, 255, 255, 0.2);
+  --brighter-1: rgba(255, 255, 255, 0.25);
   --brighter-2: rgba(255, 255, 255, 0.5);
-  --brighter-3: rgba(255, 255, 255, 0.66);
-  --brighter-4: rgba(255, 255, 255, 0.9);
+  --brighter-3: rgba(255, 255, 255, 0.75);
+  --brighter-4: rgba(255, 255, 255, 1);
 
-  --darker-1: rgba(0, 0, 0, 0.15);
-  --darker-2: rgba(0, 0, 0, 0.5);
-  --darker-3: rgba(0, 0, 0, 0.7);
+  --darker-1: rgba(0, 0, 0, 0.2);
+  --darker-2: rgba(0, 0, 0, 0.67);
+  --darker-3: rgba(0, 0, 0, 0.75);
   --darker-4: rgba(0, 0, 0, 1);
 
   --fg-topbar-button: var(--brighter-3);
