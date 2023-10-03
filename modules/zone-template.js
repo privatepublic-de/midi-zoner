@@ -13,7 +13,7 @@ for (let cond of Zone.Sequence.CYCLE_CONDITIONS) {
 }
 cycleConditions += '</optgroup>';
 
-const noteLengthOptions = `<optgroup><option>2/1</option>
+const noteLengthOptions = /*html*/ `<optgroup><option>2/1</option>
       <option>1/1.</option>
       <option>1/1</option>
       </optgroup>
