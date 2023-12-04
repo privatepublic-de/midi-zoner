@@ -222,34 +222,21 @@ class MIDI {
   }
 
   onMIDIMessage(event) {
-    if (this.deviceInClock === this.deviceIn) {
-      this.onMIDIClockMessage(event); // what is this?
-    }
-    const channel = event.data[0] & 0x0f;
-    const portId = event.srcElement.id;
+    const portId = event.srcElement
+      ? event.srcElement.id
+      : MIDI.INTERNAL_PORT_ID;
+    const midiMessage = event.data[0];
     if (
-      this.selectedInputPorts[portId] &&
-      this.selectedInputPorts[portId].isSelected &&
-      this.selectedInputPorts[portId].ch === channel
+      this.deviceIdInClock == portId &&
+      (midiMessage === MIDI.MESSAGE.CLOCK ||
+        midiMessage === MIDI.MESSAGE.START ||
+        midiMessage === MIDI.MESSAGE.CONTINUE ||
+        midiMessage === MIDI.MESSAGE.STOP)
     ) {
-      this.eventHandler(event);
-    }
-    // else {
-    //   // forward messages from other channels
-    //   this.sendToAllUsedPorts(event.data);
-    // }
-  }
+      if (midiMessage === MIDI.MESSAGE.CLOCK) {
+        this.hasClock = true;
+      }
 
-  onMIDIClockMessage(event) {
-    if (event.data[0] === MIDI.MESSAGE.CLOCK) {
-      this.hasClock = true;
-    }
-    if (
-      event.data[0] === MIDI.MESSAGE.CLOCK ||
-      event.data[0] === MIDI.MESSAGE.START ||
-      event.data[0] === MIDI.MESSAGE.CONTINUE ||
-      event.data[0] === MIDI.MESSAGE.STOP
-    ) {
       const propagate =
         this.deviceIdInClock != MIDI.INTERNAL_PORT_ID ||
         !this.sendInternalClockIfPlaying ||
@@ -261,30 +248,39 @@ class MIDI {
           }
         }
       }
-    }
-    if (
-      this.isClockRunning &&
-      this.clockHandler &&
-      event.data[0] === MIDI.MESSAGE.CLOCK
-    ) {
-      this.clockHandler(this.songposition);
-      this.songposition++;
-    }
-    if (
-      event.data[0] === MIDI.MESSAGE.START ||
-      event.data[0] === MIDI.MESSAGE.CONTINUE
-    ) {
-      // start
-      this.isClockRunning = true;
-      if (this.transportHandler) {
-        this.transportHandler(true);
+
+      if (
+        this.isClockRunning &&
+        this.clockHandler &&
+        midiMessage === MIDI.MESSAGE.CLOCK
+      ) {
+        this.clockHandler(this.songposition);
+        this.songposition++;
       }
-    } else if (event.data[0] === MIDI.MESSAGE.STOP) {
-      this.isClockRunning = false;
-      this.songposition = 0;
-      if (this.transportHandler) {
-        this.transportHandler(false);
+      if (
+        midiMessage === MIDI.MESSAGE.START ||
+        midiMessage === MIDI.MESSAGE.CONTINUE
+      ) {
+        // start
+        this.isClockRunning = true;
+        if (this.transportHandler) {
+          this.transportHandler(true);
+        }
+      } else if (midiMessage === MIDI.MESSAGE.STOP) {
+        this.isClockRunning = false;
+        this.songposition = 0;
+        if (this.transportHandler) {
+          this.transportHandler(false);
+        }
       }
+    }
+    const channel = event.data[0] & 0x0f;
+    if (
+      this.selectedInputPorts[portId] &&
+      this.selectedInputPorts[portId].isSelected &&
+      this.selectedInputPorts[portId].ch === channel
+    ) {
+      this.eventHandler(event);
     }
   }
 
@@ -292,25 +288,22 @@ class MIDI {
     console.log('MIDI: selectDevices(), inClock', deviceIdInClock);
     this.deviceIdInClock = deviceIdInClock;
     if (deviceIdInClock == MIDI.INTERNAL_PORT_ID) {
-      internalClock.setHandler(this.onMIDIClockMessage.bind(this));
+      internalClock.setHandler(this.onMIDIMessage.bind(this));
     } else {
       internalClock.setHandler(null);
     }
-    this.deviceInClock = this.midiAccess.inputs.get(this.deviceIdInClock);
     this.midiAccess.inputs.forEach((entry) => {
       entry.onmidimessage = undefined;
     });
+    this.deviceInClock = this.midiAccess.inputs.get(this.deviceIdInClock);
+    if (this.deviceInClock) {
+      this.deviceInClock.onmidimessage = this.onMIDIMessage.bind(this);
+    }
     Object.values(this.selectedInputPorts).forEach((inputDef) => {
       if (inputDef.isSelected) {
         const deviceIn = this.midiAccess.inputs.get(inputDef.id);
         if (deviceIn) {
           deviceIn.onmidimessage = this.onMIDIMessage.bind(this);
-          if (this.deviceInClock) {
-            if (deviceIn !== this.deviceInClock) {
-              this.deviceInClock.onmidimessage =
-                this.onMIDIClockMessage.bind(this);
-            }
-          }
         }
       }
     });
@@ -429,7 +422,6 @@ class MIDI {
   startClock() {
     if (this.deviceIdInClock == MIDI.INTERNAL_PORT_ID) {
       this.sendStart();
-      // internalClock.start(this.onMIDIClockMessage.bind(this));
       if (this.transportHandler) {
         this.transportHandler(true);
       }
