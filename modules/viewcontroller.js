@@ -400,9 +400,9 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       toast('Cleared complete sequence.', element);
     },
     seq_transpose: () => {
-      let idx = element.selectedIndex;
-      let semitones = idx - (idx < 13 ? 13 : 12);
+      let semitones = element.options[element.selectedIndex].value;
       zone.sequence.transpose(semitones);
+      toast('Transposed sequence by ' + semitones + ' semitones.', element);
       DOM.addClass(`#zone${zoneindex} .grid`, 'steps-changed');
       setTimeout(() => {
         element.selectedIndex = 0;
@@ -1334,9 +1334,12 @@ function toast(message, element, timeoutMS) {
   DOM.element('#toast .toastinner').innerHTML = message;
   if (element) {
     DOM.element('#toast').style.top =
-      element.getBoundingClientRect().top - 20 + 'px';
+      element.getBoundingClientRect().top + 26 + 'px';
+    DOM.element('#toast').style.left =
+      element.getBoundingClientRect().left - 100 + 'px';
   } else {
     DOM.element('#toast').style.top = '15%';
+    DOM.element('#toast').style.left = '50%';
   }
   DOM.show('#toast');
   toastTimer = setTimeout(() => {
