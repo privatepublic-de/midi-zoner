@@ -137,19 +137,19 @@ module.exports = {
         i + 1
       }</div>`;
     }
-    const zoneSoloKeyboardHint =
-      index < 10 ? `or press '${(index + 1) % 10}' on computer keyboard` : '';
+    const zoneMuteKeyboardHint =
+      index < 10 ? `('${(index + 1) % 10}' on computer keyboard)` : '';
     return /*html*/ `<section class="zone" id="zone${index}">
       <div class="channels">
         <div
           class="ch state enabled"
           data-action="${index}:enabled"
-          title="Enable zone (send MIDI out)"
+          title="Enable zone ${zoneMuteKeyboardHint}"
         >
           <span class="material-icons isenabled"> check </span>
           <span class="material-icons isdisabled"> close </span>
         </div>
-        <div class="ch state solo" data-action="${index}:solo" title="Solo Zone\n(Double click ${zoneSoloKeyboardHint} for this zone only)">
+        <div class="ch state solo" data-action="${index}:solo" title="Solo Zone\n(Double click for this zone only)">
           S
         </div>
         <div class="ch state showseq" data-action="${index}:toggle_seq" 
