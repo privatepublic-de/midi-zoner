@@ -441,8 +441,8 @@ document.addEventListener('DOMContentLoaded', function () {
       ) {
         // handle key switches
         if (event.data[1] < 8) {
-          // toggle solo
-          view.soloZone(event.data[1]);
+          // toggle mute
+          view.toggleZoneMute(event.data[1]);
         } else {
           // toggle sequencer
           view.toggleSequenzerOnZone(event.data[1] - 8);
@@ -565,7 +565,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             const numIndex = '1234567890'.indexOf(ev.key);
             if (numIndex > -1) {
-              view.soloZone(numIndex);
+              view.toggleZoneMute(numIndex);
             }
             const letterIndex = 'QWERTYUIOP'.indexOf(ev.code.charAt(3));
             if (letterIndex > -1) {

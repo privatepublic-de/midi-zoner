@@ -1282,6 +1282,15 @@ function soloZone(index) {
   }
 }
 
+function toggleZoneMute(index) {
+  const zone = zones.list[index];
+  if (zone) {
+    zone.enabled = !zone.enabled;
+    updateValuesForAllZones();
+    triggerSave();
+  }
+}
+
 function toggleSequenzerOnZone(index) {
   const zone = zones.list[index];
   if (zone) {
@@ -1300,6 +1309,7 @@ module.exports = {
   updateControllerValues,
   updateValuesForAllZones,
   soloZone,
+  toggleZoneMute,
   allSoloOff,
   toggleSequenzerOnZone
 };
