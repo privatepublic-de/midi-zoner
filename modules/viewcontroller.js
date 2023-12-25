@@ -529,6 +529,12 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       }
       zone.sequence.steps = newSeq;
       updateValuesForZone(zoneindex);
+      toast(
+        'Moved sequence one step to the ' +
+          (direction < 0 ? 'left' : 'right') +
+          '.',
+        element
+      );
     },
     seq_copy: () => {
       Zone.seqClipboardSequence = JSON.stringify(zone.sequence);
