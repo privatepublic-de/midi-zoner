@@ -217,6 +217,11 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       } else {
         updateValuesForZone(zoneindex);
       }
+      if (!zone.enabled && zone.sequence.active) {
+        zone.sequence.selectedStepNumber = -1;
+        zone.sequence.isLiveRecoding = false;
+        updateValuesForZone(zoneindex);
+      }
     },
     solo: () => {
       zone.solo = !zone.solo;
@@ -370,6 +375,8 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       if (zone.sequence.active) {
         zone.arp_enabled = false;
         zone.renderNotes();
+      } else {
+        zone.sequence.isLiveRecoding = false;
       }
       updateValuesForZone(zoneindex);
     },
