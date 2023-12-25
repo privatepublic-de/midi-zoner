@@ -80,6 +80,7 @@ function bodyClickHandler() {
   if (callback) {
     callback();
   }
+  DOM.hide('#toast');
 }
 
 function onBackgroundClick(callback, filterElement) {

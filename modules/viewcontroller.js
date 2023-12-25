@@ -397,6 +397,7 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       zone.sequence.steps.length = 0;
       updateValuesForZone(zoneindex);
       zone.sequence.selectedStepNumber = zone.sequence.selectedStepNumber;
+      toast('Cleared complete sequence.', element);
     },
     seq_transpose: () => {
       let idx = element.selectedIndex;
@@ -413,6 +414,7 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
         zone.sequence.steps[zone.sequence.selectedStepNumber] = null;
         zone.sequence.selectedStepNumber = -1;
         updateValuesForZone(zoneindex);
+        toast('Cleared step.', element);
       }
     },
     seq_step_probability: () => {
@@ -424,24 +426,30 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
     seq_step_apply_to_all: () => {
       const actionIndex = element.selectedIndex;
       if (zone.sequence.selectedStep && actionIndex > 0) {
+        let what = '';
         zone.sequence.steps.forEach((s) => {
           if (s) {
             switch (actionIndex) {
               case 1:
                 s.length = zone.sequence.selectedStep.length;
+                what = 'step length';
                 break;
               case 2:
                 s.gateLength = zone.sequence.selectedStep.gateLength;
+                what = 'gate length';
                 break;
               case 3:
                 s.condition = zone.sequence.selectedStep.condition;
+                what = 'trigger condition';
                 break;
               case 4:
                 s.probability = zone.sequence.selectedStep.probability;
+                what = 'probability';
                 break;
             }
           }
         });
+        toast('Applied ' + what + ' to all steps in sequence.', element);
         updateValuesForZone(zoneindex);
         DOM.addClass(element.closest('.grid'), 'steps-changed');
       }
@@ -461,6 +469,7 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
     seq_copy_step: () => {
       if (zone.sequence.selectedStep) {
         Zone.seqClipboardStep = JSON.stringify(zone.sequence.selectedStep);
+        toast('Step copied to clipboard', element);
       }
     },
     seq_paste_step: () => {
@@ -468,7 +477,14 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
         zone.sequence.steps[zone.sequence.selectedStepNumber] = JSON.parse(
           Zone.seqClipboardStep
         );
+        toast(
+          'Step from clipboard pasted on position ' +
+            (zone.sequence.selectedStepNumber + 1),
+          element
+        );
         updateValuesForZone(zoneindex);
+      } else {
+        toast('Nothing to paste, clipboard is empty.');
       }
     },
     seq_step_move: () => {
@@ -509,11 +525,15 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
     },
     seq_copy: () => {
       Zone.seqClipboardSequence = JSON.stringify(zone.sequence);
+      toast('Sequence copied to clipboard.', element);
     },
     seq_paste: () => {
       if (Zone.seqClipboardSequence) {
         Object.assign(zone.sequence, JSON.parse(Zone.seqClipboardSequence));
         updateValuesForZone(zoneindex);
+        toast('Pasted sequence from clipboard.', element);
+      } else {
+        toast('Nothing to paste, clipboard is empty.');
       }
     },
     seq_step_condition: () => {
@@ -534,6 +554,12 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       zone.sequence.selectedStepNumber = -1;
       zone.sequence.isLiveRecoding = !zone.sequence.isLiveRecoding;
       updateValuesForZone(zoneindex);
+      toast(
+        zone.sequence.isLiveRecoding
+          ? 'Live recording into sequence enabled!'
+          : 'Stopped live recording.',
+        element
+      );
     },
     output_config_name: () => {
       if (element.value == '') {
@@ -1298,6 +1324,25 @@ function toggleSequenzerOnZone(index) {
     updateValuesForAllZones();
     triggerSave();
   }
+}
+
+let toastTimer;
+function toast(message, element, timeoutMS) {
+  if (toastTimer) {
+    clearTimeout(toastTimer);
+  }
+  DOM.element('#toast .toastinner').innerHTML = message;
+  if (element) {
+    DOM.element('#toast').style.top =
+      element.getBoundingClientRect().top - 20 + 'px';
+  } else {
+    DOM.element('#toast').style.top = '15%';
+  }
+  DOM.show('#toast');
+  toastTimer = setTimeout(() => {
+    DOM.hide('#toast');
+    toastTimer = null;
+  }, timeoutMS || 2000);
 }
 
 module.exports = {
