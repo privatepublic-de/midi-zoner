@@ -12,7 +12,7 @@ let midiController;
 let elAllMuteOff, elAllSoloOff, elAllHoldOff;
 
 let triggerSave = () => {};
-
+let toastElement;
 /**
  * Init view controller with references to data and MIDI controller.
  * @param {Object} references - references to data and data handling
@@ -21,6 +21,7 @@ let triggerSave = () => {};
  * @param {MIDI} references.midi - MIDI controller
  */
 function initController({ saveData, data, midi }) {
+  toastElement = DOM.element('#toast');
   triggerSave = saveData;
   zones = data;
   midiController = midi;
@@ -530,9 +531,7 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       zone.sequence.steps = newSeq;
       updateValuesForZone(zoneindex);
       toast(
-        'Moved sequence one step to the ' +
-          (direction < 0 ? 'left' : 'right') +
-          '.',
+        'Moved sequence ' + (direction < 0 ? 'left' : 'right') + '.',
         element
       );
     },
@@ -569,7 +568,7 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       updateValuesForZone(zoneindex);
       toast(
         zone.sequence.isLiveRecoding
-          ? 'Live recording into sequence enabled!'
+          ? 'Live recording enabled!'
           : 'Stopped live recording.',
         element
       );
@@ -1330,7 +1329,7 @@ function toggleZoneMute(index) {
   }
 }
 
-function toggleSequenzerOnZone(index) {
+function toggleSequencerOnZone(index) {
   const zone = zones.list[index];
   if (zone) {
     zone.sequence.active = !zone.sequence.active;
@@ -1340,25 +1339,37 @@ function toggleSequenzerOnZone(index) {
 }
 
 let toastTimer;
-function toast(message, element, timeoutMS) {
+function toast(message, triggerElement, longer) {
   if (toastTimer) {
     clearTimeout(toastTimer);
+    toastHide();
   }
   DOM.element('#toast .toastinner').innerHTML = message;
-  if (element) {
-    DOM.element('#toast').style.top =
-      element.getBoundingClientRect().top + 26 + 'px';
-    DOM.element('#toast').style.left =
-      element.getBoundingClientRect().left - 100 + 'px';
+  if (triggerElement) {
+    const srcRect = triggerElement.getBoundingClientRect();
+    toastElement.style.top = srcRect.top + 26 + 'px';
+    toastElement.style.left = srcRect.left + 'px';
   } else {
-    DOM.element('#toast').style.top = '15%';
-    DOM.element('#toast').style.left = '50%';
+    toastElement.style.top = toastElement.style.left = '';
   }
-  DOM.show('#toast');
-  toastTimer = setTimeout(() => {
-    DOM.hide('#toast');
-    toastTimer = null;
-  }, timeoutMS || 2000);
+  toastShow(longer);
+  toastTimer = setTimeout(
+    () => {
+      toastHide();
+      toastTimer = null;
+    },
+    longer ? 5000 : 2000
+  );
+}
+
+function toastHide() {
+  DOM.hide(toastElement);
+  toastElement.classList.remove('fade', 'fadelong');
+}
+
+function toastShow(longer) {
+  DOM.show(toastElement);
+  toastElement.classList.add(longer ? 'fadelong' : 'fade');
 }
 
 module.exports = {
@@ -1372,5 +1383,6 @@ module.exports = {
   soloZone,
   toggleZoneMute,
   allSoloOff,
-  toggleSequenzerOnZone
+  toggleSequencerOnZone,
+  toast
 };

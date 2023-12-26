@@ -2,6 +2,7 @@ const DOM = require('./modules/domutils');
 const Zone = require('./modules/zone').Zone;
 const Sequence = require('./modules/zone').Sequence;
 const MIDI = require('./modules/midi');
+const viewcontroller = require('./modules/viewcontroller');
 const view = require('./modules/viewcontroller');
 
 const zones = {
@@ -446,7 +447,7 @@ document.addEventListener('DOMContentLoaded', function () {
           view.toggleZoneMute(event.data[1]);
         } else {
           // toggle sequencer
-          view.toggleSequenzerOnZone(event.data[1] - 8);
+          view.toggleSequencerOnZone(event.data[1] - 8);
         }
         // do nothing else
         return;
@@ -570,7 +571,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             const letterIndex = 'QWERTYUIOP'.indexOf(ev.code.charAt(3));
             if (letterIndex > -1) {
-              view.toggleSequenzerOnZone(letterIndex);
+              view.toggleSequencerOnZone(letterIndex);
             }
           }
         });
@@ -636,6 +637,7 @@ document.addEventListener('DOMContentLoaded', function () {
         setTimeout(() => {
           DOM.removeClass(document.body, 'updated');
         }, 1000);
+        viewcontroller.toast('MIDI devices updated!', null, true);
       }, 100);
     },
     updateClockReceiverHandler: updateClockReceivers
