@@ -407,7 +407,7 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       toast('Cleared complete sequence.', element);
     },
     seq_transpose: () => {
-      let semitones = element.options[element.selectedIndex].value;
+      let semitones = parseInt(element.options[element.selectedIndex].value);
       zone.sequence.transpose(semitones);
       toast('Transposed sequence by ' + semitones + ' semitones.', element);
       DOM.addClass(`#zone${zoneindex} .grid`, 'steps-changed');
