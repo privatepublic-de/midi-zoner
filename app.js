@@ -637,7 +637,9 @@ document.addEventListener('DOMContentLoaded', function () {
         setTimeout(() => {
           DOM.removeClass(document.body, 'updated');
         }, 1000);
-        viewcontroller.toast('MIDI devices updated!', null, true);
+        viewcontroller.toast('MIDI devices updated!', {
+          longer: true
+        });
       }, 100);
     },
     updateClockReceiverHandler: updateClockReceivers

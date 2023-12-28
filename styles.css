@@ -1675,11 +1675,12 @@ body:not(.running) .seqprogress {
 
 #toast {
   position: fixed;
-  width: 200px;
+  width: 260px;
   left: 50%;
   top: 50px;
-  margin-left: -100px;
-  background: #333;
+  margin-left: -130px;
+  background: var(--brighter-3);
+  color: var(--darker-4);
   font-size: 12px;
   box-shadow: 1px 1px 3px var(--shadow-zone);
   display: none;
