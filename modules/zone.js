@@ -135,6 +135,7 @@ class Zone {
   midi = null;
   dom = {};
 
+  _colorIndex = null;
   hue = 0;
   saturation = 0;
   lightness = 0.3;
@@ -156,13 +157,13 @@ class Zone {
    * Creates a new zone with default values.
    * @param {MIDI} midi
    */
-  constructor(midi, newIndex) {
+  constructor(midi, colorIndex) {
     this.midi = midi;
     this.rngArp = seedrandom();
     this.rngArpOct = seedrandom();
     this.rngProb = seedrandom();
-    newIndex = newIndex || 0;
-    this.randomizeColor(newIndex + 1);
+    this.colorIndex = colorIndex || 0;
+    // this.randomizeColor(colorIndex + 1);
   }
 
   toJSON() {
@@ -195,15 +196,36 @@ class Zone {
       arp_pattern: this.arp_pattern,
       arp_holdlist: this.arp_holdlist,
       arp_sortedHoldList: this.arp_sortedHoldList,
-      hue: this.hue,
+      colorIndex: this._colorIndex,
+      /* hue: this.hue,
       saturation: this.saturation,
-      lightness: this.lightness,
+      lightness: this.lightness, */
       euclid_hits: this.euclid_hits,
       euclid_length: this.euclid_length,
       show_cc: this.show_cc,
       cc_controllers: this.cc_controllers,
       sequence: this.sequence
     };
+  }
+
+  randomizeColor(index) {
+    const paletteIndex =
+      typeof index == 'number'
+        ? parseInt(index % COLOR_PALETTE.length)
+        : this.colorIndex + 1;
+    this.colorIndex = paletteIndex;
+  }
+
+  set colorIndex(i) {
+    i = i % COLOR_PALETTE.length;
+    this.hue = COLOR_PALETTE[i][0];
+    this.saturation = COLOR_PALETTE[i][1];
+    this.lightness = COLOR_PALETTE[i][2];
+    this._colorIndex = i;
+  }
+
+  get colorIndex() {
+    return this._colorIndex;
   }
 
   get configId() {
@@ -747,16 +769,6 @@ class Zone {
     this.midiActiveNotes = [];
     this.holdList = [];
     this.notesChanged();
-  }
-
-  randomizeColor(index) {
-    const paletteIndex =
-      typeof index == 'number'
-        ? parseInt(index % COLOR_PALETTE.length)
-        : parseInt(Math.random() * COLOR_PALETTE.length);
-    this.hue = COLOR_PALETTE[paletteIndex][0];
-    this.saturation = COLOR_PALETTE[paletteIndex][1];
-    this.lightness = COLOR_PALETTE[paletteIndex][2];
   }
 
   createEuclidianPattern(length, hits) {
