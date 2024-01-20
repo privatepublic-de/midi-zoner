@@ -925,7 +925,7 @@ class Sequence {
   recordNote(note, count) {
     if (this.isLiveRecoding && this.currentStepNumber > -1) {
       const rec2step =
-        this.tickn > this.ticks / 2
+        this.tickn > this.ticks * 0.8
           ? (this.currentStepNumber + 1) % this.length
           : this.currentStepNumber;
       if (this.liveTargetStep == null) {
