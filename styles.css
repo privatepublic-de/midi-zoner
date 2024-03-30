@@ -330,7 +330,7 @@ option {
 }
 
 .padded {
-  padding: 25px 5px 0 5px;
+  padding: 30px 5px 0 5px;
 }
 
 #zones {
@@ -343,6 +343,7 @@ option {
 }
 
 #tools {
+  margin-top: 8px;
   padding: 0 8px;
 }
 
@@ -352,18 +353,18 @@ option {
 
 #newzone {
   background: var(--bg-topbar);
+  margin: 0 auto;
   font-size: 12px;
-  width: 36px;
+  width: 72px;
   height: 24px;
   line-height: 24px;
   display: block;
   text-align: center;
-  color: var(--brighter-0);
+  color: var(--brighter-1);
   cursor: pointer;
   border-radius: 4px;
   box-shadow: 0 2px 5px var(--shadow-topbar);
   /* transition: all 1s ease-in; */
-  margin: 1em 20px;
 }
 
 #newzone:hover {
@@ -381,7 +382,7 @@ option {
   font-size: 12px;
   /* margin: 5px auto; */
   padding: 8px;
-  /* width: 100%; */
+  width: 700px;
   /* min-width: 900px; */
   box-shadow: 0 2px 10px var(--shadow-zone);
   /* border: 1px solid var(--zone-color); */
@@ -551,7 +552,7 @@ option {
   color: var(--brighter-3);
 }
 
-.ch.showccs {
+.ch.showarp {
   margin-right: 13px;
 }
 
@@ -567,6 +568,7 @@ option {
 .arp-settings {
   position: relative;
   display: flex;
+  justify-content: center;
   flex-wrap: wrap;
   align-items: center;
   color: var(--brighter-3);
@@ -611,12 +613,10 @@ option {
 }
 
 .arp-settings {
-  position: relative;
-  margin-top: 3px;
-  padding: 6px;
   display: none;
-  text-align: left;
-  border: 1px solid var(--brighter-2);
+  gap: 5px;
+  padding: 4px;
+  background-color: var(--bg-color-alternative);
 }
 
 .arp-enabled .arp-settings {
@@ -756,11 +756,16 @@ option {
   display: inherit;
 }
 
+.sel,
+.unsel {
+  margin-right: 5px;
+}
+/* 
 .check.arp_enabled {
   width: 68px;
   margin-left: 0;
   position: relative;
-}
+} */
 
 .zone input.percent {
   width: 80px;

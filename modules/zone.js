@@ -552,7 +552,8 @@ class Zone {
           ctx.fillRect(0.5 + width * i, 1, width - 0.5, 14);
         } else {
           if (isCurrent) {
-            ctx.fillRect(0.5 + width * i, 15, width - 0.5, 1);
+            ctx.rect(0.5 + width * i, 1, width - 0.5, 14);
+            ctx.stroke();
           }
         }
       }

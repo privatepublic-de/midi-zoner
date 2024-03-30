@@ -163,6 +163,9 @@ module.exports = {
         <div class="ch state showccs" data-action="${index}:toggle_show_cc" title="Show CC controllers">
           CC
         </div>
+        <div class="ch state showarp arp_enabled" data-action="${index}:arp_enabled" title="Enable arpeggiator">
+          Arp
+        </div>
         <div class="outselection">
           <select class="outport" data-change="${index}:outport" title="Select output port or preset">
             <option value="*"></option>
@@ -309,6 +312,98 @@ module.exports = {
           <div class="action seq_record_live" title="Live recording while sequence is playing" data-action="${index}:seq_record_live"><i class="material-icons">piano</i></div>
         </div>
       </div>
+      <div class="arp-settings">
+        <div
+          class="check arp_hold"
+          data-action="${index}:arp_hold"
+          title="Hold notes after key release"
+        >
+        ${checkboxIcons}Hold
+          <span
+            class="arp_transpose innertoggle"
+            title="Use keyboard to transpose held arpeggio"
+            data-action="${index}:arp_transpose">
+            t
+          </span>
+        </div>
+        <div class="drop-down">
+          <select class="arp_direction" data-change="${index}:arp_direction" title="Arp play direction">
+            <option>Up</option>
+            <option>Down</option>
+            <option>Up / Down</option>
+            <option>Random</option>
+            <option>Order</option>
+          </select>
+        </div>
+        <div class="drop-down">
+          <select class="arp_division" data-change="${index}:arp_division">
+            ${noteLengthOptions}
+          </select>
+        </div>
+        <div class="label">Octaves</div>
+        <div class="drop-down">
+          <select class="arp_octaves" data-change="${index}:arp_octaves">
+            <option>1</option>
+            <option>2</option>
+            <option>3</option>
+            <option>4</option>
+          </select>
+        </div>
+        <div class="check arp_repeat" data-action="${index}:arp_repeat">
+          ${checkboxIcons}Repeat
+        </div>
+        <div class="label">Len</div>
+        <input type="range" class="percent arp_gatelength" data-change="${index}:arp_gatelength" min="0" max="100" />
+        <div class="label">Prob</div>
+        <input type="range" class="percent arp_probability" data-change="${index}:arp_probability" min="0" max="100" />
+        <div class="label">Pattern</div>
+        <div
+          class="pattern"
+          data-action="${index}:arp_pattern"
+          title="Arpeggiator pattern"
+        >
+          <canvas id="canvasPattern${index}" width="100" height="16"></canvas>
+        </div>
+        <div
+          class="patgen action"
+          title="Create or shift pattern"
+          data-action="${index}:showeuclid"
+        >
+          <i class="material-icons">edit</i>
+        </div>
+        <div class="euclid hideonleave">
+          <p>Create euclidian pattern</p>
+          <p>
+            <input
+              id="euchits${index}"
+              type="number"
+              min="1"
+              value="8"
+              size="3"
+              title="Steps"
+            />
+            in
+            <input
+              type="number"
+              id="euclen${index}"
+              min="1"
+              value="8"
+              size="3"
+              title="Length"
+            />
+            <span class="submit" data-action="${index}:euclid">OK</span>
+          </p>
+          <p>
+            <span class="submit" data-action="${index}:pattern_shift:-1"
+              >&lt;</span
+            >
+            Shift pattern
+            <span class="submit" data-action="${index}:pattern_shift:1"
+              >&gt;</span
+            >
+          </p>
+        </div>
+      </div>
       <div class="rangeholder">
         <div
           class="range"
@@ -327,14 +422,6 @@ module.exports = {
         </div>
       </div>
       <div class="settings">
-        <div
-          class="check arp_enabled"
-          data-action="${index}:arp_enabled"
-          title="Enable arpeggiator"
-        >
-          Arp <span class="material-icons sel">expand_more</span
-          ><span class="material-icons unsel">chevron_right</span>
-        </div>
         <div class="val label">Oct</div>
         <div class="val octaves" title="Transpose octave">
           <a class="octselect" data-action="${index}:octave:-3"></a>
@@ -413,97 +500,6 @@ module.exports = {
               onclick="event.stopPropagation();"
             />
           </div>
-        </div>
-      </div>
-      <div class="arp-settings">
-        <div
-          class="check arp_hold"
-          data-action="${index}:arp_hold"
-          title="Hold notes after key release"
-        >
-          Hold
-          <span
-            class="arp_transpose innertoggle"
-            title="Use keyboard to transpose held arpeggio"
-            data-action="${index}:arp_transpose">
-            t
-          </span>
-        </div>
-        <div class="drop-down">
-          <select class="arp_direction" data-change="${index}:arp_direction" title="Arp play direction">
-            <option>Up</option>
-            <option>Down</option>
-            <option>Up / Down</option>
-            <option>Random</option>
-            <option>Order</option>
-          </select>
-        </div>
-        <div class="drop-down">
-          <select class="arp_division" data-change="${index}:arp_division">
-            ${noteLengthOptions}
-          </select>
-        </div>
-        <div class="label">Octs</div>
-        <div class="drop-down">
-          <select class="arp_octaves" data-change="${index}:arp_octaves">
-            <option>1</option>
-            <option>2</option>
-            <option>3</option>
-            <option>4</option>
-          </select>
-        </div>
-        <div class="check arp_repeat" data-action="${index}:arp_repeat">
-          ${checkboxIcons}Repeat
-        </div>
-        <div class="label">Len</div>
-        <input type="range" class="percent arp_gatelength" data-change="${index}:arp_gatelength" min="0" max="100" />
-        <div class="label">Prob</div>
-        <input type="range" class="percent arp_probability" data-change="${index}:arp_probability" min="0" max="100" />
-        <div
-          class="patgen"
-          title="Create or shift pattern"
-          data-action="${index}:showeuclid"
-        >
-          <i class="material-icons">settings</i>
-        </div>
-        <div
-          class="pattern"
-          data-action="${index}:arp_pattern"
-          title="Arpeggiator pattern"
-        >
-          <canvas id="canvasPattern${index}" width="100" height="16"></canvas>
-        </div>
-        <div class="euclid hideonleave">
-          <p>Create euclidian pattern</p>
-          <p>
-            <input
-              id="euchits${index}"
-              type="number"
-              min="1"
-              value="8"
-              size="3"
-              title="Steps"
-            />
-            in
-            <input
-              type="number"
-              id="euclen${index}"
-              min="1"
-              value="8"
-              size="3"
-              title="Length"
-            />
-            <span class="submit" data-action="${index}:euclid">OK</span>
-          </p>
-          <p>
-            <span class="submit" data-action="${index}:pattern_shift:-1"
-              >&lt;</span
-            >
-            Shift pattern
-            <span class="submit" data-action="${index}:pattern_shift:1"
-              >&gt;</span
-            >
-          </p>
         </div>
       </div>
     </section>`;
