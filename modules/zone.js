@@ -467,9 +467,9 @@ class Zone {
 
   renderNotes() {
     if (this.canvasElement) {
-      this.canvasElement.width = this.canvasElement.parentElement.offsetWidth;
       /** @type {CanvasRenderingContext2D} */
       const ctx = this.canvasElement.getContext('2d');
+      this.canvasElement.width = this.canvasElement.parentElement.offsetWidth;
       this.canvasElement.width =
         this.canvasElement.height *
         (this.canvasElement.clientWidth / this.canvasElement.clientHeight);
@@ -536,26 +536,24 @@ class Zone {
       const ctx = this.patternCanvas.getContext('2d');
       const cwidth = this.patternCanvas.width;
       const plen = this.arp_pattern.length;
-      const width = Math.floor(cwidth / plen);
+      const width = (cwidth - 2) / plen;
       ctx.clearRect(0, 0, cwidth, this.patternCanvas.height);
+      ctx.beginPath();
+
+      ctx.strokeStyle = '#fff';
+      ctx.rect(0, 0, cwidth, this.patternCanvas.height);
+      ctx.stroke();
       ctx.lineWidth = 1;
       for (let i = 0; i < plen; i++) {
         const isCurrent = i === this.arp.patternPos;
+        const color = isCurrent ? '#fff' : 'rgba(255, 255, 255, 0.34)';
+        ctx.fillStyle = color;
         if (this.arp_pattern[i]) {
-          ctx.fillStyle = isCurrent
-            ? 'rgba(255, 255, 255, 0.75)'
-            : 'rgba(0, 0, 0, 0.2)';
-          ctx.fillRect(width * i + 1, 1, width - 2, 16 - 2);
+          ctx.fillRect(0.5 + width * i, 1, width - 0.5, 14);
         } else {
-          ctx.save();
-          ctx.translate(0.5, 0.5);
-          ctx.beginPath();
-          ctx.rect(width * i + 1, 1, width - 3, 16 - 3);
-          ctx.strokeStyle = isCurrent
-            ? 'rgba(255, 255, 255, 0.75)'
-            : 'rgba(0, 0, 0, 0.2)';
-          ctx.stroke();
-          ctx.restore();
+          if (isCurrent) {
+            ctx.fillRect(0.5 + width * i, 15, width - 0.5, 1);
+          }
         }
       }
     }

@@ -8,6 +8,7 @@ module.exports = class DragZone {
   hasmoved = false;
   zoneElement = null;
   startY = 0;
+  startX = 0;
   finishedCallback = null;
 
   constructor(index, startMouseEvent, finishedCallback) {
@@ -16,6 +17,7 @@ module.exports = class DragZone {
     this.zoneElement = DOM.element(`#zone${index}`);
     this.index = index;
     this.startY = 0;
+    this.startX = 0;
     this.srcdim = {
       top: this.zoneElement.offsetTop,
       left: this.zoneElement.offsetLeft,
@@ -27,6 +29,7 @@ module.exports = class DragZone {
     this.moveHandler = this.move.bind(this);
     this.dropHandler = this.drop.bind(this);
     this.startY = startMouseEvent.screenY / this.zoomFactor;
+    this.startX = startMouseEvent.screenX / this.zoomFactor;
     this.zoneElement.style.top = `${this.srcdim.top}px`;
     this.zoneElement.style.left = `${this.srcdim.left}px`;
     this.zoneElement.style.width = `${this.srcdim.width}px`;
@@ -41,7 +44,7 @@ module.exports = class DragZone {
   }
 
   move(ev) {
-    this.findDropElement(ev.screenY);
+    this.findDropElement(ev.screenX, ev.screenY);
     this.hasmoved = true;
   }
 
@@ -66,9 +69,11 @@ module.exports = class DragZone {
     this.finishedCallback();
   }
 
-  findDropElement(screenY) {
+  findDropElement(screenX, screenY) {
     const y = this.srcdim.top + (screenY / this.zoomFactor - this.startY);
+    const x = this.srcdim.left + (screenX / this.zoomFactor - this.startX);
     this.zoneElement.style.top = `${y - this.srcdim.offsetTop}px`;
+    this.zoneElement.style.left = `${x - this.srcdim.offsetLeft}px`;
     let found = -1;
     let z;
     let nearestTop = window.innerHeight;
@@ -84,19 +89,19 @@ module.exports = class DragZone {
         nearestTopIndex = i;
       }
     }
-    DOM.all(`.zone`).forEach((el) => {
-      el.style.marginTop = '';
-      el.style.marginBottom = '';
-    });
+    // DOM.all(`.zone`).forEach((el) => {
+    //   el.style.marginTop = '';
+    //   el.style.marginBottom = '';
+    // });
     if (nearestTopIndex === zones.list.length - 1 && y > z.offsetTop) {
-      DOM.element(`#zone${nearestTopIndex}`).style.marginBottom = `${
-        this.srcdim.height + 10
-      }px`;
+      // DOM.element(`#zone${nearestTopIndex}`).style.marginBottom = `${
+      //   this.srcdim.height + 10
+      // }px`;
       found = nearestTopIndex + 1;
     } else {
-      DOM.element(`#zone${nearestTopIndex}`).style.marginTop = `${
-        this.srcdim.height + 10
-      }px`;
+      // DOM.element(`#zone${nearestTopIndex}`).style.marginTop = `${
+      //   this.srcdim.height + 10
+      // }px`;
       found = nearestTopIndex;
     }
     return found;

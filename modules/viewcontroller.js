@@ -44,7 +44,13 @@ function findTouchedNote(
   /** @type {HTMLElement} */ e,
   /** @type {Zone} */ zone
 ) {
-  let num = parseInt(((ev.clientX - e.offsetLeft) / e.offsetWidth) * 128);
+  let trav = e;
+  let left = 0;
+  do {
+    left += trav.offsetLeft;
+    trav = trav.offsetParent;
+  } while (trav.offsetParent);
+  let num = parseInt(((ev.clientX - left) / e.offsetWidth) * 128);
   const isLow =
     zone.lastTouchedRangePoint === 1 ||
     (zone.lastTouchedRangePoint === 0 &&
@@ -95,8 +101,7 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
     updateValuesForZone(zoneindex);
   };
   const calcPercentage = () => {
-    const percent = ev.offsetX / (element.offsetWidth * 0.95);
-    return Math.min(1, Math.max(0, Math.floor(percent * 24) / 24));
+    return parseInt(element.value) / 100;
   };
   const applyPercentage = () => {
     zone[params[1]] = calcPercentage();
@@ -112,13 +117,14 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       }
       renderMarkersForZone(zoneindex);
     },
-    ch: () => {
-      const channelnumber = parseInt(params[2]);
-      if (channelnumber < 16) {
-        zone.channel = channelnumber;
-        updateValuesForZone(zoneindex);
-      }
-    },
+    // ch: () => {
+    //   const channelnumber = parseInt(params[2]);
+    //   if (channelnumber < 16) {
+    //     zone.channel = channelnumber;
+    //     updateValuesForZone(zoneindex);
+    //   }
+    // },
+    channel: applySelectedIndex,
     outport: () => {
       if (element.value.charAt(0) == '$') {
         const parts = element.value.substr(1).split(',');
@@ -431,6 +437,7 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       for (let i = 0; i < srcLength; i++) {
         seq.steps[srcLength + i] = stepsCopy[i];
       }
+      updateValuesForZone(zoneindex);
       toast('Sequence doubled in length.', { triggerElement: element });
     },
     seq_clear_step: () => {
@@ -708,28 +715,6 @@ function appendZone(/** @type {Zone} */ zone, index) {
     }
   });
 
-  DOM.all(
-    `#zone${index} .arp_probability,#zone${index} .arp_gatelength,#zone${index} .seq_step_probability,#zone${index} .seq_gatelength`
-  ).forEach((el) => {
-    let active = false;
-    el.addEventListener('mousedown', (e) => {
-      active = true;
-      actionHandler(e);
-    });
-    const trackingOff = (e) => {
-      if (active) {
-        active = false;
-        actionHandler(e);
-      }
-    };
-    el.addEventListener('mouseup', trackingOff);
-    el.addEventListener('mouseleave', trackingOff);
-    el.addEventListener('mousemove', (e) => {
-      if (active) {
-        actionHandler(e);
-      }
-    });
-  });
   DOM.all(`#zone${index} *[data-action]`).forEach((e) => {
     e.addEventListener('click', actionHandler);
   });
@@ -927,7 +912,7 @@ function updateValuesForZone(index) {
   const zoneElement = DOM.element(`#zone${index}`);
   if (zoneElement) {
     DOM.removeClass(`#zone${index} *[data-action]`, 'selected');
-    DOM.addClass(`#zone${index} .no${zone.channel}`, 'selected');
+    // DOM.addClass(`#zone${index} .no${zone.channel}`, 'selected');
     if (Zone.solocount > 0 && !zone.solo) {
       DOM.addClass(`#zone${index}`, 'soloed-out');
     } else {
@@ -1004,6 +989,10 @@ function updateValuesForZone(index) {
         DOM.all(`#zone${index} .seq .grid .step`)[
           zone.sequence.selectedStepNumber
         ].classList.add('selected-step');
+
+        DOM.element(`#zone${index} .step-info`).style.top =
+          DOM.element(`#zone${index} .seq .grid`).offsetHeight + 'px';
+
         if (zone.sequence.stepAddNotes) {
           DOM.addClass(`#zone${index} .seq-step-add-notes`, 'selected');
         }
@@ -1013,19 +1002,10 @@ function updateValuesForZone(index) {
         let step = zone.sequence.steps[zone.sequence.selectedStepNumber];
         if (step && step.length > 0) {
           let pcnt = parseInt(step.probability * 100);
-          DOM.element(
-            `#zone${index} .percent.seq_step_probability .inner`
-          ).style.width = `${pcnt}%`;
-          DOM.element(
-            `#zone${index} .percent.seq_step_probability .pcnt`
-          ).innerHTML = pcnt;
-
-          pcnt = parseInt(step.gateLength * 100);
-          DOM.element(
-            `#zone${index} .percent.seq_gatelength .inner`
-          ).style.width = `${pcnt}%`;
-          DOM.element(`#zone${index} .percent.seq_gatelength .pcnt`).innerHTML =
+          DOM.element(`#zone${index} .percent.seq_step_probability`).value =
             pcnt;
+          pcnt = parseInt(step.gateLength * 100);
+          DOM.element(`#zone${index} .percent.seq_gatelength`).value = pcnt;
 
           DOM.element(`#zone${index} .seq_step_condition`).selectedIndex =
             zone.sequence.steps[zone.sequence.selectedStepNumber].condition;
@@ -1036,11 +1016,8 @@ function updateValuesForZone(index) {
           DOM.element(`#zone${index} .seq_step_condition`).selectedIndex = 0;
           DOM.element(
             // TODO generalize!
-            `#zone${index} .percent.seq_step_probability .inner`
-          ).style.width = `100%`;
-          DOM.element(
-            `#zone${index} .percent.seq_step_probability .pcnt`
-          ).innerHTML = '100';
+            `#zone${index} .percent.seq_step_probability`
+          ).value = 100;
         }
         zone.sequence.updateRecordingState();
       } else {
@@ -1078,17 +1055,14 @@ function updateValuesForZone(index) {
         DOM.addClass(`#zone${index} .${p}`, 'selected');
       }
     });
-    ['arp_direction', 'arp_division', 'arp_octaves'].forEach((p) => {
+    ['channel', 'arp_direction', 'arp_division', 'arp_octaves'].forEach((p) => {
       DOM.element(`#zone${index} .${p}`).selectedIndex = zone[p];
     });
     ['arp_gatelength', 'arp_probability'].forEach((p) => {
       const pcnt = parseInt(zone[p] * 100);
-      DOM.element(
-        `#zone${index} .percent.${p} .inner`
-      ).style.width = `${pcnt}%`;
-      DOM.element(`#zone${index} .percent.${p} .pcnt`).innerHTML = pcnt;
+      DOM.element(`#zone${index} .percent.${p}`).value = pcnt;
+      // DOM.element(`#zone${index} .percent.${p} .pcnt`).innerHTML = pcnt;
     });
-    // seq_step_probability
     if (zone.arp_enabled) {
       DOM.addClass(`#zone${index}`, 'arp-enabled');
     } else {

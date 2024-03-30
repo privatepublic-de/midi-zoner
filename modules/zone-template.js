@@ -46,8 +46,8 @@ const noteLengthOptions = /*html*/ `<optgroup><option>2/1</option>
 
 const octavemarkers = '<span class="oct"></span>'.repeat(10);
 
-const checkboxIcons = /*html*/ `<span class="material-icons sel">check_circle</span
-      ><span class="material-icons unsel">radio_button_unchecked</span> `;
+const checkboxIcons = /*html*/ `<span class="material-icons sel">check_box</span
+      ><span class="material-icons unsel">check_box_outline_blank</span> `;
 
 module.exports = {
   getControllerHTML: function (/** @type {Zone} */ zone, zoneindex) {
@@ -123,14 +123,17 @@ module.exports = {
   },
   getHTML: function (/** @type {Zone} */ zone, zoneindex) {
     const index = zoneindex;
-    let channelselectors = '';
+    let channelselectors = `<select class="channel" data-change="${index}:channel">`;
     for (let i = 0; i < 16; i++) {
-      const label = i + 1;
-      const title = `Select MIDI channel ${i + 1}`;
-      channelselectors += `<div class="ch mch ${
-        zone.channel == i ? 'selected' : ''
-      } no${i}" data-action="${index}:ch:${i}" title="${title}">${label}</div>`;
+      channelselectors += `<option value="${i}">Ch ${i + 1}</option>`;
+      // const label = i + 1;
+      // const title = `Select MIDI channel ${i + 1}`;
+      // channelselectors += `<div class="ch mch ${
+      //   zone.channel == i ? 'selected' : ''
+      // } no${i}" data-action="${index}:ch:${i}" title="${title}">${label}</div>`;
     }
+    channelselectors += '</select>';
+
     let sequencerGrid = '';
     for (let i = 0; i < Zone.Sequence.MAX_STEPS; i++) {
       sequencerGrid += `<div class="step" data-action="${index}:select_step:${i}">${
@@ -170,7 +173,7 @@ module.exports = {
             data-change="${index}:output_config_name"/>
         </div>
         <div
-            class="mch sendClock"
+            class="sendClock"
             data-action="${index}:sendClock"
             title="Transmit clock to this device"
           ><i class="material-icons sel">watch_later</i
@@ -206,14 +209,7 @@ module.exports = {
             <div class="step-props step-controls">
               <div class="label">Length</div>
               <input class="seq_step_length" type="number" min="1" max="${Sequence.MAX_STEPS}" value="1" data-change="${index}:seq_step_length"/> 
-              <div
-                class="percent seq_gatelength"
-                data-action="${index}:seq_gatelength"
-                title="Gate length"
-              >
-                <span class="inner"></span>
-                <span class="pcnt">50</span>
-              </div>
+              <input class="percent seq_gatelength" type="range" data-change="${index}:seq_gatelength" title="Step gate length" />
               <div class="label">Condition</div>
               <div class="drop-down" title="Select step play condition">
                 <select class="seq_step_condition" data-change="${index}:seq_step_condition">
@@ -226,14 +222,7 @@ module.exports = {
                 </select>
               </div>
               <div class="label">Prob</div>
-              <div
-                class="percent seq_step_probability"
-                data-action="${index}:seq_step_probability"
-                title="Step probability"
-              >
-                <span class="inner"></span>
-                <span class="pcnt">50</span>
-              </div>
+              <input class="percent seq_step_probability" type="range" data-change="${index}:seq_step_probability" title="Step probability" />
             </div>
             <div class="step-controls">
                 <div class="action" title="Move step left (if free space)" data-action="${index}:seq_step_move:-1"><i class="material-icons">chevron_left</i></div>
@@ -334,7 +323,7 @@ module.exports = {
           <span class="current"></span>
           <span class="marker low">C-1</span>
           <span class="marker high">G9</span>
-          <canvas id="canvas${index}" width="100" height="20"></canvas>
+          <canvas id="canvas${index}" width="100%" height="20"></canvas>
         </div>
       </div>
       <div class="settings">
@@ -345,7 +334,6 @@ module.exports = {
         >
           Arp <span class="material-icons sel">expand_more</span
           ><span class="material-icons unsel">chevron_right</span>
-          <span class="arpanchor"></span>
         </div>
         <div class="val label">Oct</div>
         <div class="val octaves" title="Transpose octave">
@@ -381,6 +369,20 @@ module.exports = {
             <span class="innertoggle sustain_on" data-action="${index}:sustain_on">ON</span>
           </div>
           <div
+            class="check cc"
+            data-action="${index}:cc"
+            title="Transmit control change messages"
+          >
+            ${checkboxIcons}CC
+          </div>
+          <div
+            class="check at2mod"
+            data-action="${index}:at2mod"
+            title="Convert channel pressure (aftertouch) to mod (CC 1)"
+          >
+            ${checkboxIcons}AT&gt;MW
+          </div>
+          <div
             class="check fixedvel"
             data-action="${index}:fixedvel"
             title="Use fixed velocity"
@@ -394,20 +396,6 @@ module.exports = {
           >
             ${checkboxIcons}Vel%
             <input type="number" id="scalevel${index}" onclick="event.stopPropagation();" data-change="${index}:scale_velocity_value" value="100" min="1" max="200"/>
-          </div>
-          <div
-            class="check cc"
-            data-action="${index}:cc"
-            title="Transmit control change messages"
-          >
-            ${checkboxIcons}CC
-          </div>
-          <div
-            class="check at2mod"
-            data-action="${index}:at2mod"
-            title="Convert channel pressure (aftertouch) to mod (CC 1)"
-          >
-            ${checkboxIcons}AT&gt;MW
           </div>
           <div
             class="check programchange"
@@ -468,36 +456,22 @@ module.exports = {
           ${checkboxIcons}Repeat
         </div>
         <div class="label">Len</div>
-        <div
-          class="percent arp_gatelength"
-          data-action="${index}:arp_gatelength"
-          title="Note length"
-        >
-          <span class="inner"></span>
-          <span class="pcnt">50</span>
-        </div>
+        <input type="range" class="percent arp_gatelength" data-change="${index}:arp_gatelength" min="0" max="100" />
         <div class="label">Prob</div>
+        <input type="range" class="percent arp_probability" data-change="${index}:arp_probability" min="0" max="100" />
         <div
-          class="percent arp_probability"
-          data-action="${index}:arp_probability"
-          title="Note probability"
+          class="patgen"
+          title="Create or shift pattern"
+          data-action="${index}:showeuclid"
         >
-          <span class="inner"></span>
-          <span class="pcnt">50</span>
+          <i class="material-icons">settings</i>
         </div>
         <div
           class="pattern"
           data-action="${index}:arp_pattern"
           title="Arpeggiator pattern"
         >
-          <canvas id="canvasPattern${index}" width="200" height="16"></canvas>
-        </div>
-        <div
-          class="action patgen"
-          title="Create or shift pattern"
-          data-action="${index}:showeuclid"
-        >
-          <i class="material-icons">settings</i>
+          <canvas id="canvasPattern${index}" width="100" height="16"></canvas>
         </div>
         <div class="euclid hideonleave">
           <p>Create euclidian pattern</p>
