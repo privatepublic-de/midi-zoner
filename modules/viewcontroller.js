@@ -419,6 +419,20 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
         DOM.removeClass(`#zone${zoneindex} .grid`, 'steps-changed');
       }, 1000);
     },
+    seq_double: () => {
+      let seq = zone.sequence;
+      let srcLength = seq.length;
+      let steps = [];
+      for (let i = 0; i < srcLength; i++) {
+        steps[i] = seq.steps[i];
+      }
+      let stepsCopy = JSON.parse(JSON.stringify(steps));
+      seq.length = seq.length * 2;
+      for (let i = 0; i < srcLength; i++) {
+        seq.steps[srcLength + i] = stepsCopy[i];
+      }
+      toast('Sequence doubled in length.', { triggerElement: element });
+    },
     seq_clear_step: () => {
       if (zone.sequence.selectedStepNumber > -1) {
         zone.sequence.steps[zone.sequence.selectedStepNumber] = null;

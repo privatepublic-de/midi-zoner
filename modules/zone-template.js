@@ -273,6 +273,7 @@ module.exports = {
           <div class="val">
             <input title="Number of steps in sequence" class="seq_steps" type="number" min="1" max="${Sequence.MAX_STEPS}" value="16" data-change="${index}:seq_steps" /> 
           </div>
+          <div class="action" title="Double length" data-action="${index}:seq_double"><i class="material-icons">content_copy</i></div>
           <div class="drop-down" title="Step resolution">
             <select class="seq_division" data-change="${index}:seq_division">
               ${noteLengthOptions}
