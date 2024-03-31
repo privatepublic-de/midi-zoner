@@ -1008,7 +1008,8 @@ input[type='range'] {
   padding: 8px;
   background-color: var(--bg-color);
   box-shadow: 0 0 8px var(--shadow-topbar-button);
-  bottom: 25px;
+  bottom: 0;
+  right: 0;
   text-align: center;
   line-height: 1.2em;
   transition: opacity 667ms;
