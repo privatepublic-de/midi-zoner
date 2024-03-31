@@ -474,13 +474,13 @@ class Zone {
         this.canvasElement.height *
         (this.canvasElement.clientWidth / this.canvasElement.clientHeight);
       const cwidth = this.canvasElement.width;
-      const notewidth = Math.floor(cwidth / 127.0 - cwidth / 127.0 / 2.0);
+      const notewidth = cwidth / 127.0 - (cwidth / 127.0) * 0.2;
       ctx.clearRect(0, 0, cwidth, this.canvasElement.height);
 
       function drawNote(number, isBlack, fillStyle, fillStyleBlack) {
         ctx.fillStyle = isBlack ? fillStyleBlack : fillStyle;
         ctx.fillRect(
-          Math.floor((cwidth * number) / 127),
+          (cwidth * number) / 127,
           isBlack ? note_top_black : note_top,
           notewidth,
           isBlack ? note_height_black : note_height

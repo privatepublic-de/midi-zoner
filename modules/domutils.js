@@ -164,7 +164,19 @@ module.exports = {
     }
     return attrValue;
   },
-
+  /* TODO Document */
+  clientOffsets: function (el) {
+    const rect = el.getBoundingClientRect();
+    // let trav = el;
+    // let left = 0;
+    // let top = 0;
+    // do {
+    //   left += trav.offsetLeft;
+    //   top += trav.offsetTop;
+    //   trav = trav.offsetParent;
+    // } while (trav.offsetParent);
+    return { offsetTop: rect.y, offsetLeft: rect.x };
+  },
   /**
    * Convert hsl values (0-1) to rgb.
    * @param {number} h Hue

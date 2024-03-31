@@ -44,13 +44,9 @@ function findTouchedNote(
   /** @type {HTMLElement} */ e,
   /** @type {Zone} */ zone
 ) {
-  let trav = e;
-  let left = 0;
-  do {
-    left += trav.offsetLeft;
-    trav = trav.offsetParent;
-  } while (trav.offsetParent);
-  let num = parseInt(((ev.clientX - left) / e.offsetWidth) * 128);
+  let num = parseInt(
+    ((ev.clientX - DOM.clientOffsets(e).offsetLeft) / e.offsetWidth) * 128
+  );
   const isLow =
     zone.lastTouchedRangePoint === 1 ||
     (zone.lastTouchedRangePoint === 0 &&
@@ -678,6 +674,18 @@ function renderZones() {
   zones.list.forEach((zone, index) => {
     appendZone(zone, index);
   });
+  addPlaceholder();
+}
+
+function addPlaceholder() {
+  DOM.all('#zones .zone.placeholder', (e) => e.remove());
+  if (zones.list.length % 2) {
+    DOM.addHTML(
+      '#zones',
+      'beforeend',
+      '<section class="zone placeholder"></section>'
+    );
+  }
 }
 
 /**
@@ -687,6 +695,7 @@ function renderLastZone() {
   const index = zones.list.length - 1;
   const zone = zones.list[index];
   appendZone(zone, index);
+  addPlaceholder();
 }
 
 function appendZone(/** @type {Zone} */ zone, index) {

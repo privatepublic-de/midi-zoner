@@ -1,4 +1,5 @@
 const { webFrame } = require('electron');
+const DOM = require('./domutils');
 
 module.exports = class DragZone {
   index = null;
@@ -18,14 +19,22 @@ module.exports = class DragZone {
     this.index = index;
     this.startY = 0;
     this.startX = 0;
+    const offsets = DOM.clientOffsets(this.zoneElement);
+    const containerOffsets = DOM.clientOffsets(DOM.element('#zones'));
     this.srcdim = {
-      top: this.zoneElement.offsetTop,
-      left: this.zoneElement.offsetLeft,
+      top: offsets.offsetTop,
+      left: offsets.offsetLeft,
       width: this.zoneElement.offsetWidth,
       height: this.zoneElement.offsetHeight,
-      offsetTop: 5
+      offsetTop: containerOffsets.offsetTop,
+      offsetLeft: containerOffsets.offsetLeft
     };
     DOM.addClass(this.zoneElement, 'dragged');
+    const placeholder = DOM.addHTML(
+      this.zoneElement,
+      'afterend',
+      `<section class="zone" style="height:${this.srcdim.height}px"></section>`
+    );
     this.moveHandler = this.move.bind(this);
     this.dropHandler = this.drop.bind(this);
     this.startY = startMouseEvent.screenY / this.zoomFactor;
@@ -37,7 +46,7 @@ module.exports = class DragZone {
     document.body.addEventListener('mousemove', this.moveHandler, true);
     document.body.addEventListener('mouseup', this.dropHandler, true);
     DOM.addClass(document.body, 'zonedrag');
-    this.findDropElement(startMouseEvent.screenY); // this.startY);
+    this.findDropElement(startMouseEvent.screenX, startMouseEvent.screenY); // this.startY);
     setTimeout(() => {
       DOM.addClass('#zones', 'dragging');
     }, 100);
@@ -49,61 +58,56 @@ module.exports = class DragZone {
   }
 
   drop(ev) {
-    let targetIndex = this.findDropElement(ev.screenY);
+    let targetIndex = this.findDropElement(ev.screenX, ev.screenY);
     document.body.removeEventListener('mousemove', this.moveHandler, true);
     document.body.removeEventListener('mouseup', this.dropHandler, true);
     DOM.removeClass('#zones', 'dragging');
+    DOM.removeClass('#zones', 'droptarget');
     DOM.removeClass(document.body, 'zonedrag');
-    DOM.all(`.zone`).forEach((el) => {
-      el.style.marginTop = '';
-      el.style.marginBottom = '';
-    });
     this.zoneElement.style.display = 'block';
-    if (this.hasmoved) {
-      const me = zones.list.splice(this.index, 1);
-      if (targetIndex > this.index) {
-        targetIndex--;
-      }
-      zones.list.splice(targetIndex, 0, me[0]);
+    if (this.hasmoved && targetIndex > -1) {
+      const temp = zones.list[targetIndex];
+      zones.list[targetIndex] = zones.list[this.index];
+      zones.list[this.index] = temp;
     }
     this.finishedCallback();
   }
 
   findDropElement(screenX, screenY) {
+    const my = (screenY - this.srcdim.offsetTop) / this.zoomFactor;
+    const mx = (screenX - this.srcdim.offsetLeft) / this.zoomFactor;
     const y = this.srcdim.top + (screenY / this.zoomFactor - this.startY);
     const x = this.srcdim.left + (screenX / this.zoomFactor - this.startX);
-    this.zoneElement.style.top = `${y - this.srcdim.offsetTop}px`;
-    this.zoneElement.style.left = `${x - this.srcdim.offsetLeft}px`;
+    this.zoneElement.style.top = `${y}px`;
+    this.zoneElement.style.left = `${x}px`;
     let found = -1;
     let z;
-    let nearestTop = window.innerHeight;
-    let nearestTopIndex;
+    // let nearestTop = window.innerHeight;
+    // let nearestTopIndex;
     for (let i = 0; i < zones.list.length; i++) {
       if (i === this.index) {
         continue;
       }
       z = DOM.element(`#zone${i}`);
-      const dist = Math.abs(y + this.srcdim.height / 2 - z.offsetTop);
-      if (dist < nearestTop) {
-        nearestTop = dist;
-        nearestTopIndex = i;
+      const offs = DOM.clientOffsets(z);
+
+      if (
+        mx < offs.offsetLeft + z.offsetWidth &&
+        mx > offs.offsetLeft &&
+        my < offs.offsetTop + z.offsetHeight &&
+        my > offs.offsetTop
+      ) {
+        found = i;
+        DOM.addClass(z, 'droptarget');
+      } else {
+        DOM.removeClass(z, 'droptarget');
       }
     }
-    // DOM.all(`.zone`).forEach((el) => {
-    //   el.style.marginTop = '';
-    //   el.style.marginBottom = '';
-    // });
-    if (nearestTopIndex === zones.list.length - 1 && y > z.offsetTop) {
-      // DOM.element(`#zone${nearestTopIndex}`).style.marginBottom = `${
-      //   this.srcdim.height + 10
-      // }px`;
-      found = nearestTopIndex + 1;
-    } else {
-      // DOM.element(`#zone${nearestTopIndex}`).style.marginTop = `${
-      //   this.srcdim.height + 10
-      // }px`;
-      found = nearestTopIndex;
-    }
+    // if (nearestTopIndex === zones.list.length - 1 && y > z.offsetTop) {
+    //   found = nearestTopIndex + 1;
+    // } else {
+    //   found = nearestTopIndex;
+    // }
     return found;
   }
 };

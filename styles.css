@@ -390,6 +390,14 @@ option {
   border-radius: 6px;
 }
 
+.zone.placeholder {
+  visibility: hidden;
+}
+
+.zone.droptarget {
+  outline: 4px solid #eee;
+}
+
 .zone.dragged {
   position: absolute;
   cursor: grabbing;
@@ -1033,7 +1041,6 @@ input[type='range'] {
   background-color: var(--bg-color);
   box-shadow: 0 0 8px var(--shadow-topbar-button);
   bottom: 25px;
-  right: 0;
   text-align: center;
   line-height: 1.2em;
   transition: opacity 667ms;

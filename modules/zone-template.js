@@ -188,7 +188,7 @@ module.exports = {
               <label><i class="material-icons">palette</i></label>
             </div>
             <div class="dragzone rtool" title="Drag zone">
-              <i class="material-icons">import_export</i>
+              <i class="material-icons">swap_vert</i>
             </div>
             <div class="delzone rtool" data-action="${index}:delete" title="Remove zone">
               <i class="material-icons">close</i>
