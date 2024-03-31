@@ -308,19 +308,7 @@ module.exports = {
         </div>
       </div>
       <div class="arp-settings">
-        <div
-          class="check arp_hold"
-          data-action="${index}:arp_hold"
-          title="Hold notes after key release"
-        >
-        ${checkboxIcons}Hold
-          <span
-            class="arp_transpose innertoggle"
-            title="Use keyboard to transpose held arpeggio"
-            data-action="${index}:arp_transpose">
-            t
-          </span>
-        </div>
+        <div class="label">Arpeggiator</div>
         <div class="drop-down">
           <select class="arp_direction" data-change="${index}:arp_direction" title="Arp play direction">
             <option>Up</option>
@@ -347,6 +335,21 @@ module.exports = {
         <div class="check arp_repeat" data-action="${index}:arp_repeat">
           ${checkboxIcons}Repeat
         </div>
+        <div
+          class="check arp_hold"
+          data-action="${index}:arp_hold"
+          title="Hold notes after key release"
+        >
+          ${checkboxIcons}Hold
+          <span
+            class="arp_transpose innertoggle"
+            title="Use keyboard to transpose held arpeggio"
+            data-action="${index}:arp_transpose">
+            t
+          </span>
+        </div>
+      </div>
+      <div class="arp-settings">
         <div class="label">Len</div>
         <input type="range" class="percent arp_gatelength" data-change="${index}:arp_gatelength" min="0" max="100" />
         <div class="label">Prob</div>
@@ -427,73 +430,76 @@ module.exports = {
           <a class="octselect" data-action="${index}:octave:2"></a>
           <a class="octselect" data-action="${index}:octave:3"></a>
         </div>
-        <div class="hidden">
-          <div
-            class="check pitchbend"
-            data-action="${index}:pitchbend"
-            title="Transmit pitch bend messages"
-          >
-            ${checkboxIcons}PB
-          </div>
-          <div
-            class="check mod"
-            data-action="${index}:mod"
-            title="Transmit mod wheel messages (CC 1)"
-          >
-            ${checkboxIcons}MW
-          </div>
-          <div
-            class="check sustain"
-            data-action="${index}:sustain"
-            title="Transmit sustain pedal messages (CC 64)"
-          >
-            ${checkboxIcons}Sus
-            <span class="innertoggle sustain_on" data-action="${index}:sustain_on">ON</span>
-          </div>
-          <div
-            class="check cc"
-            data-action="${index}:cc"
-            title="Transmit control change messages"
-          >
-            ${checkboxIcons}CC
-          </div>
-          <div
-            class="check at2mod"
-            data-action="${index}:at2mod"
-            title="Convert channel pressure (aftertouch) to mod (CC 1)"
-          >
-            ${checkboxIcons}AT&gt;MW
-          </div>
-          <div
-            class="check fixedvel"
-            data-action="${index}:fixedvel"
-            title="Use fixed velocity"
-          >
-            ${checkboxIcons}FVel
-            <input type="number" id="fixedvel${index}" onclick="event.stopPropagation();" data-change="${index}:fixedvel_value" value="127" min="1" max="127"/>
-          </div>
-          <div class="check scale_velocity"
-            data-action="${index}:scale_velocity"
-            title="Scale velocity %"
-          >
-            ${checkboxIcons}Vel%
-            <input type="number" id="scalevel${index}" onclick="event.stopPropagation();" data-change="${index}:scale_velocity_value" value="100" min="1" max="200"/>
-          </div>
-          <div
-            class="check programchange"
-            data-action="${index}:programchange"
-            title="Transmit program change messages"
-          >
-            ${checkboxIcons}Prg
-            <input
-              title="Send a program change message"
-              class="programnumber"
-              type="number"
-              value=""
-              min="1" max="128"
-              data-change="${index}:changeprogram"
-              onclick="event.stopPropagation();"
-            />
+        <div class="action-hover openpopupsettings" title="Filters and settings">
+           <span class="material-icons">expand_more</span>
+          <div class="popupsettings">
+            <div
+              class="check pitchbend"
+              data-action="${index}:pitchbend"
+              title="Transmit pitch bend messages"
+            >
+              ${checkboxIcons}PB
+            </div>
+            <div
+              class="check mod"
+              data-action="${index}:mod"
+              title="Transmit mod wheel messages (CC 1)"
+            >
+              ${checkboxIcons}MW
+            </div>
+            <div
+              class="check sustain"
+              data-action="${index}:sustain"
+              title="Transmit sustain pedal messages (CC 64)"
+            >
+              ${checkboxIcons}Sus
+              <span class="innertoggle sustain_on" data-action="${index}:sustain_on">ON</span>
+            </div>
+            <div
+              class="check cc"
+              data-action="${index}:cc"
+              title="Transmit control change messages"
+            >
+              ${checkboxIcons}CC
+            </div>
+            <div
+              class="check at2mod"
+              data-action="${index}:at2mod"
+              title="Convert channel pressure (aftertouch) to mod (CC 1)"
+            >
+              ${checkboxIcons}AT&gt;MW
+            </div>
+            <div
+              class="check fixedvel"
+              data-action="${index}:fixedvel"
+              title="Use fixed velocity"
+            >
+              ${checkboxIcons}FVel
+              <input type="number" id="fixedvel${index}" onclick="event.stopPropagation();" data-change="${index}:fixedvel_value" value="127" min="1" max="127"/>
+            </div>
+            <div class="check scale_velocity"
+              data-action="${index}:scale_velocity"
+              title="Scale velocity %"
+            >
+              ${checkboxIcons}Vel%
+              <input type="number" id="scalevel${index}" onclick="event.stopPropagation();" data-change="${index}:scale_velocity_value" value="100" min="1" max="200"/>
+            </div>
+            <div
+              class="check programchange"
+              data-action="${index}:programchange"
+              title="Transmit program change messages"
+            >
+              ${checkboxIcons}Prg
+              <input
+                title="Send a program change message"
+                class="programnumber"
+                type="number"
+                value=""
+                min="1" max="128"
+                data-change="${index}:changeprogram"
+                onclick="event.stopPropagation();"
+              />
+            </div>
           </div>
         </div>
       </div>
