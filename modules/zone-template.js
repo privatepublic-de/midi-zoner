@@ -123,16 +123,11 @@ module.exports = {
   },
   getHTML: function (/** @type {Zone} */ zone, zoneindex) {
     const index = zoneindex;
-    let channelselectors = `<select class="channel" data-change="${index}:channel">`;
+    let channelselector = `<select class="channel" data-change="${index}:channel">`;
     for (let i = 0; i < 16; i++) {
-      channelselectors += `<option value="${i}">Ch ${i + 1}</option>`;
-      // const label = i + 1;
-      // const title = `Select MIDI channel ${i + 1}`;
-      // channelselectors += `<div class="ch mch ${
-      //   zone.channel == i ? 'selected' : ''
-      // } no${i}" data-action="${index}:ch:${i}" title="${title}">${label}</div>`;
+      channelselector += `<option value="${i}">Ch ${i + 1}</option>`;
     }
-    channelselectors += '</select>';
+    channelselector += '</select>';
 
     let sequencerGrid = '';
     for (let i = 0; i < Zone.Sequence.MAX_STEPS; i++) {
@@ -182,7 +177,7 @@ module.exports = {
           ><i class="material-icons sel">watch_later</i
           ><i class="material-icons unsel">query_builder</i>
         </div>
-        ${channelselectors}
+        ${channelselector}
         <div class="zonetools">
             <div class="randzonecolor rtool" data-action="${index}:changeColor" title="Change color">
               <label><i class="material-icons">palette</i></label>

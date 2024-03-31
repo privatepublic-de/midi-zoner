@@ -588,29 +588,13 @@ option {
   flex-wrap: wrap;
 }
 
-.hidden *,
-.mch {
+.hidden * {
   opacity: 0;
   transition: opacity 2s, width 200ms linear, margin 200ms linear;
   pointer-events: none;
 }
 
-.mch {
-  overflow: hidden;
-  width: 0;
-  margin: 0;
-}
-
-.zone:hover .mch,
-.mch.selected,
-.mch.sendClock {
-  width: 24px;
-  margin-left: 8px;
-}
-
-.zone:not(.disabled):hover .hidden *,
-.zone:hover .mch,
-.mch.selected {
+.zone:not(.disabled):hover .hidden * {
   opacity: 1;
   transition: opacity 200ms, width 100ms linear, margin 100ms linear;
   pointer-events: all;
@@ -724,30 +708,8 @@ option {
   min-width: 0;
 }
 
-.check .material-icons {
-  /* margin-right: 4px; */
-}
-
-.check.mch {
-  min-width: 0;
-}
-
 .patgen {
   margin-left: 4px;
-}
-
-.check.mch {
-  background-color: transparent !important;
-}
-
-.check.selected {
-  /* background-color: var(--brighter-3);
-  color: var(--fg-channel-select);
-  border-color: transparent; */
-}
-
-.check.selected .material-icons {
-  /* color: var(--darker-3); */
 }
 
 .check.mini {

@@ -5,10 +5,10 @@ const DIV_TICKS = [
   192, 144, 96, 72, 64, 48, 36, 32, 24, 18, 16, 12, 9, 8, 6, 4, 3, 2
 ]; // 24ppq
 const COLOR_PALETTE = [
-  DOM.rgb2hsl(DOM.hexToRgb('2A4F5F')),
+  DOM.rgb2hsl(DOM.hexToRgb('427d96')),
   DOM.rgb2hsl(DOM.hexToRgb('2A9D8F')),
   DOM.rgb2hsl(DOM.hexToRgb('E9C46A')),
-  DOM.rgb2hsl(DOM.hexToRgb('F4A261')),
+  DOM.rgb2hsl(DOM.hexToRgb('e2965a')),
   DOM.rgb2hsl(DOM.hexToRgb('E76F51'))
 ];
 
