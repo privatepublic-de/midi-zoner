@@ -1580,16 +1580,16 @@ li {
 
 .seqprogress {
   position: absolute;
-  top: 57px;
+  top: 32px;
   left: 9px;
   height: 4px;
-  width: 9.15%;
+  width: calc(100% - 18px);
   padding: 0;
   border: none;
 }
 
 .seqprogress::-webkit-progress-bar {
-  background-color: var(--darker-1);
+  background-color: transparent;
 }
 .seqprogress::-webkit-progress-value {
   background-color: var(--brighter-2);
