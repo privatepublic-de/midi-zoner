@@ -481,6 +481,7 @@ option {
 
 .outselection {
   position: relative;
+  margin-left: 13px;
 }
 
 .channels input.output-config-name {
@@ -555,10 +556,6 @@ option {
 .check.arp_hold.selected {
   background-color: var(--red-highlight);
   color: var(--brighter-3);
-}
-
-.ch.showarp {
-  margin-right: 13px;
 }
 
 .ch.solo {
@@ -707,7 +704,8 @@ option {
   min-width: 55px;
 }
 
-.action {
+.action,
+.action-hover {
   min-width: 0;
 }
 
@@ -1004,7 +1002,7 @@ input[type='range'] {
   width: 170px;
   padding: 8px;
   background-color: var(--bg-color-alternative2);
-  box-shadow: 0 0 8px var(--shadow-topbar-button);
+  box-shadow: 0 0 3px var(--shadow-topbar-button);
   top: 0;
   right: 0;
   text-align: center;
@@ -1079,12 +1077,12 @@ li {
 
 .ccpots {
   display: none;
-  margin-top: 8px;
   padding: 8px 0 0 0;
   font-size: 10px;
   flex-wrap: wrap;
   --ccpot-width: 56px;
   width: calc((var(--ccpot-width) + 5px) * 8);
+  background-color: var(--bg-color-alternative);
 }
 
 .show-cc .ccpots {
@@ -1170,8 +1168,8 @@ li {
   display: flex;
   flex-direction: column;
   align-items: center;
-  background-image: linear-gradient(45deg, var(--darker-1), transparent);
-  border: 1px solid var(--brighter-0);
+  background-image: linear-gradient(135deg, var(--brighter-1), transparent);
+  /* border: 1px solid var(--brighter-1); */
   justify-content: space-between;
 }
 
@@ -1195,7 +1193,7 @@ li {
   align-content: center;
   width: 100%;
   /* border-top: 1px solid var(--darker-1); */
-  color: var(--brighter-2);
+  color: var(--text-base-color);
   transition: opacity 500ms;
 }
 
@@ -1207,6 +1205,7 @@ li {
   background-color: transparent;
   box-shadow: none;
   border: none;
+  color: var(--text-base-color);
 }
 
 .ccpot svg {
@@ -1243,13 +1242,13 @@ li {
   overflow: hidden;
   text-align: center;
   font-size: 9px;
-  color: var(--brighter-3);
+  color: var(--text-base-color);
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
 .ccpot input.cclabel {
-  color: inherit;
+  color: var(--text-base-color);
 }
 
 .ccpot .value {
@@ -1293,7 +1292,7 @@ li {
 .ccpotttools {
   height: 64px;
   width: var(--ccpot-width);
-  color: var(--brighter-2);
+  color: var(--text-base-color);
   font-size: 9px;
   text-align: center;
   display: flex;
@@ -1505,7 +1504,7 @@ li {
   left: 0;
   z-index: 1;
   background-color: var(--bg-color-alternative2);
-  box-shadow: 0 0 10px var(--shadow-topbar-button);
+  box-shadow: 0 0 3px var(--shadow-topbar-button);
   display: none;
 }
 
@@ -1717,5 +1716,5 @@ body:not(.running) .seqprogress {
   background-color: var(--bg-color-alternative2);
   display: none;
   /* border-radius: 6px; */
-  box-shadow: 0 2px 8px var(--shadow-topbar);
+  box-shadow: 0 2px 3px var(--shadow-topbar);
 }

@@ -14,31 +14,31 @@ for (let cond of Zone.Sequence.CYCLE_CONDITIONS) {
 cycleConditions += '</optgroup>';
 
 const noteLengthOptions = /*html*/ `<optgroup><option>2/1</option>
-      <option>1/1.</option>
+      <option>1/1•</option>
       <option>1/1</option>
       </optgroup>
       <optgroup>
-      <option>1/2.</option>
+      <option>1/2•</option>
       <option>1/1t</option>
       <option>1/2</option>
       </optgroup>
       <optgroup>
-      <option>1/4.</option>
+      <option>1/4•</option>
       <option>1/2t</option>
       <option>1/4</option>
       </optgroup>
       <optgroup>
-      <option>1/8.</option>
+      <option>1/8•</option>
       <option>1/4t</option>
       <option>1/8</option>
       </optgroup>
       <optgroup>
-      <option>1/16.</option>
+      <option>1/16•</option>
       <option>1/8t</option>
       <option>1/16</option>
       </optgroup>
       <optgroup>
-      <option>1/32.</option>
+      <option>1/32•</option>
       <option>1/32</option>
       <option>1/16t</option>
       </optgroup>
@@ -155,11 +155,11 @@ module.exports = {
           <i class="material-icons">view_comfy</i>
           <progress max="100" value="0" class="seqprogress"></progress>
         </div>
-        <div class="ch state showccs" data-action="${index}:toggle_show_cc" title="Show CC controllers">
-          CC
-        </div>
         <div class="ch showarp arp_enabled" data-action="${index}:arp_enabled" title="Enable arpeggiator">
           Arp
+        </div>
+        <div class="ch state showccs" data-action="${index}:toggle_show_cc" title="Show CC controllers">
+          CC
         </div>
         <div class="outselection">
           <select class="outport" data-change="${index}:outport" title="Select output port or preset">
@@ -270,10 +270,10 @@ module.exports = {
           <div class="action" title="Move whole sequence 1 step right" data-action="${index}:seq_move:1"><i class="material-icons">chevron_right</i></div>
           <div class="drop-down" title="Transpose whole sequence">
             <select class="seq_division" data-change="${index}:seq_transpose">
-              <option>Transp.</option>
+              <option>Transp</option>
               <optgroup>
-              <option value="-12">oct down</option>
-              <option value="12">oct up</option>
+              <option value="-12">-12</option>
+              <option value="12">+12</option>
               </optgroup><optgroup>
               <option value="-11">-11</option>
               <option value="-10">-10</option>
@@ -287,17 +287,17 @@ module.exports = {
               <option value="-2">-2</option>
               <option value="-1">-1</option>
               </optgroup><optgroup>
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-              <option value="4">4</option>
-              <option value="5">5</option>
-              <option value="6">6</option>
-              <option value="7">7</option>
-              <option value="8">8</option>
-              <option value="9">9</option>
-              <option value="10">10</option>
-              <option value="11">11</option>
+              <option value="1">+1</option>
+              <option value="2">+2</option>
+              <option value="3">+3</option>
+              <option value="4">+4</option>
+              <option value="5">+5</option>
+              <option value="6">+6</option>
+              <option value="7">+7</option>
+              <option value="8">+8</option>
+              <option value="9">+9</option>
+              <option value="10">+10</option>
+              <option value="11">+11</option>
               </optgroup>
             </select>
           </div>

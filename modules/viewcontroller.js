@@ -939,8 +939,8 @@ function updateValuesForZone(index) {
     );
     const rgbZoneAlternative2 = DOM.hslToRgb(
       zone.hue,
-      zone.saturation * 0.2,
-      zone.lightness * 1
+      zone.saturation * 0.7,
+      zone.lightness * 0.8
     );
     zoneElement.style.setProperty(
       '--bg-color-alternative',
