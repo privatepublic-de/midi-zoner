@@ -1700,7 +1700,9 @@ body:not(.running) .seqprogress {
 .action-hover.openpopupsettings {
   background-color: transparent;
 }
-
+.zone:not(.disabled) .openpopupsettings:hover {
+  background-color: var(--bg-color-alternative2);
+}
 .zone:not(.disabled) .openpopupsettings:hover .popupsettings {
   display: flex;
 }
@@ -1712,7 +1714,7 @@ body:not(.running) .seqprogress {
   top: 100%;
   left: 0;
   right: 0;
-  background-color: var(--bg-color);
+  background-color: var(--bg-color-alternative2);
   display: none;
   /* border-radius: 6px; */
   box-shadow: 0 2px 8px var(--shadow-topbar);
