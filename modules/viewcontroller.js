@@ -937,9 +937,18 @@ function updateValuesForZone(index) {
       zone.saturation,
       zone.lightness * 1.01
     );
+    const rgbZoneAlternative2 = DOM.hslToRgb(
+      zone.hue,
+      zone.saturation * 0.2,
+      zone.lightness * 1
+    );
     zoneElement.style.setProperty(
       '--bg-color-alternative',
       `rgba(${rgbZoneAlternative[0]},${rgbZoneAlternative[1]},${rgbZoneAlternative[2]},1)`
+    );
+    zoneElement.style.setProperty(
+      '--bg-color-alternative2',
+      `rgba(${rgbZoneAlternative2[0]},${rgbZoneAlternative2[1]},${rgbZoneAlternative2[2]},1)`
     );
     zoneElement.style.setProperty(
       '--zone-color',

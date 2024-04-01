@@ -1003,13 +1003,13 @@ input[type='range'] {
   display: none;
   width: 170px;
   padding: 8px;
-  background-color: var(--bg-color);
+  background-color: var(--bg-color-alternative2);
   box-shadow: 0 0 8px var(--shadow-topbar-button);
-  bottom: 0;
+  top: 0;
   right: 0;
   text-align: center;
   line-height: 1.2em;
-  transition: opacity 667ms;
+  z-index: 1;
 }
 
 .ccpotttools label {
@@ -1504,14 +1504,14 @@ li {
   position: absolute;
   left: 0;
   z-index: 1;
-  background-color: var(--bg-color-alternative);
+  background-color: var(--bg-color-alternative2);
   box-shadow: 0 0 10px var(--shadow-topbar-button);
   display: none;
 }
 
 .seq .step-info .note {
-  background-color: var(--brighter-1);
-  color: var(--brighter-4);
+  background-color: var(--bg-color);
+  color: var(--text-base-color);
   padding: 0 4px;
   box-shadow: 0 0 2px var(--darker-1);
 }
@@ -1667,8 +1667,8 @@ body:not(.running) .seqprogress {
   left: 50%;
   top: 50px;
   margin-left: -130px;
-  background: var(--brighter-3);
-  color: var(--darker-4);
+  background: var(--bg-loadsave);
+  color: var(--text-base-color);
   font-size: 12px;
   box-shadow: 1px 1px 3px var(--shadow-zone);
   display: none;
@@ -1676,11 +1676,11 @@ body:not(.running) .seqprogress {
 }
 
 #toast.fade {
-  animation: 2s 1 toastfade;
+  animation: 2s 1 ease-in toastfade;
 }
 
 #toast.fadelong {
-  animation: 5s 1 toastfadelong;
+  animation: 5s 1 ease-in toastfade;
 }
 
 #toast .toastinner {
@@ -1690,21 +1690,6 @@ body:not(.running) .seqprogress {
 
 @keyframes toastfade {
   0% {
-    opacity: 1;
-  }
-  25% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
-@keyframes toastfadelong {
-  0% {
-    opacity: 1;
-  }
-  50% {
     opacity: 1;
   }
   100% {
