@@ -50,7 +50,6 @@
   --bg-loadsave-item: #555;
   --bg-select-window: #111;
   --shadow-zone: #111;
-  --fg-channel-select: #000;
 
   --bg-zone-disabled: rgba(255, 255, 255, 0.07);
 
@@ -77,7 +76,7 @@ body.altTheme {
   --brighter-3: rgba(255, 255, 255, 0.75);
   --brighter-4: rgba(255, 255, 255, 1);
 
-  --darker-1: rgba(0, 0, 0, 0.2);
+  --darker-1: rgba(0, 0, 0, 0.15);
   --darker-2: rgba(0, 0, 0, 0.67);
   --darker-3: rgba(0, 0, 0, 0.75);
   --darker-4: rgba(0, 0, 0, 1);
@@ -525,10 +524,7 @@ option {
 .ch.selected {
   border-color: transparent;
   background-color: var(--brighter-2);
-}
-
-.ch.selected {
-  color: var(--fg-channel-select);
+  color: var(--text-base-color);
 }
 
 .ch.enabled.selected {
@@ -1504,7 +1500,7 @@ li {
 
 .seq .step-info {
   padding: 4px;
-  color: var(--brighter-3);
+  color: var(--text-base-color);
   position: absolute;
   left: 0;
   z-index: 1;

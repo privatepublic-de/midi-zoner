@@ -158,7 +158,7 @@ module.exports = {
         <div class="ch state showccs" data-action="${index}:toggle_show_cc" title="Show CC controllers">
           CC
         </div>
-        <div class="ch state showarp arp_enabled" data-action="${index}:arp_enabled" title="Enable arpeggiator">
+        <div class="ch showarp arp_enabled" data-action="${index}:arp_enabled" title="Enable arpeggiator">
           Arp
         </div>
         <div class="outselection">
