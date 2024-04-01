@@ -30,6 +30,7 @@
 }
 
 :root {
+  --text-base-color: #ffffff;
   --bg-window: #272422;
   --fg-window: #ddd;
   --scrollbar: #383838;
@@ -518,7 +519,7 @@ option {
 }
 
 .sendClock.selected {
-  color: var(--brighter-2);
+  color: var(--text-base-color);
 }
 .ch.enabled.selected,
 .ch.selected {
@@ -531,7 +532,7 @@ option {
 }
 
 .ch.enabled.selected {
-  color: var(--brighter-4);
+  color: var(--text-base-color);
 }
 
 .ch.enabled:not(.selected) {
@@ -579,12 +580,12 @@ option {
   justify-content: flex-start;
   flex-wrap: wrap;
   align-items: center;
-  color: var(--brighter-3);
+  color: var(--text-base-color);
   font-size: 12px;
 }
 
 .arp-settings + .arp-settings {
-  margin-top: -5px;
+  margin-top: -9px;
 }
 
 .hidden {
@@ -633,7 +634,7 @@ option {
 
 .rtool {
   font-size: 14px;
-  color: var(--brighter-2);
+  color: var(--text-base-color);
   margin-left: 6px;
   text-align: center;
 }
@@ -814,7 +815,7 @@ input[type='range'] {
 .zone input {
   border: none;
   background-color: var(--darker-1);
-  color: var(--brighter-3);
+  color: var(--text-base-color);
   font-size: 12px;
   padding: 0;
   text-align: center;
