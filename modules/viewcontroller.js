@@ -930,7 +930,7 @@ function updateValuesForZone(index) {
     const rgbZone = DOM.hslToRgb(
       zone.hue,
       zone.saturation,
-      zone.lightness * (zones.alternativeTheme ? 0.9 : 1)
+      zone.lightness * 0.9
     );
     const rgbZoneAlternative = DOM.hslToRgb(
       zone.hue,

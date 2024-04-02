@@ -53,23 +53,6 @@
 
   --bg-zone-disabled: rgba(255, 255, 255, 0.07);
 
-  --brighter-0: rgba(255, 255, 255, 0.07);
-  --brighter-1: rgba(255, 255, 255, 0.1);
-  --brighter-2: rgba(255, 255, 255, 0.3);
-  --brighter-3: rgba(255, 255, 255, 0.5);
-  --brighter-4: rgba(255, 255, 255, 0.7);
-
-  --darker-1: rgba(0, 0, 0, 0.1);
-  --darker-2: rgba(0, 0, 0, 0.3);
-  --darker-3: rgba(0, 0, 0, 0.5);
-  --darker-4: rgba(0, 0, 0, 0.7);
-
-  --red-highlight: rgba(196, 0, 0, 0.4);
-  --record-highlight: rgba(255, 0, 0, 0.8);
-  --green-highlight: rgba(0, 196, 0, 1);
-}
-
-body.altTheme {
   --brighter-0: rgba(255, 255, 255, 0.125);
   --brighter-1: rgba(255, 255, 255, 0.25);
   --brighter-2: rgba(255, 255, 255, 0.5);
@@ -81,7 +64,9 @@ body.altTheme {
   --darker-3: rgba(0, 0, 0, 0.75);
   --darker-4: rgba(0, 0, 0, 1);
 
-  --fg-topbar-button: var(--brighter-3);
+  --red-highlight: rgba(196, 0, 0, 0.4);
+  --record-highlight: rgba(255, 0, 0, 0.8);
+  --green-highlight: rgba(0, 196, 0, 1);
 }
 
 html {

@@ -10,7 +10,6 @@ const zones = {
   inChannel: 0,
   clockOutputPorts: {},
   selectedInputPorts: {},
-  alternativeTheme: false,
   tempo: 120,
   sendInternalClockIfPlaying: false,
   outputConfigNames: {}
@@ -45,7 +44,6 @@ function loadZones(midi) {
   if (zonesJson) {
     applyStoredZones(JSON.parse(zonesJson), midi);
   }
-  updateThemeDisplay();
 }
 
 function applyStoredZones(storedZones, midi, append) {
@@ -214,14 +212,6 @@ function openSaveDialog() {
 function closeLoadSaveDialog() {
   DOM.hide('#loadsave');
   isLoadSaveDialogOpenend = false;
-}
-
-function updateThemeDisplay() {
-  if (zones.alternativeTheme) {
-    DOM.addClass(document.body, 'altTheme');
-  } else {
-    DOM.removeClass(document.body, 'altTheme');
-  }
 }
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -529,12 +519,6 @@ document.addEventListener('DOMContentLoaded', function () {
           });
           view.renderZones();
           saveZones();
-        });
-        DOM.element('#toggleTheme').addEventListener('click', () => {
-          zones.alternativeTheme = !zones.alternativeTheme;
-          saveZones();
-          updateThemeDisplay();
-          view.updateValuesForAllZones();
         });
         let clockRunning = false;
         startClockButton.addEventListener('click', () => {
