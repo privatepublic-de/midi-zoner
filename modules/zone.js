@@ -4,12 +4,13 @@ const MIDI = require('./midi');
 const DIV_TICKS = [
   192, 144, 96, 72, 64, 48, 36, 32, 24, 18, 16, 12, 9, 8, 6, 4, 3, 2
 ]; // 24ppq
+const COLOR_PALETTE_RGB = ['2A4F5F', '2A9D8F', 'E9C46A', 'F4A261', 'E76F51'];
 const COLOR_PALETTE = [
-  DOM.rgb2hsl(DOM.hexToRgb('2A4F5F')),
-  DOM.rgb2hsl(DOM.hexToRgb('2A9D8F')),
-  DOM.rgb2hsl(DOM.hexToRgb('E9C46A')),
-  DOM.rgb2hsl(DOM.hexToRgb('F4A261')),
-  DOM.rgb2hsl(DOM.hexToRgb('E76F51'))
+  DOM.rgb2hsl(DOM.hexToRgb(COLOR_PALETTE_RGB[0])),
+  DOM.rgb2hsl(DOM.hexToRgb(COLOR_PALETTE_RGB[1])),
+  DOM.rgb2hsl(DOM.hexToRgb(COLOR_PALETTE_RGB[2])),
+  DOM.rgb2hsl(DOM.hexToRgb(COLOR_PALETTE_RGB[3])),
+  DOM.rgb2hsl(DOM.hexToRgb(COLOR_PALETTE_RGB[4]))
 ];
 
 const note_fill = 'rgba(255,255,255,.6)';
@@ -534,23 +535,33 @@ class Zone {
     if (this.patternCanvas) {
       /** @type {CanvasRenderingContext2D} */
       const ctx = this.patternCanvas.getContext('2d');
+      const rgbHex = '#' + COLOR_PALETTE_RGB[this.colorIndex];
       ctx.alpha = false;
       const cwidth = this.patternCanvas.width;
       const plen = this.arp_pattern.length;
       const width = cwidth / plen;
       ctx.clearRect(0, 0, cwidth, this.patternCanvas.height);
-      const currentColor = 'rgba(0, 0, 0, 0.20)';
+      const currentColor = rgbHex; //'rgba(0, 0, 0, 0.33)';
       ctx.lineWidth = 2;
       for (let i = 0; i < plen; i++) {
         const isCurrent = i === this.arp.patternPos;
         if (this.arp_pattern[i]) {
-          const color = isCurrent ? '#fff' : 'rgba(255, 255, 255, 0.34)';
+          const color = isCurrent ? '#fff' : 'rgba(255, 255, 255, 0.25)';
           ctx.fillStyle = color;
           ctx.fillRect(0.5 + width * i, 0.5, width - 0.5, 14.5);
         }
         if (isCurrent) {
-          ctx.fillStyle = currentColor;
-          ctx.fillRect(width * i + width * 0.33, 6, width * 0.33, 4);
+          ctx.fillStyle = this.arp_pattern[i]
+            ? currentColor
+            : 'rgba(0,0,0,0.2)';
+          ctx.beginPath();
+          ctx.moveTo(width * i, 16);
+          ctx.lineTo(width * i + width / 2, 10);
+          ctx.lineTo(width * i + width, 16);
+          ctx.lineTo(width * i, 16);
+          ctx.closePath();
+          ctx.fill();
+          // ctx.fillRect(width * i + width * 0.33, 6, width * 0.33, 4);
         }
       }
       ctx.beginPath();
