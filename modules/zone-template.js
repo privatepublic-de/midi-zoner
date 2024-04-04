@@ -24,52 +24,41 @@ const interpolateTemplate = function (templateString, templateVars) {
   return func(...Object.values(templateVars));
 };
 
-let cycleConditions = '<optgroup>';
-let lastCycleCond = 2;
-for (let cond of Zone.Sequence.CYCLE_CONDITIONS) {
-  if (cond[0] != lastCycleCond) {
-    cycleConditions += '</optgroup><optgroup>';
-    lastCycleCond = cond[0];
+const cycleConditions = (function () {
+  let s = '<optgroup>';
+  let lastCycleCond = 2;
+  for (let cond of Zone.Sequence.CYCLE_CONDITIONS) {
+    if (cond[0] != lastCycleCond) {
+      s += '</optgroup><optgroup>';
+      lastCycleCond = cond[0];
+    }
+    s += `<option>${cond[1]} : ${cond[0]}</option>`;
   }
-  cycleConditions += `<option>${cond[1]} : ${cond[0]}</option>`;
-}
-cycleConditions += '</optgroup>';
+  s += '</optgroup>';
+  return s;
+})();
 
-const noteLengthOptions = /*html*/ `<optgroup><option>2/1</option>
-      <option>1/1•</option>
-      <option>1/1</option>
-      </optgroup>
-      <optgroup>
-      <option>1/2•</option>
-      <option>1/1t</option>
-      <option>1/2</option>
-      </optgroup>
-      <optgroup>
-      <option>1/4•</option>
-      <option>1/2t</option>
-      <option>1/4</option>
-      </optgroup>
-      <optgroup>
-      <option>1/8•</option>
-      <option>1/4t</option>
-      <option>1/8</option>
-      </optgroup>
-      <optgroup>
-      <option>1/16•</option>
-      <option>1/8t</option>
-      <option>1/16</option>
-      </optgroup>
-      <optgroup>
-      <option>1/32•</option>
-      <option>1/32</option>
-      <option>1/16t</option>
-      </optgroup>
-      `;
+const noteLengthOptions = (function () {
+  let s = '';
+  [
+    ['2/1', '1/1•', '1/1'],
+    ['1/2•', '1/1t', '1/2'],
+    ['1/4•', '1/2t', '1/4'],
+    ['1/8•', '1/4t', '1/8'],
+    ['1/16•', '1/8t', '1/16'],
+    ['1/32•', '1/32', '1/16t']
+  ].forEach((group) => {
+    s += '<optgroup>';
+    group.forEach((opt) => (s += '<option>' + opt + '</option>'));
+    s += '</optgroup>';
+  });
+  return s;
+})();
 
 const octavemarkers = '<span class="oct"></span>'.repeat(10);
 
-const checkboxIcons = /*html*/ `<span class="material-icons sel">check_box</span
-      ><span class="material-icons unsel">check_box_outline_blank</span> `;
+const checkboxIcons =
+  '<span class="material-icons sel">check_box</span><span class="material-icons unsel">check_box_outline_blank</span>';
 
 module.exports = {
   getControllerHTML: function (/** @type {Zone} */ zone, zoneindex) {
