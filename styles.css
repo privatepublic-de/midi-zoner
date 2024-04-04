@@ -975,7 +975,7 @@ input[type='range'] {
 .pattern {
   position: relative;
   display: inline-block;
-  height: 18px;
+  /* height: 18px; */
   vertical-align: middle;
   cursor: pointer;
 }

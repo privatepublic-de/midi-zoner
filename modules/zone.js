@@ -534,29 +534,29 @@ class Zone {
     if (this.patternCanvas) {
       /** @type {CanvasRenderingContext2D} */
       const ctx = this.patternCanvas.getContext('2d');
+      ctx.alpha = false;
       const cwidth = this.patternCanvas.width;
       const plen = this.arp_pattern.length;
-      const width = (cwidth - 2) / plen;
+      const width = cwidth / plen;
       ctx.clearRect(0, 0, cwidth, this.patternCanvas.height);
-      ctx.beginPath();
-
-      ctx.strokeStyle = '#fff';
-      ctx.rect(0, 0, cwidth, this.patternCanvas.height);
-      ctx.stroke();
-      ctx.lineWidth = 1;
+      const currentColor = 'rgba(0, 0, 0, 0.20)';
+      ctx.lineWidth = 2;
       for (let i = 0; i < plen; i++) {
         const isCurrent = i === this.arp.patternPos;
-        const color = isCurrent ? '#fff' : 'rgba(255, 255, 255, 0.34)';
-        ctx.fillStyle = color;
         if (this.arp_pattern[i]) {
-          ctx.fillRect(0.5 + width * i, 1, width - 0.5, 14);
-        } else {
-          if (isCurrent) {
-            ctx.rect(0.5 + width * i, 1, width - 0.5, 14);
-            ctx.stroke();
-          }
+          const color = isCurrent ? '#fff' : 'rgba(255, 255, 255, 0.34)';
+          ctx.fillStyle = color;
+          ctx.fillRect(0.5 + width * i, 0.5, width - 0.5, 14.5);
+        }
+        if (isCurrent) {
+          ctx.fillStyle = currentColor;
+          ctx.fillRect(width * i + width * 0.33, 6, width * 0.33, 4);
         }
       }
+      ctx.beginPath();
+      ctx.strokeStyle = '#ffffff';
+      ctx.rect(0, 0, cwidth, this.patternCanvas.height);
+      ctx.stroke();
     }
   }
 
