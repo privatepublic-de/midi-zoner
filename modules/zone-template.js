@@ -3,12 +3,12 @@ const fs = require('fs');
 const path = require('path');
 
 const templateZone = fs.readFileSync(
-  path.join(__dirname, '../res/zone.template.html'),
+  path.join(__dirname, '../res/template-zone.html'),
   'utf8'
 );
 
 const templateController = fs.readFileSync(
-  path.join(__dirname, '../res/controller.template.html'),
+  path.join(__dirname, '../res/template-controller.html'),
   'utf8'
 );
 
