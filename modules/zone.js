@@ -535,33 +535,24 @@ class Zone {
     if (this.patternCanvas) {
       /** @type {CanvasRenderingContext2D} */
       const ctx = this.patternCanvas.getContext('2d');
-      const rgbHex = '#' + COLOR_PALETTE_RGB[this.colorIndex];
-      ctx.alpha = false;
       const cwidth = this.patternCanvas.width;
       const plen = this.arp_pattern.length;
       const width = cwidth / plen;
+      const colorEnabled = 'rgba(255, 255, 255, 0.25)';
+      const colorCurrentSteo = '#ffffff';
       ctx.clearRect(0, 0, cwidth, this.patternCanvas.height);
-      const currentColor = rgbHex; //'rgba(0, 0, 0, 0.33)';
       ctx.lineWidth = 2;
       for (let i = 0; i < plen; i++) {
         const isCurrent = i === this.arp.patternPos;
         if (this.arp_pattern[i]) {
-          const color = isCurrent ? '#fff' : 'rgba(255, 255, 255, 0.25)';
-          ctx.fillStyle = color;
+          ctx.fillStyle = colorEnabled;
           ctx.fillRect(0.5 + width * i, 0.5, width - 0.5, 14.5);
         }
         if (isCurrent) {
-          ctx.fillStyle = this.arp_pattern[i]
-            ? currentColor
-            : 'rgba(0,0,0,0.2)';
+          ctx.fillStyle = colorCurrentSteo;
           ctx.beginPath();
-          ctx.moveTo(width * i, 16);
-          ctx.lineTo(width * i + width / 2, 10);
-          ctx.lineTo(width * i + width, 16);
-          ctx.lineTo(width * i, 16);
-          ctx.closePath();
+          ctx.arc(width * i + width / 2, 8, width / 4, 0, 2 * Math.PI);
           ctx.fill();
-          // ctx.fillRect(width * i + width * 0.33, 6, width * 0.33, 4);
         }
       }
       ctx.beginPath();
