@@ -1024,19 +1024,18 @@ function updateValuesForZone(index) {
         if (zone.sequence.stepAdvance) {
           DOM.addClass(`#zone${index} .seq-step-advance`, 'selected');
         }
+        function setPercent(className, pcnt) {
+          DOM.element(`#zone${index} .percent.${className}`).value = pcnt;
+          DOM.element(
+            `#zone${index} output[for="${className}${index}"]`
+          ).value = pcnt + '%';
+        }
         let step = zone.sequence.steps[zone.sequence.selectedStepNumber];
         if (step && step.length > 0) {
           let pcnt = parseInt(step.probability * 100);
-          DOM.element(`#zone${index} .percent.seq_step_probability`).value =
-            pcnt;
-          DOM.element(
-            `#zone${index} output[for="seq_step_probability${index}"]`
-          ).value = pcnt + '%';
+          setPercent('seq_step_probability', pcnt);
           pcnt = parseInt(step.gateLength * 100);
-          DOM.element(`#zone${index} .percent.seq_gatelength`).value = pcnt;
-          DOM.element(
-            `#zone${index} output[for="seq_gatelength${index}"]`
-          ).value = pcnt + '%';
+          setPercent('seq_gatelength', pcnt);
 
           DOM.element(`#zone${index} .seq_step_condition`).selectedIndex =
             zone.sequence.steps[zone.sequence.selectedStepNumber].condition;
@@ -1045,10 +1044,8 @@ function updateValuesForZone(index) {
         } else {
           DOM.element(`#zone${index} .seq_step_length`).value = 1;
           DOM.element(`#zone${index} .seq_step_condition`).selectedIndex = 0;
-          DOM.element(
-            // TODO generalize!
-            `#zone${index} .percent.seq_step_probability`
-          ).value = 100;
+          setPercent('seq_step_probability', 100);
+          setPercent('seq_gatelength', 100);
         }
         zone.sequence.updateRecordingState();
       } else {
