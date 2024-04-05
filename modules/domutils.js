@@ -167,15 +167,22 @@ module.exports = {
   /* TODO Document */
   clientOffsets: function (el) {
     const rect = el.getBoundingClientRect();
-    // let trav = el;
-    // let left = 0;
-    // let top = 0;
-    // do {
-    //   left += trav.offsetLeft;
-    //   top += trav.offsetTop;
-    //   trav = trav.offsetParent;
-    // } while (trav.offsetParent);
     return { offsetTop: rect.y, offsetLeft: rect.x };
+  },
+  /* TODO Document */
+  scaledCanvasContext: function (canvas) {
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio;
+    const rect = canvas.getBoundingClientRect();
+    // Set the "actual" size of the canvas
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    // Scale the context to ensure correct drawing operations
+    ctx.scale(dpr, dpr);
+    // Set the "drawn" size of the canvas
+    // canvas.style.width = `${rect.width}px`;
+    // canvas.style.height = `${rect.height}px`;
+    return { context: ctx, rect: rect };
   },
   /**
    * Convert hsl values (0-1) to rgb.

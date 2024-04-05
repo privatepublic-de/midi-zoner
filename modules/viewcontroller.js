@@ -175,6 +175,7 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
         zone.sequence.active = false;
         zone.sequence.selectedStepNumber = -1;
         updateValuesForZone(zoneindex);
+        zone.renderPattern();
       }
       zone.renderNotes();
     },

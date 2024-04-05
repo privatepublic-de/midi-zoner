@@ -468,19 +468,15 @@ class Zone {
 
   renderNotes() {
     if (this.canvasElement) {
-      /** @type {CanvasRenderingContext2D} */
-      const ctx = this.canvasElement.getContext('2d');
-      this.canvasElement.width = this.canvasElement.parentElement.offsetWidth;
-      this.canvasElement.width =
-        this.canvasElement.height *
-        (this.canvasElement.clientWidth / this.canvasElement.clientHeight);
-      const cwidth = this.canvasElement.width;
+      const { context, rect } = DOM.scaledCanvasContext(this.canvasElement);
+
+      const cwidth = rect.width;
       const notewidth = cwidth / 127.0 - (cwidth / 127.0) * 0.2;
-      ctx.clearRect(0, 0, cwidth, this.canvasElement.height);
+      context.clearRect(0, 0, cwidth, rect.height);
 
       function drawNote(number, isBlack, fillStyle, fillStyleBlack) {
-        ctx.fillStyle = isBlack ? fillStyleBlack : fillStyle;
-        ctx.fillRect(
+        context.fillStyle = isBlack ? fillStyleBlack : fillStyle;
+        context.fillRect(
           (cwidth * number) / 127,
           isBlack ? note_top_black : note_top,
           notewidth,
@@ -533,32 +529,31 @@ class Zone {
 
   renderPattern() {
     if (this.patternCanvas) {
-      /** @type {CanvasRenderingContext2D} */
-      const ctx = this.patternCanvas.getContext('2d');
-      const cwidth = this.patternCanvas.width;
+      const { context, rect } = DOM.scaledCanvasContext(this.patternCanvas);
+
       const plen = this.arp_pattern.length;
-      const width = cwidth / plen;
+      const width = rect.width / plen;
       const colorEnabled = 'rgba(255, 255, 255, 0.25)';
       const colorCurrentSteo = '#ffffff';
-      ctx.clearRect(0, 0, cwidth, this.patternCanvas.height);
-      ctx.lineWidth = 2;
+      context.clearRect(0, 0, rect.width, rect.height);
+      context.lineWidth = 2;
       for (let i = 0; i < plen; i++) {
         const isCurrent = i === this.arp.patternPos;
         if (this.arp_pattern[i]) {
-          ctx.fillStyle = colorEnabled;
-          ctx.fillRect(0.5 + width * i, 0.5, width - 0.5, 14.5);
+          context.fillStyle = colorEnabled;
+          context.fillRect(0.5 + width * i, 0.5, width - 0.5, 14.5);
         }
         if (isCurrent) {
-          ctx.fillStyle = colorCurrentSteo;
-          ctx.beginPath();
-          ctx.arc(width * i + width / 2, 8, width / 4, 0, 2 * Math.PI);
-          ctx.fill();
+          context.fillStyle = colorCurrentSteo;
+          context.beginPath();
+          context.arc(width * i + width / 2, 8, width / 4, 0, 2 * Math.PI);
+          context.fill();
         }
       }
-      ctx.beginPath();
-      ctx.strokeStyle = '#ffffff';
-      ctx.rect(0, 0, cwidth, this.patternCanvas.height);
-      ctx.stroke();
+      context.beginPath();
+      context.strokeStyle = '#ffffff';
+      context.rect(0, 0, rect.width, rect.height);
+      context.stroke();
     }
   }
 
