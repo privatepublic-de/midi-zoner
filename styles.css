@@ -1482,7 +1482,7 @@ li {
 }
 
 .seq .step-info {
-  padding: 4px;
+  padding: 4px 8px;
   color: var(--text-base-color);
   position: absolute;
   left: 0;
@@ -1490,7 +1490,7 @@ li {
   top: 100%;
   z-index: 1;
   background-color: var(--bg-color-alternative);
-  box-shadow: 0 0 8px var(--shadow-topbar-button);
+  box-shadow: 0 0 12px var(--shadow-topbar-button);
   display: none;
 }
 

@@ -13,10 +13,11 @@ const COLOR_PALETTE = [
   DOM.rgb2hsl(DOM.hexToRgb(COLOR_PALETTE_RGB[4]))
 ];
 
-const note_fill = 'rgba(255,255,255,.6)';
+const note_fill = 'rgba(255,255,255,.67)';
 const note_fill_arp = 'rgba(0,0,0,.2)';
-const note_fill_arp_played = 'rgba(255,255,255,.7)';
-const note_fill_black = 'rgba(255,255,255,.4)';
+const note_fill_arp_black = 'rgba(0,0,0,.33)';
+const note_fill_arp_played = 'rgba(255,255,255,.67)';
+const note_fill_black = 'rgba(0,0,0,.67)';
 const note_top = 8;
 const note_top_black = 4;
 const note_height = 12;
@@ -500,7 +501,7 @@ class Zone {
               number,
               Note.isBlackKey(number),
               note_fill_arp,
-              note_fill_arp
+              note_fill_arp_black
             );
           }
         } else {
@@ -552,7 +553,10 @@ class Zone {
         }
       }
       context.beginPath();
-      context.strokeStyle = '#ffffff';
+      context.strokeStyle = '#' + COLOR_PALETTE_RGB[this.colorIndex];
+      context.rect(0, 0, rect.width, rect.height);
+      context.stroke();
+      context.strokeStyle = 'rgba(255,255,255,.67)';
       context.rect(0, 0, rect.width, rect.height);
       context.stroke();
     }

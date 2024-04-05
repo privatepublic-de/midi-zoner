@@ -385,7 +385,12 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       updateValuesForZone(zoneindex);
     },
     select_step: () => {
-      zone.sequence.selectedStepNumber = parseInt(params[2]);
+      const stepNo = parseInt(params[2]);
+      if (zone.sequence.selectedStepNumber == stepNo) {
+        zone.sequence.selectedStepNumber = -1;
+      } else {
+        zone.sequence.selectedStepNumber = stepNo;
+      }
       updateValuesForZone(zoneindex);
     },
     seq_division: () => {
@@ -554,9 +559,6 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       }
       zone.sequence.steps = newSeq;
       updateValuesForZone(zoneindex);
-      // toast('Sequence moved ' + (direction < 0 ? 'left' : 'right') + '.', {
-      //   triggerElement: element
-      // });
     },
     seq_copy: () => {
       Zone.seqClipboardSequence = JSON.stringify(zone.sequence);
