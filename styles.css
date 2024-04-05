@@ -728,6 +728,23 @@ option {
   background: var(--brighter-1);
 }
 
+.percent-holder {
+  position: relative;
+}
+.percent-holder:hover output {
+  display: block;
+}
+.percent-holder output {
+  display: none;
+  position: absolute;
+  width: 100%;
+  left: 0;
+  top: -6px;
+  font-size: 9px;
+  text-align: center;
+  pointer-events: none;
+}
+
 input[type='range'] {
   -webkit-appearance: none;
 }

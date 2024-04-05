@@ -97,6 +97,14 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
     updateValuesForZone(zoneindex);
   };
   const calcPercentage = () => {
+    const output = element.parentElement.querySelector(
+      `output[for="${element.id}"]`
+    );
+    if (output) {
+      output.value = element.value + '%';
+    }
+    element.title = element.value + '%';
+
     return parseInt(element.value) / 100;
   };
   const applyPercentage = () => {
@@ -925,7 +933,6 @@ function updateValuesForZone(index) {
   const zoneElement = DOM.element(`#zone${index}`);
   if (zoneElement) {
     DOM.removeClass(`#zone${index} *[data-action]`, 'selected');
-    // DOM.addClass(`#zone${index} .no${zone.channel}`, 'selected');
     if (Zone.solocount > 0 && !zone.solo) {
       DOM.addClass(`#zone${index}`, 'soloed-out');
     } else {
@@ -1011,10 +1018,6 @@ function updateValuesForZone(index) {
         DOM.all(`#zone${index} .seq .grid .step`)[
           zone.sequence.selectedStepNumber
         ].classList.add('selected-step');
-
-        // DOM.element(`#zone${index} .step-info`).style.top =
-        //   DOM.element(`#zone${index} .seq .grid`).offsetHeight + 'px';
-
         if (zone.sequence.stepAddNotes) {
           DOM.addClass(`#zone${index} .seq-step-add-notes`, 'selected');
         }
@@ -1026,8 +1029,14 @@ function updateValuesForZone(index) {
           let pcnt = parseInt(step.probability * 100);
           DOM.element(`#zone${index} .percent.seq_step_probability`).value =
             pcnt;
+          DOM.element(
+            `#zone${index} output[for="seq_step_probability${index}"]`
+          ).value = pcnt + '%';
           pcnt = parseInt(step.gateLength * 100);
           DOM.element(`#zone${index} .percent.seq_gatelength`).value = pcnt;
+          DOM.element(
+            `#zone${index} output[for="seq_gatelength${index}"]`
+          ).value = pcnt + '%';
 
           DOM.element(`#zone${index} .seq_step_condition`).selectedIndex =
             zone.sequence.steps[zone.sequence.selectedStepNumber].condition;
@@ -1082,8 +1091,9 @@ function updateValuesForZone(index) {
     });
     ['arp_gatelength', 'arp_probability'].forEach((p) => {
       const pcnt = parseInt(zone[p] * 100);
-      DOM.element(`#zone${index} .percent.${p}`).value = pcnt;
-      // DOM.element(`#zone${index} .percent.${p} .pcnt`).innerHTML = pcnt;
+      const elem = DOM.element(`#zone${index} .percent.${p}`);
+      elem.value = pcnt;
+      elem.parentElement.querySelector('output').value = pcnt + '%';
     });
     if (zone.arp_enabled) {
       DOM.addClass(`#zone${index}`, 'arp-enabled');
@@ -1283,13 +1293,6 @@ function updateOutputPortsForZone(index, outputs) {
     select.value = MIDI.INTERNAL_PORT_ID;
     zones.list[index].outputPortId = MIDI.INTERNAL_PORT_ID;
   }
-  // const nameField = DOM.element(`#zone${index} .output-config-name`);
-  // if (zones.outputConfigNames[zones.list[index].configId]) {
-  //   nameField.value = zones.outputConfigNames[zones.list[index].configId];
-  // } else {
-  //   nameField.value = '';
-  //   nameField.placeholder = select.selectedOptions[0].innerHTML;
-  // }
   updateValuesForAllZones();
 }
 
