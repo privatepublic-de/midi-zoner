@@ -1334,8 +1334,9 @@ li {
 .seq {
   display: none;
   margin: 4px 0;
-  /* border: 1px solid var(--brighter-1); */
+  position: relative;
   background-color: var(--bg-color-alternative);
+  --step-size: 20px;
 }
 
 .disabled .seq {
@@ -1357,7 +1358,6 @@ li {
 .seq .grid {
   position: relative;
   padding: 8px;
-  --step-size: 20px;
 }
 
 .step-container {
@@ -1434,7 +1434,6 @@ li {
   transition: background-color 200ms ease-out;
 }
 
-.seq .grid.hot .listen-indicator,
 .seq_record_live.selected {
   animation: indicator 1s infinite alternate;
 }
@@ -1487,9 +1486,11 @@ li {
   color: var(--text-base-color);
   position: absolute;
   left: 0;
+  right: 0;
+  top: 100%;
   z-index: 1;
-  background-color: var(--bg-color-alternative2);
-  box-shadow: 0 0 3px var(--shadow-topbar-button);
+  background-color: var(--bg-color-alternative);
+  box-shadow: 0 0 8px var(--shadow-topbar-button);
   display: none;
 }
 
@@ -1500,7 +1501,7 @@ li {
   box-shadow: 0 0 2px var(--darker-1);
 }
 
-.zone.disabled .grid .step-info,
+.zone.disabled .seq .step-info,
 .zone.disabled .seqtools {
   display: none;
 }
@@ -1524,7 +1525,7 @@ li {
   cursor: pointer;
 }
 
-.seq .has-selection .step-info {
+.seq.has-selection .step-info {
   display: block;
 }
 

@@ -148,6 +148,7 @@ class Zone {
   rngProb = null;
 
   sequence = new Sequence(this);
+  sequencerElement = null;
   sequencerGridElement = null;
   sequencerGridStepElements = null;
   sequencerProgressElement = null;
@@ -1002,9 +1003,8 @@ class Sequence {
           } else {
             infoText += '(... play notes on keyboard ...)';
           }
-          this.zone.sequencerGridElement.querySelector(
-            '.step-notes'
-          ).innerHTML = infoText;
+          this.zone.sequencerElement.querySelector('.step-notes').innerHTML =
+            infoText;
 
           if (this.isHotRecordingNotes) {
             this.zone.sequencerGridElement.classList.add('hot');

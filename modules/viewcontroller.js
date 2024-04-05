@@ -554,9 +554,9 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       }
       zone.sequence.steps = newSeq;
       updateValuesForZone(zoneindex);
-      toast('Sequence moved ' + (direction < 0 ? 'left' : 'right') + '.', {
-        triggerElement: element
-      });
+      // toast('Sequence moved ' + (direction < 0 ? 'left' : 'right') + '.', {
+      //   triggerElement: element
+      // });
     },
     seq_copy: () => {
       Zone.seqClipboardSequence = JSON.stringify(zone.sequence);
@@ -703,6 +703,7 @@ function appendZone(/** @type {Zone} */ zone, index) {
   DOM.addHTML('#zones', 'beforeend', zoneTemplate.getHTML(zone, index));
   zone.canvasElement = DOM.element(`#canvas${index}`);
   zone.patternCanvas = DOM.element(`#canvasPattern${index}`);
+  zone.sequencerElement = DOM.element(`#zone${index} .seq`);
   zone.sequencerGridElement = DOM.element(`#zone${index} .seq .grid`);
   zone.sequencerProgressElement = DOM.element(`#zone${index} .seqprogress`);
   zone.sequencerGridStepElements = DOM.all(`#zone${index} .seq .grid .step`);
@@ -1004,13 +1005,13 @@ function updateValuesForZone(index) {
         DOM.removeClass(`#zone${index} .seq_record_live`, 'selected');
       }
       if (zone.sequence.selectedStepNumber > -1) {
-        DOM.addClass(`#zone${index} .seq .grid`, 'has-selection');
+        DOM.addClass(`#zone${index} .seq`, 'has-selection');
         DOM.all(`#zone${index} .seq .grid .step`)[
           zone.sequence.selectedStepNumber
         ].classList.add('selected-step');
 
-        DOM.element(`#zone${index} .step-info`).style.top =
-          DOM.element(`#zone${index} .seq .grid`).offsetHeight + 'px';
+        // DOM.element(`#zone${index} .step-info`).style.top =
+        //   DOM.element(`#zone${index} .seq .grid`).offsetHeight + 'px';
 
         if (zone.sequence.stepAddNotes) {
           DOM.addClass(`#zone${index} .seq-step-add-notes`, 'selected');
@@ -1040,7 +1041,7 @@ function updateValuesForZone(index) {
         }
         zone.sequence.updateRecordingState();
       } else {
-        DOM.removeClass(`#zone${index} .seq .grid`, 'has-selection');
+        DOM.removeClass(`#zone${index} .seq`, 'has-selection');
       }
       DOM.element(`#zone${index} .seq_steps`).value = zone.sequence.length;
       DOM.element(`#zone${index} .seq_division`).selectedIndex =

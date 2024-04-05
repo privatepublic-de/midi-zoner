@@ -179,9 +179,6 @@ module.exports = {
     canvas.height = rect.height * dpr;
     // Scale the context to ensure correct drawing operations
     ctx.scale(dpr, dpr);
-    // Set the "drawn" size of the canvas
-    // canvas.style.width = `${rect.width}px`;
-    // canvas.style.height = `${rect.height}px`;
     return { context: ctx, rect: rect };
   },
   /**

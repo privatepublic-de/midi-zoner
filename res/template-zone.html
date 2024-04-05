@@ -111,113 +111,6 @@
   <div class="seq" data-action="${index}:select_step:-1">
     <div class="grid">
       <div class="step-container">${sequencerGrid}</div>
-      <div class="step-info" data-action="${index}:ignore">
-        <div class="step-notes"></div>
-        <div class="step-props step-controls">
-          <div class="label">Length</div>
-          <input
-            class="seq_step_length"
-            type="number"
-            min="1"
-            max="${seqMaxSteps}"
-            value="1"
-            data-change="${index}:seq_step_length"
-          />
-          <input
-            class="percent seq_gatelength"
-            type="range"
-            data-change="${index}:seq_gatelength"
-            title="Step gate length"
-          />
-          <div class="label">Condition</div>
-          <div class="drop-down" title="Select step play condition">
-            <select
-              class="seq_step_condition"
-              data-change="${index}:seq_step_condition"
-            >
-              <option>always</option>
-              <option title="Previous was played">Prev.</option>
-              <option title="Previous was not played">Not prev.</option>
-              <option title="Only in first cycle">1st</option>
-              <option title="Not in first cycle">Not 1st</option>
-              ${cycleConditions}
-            </select>
-          </div>
-          <div class="label">Prob</div>
-          <input
-            class="percent seq_step_probability"
-            type="range"
-            data-change="${index}:seq_step_probability"
-            title="Step probability"
-          />
-        </div>
-        <div class="step-controls">
-          <div
-            class="action"
-            title="Move step left (if free space)"
-            data-action="${index}:seq_step_move:-1"
-          >
-            <i class="material-icons">chevron_left</i>
-          </div>
-          <div
-            class="action"
-            title="Move step right (if free space)"
-            data-action="${index}:seq_step_move:1"
-          >
-            <i class="material-icons">chevron_right</i>
-          </div>
-          <div
-            class="action"
-            title="Copy step"
-            data-action="${index}:seq_copy_step"
-          >
-            <i class="material-icons">content_copy</i>
-          </div>
-          <div
-            class="action"
-            title="Paste step"
-            data-action="${index}:seq_paste_step"
-          >
-            <i class="material-icons">content_paste</i>
-          </div>
-          <div
-            class="action"
-            title="Clear step"
-            data-action="${index}:seq_clear_step"
-          >
-            <i class="material-icons">clear</i>
-          </div>
-          <div
-            class="check seq-step-add-notes"
-            data-action="${index}:seq_step_add_notes"
-            title="New notes are added (not overwritten)"
-          >
-            ${checkboxIcons}Add notes
-          </div>
-          <div
-            class="check seq-step-advance"
-            data-action="${index}:seq_step_advance"
-            title="Advance step after note input"
-          >
-            ${checkboxIcons}Advance
-          </div>
-          <div
-            class="drop-down"
-            title="Apply step properties to all active steps in sequence"
-          >
-            <select class="" data-change="${index}:seq_step_apply_to_all">
-              <option>Apply to all…</option>
-              <option>» Step Length</option>
-              <option>» Gate Length</option>
-              <option>» Condition</option>
-              <option>» Probability</option>
-            </select>
-          </div>
-        </div>
-        <div class="step-info-close" data-action="${index}:select_step:-1">
-          <i class="material-icons">close</i>
-        </div>
-      </div>
     </div>
     <div class="seqtools">
       <div class="label">Steps</div>
@@ -316,6 +209,113 @@
         data-action="${index}:seq_record_live"
       >
         <i class="material-icons">piano</i>
+      </div>
+    </div>
+    <div class="step-info" data-action="${index}:ignore">
+      <div class="step-notes"></div>
+      <div class="step-props step-controls">
+        <div class="label">Length</div>
+        <input
+          class="seq_step_length"
+          type="number"
+          min="1"
+          max="${seqMaxSteps}"
+          value="1"
+          data-change="${index}:seq_step_length"
+        />
+        <input
+          class="percent seq_gatelength"
+          type="range"
+          data-change="${index}:seq_gatelength"
+          title="Step gate length"
+        />
+        <div class="label">Condition</div>
+        <div class="drop-down" title="Select step play condition">
+          <select
+            class="seq_step_condition"
+            data-change="${index}:seq_step_condition"
+          >
+            <option>always</option>
+            <option title="Previous was played">Prev.</option>
+            <option title="Previous was not played">Not prev.</option>
+            <option title="Only in first cycle">1st</option>
+            <option title="Not in first cycle">Not 1st</option>
+            ${cycleConditions}
+          </select>
+        </div>
+        <div class="label">Prob</div>
+        <input
+          class="percent seq_step_probability"
+          type="range"
+          data-change="${index}:seq_step_probability"
+          title="Step probability"
+        />
+      </div>
+      <div class="step-controls">
+        <div
+          class="action"
+          title="Move step left (if free space)"
+          data-action="${index}:seq_step_move:-1"
+        >
+          <i class="material-icons">chevron_left</i>
+        </div>
+        <div
+          class="action"
+          title="Move step right (if free space)"
+          data-action="${index}:seq_step_move:1"
+        >
+          <i class="material-icons">chevron_right</i>
+        </div>
+        <div
+          class="action"
+          title="Copy step"
+          data-action="${index}:seq_copy_step"
+        >
+          <i class="material-icons">content_copy</i>
+        </div>
+        <div
+          class="action"
+          title="Paste step"
+          data-action="${index}:seq_paste_step"
+        >
+          <i class="material-icons">content_paste</i>
+        </div>
+        <div
+          class="action"
+          title="Clear step"
+          data-action="${index}:seq_clear_step"
+        >
+          <i class="material-icons">clear</i>
+        </div>
+        <div
+          class="check seq-step-add-notes"
+          data-action="${index}:seq_step_add_notes"
+          title="New notes are added (not overwritten)"
+        >
+          ${checkboxIcons}Add notes
+        </div>
+        <div
+          class="check seq-step-advance"
+          data-action="${index}:seq_step_advance"
+          title="Advance step after note input"
+        >
+          ${checkboxIcons}Advance
+        </div>
+        <div
+          class="drop-down"
+          title="Apply step properties to all active steps in sequence"
+        >
+          <select class="" data-change="${index}:seq_step_apply_to_all">
+            <option>Apply to all…</option>
+            <option>» Step Length</option>
+            <option>» Gate Length</option>
+            <option>» Condition</option>
+            <option>» Probability</option>
+          </select>
+        </div>
+      </div>
+      <div class="step-info-close" data-action="${index}:select_step:-1">
+        <i class="material-icons">close</i>
       </div>
     </div>
   </div>
