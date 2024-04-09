@@ -327,6 +327,16 @@ option {
   gap: 5px;
 }
 
+@media (max-width: 1220px) {
+  #zones {
+    display: block;
+  }
+  .zone {
+    width: 90% !important;
+    margin: 0 auto 5px auto;
+  }
+}
+
 #tools {
   margin-top: 8px;
   padding: 0 8px;
