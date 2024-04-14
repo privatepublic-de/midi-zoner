@@ -484,28 +484,28 @@
       <a class="octselect" data-action="${index}:octave:3"></a>
     </div>
     <div class="action-hover openpopupsettings" title="Filters and settings">
-      <span class="material-icons">expand_more</span>
+      Filters <span class="material-icons">expand_more</span>
       <div class="popupsettings">
         <div
           class="check pitchbend"
           data-action="${index}:pitchbend"
           title="Transmit pitch bend messages"
         >
-          ${checkboxIcons}PB
+          ${checkboxIcons}Pitch Bend
         </div>
         <div
           class="check mod"
           data-action="${index}:mod"
           title="Transmit mod wheel messages (CC 1)"
         >
-          ${checkboxIcons}MW
+          ${checkboxIcons}Wheel
         </div>
         <div
           class="check sustain"
           data-action="${index}:sustain"
           title="Transmit sustain pedal messages (CC 64)"
         >
-          ${checkboxIcons}Sus
+          ${checkboxIcons}Sustain
           <span class="innertoggle sustain_on" data-action="${index}:sustain_on"
             >ON</span
           >
@@ -522,7 +522,7 @@
           data-action="${index}:at2mod"
           title="Convert channel pressure (aftertouch) to mod (CC 1)"
         >
-          ${checkboxIcons}AT&gt;MW
+          ${checkboxIcons}Aftertouch &gt; MW
         </div>
         <div style="width: 100%"></div>
         <div
@@ -530,7 +530,7 @@
           data-action="${index}:fixedvel"
           title="Use fixed velocity"
         >
-          ${checkboxIcons}FVel
+          ${checkboxIcons}Fixed Vel.:
           <input
             type="number"
             id="fixedvel${index}"
@@ -541,7 +541,7 @@
             max="127"
           />
         </div>
-        <div class="label">Vel%</div>
+        <div class="label">Vel-%</div>
         <div class="percent-holder">
           <input
             type="range"
@@ -558,7 +558,7 @@
           data-action="${index}:programchange"
           title="Transmit program change messages"
         >
-          ${checkboxIcons}Prg
+          ${checkboxIcons}Prog. Change:
           <input
             title="Send a program change message"
             class="programnumber"
