@@ -83,8 +83,7 @@ class Zone {
   octave = 0;
   fixedvel = false;
   fixedvel_value = 127;
-  scale_velocity = false;
-  scale_velocity_value = 100;
+  velocity_scaling = 1;
   mod = true;
   sustain = true;
   _sustain_on = false;
@@ -181,8 +180,7 @@ class Zone {
       octave: this.octave,
       fixedvel: this.fixedvel,
       fixedvel_value: this.fixedvel_value,
-      scale_velocity: this.scale_velocity,
-      scale_velocity_value: this.scale_velocity_value,
+      velocity_scaling: this.velocity_scaling,
       mod: this.mod,
       sustain: this.sustain,
       cc: this.cc,
@@ -217,6 +215,10 @@ class Zone {
         ? parseInt(index % COLOR_PALETTE.length)
         : this.colorIndex + 1;
     this.colorIndex = paletteIndex;
+  }
+
+  scaledVelocity(v) {
+    return Math.max(1, Math.min(127, parseInt(v * this.velocity_scaling)));
   }
 
   set colorIndex(i) {
@@ -322,15 +324,7 @@ class Zone {
         case MIDI.MESSAGE.NOTE_ON: // note on
           let key = data[1];
           const srcKey = key;
-          let velo = this.scale_velocity
-            ? Math.max(
-                1,
-                Math.min(
-                  127,
-                  parseInt(data[2] * (this.scale_velocity_value / 100))
-                )
-              )
-            : data[2];
+          const velo = this.scaledVelocity(data[2]);
           if (key >= this.low && key <= this.high) {
             if (this.arp_enabled && this.arp_hold && this.arp_transpose) {
               // transposer zone
@@ -1081,7 +1075,9 @@ class Sequence {
                 Uint8Array.from([
                   MIDI.MESSAGE.NOTE_ON + note.channel,
                   note.number,
-                  this.zone.fixedvel ? this.zone.fixedvel_value : note.velo
+                  this.zone.fixedvel
+                    ? this.zone.fixedvel_value
+                    : this.zone.scaledVelocity(note.velo)
                 ]),
                 note.portId
               );

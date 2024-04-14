@@ -227,6 +227,8 @@
           <input
             class="percent seq_gatelength"
             type="range"
+            min="0"
+            max="100"
             data-change="${index}:seq_gatelength"
             id="seq_gatelength${index}"
             title="Step gate length"
@@ -252,6 +254,8 @@
           <input
             class="percent seq_step_probability"
             type="range"
+            min="0"
+            max="100"
             data-change="${index}:seq_step_probability"
             id="seq_step_probability${index}"
             title="Step probability"
@@ -520,6 +524,7 @@
         >
           ${checkboxIcons}AT&gt;MW
         </div>
+        <div style="width: 100%"></div>
         <div
           class="check fixedvel"
           data-action="${index}:fixedvel"
@@ -536,21 +541,17 @@
             max="127"
           />
         </div>
-        <div
-          class="check scale_velocity"
-          data-action="${index}:scale_velocity"
-          title="Scale velocity %"
-        >
-          ${checkboxIcons}Vel%
+        <div class="label">Vel%</div>
+        <div class="percent-holder">
           <input
-            type="number"
-            id="scalevel${index}"
-            onclick="event.stopPropagation();"
-            data-change="${index}:scale_velocity_value"
-            value="100"
-            min="1"
+            type="range"
+            class="percent velocity_scaling"
+            data-change="${index}:velocity_scaling"
+            id="velocity_scaling${index}"
+            min="0"
             max="200"
           />
+          <output for="velocity_scaling${index}">---</output>
         </div>
         <div
           class="check programchange"

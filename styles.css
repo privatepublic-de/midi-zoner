@@ -432,8 +432,7 @@ option {
 
 .zone .check input[type='number'] {
   height: 1em;
-  margin: 2px 0 0 2px;
-  min-width: fit-content;
+  margin: 1px 0 0 4px;
   background-color: transparent;
   text-align: start;
   border: none;
@@ -671,12 +670,14 @@ option {
   display: flex;
   margin-right: 10px;
   align-items: center;
-  border-bottom: 1px solid transparent;
+  /* border-bottom: 1px solid transparent; */
   cursor: pointer;
 }
 
 .check:hover {
-  border-color: var(--brighter-3);
+  /* border-color: var(--brighter-3); */
+  background-color: var(--darker-1);
+  outline: 1px solid var(--brighter-2);
 }
 
 .action,
@@ -1728,6 +1729,7 @@ body:not(.running) .seqprogress {
   right: 0;
   background-color: var(--bg-color-alternative2);
   display: none;
-  /* border-radius: 6px; */
+  flex-wrap: wrap;
+  gap: 5px;
   box-shadow: 0 2px 3px var(--shadow-topbar);
 }

@@ -104,7 +104,6 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       output.value = element.value + '%';
     }
     element.title = element.value + '%';
-
     return parseInt(element.value) / 100;
   };
   const applyPercentage = () => {
@@ -155,15 +154,7 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       actions.fixedvel_value();
       applyParamToggle();
     },
-    scale_velocity_value: () => {
-      zone.scale_velocity_value = document.getElementById(
-        'scalevel' + zoneindex
-      ).value;
-    },
-    scale_velocity: () => {
-      actions.scale_velocity_value();
-      applyParamToggle();
-    },
+    velocity_scaling: applyPercentage,
     cc: applyParamToggle,
     sustain: applyParamToggle,
     sustain_on: applyParamToggle,
@@ -931,6 +922,11 @@ function updateValuesForZone(index) {
   /** @type {Zone} */
   const zone = zones.list[index];
   const zoneElement = DOM.element(`#zone${index}`);
+  function setPercent(className, pcnt) {
+    DOM.element(`#zone${index} .percent.${className}`).value = pcnt;
+    DOM.element(`#zone${index} output[for="${className}${index}"]`).value =
+      pcnt + '%';
+  }
   if (zoneElement) {
     DOM.removeClass(`#zone${index} *[data-action]`, 'selected');
     if (Zone.solocount > 0 && !zone.solo) {
@@ -1024,12 +1020,7 @@ function updateValuesForZone(index) {
         if (zone.sequence.stepAdvance) {
           DOM.addClass(`#zone${index} .seq-step-advance`, 'selected');
         }
-        function setPercent(className, pcnt) {
-          DOM.element(`#zone${index} .percent.${className}`).value = pcnt;
-          DOM.element(
-            `#zone${index} output[for="${className}${index}"]`
-          ).value = pcnt + '%';
-        }
+
         let step = zone.sequence.steps[zone.sequence.selectedStepNumber];
         if (step && step.length > 0) {
           let pcnt = parseInt(step.probability * 100);
@@ -1068,7 +1059,6 @@ function updateValuesForZone(index) {
       'at2mod',
       'sustain',
       'fixedvel',
-      'scale_velocity',
       'pitchbend',
       'enabled',
       'solo',
@@ -1103,13 +1093,13 @@ function updateValuesForZone(index) {
         DOM.addClass(e, 'selected');
       }
     });
+    setPercent('velocity_scaling', parseInt(zone.velocity_scaling * 100));
     DOM.element(`#euchits${index}`).value = zone.euclid_hits;
     DOM.element(`#euclen${index}`).value = zone.euclid_length;
     DOM.element(`#zone${index} input.programnumber`).value = zone.pgm_no
       ? zone.pgm_no
       : '';
     DOM.element(`#fixedvel${index}`).value = zone.fixedvel_value;
-    DOM.element(`#scalevel${index}`).value = zone.scale_velocity_value;
     const nameField = DOM.element(`#zone${index} .output-config-name`);
     if (zones.outputConfigNames[zones.list[index].configId]) {
       nameField.value = zones.outputConfigNames[zones.list[index].configId];
