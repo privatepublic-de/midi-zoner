@@ -939,6 +939,7 @@ input[type='range'] {
   padding: 8px;
   background-color: var(--bg-color-alternative2);
   border: 1px solid var(--brighter-2);
+  border-radius: 4px;
   box-shadow: 0 2px 3px var(--shadow-topbar);
   top: 0;
   right: 0;
@@ -1423,6 +1424,7 @@ li {
   z-index: 1;
   background-color: var(--bg-color-alternative);
   box-shadow: 0 0 12px var(--shadow-topbar-button);
+  border-radius: 4px;
   display: none;
 }
 
@@ -1632,9 +1634,11 @@ body:not(.running) .seqprogress {
   right: 0;
   background-color: var(--bg-color-alternative2);
   border: 1px solid var(--brighter-2);
+  border-radius: 4px;
   display: none;
   flex-wrap: wrap;
   row-gap: 4px;
   column-gap: 16px;
   box-shadow: 0 2px 3px var(--shadow-topbar);
+  cursor: default;
 }
