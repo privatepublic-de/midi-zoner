@@ -194,18 +194,6 @@ option {
   color: black;
 }
 
-/* #midisettings select option,
-.clockOutOption select option {
-  color: var(--brighter-4);
-  background-color: var(--darker-4);
-} */
-
-/* .updated #midisettings select,
-.updated #midiInputSelector {
-  background-color: var(--bg-midi-update) !important;
-  color: var(--fg-midi-update);
-} */
-
 .clockOutOption select {
   width: auto !important;
 }
@@ -359,7 +347,6 @@ option {
   cursor: pointer;
   border-radius: 4px;
   box-shadow: 0 2px 5px var(--shadow-topbar);
-  /* transition: all 1s ease-in; */
 }
 
 #newzone:hover {
@@ -370,17 +357,14 @@ option {
 .zone {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 5px;
   position: relative;
   color: var(--brighter-4);
   font-size: 12px;
-  /* margin: 5px auto; */
   padding: 8px;
   width: 600px;
-  /* min-width: 900px; */
   box-shadow: 0 2px 10px var(--shadow-zone);
-  /* border: 1px solid var(--zone-color); */
   background-image: linear-gradient(#00000000, #00000040);
   border-radius: 6px;
 }
@@ -413,7 +397,6 @@ option {
 .zone.disabled {
   box-shadow: none;
   background-image: none;
-  /* border-color: transparent; */
 }
 
 .zone.disabled:not(.soloed-out) .ch.enabled:not(.selected) {
@@ -443,6 +426,7 @@ option {
 
 .channels {
   display: flex;
+  gap: 6px;
 }
 
 .ch {
@@ -451,21 +435,10 @@ option {
   align-items: center;
   width: 24px;
   height: 20px;
-  font-size: 10px;
-  margin-left: 8px;
   text-align: center;
   color: var(--brighter-3);
   background-color: var(--darker-1);
   cursor: pointer;
-}
-
-.ch:first-child {
-  margin-left: 0;
-}
-
-.ch.state {
-  width: 24px;
-  font-size: 12px;
 }
 
 .state.selected {
@@ -491,23 +464,12 @@ option {
   background-color: #333333;
 }
 
-/* .disabled .ch.selected, */
-/* .disabled .channels select.outport, */
-/* .disabled .channels input.output-config-name {
-  background-image: linear-gradient(90deg, var(--zone-color), transparent);
-} */
-
-/* .disabled .channels input.output-config-name::placeholder {
-  color: var(--zone-color);
-} */
-
 .sendClock {
   display: flex;
   justify-content: center;
   align-items: center;
   font-size: 16px;
   color: var(--brighter-1);
-  margin-left: 8px;
   cursor: pointer;
 }
 
@@ -568,7 +530,6 @@ option {
   flex-wrap: wrap;
   align-items: center;
   color: var(--text-base-color);
-  font-size: 12px;
 }
 
 .arp-settings + .arp-settings {
@@ -607,10 +568,6 @@ option {
   display: flex;
   align-items: center;
 }
-
-/* .check.arp_enabled.selected {
-  background-color: var(--bg-color-alternative);
-} */
 
 .zonetools {
   display: flex;
@@ -653,10 +610,6 @@ option {
 .dragged .dragzone {
   cursor: grabbing;
 }
-/* 
-.label {
-  margin: 0 4px;
-} */
 
 .action {
   transition: background-color ease-out 200ms;
@@ -682,7 +635,6 @@ option {
 .toggle,
 .action-hover,
 .drop-down {
-  /* margin: 0 8px 0 0; */
   height: 20px;
   display: flex;
   align-items: center;
@@ -724,12 +676,6 @@ option {
 .unsel {
   margin-right: 4px;
 }
-/* 
-.check.arp_enabled {
-  width: 68px;
-  margin-left: 0;
-  position: relative;
-} */
 
 .zone input.percent {
   width: 80px;
@@ -982,7 +928,6 @@ input[type='range'] {
 .pattern {
   position: relative;
   display: inline-block;
-  /* height: 18px; */
   vertical-align: middle;
   cursor: pointer;
 }
@@ -1170,7 +1115,6 @@ li {
   flex-direction: column;
   align-items: center;
   background-image: linear-gradient(135deg, var(--brighter-1), transparent);
-  /* border: 1px solid var(--brighter-1); */
   justify-content: space-between;
 }
 
@@ -1193,7 +1137,6 @@ li {
   align-items: center;
   align-content: center;
   width: 100%;
-  /* border-top: 1px solid var(--darker-1); */
   color: var(--text-base-color);
   transition: opacity 500ms;
 }
@@ -1236,9 +1179,6 @@ li {
 }
 
 .ccpot .cclabel {
-  /* position: absolute;
-  top: 0;
-  left: 0; */
   width: 100%;
   overflow: hidden;
   text-align: center;
@@ -1260,21 +1200,6 @@ li {
   right: 0;
   text-align: center;
 }
-
-/* .ccpot .ccpot-front .cc-edit-action {
-  position: absolute;
-  opacity: 0;
-  bottom: 8px;
-  left: 0;
-  right: 0;
-  text-align: center;
-  font-size: 9px;
-  color: var(--brighter-2);
-}
-
-.ccpot .ccpot-front .cc-edit-action:hover {
-  opacity: 1;
-} */
 
 .ccpot .cc {
   display: flex;
@@ -1393,7 +1318,6 @@ li {
   justify-content: center;
   align-items: center;
   border: 1px solid var(--darker-1);
-  /* border-radius: 2px; */
   color: var(--darker-2);
   background-color: var(--darker-1);
   font-size: 0.85em;
@@ -1477,18 +1401,8 @@ li {
 }
 
 .seq .grid.hot .step.selected-step {
-  /* animation: indicator 2s infinite alternate; */
   background-color: var(--record-highlight) !important;
 }
-
-/* .seq .grid .step:nth-child(4n + 1)::before {
-  content: '◤';
-  display: block;
-  position: absolute;
-  top: 0px;
-  left: 1px;
-  font-size: 50%;
-} */
 
 .seq .grid .step:nth-child(4n + 1) {
   border-bottom-color: var(--darker-3);
@@ -1607,8 +1521,6 @@ body:not(.running) .seqprogress {
 #clockOutPortList,
 #inputPortList {
   padding-top: 5px;
-  /* border-top: 1px solid var(--brighter-0); */
-  /* background-color: var(--darker-1); */
 }
 
 #clockOutPortList {
@@ -1720,6 +1632,7 @@ body:not(.running) .seqprogress {
   background-color: var(--bg-color-alternative2);
   display: none;
   flex-wrap: wrap;
-  gap: 5px;
+  row-gap: 4px;
+  column-gap: 16px;
   box-shadow: 0 2px 3px var(--shadow-topbar);
 }
