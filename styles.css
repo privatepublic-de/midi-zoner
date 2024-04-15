@@ -938,6 +938,7 @@ input[type='range'] {
   display: none;
   padding: 8px;
   background-color: var(--bg-color-alternative2);
+  border: 1px solid var(--brighter-2);
   box-shadow: 0 2px 3px var(--shadow-topbar);
   top: 0;
   right: 0;
@@ -1630,6 +1631,7 @@ body:not(.running) .seqprogress {
   left: 0;
   right: 0;
   background-color: var(--bg-color-alternative2);
+  border: 1px solid var(--brighter-2);
   display: none;
   flex-wrap: wrap;
   row-gap: 4px;
