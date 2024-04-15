@@ -431,15 +431,14 @@ option {
 }
 
 .zone .check input[type='number'] {
-  height: 1em;
-  margin: 1px 0 0 4px;
+  height: auto;
+  padding: 0;
+  margin: 0 0 0 4px;
   background-color: transparent;
   text-align: start;
-  border: none;
-}
-
-.zone input[type='number']:focus-visible {
-  outline-color: var(--brighter-1);
+  font-size: 11px;
+  border: 1px solid var(--brighter-2);
+  text-align: right;
 }
 
 .channels {
@@ -564,6 +563,7 @@ option {
 .arp-settings {
   position: relative;
   display: flex;
+  gap: 8px;
   justify-content: flex-start;
   flex-wrap: wrap;
   align-items: center;
@@ -653,10 +653,10 @@ option {
 .dragged .dragzone {
   cursor: grabbing;
 }
-
+/* 
 .label {
   margin: 0 4px;
-}
+} */
 
 .action {
   transition: background-color ease-out 200ms;
@@ -668,14 +668,11 @@ option {
 
 .check {
   display: flex;
-  margin-right: 10px;
   align-items: center;
-  /* border-bottom: 1px solid transparent; */
   cursor: pointer;
 }
 
 .check:hover {
-  /* border-color: var(--brighter-3); */
   background-color: var(--darker-1);
   outline: 1px solid var(--brighter-2);
 }
@@ -685,7 +682,7 @@ option {
 .toggle,
 .action-hover,
 .drop-down {
-  margin: 0 8px 0 0;
+  /* margin: 0 8px 0 0; */
   height: 20px;
   display: flex;
   align-items: center;
@@ -725,7 +722,7 @@ option {
 
 .sel,
 .unsel {
-  margin-right: 5px;
+  margin-right: 4px;
 }
 /* 
 .check.arp_enabled {
@@ -852,24 +849,6 @@ input[type='range'] {
 .zone select {
   height: 20px;
 }
-
-.submit {
-  display: inline-block;
-  color: var(--brighter-4);
-  background-color: var(--darker-1);
-  padding: 2px 4px;
-  cursor: pointer;
-  margin: 0 4px;
-}
-
-/* .zone select option {
-  background-color: var(--bg-topbar);
-  color: var(--brighter-4);
-} */
-
-/* .rangeholder {
-  margin: 6px auto;
-} */
 
 .range {
   position: relative;
@@ -1012,15 +991,24 @@ input[type='range'] {
   position: absolute;
   cursor: default;
   display: none;
-  width: 170px;
   padding: 8px;
   background-color: var(--bg-color-alternative2);
-  box-shadow: 0 0 3px var(--shadow-topbar-button);
+  box-shadow: 0 2px 3px var(--shadow-topbar);
   top: 0;
   right: 0;
   text-align: center;
   line-height: 1.2em;
   z-index: 1;
+}
+
+.euclid > div {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  margin-bottom: 8px;
 }
 
 .ccpotttools label {
@@ -1373,8 +1361,9 @@ li {
 
 .seqtools {
   display: flex;
+  gap: 8px;
   align-items: center;
-  padding: 6px 4px;
+  padding: 6px 8px;
 }
 
 .show-seq .seq {
@@ -1539,6 +1528,7 @@ li {
   margin-top: 0.5em;
   padding-top: 0.5em;
   display: flex;
+  gap: 8px;
   align-items: center;
 }
 

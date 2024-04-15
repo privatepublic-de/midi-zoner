@@ -423,7 +423,7 @@
     </div>
     <div class="euclid hideonleave">
       <p>Create euclidian pattern</p>
-      <p>
+      <div>
         <input
           id="euchits${index}"
           type="number"
@@ -433,7 +433,7 @@
           size="3"
           title="Steps"
         />
-        in
+        <div>in</div>
         <input
           type="number"
           id="euclen${index}"
@@ -443,13 +443,13 @@
           size="3"
           title="Length"
         />
-        <span class="submit" data-action="${index}:euclid">OK</span>
-      </p>
-      <p>
-        <span class="submit" data-action="${index}:pattern_shift:-1">&lt;</span>
-        Shift pattern
-        <span class="submit" data-action="${index}:pattern_shift:1">&gt;</span>
-      </p>
+        <div class="action" data-action="${index}:euclid">OK</div>
+      </div>
+      <div>
+        <span class="action" data-action="${index}:pattern_shift:-1">&lt;</span>
+        <span>Shift pattern</span>
+        <span class="action" data-action="${index}:pattern_shift:1">&gt;</span>
+      </div>
     </div>
   </div>
   <div class="rangeholder">
@@ -530,7 +530,7 @@
           data-action="${index}:fixedvel"
           title="Use fixed velocity"
         >
-          ${checkboxIcons}Fixed Vel.:
+          ${checkboxIcons}Fixed Vel
           <input
             type="number"
             id="fixedvel${index}"
@@ -541,7 +541,7 @@
             max="127"
           />
         </div>
-        <div class="label">Vel-%</div>
+        <div class="label">Vel%</div>
         <div class="percent-holder">
           <input
             type="range"
@@ -558,7 +558,7 @@
           data-action="${index}:programchange"
           title="Transmit program change messages"
         >
-          ${checkboxIcons}Prog. Change:
+          ${checkboxIcons}Program
           <input
             title="Send a program change message"
             class="programnumber"
