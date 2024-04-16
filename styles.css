@@ -941,11 +941,6 @@ input[type='range'] {
   position: absolute;
   cursor: default;
   display: none;
-  padding: 8px;
-  background-color: var(--bg-color-alternative2);
-  border: 1px solid var(--brighter-2);
-  border-radius: 4px;
-  box-shadow: 0 2px 3px var(--shadow-topbar);
   top: 0;
   right: 0;
   text-align: center;
@@ -1421,16 +1416,11 @@ li {
 
 .seq .step-info {
   padding: 4px 8px;
-  color: var(--text-base-color);
   position: absolute;
-  left: 0;
-  right: 0;
+  left: 8px;
+  right: 8px;
   top: 100%;
   z-index: 1;
-  background-color: var(--bg-color-alternative);
-  box-shadow: 0 0 12px var(--shadow-topbar-button);
-  border: 1px solid var(--brighter-2);
-  border-radius: 4px;
   display: none;
 }
 
@@ -1625,7 +1615,7 @@ body:not(.running) .seqprogress {
   background-color: transparent;
 }
 .zone:not(.disabled) .openpopupsettings:hover {
-  background-color: var(--bg-color-alternative2);
+  background-color: var(--bg-color-popup);
 }
 .zone:not(.disabled) .openpopupsettings:hover .popupsettings {
   display: flex;
@@ -1634,17 +1624,21 @@ body:not(.running) .seqprogress {
 .popupsettings {
   position: absolute;
   z-index: 1;
-  padding: 8px;
   top: 100%;
   left: 0;
   right: 0;
-  background-color: var(--bg-color-alternative2);
-  border: 1px solid var(--brighter-2);
-  border-radius: 4px;
   display: none;
   flex-wrap: wrap;
   row-gap: 4px;
   column-gap: 16px;
-  box-shadow: 0 2px 3px var(--shadow-topbar);
   cursor: default;
+}
+
+.popup {
+  background-color: var(--bg-color-popup);
+  border: 1px solid var(--darker-1);
+  border-radius: 4px;
+  padding: 8px;
+  box-shadow: 0 0 4px var(--darker-1);
+  color: var(--text-base-color);
 }
