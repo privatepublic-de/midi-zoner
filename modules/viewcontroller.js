@@ -934,11 +934,7 @@ function updateValuesForZone(index) {
     } else {
       DOM.removeClass(`#zone${index}`, 'soloed-out');
     }
-    const rgbZone = DOM.hslToRgb(
-      zone.hue,
-      zone.saturation,
-      zone.lightness * 0.9
-    );
+    const rgbZone = DOM.hslToRgb(zone.hue, zone.saturation, zone.lightness);
     const rgbZoneAlternative = DOM.hslToRgb(
       zone.hue,
       zone.saturation,

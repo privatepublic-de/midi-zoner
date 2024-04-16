@@ -436,7 +436,7 @@ option {
   width: 24px;
   height: 20px;
   text-align: center;
-  color: var(--brighter-3);
+  color: var(--brighter-4);
   background-color: var(--darker-1);
   cursor: pointer;
 }
@@ -456,8 +456,13 @@ option {
   text-align: left;
   width: 130px;
   background-color: var(--bg-color);
+  color: var(--text-base-color);
   height: 20px;
   padding: 0 4px;
+}
+
+.output-config-name::placeholder {
+  color: var(--text-base-color);
 }
 
 .disabled .channels input.output-config-name {
