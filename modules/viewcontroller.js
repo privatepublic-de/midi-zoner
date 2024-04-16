@@ -120,13 +120,6 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       }
       renderMarkersForZone(zoneindex);
     },
-    // ch: () => {
-    //   const channelnumber = parseInt(params[2]);
-    //   if (channelnumber < 16) {
-    //     zone.channel = channelnumber;
-    //     updateValuesForZone(zoneindex);
-    //   }
-    // },
     channel: applySelectedIndex,
     outport: () => {
       if (element.value.charAt(0) == '$') {
@@ -144,6 +137,14 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
     octave: () => {
       zone.octave = parseInt(params[2]);
       updateValuesForZone(zoneindex);
+    },
+    toggle_filters: () => {
+      const settings = DOM.element(`#zone${zoneindex} .popupsettings`);
+      if (settings.style.display == 'flex') {
+        settings.style.display = 'none';
+      } else {
+        settings.style.display = 'flex';
+      }
     },
     fixedvel_value: () => {
       zone.fixedvel_value = document.getElementById(
