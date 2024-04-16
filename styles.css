@@ -558,7 +558,8 @@ option {
   pointer-events: all;
 }
 
-.zone.disabled .range {
+.zone.disabled .range,
+.zone.disabled .toggle_filters {
   pointer-events: none;
 }
 
@@ -941,8 +942,8 @@ input[type='range'] {
   position: absolute;
   cursor: default;
   display: none;
-  top: 0;
-  right: 0;
+  top: 100%;
+  right: 8px;
   text-align: center;
   line-height: 1.2em;
   z-index: 1;
@@ -1609,16 +1610,6 @@ body:not(.running) .seqprogress {
   100% {
     opacity: 0;
   }
-}
-
-.action-hover.openpopupsettings {
-  background-color: transparent;
-}
-.zone:not(.disabled) .openpopupsettings:hover {
-  background-color: var(--bg-color-popup);
-}
-.zone:not(.disabled) .openpopupsettings:hover .popupsettings {
-  display: flex;
 }
 
 .popupsettings {
