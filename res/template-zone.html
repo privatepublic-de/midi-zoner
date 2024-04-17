@@ -212,8 +212,28 @@
       </div>
     </div>
     <div class="step-info popup" data-action="${index}:ignore">
-      <div class="step-notes"></div>
-      <div class="step-props step-controls">
+      <div class="step-controls">
+        <div class="stepmarker listen-indicator"></div>
+        <div class="step-notes"></div>
+        <div
+          class="check seq-step-add-notes"
+          data-action="${index}:seq_step_add_notes"
+          title="New notes are added (no overwrite)"
+        >
+          ${checkboxIcons}Add
+        </div>
+        <div
+          class="check seq-step-advance"
+          data-action="${index}:seq_step_advance"
+          title="Advance step after note input"
+        >
+          ${checkboxIcons}Advance
+        </div>
+        <div class="step-info-close" data-action="${index}:select_step:-1">
+          <i class="material-icons">close</i>
+        </div>
+      </div>
+      <div class="step-controls">
         <div class="label">Length</div>
         <input
           class="seq_step_length"
@@ -300,34 +320,17 @@
           <i class="material-icons">clear</i>
         </div>
         <div
-          class="check seq-step-add-notes"
-          data-action="${index}:seq_step_add_notes"
-          title="New notes are added (not overwritten)"
-        >
-          ${checkboxIcons}Add notes
-        </div>
-        <div
-          class="check seq-step-advance"
-          data-action="${index}:seq_step_advance"
-          title="Advance step after note input"
-        >
-          ${checkboxIcons}Advance
-        </div>
-        <div
           class="drop-down"
           title="Apply step properties to all active steps in sequence"
         >
           <select class="" data-change="${index}:seq_step_apply_to_all">
             <option>Apply to all…</option>
-            <option>» Step Length</option>
-            <option>» Gate Length</option>
-            <option>» Condition</option>
-            <option>» Probability</option>
+            <option>Step Length</option>
+            <option>Gate Length</option>
+            <option>Condition</option>
+            <option>Probability</option>
           </select>
         </div>
-      </div>
-      <div class="step-info-close" data-action="${index}:select_step:-1">
-        <i class="material-icons">close</i>
       </div>
     </div>
   </div>

@@ -683,6 +683,10 @@ option {
   margin-right: 4px;
 }
 
+.unsel {
+  color: var(--brighter-2);
+}
+
 .zone input.percent {
   width: 80px;
   background: var(--brighter-1);
@@ -1366,14 +1370,15 @@ li {
   display: none;
 }
 
-.seq .grid .step.active {
+.seq .grid .step.active,
+.step-info .stepmarker {
   background-color: var(--brighter-1);
   border-color: var(--brighter-3) !important;
   color: var(--brighter-4);
 }
 
 .steps-changed .step.active,
-.seq .grid.hot.steps-changed .step.selected-step {
+.seq.hot .steps-changed .step.selected-step {
   background-color: var(--brighter-4) !important;
   transition: background-color 200ms ease-out;
 }
@@ -1403,7 +1408,8 @@ li {
   box-shadow: 0 0 10px var(--brighter-4);
 }
 
-.seq .grid.hot .step.selected-step {
+.seq.hot .step.selected-step,
+.seq.hot .stepmarker {
   background-color: var(--record-highlight) !important;
 }
 
@@ -1426,7 +1432,7 @@ li {
 }
 
 .seq .step-info .note {
-  background-color: var(--bg-color);
+  background-color: var(--bg-color-alternative);
   color: var(--text-base-color);
   padding: 0 4px;
   box-shadow: 0 0 2px var(--darker-1);
@@ -1438,23 +1444,28 @@ li {
 }
 
 .step-controls {
-  border-top: 1px solid var(--brighter-1);
-  margin-top: 0.5em;
-  padding-top: 0.5em;
+  border-bottom: 1px solid var(--brighter-1);
+  margin-bottom: 4px;
+  padding-bottom: 4px;
   display: flex;
   gap: 8px;
   align-items: center;
 }
 
 .step-notes {
-  min-height: 20px;
+  flex-grow: 1;
+}
+
+.step-notes i {
+  color: var(--brighter-2);
 }
 
 .step-info-close {
-  position: absolute;
+  /* position: absolute;
   top: 4px;
-  right: 4px;
+  right: 4px; */
   cursor: pointer;
+  font-size: 14px;
 }
 
 .seq.has-selection .step-info {

@@ -989,25 +989,24 @@ class Sequence {
           const notesArray = this.steps[this.selectedStepNumber]
             ? this.steps[this.selectedStepNumber].notesArray
             : null;
-          let infoText =
-            '<div class="stepmarker listen-indicator">' +
-            (this.selectedStepNumber + 1) +
-            '</div> ';
+          this.zone.sequencerElement.querySelector('.stepmarker').innerHTML =
+            this.selectedStepNumber + 1;
+          let infoText = '';
           if (notesArray && notesArray.length > 0) {
             notesArray.forEach((note) => {
               infoText +=
                 '<span class="note">' + Note.display(note.number) + '</span> ';
             });
           } else {
-            infoText += '(... play notes on keyboard ...)';
+            infoText += '<i>(... play notes on keyboard ...)</i>';
           }
           this.zone.sequencerElement.querySelector('.step-notes').innerHTML =
             infoText;
 
           if (this.isHotRecordingNotes) {
-            this.zone.sequencerGridElement.classList.add('hot');
+            this.zone.sequencerElement.classList.add('hot');
           } else {
-            this.zone.sequencerGridElement.classList.remove('hot');
+            this.zone.sequencerElement.classList.remove('hot');
           }
         }
       }).bind(this)
