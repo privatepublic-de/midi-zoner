@@ -249,7 +249,11 @@ class MIDI {
         }
       }
 
-      if (this.clockHandler && midiMessage === MIDI.MESSAGE.CLOCK) {
+      if (
+        this.isClockRunning &&
+        this.clockHandler &&
+        midiMessage === MIDI.MESSAGE.CLOCK
+      ) {
         this.clockHandler(this.songposition);
         this.songposition++;
       }
@@ -259,14 +263,12 @@ class MIDI {
       ) {
         // start
         this.isClockRunning = true;
-        this.songposition = 0;
-        console.log('MIDI: Start', new Date(), this.songposition);
         if (this.transportHandler) {
           this.transportHandler(true);
         }
       } else if (midiMessage === MIDI.MESSAGE.STOP) {
         this.isClockRunning = false;
-        // this.songposition = 0;
+        this.songposition = 0;
         if (this.transportHandler) {
           this.transportHandler(false);
         }

@@ -589,12 +589,7 @@ class Zone {
   }
 
   clock(pos) {
-    if (this.midi.isClockRunning) {
-      this.sequence.clock(pos);
-    }
-    if (pos == 0) {
-      this.arp.patternPos = -1;
-    }
+    this.sequence.clock(pos);
     const tickn = pos % this.arp_ticks;
     const offtick = Math.min(
       this.arp_ticks * this.arp_gatelength,
@@ -740,12 +735,12 @@ class Zone {
   }
 
   stopped() {
-    // this.arp.noteindex = -1;
-    // this.arp.patternPos = -1;
-    // this.arp.repeattrig = false;
-    // this.arp.inc = 1;
-    // this.arp.octave = 0;
-    // this.arpNoteOff();
+    this.arp.noteindex = -1;
+    this.arp.patternPos = -1;
+    this.arp.repeattrig = false;
+    this.arp.inc = 1;
+    this.arp.octave = 0;
+    this.arpNoteOff();
     this.sequence.stopped();
     requestAnimationFrame(this.renderPattern.bind(this));
     requestAnimationFrame(this.renderSequence.bind(this));
