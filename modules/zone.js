@@ -89,13 +89,29 @@ class Zone {
   _sustain_on = false;
   cc = false;
   cc_controllers = [
-    // type 0: unipolar, 1: bipolar, 2: spacer
-    { number: 7, number_in: 7, label: 'Volume', val: 100, type: 0 },
-    { number: 1, number_in: 1, label: 'Mod Wheel', val: 0, type: 0 }
+    // type 0: unipolar, 1: bipolar, 2: spacer, 3: button
+    {
+      number: 7,
+      number_in: 7,
+      label: 'Volume',
+      val: 100,
+      type: 0,
+      min: 0,
+      max: 127
+    },
+    {
+      number: 1,
+      number_in: 1,
+      label: 'Mod Wheel',
+      val: 0,
+      type: 0,
+      min: 0,
+      max: 127
+    }
   ];
   show_cc = false;
   editCC = false;
-  learnCCIndex = -1;
+  selectedCCIndex = 0;
   at2mod = false;
   pitchbend = true;
   euclid_hits = 5;
@@ -377,21 +393,23 @@ class Zone {
           }
           break;
         case MIDI.MESSAGE.CONTROLLER: // cc
-          if (this.editCC && this.learnCCIndex > -1) {
-            this.cc_controllers[this.learnCCIndex].number_in = data[1];
+          if (this.editCC && this.selectedCCIndex > -1) {
+            this.cc_controllers[this.selectedCCIndex].number_in = data[1];
             return 'updateCC';
           }
           let handledByCCControl = false;
           for (let i = 0; i < this.cc_controllers.length; i++) {
-            if (
-              this.cc_controllers[i].type != 2 &&
-              this.cc_controllers[i].number_in == data[1]
-            ) {
-              this.cc_controllers[i].val = data[2];
+            const ctrl = this.cc_controllers[i];
+            if (ctrl.type != 2 && ctrl.number_in == data[1]) {
+              const valueIn = data[2];
+              const valueOut = parseInt(
+                ctrl.min + (ctrl.max - ctrl.min) * (valueIn / 127.0)
+              );
+              ctrl.val = valueIn;
               const outevent = new Uint8Array(3);
               outevent[0] = MIDI.MESSAGE.CONTROLLER + this.channel;
-              outevent[1] = this.cc_controllers[i].number;
-              outevent[2] = data[2];
+              outevent[1] = ctrl.number;
+              outevent[2] = valueIn;
               this.midi.send(outevent, this.outputPortId);
               handledByCCControl = true;
             }

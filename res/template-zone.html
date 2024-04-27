@@ -83,31 +83,6 @@
       </div>
     </div>
   </div>
-  <div class="ccpots">
-    <div class="ccpotttools">
-      <div>
-        <i
-          class="material-icons edit-cc-button"
-          title="Edit controls"
-          data-action="${index}:cc_edit:1"
-          >edit</i
-        >
-        <i
-          class="material-icons"
-          title="Add new control"
-          data-action="${index}:add_cc_controller"
-          >add</i
-        >
-      </div>
-      <div
-        class="action"
-        style="margin: 5px 0 0 0"
-        data-action="${index}:send_all_cc"
-      >
-        send all
-      </div>
-    </div>
-  </div>
   <div class="seq" data-action="${index}:select_step:-1">
     <div class="grid">
       <div class="step-container">${sequencerGrid}</div>
@@ -470,6 +445,90 @@
       <span class="marker low">C-1</span>
       <span class="marker high">G9</span>
       <canvas id="canvas${index}" width="100%" height="20"></canvas>
+    </div>
+  </div>
+  <div class="ccpots">
+    <div class="ccpotttools">
+      <div>
+        <i
+          class="material-icons edit-cc-button"
+          title="Edit controls"
+          data-action="${index}:cc_edit"
+          >edit</i
+        >
+      </div>
+      <div>
+        <i
+          class="material-icons"
+          data-action="${index}:send_all_cc"
+          title="Send all values"
+          >double_arrow</i
+        >
+      </div>
+    </div>
+    <div class="cc-editor popup">
+      <div class="flex-row">
+        <label>Name</label>
+        <input
+          class="cclabel"
+          type="text"
+          style="width: 8em"
+          data-change="${index}:cc_label"
+        />
+        <label>Type</label>
+        <select class="cc_change_type" data-change="${index}:cc_change_type">
+          <option value="0">Rotary</option>
+          <option value="1">Rotary (+/-)</option>
+          <option value="3">Button</option>
+          <option value="2">Spacer</option>
+        </select>
+        <div class="action" data-action="${index}:cc_left">
+          <span class="material-icons" title="Move left">arrow_back</span>
+        </div>
+        <div class="action" data-action="${index}:cc_remove">
+          <span class="material-icons" title="Remove">close</span>
+        </div>
+        <div class="action" data-action="${index}:cc_add">
+          <span class="material-icons" title="Add new">add</span>
+        </div>
+        <div class="action" data-action="${index}:cc_right">
+          <span class="material-icons" title="Move right">arrow_forward</span>
+        </div>
+      </div>
+      <div class="flex-row">
+        <label>In</label>
+        <input
+          type="number"
+          class="cc-in"
+          min="0"
+          max="127"
+          data-change="${index}:cc_number_in"
+        />
+        <label>Out</label>
+        <input
+          type="number"
+          class="cc-out"
+          min="0"
+          max="127"
+          data-change="${index}:cc_number"
+        />
+        <label>Min</label>
+        <input
+          type="number"
+          class="cc-min"
+          min="0"
+          max="127"
+          data-change="${index}:cc_min"
+        />
+        <label>Max</label>
+        <input
+          type="number"
+          class="cc-max"
+          min="0"
+          max="127"
+          data-change="${index}:cc_max"
+        />
+      </div>
     </div>
   </div>
   <div class="settings">

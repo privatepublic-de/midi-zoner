@@ -296,51 +296,60 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       zone.editCC = !zone.editCC;
       updateControllerValues(zone, zoneindex);
     },
+    cc_select: () => {
+      zone.selectedCCIndex = params[2];
+      if (zone.editCC) {
+        updateControllerValues(zone, zoneindex);
+      }
+    },
     cc_label: () => {
-      zone.cc_controllers[params[2]].label = element.value;
+      zone.cc_controllers[zone.selectedCCIndex].label = element.value;
+      updateControllerValues(zone, zoneindex);
     },
     cc_number: () => {
       element.value = element.value.replace(/[^0-9]/, '');
       if (element.value != '') {
-        zone.cc_controllers[params[2]].number = parseInt(element.value);
+        zone.cc_controllers[zone.selectedCCIndex].number = parseInt(
+          element.value
+        );
       }
     },
     cc_number_in: () => {
       element.value = element.value.replace(/[^0-9]/, ''); // TODO generalize
       if (element.value != '') {
-        zone.cc_controllers[params[2]].number_in = parseInt(element.value);
+        zone.cc_controllers[zone.selectedCCIndex].number_in = parseInt(
+          element.value
+        );
       }
     },
     cc_add: () => {
-      zone.cc_controllers.splice(parseInt(params[2]) + 1, 0, {
+      zone.cc_controllers.splice(parseInt(zone.selectedCCIndex) + 1, 0, {
         number: 1,
         number_in: 1,
-        label: `Ctrl #${parseInt(params[2]) + 1}`,
+        min: 0,
+        max: 127,
+        type: 0,
+        label: `Ctrl #${parseInt(zone.selectedCCIndex) + 1}`,
         val: 0
       });
+      zone.selectedCCIndex++;
       renderControllersForZone(zone, zoneindex);
     },
     cc_remove: () => {
-      if (
-        confirm(`Delete control "${zone.cc_controllers[params[2]].label}"?`)
-      ) {
-        zone.cc_controllers.splice(params[2], 1);
-        renderControllersForZone(zone, zoneindex);
-      }
+      zone.cc_controllers.splice(zone.selectedCCIndex, 1);
+      renderControllersForZone(zone, zoneindex);
     },
     cc_change_type: () => {
-      zone.cc_controllers[params[2]].type =
-        zone.cc_controllers[params[2]].type || 0;
-      zone.cc_controllers[params[2]].type =
-        (zone.cc_controllers[params[2]].type + 1) % 3;
+      zone.cc_controllers[zone.selectedCCIndex].type = parseInt(element.value);
+      renderControllersForZone(zone, zoneindex);
       updateControllerValues(zone, zoneindex);
     },
-    cc_focused: () => {
-      zone.learnCCIndex = params[3] == 1 ? params[2] : -1;
-      console.log('Learning CC: ', zone.learnCCIndex);
-    },
+    // cc_focused: () => {
+    //   zone.learnCCIndex = params[3] == 1 ? params[2] : -1;
+    //   console.log('Learning CC: ', zone.learnCCIndex);
+    // },
     _cc_move: (direction) => {
-      const pos = Number(params[2]);
+      const pos = Number(zone.selectedCCIndex);
       let targetPos = pos;
       if (direction < 0) {
         if (pos > 0) {
@@ -361,10 +370,8 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
         const v2 = zone.cc_controllers[targetPos];
         zone.cc_controllers[targetPos] = zone.cc_controllers[pos];
         zone.cc_controllers[pos] = v2;
-        renderControllersForZone(zone, zoneindex, {
-          index: targetPos,
-          direction: direction
-        });
+        zone.selectedCCIndex = targetPos;
+        renderControllersForZone(zone, zoneindex);
       }
     },
     cc_left: () => {
@@ -822,7 +829,7 @@ function renderMarkersForZone(index, tempLo, tempHigh) {
   }
 }
 
-function renderControllersForZone(zone, index, movement) {
+function renderControllersForZone(zone, index) {
   DOM.all(`#zone${index} .ccpots .ccpot`).forEach((e) => e.remove());
   DOM.addHTML(
     `#zone${index} .ccpots`,
@@ -836,17 +843,13 @@ function renderControllersForZone(zone, index, movement) {
   DOM.on(`#zone${index} .ccpots input`, 'focus', (e) => {
     e.target.select();
   });
-  if (movement) {
-    DOM.all(`#zone${index} .ccpots .ccpot`)[movement.index].classList.add(
-      movement.direction < 0 ? 'moved-left' : 'moved-right'
-    );
-    DOM.all(`#zone${index} .ccpots .ccpot`)[
-      movement.index - movement.direction
-    ].classList.add(movement.direction > 0 ? 'moved-left' : 'moved-right');
-  }
-  DOM.all(`#zone${index} .ccpots .ccpot .ccpot-front`).forEach((pot, ix) => {
+
+  DOM.all(`#zone${index} .ccpots .ccpot`).forEach((pot, ix) => {
     pot.addEventListener('wheel', (e) => {
       e.preventDefault();
+      if (zone.editCC) {
+        return;
+      }
       const newV = Math.min(
         Math.max(
           parseInt(zone.cc_controllers[ix].val + Math.sign(e.deltaY)),
@@ -862,6 +865,9 @@ function renderControllersForZone(zone, index, movement) {
       }
     });
     pot.addEventListener('mousedown', (e) => {
+      if (zone.editCC) {
+        return;
+      }
       potDragHandler.startDrag(
         pot,
         e,
@@ -879,10 +885,10 @@ function renderControllersForZone(zone, index, movement) {
       );
     });
   });
-  DOM.all(`#zone${index} .ccpot *[data-action]`).forEach((e) => {
+  DOM.all(`#zone${index} .ccpots *[data-action]`).forEach((e) => {
     e.addEventListener('click', actionHandler);
   });
-  DOM.all(`#zone${index} .ccpot *[data-change]`).forEach((e) => {
+  DOM.all(`#zone${index} .ccpots *[data-change]`).forEach((e) => {
     e.addEventListener('input', actionHandler);
   });
   updateValuesForZone(index);
@@ -1160,28 +1166,26 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
     DOM.element(`#pot_value_${zoneindex}_${ix}`).setAttribute('d', valuePath);
     DOM.element(`#pot_zero_${zoneindex}_${ix}`).style.display =
       c.type == 1 ? 'block' : 'none';
-    DOM.element(`#pot_${zoneindex}_${ix} .cc .cc-in`).value =
-      c.number_in || c.number;
-    DOM.element(`#pot_${zoneindex}_${ix} .cc .cc-out`).value = c.number;
-    DOM.element(`#pot_${zoneindex}_${ix} input.cclabel`).value = c.label;
+
+    const tools = DOM.element(`#zone${zoneindex} .cc-editor`);
+
     DOM.element(`#pot_${zoneindex}_${ix} div.cclabel`).innerHTML = c.label;
     DOM.element(`#pot_${zoneindex}_${ix} .value`).innerHTML =
       c.type == 1 ? c.val - 64 : c.val;
-    var typeLabel = '';
-    switch (c.type) {
-      case 1:
-        typeLabel = 'bipolar';
-        break;
-      case 2:
-        typeLabel = 'spacer';
-        break;
-      case 0:
-      default:
-        typeLabel = 'unipolar';
-        break;
+
+    if (ix == zone.selectedCCIndex) {
+      DOM.addClass(`#pot_${zoneindex}_${ix}`, 'selected');
+      if (zone.editCC) {
+        tools.querySelector('.cclabel').value = c.label;
+        tools.querySelector('.cc-in').value = c.number_in || c.number;
+        tools.querySelector('.cc-out').value = c.number;
+        tools.querySelector('.cc-min').value = c.min || 0;
+        tools.querySelector('.cc-max').value = c.max || 127;
+        tools.querySelector('.cc_change_type').value = c.type;
+      }
+    } else {
+      DOM.removeClass(`#pot_${zoneindex}_${ix}`, 'selected');
     }
-    DOM.element(`#pot_${zoneindex}_${ix} .cc_change_type`).innerHTML =
-      typeLabel;
     if (c.type == 2) {
       DOM.addClass(`#pot_${zoneindex}_${ix}`, 'spacer');
     } else {

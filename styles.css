@@ -403,11 +403,8 @@ option {
   background-color: var(--zone-color);
 }
 
-.zone input[type='color'] {
-  display: none;
-}
-
-.zone input[type='number'] {
+.zone input[type='number'],
+.zone input[type='text'] {
   height: 20px;
   padding: 0 0 0 0;
   min-width: 4em;
@@ -1030,11 +1027,11 @@ li {
 
 .ccpots {
   display: none;
+  position: relative;
   padding: 8px 0 0 0;
-  font-size: 10px;
+  /* font-size: 10px; */
   flex-wrap: wrap;
   --ccpot-width: 56px;
-  width: calc((var(--ccpot-width) + 5px) * 8);
   background-color: var(--bg-color-alternative);
 }
 
@@ -1054,135 +1051,40 @@ li {
   position: relative;
   width: var(--ccpot-width);
   height: 64px;
-  perspective: 200px;
 }
 
-.ccpot.moved-left,
-.ccpot.moved-right {
-  animation-duration: 500ms;
-  animation-iteration-count: 1;
-}
-
-.ccpot.moved-left {
-  animation-name: moved-left;
-}
-
-.ccpot.moved-right {
-  animation-name: moved-right;
-}
-
-@keyframes moved-left {
-  from {
-    left: var(--ccpot-width);
-    background-color: var(--darker-1);
-  }
-
-  to {
-    left: 0;
-    background-color: transparent;
-  }
-}
-
-@keyframes moved-right {
-  from {
-    left: calc(var(--ccpot-width) * -1);
-    background-color: var(--darker-1);
-  }
-
-  to {
-    left: 0;
-    background-color: transparent;
-  }
-}
-
-.ccpot .ccpot-inner {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  transition: transform 0.8s;
-  transform-style: preserve-3d;
-}
-
-.ccpots.cc-edit .ccpot-inner {
-  transform: rotateY(-180deg);
-}
-
-.ccpot-front,
-.ccpot-back {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  backface-visibility: hidden;
-}
-
-.ccpot-back {
-  transform: rotateY(-180deg);
-  font-size: 8px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background-image: linear-gradient(135deg, var(--brighter-1), transparent);
-  justify-content: space-between;
-}
-
-.ccpot-back .material-icons {
-  font-size: 12px;
-}
-
-.ccpots.cc-edit .ccpot-front {
-  pointer-events: none;
-}
-
-.ccpots.cc-edit .edit-cc-button {
+.cc-edit .ccpot.selected {
   background-color: var(--brighter-1);
 }
 
-.cc_tools {
-  opacity: 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  align-content: center;
-  width: 100%;
-  color: var(--text-base-color);
-  transition: opacity 500ms;
+.ccpot.spacer * {
+  display: none;
 }
 
-.ccpot:hover .cc_tools {
-  opacity: 1;
+.cc-edit .ccpot.spacer::after {
+  content: '(spacer)';
+  position: absolute;
+  font-size: 9px;
+  font-style: italic;
+  bottom: 15%;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: var(--brighter-3);
 }
 
-.ccpot input {
-  background-color: transparent;
-  box-shadow: none;
-  border: none;
-  color: var(--text-base-color);
+/* .ccpots.cc-edit .ccpot {
+  pointer-events: none;
+} */
+
+.ccpots.cc-edit .edit-cc-button {
+  background-color: var(--brighter-1);
 }
 
 .ccpot svg {
   position: absolute;
   top: 3px;
   left: 0;
-}
-
-.ccpot.spacer .ccpot-inner::after {
-  content: ' ';
-  position: absolute;
-  top: 5%;
-  bottom: 5%;
-  left: 50%;
-  width: 1%;
-  background-color: var(--brighter-2);
-}
-
-.ccpot.spacer .ccpot-front {
-  display: none;
-  pointer-events: none;
-}
-
-.ccpot.spacer .ccpot-back .cc,
-.ccpot.spacer .ccpot-back .cclabel {
-  visibility: hidden;
 }
 
 .ccpot .cclabel {
@@ -1195,10 +1097,6 @@ li {
   text-overflow: ellipsis;
 }
 
-.ccpot input.cclabel {
-  color: var(--text-base-color);
-}
-
 .ccpot .value {
   position: absolute;
   cursor: default;
@@ -1206,40 +1104,41 @@ li {
   left: 0;
   right: 0;
   text-align: center;
+  font-size: 9px;
 }
 
-.ccpot .cc {
-  display: flex;
-  width: 100%;
-  justify-content: space-evenly;
-  align-items: center;
+.cc-editor {
+  display: none;
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  z-index: 1;
+  top: 100%;
 }
 
-.ccpot .cc input {
-  width: 33%;
-  text-align: center;
-  font-size: 10px;
-  background-color: var(--darker-1);
+.cc-edit .cc-editor {
+  display: block;
 }
 
 .ccpotttools {
   height: 64px;
   width: var(--ccpot-width);
   color: var(--text-base-color);
-  font-size: 9px;
+  font-size: 16px;
   text-align: center;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
+  flex-direction: row;
+  justify-content: space-evenly;
+  align-items: flex-end;
+  padding-bottom: 8px;
+}
+
+.flex-row {
+  display: flex;
   align-items: center;
-}
-
-.ccpotttools .material-icons {
-  font-size: 16px;
-}
-
-.ccpots *[data-action] {
-  cursor: pointer;
+  justify-content: flex-start;
+  gap: 5px;
+  margin-bottom: 5px;
 }
 
 .innertoggle {
