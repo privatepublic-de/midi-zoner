@@ -322,6 +322,33 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
         );
       }
     },
+    cc_min: () => {
+      element.value = element.value.replace(/[^0-9]/, ''); // TODO generalize
+      if (element.value != '') {
+        zone.cc_controllers[zone.selectedCCIndex].min = parseInt(element.value);
+        updateControllerValues(zone, zoneindex);
+      }
+    },
+    cc_max: () => {
+      element.value = element.value.replace(/[^0-9]/, ''); // TODO generalize
+      if (element.value != '') {
+        zone.cc_controllers[zone.selectedCCIndex].max = parseInt(element.value);
+        updateControllerValues(zone, zoneindex);
+      }
+    },
+    cc_button_label: () => {
+      zone.cc_controllers[zone.selectedCCIndex][`buttonlabel${params[2]}`] =
+        element.value;
+      updateControllerValues(zone, zoneindex);
+    },
+    cc_button_value: () => {
+      element.value = element.value.replace(/[^0-9]/, ''); // TODO generalize
+      if (element.value != '') {
+        zone.cc_controllers[zone.selectedCCIndex][`buttonvalue${params[2]}`] =
+          parseInt(element.value);
+        updateControllerValues(zone, zoneindex);
+      }
+    },
     cc_add: () => {
       zone.cc_controllers.splice(parseInt(zone.selectedCCIndex) + 1, 0, {
         number: 1,
@@ -337,6 +364,7 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
     },
     cc_remove: () => {
       zone.cc_controllers.splice(zone.selectedCCIndex, 1);
+      zone.selectedCCIndex--;
       renderControllersForZone(zone, zoneindex);
     },
     cc_change_type: () => {
@@ -829,7 +857,7 @@ function renderMarkersForZone(index, tempLo, tempHigh) {
   }
 }
 
-function renderControllersForZone(zone, index) {
+function renderControllersForZone(/** @type {Zone} */ zone, index) {
   DOM.all(`#zone${index} .ccpots .ccpot`).forEach((e) => e.remove());
   DOM.addHTML(
     `#zone${index} .ccpots`,
@@ -846,6 +874,9 @@ function renderControllersForZone(zone, index) {
 
   DOM.all(`#zone${index} .ccpots .ccpot`).forEach((pot, ix) => {
     pot.addEventListener('wheel', (e) => {
+      if (zone.cc_controllers[ix].type > 1) {
+        return;
+      }
       e.preventDefault();
       if (zone.editCC) {
         return;
@@ -865,7 +896,7 @@ function renderControllersForZone(zone, index) {
       }
     });
     pot.addEventListener('mousedown', (e) => {
-      if (zone.editCC) {
+      if (zone.cc_controllers[ix].type > 1 || zone.editCC) {
         return;
       }
       potDragHandler.startDrag(
@@ -1166,16 +1197,47 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
     DOM.element(`#pot_value_${zoneindex}_${ix}`).setAttribute('d', valuePath);
     DOM.element(`#pot_zero_${zoneindex}_${ix}`).style.display =
       c.type == 1 ? 'block' : 'none';
-
+    const potcontainer = DOM.element(`#pot_${zoneindex}_${ix}`);
+    potcontainer.dataset.type = c.type;
+    DOM.element(`#pot_${zoneindex}_${ix} div.cclabel`).innerHTML = c.label;
+    let displayValue = c.val;
+    if (c.type == 0) {
+      displayValue = zone.remapCCValue(c.val, ix);
+    } else if (c.type == 1) {
+      displayValue = displayValue - 64;
+    }
+    DOM.element(`#pot_${zoneindex}_${ix} .value`).innerHTML = displayValue;
     const tools = DOM.element(`#zone${zoneindex} .cc-editor`);
 
-    DOM.element(`#pot_${zoneindex}_${ix} div.cclabel`).innerHTML = c.label;
-    DOM.element(`#pot_${zoneindex}_${ix} .value`).innerHTML =
-      c.type == 1 ? c.val - 64 : c.val;
+    if (c.type == 3) {
+      // buttons
+      for (let i = 0; i < 4; i++) {
+        const btn = potcontainer.querySelector(`.ccbtn${i}`);
+        const label = c[`buttonlabel${i}`];
+        const number = c[`buttonvalue${i}`];
+        if (typeof label != 'undefined' && typeof number != 'undefined') {
+          btn.style.display = 'block';
+          btn.innerHTML = label;
+        } else {
+          btn.style.display = 'none';
+        }
+        if (ix == zone.selectedCCIndex) {
+          const labelin = tools.querySelector(
+            `input[data-change="${zoneindex}:cc_button_label:${i}"]`
+          );
+          const valuein = tools.querySelector(
+            `input[data-change="${zoneindex}:cc_button_value:${i}"]`
+          );
+          labelin.value = label || '';
+          valuein.value = number || '';
+        }
+      }
+    }
 
     if (ix == zone.selectedCCIndex) {
       DOM.addClass(`#pot_${zoneindex}_${ix}`, 'selected');
       if (zone.editCC) {
+        tools.dataset.type = c.type;
         tools.querySelector('.cclabel').value = c.label;
         tools.querySelector('.cc-in').value = c.number_in || c.number;
         tools.querySelector('.cc-out').value = c.number;
@@ -1185,11 +1247,6 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
       }
     } else {
       DOM.removeClass(`#pot_${zoneindex}_${ix}`, 'selected');
-    }
-    if (c.type == 2) {
-      DOM.addClass(`#pot_${zoneindex}_${ix}`, 'spacer');
-    } else {
-      DOM.removeClass(`#pot_${zoneindex}_${ix}`, 'spacer');
     }
   });
 

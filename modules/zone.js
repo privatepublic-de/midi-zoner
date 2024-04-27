@@ -401,15 +401,10 @@ class Zone {
           for (let i = 0; i < this.cc_controllers.length; i++) {
             const ctrl = this.cc_controllers[i];
             if (ctrl.type != 2 && ctrl.number_in == data[1]) {
-              const valueIn = data[2];
-              const valueOut = parseInt(
-                ctrl.min + (ctrl.max - ctrl.min) * (valueIn / 127.0)
-              );
-              ctrl.val = valueIn;
               const outevent = new Uint8Array(3);
               outevent[0] = MIDI.MESSAGE.CONTROLLER + this.channel;
               outevent[1] = ctrl.number;
-              outevent[2] = valueIn;
+              outevent[2] = this.remapCCValue(valueIn, i);
               this.midi.send(outevent, this.outputPortId);
               handledByCCControl = true;
             }
@@ -804,7 +799,7 @@ class Zone {
       Uint8Array.from([
         MIDI.MESSAGE.CONTROLLER + this.channel,
         this.cc_controllers[index].number,
-        this.cc_controllers[index].val
+        this.remapCCValue(this.cc_controllers[index].val, index)
       ]),
       this.outputPortId
     );
@@ -824,6 +819,11 @@ class Zone {
     for (let i = 0; i < this.cc_controllers.length; i++) {
       this.sendCC(i);
     }
+  }
+
+  remapCCValue(valueIn, ccIndex) {
+    const ctrl = this.cc_controllers[ccIndex];
+    return parseInt(ctrl.min + (ctrl.max - ctrl.min) * (valueIn / 127.0));
   }
 }
 

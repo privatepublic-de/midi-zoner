@@ -449,20 +449,20 @@
   </div>
   <div class="ccpots">
     <div class="ccpotttools">
-      <div>
-        <i
-          class="material-icons edit-cc-button"
-          title="Edit controls"
-          data-action="${index}:cc_edit"
-          >edit</i
-        >
-      </div>
-      <div>
+      <div class="action-light">
         <i
           class="material-icons"
           data-action="${index}:send_all_cc"
           title="Send all values"
           >double_arrow</i
+        >
+      </div>
+      <div class="action-light">
+        <i
+          class="material-icons edit-cc-button"
+          title="Edit controls"
+          data-action="${index}:cc_edit"
+          >edit</i
         >
       </div>
     </div>
@@ -485,7 +485,7 @@
         <div class="action" data-action="${index}:cc_left">
           <span class="material-icons" title="Move left">arrow_back</span>
         </div>
-        <div class="action" data-action="${index}:cc_remove">
+        <div class="action warn" data-action="${index}:cc_remove">
           <span class="material-icons" title="Remove">close</span>
         </div>
         <div class="action" data-action="${index}:cc_add">
@@ -495,7 +495,7 @@
           <span class="material-icons" title="Move right">arrow_forward</span>
         </div>
       </div>
-      <div class="flex-row">
+      <div class="flex-row values">
         <label>In</label>
         <input
           type="number"
@@ -512,22 +512,84 @@
           max="127"
           data-change="${index}:cc_number"
         />
-        <label>Min</label>
+        <label class="minmax">Min</label>
         <input
           type="number"
-          class="cc-min"
+          class="cc-min minmax"
           min="0"
           max="127"
           data-change="${index}:cc_min"
         />
-        <label>Max</label>
+        <label class="minmax">Max</label>
         <input
           type="number"
-          class="cc-max"
+          class="cc-max minmax"
           min="0"
           max="127"
           data-change="${index}:cc_max"
         />
+        <label class="cc_buttons">Buttons</label>
+        <div class="cc_buttons">
+          <table>
+            <tr>
+              <td>
+                <input
+                  type="text"
+                  placeholder="(Label)"
+                  data-change="${index}:cc_button_label:0"
+                />
+              </td>
+              <td>
+                <input
+                  type="number"
+                  min="0"
+                  max="127"
+                  placeholder="(Val)"
+                  data-change="${index}:cc_button_value:0"
+                />
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <input type="text" data-change="${index}:cc_button_label:1" />
+              </td>
+              <td>
+                <input
+                  type="number"
+                  min="0"
+                  max="127"
+                  data-change="${index}:cc_button_value:1"
+                />
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <input type="text" data-change="${index}:cc_button_label:2" />
+              </td>
+              <td>
+                <input
+                  type="number"
+                  min="0"
+                  max="127"
+                  data-change="${index}:cc_button_value:2"
+                />
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <input type="text" data-change="${index}:cc_button_label:3" />
+              </td>
+              <td>
+                <input
+                  type="number"
+                  min="0"
+                  max="127"
+                  data-change="${index}:cc_button_value:3"
+                />
+              </td>
+            </tr>
+          </table>
+        </div>
       </div>
     </div>
   </div>

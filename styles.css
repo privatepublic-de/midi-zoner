@@ -564,7 +564,7 @@ option {
   display: none;
   gap: 5px;
   padding: 4px;
-  background-color: var(--bg-color-alternative);
+  background-color: var(--bg-color);
 }
 
 .arp-enabled .arp-settings {
@@ -614,12 +614,19 @@ option {
   cursor: grabbing;
 }
 
-.action {
+.action,
+.action-light {
   transition: background-color ease-out 200ms;
+  cursor: pointer;
 }
 
-.action:active {
+.action:active,
+.action-light:active {
   background-color: var(--brighter-4);
+}
+
+.action.warn {
+  background-color: var(--red-highlight);
 }
 
 .check {
@@ -1032,7 +1039,7 @@ li {
   /* font-size: 10px; */
   flex-wrap: wrap;
   --ccpot-width: 56px;
-  background-color: var(--bg-color-alternative);
+  background-color: var(--bg-color);
 }
 
 .show-cc .ccpots {
@@ -1050,18 +1057,18 @@ li {
 .ccpot {
   position: relative;
   width: var(--ccpot-width);
-  height: 64px;
+  height: 72px;
 }
 
 .cc-edit .ccpot.selected {
   background-color: var(--brighter-1);
 }
 
-.ccpot.spacer * {
+.ccpot[data-type='2'] * {
   display: none;
 }
 
-.cc-edit .ccpot.spacer::after {
+.cc-edit .ccpot[data-type='2']::after {
   content: '(spacer)';
   position: absolute;
   font-size: 9px;
@@ -1072,10 +1079,6 @@ li {
   text-align: center;
   color: var(--brighter-3);
 }
-
-/* .ccpots.cc-edit .ccpot {
-  pointer-events: none;
-} */
 
 .ccpots.cc-edit .edit-cc-button {
   background-color: var(--brighter-1);
@@ -1100,7 +1103,7 @@ li {
 .ccpot .value {
   position: absolute;
   cursor: default;
-  top: 30px;
+  top: 35px;
   left: 0;
   right: 0;
   text-align: center;
@@ -1120,14 +1123,23 @@ li {
   display: block;
 }
 
+.cc-editor[data-type='2'] .values {
+  visibility: hidden;
+}
+
+.cc-editor:not([data-type='0']) .minmax {
+  display: none;
+}
+
 .ccpotttools {
-  height: 64px;
-  width: var(--ccpot-width);
+  position: absolute;
+  right: 5px;
+  bottom: 0;
   color: var(--text-base-color);
   font-size: 16px;
   text-align: center;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   justify-content: space-evenly;
   align-items: flex-end;
   padding-bottom: 8px;
@@ -1139,6 +1151,46 @@ li {
   justify-content: flex-start;
   gap: 5px;
   margin-bottom: 5px;
+}
+
+.cc_buttons {
+  display: none;
+}
+
+.cc-editor[data-type='3'] .cc_buttons {
+  display: block;
+}
+
+.ccpot .ccpotcontroller {
+  display: none;
+}
+
+.ccpot[data-type='0'] .rotary,
+.ccpot[data-type='1'] .rotary {
+  display: block;
+}
+.ccpot[data-type='3'] .buttons {
+  display: block;
+}
+
+.ccbtn {
+  font-size: 9px;
+  padding: 0 1px;
+  margin: 1px 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-wrap: nowrap;
+  text-align: center;
+  border: 1px solid var(--darker-1);
+  background-color: var(--bg-color);
+  cursor: pointer;
+  border-radius: 2px;
+}
+
+.ccbtn:hover,
+.ccbtn.selected {
+  background-color: var(--brighter-4);
+  color: var(--darker-4);
 }
 
 .innertoggle {
@@ -1182,7 +1234,7 @@ li {
   display: none;
   margin: 4px 0;
   position: relative;
-  background-color: var(--bg-color-alternative);
+  background-color: var(--bg-color);
   --step-size: 20px;
 }
 
