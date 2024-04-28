@@ -349,6 +349,14 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
         updateControllerValues(zone, zoneindex);
       }
     },
+    cc_button_trig: () => {
+      const ccindex = params[2];
+      const btnindex = params[3];
+      zone.cc_controllers[ccindex].val =
+        zone.cc_controllers[ccindex][`buttonvalue${btnindex}`];
+      zone.sendCC(ccindex);
+      updateControllerValues(zone, zoneindex);
+    },
     cc_add: () => {
       zone.cc_controllers.splice(parseInt(zone.selectedCCIndex) + 1, 0, {
         number: 1,
@@ -1214,10 +1222,15 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
       for (let i = 0; i < 4; i++) {
         const btn = potcontainer.querySelector(`.ccbtn${i}`);
         const label = c[`buttonlabel${i}`];
-        const number = c[`buttonvalue${i}`];
-        if (typeof label != 'undefined' && typeof number != 'undefined') {
+        const value = c[`buttonvalue${i}`];
+        if (typeof label != 'undefined' && typeof value != 'undefined') {
           btn.style.display = 'block';
           btn.innerHTML = label;
+          if (value == c.val) {
+            btn.classList.add('selected');
+          } else {
+            btn.classList.remove('selected');
+          }
         } else {
           btn.style.display = 'none';
         }
@@ -1229,7 +1242,7 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
             `input[data-change="${zoneindex}:cc_button_value:${i}"]`
           );
           labelin.value = label || '';
-          valuein.value = number || '';
+          valuein.value = value || '';
         }
       }
     }
