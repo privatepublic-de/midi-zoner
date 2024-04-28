@@ -1130,6 +1130,11 @@ li {
   display: block;
 }
 
+.cc-editor .values {
+  border-top: 1px solid var(--brighter-1);
+  padding-top: 5px;
+}
+
 .cc-editor[data-type='2'] .values {
   visibility: hidden;
 }
