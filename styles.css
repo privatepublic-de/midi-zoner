@@ -1038,7 +1038,7 @@ li {
   padding: 8px 0 0 0;
   /* font-size: 10px; */
   flex-wrap: wrap;
-  --ccpot-width: 56px;
+  --ccpot-width: 64px;
   background-color: var(--bg-color);
 }
 
@@ -1185,7 +1185,7 @@ li {
   background-color: var(--bg-color);
   cursor: pointer;
   border-radius: 2px;
-  color: var(--darker-3);
+  color: var(--text-base-color);
 }
 
 .ccbtn:hover,
