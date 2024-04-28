@@ -30,7 +30,7 @@
 }
 
 :root {
-  --text-base-color: #ffffff;
+  --text-base-color: #f0f6f8;
   --bg-window: #272422;
   --fg-window: #ddd;
   --scrollbar: #383838;
@@ -1062,7 +1062,12 @@ li {
 }
 
 .cc-edit .ccpot.selected {
-  background-color: var(--brighter-1);
+  background-color: var(--darker-1);
+  outline: 4px solid var(--text-base-color);
+}
+
+.cc-edit .ccpot {
+  cursor: pointer;
 }
 
 .ccpot[data-type='2'] * {
@@ -1156,10 +1161,16 @@ li {
 }
 
 .cc_buttons {
+  display: flex;
+  justify-content: center;
+}
+.cc_buttoncontainer {
   display: none;
+  padding: 5px 0;
+  border: 1px solid var(--brighter-1);
 }
 
-.cc-editor[data-type='3'] .cc_buttons {
+.cc-editor[data-type='3'] .cc_buttoncontainer {
   display: block;
 }
 
@@ -1172,7 +1183,14 @@ li {
   display: block;
 }
 .ccpot[data-type='3'] .buttons {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  height: 56px;
+  justify-content: space-around;
+}
+
+.cc-edit .buttons {
+  pointer-events: none;
 }
 
 .ccbtn {
@@ -1192,7 +1210,8 @@ li {
 
 .ccbtn:hover,
 .ccbtn.selected {
-  background-color: var(--brighter-3);
+  background-color: var(--brighter-2);
+  border-color: var(--brighter-2);
   color: var(--darker-4);
 }
 
