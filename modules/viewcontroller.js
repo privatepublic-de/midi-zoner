@@ -1242,7 +1242,7 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
             `input[data-change="${zoneindex}:cc_button_value:${i}"]`
           );
           labelin.value = label || '';
-          valuein.value = value || '';
+          valuein.value = value;
         }
       }
     }

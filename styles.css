@@ -59,6 +59,7 @@
   --brighter-3: rgba(255, 255, 255, 0.75);
   --brighter-4: rgba(255, 255, 255, 1);
 
+  --darker-0: rgba(0, 0, 0, 0.075);
   --darker-1: rgba(0, 0, 0, 0.15);
   --darker-2: rgba(0, 0, 0, 0.34);
   --darker-3: rgba(0, 0, 0, 0.5);
@@ -1098,6 +1099,7 @@ li {
   color: var(--text-base-color);
   white-space: nowrap;
   text-overflow: ellipsis;
+  border-bottom: 1px solid var(--brighter-1);
 }
 
 .ccpot .value {
@@ -1182,7 +1184,7 @@ li {
   text-wrap: nowrap;
   text-align: center;
   border: 1px solid var(--darker-1);
-  background-color: var(--bg-color);
+  background-color: var(--darker-0);
   cursor: pointer;
   border-radius: 2px;
   color: var(--text-base-color);
@@ -1190,7 +1192,7 @@ li {
 
 .ccbtn:hover,
 .ccbtn.selected {
-  background-color: var(--brighter-4);
+  background-color: var(--brighter-3);
   color: var(--darker-4);
 }
 

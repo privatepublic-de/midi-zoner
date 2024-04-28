@@ -401,10 +401,11 @@ class Zone {
           for (let i = 0; i < this.cc_controllers.length; i++) {
             const ctrl = this.cc_controllers[i];
             if (ctrl.type != 2 && ctrl.number_in == data[1]) {
+              ctrl.val = data[2];
               const outevent = new Uint8Array(3);
               outevent[0] = MIDI.MESSAGE.CONTROLLER + this.channel;
               outevent[1] = ctrl.number;
-              outevent[2] = this.remapCCValue(valueIn, i);
+              outevent[2] = this.remapCCValue(data[2], i);
               this.midi.send(outevent, this.outputPortId);
               handledByCCControl = true;
             }
