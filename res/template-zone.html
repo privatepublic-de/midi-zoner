@@ -479,7 +479,7 @@
         <select class="cc_change_type" data-change="${index}:cc_change_type">
           <option value="0">Rotary</option>
           <option value="1">Rotary (+/-)</option>
-          <option value="3">Button</option>
+          <option value="3">Buttons</option>
           <option value="2">Spacer</option>
         </select>
         <div class="action" data-action="${index}:cc_left">
@@ -528,67 +528,52 @@
           max="127"
           data-change="${index}:cc_max"
         />
-        <label class="cc_buttons">Buttons</label>
-        <div class="cc_buttons">
-          <table>
-            <tr>
-              <td>
-                <input
-                  type="text"
-                  placeholder="(Label)"
-                  data-change="${index}:cc_button_label:0"
-                />
-              </td>
-              <td>
-                <input
-                  type="number"
-                  min="0"
-                  max="127"
-                  placeholder="(Val)"
-                  data-change="${index}:cc_button_value:0"
-                />
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <input type="text" data-change="${index}:cc_button_label:1" />
-              </td>
-              <td>
-                <input
-                  type="number"
-                  min="0"
-                  max="127"
-                  data-change="${index}:cc_button_value:1"
-                />
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <input type="text" data-change="${index}:cc_button_label:2" />
-              </td>
-              <td>
-                <input
-                  type="number"
-                  min="0"
-                  max="127"
-                  data-change="${index}:cc_button_value:2"
-                />
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <input type="text" data-change="${index}:cc_button_label:3" />
-              </td>
-              <td>
-                <input
-                  type="number"
-                  min="0"
-                  max="127"
-                  data-change="${index}:cc_button_value:3"
-                />
-              </td>
-            </tr>
-          </table>
+      </div>
+      <div class="cc_buttoncontainer">
+        <div class="flex-row cc_buttons">
+          <label>Button 1</label>
+          <input
+            type="text"
+            placeholder="(Label)"
+            data-change="${index}:cc_button_label:0"
+          />
+          <input
+            type="number"
+            min="0"
+            max="127"
+            placeholder="(Val)"
+            data-change="${index}:cc_button_value:0"
+          />
+        </div>
+        <div class="flex-row cc_buttons">
+          <label>Button 2</label>
+          <input type="text" data-change="${index}:cc_button_label:1" />
+          <input
+            type="number"
+            min="0"
+            max="127"
+            data-change="${index}:cc_button_value:1"
+          />
+        </div>
+        <div class="flex-row cc_buttons">
+          <label>Button 3</label>
+          <input type="text" data-change="${index}:cc_button_label:2" />
+          <input
+            type="number"
+            min="0"
+            max="127"
+            data-change="${index}:cc_button_value:2"
+          />
+        </div>
+        <div class="flex-row cc_buttons">
+          <label>Button 4</label>
+          <input type="text" data-change="${index}:cc_button_label:3" />
+          <input
+            type="number"
+            min="0"
+            max="127"
+            data-change="${index}:cc_button_value:3"
+          />
         </div>
       </div>
     </div>

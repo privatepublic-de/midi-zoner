@@ -1223,7 +1223,11 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
         const btn = potcontainer.querySelector(`.ccbtn${i}`);
         const label = c[`buttonlabel${i}`];
         const value = c[`buttonvalue${i}`];
-        if (typeof label != 'undefined' && typeof value != 'undefined') {
+        if (
+          typeof label != 'undefined' &&
+          typeof value != 'undefined' &&
+          label.trim() != ''
+        ) {
           btn.style.display = 'block';
           btn.innerHTML = label;
           if (value == c.val) {
