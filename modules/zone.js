@@ -92,7 +92,7 @@ class Zone {
     // type 0: unipolar, 1: bipolar, 2: spacer, 3: button
     {
       number: 7,
-      number_in: 7,
+      number_in: null,
       label: 'Volume',
       val: 100,
       type: 0,
@@ -101,7 +101,7 @@ class Zone {
     },
     {
       number: 1,
-      number_in: 1,
+      number_in: null,
       label: 'Mod Wheel',
       val: 0,
       type: 0,

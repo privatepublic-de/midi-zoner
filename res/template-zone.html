@@ -475,6 +475,14 @@
           style="width: 8em"
           data-change="${index}:cc_label"
         />
+        <label>CC#</label>
+        <input
+          type="number"
+          class="cc-out"
+          min="0"
+          max="127"
+          data-change="${index}:cc_number"
+        />
         <label>Type</label>
         <select class="cc_change_type" data-change="${index}:cc_change_type">
           <option value="0">Rotary</option>
@@ -482,6 +490,7 @@
           <option value="3">Buttons</option>
           <option value="2">Spacer</option>
         </select>
+        <div style="flex-grow: 1"></div>
         <div class="action" data-action="${index}:cc_left">
           <span class="material-icons" title="Move left">arrow_back</span>
         </div>
@@ -496,7 +505,7 @@
         </div>
       </div>
       <div class="flex-row values">
-        <label>In</label>
+        <label>Map to input CC#</label>
         <input
           type="number"
           class="cc-in"
@@ -504,15 +513,7 @@
           max="127"
           data-change="${index}:cc_number_in"
         />
-        <label>Out</label>
-        <input
-          type="number"
-          class="cc-out"
-          min="0"
-          max="127"
-          data-change="${index}:cc_number"
-        />
-        <label class="minmax">Min</label>
+        <label class="minmax">Value min</label>
         <input
           type="number"
           class="cc-min minmax"

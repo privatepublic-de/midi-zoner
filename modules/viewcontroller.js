@@ -278,7 +278,7 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
     add_cc_controller: () => {
       zone.cc_controllers.push({
         number: 1,
-        number_in: 1,
+        number_in: null,
         label: `Ctrl #${zone.cc_controllers.length + 1}`,
         val: 0
       });
@@ -290,6 +290,7 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
     },
     send_all_cc: () => {
       zone.sendAllCC();
+      toast('Sent all CC values!', { triggerElement: element });
     },
     cc_edit: () => {
       // TODO rename to toggle
@@ -360,7 +361,7 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
     cc_add: () => {
       zone.cc_controllers.splice(parseInt(zone.selectedCCIndex) + 1, 0, {
         number: 1,
-        number_in: 1,
+        number_in: null,
         min: 0,
         max: 127,
         type: 0,
@@ -1246,7 +1247,7 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
             `input[data-change="${zoneindex}:cc_button_value:${i}"]`
           );
           labelin.value = label || '';
-          valuein.value = value;
+          valuein.value = typeof value == 'undefined' ? '' : value;
         }
       }
     }
@@ -1256,7 +1257,8 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
       if (zone.editCC) {
         tools.dataset.type = c.type;
         tools.querySelector('.cclabel').value = c.label;
-        tools.querySelector('.cc-in').value = c.number_in || c.number;
+        tools.querySelector('.cc-in').value =
+          typeof c.number_in == 'undefined' ? '' : c.number_in;
         tools.querySelector('.cc-out').value = c.number;
         tools.querySelector('.cc-min').value = c.min || 0;
         tools.querySelector('.cc-max').value = c.max || 127;
