@@ -989,8 +989,8 @@ function updateValuesForZone(index) {
     );
     const rgbZonePopup = DOM.hslToRgb(
       zone.hue,
-      zone.saturation,
-      zone.lightness * 0.9
+      zone.saturation * 0.8,
+      zone.lightness * 0.8
     );
     zoneElement.style.setProperty(
       '--bg-color-alternative',
