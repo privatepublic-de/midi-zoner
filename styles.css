@@ -41,11 +41,11 @@
 
 .zone[data-colorindex='0'] {
   --zone-color: #2a4f5f;
-  --bg-color-popup: #2f4852;
+  --bg-color-popup: #315d70;
 }
 .zone[data-colorindex='1'] {
   --zone-color: #2a9d8f;
-  --bg-color-popup: #33837a;
+  --bg-color-popup: #189183;
 }
 .zone[data-colorindex='2'] {
   --zone-color: #e9c46a;
@@ -1648,9 +1648,9 @@ body:not(.running) .seqprogress {
 
 .popup {
   background-color: var(--bg-color-popup);
-  border: 1px solid var(--brighter-2);
+  border: 1px solid var(--brighter-0);
   border-radius: 4px;
   padding: 8px;
-  box-shadow: 0 0.5px 2px var(--brighter-3);
+  box-shadow: 0 0.5px 2px var(--darker-4);
   color: var(--text-base-color);
 }
