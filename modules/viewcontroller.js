@@ -975,53 +975,18 @@ function updateValuesForZone(index) {
       pcnt + '%';
   }
   if (zoneElement) {
+    zoneElement.dataset['colorindex'] = zone.colorIndex;
     DOM.removeClass(`#zone${index} *[data-action]`, 'selected');
     if (Zone.solocount > 0 && !zone.solo) {
       DOM.addClass(`#zone${index}`, 'soloed-out');
     } else {
       DOM.removeClass(`#zone${index}`, 'soloed-out');
     }
-    const rgbZone = DOM.hslToRgb(zone.hue, zone.saturation, zone.lightness);
-    const rgbZoneAlternative = DOM.hslToRgb(
-      zone.hue,
-      zone.saturation,
-      zone.lightness * 1.01
-    );
-    const rgbZonePopup = DOM.hslToRgb(
-      zone.hue,
-      zone.saturation * 0.8,
-      zone.lightness * 0.8
-    );
-    zoneElement.style.setProperty(
-      '--bg-color-alternative',
-      `rgba(${rgbZoneAlternative[0]},${rgbZoneAlternative[1]},${rgbZoneAlternative[2]},1)`
-    );
-    zoneElement.style.setProperty(
-      '--bg-color-popup',
-      `rgba(${rgbZonePopup[0]},${rgbZonePopup[1]},${rgbZonePopup[2]},1)`
-    );
-    zoneElement.style.setProperty(
-      '--zone-color',
-      `rgba(${rgbZone[0]},${rgbZone[1]},${rgbZone[2]},1)`
-    );
-    const zoneHasHeldArp =
-      zone.arp_enabled && zone.arp_hold && zone.arp_holdlist.length > 0;
     const zoneIsEnabled = zone.enabled && (Zone.solocount === 0 || zone.solo);
     if (zoneIsEnabled) {
       DOM.removeClass(`#zone${index}`, 'disabled');
     } else {
       DOM.addClass(`#zone${index}`, 'disabled');
-    }
-    if (zoneIsEnabled || zoneHasHeldArp) {
-      const rgb = zoneHasHeldArp && !zoneIsEnabled ? [50, 50, 50] : rgbZone;
-      const style = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
-      zoneElement.style.backgroundColor = style;
-      zoneElement.style.setProperty('--bg-color', style);
-      DOM.element(`#zone${index} .step-container`).style.backgroundColor = '';
-    } else {
-      const style = 'var(--bg-zone-disabled)'; //`rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`;
-      zoneElement.style.backgroundColor = style;
-      zoneElement.style.setProperty('--bg-color', style);
     }
     if (zone.show_cc) {
       DOM.addClass(`#zone${index}`, 'show-cc');
@@ -1152,8 +1117,6 @@ function updateValuesForZone(index) {
         `#zone${index} select.outport`
       ).selectedOptions[0].innerHTML;
     }
-    //   DOM.element(`#zone${index} .output-config-name`).value =
-    //     zones.outputConfigNames[zone.configId] || '';
     if (midiController.clockOutputPorts[zone.outputPortId] === true) {
       DOM.addClass(`#zone${index} .sendClock`, 'selected');
     }
