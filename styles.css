@@ -569,23 +569,6 @@ option {
   margin-top: -9px;
 }
 
-.hidden {
-  display: flex;
-  flex-wrap: wrap;
-}
-
-.hidden * {
-  opacity: 0;
-  transition: opacity 2s, width 200ms linear, margin 200ms linear;
-  pointer-events: none;
-}
-
-.zone:not(.disabled):hover .hidden * {
-  opacity: 1;
-  transition: opacity 200ms, width 100ms linear, margin 100ms linear;
-  pointer-events: all;
-}
-
 .zone.disabled .range,
 .zone.disabled .toggle_filters {
   pointer-events: none;
@@ -1358,6 +1341,10 @@ li {
   color: transparent;
   font-size: 0;
   overflow: hidden;
+}
+
+.zone.disabled.arp-enabled .showarp {
+  background-color: var(--zone-color);
 }
 
 .zone.disabled.show-seq .showseq {
