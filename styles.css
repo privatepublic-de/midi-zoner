@@ -1622,9 +1622,9 @@ body:not(.running) .seqprogress {
 
 .popup {
   background-color: var(--bg-color-popup);
-  border: 1px solid var(--darker-0);
+  border: 1px solid var(--brighter-0);
   border-radius: 4px;
   padding: 8px;
-  box-shadow: 0 2px 15px var(--brighter-3);
+  box-shadow: 0 0.5px 2px var(--brighter-3);
   color: var(--text-base-color);
 }
