@@ -4,14 +4,6 @@ const MIDI = require('./midi');
 const DIV_TICKS = [
   192, 144, 96, 72, 64, 48, 36, 32, 24, 18, 16, 12, 9, 8, 6, 4, 3, 2
 ]; // 24ppq
-const COLOR_PALETTE_RGB = ['2A4F5F', '2A9D8F', 'E9C46A', 'F4A261', 'E76F51'];
-const COLOR_PALETTE = [
-  DOM.rgb2hsl(DOM.hexToRgb(COLOR_PALETTE_RGB[0])),
-  DOM.rgb2hsl(DOM.hexToRgb(COLOR_PALETTE_RGB[1])),
-  DOM.rgb2hsl(DOM.hexToRgb(COLOR_PALETTE_RGB[2])),
-  DOM.rgb2hsl(DOM.hexToRgb(COLOR_PALETTE_RGB[3])),
-  DOM.rgb2hsl(DOM.hexToRgb(COLOR_PALETTE_RGB[4]))
-];
 
 const note_fill = 'rgba(255,255,255,.67)';
 const note_fill_arp = 'rgba(0,0,0,.2)';
@@ -153,10 +145,6 @@ class Zone {
   dom = {};
 
   _colorIndex = null;
-  hue = 0;
-  saturation = 0;
-  lightness = 0.3;
-
   pgm_no = null; // 1-based: 1-128
 
   rngArp = null;
@@ -181,7 +169,6 @@ class Zone {
     this.rngArpOct = seedrandom();
     this.rngProb = seedrandom();
     this.colorIndex = colorIndex || 0;
-    // this.randomizeColor(colorIndex + 1);
   }
 
   toJSON() {
@@ -214,9 +201,6 @@ class Zone {
       arp_holdlist: this.arp_holdlist,
       arp_sortedHoldList: this.arp_sortedHoldList,
       colorIndex: this._colorIndex,
-      /* hue: this.hue,
-      saturation: this.saturation,
-      lightness: this.lightness, */
       euclid_hits: this.euclid_hits,
       euclid_length: this.euclid_length,
       show_cc: this.show_cc,
@@ -227,9 +211,7 @@ class Zone {
 
   randomizeColor(index) {
     const paletteIndex =
-      typeof index == 'number'
-        ? parseInt(index % COLOR_PALETTE.length)
-        : this.colorIndex + 1;
+      typeof index == 'number' ? parseInt(index % 5) : this.colorIndex + 1;
     this.colorIndex = paletteIndex;
   }
 
@@ -238,10 +220,7 @@ class Zone {
   }
 
   set colorIndex(i) {
-    i = i % COLOR_PALETTE.length;
-    this.hue = COLOR_PALETTE[i][0];
-    this.saturation = COLOR_PALETTE[i][1];
-    this.lightness = COLOR_PALETTE[i][2];
+    i = i % 5; // Color variant count
     this._colorIndex = i;
   }
 
@@ -544,7 +523,7 @@ class Zone {
       const plen = this.arp_pattern.length;
       const width = rect.width / plen;
       const colorEnabled = 'rgba(255, 255, 255, 0.25)';
-      const colorCurrentSteo = '#ffffff';
+      const colorCurrentStep = '#ffffff';
       context.clearRect(0, 0, rect.width, rect.height);
       context.lineWidth = 2;
       for (let i = 0; i < plen; i++) {
@@ -554,16 +533,13 @@ class Zone {
           context.fillRect(0.5 + width * i, 0.5, width - 0.5, 14.5);
         }
         if (isCurrent) {
-          context.fillStyle = colorCurrentSteo;
+          context.fillStyle = colorCurrentStep;
           context.beginPath();
           context.arc(width * i + width / 2, 8, width / 4, 0, 2 * Math.PI);
           context.fill();
         }
       }
       context.beginPath();
-      context.strokeStyle = '#' + COLOR_PALETTE_RGB[this.colorIndex];
-      context.rect(0, 0, rect.width, rect.height);
-      context.stroke();
       context.strokeStyle = 'rgba(255,255,255,.67)';
       context.rect(0, 0, rect.width, rect.height);
       context.stroke();
