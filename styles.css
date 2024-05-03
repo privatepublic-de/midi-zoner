@@ -541,6 +541,11 @@ option {
   color: var(--brighter-3);
 }
 
+.disabled .check.arp_hold.selected {
+  background-color: var(--record-highlight);
+  color: var(--brighter-3);
+}
+
 .ch.solo {
   background-color: var(--darker-1);
 }
