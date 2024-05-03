@@ -740,7 +740,8 @@ option {
 }
 
 input[type='range'] {
-  -webkit-appearance: none;
+  /* -webkit-appearance: none; */
+  appearance: none;
 }
 
 .zone input[type='range']::-webkit-slider-runnable-track {
