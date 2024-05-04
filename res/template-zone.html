@@ -430,23 +430,6 @@
       </div>
     </div>
   </div>
-  <div class="rangeholder">
-    <div
-      class="range"
-      data-hover="${index}:range"
-      data-action="${index}:range"
-      title="Select start and end note
-(hold 'shift' for octave note stepping)"
-    >
-      ${octavemarkers}
-      <span class="rangeborder"></span>
-      <span class="join"></span>
-      <span class="current"></span>
-      <span class="marker low">C-1</span>
-      <span class="marker high">G9</span>
-      <canvas id="canvas${index}" width="100%" height="20"></canvas>
-    </div>
-  </div>
   <div class="ccpots">
     <div class="ccpotttools">
       <div class="action-light">
@@ -577,6 +560,23 @@
           />
         </div>
       </div>
+    </div>
+  </div>
+  <div class="rangeholder">
+    <div
+      class="range"
+      data-hover="${index}:range"
+      data-action="${index}:range"
+      title="Select start and end note
+(hold 'shift' for octave note stepping)"
+    >
+      ${octavemarkers}
+      <span class="rangeborder"></span>
+      <span class="join"></span>
+      <span class="current"></span>
+      <span class="marker low">C-1</span>
+      <span class="marker high">G9</span>
+      <canvas id="canvas${index}" width="100%" height="20"></canvas>
     </div>
   </div>
   <div class="settings">

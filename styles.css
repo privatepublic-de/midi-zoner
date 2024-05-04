@@ -643,6 +643,13 @@ option {
   background-color: var(--red-highlight);
 }
 
+.action.toggle_filters {
+  background-color: transparent;
+}
+.action.toggle_filters:hover {
+  background-color: var(--darker-1);
+}
+
 .check {
   display: flex;
   align-items: center;
