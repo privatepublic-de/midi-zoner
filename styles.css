@@ -1,5 +1,6 @@
 :root {
   --text-base-color: #f0f6f8;
+  --text-popup-color: #333;
   --bg-window: #272422;
   --fg-window: #ddd;
   --scrollbar: #383838;
@@ -41,23 +42,23 @@
 
 .zone[data-colorindex='0'] {
   --zone-color: #2a4f5f;
-  --bg-color-popup: #315d70;
+  --bg-color-popup: #477081;
 }
 .zone[data-colorindex='1'] {
   --zone-color: #2a9d8f;
-  --bg-color-popup: #189183;
+  --bg-color-popup: #3bb1a4;
 }
 .zone[data-colorindex='2'] {
   --zone-color: #e9c46a;
-  --bg-color-popup: #c4a963;
+  --bg-color-popup: #cfb573;
 }
 .zone[data-colorindex='3'] {
   --zone-color: #f4a261;
-  --bg-color-popup: #cc905f;
+  --bg-color-popup: #e19c64;
 }
 .zone[data-colorindex='4'] {
   --zone-color: #e76f51;
-  --bg-color-popup: #bd624c;
+  --bg-color-popup: #e17e66;
 }
 
 @font-face {
@@ -989,13 +990,6 @@ input[type='range'] {
   margin-bottom: 8px;
 }
 
-.ccpotttools label {
-  display: block;
-  font-size: 9px;
-  margin-bottom: 4px;
-  color: var(--brighter-4);
-}
-
 #loadsave {
   position: fixed;
   background: var(--bg-loadsave);
@@ -1167,9 +1161,9 @@ li {
 .ccpotttools {
   position: absolute;
   right: 5px;
-  bottom: 0;
+  bottom: 2.5px;
   color: var(--text-base-color);
-  background-color: var(--darker-0);
+  background-color: var(--bg-color);
   font-size: 14px;
   padding: 0 5px;
   text-align: center;
