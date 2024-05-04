@@ -50,7 +50,7 @@
 }
 .zone[data-colorindex='2'] {
   --zone-color: #e9c46a;
-  --bg-color-popup: #cfb573;
+  --bg-color-popup: #e0bb5d;
 }
 .zone[data-colorindex='3'] {
   --zone-color: #f4a261;
@@ -640,6 +640,10 @@ option {
   background-color: var(--brighter-4);
 }
 
+.action-light:hover {
+  text-decoration: underline;
+}
+
 .action.warn {
   background-color: var(--red-highlight);
 }
@@ -663,6 +667,7 @@ option {
 }
 
 .action,
+.action-light,
 .val,
 .toggle,
 .action-hover,
@@ -1077,8 +1082,8 @@ li {
 }
 
 .cc-edit .ccpot.selected {
-  background-color: var(--brighter-1);
-  outline: 4px solid var(--text-base-color);
+  background-color: var(--bg-color-popup);
+  box-shadow: 0 0.5px 2px var(--darker-4);
 }
 
 .cc-edit .ccpot {
@@ -1161,17 +1166,14 @@ li {
 .ccpotttools {
   position: absolute;
   right: 5px;
-  bottom: 2.5px;
+  bottom: 0;
   color: var(--text-base-color);
-  background-color: var(--bg-color);
   font-size: 14px;
-  padding: 0 5px;
   text-align: center;
   display: flex;
   flex-direction: row;
   justify-content: space-evenly;
   align-items: flex-end;
-  border-radius: 4px 4px 0 0;
   gap: 5px;
 }
 
@@ -1643,7 +1645,8 @@ body:not(.running) .seqprogress {
   background-color: var(--bg-color-popup);
   border: 1px solid var(--brighter-0);
   border-radius: 4px;
-  padding: 8px;
   box-shadow: 0 0.5px 2px var(--darker-4);
+  padding: 8px;
+
   color: var(--text-base-color);
 }
