@@ -54,7 +54,7 @@
 }
 .zone[data-colorindex='3'] {
   --zone-color: #f4a261;
-  --bg-color-popup: #e19c64;
+  --bg-color-popup: #df8e4b;
 }
 .zone[data-colorindex='4'] {
   --zone-color: #e76f51;
@@ -662,8 +662,8 @@ option {
 }
 
 .check:hover {
-  background-color: var(--darker-1);
   outline: 1px solid var(--brighter-2);
+  outline-offset: 2px;
 }
 
 .action,
@@ -712,6 +712,7 @@ option {
 .sel,
 .unsel {
   margin-right: 4px;
+  font-size: 14px;
 }
 
 .unsel {
@@ -1307,7 +1308,7 @@ li {
 
 .seq .grid {
   position: relative;
-  padding: 8px;
+  padding: 0 8px 5px 8px;
 }
 
 .step-container {
@@ -1337,6 +1338,10 @@ li {
 .step-info .stepmarker {
   display: inline-flex;
   cursor: default;
+}
+
+.showarp {
+  letter-spacing: -0.5px;
 }
 
 .disabled .seq .grid .step {
@@ -1631,7 +1636,7 @@ body:not(.running) .seqprogress {
 .popupsettings {
   position: absolute;
   z-index: 1;
-  top: 100%;
+  top: calc(100% + 5px);
   left: 0;
   right: 0;
   display: none;
