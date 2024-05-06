@@ -424,6 +424,7 @@ option {
   background-image: none;
   background-color: var(--bg-zone-disabled);
   --bg-color: var(--bg-zone-disabled);
+  --text-base-color: #767a7b;
 }
 
 .zone.disabled:not(.soloed-out) .ch.enabled:not(.selected) {
@@ -564,10 +565,6 @@ option {
   flex-wrap: wrap;
   align-items: center;
   color: var(--text-base-color);
-}
-
-.arp-settings + .arp-settings {
-  margin-top: -9px;
 }
 
 .zone.disabled .range,
@@ -760,8 +757,12 @@ input[type='range'] {
   height: 12px;
   width: 12px;
   border-radius: 50%;
-  background: var(--brighter-4);
+  background: #fff;
   margin-top: -3px;
+}
+
+.zone.disabled input[type='range']::-webkit-slider-thumb {
+  background: #999;
 }
 
 .zone input[type='range']:focus {
@@ -970,9 +971,13 @@ input[type='range'] {
 
 .pattern {
   position: relative;
-  display: inline-block;
-  vertical-align: middle;
   cursor: pointer;
+  background-color: var(--brighter-0);
+  padding: 0 1px;
+}
+
+.pattern canvas {
+  vertical-align: middle;
 }
 
 .zone .euclid {
@@ -1353,6 +1358,7 @@ li {
 
 .zone.disabled.arp-enabled .showarp {
   background-color: var(--zone-color);
+  color: var(--brighter-3);
 }
 
 .zone.disabled.show-seq .showseq {

@@ -539,10 +539,10 @@ class Zone {
           context.fill();
         }
       }
-      context.beginPath();
-      context.strokeStyle = 'rgba(255,255,255,.67)';
-      context.rect(0, 0, rect.width, rect.height);
-      context.stroke();
+      // context.beginPath();
+      // context.strokeStyle = 'rgba(255,255,255,.67)';
+      // context.rect(0, 0, rect.width, rect.height);
+      // context.stroke();
     }
   }
 
