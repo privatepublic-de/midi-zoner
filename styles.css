@@ -329,7 +329,8 @@ option {
   padding: 30px 5px 0 5px;
 }
 
-#zones {
+#zones,
+#tools {
   min-height: 30px;
   display: flex;
   flex-wrap: wrap;
@@ -342,7 +343,8 @@ option {
   #zones {
     display: block;
   }
-  .zone {
+  .zone,
+  #tools > div {
     width: 90% !important;
     margin: 0 auto 5px auto;
   }
@@ -353,15 +355,19 @@ option {
   padding: 0 8px;
 }
 
+#tools > div {
+  width: 600px;
+}
+
 .zonedrag #tools {
   display: none;
 }
 
 #newzone {
   background: var(--bg-topbar);
-  margin: 0 auto;
+  /* margin: 0 auto; */
   font-size: 12px;
-  width: 72px;
+  width: 100px;
   height: 24px;
   line-height: 24px;
   display: block;
