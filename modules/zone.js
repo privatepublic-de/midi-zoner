@@ -336,7 +336,7 @@ class Zone {
         case MIDI.MESSAGE.NOTE_ON: // note on
           let key = data[1];
           const srcKey = key;
-          const velo = this.scaledVelocity(data[2]);
+          let velo = this.scaledVelocity(data[2]);
           if (key >= this.low && key <= this.high) {
             if (this.arp_enabled && this.arp_hold && this.arp_transpose) {
               // transposer zone
