@@ -652,6 +652,7 @@ option {
 }
 
 .action.toggle_filters {
+  margin-left: 26px;
   background-color: transparent;
 }
 .action.toggle_filters:hover {
