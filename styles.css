@@ -257,7 +257,7 @@ option {
   padding: 0 4px;
   align-items: center;
   margin-left: 2px;
-  width: 55px;
+  min-width: 55px;
 }
 
 .toolbar {
@@ -1608,6 +1608,7 @@ body:not(.running) .seqprogress {
 
 #clockOutPortsCount {
   font-family: monospace;
+  padding-right: 6px;
 }
 
 #toast {
