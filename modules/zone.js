@@ -841,16 +841,40 @@ class SeqStep {
   }
 }
 
-class Sequence {
-  static MAX_STEPS = 256;
-  static CYCLE_CONDITIONS = [];
-  _active = false;
+class SeqLayer {
   steps = [];
   _division = 14;
   ticks = DIV_TICKS[this._division];
+  length = 16;
+
+  get division() {
+    return this._division;
+  }
+
+  set division(v) {
+    this._division = v;
+    this.ticks = DIV_TICKS[v];
+  }
+
+  toJSON() {
+    return {
+      steps: this.steps,
+      length: this.length,
+      ticks: this.ticks,
+      division: this._division
+    };
+  }
+}
+
+class Sequence {
+  static MAX_STEPS = 256;
+  static CYCLE_CONDITIONS = [];
+  static ACTIVE_LAYER = 0;
+
+  _active = false;
+  layers = [new SeqLayer(), new SeqLayer(), new SeqLayer(), new SeqLayer()];
   currentStepNumber = -1;
   previousStepNumber = -1;
-  length = 16;
   zone = null;
   _selectedStep = -1;
   isHotRecordingNotes = false;
@@ -873,10 +897,11 @@ class Sequence {
   toJSON() {
     return {
       active: this.active,
-      steps: this.steps,
-      ticks: this.ticks,
-      length: this.length,
-      division: this._division
+      // steps: this.steps,
+      layers: this.layers
+      // ticks: this.ticks,
+      // length: this.length,
+      // division: this._division
     };
   }
 
@@ -897,13 +922,41 @@ class Sequence {
     return this._active;
   }
 
+  get length() {
+    return this.activeLayer.length;
+  }
+
+  set length(len) {
+    this.activeLayer.length = len;
+  }
+
   get division() {
-    return this._division;
+    return this.activeLayer.division;
   }
 
   set division(v) {
-    this._division = v;
-    this.ticks = DIV_TICKS[v];
+    this.activeLayer.division = v;
+    // this._division = v;
+    // this.ticks = DIV_TICKS[v];
+  }
+
+  get ticks() {
+    return this.activeLayer.ticks;
+  }
+
+  set ticks(v) {
+    // only for backwards compatibility
+  }
+
+  get steps() {
+    return this.activeLayer.steps;
+  }
+
+  /**
+   * @param {any[]} steplist
+   */
+  set steps(steplist) {
+    this.activeLayer.steps = steplist;
   }
 
   get selectedStepNumber() {
@@ -912,6 +965,10 @@ class Sequence {
 
   get selectedStep() {
     return this._selectedStep > -1 ? this.steps[this._selectedStep] : null;
+  }
+
+  get activeLayer() {
+    return this.layers[Sequence.ACTIVE_LAYER];
   }
 
   /**

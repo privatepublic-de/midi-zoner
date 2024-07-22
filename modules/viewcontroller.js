@@ -1385,6 +1385,11 @@ function toggleSequencerOnZone(index) {
   }
 }
 
+function selectSequencerLayer(layerIndex) {
+  Sequence.ACTIVE_LAYER = layerIndex;
+  updateValuesForAllZones();
+}
+
 let toastTimer;
 function toast(message, properties) {
   const triggerElement = properties.triggerElement;
@@ -1441,6 +1446,7 @@ module.exports = {
   soloZone,
   toggleZoneMute,
   allSoloOff,
+  selectSequencerLayer,
   toggleSequencerOnZone,
   toast
 };

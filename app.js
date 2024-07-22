@@ -678,5 +678,11 @@ document.addEventListener('DOMContentLoaded', function () {
       document.querySelector('input[name="sendinternal"]:checked').value == '1';
     saveZones();
   });
+  DOM.on('#tools *[data-select-seq-layer]', 'click', (ev) => {
+    const el = ev.target;
+    view.selectSequencerLayer(parseInt(el.dataset.selectSeqLayer));
+    DOM.removeClass('#tools *[data-select-seq-layer]', 'selected');
+    DOM.addClass(el, 'selected');
+  });
   view.initController({ saveData: saveZones, data: zones, midi });
 });

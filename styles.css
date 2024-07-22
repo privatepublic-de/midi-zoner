@@ -329,8 +329,7 @@ option {
   padding: 30px 5px 0 5px;
 }
 
-#zones,
-#tools {
+#zones {
   min-height: 30px;
   display: flex;
   flex-wrap: wrap;
@@ -343,44 +342,10 @@ option {
   #zones {
     display: block;
   }
-  .zone,
-  #tools > div {
+  .zone {
     width: 90% !important;
     margin: 0 auto 5px auto;
   }
-}
-
-#tools {
-  margin-top: 8px;
-  padding: 0 8px;
-}
-
-#tools > div {
-  width: 600px;
-}
-
-.zonedrag #tools {
-  display: none;
-}
-
-#newzone {
-  background: var(--bg-topbar);
-  /* margin: 0 auto; */
-  font-size: 12px;
-  width: 100px;
-  height: 24px;
-  line-height: 24px;
-  display: block;
-  text-align: center;
-  color: var(--brighter-1);
-  cursor: pointer;
-  border-radius: 4px;
-  box-shadow: 0 2px 5px var(--shadow-topbar);
-}
-
-#newzone:hover {
-  background: var(--bg-topbar-button);
-  color: var(--brighter-2);
 }
 
 .zone {
@@ -1667,6 +1632,54 @@ body:not(.running) .seqprogress {
   border-radius: 4px;
   box-shadow: 0 0.5px 2px var(--darker-4);
   padding: 8px;
-
   color: var(--text-base-color);
+}
+
+#tools {
+  position: fixed;
+  display: flex;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  justify-content: center;
+  align-items: center;
+  background-color: var(--bg-topbar);
+  padding: 2px 4px;
+  font-size: 12px;
+  gap: 5px;
+  color: var(--brighter-3);
+  box-shadow: 0 2px 5px var(--shadow-topbar);
+  border: 1px solid var(--border-topbar);
+  border-bottom: none;
+  opacity: 0.25;
+  transition: opacity 1s;
+}
+#tools:hover {
+  opacity: 1;
+}
+
+.selectSeq {
+  width: 48px;
+  text-align: center;
+  background-color: var(--bg-topbar-button);
+  padding: 2px;
+  cursor: pointer;
+}
+
+.selectSeq.selected {
+  background-color: var(--red-highlight);
+}
+
+#newzone {
+  background-color: var(--bg-topbar-button);
+  display: block;
+  text-align: center;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+#newzone:hover {
+  background-color: var(--brighter-1);
+  color: var(--brighter-2);
 }
