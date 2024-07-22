@@ -1387,6 +1387,11 @@ function toggleSequencerOnZone(index) {
 
 function selectSequencerLayer(layerIndex) {
   Sequence.ACTIVE_LAYER = layerIndex;
+  DOM.removeClass('#tools *[data-select-seq-layer]', 'selected');
+  DOM.addClass(
+    DOM.all('#tools *[data-select-seq-layer]')[layerIndex],
+    'selected'
+  );
   updateValuesForAllZones();
 }
 

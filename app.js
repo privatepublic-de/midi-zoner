@@ -561,6 +561,10 @@ document.addEventListener('DOMContentLoaded', function () {
             if (letterIndex > -1) {
               view.toggleSequencerOnZone(letterIndex);
             }
+            const layerIndex = 'ZXCV'.indexOf(ev.code.charAt(3));
+            if (layerIndex > -1) {
+              view.selectSequencerLayer(layerIndex);
+            }
           }
         });
         DOM.element('#save').addEventListener('click', (e) => {
@@ -681,8 +685,6 @@ document.addEventListener('DOMContentLoaded', function () {
   DOM.on('#tools *[data-select-seq-layer]', 'click', (ev) => {
     const el = ev.target;
     view.selectSequencerLayer(parseInt(el.dataset.selectSeqLayer));
-    DOM.removeClass('#tools *[data-select-seq-layer]', 'selected');
-    DOM.addClass(el, 'selected');
   });
   view.initController({ saveData: saveZones, data: zones, midi });
 });
