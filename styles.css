@@ -5,6 +5,7 @@
   --fg-window: #ddd;
   --scrollbar: #383838;
   --bg-topbar: #2f2f2f;
+  --bg-topbar-transparent: #2f2f2f9f;
   --shadow-topbar: #272422;
   --border-topbar: #000;
   --highlight-topbar: #3c3c3c;
@@ -36,6 +37,7 @@
   --darker-4: rgba(0, 0, 0, 1);
 
   --red-highlight: rgba(196, 0, 0, 0.4);
+  --orange-highlight: #df8e4b;
   --record-highlight: rgba(255, 0, 0, 0.8);
   --green-highlight: rgba(0, 196, 0, 1);
 }
@@ -1680,7 +1682,7 @@ body:not(.running) .seqprogress {
   transform: translateX(-50%);
   justify-content: center;
   align-items: center;
-  background-color: var(--darker-3);
+  background-color: var(--bg-topbar-transparent);
   padding: 4px;
   font-size: 12px;
   gap: 5px;
@@ -1700,7 +1702,7 @@ body:not(.running) .seqprogress {
 }
 
 .selectSeq.selected {
-  background-color: var(--red-highlight);
+  background-color: var(--orange-highlight);
 }
 
 #newzone {
