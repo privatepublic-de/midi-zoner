@@ -1114,6 +1114,7 @@ class Sequence {
       if (this.currentStepNumber === 0) {
         if (this.activeLayerIndex != this.nextLayerIndex) {
           this.activeLayerIndex = this.nextLayerIndex;
+          this.cycleCount = -1;
           this.updateZoneView();
         }
         this.cycleCount++;
