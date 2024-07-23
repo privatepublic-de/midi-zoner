@@ -1053,8 +1053,16 @@ function updateValuesForZone(index) {
       DOM.element(`#zone${index} .seq_steps`).value = zone.sequence.length;
       DOM.element(`#zone${index} .seq_division`).selectedIndex =
         zone.sequence.division;
-      DOM.element(`#zone${index} .seq-layer-indicator span`).innerHTML =
-        'ABCD'.charAt(zone.sequence.activeLayerIndex);
+      if (zone.sequence.activeLayerIndex != zone.sequence.nextLayerIndex) {
+        DOM.element(`#zone${index} .seq-layer-indicator`).innerHTML =
+          'ABCD'.charAt(zone.sequence.activeLayerIndex) +
+          '<span>' +
+          'ABCD'.charAt(zone.sequence.nextLayerIndex) +
+          '</span';
+      } else {
+        DOM.element(`#zone${index} .seq-layer-indicator`).innerHTML =
+          'ABCD'.charAt(zone.sequence.activeLayerIndex);
+      }
     } else {
       DOM.removeClass(`#zone${index}`, 'show-seq');
       if (zone.sequence.steps.length > 0) {
@@ -1401,9 +1409,7 @@ function selectSequencerLayer(layerIndex) {
     DOM.all('#tools *[data-select-seq-layer]')[layerIndex],
     'selected'
   );
-  if (!clockRunning) {
-    updateValuesForAllZones();
-  }
+  updateValuesForAllZones();
 }
 
 let toastTimer;

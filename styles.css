@@ -1305,15 +1305,24 @@ li {
   display: flex;
 }
 
-.seq-layer-indicator span {
-  display: inline-block;
-  /* width: 24px; */
-  /* text-align: center; */
-  /* padding: 2px;
-  background-color: var(--darker-1); */
+.seq-layer-indicator {
   font-weight: bold;
   margin-top: 4px;
-  color: var(--darker-1);
+  color: var(--brighter-3);
+}
+
+.zone.disabled.show-seq .seq-layer-indicator {
+  margin-top: 0;
+  color: var(--brighter-1);
+  font-size: 10px;
+}
+
+.seq-layer-indicator span {
+  color: var(--brighter-2);
+}
+
+.seq-layer-indicator span::before {
+  content: ' → ';
 }
 
 .step-container {
