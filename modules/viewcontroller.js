@@ -1053,6 +1053,8 @@ function updateValuesForZone(index) {
       DOM.element(`#zone${index} .seq_steps`).value = zone.sequence.length;
       DOM.element(`#zone${index} .seq_division`).selectedIndex =
         zone.sequence.division;
+      DOM.element(`#zone${index} .seq-layer-indicator span`).innerHTML =
+        'ABCD'.charAt(zone.sequence.activeLayerIndex);
     } else {
       DOM.removeClass(`#zone${index}`, 'show-seq');
       if (zone.sequence.steps.length > 0) {
@@ -1386,13 +1388,22 @@ function toggleSequencerOnZone(index) {
 }
 
 function selectSequencerLayer(layerIndex) {
-  Sequence.ACTIVE_LAYER = layerIndex;
+  const clockRunning = midiController.isClockRunning;
+  Sequence.ACTIVE_LAYER_INDEX = layerIndex;
+  zones.list.forEach((zone) => {
+    zone.sequence.nextLayerIndex = layerIndex;
+    if (!clockRunning) {
+      zone.sequence.activeLayerIndex = layerIndex;
+    }
+  });
   DOM.removeClass('#tools *[data-select-seq-layer]', 'selected');
   DOM.addClass(
     DOM.all('#tools *[data-select-seq-layer]')[layerIndex],
     'selected'
   );
-  updateValuesForAllZones();
+  if (!clockRunning) {
+    updateValuesForAllZones();
+  }
 }
 
 let toastTimer;

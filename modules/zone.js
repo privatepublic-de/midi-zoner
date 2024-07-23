@@ -869,7 +869,7 @@ class SeqLayer {
 class Sequence {
   static MAX_STEPS = 256;
   static CYCLE_CONDITIONS = [];
-  static ACTIVE_LAYER = 0;
+  static ACTIVE_LAYER_INDEX = 0;
 
   _active = false;
   layers = [new SeqLayer(), new SeqLayer(), new SeqLayer(), new SeqLayer()];
@@ -889,6 +889,8 @@ class Sequence {
   liveTargetStep = null;
   liveTargetLength = 0;
   tickn = 0;
+  activeLayerIndex = Sequence.ACTIVE_LAYER_INDEX;
+  nextLayerIndex = Sequence.ACTIVE_LAYER_INDEX;
 
   constructor(zone) {
     this.zone = zone;
@@ -897,11 +899,7 @@ class Sequence {
   toJSON() {
     return {
       active: this.active,
-      // steps: this.steps,
       layers: this.layers
-      // ticks: this.ticks,
-      // length: this.length,
-      // division: this._division
     };
   }
 
@@ -936,8 +934,6 @@ class Sequence {
 
   set division(v) {
     this.activeLayer.division = v;
-    // this._division = v;
-    // this.ticks = DIV_TICKS[v];
   }
 
   get ticks() {
@@ -966,9 +962,11 @@ class Sequence {
   get selectedStep() {
     return this._selectedStep > -1 ? this.steps[this._selectedStep] : null;
   }
-
+  /**
+   * @returns {SeqLayer}
+   */
   get activeLayer() {
-    return this.layers[Sequence.ACTIVE_LAYER];
+    return this.layers[this.activeLayerIndex];
   }
 
   /**
@@ -1080,8 +1078,8 @@ class Sequence {
   clock(pos) {
     this.tickn = pos % this.ticks;
     let refreshNotesDisplay = false;
-    // check for active steps ending
     if (this.activeSteps.length > 0) {
+      // check for active steps ending
       const clearSteps = [];
       this.activeSteps.forEach((astep) => {
         if (this.tickn === 0) astep.played++;
@@ -1114,6 +1112,10 @@ class Sequence {
       this.previousStepNumber = this.currentStepNumber;
       this.currentStepNumber = (this.currentStepNumber + 1) % this.length;
       if (this.currentStepNumber === 0) {
+        if (this.activeLayerIndex != this.nextLayerIndex) {
+          this.activeLayerIndex = this.nextLayerIndex;
+          this.updateZoneView();
+        }
         this.cycleCount++;
         if (this.cycleCount === 1) {
           this.isFirstCycle = false;
@@ -1128,7 +1130,6 @@ class Sequence {
           ) {
             currentStep.played = 0;
             this.activeSteps.push(currentStep);
-            // currentStep.lastPlayedArray.length = 0;
             for (let inote of currentStep.notesArray) {
               let note = Note.clone(inote);
               note.number = note.number; // + this.zone.octave * 12;
@@ -1182,6 +1183,7 @@ class Sequence {
     this.liveTargetLength = 0;
     this.liveTargetStep = null;
     this.isLiveRecoding = false;
+    this.activeLayerIndex = this.nextLayerIndex;
     this.updateRecordingState();
     requestAnimationFrame(this.zone.renderSequence.bind(this.zone));
     requestAnimationFrame(this.zone.renderNotes.bind(this.zone));
@@ -1228,6 +1230,7 @@ class Sequence {
 }
 
 if (Sequence.CYCLE_CONDITIONS.length == 0) {
+  // Initialize CYCLE_CONDITIONS
   for (let cycles = 2; cycles < 9; cycles++) {
     for (let b = 0; b < cycles; b++) {
       Sequence.CYCLE_CONDITIONS.push([cycles, b + 1]);
