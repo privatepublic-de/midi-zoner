@@ -545,6 +545,16 @@ document.addEventListener('DOMContentLoaded', function () {
         updateBpmInput();
         updateClockOutputCount();
         midi.setInternalBPM(zones.tempo);
+        document.body.addEventListener('keydown', (ev) => {
+          if (
+            !isLoadSaveDialogOpenend &&
+            document.activeElement.tagName != 'INPUT'
+          ) {
+            if (ev.key == ' ') {
+              ev.preventDefault();
+            }
+          }
+        });
         document.body.addEventListener('keyup', (ev) => {
           if (
             !isLoadSaveDialogOpenend &&
