@@ -1321,10 +1321,20 @@ li {
 
 .seq-layer-indicator span {
   color: var(--brighter-2);
+  animation: layerChangeIndication 333ms infinite alternate linear;
 }
 
 .seq-layer-indicator span::before {
   content: ' → ';
+}
+
+@keyframes layerChangeIndication {
+  0% {
+    color: var(--brighter-1);
+  }
+  100% {
+    color: var(--brighter-4);
+  }
 }
 
 .step-container {
