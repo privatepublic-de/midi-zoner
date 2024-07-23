@@ -1305,12 +1305,16 @@ li {
   position: relative;
   padding: 0 8px 5px 8px;
   display: flex;
+  align-items: flex-start;
 }
 
 .seq-layer-indicator {
-  font-weight: bold;
+  width: 48px;
   margin-top: 4px;
+  padding: 0 4px;
+  text-align: center;
   color: var(--brighter-3);
+  background-color: var(--darker-1);
 }
 
 .zone.disabled.show-seq .seq-layer-indicator {
