@@ -605,16 +605,22 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
       updateValuesForZone(zoneindex);
     },
     seq_copy: () => {
-      Zone.seqClipboardSequence = JSON.stringify(zone.sequence);
+      const copyData = {
+        steps: zone.sequence.steps,
+        length: zone.sequence.length,
+        division: zone.sequence.division
+      };
+      Zone.seqClipboardSequence = JSON.stringify(copyData);
       toast('Sequence copied to clipboard.', { triggerElement: element });
     },
     seq_paste: () => {
       if (Zone.seqClipboardSequence) {
-        Object.assign(zone.sequence, JSON.parse(Zone.seqClipboardSequence));
+        const copyData = JSON.parse(Zone.seqClipboardSequence);
+        Object.assign(zone.sequence, copyData);
         updateValuesForZone(zoneindex);
         toast('Sequence pasted from clipboard.', { triggerElement: element });
       } else {
-        toast('Nothing to paste, clipboard is empty.', {
+        toast('Clipboard is empty, nothing to paste.', {
           triggerElement: element
         });
       }
