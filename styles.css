@@ -1323,21 +1323,16 @@ li {
   font-size: 10px;
 }
 
-.seq-layer-indicator span {
-  color: var(--brighter-2);
-  animation: layerChangeIndication 333ms infinite alternate linear;
-}
-
-.seq-layer-indicator span::before {
-  content: ' → ';
+.seq-layer-indicator.pending {
+  animation: layerChangeIndication 500ms infinite alternate linear;
 }
 
 @keyframes layerChangeIndication {
   0% {
-    color: var(--brighter-1);
+    background-color: var(--darker-1);
   }
   100% {
-    color: var(--brighter-4);
+    background-color: var(--brighter-2);
   }
 }
 

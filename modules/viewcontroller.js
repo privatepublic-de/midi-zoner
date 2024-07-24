@@ -1059,15 +1059,15 @@ function updateValuesForZone(index) {
       DOM.element(`#zone${index} .seq_steps`).value = zone.sequence.length;
       DOM.element(`#zone${index} .seq_division`).selectedIndex =
         zone.sequence.division;
+      const layerIndicator = DOM.element(`#zone${index} .seq-layer-indicator`);
       if (zone.sequence.activeLayerIndex != zone.sequence.nextLayerIndex) {
-        DOM.element(`#zone${index} .seq-layer-indicator`).innerHTML =
-          'ABCD'.charAt(zone.sequence.activeLayerIndex) +
-          '<span>' +
-          'ABCD'.charAt(zone.sequence.nextLayerIndex) +
-          '</span';
+        layerIndicator.classList.add('pending');
+        layerIndicator.innerHTML = 'ABCD'.charAt(zone.sequence.nextLayerIndex);
       } else {
-        DOM.element(`#zone${index} .seq-layer-indicator`).innerHTML =
-          'ABCD'.charAt(zone.sequence.activeLayerIndex);
+        layerIndicator.classList.remove('pending');
+        layerIndicator.innerHTML = 'ABCD'.charAt(
+          zone.sequence.activeLayerIndex
+        );
       }
     } else {
       DOM.removeClass(`#zone${index}`, 'show-seq');
