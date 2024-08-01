@@ -247,7 +247,7 @@
             ${cycleConditions}
           </select>
         </div>
-        <div class="label">Prob</div>
+        <div class="label">Chance</div>
         <div class="percent-holder">
           <input
             class="percent seq_step_probability"
@@ -256,7 +256,7 @@
             max="100"
             data-change="${index}:seq_step_probability"
             id="seq_step_probability${index}"
-            title="Step probability"
+            title="Chance step is triggered"
           />
           <output for="seq_step_probability${index}">(unset)</output>
         </div>
@@ -306,7 +306,7 @@
             <option>Step Length</option>
             <option>Gate Length</option>
             <option>Condition</option>
-            <option>Probability</option>
+            <option>Chance</option>
           </select>
         </div>
       </div>
@@ -373,8 +373,11 @@
         />
         <output for="arp_gatelength${index}">---</output>
       </div>
-      <div class="label">Prob</div>
-      <div class="percent-holder">
+      <div class="label">Chance</div>
+      <div
+        class="percent-holder"
+        title="Chance arpeggiator notes are triggered"
+      >
         <input
           type="range"
           class="percent arp_probability"
