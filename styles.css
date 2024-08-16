@@ -1692,7 +1692,7 @@ body:not(.running) .seqprogress {
   justify-content: center;
   align-items: center;
   background-color: var(--bg-topbar-transparent);
-  padding: 4px;
+  padding: 4px 6px;
   font-size: 12px;
   gap: 5px;
   color: var(--brighter-3);
