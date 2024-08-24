@@ -847,15 +847,6 @@ class SeqLayer {
   ticks = DIV_TICKS[this._division];
   length = 16;
 
-  get division() {
-    return this._division;
-  }
-
-  set division(v) {
-    this._division = v;
-    this.ticks = DIV_TICKS[v];
-  }
-
   toJSON() {
     return {
       steps: this.steps,
@@ -934,6 +925,8 @@ class Sequence {
 
   set division(v) {
     this.activeLayer.division = v;
+    this.activeLayer.ticks = DIV_TICKS[v];
+    console.log('Set division', v, this.activeLayer);
   }
 
   get ticks() {
