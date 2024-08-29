@@ -330,10 +330,13 @@ class Zone {
   }
 
   handleMidi(message, data) {
-    if (this.enabled && (Zone.solocount === 0 || this.solo)) {
+    if (
+      (this.enabled && (Zone.solocount === 0 || this.solo)) ||
+      (message === MIDI.MESSAGE.CONTROLLER && this.show_cc)
+    ) {
       switch (message) {
-        case MIDI.MESSAGE.NOTE_OFF: // note off
-        case MIDI.MESSAGE.NOTE_ON: // note on
+        case MIDI.MESSAGE.NOTE_OFF:
+        case MIDI.MESSAGE.NOTE_ON:
           let key = data[1];
           const srcKey = key;
           let velo = this.scaledVelocity(data[2]);
@@ -843,8 +846,8 @@ class SeqStep {
 
 class SeqLayer {
   steps = [];
-  _division = 14;
-  ticks = DIV_TICKS[this._division];
+  division = 14;
+  ticks = DIV_TICKS[this.division];
   length = 16;
 
   toJSON() {
@@ -852,7 +855,7 @@ class SeqLayer {
       steps: this.steps,
       length: this.length,
       ticks: this.ticks,
-      division: this._division
+      division: this.division
     };
   }
 }
