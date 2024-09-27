@@ -1052,8 +1052,10 @@ class Sequence {
           let infoText = '';
           if (notesArray && notesArray.length > 0) {
             notesArray.forEach((note) => {
-              infoText +=
-                '<span class="note">' + Note.display(note.number) + '</span> ';
+              const velopcnt = (note.velo / 127) * 100;
+              infoText += `<span class="note"><span class="velocity" style="height:${velopcnt}%"></span>${Note.display(
+                note.number
+              )}</span> `;
             });
           } else {
             infoText += '<i>(... play notes on keyboard ...)</i>';

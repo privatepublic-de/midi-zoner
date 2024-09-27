@@ -192,7 +192,12 @@
     <div class="step-info popup" data-action="${index}:ignore">
       <div class="step-controls">
         <div class="stepmarker listen-indicator"></div>
-        <div class="step-notes"></div>
+        <div
+          class="step-notes"
+          data-dragvalue="${index}:seq_step_velocity"
+          data-draghint="Velocity: "
+          title="Drag with mouse to change velocity values"
+        ></div>
         <div
           class="check seq-step-add-notes"
           data-action="${index}:seq_step_add_notes"

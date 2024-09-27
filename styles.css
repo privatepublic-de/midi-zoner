@@ -1470,8 +1470,21 @@ li {
 .seq .step-info .note {
   background-color: var(--darker-0);
   color: var(--text-base-color);
-  padding: 0 4px;
-  box-shadow: 0 0 2px var(--darker-1);
+  padding: 2px 4px 2px 4px;
+  display: inline-block;
+  position: relative;
+  box-shadow: 0 1px 4px #00000060;
+}
+
+.seq .step-info .note .velocity {
+  position: absolute;
+  height: 0;
+  bottom: 0;
+  left: 0;
+  /* width: 2px; */
+  right: 0;
+  background-color: var(--brighter-1);
+  border-top: 1px solid var(--darker-1);
 }
 
 .zone.disabled .seq .step-info,
@@ -1490,6 +1503,12 @@ li {
 
 .step-notes {
   flex-grow: 1;
+  padding: 2px;
+  cursor: ew-resize;
+}
+
+.step-notes:hover {
+  outline: 2px solid var(--darker-1);
 }
 
 .step-notes i {
@@ -1727,4 +1746,20 @@ body:not(.running) .seqprogress {
 .selectSeq:not(.selected):hover {
   background-color: var(--brighter-1);
   color: var(--brighter-2);
+}
+
+#valuefollow {
+  position: absolute;
+  display: none;
+  z-index: 1000;
+  pointer-events: none;
+  background: var(--bg-loadsave);
+  color: var(--text-base-color);
+  border-radius: 4px;
+  padding: 4px;
+  margin-left: -1rem;
+  text-align: center;
+  font-size: 12px;
+  margin-top: 1rem;
+  box-shadow: 1px 1px 3px var(--shadow-zone);
 }

@@ -72,10 +72,12 @@ function findTouchedNote(
   };
 }
 
-function actionHandler(/** @type {MouseEvent} */ ev) {
+function actionHandler(/** @type {MouseEvent} */ ev, precalculatedValue) {
   const element = ev.currentTarget;
   let action =
-    element.getAttribute('data-action') || element.getAttribute('data-change');
+    element.getAttribute('data-action') ||
+    element.getAttribute('data-change') ||
+    element.getAttribute('data-dragvalue');
   if (
     (ev.type == 'blur' || ev.type == 'focus') &&
     element.hasAttribute('data-focus-change')
@@ -500,6 +502,15 @@ function actionHandler(/** @type {MouseEvent} */ ev) {
         updateValuesForZone(zoneindex);
       }
     },
+    seq_step_velocity: () => {
+      if (zone.sequence.selectedStep) {
+        zone.sequence.selectedStep.notesArray.forEach((note) => {
+          const newvelo = note.velo + precalculatedValue;
+          note.velo = Math.max(1, Math.min(127, newvelo));
+        });
+        updateValuesForZone(zoneindex);
+      }
+    },
     seq_step_apply_to_all: () => {
       const actionIndex = element.selectedIndex;
       if (zone.sequence.selectedStep && actionIndex > 0) {
@@ -787,6 +798,41 @@ function appendZone(/** @type {Zone} */ zone, index) {
   DOM.all(`#zone${index} *[data-focus-change]`).forEach((e) => {
     e.addEventListener('focus', actionHandler);
     e.addEventListener('blur', actionHandler);
+  });
+  const followValueDiv = DOM.element('#valuefollow');
+  DOM.all(`#zone${index} *[data-dragvalue]`).forEach((e) => {
+    let dragstartx = 0;
+    let dragvalue = 0;
+    let isdragging = false;
+    const hint = e.getAttribute('data-draghint');
+    const updateDragValue = (ev) => {
+      followValueDiv.style.top = ev.pageY + 'px';
+      followValueDiv.style.left = ev.pageX + 'px';
+      followValueDiv.innerHTML = hint + (dragvalue >= 0 ? '+' : '') + dragvalue;
+    };
+    e.addEventListener('mousedown', (ev) => {
+      isdragging = true;
+      dragstartx = ev.pageX;
+      dragvalue = 0;
+      followValueDiv.style.display = 'block';
+      updateDragValue(ev);
+    });
+    e.addEventListener('mousemove', (ev) => {
+      if (isdragging) {
+        dragvalue = ev.pageX - dragstartx;
+        updateDragValue(ev);
+      }
+    });
+    const dragendhandler = (ev) => {
+      if (isdragging) {
+        isdragging = false;
+        followValueDiv.style.display = 'none';
+        dragvalue = ev.pageX - dragstartx;
+        actionHandler(ev, dragvalue);
+      }
+    };
+    e.addEventListener('mouseup', dragendhandler);
+    e.addEventListener('mouseleave', dragendhandler);
   });
   DOM.all(`#zone${index} *[data-hover]`).forEach((e) => {
     e.addEventListener('mousemove', hoverHandler);

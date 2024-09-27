@@ -6,18 +6,18 @@ const internalClock = require('./internal-clock');
 class MIDI {
   static INTERNAL_PORT_ID = '*';
   static NOTENAMES = [
-    'C',
+    'C-',
     'C#',
-    'D',
+    'D-',
     'D#',
-    'E',
-    'F',
+    'E-',
+    'F-',
     'F#',
-    'G',
+    'G-',
     'G#',
-    'A',
+    'A-',
     'A#',
-    'B'
+    'B-'
   ];
   static MESSAGE = {
     NOTE_OFF: 0x80,
