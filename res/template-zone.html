@@ -103,13 +103,6 @@
           data-change="${index}:seq_steps"
         />
       </div>
-      <div
-        class="action"
-        title="Double sequence"
-        data-action="${index}:seq_double"
-      >
-        <small>x2</small>
-      </div>
       <div class="drop-down" title="Step resolution">
         <select class="seq_division" data-change="${index}:seq_division">
           ${noteLengthOptions}
@@ -162,6 +155,14 @@
             <option value="10">+10</option>
             <option value="11">+11</option>
           </optgroup>
+        </select>
+      </div>
+      <div class="drop-down" title="Adjust whole sequence">
+        <select data-change="${index}:seq_adjust">
+          <option>Adjust steps</option>
+          <option value="double">Double</option>
+          <option value="halftime">Half time</option>
+          <option value="thirdtime">Third time</option>
         </select>
       </div>
       <div class="action" title="Copy sequence" data-action="${index}:seq_copy">

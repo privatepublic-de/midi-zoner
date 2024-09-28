@@ -462,7 +462,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, precalculatedValue) {
       toast('Sequence cleared.', { triggerElement: element });
     },
     seq_transpose: () => {
-      let semitones = parseInt(element.options[element.selectedIndex].value);
+      const semitones = parseInt(element.options[element.selectedIndex].value);
       zone.sequence.transpose(semitones);
       toast('Sequence transposed by ' + semitones + ' semitones.', {
         triggerElement: element
@@ -473,7 +473,8 @@ function actionHandler(/** @type {MouseEvent} */ ev, precalculatedValue) {
         DOM.removeClass(`#zone${zoneindex} .grid`, 'steps-changed');
       }, 1000);
     },
-    seq_double: () => {
+    seq_adjust: () => {
+      const adjustment = element.options[element.selectedIndex].value;
       let seq = zone.sequence;
       let srcLength = seq.length;
       let steps = [];
@@ -481,12 +482,45 @@ function actionHandler(/** @type {MouseEvent} */ ev, precalculatedValue) {
         steps[i] = seq.steps[i];
       }
       let stepsCopy = JSON.parse(JSON.stringify(steps));
-      seq.length = seq.length * 2;
-      for (let i = 0; i < srcLength; i++) {
-        seq.steps[srcLength + i] = stepsCopy[i];
+      switch (adjustment) {
+        case 'double':
+          seq.length = seq.length * 2;
+          for (let i = 0; i < srcLength; i++) {
+            seq.steps[srcLength + i] = stepsCopy[i];
+          }
+          updateValuesForZone(zoneindex);
+          toast('Sequence doubled in length.', { triggerElement: element });
+          break;
+        case 'halftime':
+          seq.length = seq.length * 2;
+          for (let i = 0; i < srcLength; i++) {
+            seq.steps[i * 2] = stepsCopy[i];
+            if (seq.steps[i * 2]) {
+              seq.steps[i * 2].length = seq.steps[i * 2].length * 2;
+            }
+            seq.steps[i * 2 + 1] = null;
+          }
+          updateValuesForZone(zoneindex);
+          toast('Sequence made half time slower.', { triggerElement: element });
+          break;
+        case 'thirdtime':
+          seq.length = seq.length * 3;
+          for (let i = 0; i < srcLength; i++) {
+            seq.steps[i * 3] = stepsCopy[i];
+            if (seq.steps[i * 3]) {
+              seq.steps[i * 3].length = seq.steps[i * 3].length * 3;
+            }
+            seq.steps[i * 3 + 1] = seq.steps[i * 3 + 2] = null;
+          }
+          updateValuesForZone(zoneindex);
+          toast('Sequence made one-third time slower.', {
+            triggerElement: element
+          });
+          break;
       }
-      updateValuesForZone(zoneindex);
-      toast('Sequence doubled in length.', { triggerElement: element });
+      setTimeout(() => {
+        element.selectedIndex = 0;
+      }, 100);
     },
     seq_clear_step: () => {
       if (zone.sequence.selectedStepNumber > -1) {
