@@ -501,7 +501,9 @@ function actionHandler(/** @type {MouseEvent} */ ev, precalculatedValue) {
             seq.steps[i * 2 + 1] = null;
           }
           updateValuesForZone(zoneindex);
-          toast('Sequence made half time slower.', { triggerElement: element });
+          toast('Sequence made double time slower.', {
+            triggerElement: element
+          });
           break;
         case 'thirdtime':
           seq.length = seq.length * 3;
@@ -513,7 +515,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, precalculatedValue) {
             seq.steps[i * 3 + 1] = seq.steps[i * 3 + 2] = null;
           }
           updateValuesForZone(zoneindex);
-          toast('Sequence made one-third time slower.', {
+          toast('Sequence made triple time slower.', {
             triggerElement: element
           });
           break;
