@@ -790,13 +790,7 @@ function contextHandler(/** @type {MouseEvent} */ ev) {
   const menuSpecification = element.getAttribute('data-contextmenu');
   const menuActions = menuSpecification.split(',');
   const contextMenuElement = DOM.element('#contextmenu');
-  const srcRect = element.getBoundingClientRect();
-  let top = srcRect.top + 23;
-  if (top > window.innerHeight - 40) {
-    top = top - 26 * 2.25;
-  }
-  contextMenuElement.style.top = top + 'px';
-  contextMenuElement.style.left = srcRect.left - 3 + 'px';
+
   DOM.empty(contextMenuElement);
   function isEnabled(parts) {
     const zoneindex = parseInt(parts[0]);
@@ -840,8 +834,23 @@ function contextHandler(/** @type {MouseEvent} */ ev) {
       actionHandler(event, { contextElement: element });
     });
   });
-  window.dispatchEvent(new CustomEvent('resetHideOnLeaveContextMenuTimeout'));
+  const bgColor = element.computedStyleMap().get('--bg-color-popup');
   contextMenuElement.style.display = 'block';
+  contextMenuElement.style.setProperty('--bg-contextmenu', bgColor);
+  const srcRect = element.getBoundingClientRect();
+  const menuRect = contextMenuElement.getBoundingClientRect();
+  let top = srcRect.top + srcRect.height;
+  let left = srcRect.left - 3;
+  if (top + menuRect.height > window.innerHeight) {
+    top = window.innerHeight - menuRect.height;
+    if (top < srcRect.top) {
+      left += srcRect.width;
+    }
+  }
+  contextMenuElement.style.top = top + 'px';
+  contextMenuElement.style.left = left + 'px';
+
+  window.dispatchEvent(new CustomEvent('resetHideOnLeaveContextMenuTimeout'));
   DOM.removeClass('*', 'contextMenuTrigger');
   DOM.addClass(element, 'contextMenuTrigger');
 }

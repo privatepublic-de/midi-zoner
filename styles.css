@@ -1,7 +1,7 @@
 :root {
   --text-base-color: #f0f6f8;
-  --text-popup-color: #333;
-  --text-contextmenu-color: #333;
+  --text-toast-color: #333;
+  --text-contextmenu-color: #f0f6f8;
   --bg-window: #272422;
   --fg-window: #ddd;
   --scrollbar: #383838;
@@ -1654,7 +1654,7 @@ body:not(.running) .seqprogress {
   top: 50px;
   margin-left: -130px;
   background: var(--bg-toast);
-  color: var(--text-popup-color);
+  color: var(--text-toast-color);
   font-size: 12px;
   box-shadow: 1px 1px 3px var(--shadow-zone);
   display: none;
@@ -1783,7 +1783,8 @@ body:not(.running) .seqprogress {
 }
 
 #contextmenu li.disabled {
-  color: var(--darker-1);
+  color: var(--darker-2);
+  font-style: italic;
   pointer-events: none;
 }
 
@@ -1798,7 +1799,7 @@ body:not(.running) .seqprogress {
 }
 
 .contextMenuTrigger {
-  outline: 2px solid var(--bg-contextmenu);
+  outline: 2px solid var(--brighter-2);
   outline-offset: 2px;
 }
 
