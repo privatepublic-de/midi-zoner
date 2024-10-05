@@ -20,6 +20,7 @@
   --bg-loadsave: #444;
   --bg-loadsave-item: #555;
   --bg-select-window: #111;
+  --bg-toast: #ff9;
   --shadow-zone: #111;
 
   --bg-zone-disabled: rgba(255, 255, 255, 0.07);
@@ -1650,35 +1651,35 @@ body:not(.running) .seqprogress {
   left: 50%;
   top: 50px;
   margin-left: -130px;
-  background: var(--bg-loadsave);
-  color: var(--text-base-color);
+  background: var(--bg-toast);
+  color: var(--text-popup-color);
   font-size: 12px;
   box-shadow: 1px 1px 3px var(--shadow-zone);
   display: none;
   z-index: 2;
 }
 
-#toast.fade {
+/* #toast.fade {
   animation: 2s 1 ease-in toastfade;
 }
 
 #toast.fadelong {
-  animation: 5s 1 ease-in toastfade;
-}
+  animation: 500ms 1 ease-in toastfade;
+} */
 
 #toast .toastinner {
   padding: 5px;
   text-align: center;
 }
 
-@keyframes toastfade {
+/* @keyframes toastfade {
   0% {
     opacity: 1;
   }
   100% {
     opacity: 0;
   }
-}
+} */
 
 .popupsettings {
   position: absolute;

@@ -1507,7 +1507,7 @@ function toast(message, properties) {
   const position = properties.position;
   if (toastTimer) {
     clearTimeout(toastTimer);
-    toastHide();
+    // toastHide();
   }
   DOM.element('#toast .toastinner').innerHTML = message;
   if (position) {
