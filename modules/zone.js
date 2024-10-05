@@ -929,7 +929,6 @@ class Sequence {
   set division(v) {
     this.activeLayer.division = v;
     this.activeLayer.ticks = DIV_TICKS[v];
-    console.log('Set division', v, this.activeLayer);
   }
 
   get ticks() {

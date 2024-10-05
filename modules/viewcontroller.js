@@ -13,7 +13,11 @@ const contextMenuActionLabel = {
   seq_clear_step: 'Clear step',
   seq_clear_all: 'Clear complete sequence',
   seq_copy: 'Copy sequence',
-  seq_paste: 'Paste sequence'
+  seq_paste: 'Paste sequence',
+  seq_copy_to_layer_0: 'Copy sequence to layer A',
+  seq_copy_to_layer_1: 'Copy sequence to layer B',
+  seq_copy_to_layer_2: 'Copy sequence to layer C',
+  seq_copy_to_layer_3: 'Copy sequence to layer D'
 };
 
 let zones = {};
@@ -693,6 +697,34 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
         });
       }
     },
+    seq_copy_to_layer_0: () => {
+      const targetLayer = parseInt(params[2]);
+      const copyData = JSON.parse(
+        JSON.stringify({
+          steps: zone.sequence.steps,
+          length: zone.sequence.length,
+          division: zone.sequence.division,
+          ticks: zone.sequence.ticks
+        })
+      );
+      Object.assign(zone.sequence.layers[targetLayer], copyData);
+      updateValuesForZone(zoneindex);
+      toast(
+        'Sequence copied to layer ' + String.fromCharCode(65 + targetLayer),
+        {
+          triggerElement: triggerElement
+        }
+      );
+    },
+    seq_copy_to_layer_1: () => {
+      actions.seq_copy_to_layer_0();
+    },
+    seq_copy_to_layer_2: () => {
+      actions.seq_copy_to_layer_0();
+    },
+    seq_copy_to_layer_3: () => {
+      actions.seq_copy_to_layer_0();
+    },
     seq_paste_steps: () => {
       if (Zone.seqClipboardSequence) {
         const startIndex = parseInt(params[2]);
@@ -778,6 +810,14 @@ function contextHandler(/** @type {MouseEvent} */ ev) {
       case 'seq_paste_steps':
       case 'seq_paste':
         return Zone.seqClipboardSequence != null;
+      case 'seq_copy_to_layer_0':
+        return Sequence.ACTIVE_LAYER_INDEX != 0;
+      case 'seq_copy_to_layer_1':
+        return Sequence.ACTIVE_LAYER_INDEX != 1;
+      case 'seq_copy_to_layer_2':
+        return Sequence.ACTIVE_LAYER_INDEX != 2;
+      case 'seq_copy_to_layer_3':
+        return Sequence.ACTIVE_LAYER_INDEX != 3;
     }
     return true;
   }
