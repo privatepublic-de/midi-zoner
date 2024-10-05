@@ -9,8 +9,11 @@ const { Sequence } = require('./zone');
 const contextMenuActionLabel = {
   seq_copy_step: 'Copy step',
   seq_paste_step: 'Paste step',
-  seq_paste_steps: 'Paste sequence',
-  seq_clear_step: 'Clear step'
+  seq_paste_steps: 'Paste sequence from here',
+  seq_clear_step: 'Clear step',
+  seq_clear_all: 'Clear complete sequence',
+  seq_copy: 'Copy sequence',
+  seq_paste: 'Paste sequence'
 };
 
 let zones = {};
@@ -690,6 +693,26 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
         });
       }
     },
+    seq_paste_steps: () => {
+      if (Zone.seqClipboardSequence) {
+        const startIndex = parseInt(params[2]);
+        const seqData = JSON.parse(Zone.seqClipboardSequence);
+        for (let i = 0; i < seqData.length; i++) {
+          zone.sequence.steps[startIndex + i] = seqData.steps[i];
+        }
+        if (zone.sequence.length < startIndex + seqData.length) {
+          zone.sequence.length = startIndex + seqData.length;
+        }
+        updateValuesForZone(zoneindex);
+        toast(`Sequence from clipboard pasted from step ${startIndex + 1}.`, {
+          triggerElement: triggerElement
+        });
+      } else {
+        toast('Clipboard is empty, nothing to paste.', {
+          triggerElement: triggerElement
+        });
+      }
+    },
     seq_step_condition: () => {
       if (zone.sequence.selectedStep) {
         zone.sequence.selectedStep.condition = element.selectedIndex;
@@ -753,6 +776,7 @@ function contextHandler(/** @type {MouseEvent} */ ev) {
       case 'seq_paste_step':
         return Zone.seqClipboardStep != null;
       case 'seq_paste_steps':
+      case 'seq_paste':
         return Zone.seqClipboardSequence != null;
     }
     return true;

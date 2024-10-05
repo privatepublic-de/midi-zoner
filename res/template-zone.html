@@ -165,16 +165,6 @@
           <option value="thirdtime">Triple time</option>
         </select>
       </div>
-      <div class="action" title="Copy sequence" data-action="${index}:seq_copy">
-        <i class="material-icons">content_copy</i>
-      </div>
-      <div
-        class="action"
-        title="Paste sequence"
-        data-action="${index}:seq_paste"
-      >
-        <i class="material-icons">content_paste</i>
-      </div>
       <div
         class="action"
         title="Clear complete sequence"
@@ -275,24 +265,30 @@
         >
           <i class="material-icons">chevron_left</i>
         </div>
+
+        <div
+          class="drop-down"
+          style="flex-grow: 1; justify-content: center"
+          title="Apply step properties to all active steps in sequence"
+        >
+          <select
+            class=""
+            data-change="${index}:seq_step_apply_to_all"
+            style="background-color: transparent"
+          >
+            <option>Apply to all other steps…</option>
+            <option>Step Length</option>
+            <option>Gate Length</option>
+            <option>Condition</option>
+            <option>Chance</option>
+          </select>
+        </div>
         <div
           class="action"
           title="Move step right (if free space)"
           data-action="${index}:seq_step_move:1"
         >
           <i class="material-icons">chevron_right</i>
-        </div>
-        <div
-          class="drop-down"
-          title="Apply step properties to all active steps in sequence"
-        >
-          <select class="" data-change="${index}:seq_step_apply_to_all">
-            <option>Apply to all…</option>
-            <option>Step Length</option>
-            <option>Gate Length</option>
-            <option>Condition</option>
-            <option>Chance</option>
-          </select>
         </div>
       </div>
     </div>
