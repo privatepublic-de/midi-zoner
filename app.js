@@ -214,7 +214,21 @@ function closeLoadSaveDialog() {
   isLoadSaveDialogOpenend = false;
 }
 
+let hideOnLeaveContextMenuTimeout = null;
+function resetHideOnLeaveContextMenuTimeout() {
+  if (hideOnLeaveContextMenuTimeout) {
+    clearTimeout(hideOnLeaveContextMenuTimeout);
+  }
+}
+
+function closeContextMenu() {
+  resetHideOnLeaveContextMenuTimeout();
+  DOM.element('#contextmenu').style.display = 'none';
+  DOM.removeClass('*', 'contextMenuTrigger');
+}
+
 document.addEventListener('DOMContentLoaded', function () {
+  const contextMenuElement = DOM.element('#contextmenu');
   DOM.on(document, 'click', bodyClickHandler);
   const select_in_clock = DOM.element('#midiClockInDeviceId');
   const startClockButton = DOM.element('#startClockButton');
@@ -697,4 +711,19 @@ document.addEventListener('DOMContentLoaded', function () {
     view.selectSequencerLayer(parseInt(el.dataset.selectSeqLayer));
   });
   view.initController({ saveData: saveZones, data: zones, midi });
+
+  contextMenuElement.addEventListener('mouseleave', function () {
+    hideOnLeaveContextMenuTimeout = setTimeout(() => {
+      closeContextMenu();
+    }, 1333);
+  });
+  contextMenuElement.addEventListener('mousemove', function () {
+    resetHideOnLeaveContextMenuTimeout();
+  });
+  window.addEventListener('closeContextMenu', closeContextMenu);
+  window.addEventListener(
+    'resetHideOnLeaveContextMenuTimeout',
+    resetHideOnLeaveContextMenuTimeout
+  );
+  onBackgroundClick(closeContextMenu, '#contextmenu');
 });

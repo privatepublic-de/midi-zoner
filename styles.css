@@ -1,6 +1,7 @@
 :root {
   --text-base-color: #f0f6f8;
   --text-popup-color: #333;
+  --text-contextmenu-color: #333;
   --bg-window: #272422;
   --fg-window: #ddd;
   --scrollbar: #383838;
@@ -21,6 +22,7 @@
   --bg-loadsave-item: #555;
   --bg-select-window: #111;
   --bg-toast: #ff9;
+  --bg-contextmenu: #efc;
   --shadow-zone: #111;
 
   --bg-zone-disabled: rgba(255, 255, 255, 0.07);
@@ -1015,14 +1017,14 @@ ul {
 
 li {
   display: block;
-  margin: 0.5em 0;
-  padding: 4px;
-  background: var(--bg-loadsave-item);
+  cursor: pointer;
 }
 
 #loadsave li {
-  cursor: pointer;
   border: 1px solid transparent;
+  margin: 0.5em 0;
+  padding: 4px;
+  background: var(--bg-loadsave-item);
 }
 
 #loadsave li i {
@@ -1763,4 +1765,44 @@ body:not(.running) .seqprogress {
   font-size: 12px;
   margin-top: 1rem;
   box-shadow: 1px 1px 3px var(--shadow-zone);
+}
+
+#contextmenu {
+  position: fixed;
+  display: none;
+  padding: 2px;
+  background-color: var(--bg-contextmenu);
+  color: var(--text-contextmenu-color);
+  font-size: 12px;
+  margin: 0;
+  z-index: 2;
+}
+#contextmenu li {
+  margin: 2px 0;
+  padding: 2px;
+}
+
+#contextmenu li.disabled {
+  color: var(--darker-1);
+  pointer-events: none;
+}
+
+#contextmenu li:hover {
+  background-color: var(--text-contextmenu-color);
+  color: var(--bg-contextmenu);
+}
+
+#contextmenu hr {
+  border: none;
+  border-top: 1px solid var(--darker-2);
+}
+
+.contextMenuTrigger {
+  outline: 2px solid var(--bg-contextmenu);
+  outline-offset: 2px;
+}
+
+#contextmenu,
+.contextMenuTrigger {
+  box-shadow: 0 0.5px 2px var(--darker-4);
 }

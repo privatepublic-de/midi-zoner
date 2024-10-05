@@ -6,6 +6,13 @@ const zoneTemplate = require('./zone-template');
 const potDragHandler = require('./potdraghandler');
 const { Sequence } = require('./zone');
 
+const contextMenuActionLabel = {
+  seq_copy_step: 'Copy step',
+  seq_paste_step: 'Paste step',
+  seq_paste_steps: 'Paste sequence',
+  seq_clear_step: 'Clear step'
+};
+
 let zones = {};
 /** @type {MIDI} */
 let midiController;
@@ -72,7 +79,12 @@ function findTouchedNote(
   };
 }
 
-function actionHandler(/** @type {MouseEvent} */ ev, precalculatedValue) {
+function actionHandler(/** @type {MouseEvent} */ ev, properties) {
+  const precalculatedValue = properties
+    ? properties.precalculatedValue
+    : undefined;
+  const contextElement = properties ? properties.contextElement : undefined;
+  const triggerElement = contextElement || ev.currentTarget;
   const element = ev.currentTarget;
   let action =
     element.getAttribute('data-action') ||
@@ -292,7 +304,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, precalculatedValue) {
     },
     send_all_cc: () => {
       zone.sendAllCC();
-      toast('Sent all CC values!', { triggerElement: element });
+      toast('Sent all CC values!', { triggerElement: triggerElement });
     },
     cc_edit: () => {
       // TODO rename to toggle
@@ -459,13 +471,13 @@ function actionHandler(/** @type {MouseEvent} */ ev, precalculatedValue) {
       zone.sequence.steps.length = 0;
       updateValuesForZone(zoneindex);
       zone.sequence.selectedStepNumber = zone.sequence.selectedStepNumber;
-      toast('Sequence cleared.', { triggerElement: element });
+      toast('Sequence cleared.', { triggerElement: triggerElement });
     },
     seq_transpose: () => {
       const semitones = parseInt(element.options[element.selectedIndex].value);
       zone.sequence.transpose(semitones);
       toast('Sequence transposed by ' + semitones + ' semitones.', {
-        triggerElement: element
+        triggerElement: triggerElement
       });
       DOM.addClass(`#zone${zoneindex} .grid`, 'steps-changed');
       setTimeout(() => {
@@ -489,7 +501,9 @@ function actionHandler(/** @type {MouseEvent} */ ev, precalculatedValue) {
             seq.steps[srcLength + i] = stepsCopy[i];
           }
           updateValuesForZone(zoneindex);
-          toast('Sequence doubled in length.', { triggerElement: element });
+          toast('Sequence doubled in length.', {
+            triggerElement: triggerElement
+          });
           break;
         case 'halftime':
           seq.length = seq.length * 2;
@@ -502,7 +516,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, precalculatedValue) {
           }
           updateValuesForZone(zoneindex);
           toast('Sequence made double time slower.', {
-            triggerElement: element
+            triggerElement: triggerElement
           });
           break;
         case 'thirdtime':
@@ -516,7 +530,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, precalculatedValue) {
           }
           updateValuesForZone(zoneindex);
           toast('Sequence made triple time slower.', {
-            triggerElement: element
+            triggerElement: triggerElement
           });
           break;
       }
@@ -525,11 +539,10 @@ function actionHandler(/** @type {MouseEvent} */ ev, precalculatedValue) {
       }, 100);
     },
     seq_clear_step: () => {
-      if (zone.sequence.selectedStepNumber > -1) {
-        zone.sequence.steps[zone.sequence.selectedStepNumber] = null;
-        zone.sequence.selectedStepNumber = -1;
+      if (params[2] != 'undefined') {
+        zone.sequence.steps[parseInt(params[2])] = null;
         updateValuesForZone(zoneindex);
-        toast('Step cleared.', { triggerElement: element });
+        toast('Step cleared.', { triggerElement: triggerElement });
       }
     },
     seq_step_probability: () => {
@@ -574,7 +587,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, precalculatedValue) {
           }
         });
         toast('Applied ' + what + ' to all steps in sequence.', {
-          triggerElement: element
+          triggerElement: triggerElement
         });
         updateValuesForZone(zoneindex);
         DOM.addClass(element.closest('.grid'), 'steps-changed');
@@ -593,25 +606,26 @@ function actionHandler(/** @type {MouseEvent} */ ev, precalculatedValue) {
       }
     },
     seq_copy_step: () => {
-      if (zone.sequence.selectedStep) {
-        Zone.seqClipboardStep = JSON.stringify(zone.sequence.selectedStep);
-        toast('Step copied to clipboard', { triggerElement: element });
+      if (params[2] != 'undefined') {
+        Zone.seqClipboardStep = JSON.stringify(
+          zone.sequence.steps[parseInt(params[2])]
+        );
+        // toast('Step copied to clipboard', { triggerElement: triggerElement });
       }
     },
     seq_paste_step: () => {
-      if (zone.sequence.selectedStepNumber > -1 && Zone.seqClipboardStep) {
-        zone.sequence.steps[zone.sequence.selectedStepNumber] = JSON.parse(
+      if (params[2] != 'undefined' && Zone.seqClipboardStep) {
+        zone.sequence.steps[parseInt(params[2])] = JSON.parse(
           Zone.seqClipboardStep
         );
-        toast(
-          'Step from clipboard pasted on position ' +
-            (zone.sequence.selectedStepNumber + 1),
-          { triggerElement: element }
-        );
+        // toast(
+        //   'Step from clipboard pasted on position ' + (parseInt(params[2]) + 1),
+        //   { triggerElement: triggerElement }
+        // );
         updateValuesForZone(zoneindex);
       } else {
         toast('Nothing to paste, clipboard is empty.', {
-          triggerElement: element
+          triggerElement: triggerElement
         });
       }
     },
@@ -658,17 +672,21 @@ function actionHandler(/** @type {MouseEvent} */ ev, precalculatedValue) {
         division: zone.sequence.division
       };
       Zone.seqClipboardSequence = JSON.stringify(copyData);
-      toast('Sequence copied to clipboard.', { triggerElement: element });
+      toast('Sequence copied to clipboard.', {
+        triggerElement: triggerElement
+      });
     },
     seq_paste: () => {
       if (Zone.seqClipboardSequence) {
         const copyData = JSON.parse(Zone.seqClipboardSequence);
         Object.assign(zone.sequence, copyData);
         updateValuesForZone(zoneindex);
-        toast('Sequence pasted from clipboard.', { triggerElement: element });
+        toast('Sequence pasted from clipboard.', {
+          triggerElement: triggerElement
+        });
       } else {
         toast('Clipboard is empty, nothing to paste.', {
-          triggerElement: element
+          triggerElement: triggerElement
         });
       }
     },
@@ -694,7 +712,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, precalculatedValue) {
         zone.sequence.isLiveRecoding
           ? 'Live recording enabled!'
           : 'Stopped live recording.',
-        { triggerElement: element }
+        { triggerElement: triggerElement }
       );
     },
     output_config_name: () => {
@@ -709,6 +727,59 @@ function actionHandler(/** @type {MouseEvent} */ ev, precalculatedValue) {
   };
   actions[params[1]]?.();
   triggerSave();
+  window.dispatchEvent(new CustomEvent('closeContextMenu'));
+}
+
+function contextHandler(/** @type {MouseEvent} */ ev) {
+  const element = ev.currentTarget;
+  const menuSpecification = element.getAttribute('data-contextmenu');
+  const menuActions = menuSpecification.split(',');
+  const contextMenuElement = DOM.element('#contextmenu');
+  const srcRect = element.getBoundingClientRect();
+  let top = srcRect.top + 23;
+  if (top > window.innerHeight - 40) {
+    top = top - 26 * 2.25;
+  }
+  contextMenuElement.style.top = top + 'px';
+  contextMenuElement.style.left = srcRect.left - 3 + 'px';
+  DOM.empty(contextMenuElement);
+  function isEnabled(parts) {
+    const zoneindex = parseInt(parts[0]);
+    /** @type {Zone} */
+    const zone = zones.list[zoneindex];
+    switch (parts[1]) {
+      case 'seq_copy_step':
+        return zone.sequence.steps[parseInt(parts[2])] != null;
+      case 'seq_paste_step':
+        return Zone.seqClipboardStep != null;
+      case 'seq_paste_steps':
+        return Zone.seqClipboardSequence != null;
+    }
+    return true;
+  }
+  menuActions.forEach((act) => {
+    if (act == '-') {
+      DOM.addHTML(contextMenuElement, 'beforeend', `<hr/>`);
+    } else {
+      const parts = act.split(':');
+      const name = contextMenuActionLabel[parts[1]];
+      const styleClass = isEnabled(parts) ? '' : 'disabled';
+      DOM.addHTML(
+        contextMenuElement,
+        'beforeend',
+        `<li class="${styleClass}" data-action="${act}">${name}</li>`
+      );
+    }
+  });
+  DOM.all('#contextmenu *[data-action]').forEach((e) => {
+    e.addEventListener('click', (event) => {
+      actionHandler(event, { contextElement: element });
+    });
+  });
+  window.dispatchEvent(new CustomEvent('resetHideOnLeaveContextMenuTimeout'));
+  contextMenuElement.style.display = 'block';
+  DOM.removeClass('*', 'contextMenuTrigger');
+  DOM.addClass(element, 'contextMenuTrigger');
 }
 
 function hoverHandler(ev) {
@@ -828,6 +899,9 @@ function appendZone(/** @type {Zone} */ zone, index) {
   DOM.all(`#zone${index} *[data-action]`).forEach((e) => {
     e.addEventListener('click', actionHandler);
   });
+  DOM.all(`#zone${index} *[data-contextmenu]`).forEach((e) => {
+    e.addEventListener('contextmenu', contextHandler);
+  });
   DOM.all(`#zone${index} *[data-change]`).forEach((e) => {
     e.addEventListener('input', actionHandler);
   });
@@ -864,7 +938,7 @@ function appendZone(/** @type {Zone} */ zone, index) {
         isdragging = false;
         followValueDiv.style.display = 'none';
         dragvalue = ev.pageX - dragstartx;
-        actionHandler(ev, dragvalue);
+        actionHandler(ev, { precalculatedValue: dragvalue });
       }
     };
     e.addEventListener('mouseup', dragendhandler);
