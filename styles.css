@@ -1502,6 +1502,7 @@ li {
   display: flex;
   gap: 8px;
   align-items: center;
+  justify-content: space-evenly;
 }
 
 .step-notes {
