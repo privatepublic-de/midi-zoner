@@ -22,21 +22,25 @@ const DIV_TICKS = [
   2 // 1/16t
 ]; // 24ppq
 
-const note_fill = 'rgba(255,255,255,.67)';
+const note_fill = 'rgba(255,255,255,1)';
 const note_fill_arp = 'rgba(0,0,0,.2)';
 const note_fill_arp_black = 'rgba(0,0,0,.33)';
-const note_fill_arp_played = 'rgba(255,255,255,.67)';
-const note_fill_black = 'rgba(0,0,0,.67)';
-const note_top = 8;
-const note_top_black = 4;
-const note_height = 12;
-const note_height_black = 12;
+const note_fill_arp_played = 'rgba(255,255,196,1)';
+const note_fill_black = 'rgba(0,0,0,1)';
+const note_top = 2;
+const note_height = 16;
+const note_height_black = 13;
 
 class Note {
-  static isBlackKey = function (n) {
+  static WHITE_KEY_ARRAY = [];
+  static isBlackKey(n) {
     const nn = n % 12;
     return nn == 1 || nn == 3 || nn == 6 || nn == 8 || nn == 10;
-  };
+  }
+
+  static nearestWhiteKeyIndex(n) {
+    return Note.WHITE_KEY_ARRAY[n];
+  }
 
   static display(number) {
     return MIDI.NOTENAMES[number % 12] + (parseInt(number / 12) - 1);
@@ -76,6 +80,16 @@ class Note {
     this.isBlackKey = Note.isBlackKey(number);
   }
 }
+
+// Initialize whitekey index numbers
+let whiteKeyCount = -1;
+for (let kn = 0; kn < 128; kn++) {
+  if (!Note.isBlackKey(kn)) {
+    whiteKeyCount++;
+  }
+  Note.WHITE_KEY_ARRAY[kn] = whiteKeyCount;
+}
+
 class Zone {
   static solocount = 0;
   static seqClipboardStep = null;
@@ -480,23 +494,75 @@ class Zone {
       const { context, rect } = DOM.scaledCanvasContext(this.canvasElement);
 
       const cwidth = rect.width;
-      const notewidth = cwidth / 127.0 - (cwidth / 127.0) * 0.2;
-      context.clearRect(0, 0, cwidth, rect.height);
+      const numberWhiteKeys = 10 * 7 + 4;
 
-      function drawNote(number, isBlack, fillStyle, fillStyleBlack) {
+      const notewidth = cwidth / numberWhiteKeys;
+      const whitekeywidth = notewidth * 0.75;
+      const blackkeywidth = notewidth * 0.67;
+      const blackkeyoffset = notewidth * 0.67;
+      const whitekeyoffset = (notewidth - whitekeywidth) * 0.5;
+
+      context.clearRect(0, 0, cwidth, rect.height);
+      // if (this.enabled) {
+      //   context.strokeStyle = '#ffffff40';
+      //   context.beginPath();
+      //   for (let i = 1; i < numberWhiteKeys; i++) {
+      //     context.moveTo(notewidth * i, note_top);
+      //     context.lineTo(notewidth * i, note_top + note_height);
+      //   }
+      //   context.stroke();
+      // }
+      context.strokeStyle = '#ffffff70';
+      function drawNote(number, fillStyle, fillStyleBlack) {
+        const isBlack = Note.isBlackKey(number);
+        const wkIndex = Note.nearestWhiteKeyIndex(number);
         context.fillStyle = isBlack ? fillStyleBlack : fillStyle;
-        context.fillRect(
-          (cwidth * number) / 127,
-          isBlack ? note_top_black : note_top,
-          notewidth,
-          isBlack ? note_height_black : note_height
-        );
+        context.beginPath();
+        if (isBlack) {
+          context.roundRect(
+            notewidth * wkIndex + blackkeyoffset,
+            note_top,
+            blackkeywidth,
+            note_height_black,
+            [0, 0, 1, 1]
+          );
+        } else {
+          context.roundRect(
+            whitekeyoffset + notewidth * wkIndex,
+            note_top,
+            whitekeywidth,
+            note_height,
+            [0, 0, 2, 2]
+          );
+        }
+        context.fill();
+        if (isBlack) {
+          context.stroke();
+        }
+      }
+
+      function drawNoteList(list, fillStyle, fillStyleBlack) {
+        list.sort((a, b) => {
+          const ba = Note.isBlackKey(a);
+          const bb = Note.isBlackKey(b);
+          if (ba && !bb) {
+            return 1;
+          }
+          if (bb & !ba) {
+            return -1;
+          }
+          return 0;
+        });
+        list.forEach((n) => {
+          drawNote(n, fillStyle, fillStyleBlack);
+        });
       }
 
       const list =
         this.arp_hold && this.arp_enabled
           ? this.arp_holdlist
           : this.activeNotes;
+      const drawNumbers = [];
       for (let i = 0; i < list.length; i++) {
         if (this.arp_enabled) {
           for (let ao = 0; ao < this.arp_octaves + 1; ao++) {
@@ -504,33 +570,32 @@ class Zone {
               list[i].number +
               (this.arp_transpose ? this.arp_transpose_amount : 0) +
               (this.octave + ao) * 12;
-            drawNote(
-              number,
-              Note.isBlackKey(number),
-              note_fill_arp,
-              note_fill_arp_black
-            );
+            // drawNote(number, note_fill_arp, note_fill_arp_black);
+            drawNumbers.push(number);
           }
         } else {
-          const number = list[i].number;
-          drawNote(number, Note.isBlackKey(number), note_fill, note_fill_black);
+          // drawNote(number, note_fill, note_fill_black);
+          drawNumbers.push(list[i].number);
         }
       }
+      drawNoteList(
+        drawNumbers,
+        this.arp_enabled ? note_fill_arp : note_fill,
+        this.arp_enabled ? note_fill_arp_black : note_fill_black
+      );
       if (this.sequence.active) {
+        drawNumbers.length = 0;
         for (let snote of this.sequence.activeNotes()) {
           const number = snote.number;
-          drawNote(number, Note.isBlackKey(number), note_fill, note_fill_black);
+          // drawNote(number, note_fill, note_fill_black);
+          drawNumbers.push(number);
         }
+        drawNoteList(drawNumbers, note_fill, note_fill_black);
       }
       if (this.arp_enabled) {
         const note = this.arp.lastnote;
         if (note) {
-          drawNote(
-            note.number,
-            note.isBlackKey,
-            note_fill_arp_played,
-            note_fill_arp_played
-          );
+          drawNote(note.number, note_fill_arp_played, note_fill_arp_played);
         }
       }
     }
