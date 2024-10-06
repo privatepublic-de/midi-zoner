@@ -90,8 +90,6 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
   const precalculatedValue = properties
     ? properties.precalculatedValue
     : undefined;
-  const contextElement = properties ? properties.contextElement : undefined;
-  const triggerElement = contextElement || ev.currentTarget;
   const element = ev.currentTarget;
   let action =
     element.getAttribute('data-action') ||
@@ -311,7 +309,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
     },
     send_all_cc: () => {
       zone.sendAllCC();
-      toast('Sent all CC values!', { triggerElement: triggerElement });
+      toast('Sent all CC values!');
     },
     cc_edit: () => {
       // TODO rename to toggle
@@ -478,14 +476,12 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       zone.sequence.steps.length = 0;
       updateValuesForZone(zoneindex);
       zone.sequence.selectedStepNumber = zone.sequence.selectedStepNumber;
-      toast('Sequence cleared.', { triggerElement: triggerElement });
+      toast('Sequence cleared');
     },
     seq_transpose: () => {
       const semitones = parseInt(element.options[element.selectedIndex].value);
       zone.sequence.transpose(semitones);
-      toast('Sequence transposed by ' + semitones + ' semitones.', {
-        triggerElement: triggerElement
-      });
+      toast('Sequence transposed by ' + semitones + ' semitones');
       DOM.addClass(`#zone${zoneindex} .grid`, 'steps-changed');
       setTimeout(() => {
         element.selectedIndex = 0;
@@ -508,9 +504,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
             seq.steps[srcLength + i] = stepsCopy[i];
           }
           updateValuesForZone(zoneindex);
-          toast('Sequence doubled in length.', {
-            triggerElement: triggerElement
-          });
+          toast('Sequence doubled');
           break;
         case 'halftime':
           seq.length = seq.length * 2;
@@ -522,9 +516,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
             seq.steps[i * 2 + 1] = null;
           }
           updateValuesForZone(zoneindex);
-          toast('Sequence made double time slower.', {
-            triggerElement: triggerElement
-          });
+          toast('Sequence made double time slower');
           break;
         case 'thirdtime':
           seq.length = seq.length * 3;
@@ -536,9 +528,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
             seq.steps[i * 3 + 1] = seq.steps[i * 3 + 2] = null;
           }
           updateValuesForZone(zoneindex);
-          toast('Sequence made triple time slower.', {
-            triggerElement: triggerElement
-          });
+          toast('Sequence made triple time slower');
           break;
       }
       setTimeout(() => {
@@ -549,7 +539,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       if (params[2] != 'undefined') {
         zone.sequence.steps[parseInt(params[2])] = null;
         updateValuesForZone(zoneindex);
-        toast('Step cleared.', { triggerElement: triggerElement });
+        toast('Step cleared');
       }
     },
     seq_step_probability: () => {
@@ -593,9 +583,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
             }
           }
         });
-        toast('Applied ' + what + ' to all steps in sequence.', {
-          triggerElement: triggerElement
-        });
+        toast('Applied ' + what + ' to all steps in sequence');
         updateValuesForZone(zoneindex);
         DOM.addClass(element.closest('.grid'), 'steps-changed');
       }
@@ -617,7 +605,6 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
         Zone.seqClipboardStep = JSON.stringify(
           zone.sequence.steps[parseInt(params[2])]
         );
-        // toast('Step copied to clipboard', { triggerElement: triggerElement });
       }
     },
     seq_paste_step: () => {
@@ -625,15 +612,9 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
         zone.sequence.steps[parseInt(params[2])] = JSON.parse(
           Zone.seqClipboardStep
         );
-        // toast(
-        //   'Step from clipboard pasted on position ' + (parseInt(params[2]) + 1),
-        //   { triggerElement: triggerElement }
-        // );
         updateValuesForZone(zoneindex);
       } else {
-        toast('Nothing to paste, clipboard is empty.', {
-          triggerElement: triggerElement
-        });
+        toast('Nothing to paste, clipboard is empty.');
       }
     },
     seq_step_move: () => {
@@ -679,22 +660,16 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
         division: zone.sequence.division
       };
       Zone.seqClipboardSequence = JSON.stringify(copyData);
-      toast('Sequence copied to clipboard.', {
-        triggerElement: triggerElement
-      });
+      toast('Sequence copied to clipboard');
     },
     seq_paste: () => {
       if (Zone.seqClipboardSequence) {
         const copyData = JSON.parse(Zone.seqClipboardSequence);
         Object.assign(zone.sequence, copyData);
         updateValuesForZone(zoneindex);
-        toast('Sequence pasted from clipboard.', {
-          triggerElement: triggerElement
-        });
+        toast('Sequence pasted from clipboard');
       } else {
-        toast('Clipboard is empty, nothing to paste.', {
-          triggerElement: triggerElement
-        });
+        toast('Clipboard is empty, nothing to paste');
       }
     },
     seq_copy_to_layer_0: () => {
@@ -710,10 +685,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       Object.assign(zone.sequence.layers[targetLayer], copyData);
       updateValuesForZone(zoneindex);
       toast(
-        'Sequence copied to layer ' + String.fromCharCode(65 + targetLayer),
-        {
-          triggerElement: triggerElement
-        }
+        'Sequence copied to layer ' + String.fromCharCode(65 + targetLayer)
       );
     },
     seq_copy_to_layer_1: () => {
@@ -736,13 +708,9 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
           zone.sequence.length = startIndex + seqData.length;
         }
         updateValuesForZone(zoneindex);
-        toast(`Sequence from clipboard pasted from step ${startIndex + 1}.`, {
-          triggerElement: triggerElement
-        });
+        toast(`Sequence from clipboard pasted from step ${startIndex + 1}`);
       } else {
-        toast('Clipboard is empty, nothing to paste.', {
-          triggerElement: triggerElement
-        });
+        toast('Clipboard is empty, nothing to paste');
       }
     },
     seq_step_condition: () => {
@@ -766,8 +734,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       toast(
         zone.sequence.isLiveRecoding
           ? 'Live recording enabled!'
-          : 'Stopped live recording.',
-        { triggerElement: triggerElement }
+          : 'Stopped live recording'
       );
     },
     output_config_name: () => {
@@ -831,7 +798,7 @@ function contextHandler(/** @type {MouseEvent} */ ev) {
   });
   DOM.all('#contextmenu *[data-action]').forEach((e) => {
     e.addEventListener('click', (event) => {
-      actionHandler(event, { contextElement: element });
+      actionHandler(event);
     });
   });
   const bgColor = element.computedStyleMap().get('--bg-color-popup');
@@ -1649,29 +1616,13 @@ function selectSequencerLayer(layerIndex) {
 
 let toastTimer;
 function toast(message, properties) {
-  const triggerElement = properties.triggerElement;
-  const longer = properties.longer;
-  const position = properties.position;
+  const longer = properties ? properties.longer : false;
   if (toastTimer) {
     clearTimeout(toastTimer);
     // toastHide();
   }
   DOM.element('#toast .toastinner').innerHTML = message;
-  if (position) {
-    toastElement.style.top = position.top;
-    toastElement.style.left = position.left;
-  } else if (triggerElement) {
-    const srcRect = triggerElement.getBoundingClientRect();
-    let top = srcRect.top + 26;
-    console.log(srcRect, window.innerHeight);
-    if (top > window.innerHeight - 40) {
-      top = top - 26 * 2.25;
-    }
-    toastElement.style.top = top + 'px';
-    toastElement.style.left = srcRect.left + 'px';
-  } else {
-    toastElement.style.top = toastElement.style.left = '';
-  }
+  toastElement.style.top = toastElement.style.left = '';
   toastShow(longer);
   toastTimer = setTimeout(
     () => {
