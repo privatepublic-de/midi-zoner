@@ -932,6 +932,7 @@ function appendZone(/** @type {Zone} */ zone, index) {
       new DragZone(index, ev, () => {
         triggerSave();
         renderZones();
+        DOM.element(`#zone${index}`).scrollIntoView({ behavior: 'instant' });
       });
     }
   });

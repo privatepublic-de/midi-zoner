@@ -167,7 +167,12 @@ module.exports = {
   /* TODO Document */
   clientOffsets: function (el) {
     const rect = el.getBoundingClientRect();
-    return { offsetTop: rect.y, offsetLeft: rect.x };
+    return {
+      offsetTop: rect.y,
+      offsetLeft: rect.x,
+      offsetWidth: rect.width,
+      offsetHeight: rect.height
+    };
   },
   /* TODO Document */
   scaledCanvasContext: function (canvas) {
