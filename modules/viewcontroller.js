@@ -7,17 +7,23 @@ const potDragHandler = require('./potdraghandler');
 const { Sequence } = require('./zone');
 
 const contextMenuActionLabel = {
-  seq_copy_step: 'Copy step',
-  seq_paste_step: 'Paste step',
-  seq_paste_steps: 'Paste sequence from here',
-  seq_clear_step: 'Clear step',
-  seq_clear_all: 'Clear complete sequence',
-  seq_copy: 'Copy sequence',
-  seq_paste: 'Paste sequence',
-  seq_copy_to_layer_0: 'Copy sequence to layer A',
-  seq_copy_to_layer_1: 'Copy sequence to layer B',
-  seq_copy_to_layer_2: 'Copy sequence to layer C',
-  seq_copy_to_layer_3: 'Copy sequence to layer D'
+  seq_copy_step: '<i class="material-icons">content_copy</i> Copy step',
+  seq_paste_step: '<i class="material-icons">content_paste</i> Paste step',
+  seq_paste_steps:
+    '<i class="material-icons">content_paste_go</i> Paste sequence from here',
+  seq_clear_step: '<i class="material-icons">clear</i> Clear step',
+  seq_clear_all:
+    '<i class="material-icons">playlist_remove</i> Clear complete sequence',
+  seq_copy: '<i class="material-icons">content_copy</i> Copy sequence',
+  seq_paste: '<i class="material-icons">content_paste</i> Paste sequence',
+  seq_copy_to_layer_0:
+    '<i class="material-icons">double_arrow</i> Duplicate sequence to layer A',
+  seq_copy_to_layer_1:
+    '<i class="material-icons">double_arrow</i> Duplicate sequence to layer B',
+  seq_copy_to_layer_2:
+    '<i class="material-icons">double_arrow</i> Duplicate sequence to layer C',
+  seq_copy_to_layer_3:
+    '<i class="material-icons">double_arrow</i> Duplicate sequence to layer D'
 };
 
 let zones = {};
