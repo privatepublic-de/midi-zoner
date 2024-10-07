@@ -123,24 +123,11 @@
         <i class="material-icons">chevron_right</i>
       </div>
       <div class="drop-down" title="Transpose whole sequence">
-        <select class="seq_division" data-change="${index}:seq_transpose">
+        <select class="seq_transpose" data-change="${index}:seq_transpose">
           <option>Transpose</option>
           <optgroup>
-            <option value="-12">-12</option>
-            <option value="12">+12</option>
-          </optgroup>
-          <optgroup>
-            <option value="-11">-11</option>
-            <option value="-10">-10</option>
-            <option value="-9">-9</option>
-            <option value="-8">-8</option>
-            <option value="-7">-7</option>
-            <option value="-6">-6</option>
-            <option value="-5">-5</option>
-            <option value="-4">-4</option>
-            <option value="-3">-3</option>
-            <option value="-2">-2</option>
-            <option value="-1">-1</option>
+            <option value="12">+12 (octave up)</option>
+            <option value="-12">-12 (octave down)</option>
           </optgroup>
           <optgroup>
             <option value="1">+1</option>
@@ -149,20 +136,37 @@
             <option value="4">+4</option>
             <option value="5">+5</option>
             <option value="6">+6</option>
-            <option value="7">+7</option>
+            <option value="7">+7 (5th up)</option>
             <option value="8">+8</option>
             <option value="9">+9</option>
             <option value="10">+10</option>
             <option value="11">+11</option>
+          </optgroup>
+          <optgroup>
+            <option value="-1">-1</option>
+            <option value="-2">-2</option>
+            <option value="-3">-3</option>
+            <option value="-4">-4</option>
+            <option value="-5">-5</option>
+            <option value="-6">-6</option>
+            <option value="-7">-7 (5th down)</option>
+            <option value="-8">-8</option>
+            <option value="-9">-9</option>
+            <option value="-10">-10</option>
+            <option value="-11">-11</option>
           </optgroup>
         </select>
       </div>
       <div class="drop-down" title="Adjust whole sequence">
         <select data-change="${index}:seq_adjust">
           <option>Adjust sequence</option>
-          <option value="double">Double</option>
-          <option value="halftime">Double time</option>
-          <option value="thirdtime">Triple time</option>
+          <optgroup>
+            <option value="double">Double</option>
+          </optgroup>
+          <optgroup>
+            <option value="halftime">Half time</option>
+            <option value="thirdtime">One-third time</option>
+          </optgroup>
         </select>
       </div>
       <div

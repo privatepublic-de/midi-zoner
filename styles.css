@@ -1298,6 +1298,10 @@ li {
   padding: 6px 8px;
 }
 
+.seqtools .drop-down select {
+  max-width: 7rem;
+}
+
 .show-seq .seq {
   display: flex;
   align-items: flex-start;
