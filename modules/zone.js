@@ -1122,7 +1122,7 @@ class Sequence {
               )}</span> `;
             });
           } else {
-            infoText += '<i>(... play notes on keyboard ...)</i>';
+            infoText += '<i>(... play notes on input device ...)</i>';
           }
           this.zone.sequencerElement.querySelector('.step-notes').innerHTML =
             infoText;
