@@ -1508,6 +1508,11 @@ li {
   align-items: center;
   justify-content: space-evenly;
 }
+.step-controls:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
 
 .step-notes {
   flex-grow: 1;
