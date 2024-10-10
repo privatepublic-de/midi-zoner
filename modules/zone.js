@@ -1121,8 +1121,13 @@ class Sequence {
                 note.number
               )}</span> `;
             });
+            if (this.isHotRecordingNotes) {
+              infoText += '<i>(recording)</i>';
+            }
           } else {
-            infoText += '<i>(... play notes on input device ...)</i>';
+            if (this.isHotRecordingNotes) {
+              infoText += '<i>(play notes on input device)</i>';
+            }
           }
           this.zone.sequencerElement.querySelector('.step-notes').innerHTML =
             infoText;

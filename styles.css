@@ -24,7 +24,7 @@
   --bg-toast: #ff9;
   --bg-contextmenu: #efc;
   --shadow-zone: #111;
-
+  --bg-color-popup: #545150;
   --bg-zone-disabled: rgba(255, 255, 255, 0.07);
 
   --brighter-0: rgba(255, 255, 255, 0.125);
@@ -47,23 +47,23 @@
 
 .zone[data-colorindex='0'] {
   --zone-color: #2a4f5f;
-  --bg-color-popup: #477081;
+  /* --bg-color-popup: #477081; */
 }
 .zone[data-colorindex='1'] {
   --zone-color: #2a9d8f;
-  --bg-color-popup: #3bb1a4;
+  /* --bg-color-popup: #3bb1a4; */
 }
 .zone[data-colorindex='2'] {
   --zone-color: #e9c46a;
-  --bg-color-popup: #e0bb5d;
+  /* --bg-color-popup: #e0bb5d; */
 }
 .zone[data-colorindex='3'] {
   --zone-color: #f4a261;
-  --bg-color-popup: #df8e4b;
+  /* --bg-color-popup: #df8e4b; */
 }
 .zone[data-colorindex='4'] {
   --zone-color: #e76f51;
-  --bg-color-popup: #e17e66;
+  /* --bg-color-popup: #e17e66; */
 }
 
 @font-face {
@@ -1370,6 +1370,7 @@ li {
 .step-info .stepmarker {
   display: inline-flex;
   cursor: default;
+  min-width: var(--step-size);
 }
 
 .showarp {
@@ -1451,8 +1452,7 @@ li {
   box-shadow: 0 0 10px var(--brighter-4);
 }
 
-.seq.hot .step.selected-step,
-.seq.hot .stepmarker {
+.seq.hot .step.selected-step {
   background-color: var(--record-highlight) !important;
 }
 
@@ -1475,11 +1475,13 @@ li {
 }
 
 .seq .step-info .note {
-  background-color: var(--brighter-1);
+  border: 1px solid var(--brighter-1);
+  background-color: var(--darker-0);
   color: var(--text-base-color);
   padding: 2px 4px 2px 4px;
   display: inline-block;
   position: relative;
+  margin: 1px 0;
   /* box-shadow: 0 1px 4px #00000060; */
 }
 
@@ -1490,8 +1492,8 @@ li {
   left: 0;
   /* width: 2px; */
   right: 0;
-  background-color: var(--darker-0);
-  border-top: 1px solid var(--darker-1);
+  background-color: var(--brighter-1);
+  /* border-top: 1px solid var(--darker-1); */
 }
 
 .zone.disabled .seq .step-info,
@@ -1514,7 +1516,13 @@ li {
   padding-bottom: 0;
 }
 
+.step-controls .stepmarker,
+.step-controls .movestep {
+  background-color: var(--bg-color);
+}
+
 .step-notes {
+  /* background-color: var(--bg-color); */
   flex-grow: 1;
   padding: 2px;
   cursor: ew-resize;
@@ -1524,8 +1532,12 @@ li {
   outline: 2px solid var(--darker-1);
 }
 
-.step-notes i {
-  color: var(--brighter-2);
+.seq.hot .step-notes i {
+  color: var(--bg-color);
+}
+
+.zone[data-colorindex='0'] .seq.hot .step-notes i {
+  color: var(--record-highlight);
 }
 
 .step-info-close {
@@ -1708,9 +1720,8 @@ body:not(.running) .seqprogress {
 
 .popup {
   background-color: var(--bg-color-popup);
-  border: 1px solid var(--brighter-0);
-  border-radius: 4px;
-  box-shadow: 0 0.5px 2px var(--darker-4);
+  border: 2px solid var(--darker-0);
+  box-shadow: 0 1px 2px var(--darker-4);
   padding: 8px;
   color: var(--text-base-color);
 }
