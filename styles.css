@@ -1536,8 +1536,12 @@ li {
   color: var(--bg-color);
 }
 
-.zone[data-colorindex='0'] .seq.hot .step-notes i {
-  color: var(--record-highlight);
+.zone[data-colorindex='0'] .step-notes i {
+  color: var(--bg-color);
+}
+
+.zone[data-colorindex='0'] .popup {
+  --bg-color: #4f97b5;
 }
 
 .step-info-close {
