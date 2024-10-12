@@ -1532,11 +1532,7 @@ li {
   outline: 2px solid var(--darker-1);
 }
 
-.seq.hot .step-notes i {
-  color: var(--bg-color);
-}
-
-.zone[data-colorindex='0'] .step-notes i {
+.step-notes i {
   color: var(--bg-color);
 }
 
@@ -1725,7 +1721,7 @@ body:not(.running) .seqprogress {
 .popup {
   background-color: var(--bg-color-popup);
   border: 2px solid var(--darker-0);
-  box-shadow: 0 1px 2px var(--darker-4);
+  box-shadow: 0 0 8px var(--bg-color-popup);
   padding: 8px;
   color: var(--text-base-color);
 }
