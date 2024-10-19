@@ -1526,6 +1526,7 @@ li {
   flex-grow: 1;
   padding: 2px;
   cursor: ew-resize;
+  min-height: 26px;
 }
 
 .step-notes:hover {
