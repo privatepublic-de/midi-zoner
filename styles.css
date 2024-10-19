@@ -1546,7 +1546,7 @@ li {
 }
 
 .seq.has-selection {
-  cursor: n-resize;
+  cursor: url(res/deselect.svg), url(res/deselect.png), zoom-out;
 }
 
 .seqprogress {
