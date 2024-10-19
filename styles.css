@@ -594,7 +594,6 @@ option {
   color: var(--brighter-4);
 }
 
-.step-info-close:hover,
 .rtool.delzone:hover {
   color: #900;
   text-shadow: 0 0 2px #fff;
@@ -1516,8 +1515,9 @@ li {
   padding-bottom: 0;
 }
 
+.euclid .zonebg,
 .step-controls .stepmarker,
-.step-controls .movestep {
+.step-controls .zonebg {
   background-color: var(--bg-color);
 }
 
@@ -1541,16 +1541,12 @@ li {
   --bg-color: #4f97b5;
 }
 
-.step-info-close {
-  /* position: absolute;
-  top: 4px;
-  right: 4px; */
-  cursor: pointer;
-  font-size: 14px;
-}
-
 .seq.has-selection .step-info {
   display: block;
+}
+
+.seq.has-selection {
+  cursor: n-resize;
 }
 
 .seqprogress {
@@ -1721,10 +1717,12 @@ body:not(.running) .seqprogress {
 
 .popup {
   background-color: var(--bg-color-popup);
-  border: 2px solid var(--darker-0);
-  box-shadow: 0 0 8px var(--bg-color-popup);
+  border: 1px solid var(--bg-color);
+  /* border-top: none; */
+  box-shadow: 1px 1px 4px var(--shadow-topbar);
   padding: 8px;
   color: var(--text-base-color);
+  cursor: default;
 }
 
 #tools {

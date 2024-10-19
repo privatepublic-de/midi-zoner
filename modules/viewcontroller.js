@@ -548,6 +548,13 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
         toast('Step cleared');
       }
     },
+    seq_clear_selected_step: () => {
+      if (zone.sequence.selectedStepNumber != -1) {
+        zone.sequence.steps[zone.sequence.selectedStepNumber] = null;
+        updateValuesForZone(zoneindex);
+        toast('Step cleared');
+      }
+    },
     seq_step_probability: () => {
       if (zone.sequence.selectedStep) {
         zone.sequence.selectedStep.probability = calcPercentage();

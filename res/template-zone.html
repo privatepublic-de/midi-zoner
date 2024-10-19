@@ -194,6 +194,13 @@
           title="Drag with mouse to change velocity values"
         ></div>
         <div
+          class="action"
+          title="Clear step"
+          data-action="${index}:seq_clear_selected_step"
+        >
+          <i class="material-icons">clear</i>
+        </div>
+        <div
           class="check seq-step-add-notes"
           data-action="${index}:seq_step_add_notes"
           title="New notes are added (no overwrite)"
@@ -206,9 +213,6 @@
           title="Advance step after note input"
         >
           ${checkboxIcons}Advance
-        </div>
-        <div class="step-info-close" data-action="${index}:select_step:-1">
-          <i class="material-icons">close</i>
         </div>
       </div>
       <div class="step-controls">
@@ -264,7 +268,7 @@
       </div>
       <div class="step-controls">
         <div
-          class="action movestep"
+          class="action zonebg"
           title="Move step left (if free space)"
           data-action="${index}:seq_step_move:-1"
         >
@@ -276,10 +280,17 @@
           style="flex-grow: 1; justify-content: center"
           title="Apply step properties to all active steps in sequence"
         >
+          <div
+            class="action zonebg"
+            title="Move step right (if free space)"
+            data-action="${index}:seq_step_move:1"
+          >
+            <i class="material-icons">chevron_right</i>
+          </div>
           <select
             class=""
             data-change="${index}:seq_step_apply_to_all"
-            style="background-color: transparent"
+            style="background-color: transparent; flex-grow: 1"
           >
             <option>Apply to all other steps…</option>
             <optgroup>
@@ -289,13 +300,6 @@
               <option>Chance</option>
             </optgroup>
           </select>
-        </div>
-        <div
-          class="action movestep"
-          title="Move step right (if free space)"
-          data-action="${index}:seq_step_move:1"
-        >
-          <i class="material-icons">chevron_right</i>
         </div>
       </div>
     </div>
@@ -416,14 +420,14 @@
             size="3"
             title="Length"
           />
-          <div class="action" data-action="${index}:euclid">OK</div>
+          <div class="action zonebg" data-action="${index}:euclid">OK</div>
         </div>
         <div>
-          <span class="action" data-action="${index}:pattern_shift:-1"
+          <span class="action zonebg" data-action="${index}:pattern_shift:-1"
             >&lt;</span
           >
           <span>Shift pattern</span>
-          <span class="action" data-action="${index}:pattern_shift:1"
+          <span class="action zonebg" data-action="${index}:pattern_shift:1"
             >&gt;</span
           >
         </div>
