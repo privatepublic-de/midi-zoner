@@ -12,7 +12,7 @@ const zones = {
   clockOutputPorts: {},
   selectedInputPorts: {},
   tempo: 120,
-  sendInternalClockIfPlaying: false,
+  sendInternalClockIfPlaying: false, // TODO misnomed; means send everything
   outputConfigNames: {}
 };
 
@@ -280,7 +280,7 @@ document.addEventListener('DOMContentLoaded', function () {
         el.checked = true;
       }
     });
-    midi.sendInternalClockIfPlaying = zones.sendInternalClockIfPlaying;
+    midi.sendClockIfPlaying = zones.sendInternalClockIfPlaying;
   }
   let activeUpdateTimer = null;
   const midi = new MIDI({
@@ -591,7 +591,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
   DOM.on('#clockOutPortWindow input[name="sendinternal"]', 'change', () => {
-    midi.sendInternalClockIfPlaying = zones.sendInternalClockIfPlaying =
+    midi.sendClockIfPlaying = zones.sendInternalClockIfPlaying =
       document.querySelector('input[name="sendinternal"]:checked').value == '1';
     saveZones();
   });

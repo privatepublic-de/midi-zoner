@@ -62,7 +62,7 @@ class MIDI {
     this.songposition = 0;
     this.isClockRunning = false;
     this.hasClock = false;
-    this.sendInternalClockIfPlaying = false;
+    this.sendClockIfPlaying = false;
     setInterval(() => {
       this.hasClock = false;
     }, 1000);
@@ -236,27 +236,6 @@ class MIDI {
       if (midiMessage === MIDI.MESSAGE.CLOCK) {
         this.hasClock = true;
       }
-
-      const propagate =
-        this.deviceIdInClock != MIDI.INTERNAL_PORT_ID ||
-        !this.sendInternalClockIfPlaying ||
-        (this.sendInternalClockIfPlaying && this.isClockRunning);
-      if (propagate) {
-        for (const [portid, enabled] of Object.entries(this.clockOutputPorts)) {
-          if (enabled) {
-            this.send(event.data, portid);
-          }
-        }
-      }
-
-      if (
-        this.isClockRunning &&
-        this.clockHandler &&
-        midiMessage === MIDI.MESSAGE.CLOCK
-      ) {
-        this.clockHandler(this.songposition);
-        this.songposition++;
-      }
       if (
         midiMessage === MIDI.MESSAGE.START ||
         midiMessage === MIDI.MESSAGE.CONTINUE
@@ -272,6 +251,27 @@ class MIDI {
         if (this.transportHandler) {
           this.transportHandler(false);
         }
+      }
+
+      const propagate =
+        midiMessage === MIDI.MESSAGE.STOP ||
+        !this.sendClockIfPlaying ||
+        (this.sendClockIfPlaying && this.isClockRunning);
+      if (propagate) {
+        for (const [portid, enabled] of Object.entries(this.clockOutputPorts)) {
+          if (enabled) {
+            this.send(event.data, portid);
+          }
+        }
+      }
+
+      if (
+        this.isClockRunning &&
+        this.clockHandler &&
+        midiMessage === MIDI.MESSAGE.CLOCK
+      ) {
+        this.clockHandler(this.songposition);
+        this.songposition++;
       }
     }
     const channel = event.data[0] & 0x0f;
