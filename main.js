@@ -1,6 +1,9 @@
 const electron = require('electron');
-const { app, BrowserWindow, Menu, powerSaveBlocker } = electron;
+const { app, BrowserWindow, Menu, powerSaveBlocker, ipcMain, dialog } =
+  electron;
 const settings = require('electron-settings');
+const path = require('node:path');
+const fs = require('fs');
 
 powerSaveBlocker.start('prevent-app-suspension');
 
@@ -42,6 +45,42 @@ function createWindow() {
     win = null;
   });
   createApplicationMenu();
+  ipcMain.handle('open-save', (event, ...args) => {
+    dialog
+      .showSaveDialog(win, {
+        title: 'Save current scene',
+        message: 'Save current scene',
+        filters: [{ name: 'midi-zoner Scene', extensions: ['json'] }],
+        properties: ['createDirectory']
+      })
+      .then((result) => {
+        if (!result.canceled) {
+          console.log(`filePath: ${result.filePath}, json: ${args[0]}`);
+          try {
+            fs.writeFileSync(result.filePath, args[0], 'utf-8');
+          } catch (e) {
+            console.log('Failed to save the file !');
+          }
+        }
+      });
+  });
+  ipcMain.handle('open-load', async (event) => {
+    let content;
+    await dialog
+      .showOpenDialog(win, {
+        title: 'Add zones',
+        message: 'Add zones from file',
+        buttonLabel: 'Add zones from file',
+        filters: [{ name: 'midi-zoner Scene', extensions: ['json'] }]
+      })
+      .then((result) => {
+        if (!result.canceled) {
+          console.log(`OPEN: ${result.filePaths[0]}`);
+          content = fs.readFileSync(result.filePaths[0], 'utf-8');
+        }
+      });
+    return content;
+  });
 }
 
 app.on('ready', createWindow);

@@ -22,6 +22,7 @@
   --bg-loadsave-item: #555;
   --bg-select-window: #111;
   --bg-toast: #ff9;
+  --bg-toast-warning: #ffa8d8;
   --bg-contextmenu: #efc;
   --shadow-zone: #111;
   --bg-color-popup: #545150;
@@ -1686,12 +1687,16 @@ body:not(.running) .seqprogress {
   left: 50%;
   top: 50px;
   margin-left: -130px;
-  background: var(--bg-toast);
+  background-color: var(--bg-toast);
   color: var(--text-toast-color);
   font-size: 12px;
   box-shadow: 1px 1px 3px var(--shadow-zone);
   display: none;
   z-index: 2;
+}
+
+#toast.warning {
+  background-color: var(--bg-toast-warning);
 }
 
 /* #toast.fade {

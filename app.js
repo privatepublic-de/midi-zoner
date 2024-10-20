@@ -4,6 +4,7 @@ const Sequence = require('./modules/zone').Sequence;
 const MIDI = require('./modules/midi');
 const viewcontroller = require('./modules/viewcontroller');
 const view = require('./modules/viewcontroller');
+const { ipcRenderer } = require('electron');
 
 const zones = {
   list: [],
@@ -594,10 +595,29 @@ document.addEventListener('DOMContentLoaded', function () {
         DOM.element('#save').addEventListener('click', (e) => {
           e.stopPropagation();
           openSaveDialog();
+          ipcRenderer.invoke('open-save', JSON.stringify(zones));
         });
-        DOM.element('#load').addEventListener('click', (e) => {
+        DOM.element('#load').addEventListener('click', async (e) => {
           e.stopPropagation();
           openLoadDialog(midi);
+          await ipcRenderer.invoke('open-load').then((result) => {
+            console.log('LOAD', result);
+            if (result) {
+              try {
+                applyStoredZones(JSON.parse(result), midi, true);
+                view.renderZones();
+                saveZones();
+              } catch (ex) {
+                viewcontroller.toast(
+                  'Error loading file! The selected file is possibly no midi-zoner scene...',
+                  {
+                    longer: true,
+                    warning: true
+                  }
+                );
+              }
+            }
+          });
         });
         DOM.element('#loadsave').addEventListener('click', (e) =>
           e.stopPropagation()

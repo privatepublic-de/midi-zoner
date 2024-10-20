@@ -1635,6 +1635,17 @@ function toast(message, properties) {
     clearTimeout(toastTimer);
     // toastHide();
   }
+  const warning = properties ? properties.warning : false;
+  let timeoutMS = 2000;
+  if (warning) {
+    DOM.addClass('#toast', 'warning');
+    timeoutMS += 5000;
+  } else {
+    DOM.removeClass('#toast', 'warning');
+  }
+  if (longer) {
+    timeoutMS += 3000;
+  }
   DOM.element('#toast .toastinner').innerHTML = message;
   toastElement.style.top = toastElement.style.left = '';
   toastShow(longer);
