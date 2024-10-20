@@ -384,10 +384,11 @@ option {
   position: absolute;
   bottom: 0;
   right: 5px;
-  color: var(--darker-0);
+  color: var(--bg-window);
   font-size: 25px;
   font-weight: bold;
   pointer-events: none;
+  text-shadow: 0.5px 0.5px 1px var(--brighter-0);
 }
 
 .zone.droptarget {
