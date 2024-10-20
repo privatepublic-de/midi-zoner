@@ -45,8 +45,13 @@ function createWindow() {
     win = null;
   });
   createApplicationMenu();
-  ipcMain.handle('open-save', (event, ...args) => {
-    dialog
+  ipcMain.handle('open-save', async (event, ...args) => {
+    let eventResult = {
+      canceled: true,
+      warning: false,
+      message: null
+    };
+    await dialog
       .showSaveDialog(win, {
         title: 'Save current scene',
         message: 'Save current scene',
@@ -54,15 +59,19 @@ function createWindow() {
         properties: ['createDirectory']
       })
       .then((result) => {
+        eventResult.canceled = result.canceled;
         if (!result.canceled) {
-          console.log(`filePath: ${result.filePath}, json: ${args[0]}`);
           try {
             fs.writeFileSync(result.filePath, args[0], 'utf-8');
+            eventResult.message = `Saved scene as ${result.filePath}`;
           } catch (e) {
-            console.log('Failed to save the file !');
+            console.log(e);
+            eventResult.message = 'Failed to save the file!';
+            eventResult.warning = true;
           }
         }
       });
+    return eventResult;
   });
   ipcMain.handle('open-load', async (event) => {
     let content;

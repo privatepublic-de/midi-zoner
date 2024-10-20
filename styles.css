@@ -1710,6 +1710,7 @@ body:not(.running) .seqprogress {
 #toast .toastinner {
   padding: 5px;
   text-align: center;
+  word-break: break-all;
 }
 
 /* @keyframes toastfade {
