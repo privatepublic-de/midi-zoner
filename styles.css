@@ -18,8 +18,7 @@
   --highlight-bpm-value: #0cc;
   --fg-midi-update: #000;
   --bg-midi-update: #fff;
-  --bg-loadsave: #444;
-  --bg-loadsave-item: #555;
+  --bg-valuefollow: #444;
   --bg-select-window: #111;
   --bg-toast: #ff9;
   --bg-toast-warning: #ffa8d8;
@@ -1004,21 +1003,6 @@ input[type='range'] {
   margin-bottom: 8px;
 }
 
-#loadsave {
-  position: fixed;
-  background: var(--bg-loadsave);
-  padding: 0 10px 10px 10px;
-  top: 30px;
-  left: 20px;
-  z-index: 2;
-  font-size: 12px;
-  display: none;
-  min-width: 200px;
-  box-shadow: 0 0 10px var(--shadow-zone);
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
 ul {
   list-style-type: none;
   margin-bottom: 1em;
@@ -1028,38 +1012,6 @@ ul {
 li {
   display: block;
   cursor: pointer;
-}
-
-#loadsave li {
-  border: 1px solid transparent;
-  margin: 0.5em 0;
-  padding: 4px;
-  background: var(--bg-loadsave-item);
-}
-
-#loadsave li i {
-  float: right;
-  border-left: 1px solid var(--brighter-2);
-  padding: 0 3px;
-}
-
-#loadsave li i:hover {
-  background-color: #069;
-}
-
-#loadsave .save *[data-act='add'] {
-  display: none;
-}
-
-#loadsave li:hover {
-  border-color: var(--brighter-1);
-}
-
-#loadsave input {
-  border: 1px solid var(--darker-3);
-  background-color: var(--darker-1);
-  color: var(--brighter-3);
-  padding: 1px 2px;
 }
 
 .ccpots {
@@ -1796,7 +1748,7 @@ body:not(.running) .seqprogress {
   display: none;
   z-index: 1000;
   pointer-events: none;
-  background: var(--bg-loadsave);
+  background: var(--bg-valuefollow);
   color: var(--text-base-color);
   border-radius: 4px;
   padding: 4px;
