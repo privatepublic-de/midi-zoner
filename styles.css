@@ -564,6 +564,16 @@ option {
   pointer-events: none;
 }
 
+.arp-settings-block {
+  display: none;
+  margin: 4px 0;
+  padding: 2px;
+  background-color: var(--bg-color);
+}
+.arp-enabled .arp-settings-block {
+  display: block;
+}
+
 .arp-settings {
   display: none;
   gap: 5px;
@@ -1284,6 +1294,10 @@ li {
   position: relative;
   background-color: var(--bg-color);
   --step-size: 20px;
+}
+
+.shadowed-zone-block {
+  box-shadow: 0 0 5px var(--darker-1);
 }
 
 .disabled .seq {
