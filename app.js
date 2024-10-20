@@ -462,8 +462,6 @@ document.addEventListener('DOMContentLoaded', function () {
           }
         });
         DOM.element('#save').addEventListener('click', async (e) => {
-          // e.stopPropagation();
-          // openSaveDialog();
           await ipcRenderer
             .invoke('open-save', JSON.stringify(zones))
             .then((result) => {
@@ -476,10 +474,7 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
         DOM.element('#load').addEventListener('click', async (e) => {
-          // e.stopPropagation();
-          // openLoadDialog(midi);
           await ipcRenderer.invoke('open-load').then((result) => {
-            console.log('LOAD', result);
             if (result) {
               try {
                 applyStoredZones(JSON.parse(result), midi, true);

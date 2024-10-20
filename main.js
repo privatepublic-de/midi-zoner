@@ -84,7 +84,6 @@ function createWindow() {
       })
       .then((result) => {
         if (!result.canceled) {
-          console.log(`OPEN: ${result.filePaths[0]}`);
           content = fs.readFileSync(result.filePaths[0], 'utf-8');
         }
       });
