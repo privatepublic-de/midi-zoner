@@ -832,6 +832,7 @@ class Zone {
       outevent[1] = n.number;
       this.midi.send(outevent, this.outputPortId);
     });
+    this.sequence.stopped();
   }
 
   panic() {

@@ -1681,6 +1681,9 @@ function toastShow(longer) {
 }
 
 function deleteAllZones() {
+  zones.list.forEach((zone) => {
+    zone.dismiss();
+  });
   zones.list.length = 0;
   midiController.updateUsedPorts(listUsedPorts());
   renderZones();

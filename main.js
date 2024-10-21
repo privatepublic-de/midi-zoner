@@ -93,7 +93,7 @@ function createWindow() {
     let confirmed = false;
     await dialog
       .showMessageBox(win, {
-        type: 'question',
+        type: 'none',
         title: args[0],
         message: args[1],
         buttons: ['OK', 'Cancel'],
