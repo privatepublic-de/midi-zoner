@@ -382,17 +382,16 @@ option {
 
 .zonenumber {
   position: absolute;
-  bottom: 0;
+  bottom: 7px;
   right: 5px;
   color: var(--bg-color);
-  font-size: 25px;
+  font-size: 18px;
   font-weight: bold;
   pointer-events: none;
 }
 
 .disabled .zonenumber {
-  color: var(--bg-window);
-  text-shadow: 0 0 1px var(--brighter-2);
+  color: var(--zone-color);
 }
 
 .zone.droptarget {
