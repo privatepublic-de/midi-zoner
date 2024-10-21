@@ -1729,7 +1729,7 @@ body:not(.running) .seqprogress {
   background-color: var(--orange-highlight);
 }
 
-#newzone {
+.tb-button {
   background-color: var(--bg-topbar-button);
   display: block;
   text-align: center;
@@ -1738,10 +1738,14 @@ body:not(.running) .seqprogress {
   border-radius: 4px;
 }
 
-#newzone:hover,
+.tb-button:hover,
 .selectSeq:not(.selected):hover {
   background-color: var(--brighter-1);
   color: var(--brighter-2);
+}
+
+#deleteallzones.tb-button:hover {
+  background-color: var(--red-highlight);
 }
 
 #valuefollow {

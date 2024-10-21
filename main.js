@@ -89,6 +89,22 @@ function createWindow() {
       });
     return content;
   });
+  ipcMain.handle('open-confirm', async (event, ...args) => {
+    let confirmed = false;
+    await dialog
+      .showMessageBox(win, {
+        type: 'question',
+        title: args[0],
+        message: args[1],
+        buttons: ['OK', 'Cancel'],
+        defaultId: 0,
+        cancelId: 1
+      })
+      .then((result) => {
+        confirmed = result.response === 0;
+      });
+    return confirmed;
+  });
 }
 
 app.on('ready', createWindow);

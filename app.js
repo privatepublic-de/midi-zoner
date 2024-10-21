@@ -401,6 +401,19 @@ document.addEventListener('DOMContentLoaded', function () {
           requestAnimationFrame(view.renderMarkersForAllZones);
         });
         DOM.element('#newzone').addEventListener('click', createNewZone);
+        DOM.element('#deleteallzones').addEventListener('click', async () => {
+          await ipcRenderer
+            .invoke(
+              'open-confirm',
+              'Delete all zones',
+              'Do really want to empty this scene and delete all zones?'
+            )
+            .then((result) => {
+              if (result == true) {
+                viewcontroller.deleteAllZones();
+              }
+            });
+        });
         let colorOffset = 0;
         DOM.element('#shuffleColors').addEventListener('click', () => {
           colorOffset++;

@@ -5,6 +5,7 @@ const Zone = require('./zone').Zone;
 const zoneTemplate = require('./zone-template');
 const potDragHandler = require('./potdraghandler');
 const { Sequence } = require('./zone');
+const { ipcRenderer } = require('electron');
 
 const contextMenuActionLabel = {
   seq_copy_step: '<i class="material-icons">content_copy</i> Copy step',
@@ -259,13 +260,24 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       }
       updateValuesForAllZones();
     },
-    delete: () => {
-      const scrollPos = window.scrollY;
-      zone.dismiss();
-      zones.list.splice(zoneindex, 1);
-      midiController.updateUsedPorts(listUsedPorts());
-      renderZones();
-      window.scrollTo({ top: scrollPos });
+    delete: async () => {
+      const number = parseInt(zoneindex) + 1;
+      await ipcRenderer
+        .invoke(
+          'open-confirm',
+          'Delete zone #' + number,
+          'Do really want to delete zone number ' + number + '?'
+        )
+        .then((result) => {
+          if (result == true) {
+            const scrollPos = window.scrollY;
+            zone.dismiss();
+            zones.list.splice(zoneindex, 1);
+            midiController.updateUsedPorts(listUsedPorts());
+            renderZones();
+            window.scrollTo({ top: scrollPos });
+          }
+        });
     },
     changeColor: () => {
       zone.randomizeColor();
@@ -1668,6 +1680,14 @@ function toastShow(longer) {
   toastElement.classList.add(longer ? 'fadelong' : 'fade');
 }
 
+function deleteAllZones() {
+  zones.list.length = 0;
+  midiController.updateUsedPorts(listUsedPorts());
+  renderZones();
+  window.scrollTo({ top: 0 });
+  triggerSave();
+}
+
 module.exports = {
   initController,
   renderZones,
@@ -1681,5 +1701,6 @@ module.exports = {
   allSoloOff,
   selectSequencerLayer,
   toggleSequencerOnZone,
-  toast
+  toast,
+  deleteAllZones
 };
