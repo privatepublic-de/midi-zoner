@@ -384,11 +384,15 @@ option {
   position: absolute;
   bottom: 0;
   right: 5px;
-  color: var(--bg-window);
+  color: var(--bg-color);
   font-size: 25px;
   font-weight: bold;
   pointer-events: none;
-  text-shadow: 0.5px 0.5px 1px var(--brighter-0);
+}
+
+.disabled .zonenumber {
+  color: var(--bg-window);
+  text-shadow: 0 0 1px var(--brighter-2);
 }
 
 .zone.droptarget {
