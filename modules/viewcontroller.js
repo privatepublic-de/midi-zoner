@@ -778,6 +778,8 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
 }
 
 function contextHandler(/** @type {MouseEvent} */ ev) {
+  ev.preventDefault();
+  ev.stopPropagation();
   const element = ev.currentTarget;
   const menuSpecification = element.getAttribute('data-contextmenu');
   const menuActions = menuSpecification.split(',');
@@ -833,6 +835,9 @@ function contextHandler(/** @type {MouseEvent} */ ev) {
   const menuRect = contextMenuElement.getBoundingClientRect();
   let top = srcRect.top + srcRect.height;
   let left = srcRect.left - 3;
+  if (srcRect.width > menuRect.width) {
+    left = srcRect.left + srcRect.width / 2 - menuRect.width / 2;
+  }
   if (top + menuRect.height > window.innerHeight) {
     top = window.innerHeight - menuRect.height;
     if (top < srcRect.top) {
