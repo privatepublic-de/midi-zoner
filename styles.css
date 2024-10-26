@@ -1776,6 +1776,7 @@ body:not(.running) .seqprogress {
   font-size: 12px;
   margin: 0;
   z-index: 2;
+  width: 200px;
 }
 #contextmenu li {
   margin: 2px 0;

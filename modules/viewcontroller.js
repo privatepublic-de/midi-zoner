@@ -18,13 +18,13 @@ const contextMenuActionLabel = {
   seq_copy: '<i class="material-icons">content_copy</i> Copy sequence',
   seq_paste: '<i class="material-icons">content_paste</i> Paste sequence',
   seq_copy_to_layer_0:
-    '<i class="material-icons">double_arrow</i> Duplicate sequence to layer A',
+    '<i class="material-icons">double_arrow</i> Duplicate to layer A',
   seq_copy_to_layer_1:
-    '<i class="material-icons">double_arrow</i> Duplicate sequence to layer B',
+    '<i class="material-icons">double_arrow</i> Duplicate to layer B',
   seq_copy_to_layer_2:
-    '<i class="material-icons">double_arrow</i> Duplicate sequence to layer C',
+    '<i class="material-icons">double_arrow</i> Duplicate to layer C',
   seq_copy_to_layer_3:
-    '<i class="material-icons">double_arrow</i> Duplicate sequence to layer D'
+    '<i class="material-icons">double_arrow</i> Duplicate to layer D'
 };
 
 let zones = {};
@@ -833,10 +833,14 @@ function contextHandler(/** @type {MouseEvent} */ ev) {
   contextMenuElement.style.setProperty('--bg-contextmenu', bgColor);
   const srcRect = element.getBoundingClientRect();
   const menuRect = contextMenuElement.getBoundingClientRect();
-  let top = srcRect.top + srcRect.height;
-  let left = srcRect.left - 3;
-  if (srcRect.width > menuRect.width) {
-    left = srcRect.left + srcRect.width / 2 - menuRect.width / 2;
+
+  let top = ev.clientY; // srcRect.top + srcRect.height;
+  let left = ev.clientX; //srcRect.left - 3;
+  // if (srcRect.width > menuRect.width) {
+  //  left = srcRect.left + srcRect.width / 2 - menuRect.width / 2;
+  // }
+  if (left + menuRect.width > window.innerWidth) {
+    left = window.innerWidth - menuRect.width;
   }
   if (top + menuRect.height > window.innerHeight) {
     top = window.innerHeight - menuRect.height;
