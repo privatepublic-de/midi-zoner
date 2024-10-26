@@ -840,7 +840,7 @@ function contextHandler(/** @type {MouseEvent} */ ev) {
   }
   if (top + menuRect.height > window.innerHeight) {
     top = window.innerHeight - menuRect.height;
-    if (top < srcRect.top) {
+    if (top < srcRect.top && srcRect.width < menuRect.width) {
       left += srcRect.width;
     }
   }

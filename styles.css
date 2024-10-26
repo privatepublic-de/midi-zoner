@@ -1783,7 +1783,7 @@ body:not(.running) .seqprogress {
 }
 
 #contextmenu li.disabled {
-  color: var(--darker-2);
+  color: var(--brighter-1);
   font-style: italic;
   pointer-events: none;
 }
