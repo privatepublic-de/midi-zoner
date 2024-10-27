@@ -1286,12 +1286,25 @@ li {
 }
 
 .seq-layer-indicator {
+  position: relative;
   width: 48px;
   margin-top: 4px;
   padding: 0 4px;
   text-align: center;
   color: var(--brighter-3);
   background-color: var(--darker-1);
+}
+
+.seq-layer-indicator::before {
+  content: ' ';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--darker-2);
+  border-top: none;
+  border-left: none;
+  left: 0;
+  margin: 1px 0 0 1px;
 }
 
 .zone.disabled.show-seq .seq-layer-indicator {
