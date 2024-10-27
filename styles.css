@@ -1511,7 +1511,7 @@ li {
 }
 
 .seq.has-selection {
-  cursor: url(res/deselect.svg), url(res/deselect.png), zoom-out;
+  cursor: zoom-out;
 }
 
 .seqprogress {
@@ -1635,7 +1635,7 @@ body:not(.running) .seqprogress {
   position: fixed;
   width: 260px;
   left: 50%;
-  top: 50px;
+  top: 40%;
   margin-left: -130px;
   background-color: var(--bg-toast);
   color: var(--text-toast-color);
@@ -1660,7 +1660,7 @@ body:not(.running) .seqprogress {
 #toast .toastinner {
   padding: 5px;
   text-align: center;
-  word-break: break-all;
+  word-wrap: break-word;
 }
 
 /* @keyframes toastfade {

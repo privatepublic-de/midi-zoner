@@ -500,6 +500,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       const semitones = parseInt(element.options[element.selectedIndex].value);
       zone.sequence.transpose(semitones);
       toast('Sequence transposed by ' + semitones + ' semitones');
+      element.selectedIndex = 0;
     },
     seq_adjust: () => {
       const adjustment = element.options[element.selectedIndex].value;
@@ -529,7 +530,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
             seq.steps[i * 2 + 1] = null;
           }
           updateValuesForZone(zoneindex);
-          toast('Sequence made double time slower');
+          toast('Sequence made half time slower');
           break;
         case 'thirdtime':
           seq.length = seq.length * 3;
@@ -541,7 +542,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
             seq.steps[i * 3 + 1] = seq.steps[i * 3 + 2] = null;
           }
           updateValuesForZone(zoneindex);
-          toast('Sequence made triple time slower');
+          toast('Sequence made one-third time slower');
           break;
       }
       setTimeout(() => {
@@ -604,6 +605,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
           }
         });
         toast('Applied ' + what + ' to all steps in sequence');
+        element.selectedIndex = 0;
         updateValuesForZone(zoneindex);
       }
     },
@@ -698,7 +700,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       Object.assign(zone.sequence.layers[targetLayer], copyData);
       updateValuesForZone(zoneindex);
       toast(
-        'Sequence copied to layer ' + String.fromCharCode(65 + targetLayer)
+        'Sequence duplicated to layer ' + String.fromCharCode(65 + targetLayer)
       );
     },
     seq_copy_to_layer_1: () => {
