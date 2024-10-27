@@ -1391,6 +1391,10 @@ li {
   color: var(--brighter-4);
 }
 
+.seq .grid .step {
+  cursor: zoom-in;
+}
+
 .seq_record_live.selected {
   animation: indicator 1s infinite alternate;
 }
@@ -1414,6 +1418,7 @@ li {
   background-color: var(--brighter-2);
   color: var(--brighter-4);
   box-shadow: 0 0 10px var(--brighter-4);
+  cursor: zoom-out;
 }
 
 .seq.hot .step.selected-step {
