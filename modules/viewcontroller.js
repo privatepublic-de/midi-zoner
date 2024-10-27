@@ -500,11 +500,6 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       const semitones = parseInt(element.options[element.selectedIndex].value);
       zone.sequence.transpose(semitones);
       toast('Sequence transposed by ' + semitones + ' semitones');
-      DOM.addClass(`#zone${zoneindex} .grid`, 'steps-changed');
-      setTimeout(() => {
-        element.selectedIndex = 0;
-        DOM.removeClass(`#zone${zoneindex} .grid`, 'steps-changed');
-      }, 1000);
     },
     seq_adjust: () => {
       const adjustment = element.options[element.selectedIndex].value;
@@ -610,13 +605,6 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
         });
         toast('Applied ' + what + ' to all steps in sequence');
         updateValuesForZone(zoneindex);
-        DOM.addClass(element.closest('.grid'), 'steps-changed');
-      }
-      if (actionIndex > 0) {
-        setTimeout(() => {
-          element.selectedIndex = 0;
-          DOM.removeClass(element.closest('.grid'), 'steps-changed');
-        }, 1000);
       }
     },
     seq_gatelength: () => {
