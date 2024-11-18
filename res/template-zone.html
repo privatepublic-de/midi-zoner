@@ -439,7 +439,7 @@
     </div>
   </div>
 
-  <div class="ccpots shadowed-zone-block">
+  <div class="ccpots shadowed-zone-block" data-action="${index}:cc_select:-1">
     <div class="ccpotttools">
       <div class="action-light">
         <i
@@ -460,40 +460,41 @@
     </div>
     <div class="cc-editor popup">
       <div class="flex-row">
-        <label>Name</label>
-        <input
-          class="cclabel"
-          type="text"
-          style="width: 8em"
-          data-change="${index}:cc_label"
-        />
-        <label>CC#</label>
-        <input
-          type="number"
-          class="cc-out"
-          min="0"
-          max="127"
-          data-change="${index}:cc_number"
-        />
         <label>Type</label>
         <select class="cc_change_type" data-change="${index}:cc_change_type">
           <option value="0">Rotary</option>
           <option value="1">Rotary (+/-)</option>
           <option value="3">Buttons</option>
+          <option value="4">Note to CC</option>
           <option value="2">Spacer</option>
         </select>
+        <label class="standardcc">Name</label>
+        <input
+          class="cclabel standardcc"
+          type="text"
+          style="width: 8em"
+          data-change="${index}:cc_label"
+        />
+        <label class="standardcc">CC#</label>
+        <input
+          type="number"
+          class="cc-out standardcc"
+          min="0"
+          max="127"
+          data-change="${index}:cc_number"
+        />
         <div style="flex-grow: 1"></div>
         <div class="action" data-action="${index}:cc_left">
           <span class="material-icons" title="Move left">arrow_back</span>
+        </div>
+        <div class="action" data-action="${index}:cc_right">
+          <span class="material-icons" title="Move right">arrow_forward</span>
         </div>
         <div class="action warn" data-action="${index}:cc_remove">
           <span class="material-icons" title="Remove">close</span>
         </div>
         <div class="action" data-action="${index}:cc_add">
           <span class="material-icons" title="Add new">add</span>
-        </div>
-        <div class="action" data-action="${index}:cc_right">
-          <span class="material-icons" title="Move right">arrow_forward</span>
         </div>
       </div>
       <div class="flex-row values">
@@ -522,7 +523,7 @@
           data-change="${index}:cc_max"
         />
       </div>
-      <div class="cc_buttoncontainer">
+      <div class="cc_buttoncontainer cc_specialblock">
         <div class="flex-row cc_buttons">
           <label>Button 1</label>
           <input
@@ -568,6 +569,24 @@
             data-change="${index}:cc_button_value:3"
           />
         </div>
+      </div>
+      <div class="cc_note2cc cc_specialblock values">
+        <label>Note number to CC#</label>
+        <input
+          type="number"
+          class="cc_notenum2cc"
+          min="0"
+          max="127"
+          data-change="${index}:cc_notenum2cc"
+        />
+        <label>Velocity to CC#</label>
+        <input
+          type="number"
+          class="cc_notevelocity2cc"
+          min="0"
+          max="127"
+          data-change="${index}:cc_notevelocity2cc"
+        />
       </div>
     </div>
   </div>

@@ -112,7 +112,7 @@ class Zone {
   _sustain_on = false;
   cc = false;
   cc_controllers = [
-    // type 0: unipolar, 1: bipolar, 2: spacer, 3: button
+    // type 0: unipolar, 1: bipolar, 2: spacer, 3: button, 4: note2cc
     {
       number: 7,
       number_in: null,
@@ -120,7 +120,9 @@ class Zone {
       val: 100,
       type: 0,
       min: 0,
-      max: 127
+      max: 127,
+      note_cc: null,
+      velocity_cc: null
     },
     {
       number: 1,
@@ -129,7 +131,9 @@ class Zone {
       val: 0,
       type: 0,
       min: 0,
-      max: 127
+      max: 127,
+      note_cc: null,
+      velocity_cc: null
     }
   ];
   show_cc = false;
@@ -369,6 +373,7 @@ class Zone {
 
               const outevent = new Uint8Array(data);
               if (message == MIDI.MESSAGE.NOTE_ON) {
+                this.convertNote2CC(key, velo);
                 if (!this.arp_enabled) {
                   outevent[0] = message + this.channel;
                   outevent[1] = key;
@@ -473,6 +478,27 @@ class Zone {
       }
     }
     return;
+  }
+
+  convertNote2CC(key, velo) {
+    // TODO optimize: only if controller is present
+    for (let i = 0; i < this.cc_controllers.length; i++) {
+      const ctrl = this.cc_controllers[i];
+      if (ctrl.type == 4) {
+        const outevent = new Uint8Array(3);
+        outevent[0] = MIDI.MESSAGE.CONTROLLER + this.channel;
+        if (ctrl.note_cc != null) {
+          outevent[1] = ctrl.note_cc;
+          outevent[2] = key;
+          this.midi.send(outevent, this.outputPortId);
+        }
+        if (ctrl.velocity_cc != null) {
+          outevent[1] = ctrl.velocity_cc;
+          outevent[2] = velo;
+          this.midi.send(outevent, this.outputPortId);
+        }
+      }
+    }
   }
 
   notesChanged() {

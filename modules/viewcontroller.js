@@ -266,7 +266,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
         .invoke(
           'open-confirm',
           'Delete zone #' + number,
-          'Do really want to delete zone number ' + number + '?'
+          'Do you really want to delete zone number ' + number + '?'
         )
         .then((result) => {
           if (result == true) {
@@ -335,9 +335,14 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       updateControllerValues(zone, zoneindex);
     },
     cc_select: () => {
-      zone.selectedCCIndex = params[2];
-      if (zone.editCC) {
+      if (params[2] == -1) {
+        zone.editCC = false;
         updateControllerValues(zone, zoneindex);
+      } else {
+        zone.selectedCCIndex = params[2];
+        if (zone.editCC) {
+          updateControllerValues(zone, zoneindex);
+        }
       }
     },
     cc_label: () => {
@@ -374,6 +379,28 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
         updateControllerValues(zone, zoneindex);
       }
     },
+    cc_notenum2cc: () => {
+      element.value = element.value.replace(/[^0-9]/, ''); // TODO generalize
+      if (element.value != '') {
+        zone.cc_controllers[zone.selectedCCIndex].note_cc = parseInt(
+          element.value
+        );
+      } else {
+        zone.cc_controllers[zone.selectedCCIndex].note_cc = null;
+      }
+      updateControllerValues(zone, zoneindex);
+    },
+    cc_notevelocity2cc: () => {
+      element.value = element.value.replace(/[^0-9]/, ''); // TODO generalize
+      if (element.value != '') {
+        zone.cc_controllers[zone.selectedCCIndex].velocity_cc = parseInt(
+          element.value
+        );
+      } else {
+        zone.cc_controllers[zone.selectedCCIndex].velocity_cc = null;
+      }
+      updateControllerValues(zone, zoneindex);
+    },
     cc_button_label: () => {
       zone.cc_controllers[zone.selectedCCIndex][`buttonlabel${params[2]}`] =
         element.value;
@@ -403,25 +430,39 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
         max: 127,
         type: 0,
         label: `Ctrl #${parseInt(zone.selectedCCIndex) + 1}`,
-        val: 0
+        val: 0,
+        note_cc: null,
+        velocity_cc: null
       });
       zone.selectedCCIndex++;
       renderControllersForZone(zone, zoneindex);
     },
-    cc_remove: () => {
-      zone.cc_controllers.splice(zone.selectedCCIndex, 1);
-      zone.selectedCCIndex--;
-      renderControllersForZone(zone, zoneindex);
+    cc_remove: async () => {
+      let description =
+        '#' +
+        (parseInt(zone.selectedCCIndex) + 1) +
+        ' "' +
+        zone.cc_controllers[zone.selectedCCIndex].label +
+        '"';
+      await ipcRenderer
+        .invoke(
+          'open-confirm',
+          'CC' + description,
+          'Do you really want to delete controller ' + description + '?'
+        )
+        .then((result) => {
+          if (result == true) {
+            zone.cc_controllers.splice(zone.selectedCCIndex, 1);
+            zone.selectedCCIndex--;
+            renderControllersForZone(zone, zoneindex);
+          }
+        });
     },
     cc_change_type: () => {
       zone.cc_controllers[zone.selectedCCIndex].type = parseInt(element.value);
       renderControllersForZone(zone, zoneindex);
       updateControllerValues(zone, zoneindex);
     },
-    // cc_focused: () => {
-    //   zone.learnCCIndex = params[3] == 1 ? params[2] : -1;
-    //   console.log('Learning CC: ', zone.learnCCIndex);
-    // },
     _cc_move: (direction) => {
       const pos = Number(zone.selectedCCIndex);
       let targetPos = pos;
@@ -1103,6 +1144,7 @@ function renderControllersForZone(/** @type {Zone} */ zone, index) {
   const suckEvent = (e) => {
     e.stopPropagation();
   };
+  DOM.on(`#zone${index} .ccpots .cc-editor`, 'click', suckEvent);
   DOM.on(`#zone${index} .ccpots input`, 'keyup', suckEvent);
   DOM.on(`#zone${index} .ccpots input`, 'focus', (e) => {
     e.target.select();
@@ -1408,7 +1450,8 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
       c.type == 1 ? 'block' : 'none';
     const potcontainer = DOM.element(`#pot_${zoneindex}_${ix}`);
     potcontainer.dataset.type = c.type;
-    DOM.element(`#pot_${zoneindex}_${ix} div.cclabel`).innerHTML = c.label;
+    DOM.element(`#pot_${zoneindex}_${ix} div.cclabel`).innerHTML =
+      c.type == 4 ? 'Note to CC' : c.label;
     let displayValue = c.val;
     if (c.type == 0) {
       displayValue = zone.remapCCValue(c.val, ix);
@@ -1417,7 +1460,16 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
     }
     DOM.element(`#pot_${zoneindex}_${ix} .value`).innerHTML = displayValue;
     const tools = DOM.element(`#zone${zoneindex} .cc-editor`);
-
+    if (c.type == 4) {
+      let infotext = '';
+      if (c.note_cc != null) {
+        infotext += '<div>Note: <br/>#' + c.note_cc + '</div>';
+      }
+      if (c.velocity_cc != null) {
+        infotext += '<div>Velocity: <br/>#' + c.velocity_cc + '</div>';
+      }
+      DOM.element(`#pot_${zoneindex}_${ix} .info`).innerHTML = infotext;
+    }
     if (c.type == 3) {
       // buttons
       for (let i = 0; i < 4; i++) {
@@ -1463,6 +1515,8 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
         tools.querySelector('.cc-min').value = c.min || 0;
         tools.querySelector('.cc-max').value = c.max || 127;
         tools.querySelector('.cc_change_type').value = c.type;
+        tools.querySelector('.cc_notenum2cc').value = c.note_cc || '';
+        tools.querySelector('.cc_notevelocity2cc').value = c.velocity_cc || '';
       }
     } else {
       DOM.removeClass(`#pot_${zoneindex}_${ix}`, 'selected');
