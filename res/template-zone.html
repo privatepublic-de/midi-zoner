@@ -442,26 +442,28 @@
   <div class="ccpots shadowed-zone-block" data-action="${index}:cc_select:-1">
     <div class="ccpotttools">
       <div
-        class="action-light"
-        data-action="${index}:send_all_cc"
-        title="Send all values"
-      >
-        <i class="material-icons">double_arrow</i>
-      </div>
-      <div
-        class="action-light edit-cc-button"
+        class="action edit-cc-button"
         data-action="${index}:cc_edit"
         title="Edit controls"
       >
         <i class="material-icons" title="Edit controls">edit</i>
       </div>
+      <div
+        class="action"
+        data-action="${index}:send_all_cc"
+        title="Send all values"
+      >
+        <i class="material-icons">double_arrow</i>
+      </div>
     </div>
+    <div class="container"></div>
+
     <div class="cc-editor popup">
       <div class="flex-row">
         <label>Type</label>
         <select class="cc_change_type" data-change="${index}:cc_change_type">
-          <option value="0">Rotary</option>
-          <option value="1">Rotary (+/-)</option>
+          <option value="0">Rotary +</option>
+          <option value="1">Rotary ±</option>
           <option value="3">Buttons</option>
           <option value="4">Note to CC</option>
           <option value="2">Spacer</option>

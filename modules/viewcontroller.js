@@ -1137,7 +1137,7 @@ function renderMarkersForZone(index, tempLo, tempHigh) {
 function renderControllersForZone(/** @type {Zone} */ zone, index) {
   DOM.all(`#zone${index} .ccpots .ccpot`).forEach((e) => e.remove());
   DOM.addHTML(
-    `#zone${index} .ccpots`,
+    `#zone${index} .ccpots .container`,
     'afterbegin',
     zoneTemplate.getControllerHTML(zone, index)
   );
