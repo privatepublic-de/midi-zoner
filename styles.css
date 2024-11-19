@@ -643,7 +643,8 @@ option {
 }
 
 .action-light:hover {
-  text-decoration: underline;
+  background-color: var(--brighter-1);
+  color: var(--text-base-color);
 }
 
 .action.warn {
@@ -1071,10 +1072,6 @@ li {
   color: var(--brighter-3);
 }
 
-.ccpots.cc-edit .edit-cc-button {
-  background-color: var(--brighter-1);
-}
-
 .ccpot svg {
   position: absolute;
   top: 6px;
@@ -1135,16 +1132,24 @@ li {
 
 .ccpotttools {
   position: absolute;
-  right: 5px;
+  right: 9px;
   bottom: 0;
-  color: var(--text-base-color);
+  color: var(--darker-1);
   font-size: 14px;
-  text-align: center;
   display: flex;
   flex-direction: row;
-  justify-content: space-evenly;
-  align-items: flex-end;
-  gap: 5px;
+  justify-content: center;
+  width: var(--ccpot-width);
+}
+
+.ccpotttools .action-light {
+  height: auto;
+  padding: 0 5px;
+}
+
+.ccpots.cc-edit .edit-cc-button {
+  background-color: var(--brighter-1);
+  color: var(--text-base-color);
 }
 
 .flex-row {
@@ -1681,7 +1686,7 @@ body:not(.running) .seqprogress {
   position: fixed;
   width: 260px;
   left: 50%;
-  top: 40%;
+  top: 48px;
   margin-left: -130px;
   background-color: var(--bg-toast);
   color: var(--text-toast-color);
