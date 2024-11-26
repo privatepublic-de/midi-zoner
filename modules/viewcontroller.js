@@ -585,6 +585,20 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
           updateValuesForZone(zoneindex);
           toast('Sequence made one-third time slower');
           break;
+        case 'veloup':
+        case 'velodown':
+          let factor = adjustment == 'veloup' ? 1 + 1 / 3 : 0.75;
+          zone.sequence.steps.forEach((step) => {
+            step.notesArray.forEach((note) => {
+              const newvelo = note.velo * factor;
+              note.velo = Math.max(1, Math.min(127, newvelo));
+            });
+          });
+          toast(
+            'All steps changed velocity by ' + parseInt(factor * 100) + '%'
+          );
+          updateValuesForZone(zoneindex);
+          break;
       }
       setTimeout(() => {
         element.selectedIndex = 0;
