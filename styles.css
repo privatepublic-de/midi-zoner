@@ -215,6 +215,7 @@ select {
 
 option {
   color: black;
+  margin: 5px 0;
 }
 
 .clockOutOption select {
