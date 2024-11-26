@@ -25,16 +25,15 @@ const interpolateTemplate = function (templateString, templateVars) {
 };
 
 const cycleConditions = (function () {
-  let s = '<optgroup>';
+  let s = '<hr/>';
   let lastCycleCond = 2;
   for (let cond of Zone.Sequence.CYCLE_CONDITIONS) {
     if (cond[0] != lastCycleCond) {
-      s += '</optgroup><optgroup>';
+      s += '<hr/>';
       lastCycleCond = cond[0];
     }
     s += `<option>${cond[1]} : ${cond[0]}</option>`;
   }
-  s += '</optgroup>';
   return s;
 })();
 
@@ -48,9 +47,8 @@ const noteLengthOptions = (function () {
     ['1/16•', '1/8t', '1/16'],
     ['1/32•', '1/32', '1/16t']
   ].forEach((group) => {
-    s += '<optgroup>';
+    s += '<hr/>';
     group.forEach((opt) => (s += '<option>' + opt + '</option>'));
-    s += '</optgroup>';
   });
   return s;
 })();
