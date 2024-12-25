@@ -376,7 +376,7 @@ class Zone {
               const outevent = new Uint8Array(data);
               if (message == MIDI.MESSAGE.NOTE_ON) {
                 this.convertNote2CC(key, velo);
-                if (!this.arp_enabled & !fromSequencer) {
+                if (!this.arp_enabled) {
                   outevent[0] = message + this.channel;
                   outevent[1] = key;
                   outevent[2] = velo;
