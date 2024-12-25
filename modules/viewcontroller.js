@@ -589,10 +589,12 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
         case 'velodown':
           let factor = adjustment == 'veloup' ? 1 + 1 / 3 : 0.75;
           zone.sequence.steps.forEach((step) => {
-            step.notesArray.forEach((note) => {
-              const newvelo = note.velo * factor;
-              note.velo = Math.max(1, Math.min(127, newvelo));
-            });
+            if (step != null) {
+              step.notesArray.forEach((note) => {
+                const newvelo = note.velo * factor;
+                note.velo = Math.max(1, Math.min(127, newvelo));
+              });
+            }
           });
           toast(
             'All steps changed velocity by ' + parseInt(factor * 100) + '%'
