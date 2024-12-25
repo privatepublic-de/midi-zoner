@@ -347,10 +347,11 @@ class Zone {
     } while (index > -1);
   }
 
-  handleMidi(message, data) {
+  handleMidi(message, data, fromSequencer) {
     if (
       (this.enabled && (Zone.solocount === 0 || this.solo)) ||
-      (message === MIDI.MESSAGE.CONTROLLER && this.show_cc)
+      (message === MIDI.MESSAGE.CONTROLLER && this.show_cc) ||
+      fromSequencer
     ) {
       switch (message) {
         case MIDI.MESSAGE.NOTE_OFF:
@@ -365,7 +366,8 @@ class Zone {
               requestAnimationFrame(this.renderNotes.bind(this));
               return null;
             }
-            key = key + (this.arp_enabled ? 0 : this.octave * 12);
+            key =
+              key + (this.arp_enabled || fromSequencer ? 0 : this.octave * 12);
             if (key >= 0 && key <= 127) {
               if (this.fixedvel && velo > 0) {
                 velo = this.fixedvel_value || 127;
@@ -374,7 +376,7 @@ class Zone {
               const outevent = new Uint8Array(data);
               if (message == MIDI.MESSAGE.NOTE_ON) {
                 this.convertNote2CC(key, velo);
-                if (!this.arp_enabled) {
+                if (!this.arp_enabled & !fromSequencer) {
                   outevent[0] = message + this.channel;
                   outevent[1] = key;
                   outevent[2] = velo;
@@ -407,7 +409,7 @@ class Zone {
                 this.sequence.noteReleased(this.activeNotes.length);
               }
             }
-            this.notesChanged();
+            this.notesChanged(fromSequencer);
           }
           break;
         case MIDI.MESSAGE.CONTROLLER: // cc
@@ -501,8 +503,8 @@ class Zone {
     }
   }
 
-  notesChanged() {
-    if (this.enabled) {
+  notesChanged(fromSequencer) {
+    if (this.enabled || fromSequencer) {
       this.arp.orderlist = Array.from(this.activeNotes);
       this.arp_holdlist = Array.from(this.holdList);
       this.arp.sortedlist = Array.from(this.arp.orderlist).sort(
@@ -609,15 +611,15 @@ class Zone {
         this.arp_enabled ? note_fill_arp : note_fill,
         this.arp_enabled ? note_fill_arp_black : note_fill_black
       );
-      if (this.sequence.active) {
-        drawNumbers.length = 0;
-        for (let snote of this.sequence.activeNotes()) {
-          const number = snote.number;
-          // drawNote(number, note_fill, note_fill_black);
-          drawNumbers.push(number);
-        }
-        drawNoteList(drawNumbers, note_fill, note_fill_black);
-      }
+      // if (this.sequence.active) {
+      //   drawNumbers.length = 0;
+      //   for (let snote of this.sequence.activeNotes()) {
+      //     const number = snote.number;
+      //     // drawNote(number, note_fill, note_fill_black);
+      //     drawNumbers.push(number);
+      //   }
+      //   drawNoteList(drawNumbers, note_fill, note_fill_black);
+      // }
       if (this.arp_enabled) {
         const note = this.arp.lastnote;
         if (note) {
@@ -1181,14 +1183,23 @@ class Sequence {
         if (astep.length - 1 - astep.played === 0 && this.tickn >= offtick) {
           clearSteps.push(astep);
           for (let note of astep.lastPlayedArray) {
-            this.zone.midi.send(
+            this.zone.handleMidi(
+              MIDI.MESSAGE.NOTE_OFF,
               Uint8Array.from([
                 MIDI.MESSAGE.NOTE_OFF + note.channel,
                 note.number,
                 note.velo
               ]),
-              note.portId
+              true
             );
+            // this.zone.midi.send(
+            //   Uint8Array.from([
+            //     MIDI.MESSAGE.NOTE_OFF + note.channel,
+            //     note.number,
+            //     note.velo
+            //   ]),
+            //   note.portId
+            // );
           }
           astep.lastPlayedArray.length = 0;
           refreshNotesDisplay = true;
@@ -1231,16 +1242,25 @@ class Sequence {
               note.number = note.number; // + this.zone.octave * 12;
               note.channel = this.zone.channel;
               note.portId = this.zone.outputPortId;
-              this.zone.midi.send(
+              this.zone.handleMidi(
+                MIDI.MESSAGE.NOTE_ON,
                 Uint8Array.from([
                   MIDI.MESSAGE.NOTE_ON + note.channel,
                   note.number,
-                  this.zone.fixedvel
-                    ? this.zone.fixedvel_value
-                    : this.zone.scaledVelocity(note.velo)
+                  note.velo
                 ]),
-                note.portId
+                true
               );
+              // this.zone.midi.send(
+              //   Uint8Array.from([
+              //     MIDI.MESSAGE.NOTE_ON + note.channel,
+              //     note.number,
+              //     this.zone.fixedvel
+              //       ? this.zone.fixedvel_value
+              //       : this.zone.scaledVelocity(note.velo)
+              //   ]),
+              //   note.portId
+              // );
               currentStep.lastPlayedArray.push(note);
               refreshNotesDisplay = true;
             }
@@ -1253,21 +1273,30 @@ class Sequence {
       requestAnimationFrame(this.zone.renderSequence.bind(this.zone));
     }
     if (refreshNotesDisplay) {
-      requestAnimationFrame(this.zone.renderNotes.bind(this.zone));
+      // requestAnimationFrame(this.zone.renderNotes.bind(this.zone));
     }
   }
 
   stopped() {
     this.activeSteps.forEach((astep) => {
       for (let note of astep.lastPlayedArray) {
-        this.zone.midi.send(
+        this.zone.handleMidi(
+          MIDI.MESSAGE.NOTE_OFF,
           Uint8Array.from([
             MIDI.MESSAGE.NOTE_OFF + note.channel,
             note.number,
             note.velo
           ]),
-          note.portId
+          true
         );
+        // this.zone.midi.send(
+        //   Uint8Array.from([
+        //     MIDI.MESSAGE.NOTE_OFF + note.channel,
+        //     note.number,
+        //     note.velo
+        //   ]),
+        //   note.portId
+        // );
       }
       astep.lastPlayedArray.length = 0;
     });

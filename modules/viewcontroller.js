@@ -198,8 +198,8 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
     arp_enabled: () => {
       applyParamToggle();
       if (zone.arp_enabled) {
-        zone.sequence.active = false;
-        zone.sequence.selectedStepNumber = -1;
+        // zone.sequence.active = false;
+        // zone.sequence.selectedStepNumber = -1;
         updateValuesForZone(zoneindex);
         zone.renderPattern();
       }
@@ -499,7 +499,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       zone.sequence.active = !zone.sequence.active;
       zone.sequence.selectedStepNumber = -1;
       if (zone.sequence.active) {
-        zone.arp_enabled = false;
+        // zone.arp_enabled = false;
         zone.renderNotes();
       } else {
         zone.sequence.isLiveRecoding = false;
