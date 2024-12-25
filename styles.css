@@ -1450,7 +1450,8 @@ li {
 }
 
 .seq_record_live.selected {
-  animation: indicator 1s infinite alternate;
+  animation: indicator 500ms infinite alternate ease-out;
+  box-shadow: 0 0 1px var(--brighter-4);
 }
 
 .seq_gatelength {
