@@ -445,6 +445,7 @@ option {
 .channels {
   display: flex;
   gap: 6px;
+  margin-bottom: 6px;
 }
 
 .ch {
