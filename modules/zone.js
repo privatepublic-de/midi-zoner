@@ -390,7 +390,9 @@ class Zone {
                 );
                 this.midiActiveNotes[srcKey] = playNote;
                 this.addNote(playNote);
-                this.sequence.recordNote(playNote, this.activeNotes.length);
+                if (!fromSequencer) {
+                  this.sequence.recordNote(playNote, this.activeNotes.length);
+                }
               } else {
                 const srcNote = this.midiActiveNotes[srcKey];
                 if (srcNote) {
@@ -406,7 +408,9 @@ class Zone {
                   console.log(`No src note for ${srcKey}, clearing ${key}`);
                   this.removeNote(key);
                 }
-                this.sequence.noteReleased(this.activeNotes.length);
+                if (!fromSequencer) {
+                  this.sequence.noteReleased(this.activeNotes.length);
+                }
               }
             }
             this.notesChanged(fromSequencer);
