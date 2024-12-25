@@ -1080,7 +1080,7 @@ class Sequence {
   recordNote(note, count) {
     if (this.isLiveRecoding && this.currentStepNumber > -1) {
       const rec2step =
-        this.ticks > 5 && this.tickn > this.ticks - 3
+        this.tickn >= this.ticks - this.ticks / 3
           ? (this.currentStepNumber + 1) % this.length
           : this.currentStepNumber;
       if (this.liveTargetStep == null) {
@@ -1203,8 +1203,7 @@ class Sequence {
         (item) => !clearSteps.includes(item)
       );
     }
-    if (this.tickn == this.ticks / 2) {
-      // quantized record note lengths
+    if (this.tickn == this.ticks - 1) {
       this.liveTargetLength++;
     }
     if (this.tickn === 0) {
