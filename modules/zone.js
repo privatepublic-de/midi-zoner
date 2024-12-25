@@ -1173,7 +1173,6 @@ class Sequence {
 
   clock(pos) {
     this.tickn = pos % this.ticks;
-    let refreshNotesDisplay = false;
     if (this.activeSteps.length > 0) {
       // check for active steps ending
       const clearSteps = [];
@@ -1192,17 +1191,8 @@ class Sequence {
               ]),
               true
             );
-            // this.zone.midi.send(
-            //   Uint8Array.from([
-            //     MIDI.MESSAGE.NOTE_OFF + note.channel,
-            //     note.number,
-            //     note.velo
-            //   ]),
-            //   note.portId
-            // );
           }
           astep.lastPlayedArray.length = 0;
-          refreshNotesDisplay = true;
         }
       });
       this.activeSteps = this.activeSteps.filter(
@@ -1251,18 +1241,7 @@ class Sequence {
                 ]),
                 true
               );
-              // this.zone.midi.send(
-              //   Uint8Array.from([
-              //     MIDI.MESSAGE.NOTE_ON + note.channel,
-              //     note.number,
-              //     this.zone.fixedvel
-              //       ? this.zone.fixedvel_value
-              //       : this.zone.scaledVelocity(note.velo)
-              //   ]),
-              //   note.portId
-              // );
               currentStep.lastPlayedArray.push(note);
-              refreshNotesDisplay = true;
             }
             this.previousStepPlayed = true;
           } else {
@@ -1271,9 +1250,6 @@ class Sequence {
         }
       }
       requestAnimationFrame(this.zone.renderSequence.bind(this.zone));
-    }
-    if (refreshNotesDisplay) {
-      // requestAnimationFrame(this.zone.renderNotes.bind(this.zone));
     }
   }
 
@@ -1289,14 +1265,6 @@ class Sequence {
           ]),
           true
         );
-        // this.zone.midi.send(
-        //   Uint8Array.from([
-        //     MIDI.MESSAGE.NOTE_OFF + note.channel,
-        //     note.number,
-        //     note.velo
-        //   ]),
-        //   note.portId
-        // );
       }
       astep.lastPlayedArray.length = 0;
     });
