@@ -9,7 +9,7 @@ let tickHandler = null;
 let timerID = null;
 // let hasStarted = false;
 
-const scheduleClock = function () {
+const scheduleClock = () => {
   let currentTime = audioContext.currentTime;
   currentTime -= startTime;
   while (nextClockTime < currentTime + scheduleAheadTime) {
