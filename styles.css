@@ -1446,7 +1446,18 @@ li {
 }
 
 .seq .grid .step {
+  position: relative;
   cursor: zoom-in;
+  overflow: hidden;
+}
+
+.seq .grid .step .activeothers {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 0;
+  background-color: var(--brighter-2);
 }
 
 .seq_record_live.selected {
@@ -1481,7 +1492,7 @@ li {
 }
 
 .seq .grid .step:nth-child(4n + 1) {
-  border-bottom-color: var(--darker-3);
+  border-bottom-color: var(--darker-4);
 }
 
 .seq .grid .step.active:nth-child(4n + 1) {

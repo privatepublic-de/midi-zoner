@@ -82,7 +82,7 @@ module.exports = {
     for (let i = 0; i < Zone.Sequence.MAX_STEPS; i++) {
       sequencerGrid += `<div class="step" data-action="${index}:select_step:${i}" data-contextmenu="${index}:seq_copy_step:${i},${index}:seq_paste_step:${i},${index}:seq_paste_steps:${i},-,${index}:seq_clear_step:${i},${index}:seq_clear_all">${
         i + 1
-      }</div>`;
+      }<div class="activeothers"></div></div>`;
     }
     const zoneMuteKeyboardHint =
       index < 10 ? `('${(index + 1) % 10}' on computer keyboard)` : '';

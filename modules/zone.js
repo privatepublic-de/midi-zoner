@@ -347,12 +347,16 @@ class Zone {
     } while (index > -1);
   }
 
-  handleMidi(message, data, fromSequencer) {
-    if (
+  shouldHandleMidi(message, fromSequencer) {
+    return (
       (this.enabled && (Zone.solocount === 0 || this.solo)) ||
       (message === MIDI.MESSAGE.CONTROLLER && this.show_cc) ||
       fromSequencer
-    ) {
+    );
+  }
+
+  handleMidi(message, data, fromSequencer) {
+    if (this.shouldHandleMidi(message, fromSequencer)) {
       switch (message) {
         case MIDI.MESSAGE.NOTE_OFF:
         case MIDI.MESSAGE.NOTE_ON:
@@ -487,9 +491,10 @@ class Zone {
   }
 
   convertNote2CC(key, velo) {
-    // TODO optimize: only if controller is present
-    for (let i = 0; i < this.cc_controllers.length; i++) {
-      const ctrl = this.cc_controllers[i];
+    if (!this.cc_controllers.some((ctrl) => ctrl.type == 4)) {
+      return;
+    }
+    this.cc_controllers.forEach((ctrl) => {
       if (ctrl.type == 4) {
         const outevent = new Uint8Array(3);
         outevent[0] = MIDI.MESSAGE.CONTROLLER + this.channel;
@@ -504,9 +509,8 @@ class Zone {
           this.midi.send(outevent, this.outputPortId);
         }
       }
-    }
+    });
   }
-
   notesChanged(fromSequencer) {
     if (this.enabled || fromSequencer) {
       this.arp.orderlist = Array.from(this.activeNotes);
@@ -1322,6 +1326,22 @@ class Sequence {
     const condition = Sequence.CYCLE_CONDITIONS[step.condition - 5];
     // console.log(condition, this.cycleCount, this.cycleCount % condition[0]);
     return this.cycleCount % condition[0] === condition[1] - 1;
+  }
+
+  numberOfStepsStillActive(position) {
+    let count = 0;
+    for (let i = 0; i < this.steps.length; i++) {
+      if (this.steps[i] && this.steps[i].length > 0) {
+        const start = i + 1;
+        const end = i + this.steps[i].length;
+        const modlen = end % this.length;
+        const hasOverlap = modlen != end && position < modlen;
+        if ((position >= start && position < end) || hasOverlap) {
+          count++;
+        }
+      }
+    }
+    return count;
   }
 }
 

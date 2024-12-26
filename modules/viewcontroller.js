@@ -1296,6 +1296,8 @@ function updateValuesForZone(index) {
         } else {
           DOM.addClass(e, 'unused');
         }
+        e.querySelector('.activeothers').style.height =
+          zone.sequence.numberOfStepsStillActive(i) * 2 + 'px';
       });
       if (zone.sequence.isLiveRecoding) {
         DOM.addClass(`#zone${index} .seq_record_live`, 'selected');
