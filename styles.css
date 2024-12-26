@@ -1294,7 +1294,7 @@ li {
 }
 
 .shadowed-zone-block {
-  box-shadow: 0 0 8px var(--darker-2);
+  box-shadow: 0 0 8px var(--darker-1);
 }
 
 .disabled .seq {
