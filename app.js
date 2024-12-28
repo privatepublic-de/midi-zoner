@@ -188,7 +188,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }"><span class="material-icons sel">check_circle</span
         ><span class="material-icons unsel">radio_button_unchecked</span>
         <span>${inport.fullName}</span>
-        <span class="chsel"><select>${channelOptions}</select></span>
+        <span class="chsel"><select tabindex="-1">${channelOptions}</select></span>
         </div>`
       );
       DOM.element(
@@ -455,14 +455,13 @@ document.addEventListener('DOMContentLoaded', function () {
             }
           }
         });
-        document.body.addEventListener('keyup', (ev) => {
+        document.body.addEventListener('keydown', (ev) => {
           if (document.activeElement.tagName != 'INPUT') {
-            if (ev.key == ' ') {
+            if (ev.code == 'Space') {
               startClockButton.click();
             }
             if (ev.code.indexOf('Digit') == 0) {
               const numIndex = '1234567890'.indexOf(ev.code.charAt(5));
-              console.log('numIndex', numIndex, ev.code, ev.code.charAt(5));
               if (numIndex > -1 && !ev.shiftKey) {
                 view.toggleZoneMute(numIndex);
               } else if (numIndex > -1 && ev.shiftKey) {

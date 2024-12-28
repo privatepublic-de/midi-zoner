@@ -72,7 +72,7 @@ module.exports = {
   },
   getHTML: function (/** @type {Zone} */ zone, zoneindex) {
     const index = zoneindex;
-    let channelselector = `<select class="channel" data-change="${index}:channel">`;
+    let channelselector = `<select class="channel" data-change="${index}:channel" tabindex="-1">`;
     for (let i = 0; i < 16; i++) {
       channelselector += `<option value="${i}">Ch ${i + 1}</option>`;
     }

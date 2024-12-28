@@ -42,6 +42,7 @@
         class="outport"
         data-change="${index}:outport"
         title="Select output port or preset"
+        tabindex="-1"
       >
         <option value="*"></option>
       </select>
@@ -52,6 +53,7 @@
         onKeyUp="event.stopPropagation();"
         title="Edit output preset name"
         data-change="${index}:output_config_name"
+        tabindex="-1"
       />
     </div>
     <div
@@ -105,10 +107,15 @@
           max="${seqMaxSteps}"
           value="16"
           data-change="${index}:seq_steps"
+          tabindex="-1"
         />
       </div>
       <div class="drop-down" title="Step resolution">
-        <select class="seq_division" data-change="${index}:seq_division">
+        <select
+          class="seq_division"
+          data-change="${index}:seq_division"
+          tabindex="-1"
+        >
           ${noteLengthOptions}
         </select>
       </div>
@@ -127,7 +134,11 @@
         <i class="material-icons">chevron_right</i>
       </div>
       <div class="drop-down" title="Transpose whole sequence">
-        <select class="seq_transpose" data-change="${index}:seq_transpose">
+        <select
+          class="seq_transpose"
+          data-change="${index}:seq_transpose"
+          tabindex="-1"
+        >
           <option>Transpose</option>
           <hr />
           <option value="12">+12 (octave up)</option>
@@ -160,7 +171,7 @@
         </select>
       </div>
       <div class="drop-down" title="Adjust whole sequence">
-        <select data-change="${index}:seq_adjust">
+        <select data-change="${index}:seq_adjust" tabindex="-1">
           <option>Adjust sequence</option>
           <hr />
           <option value="double">Double</option>
@@ -227,6 +238,7 @@
           max="${seqMaxSteps}"
           value="1"
           data-change="${index}:seq_step_length"
+          tabindex="-1"
         />
         <div class="label">Gate</div>
         <div class="percent-holder">
@@ -238,6 +250,7 @@
             data-change="${index}:seq_gatelength"
             id="seq_gatelength${index}"
             title="Step gate length"
+            tabindex="-1"
           />
           <output for="seq_gatelength${index}">(unset)</output>
         </div>
@@ -246,6 +259,7 @@
           <select
             class="seq_step_condition"
             data-change="${index}:seq_step_condition"
+            tabindex="-1"
           >
             <option>always</option>
             <option title="Previous was played">Prev.</option>
@@ -265,6 +279,7 @@
             data-change="${index}:seq_step_probability"
             id="seq_step_probability${index}"
             title="Chance step is triggered"
+            tabindex="-1"
           />
           <output for="seq_step_probability${index}">(unset)</output>
         </div>
@@ -294,6 +309,7 @@
             class=""
             data-change="${index}:seq_step_apply_to_all"
             style="background-color: transparent; flex-grow: 1"
+            tabindex="-1"
           >
             <option>Apply to all other steps…</option>
             <hr />
@@ -314,6 +330,7 @@
           class="arp_direction"
           data-change="${index}:arp_direction"
           title="Arp play direction"
+          tabindex="-1"
         >
           <option>Up</option>
           <option>Down</option>
@@ -323,13 +340,21 @@
         </select>
       </div>
       <div class="drop-down">
-        <select class="arp_division" data-change="${index}:arp_division">
+        <select
+          class="arp_division"
+          data-change="${index}:arp_division"
+          tabindex="-1"
+        >
           ${noteLengthOptions}
         </select>
       </div>
       <div class="label">Octaves</div>
       <div class="drop-down">
-        <select class="arp_octaves" data-change="${index}:arp_octaves">
+        <select
+          class="arp_octaves"
+          data-change="${index}:arp_octaves"
+          tabindex="-1"
+        >
           <option>1</option>
           <option>2</option>
           <option>3</option>
@@ -364,6 +389,7 @@
           id="arp_gatelength${index}"
           min="0"
           max="100"
+          tabindex="-1"
         />
         <output for="arp_gatelength${index}">---</output>
       </div>
@@ -379,6 +405,7 @@
           id="arp_probability${index}"
           min="0"
           max="100"
+          tabindex="-1"
         />
         <output for="arp_probability${index}">---</output>
       </div>
@@ -411,6 +438,7 @@
             value="8"
             size="3"
             title="Steps"
+            tabindex="-1"
           />
           <div>in</div>
           <input
@@ -421,6 +449,7 @@
             value="8"
             size="3"
             title="Length"
+            tabindex="-1"
           />
           <div class="action zonebg" data-action="${index}:euclid">OK</div>
         </div>
@@ -459,7 +488,11 @@
     <div class="cc-editor popup">
       <div class="flex-row">
         <label>Type</label>
-        <select class="cc_change_type" data-change="${index}:cc_change_type">
+        <select
+          class="cc_change_type"
+          data-change="${index}:cc_change_type"
+          tabindex="-1"
+        >
           <option value="0">Rotary +</option>
           <option value="1">Rotary ±</option>
           <option value="3">Buttons</option>
@@ -472,6 +505,7 @@
           type="text"
           style="width: 8em"
           data-change="${index}:cc_label"
+          tabindex="-1"
         />
         <label class="standardcc">CC#</label>
         <input
@@ -480,6 +514,7 @@
           min="0"
           max="127"
           data-change="${index}:cc_number"
+          tabindex="-1"
         />
         <div style="flex-grow: 1"></div>
         <div class="action" data-action="${index}:cc_left">
@@ -503,6 +538,7 @@
           min="0"
           max="127"
           data-change="${index}:cc_number_in"
+          tabindex="-1"
         />
         <label class="minmax">Value min</label>
         <input
@@ -511,6 +547,7 @@
           min="0"
           max="127"
           data-change="${index}:cc_min"
+          tabindex="-1"
         />
         <label class="minmax">Max</label>
         <input
@@ -519,6 +556,7 @@
           min="0"
           max="127"
           data-change="${index}:cc_max"
+          tabindex="-1"
         />
       </div>
       <div class="cc_buttoncontainer cc_specialblock">
@@ -528,6 +566,7 @@
             type="text"
             placeholder="(Label)"
             data-change="${index}:cc_button_label:0"
+            tabindex="-1"
           />
           <input
             type="number"
@@ -535,16 +574,22 @@
             max="127"
             placeholder="(Val)"
             data-change="${index}:cc_button_value:0"
+            tabindex="-1"
           />
         </div>
         <div class="flex-row cc_buttons">
           <label>Button 2</label>
-          <input type="text" data-change="${index}:cc_button_label:1" />
+          <input
+            type="text"
+            data-change="${index}:cc_button_label:1"
+            tabindex="-1"
+          />
           <input
             type="number"
             min="0"
             max="127"
             data-change="${index}:cc_button_value:1"
+            tabindex="-1"
           />
         </div>
         <div class="flex-row cc_buttons">
@@ -555,16 +600,22 @@
             min="0"
             max="127"
             data-change="${index}:cc_button_value:2"
+            tabindex="-1"
           />
         </div>
         <div class="flex-row cc_buttons">
           <label>Button 4</label>
-          <input type="text" data-change="${index}:cc_button_label:3" />
+          <input
+            type="text"
+            data-change="${index}:cc_button_label:3"
+            tabindex="-1"
+          />
           <input
             type="number"
             min="0"
             max="127"
             data-change="${index}:cc_button_value:3"
+            tabindex="-1"
           />
         </div>
       </div>
@@ -576,6 +627,7 @@
           min="0"
           max="127"
           data-change="${index}:cc_notenum2cc"
+          tabindex="-1"
         />
         <label>Velocity to CC#</label>
         <input
@@ -584,6 +636,7 @@
           min="0"
           max="127"
           data-change="${index}:cc_notevelocity2cc"
+          tabindex="-1"
         />
       </div>
     </div>
@@ -676,6 +729,7 @@
           value="127"
           min="1"
           max="127"
+          tabindex="-1"
         />
       </div>
       <div class="label">Vel%</div>
@@ -687,6 +741,7 @@
           id="velocity_scaling${index}"
           min="0"
           max="200"
+          tabindex="-1"
         />
         <output for="velocity_scaling${index}">---</output>
       </div>
@@ -705,6 +760,7 @@
           max="128"
           data-change="${index}:changeprogram"
           onclick="event.stopPropagation();"
+          tabindex="-1"
         />
       </div>
     </div>
