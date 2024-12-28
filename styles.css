@@ -2,16 +2,15 @@
   --text-base-color: #f0f6f8;
   --text-toast-color: #333;
   --text-contextmenu-color: #f0f6f8;
-  --bg-window: #272422;
+  --bg-window: #171717;
   --fg-window: #ddd;
   --scrollbar: #383838;
-  --bg-topbar: #2f2f2f;
-  --bg-topbar-transparent: #2f2f2f9f;
-  --shadow-topbar: #272422;
+  --bg-topbar: #202020;
+  --bg-topbar-transparent: #2020209f;
+  --shadow-topbar: #000000;
   --border-topbar: #000;
-  --highlight-topbar: #3c3c3c;
-  --bg-topbar-button: #464048;
-  --fg-topbar-button: var(--brighter-3);
+  --bg-topbar-button: #2f2f2f;
+  --fg-topbar-button: var(--brighter-2);
   --shadow-topbar-button: #0008;
   --bg-topbar-button-active: #666;
   --fg-topbar-button-active: #ccc;
@@ -21,10 +20,10 @@
   --bg-valuefollow: #444;
   --bg-select-window: #111;
   --bg-toast: #ff9;
-  --bg-toast-warning: #ffa8d8;
-  --bg-contextmenu: #efc;
+  --bg-toast-warning: #ff8888;
+  --bg-contextmenu: #333333;
   --shadow-zone: #111;
-  --bg-color-popup: #545150;
+  --bg-color-popup: #333333;
   --bg-zone-disabled: rgba(255, 255, 255, 0.07);
 
   --brighter-0: rgba(255, 255, 255, 0.125);

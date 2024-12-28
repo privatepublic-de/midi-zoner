@@ -875,9 +875,7 @@ function contextHandler(/** @type {MouseEvent} */ ev) {
       actionHandler(event);
     });
   });
-  const bgColor = element.computedStyleMap().get('--bg-color-popup');
   contextMenuElement.style.display = 'block';
-  contextMenuElement.style.setProperty('--bg-contextmenu', bgColor);
   const srcRect = element.getBoundingClientRect();
   const menuRect = contextMenuElement.getBoundingClientRect();
 
