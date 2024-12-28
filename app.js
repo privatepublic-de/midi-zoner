@@ -460,20 +460,24 @@ document.addEventListener('DOMContentLoaded', function () {
             if (ev.key == ' ') {
               startClockButton.click();
             }
-            const numIndex = '1234567890'.indexOf(ev.code.charAt(5));
-            if (numIndex > -1 && !ev.shiftKey) {
-              view.toggleZoneMute(numIndex);
-            }
-            if (numIndex > -1 && ev.shiftKey) {
-              view.toggleSequencerOnZone(numIndex);
-            }
-            const letterIndex = 'QWERTYUIOP'.indexOf(ev.code.charAt(3));
-            if (letterIndex > -1) {
-              view.toggleSequencerOnZone(letterIndex);
-            }
-            const layerIndex = 'ZXCV'.indexOf(ev.code.charAt(3));
-            if (layerIndex > -1) {
-              view.selectSequencerLayer(layerIndex);
+            if (ev.code.indexOf('Digit') == 0) {
+              const numIndex = '1234567890'.indexOf(ev.code.charAt(5));
+              console.log('numIndex', numIndex, ev.code, ev.code.charAt(5));
+              if (numIndex > -1 && !ev.shiftKey) {
+                view.toggleZoneMute(numIndex);
+              } else if (numIndex > -1 && ev.shiftKey) {
+                view.toggleSequencerOnZone(numIndex);
+              }
+            } else if (ev.code.indexOf('Key') == 0) {
+              const letterIndex = 'QWERTYUIOP'.indexOf(ev.code.charAt(3));
+              if (letterIndex > -1) {
+                view.toggleSequencerOnZone(letterIndex);
+              } else {
+                const layerIndex = 'ZXCV'.indexOf(ev.code.charAt(3));
+                if (layerIndex > -1) {
+                  view.selectSequencerLayer(layerIndex);
+                }
+              }
             }
           }
         });
