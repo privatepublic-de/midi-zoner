@@ -1288,7 +1288,10 @@ function updateValuesForZone(index) {
       DOM.all(`#zone${index} .seq .grid .step`).forEach((e, i) => {
         if (i < zone.sequence.length) {
           DOM.removeClass(e, 'unused');
-          if (zone.sequence.steps[i] && zone.sequence.steps[i].length > 0) {
+          if (
+            (zone.sequence.steps[i] && zone.sequence.steps[i].length > 0) ||
+            zone.sequence.liveTargetStepNumber == i
+          ) {
             DOM.addClass(e, 'active');
           } else {
             DOM.removeClass(e, 'active');

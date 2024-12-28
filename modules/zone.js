@@ -944,6 +944,13 @@ class SeqStep {
       gateLength: this.gateLength
     };
   }
+  static from(cloneStep) {
+    const result = new SeqStep();
+    if (cloneStep) {
+      Object.assign(result, cloneStep);
+    }
+    return result;
+  }
 }
 
 class SeqLayer {
@@ -984,6 +991,7 @@ class Sequence {
   stepAddNotes = false;
   liveTargetStep = null;
   liveTargetLength = 0;
+  liveTargetStepNumber = -1;
   tickn = 0;
   activeLayerIndex = Sequence.ACTIVE_LAYER_INDEX;
   nextLayerIndex = Sequence.ACTIVE_LAYER_INDEX;
@@ -1083,19 +1091,17 @@ class Sequence {
 
   recordNote(note, count) {
     if (this.isLiveRecoding && this.currentStepNumber > -1) {
-      const rec2step =
-        this.tickn >= this.ticks - this.ticks / 3
-          ? (this.currentStepNumber + 1) % this.length
-          : this.currentStepNumber;
       if (this.liveTargetStep == null) {
-        if (!this.steps[rec2step]) {
-          this.steps[rec2step] = new SeqStep();
-        }
-        this.liveTargetStep = this.steps[rec2step];
+        const rec2step =
+          this.tickn >= this.ticks - this.ticks / 3
+            ? (this.currentStepNumber + 1) % this.length
+            : this.currentStepNumber;
+        this.liveTargetStepNumber = rec2step;
+        this.liveTargetStep = SeqStep.from(this.steps[rec2step]);
         this.liveTargetLength = 1;
       }
       this.liveTargetStep.notesArray.push(note);
-      this.updateRecordingState();
+      // this.updateRecordingState();
       this.updateZoneView();
     } else {
       if (this.isHotRecordingNotes && this.selectedStepNumber > -1) {
@@ -1105,7 +1111,6 @@ class Sequence {
         }
         seqstep.notesArray.push(note);
         this.steps[this.selectedStepNumber] = seqstep;
-        // console.log('Recorded note', seqstep.notesArray.length, note.number);
         this.updateRecordingState();
       }
     }
@@ -1114,8 +1119,10 @@ class Sequence {
   noteReleased(count) {
     if (this.isLiveRecoding && this.liveTargetStep) {
       this.liveTargetStep.length = this.liveTargetLength;
+      this.steps[this.liveTargetStepNumber] = this.liveTargetStep;
       this.liveTargetStep = null;
       this.liveTargetLength = 0;
+      this.liveTargetStepNumber = -1;
       this.updateRecordingState();
       this.updateZoneView();
     }
@@ -1330,17 +1337,17 @@ class Sequence {
 
   numberOfStepsStillActive(position) {
     let count = 0;
-    for (let i = 0; i < this.steps.length; i++) {
-      if (this.steps[i] && this.steps[i].length > 0) {
+    this.steps.forEach((step, i) => {
+      if (step && step.length > 0) {
         const start = i + 1;
-        const end = i + this.steps[i].length;
+        const end = i + step.length;
         const modlen = end % this.length;
-        const hasOverlap = modlen != end && position < modlen;
+        const hasOverlap = modlen !== end && position < modlen;
         if ((position >= start && position < end) || hasOverlap) {
           count++;
         }
       }
-    }
+    });
     return count;
   }
 }

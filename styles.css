@@ -1448,12 +1448,12 @@ li {
 .seq .grid .step {
   position: relative;
   cursor: zoom-in;
-  overflow: hidden;
+  /* overflow: hidden; */
 }
 
 .seq .grid .step .activeothers {
   position: absolute;
-  bottom: 0;
+  bottom: -2px;
   left: 0;
   right: 0;
   height: 0;
