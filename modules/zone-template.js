@@ -88,9 +88,7 @@ module.exports = {
       index < 10 ? `('${(index + 1) % 10}' on computer keyboard)` : '';
     return interpolateTemplate(templateZone, {
       index: index,
-      zoneNumber: `${index + 1} ${
-        index < 10 ? 'QWERTZUIOP'.charAt(index) : '-'
-      }`,
+      zoneNumber: index + 1,
       zoneMuteKeyboardHint: zoneMuteKeyboardHint,
       channelselector: channelselector,
       sequencerGrid: sequencerGrid,
