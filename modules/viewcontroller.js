@@ -30,7 +30,8 @@ const contextMenuActionLabel = {
 let zones = {};
 /** @type {MIDI} */
 let midiController;
-let elAllMuteOff, elAllSoloOff, elAllHoldOff;
+let elAllMuteOff, elAllSoloOff, elAllHoldOff, elValueUp, elValueDown;
+let elValueBtnAttachedInput;
 
 let triggerSave = () => {};
 let toastElement;
@@ -58,6 +59,54 @@ function initController({ saveData, data, midi }) {
       updateValuesForZone(index);
     }
   });
+  let timeoutValueRepeatStart = null;
+  let intervalValueRepeat = null;
+  let intervalValueIncrement = 0;
+  function changeAttachedInputValue(v) {
+    if (elValueBtnAttachedInput) {
+      let nv;
+      if (elValueBtnAttachedInput.value == '') {
+        nv = elValueBtnAttachedInput.min;
+      } else {
+        nv = parseInt(elValueBtnAttachedInput.value) + v;
+      }
+      if (
+        nv >= elValueBtnAttachedInput.min &&
+        nv <= elValueBtnAttachedInput.max
+      ) {
+        elValueBtnAttachedInput.value = nv;
+        elValueBtnAttachedInput.dispatchEvent(new CustomEvent('input'));
+      }
+      elValueBtnAttachedInput.focus();
+    }
+  }
+  function startValueChange(ev, v) {
+    ev.preventDefault();
+    intervalValueIncrement = v;
+    clearTimeout(timeoutValueRepeatStart);
+    clearInterval(intervalValueRepeat);
+    intervalValueRepeat = null;
+    timeoutValueRepeatStart = setTimeout(() => {
+      intervalValueRepeat = setInterval(() => {
+        changeAttachedInputValue(intervalValueIncrement);
+      }, 80);
+    }, 400);
+  }
+  function endValueChange(ev) {
+    ev.preventDefault();
+    clearTimeout(timeoutValueRepeatStart);
+    if (intervalValueRepeat) {
+      clearInterval(intervalValueRepeat);
+    } else {
+      changeAttachedInputValue(intervalValueIncrement);
+    }
+  }
+  elValueUp = DOM.element('#valueUp');
+  elValueDown = DOM.element('#valueDown');
+  elValueUp.addEventListener('mousedown', (ev) => startValueChange(ev, 1));
+  elValueDown.addEventListener('mousedown', (ev) => startValueChange(ev, -1));
+  elValueUp.addEventListener('mouseup', (ev) => endValueChange(ev));
+  elValueDown.addEventListener('mouseup', (ev) => endValueChange(ev));
 }
 
 function findTouchedNote(
@@ -1090,7 +1139,13 @@ function appendZone(/** @type {Zone} */ zone, index) {
     }
   };
   DOM.all(`#zone${index} .hideonleave`).forEach((e) => {
-    e.addEventListener('mouseleave', function () {
+    e.addEventListener('mouseleave', function (ev) {
+      if (
+        ev.relatedTarget &&
+        ev.relatedTarget.classList.contains('preventLeave')
+      ) {
+        return;
+      }
       hideOnLeaveTimeout = setTimeout(() => {
         e.style.display = 'none';
       }, 667);
@@ -1099,6 +1154,38 @@ function appendZone(/** @type {Zone} */ zone, index) {
       resetHideOnLeaveTimeout();
     });
   });
+  DOM.all(`#zone${index} input[type=number]`).forEach((e) => {
+    e.addEventListener('focusin', (ev) => {
+      attachValueButtons(e);
+    });
+    e.addEventListener('focusout', (ev) => {
+      if (ev.relatedTarget && ev.relatedTarget.classList.contains('valuebtn')) {
+        return;
+      }
+      detachValueButtons(e);
+    });
+  });
+}
+
+function attachValueButtons(inputelement) {
+  elValueBtnAttachedInput = inputelement;
+  elValueUp.style.display = elValueDown.style.display = 'block';
+  const valueUpRect = elValueUp.getBoundingClientRect();
+  const inputElementOffsets = DOM.clientOffsets(inputelement);
+  elValueUp.style.top =
+    window.scrollY + inputElementOffsets.offsetTop - valueUpRect.height + 'px';
+  elValueDown.style.left = elValueUp.style.left =
+    inputElementOffsets.offsetLeft + 'px';
+  elValueDown.style.width = elValueUp.style.width =
+    inputElementOffsets.offsetWidth + 'px';
+  elValueDown.style.top =
+    window.scrollY +
+    inputElementOffsets.offsetTop +
+    inputElementOffsets.offsetHeight +
+    'px';
+}
+function detachValueButtons(inputelement) {
+  elValueUp.style.display = elValueDown.style.display = 'none';
 }
 
 /**
