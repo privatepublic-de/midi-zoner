@@ -107,6 +107,18 @@ function initController({ saveData, data, midi }) {
   elValueDown.addEventListener('mousedown', (ev) => startValueChange(ev, -1));
   elValueUp.addEventListener('mouseup', (ev) => endValueChange(ev));
   elValueDown.addEventListener('mouseup', (ev) => endValueChange(ev));
+
+  DOM.all(`#midisettings input[type=number]`).forEach((e) => {
+    e.addEventListener('focusin', (ev) => {
+      attachValueButtons(e);
+    });
+    e.addEventListener('focusout', (ev) => {
+      if (ev.relatedTarget && ev.relatedTarget.classList.contains('valuebtn')) {
+        return;
+      }
+      detachValueButtons(e);
+    });
+  });
 }
 
 function findTouchedNote(
@@ -1172,17 +1184,20 @@ function attachValueButtons(inputelement) {
   elValueUp.style.display = elValueDown.style.display = 'block';
   const valueUpRect = elValueUp.getBoundingClientRect();
   const inputElementOffsets = DOM.clientOffsets(inputelement);
-  elValueUp.style.top =
-    window.scrollY + inputElementOffsets.offsetTop - valueUpRect.height + 'px';
-  elValueDown.style.left = elValueUp.style.left =
-    inputElementOffsets.offsetLeft + 'px';
-  elValueDown.style.width = elValueUp.style.width =
-    inputElementOffsets.offsetWidth + 'px';
-  elValueDown.style.top =
+  elValueDown.style.top = elValueUp.style.top =
     window.scrollY +
     inputElementOffsets.offsetTop +
-    inputElementOffsets.offsetHeight +
+    inputElementOffsets.offsetHeight / 2 -
+    valueUpRect.height / 2 +
     'px';
+  elValueUp.style.left =
+    inputElementOffsets.offsetLeft +
+    inputElementOffsets.offsetWidth -
+    valueUpRect.width +
+    'px';
+  elValueDown.style.left = inputElementOffsets.offsetLeft + 'px';
+  // elValueDown.style.width = elValueUp.style.width =
+  //   inputElementOffsets.offsetWidth + 'px';
 }
 function detachValueButtons(inputelement) {
   elValueUp.style.display = elValueDown.style.display = 'none';

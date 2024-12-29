@@ -326,6 +326,10 @@ input:focus-visible {
   box-shadow: 0 0 10px var(--highlight-bpm-value);
 }
 
+#bpm {
+  text-align: center;
+}
+
 .padded {
   padding: 30px 5px 0 5px;
 }
@@ -1869,11 +1873,11 @@ body:not(.running) .seqprogress {
   position: absolute;
   display: none;
   text-align: right;
-  padding-right: 5px;
+  /* padding-right: 5px; */
   background-color: transparent;
   color: var(--brighter-1);
-  height: 10px;
-  line-height: 10px;
+  /* height: 10px;
+  line-height: 10px; */
   font-size: 8px;
   z-index: 2;
   cursor: pointer;
