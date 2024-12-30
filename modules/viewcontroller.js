@@ -60,7 +60,7 @@ function initController({ saveData, data, midi }) {
     }
   });
   numberInputController = new NumberInputController();
-  numberInputController.addInputsElements(
+  numberInputController.addInputElements(
     DOM.all(`#midisettings input[type=number]`)
   );
 }
@@ -1110,7 +1110,7 @@ function appendZone(/** @type {Zone} */ zone, index) {
       resetHideOnLeaveTimeout();
     });
   });
-  numberInputController.addInputsElements(
+  numberInputController.addInputElements(
     DOM.all(`#zone${index} input[type=number]`)
   );
 }
@@ -1797,6 +1797,12 @@ class NumberInputController {
     this.elValueDown.addEventListener('mouseup', (ev) =>
       this.endValueChange(ev)
     );
+    this.elValueUp.addEventListener('mouseleave', (ev) =>
+      this.breakValueChange(ev)
+    );
+    this.elValueDown.addEventListener('mouseleave', (ev) =>
+      this.breakValueChange(ev)
+    );
   }
 
   changeAttachedInputValue(v) {
@@ -1842,12 +1848,20 @@ class NumberInputController {
     }
   }
 
-  addInputsElements(elementlist) {
+  breakValueChange(ev) {
+    clearTimeout(this.timeoutValueRepeatDelay);
+    clearInterval(this.intervalValueRepeat);
+    this.intervalValueRepeat = null;
+    this.timeoutValueRepeatDelay = null;
+  }
+
+  addInputElements(elementlist) {
     elementlist.forEach((e) => {
-      e.addEventListener('focusin', (ev) => {
+      e.addEventListener('mouseenter', (ev) => {
         this.attachValueButtons(e);
       });
-      e.addEventListener('focusout', (ev) => {
+      e.addEventListener('mouseleave', (ev) => {
+        this.breakValueChange(ev);
         if (
           ev.relatedTarget &&
           ev.relatedTarget.classList.contains('valuebtn')
@@ -1877,6 +1891,8 @@ class NumberInputController {
     this.elValueDown.style.left = inputElementOffsets.offsetLeft + 'px';
   }
   detachValueButtons(inputelement) {
+    clearTimeout(this.timeoutValueRepeatDelay);
+    clearInterval(this.intervalValueRepeat);
     this.elValueUp.style.display = this.elValueDown.style.display = 'none';
   }
 }
