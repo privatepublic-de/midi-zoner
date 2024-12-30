@@ -30,8 +30,8 @@ const contextMenuActionLabel = {
 let zones = {};
 /** @type {MIDI} */
 let midiController;
-let elAllMuteOff, elAllSoloOff, elAllHoldOff, elValueUp, elValueDown;
-let elValueBtnAttachedInput;
+let elAllMuteOff, elAllSoloOff, elAllHoldOff;
+let numberInputController;
 
 let triggerSave = () => {};
 let toastElement;
@@ -59,66 +59,10 @@ function initController({ saveData, data, midi }) {
       updateValuesForZone(index);
     }
   });
-  let timeoutValueRepeatStart = null;
-  let intervalValueRepeat = null;
-  let intervalValueIncrement = 0;
-  function changeAttachedInputValue(v) {
-    if (elValueBtnAttachedInput) {
-      let nv;
-      if (elValueBtnAttachedInput.value == '') {
-        nv = elValueBtnAttachedInput.min;
-      } else {
-        nv = parseInt(elValueBtnAttachedInput.value) + v;
-      }
-      if (
-        nv >= elValueBtnAttachedInput.min &&
-        nv <= elValueBtnAttachedInput.max
-      ) {
-        elValueBtnAttachedInput.value = nv;
-        elValueBtnAttachedInput.dispatchEvent(new CustomEvent('input'));
-      }
-      elValueBtnAttachedInput.focus();
-    }
-  }
-  function startValueChange(ev, v) {
-    ev.preventDefault();
-    intervalValueIncrement = v;
-    clearTimeout(timeoutValueRepeatStart);
-    clearInterval(intervalValueRepeat);
-    intervalValueRepeat = null;
-    timeoutValueRepeatStart = setTimeout(() => {
-      intervalValueRepeat = setInterval(() => {
-        changeAttachedInputValue(intervalValueIncrement);
-      }, 80);
-    }, 400);
-  }
-  function endValueChange(ev) {
-    ev.preventDefault();
-    clearTimeout(timeoutValueRepeatStart);
-    if (intervalValueRepeat) {
-      clearInterval(intervalValueRepeat);
-    } else {
-      changeAttachedInputValue(intervalValueIncrement);
-    }
-  }
-  elValueUp = DOM.element('#valueUp');
-  elValueDown = DOM.element('#valueDown');
-  elValueUp.addEventListener('mousedown', (ev) => startValueChange(ev, 1));
-  elValueDown.addEventListener('mousedown', (ev) => startValueChange(ev, -1));
-  elValueUp.addEventListener('mouseup', (ev) => endValueChange(ev));
-  elValueDown.addEventListener('mouseup', (ev) => endValueChange(ev));
-
-  DOM.all(`#midisettings input[type=number]`).forEach((e) => {
-    e.addEventListener('focusin', (ev) => {
-      attachValueButtons(e);
-    });
-    e.addEventListener('focusout', (ev) => {
-      if (ev.relatedTarget && ev.relatedTarget.classList.contains('valuebtn')) {
-        return;
-      }
-      detachValueButtons(e);
-    });
-  });
+  numberInputController = new NumberInputController();
+  numberInputController.addInputsElements(
+    DOM.all(`#midisettings input[type=number]`)
+  );
 }
 
 function findTouchedNote(
@@ -1166,41 +1110,9 @@ function appendZone(/** @type {Zone} */ zone, index) {
       resetHideOnLeaveTimeout();
     });
   });
-  DOM.all(`#zone${index} input[type=number]`).forEach((e) => {
-    e.addEventListener('focusin', (ev) => {
-      attachValueButtons(e);
-    });
-    e.addEventListener('focusout', (ev) => {
-      if (ev.relatedTarget && ev.relatedTarget.classList.contains('valuebtn')) {
-        return;
-      }
-      detachValueButtons(e);
-    });
-  });
-}
-
-function attachValueButtons(inputelement) {
-  elValueBtnAttachedInput = inputelement;
-  elValueUp.style.display = elValueDown.style.display = 'block';
-  const valueUpRect = elValueUp.getBoundingClientRect();
-  const inputElementOffsets = DOM.clientOffsets(inputelement);
-  elValueDown.style.top = elValueUp.style.top =
-    window.scrollY +
-    inputElementOffsets.offsetTop +
-    inputElementOffsets.offsetHeight / 2 -
-    valueUpRect.height / 2 +
-    'px';
-  elValueUp.style.left =
-    inputElementOffsets.offsetLeft +
-    inputElementOffsets.offsetWidth -
-    valueUpRect.width +
-    'px';
-  elValueDown.style.left = inputElementOffsets.offsetLeft + 'px';
-  // elValueDown.style.width = elValueUp.style.width =
-  //   inputElementOffsets.offsetWidth + 'px';
-}
-function detachValueButtons(inputelement) {
-  elValueUp.style.display = elValueDown.style.display = 'none';
+  numberInputController.addInputsElements(
+    DOM.all(`#zone${index} input[type=number]`)
+  );
 }
 
 /**
@@ -1861,6 +1773,111 @@ function deleteAllZones() {
   renderZones();
   window.scrollTo({ top: 0 });
   triggerSave();
+}
+
+class NumberInputController {
+  elValueDown = null;
+  elValueUp = null;
+  elValueBtnAttachedInput = null;
+  timeoutValueRepeatDelay = null;
+  intervalValueRepeat = null;
+  valueRepeatIncrement = 0;
+
+  constructor() {
+    this.elValueUp = DOM.element('#valueUp');
+    this.elValueDown = DOM.element('#valueDown');
+    this.elValueBtnAttachedInput = null;
+    this.elValueUp.addEventListener('mousedown', (ev) =>
+      this.startValueChange(ev, 1)
+    );
+    this.elValueDown.addEventListener('mousedown', (ev) =>
+      this.startValueChange(ev, -1)
+    );
+    this.elValueUp.addEventListener('mouseup', (ev) => this.endValueChange(ev));
+    this.elValueDown.addEventListener('mouseup', (ev) =>
+      this.endValueChange(ev)
+    );
+  }
+
+  changeAttachedInputValue(v) {
+    if (this.elValueBtnAttachedInput) {
+      let nv;
+      if (this.elValueBtnAttachedInput.value == '') {
+        nv = this.elValueBtnAttachedInput.min;
+      } else {
+        nv = parseInt(this.elValueBtnAttachedInput.value) + v;
+      }
+      if (
+        nv >= this.elValueBtnAttachedInput.min &&
+        nv <= this.elValueBtnAttachedInput.max
+      ) {
+        this.elValueBtnAttachedInput.value = nv;
+        this.elValueBtnAttachedInput.dispatchEvent(new CustomEvent('input'));
+      }
+      this.elValueBtnAttachedInput.focus();
+    }
+  }
+
+  startValueChange(ev, v) {
+    ev.preventDefault();
+    this.valueRepeatIncrement = v;
+    clearTimeout(this.timeoutValueRepeatDelay);
+    clearInterval(this.intervalValueRepeat);
+    this.intervalValueRepeat = null;
+    this.timeoutValueRepeatDelay = setTimeout(() => {
+      this.intervalValueRepeat = setInterval(() => {
+        this.changeAttachedInputValue(this.valueRepeatIncrement);
+      }, 80);
+    }, 400);
+  }
+
+  endValueChange(ev) {
+    ev.preventDefault();
+    clearTimeout(this.timeoutValueRepeatDelay);
+    if (this.intervalValueRepeat) {
+      clearInterval(this.intervalValueRepeat);
+    } else {
+      this.changeAttachedInputValue(this.valueRepeatIncrement);
+    }
+  }
+
+  addInputsElements(elementlist) {
+    elementlist.forEach((e) => {
+      e.addEventListener('focusin', (ev) => {
+        this.attachValueButtons(e);
+      });
+      e.addEventListener('focusout', (ev) => {
+        if (
+          ev.relatedTarget &&
+          ev.relatedTarget.classList.contains('valuebtn')
+        ) {
+          return;
+        }
+        this.detachValueButtons(e);
+      });
+    });
+  }
+  attachValueButtons(inputelement) {
+    this.elValueBtnAttachedInput = inputelement;
+    this.elValueUp.style.display = this.elValueDown.style.display = 'block';
+    const valueUpRect = this.elValueUp.getBoundingClientRect();
+    const inputElementOffsets = DOM.clientOffsets(inputelement);
+    this.elValueDown.style.top = this.elValueUp.style.top =
+      window.scrollY +
+      inputElementOffsets.offsetTop +
+      inputElementOffsets.offsetHeight / 2 -
+      valueUpRect.height / 2 +
+      'px';
+    this.elValueUp.style.left =
+      inputElementOffsets.offsetLeft +
+      inputElementOffsets.offsetWidth -
+      valueUpRect.width +
+      'px';
+    this.elValueDown.style.left = inputElementOffsets.offsetLeft + 'px';
+  }
+  detachValueButtons(inputelement) {
+    this.elValueUp.style.display = this.elValueDown.style.display = 'none';
+  }
 }
 
 module.exports = {
