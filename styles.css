@@ -136,6 +136,11 @@ select {
   padding: 4px;
 }
 
+::selection {
+  background: var(--brighter-2);
+  color: #000;
+}
+
 #midisettings {
   display: flex;
   align-items: center;
@@ -586,7 +591,6 @@ input:focus-visible {
   display: none;
   gap: 5px;
   padding: 4px;
-  /* background-color: var(--bg-color); */
 }
 
 .arp-enabled .arp-settings {
@@ -599,26 +603,18 @@ input:focus-visible {
   justify-content: flex-end;
   flex-grow: 1;
   align-items: center;
+  visibility: hidden;
+  gap: 5px;
+}
+
+.zone:hover .zonetools {
+  visibility: visible;
 }
 
 .rtool {
   font-size: 14px;
   color: var(--text-base-color);
-  margin-left: 6px;
   text-align: center;
-}
-
-.rtool:hover {
-  color: var(--brighter-4);
-}
-
-.rtool.delzone:hover {
-  color: #900;
-  text-shadow: 0 0 2px #fff;
-}
-
-.rtool,
-.rtool label {
   cursor: pointer;
 }
 

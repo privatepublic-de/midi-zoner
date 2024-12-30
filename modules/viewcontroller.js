@@ -1815,6 +1815,7 @@ class NumberInputController {
         this.elValueBtnAttachedInput.dispatchEvent(new CustomEvent('input'));
       }
       this.elValueBtnAttachedInput.focus();
+      this.elValueBtnAttachedInput.select();
     }
   }
 
