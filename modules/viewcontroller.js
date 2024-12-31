@@ -1797,12 +1797,12 @@ class NumberInputController {
     this.elValueDown.addEventListener('mouseup', (ev) =>
       this.endValueChange(ev)
     );
-    this.elValueUp.addEventListener('mouseleave', (ev) =>
-      this.breakValueChange(ev)
-    );
-    this.elValueDown.addEventListener('mouseleave', (ev) =>
-      this.breakValueChange(ev)
-    );
+    this.elValueUp.addEventListener('mouseleave', (ev) => {
+      this.detachValueButtons(this.elValueBtnAttachedInput);
+    });
+    this.elValueDown.addEventListener('mouseleave', (ev) => {
+      this.detachValueButtons(this.elValueBtnAttachedInput);
+    });
   }
 
   changeAttachedInputValue(v) {
@@ -1821,7 +1821,6 @@ class NumberInputController {
         this.elValueBtnAttachedInput.dispatchEvent(new CustomEvent('input'));
       }
       this.elValueBtnAttachedInput.focus();
-      this.elValueBtnAttachedInput.select();
     }
   }
 
@@ -1891,8 +1890,7 @@ class NumberInputController {
     this.elValueDown.style.left = inputElementOffsets.offsetLeft + 'px';
   }
   detachValueButtons(inputelement) {
-    clearTimeout(this.timeoutValueRepeatDelay);
-    clearInterval(this.intervalValueRepeat);
+    this.breakValueChange();
     this.elValueUp.style.display = this.elValueDown.style.display = 'none';
   }
 }

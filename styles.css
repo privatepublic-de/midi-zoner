@@ -137,7 +137,7 @@ select {
 }
 
 ::selection {
-  background: var(--brighter-2);
+  background: var(--brighter-4);
   color: #000;
 }
 
@@ -603,12 +603,7 @@ input:focus-visible {
   justify-content: flex-end;
   flex-grow: 1;
   align-items: center;
-  visibility: hidden;
   gap: 5px;
-}
-
-.zone:hover .zonetools {
-  visibility: visible;
 }
 
 .rtool {
@@ -1879,8 +1874,8 @@ body:not(.running) .seqprogress {
   cursor: pointer;
   text-decoration: none;
 }
-.valuebtn:hover {
-  color: var(--text-base-color);
+.valuebtn svg {
+  pointer-events: none;
 }
 
 input::-webkit-outer-spin-button,
