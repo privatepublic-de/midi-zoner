@@ -480,7 +480,7 @@ input:focus-visible {
   position: absolute;
   left: 0;
   text-align: left;
-  width: 130px;
+  width: 135px;
   background-color: var(--bg-color);
   color: var(--text-base-color);
   height: 20px;
@@ -1876,6 +1876,10 @@ body:not(.running) .seqprogress {
 }
 .valuebtn svg {
   pointer-events: none;
+}
+
+.valuebtn:active {
+  margin: 0.5px 0 0 0.5px;
 }
 
 input::-webkit-outer-spin-button,
