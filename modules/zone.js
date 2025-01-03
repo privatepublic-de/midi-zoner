@@ -112,7 +112,7 @@ class Zone {
   _sustain_on = false;
   cc = false;
   cc_controllers = [
-    // type 0: unipolar, 1: bipolar, 2: spacer, 3: button, 4: note2cc
+    // type 0: unipolar, 1: bipolar, 2: spacer, 3: button, 4: note2cc, 5: unipolar 14bit, 6: bipolar 14bit
     {
       number: 7,
       number_in: null,
@@ -429,12 +429,15 @@ class Zone {
           for (let i = 0; i < this.cc_controllers.length; i++) {
             const ctrl = this.cc_controllers[i];
             if (ctrl.type != 2 && ctrl.number_in == data[1]) {
-              ctrl.val = data[2];
-              const outevent = new Uint8Array(3);
-              outevent[0] = MIDI.MESSAGE.CONTROLLER + this.channel;
-              outevent[1] = ctrl.number;
-              outevent[2] = this.remapCCValue(data[2], i);
-              this.midi.send(outevent, this.outputPortId);
+              const is14bit = ctrl.type == 5 || ctrl.type == 6;
+              ctrl.val = is14bit ? data[2] << 7 : data[2];
+              this.sendCC(i);
+              // const outevent = new Uint8Array(3);
+
+              // outevent[0] = MIDI.MESSAGE.CONTROLLER + this.channel;
+              // outevent[1] = ctrl.number;
+              // outevent[2] = this.remapCCValue(data[2], i);
+              // this.midi.send(outevent, this.outputPortId);
               handledByCCControl = true;
             }
           }
@@ -894,14 +897,38 @@ class Zone {
   }
 
   sendCC(index) {
-    this.midi.send(
-      Uint8Array.from([
-        MIDI.MESSAGE.CONTROLLER + this.channel,
-        this.cc_controllers[index].number,
-        this.remapCCValue(this.cc_controllers[index].val, index)
-      ]),
-      this.outputPortId
-    );
+    const is14bit =
+      this.cc_controllers[index].type == 5 ||
+      this.cc_controllers[index].type == 6;
+    if (is14bit) {
+      this.midi.send(
+        // LSB
+        Uint8Array.from([
+          MIDI.MESSAGE.CONTROLLER + this.channel,
+          this.cc_controllers[index].number_lsb,
+          this.cc_controllers[index].val & 0x7f
+        ]),
+        this.outputPortId
+      );
+      this.midi.send(
+        // MSB
+        Uint8Array.from([
+          MIDI.MESSAGE.CONTROLLER + this.channel,
+          this.cc_controllers[index].number,
+          this.cc_controllers[index].val >> 7
+        ]),
+        this.outputPortId
+      );
+    } else {
+      this.midi.send(
+        Uint8Array.from([
+          MIDI.MESSAGE.CONTROLLER + this.channel,
+          this.cc_controllers[index].number,
+          this.remapCCValue(this.cc_controllers[index].val, index)
+        ]),
+        this.outputPortId
+      );
+    }
   }
 
   sendProgramChange() {

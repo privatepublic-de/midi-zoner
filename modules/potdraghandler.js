@@ -30,7 +30,7 @@ class PotDragHandler {
         ang = 0;
       }
     }
-    return Math.floor((ang / 270.0) * 127);
+    return Math.floor((ang / 270.0) * 16383);
   }
 
   startDrag(

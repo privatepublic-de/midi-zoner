@@ -208,7 +208,7 @@
           title="Drag with mouse to change velocity values"
         ></div>
         <div
-          class="action"
+          class="action warn"
           title="Clear step"
           data-action="${index}:seq_clear_selected_step"
         >
@@ -290,7 +290,7 @@
           title="Move step left (if free space)"
           data-action="${index}:seq_step_move:-1"
         >
-          <i class="material-icons">chevron_left</i>
+          <i class="material-icons">arrow_back</i>
         </div>
 
         <div
@@ -303,7 +303,7 @@
             title="Move step right (if free space)"
             data-action="${index}:seq_step_move:1"
           >
-            <i class="material-icons">chevron_right</i>
+            <i class="material-icons">arrow_forward</i>
           </div>
           <select
             class=""
@@ -484,7 +484,6 @@
       </div>
     </div>
     <div class="container"></div>
-
     <div class="cc-editor popup">
       <div class="flex-row">
         <label>Type</label>
@@ -493,29 +492,25 @@
           data-change="${index}:cc_change_type"
           tabindex="-1"
         >
-          <option value="0">Rotary +</option>
-          <option value="1">Rotary ±</option>
+          <option value="0">Rotary</option>
+          <option value="1">Rotary bipolar</option>
+          <hr />
+          <option value="5">Rotary 14Bit</option>
+          <option value="6">Rotary 14Bit bipolar</option>
+          <hr />
           <option value="3">Buttons</option>
           <option value="4">Note to CC</option>
           <option value="2">Spacer</option>
         </select>
-        <label class="standardcc">Name</label>
+        <label class="hide-type-2 hide-type-4">Name</label>
         <input
-          class="cclabel standardcc"
+          class="cclabel hide-type-2 hide-type-4"
           type="text"
           style="width: 8em"
           data-change="${index}:cc_label"
           tabindex="-1"
         />
-        <label class="standardcc">CC#</label>
-        <input
-          type="number"
-          class="cc-out standardcc"
-          min="0"
-          max="127"
-          data-change="${index}:cc_number"
-          tabindex="-1"
-        />
+
         <div style="flex-grow: 1"></div>
         <div class="action" data-action="${index}:cc_left">
           <span class="material-icons" title="Move left">arrow_back</span>
@@ -530,8 +525,29 @@
           <span class="material-icons" title="Add new">add</span>
         </div>
       </div>
-      <div class="flex-row values">
-        <label>Map to input CC#</label>
+      <div class="flex-row hide-type-2 hide-type-4 border-top">
+        <label>Out CC#</label>
+        <label class="show-type-5 show-type-6">MSB</label>
+        <input
+          type="number"
+          class="cc-out"
+          min="0"
+          max="127"
+          data-change="${index}:cc_number"
+          tabindex="-1"
+        />
+        <label class="show-type-5 show-type-6">LSB</label>
+        <input
+          type="number"
+          class="cc-out-lsb show-type-5 show-type-6"
+          min="0"
+          max="127"
+          data-change="${index}:cc_number_lsb"
+          title="LSB CC#"
+          tabindex="-1"
+        />
+        <div style="flex-grow: 1"></div>
+        <label>In CC#</label>
         <input
           type="number"
           class="cc-in"
@@ -540,87 +556,29 @@
           data-change="${index}:cc_number_in"
           tabindex="-1"
         />
-        <label class="minmax">Value min</label>
+      </div>
+      <div class="flex-row show-type-0 show-type-1 border-top">
+        <label>Min</label>
         <input
           type="number"
-          class="cc-min minmax"
+          class="cc-min"
           min="0"
           max="127"
           data-change="${index}:cc_min"
           tabindex="-1"
         />
-        <label class="minmax">Max</label>
+        <label>Max</label>
         <input
           type="number"
-          class="cc-max minmax"
+          class="cc-max"
           min="0"
           max="127"
           data-change="${index}:cc_max"
           tabindex="-1"
         />
       </div>
-      <div class="cc_buttoncontainer cc_specialblock">
-        <div class="flex-row cc_buttons">
-          <label>Button 1</label>
-          <input
-            type="text"
-            placeholder="(Label)"
-            data-change="${index}:cc_button_label:0"
-            tabindex="-1"
-          />
-          <input
-            type="number"
-            min="0"
-            max="127"
-            placeholder="(Val)"
-            data-change="${index}:cc_button_value:0"
-            tabindex="-1"
-          />
-        </div>
-        <div class="flex-row cc_buttons">
-          <label>Button 2</label>
-          <input
-            type="text"
-            data-change="${index}:cc_button_label:1"
-            tabindex="-1"
-          />
-          <input
-            type="number"
-            min="0"
-            max="127"
-            data-change="${index}:cc_button_value:1"
-            tabindex="-1"
-          />
-        </div>
-        <div class="flex-row cc_buttons">
-          <label>Button 3</label>
-          <input type="text" data-change="${index}:cc_button_label:2" />
-          <input
-            type="number"
-            min="0"
-            max="127"
-            data-change="${index}:cc_button_value:2"
-            tabindex="-1"
-          />
-        </div>
-        <div class="flex-row cc_buttons">
-          <label>Button 4</label>
-          <input
-            type="text"
-            data-change="${index}:cc_button_label:3"
-            tabindex="-1"
-          />
-          <input
-            type="number"
-            min="0"
-            max="127"
-            data-change="${index}:cc_button_value:3"
-            tabindex="-1"
-          />
-        </div>
-      </div>
-      <div class="cc_note2cc cc_specialblock values">
-        <label>Note number to CC#</label>
+      <div class="flex-row show-type-4 border-top">
+        <label>Note# to CC#</label>
         <input
           type="number"
           class="cc_notenum2cc"
@@ -636,6 +594,62 @@
           min="0"
           max="127"
           data-change="${index}:cc_notevelocity2cc"
+          tabindex="-1"
+        />
+      </div>
+
+      <div class="flex-row show-type-3 border-top">
+        <label>Button 1</label>
+        <input
+          type="text"
+          placeholder="Label"
+          data-change="${index}:cc_button_label:0"
+          tabindex="-1"
+        />
+        <input
+          type="number"
+          min="0"
+          max="127"
+          placeholder="Value"
+          data-change="${index}:cc_button_value:0"
+          tabindex="-1"
+        />
+        <label>Button 2</label>
+        <input
+          type="text"
+          data-change="${index}:cc_button_label:1"
+          tabindex="-1"
+        />
+        <input
+          type="number"
+          min="0"
+          max="127"
+          data-change="${index}:cc_button_value:1"
+          tabindex="-1"
+        />
+      </div>
+      <div class="flex-row show-type-3">
+        <label>Button 3</label>
+        <input type="text" data-change="${index}:cc_button_label:2" />
+        <input
+          type="number"
+          min="0"
+          max="127"
+          data-change="${index}:cc_button_value:2"
+          tabindex="-1"
+        />
+
+        <label>Button 4</label>
+        <input
+          type="text"
+          data-change="${index}:cc_button_label:3"
+          tabindex="-1"
+        />
+        <input
+          type="number"
+          min="0"
+          max="127"
+          data-change="${index}:cc_button_value:3"
           tabindex="-1"
         />
       </div>

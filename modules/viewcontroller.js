@@ -362,6 +362,14 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
         );
       }
     },
+    cc_number_lsb: () => {
+      element.value = element.value.replace(/[^0-9]/, '');
+      if (element.value != '') {
+        zone.cc_controllers[zone.selectedCCIndex].number_lsb = parseInt(
+          element.value
+        );
+      }
+    },
     cc_number_in: () => {
       element.value = element.value.replace(/[^0-9]/, ''); // TODO generalize
       if (element.value != '') {
@@ -1179,20 +1187,29 @@ function renderControllersForZone(/** @type {Zone} */ zone, index) {
   });
 
   DOM.all(`#zone${index} .ccpots .ccpot`).forEach((pot, ix) => {
+    const is14bit =
+      zone.cc_controllers[ix].type == 5 || zone.cc_controllers[ix].type == 6;
     pot.addEventListener('wheel', (e) => {
-      if (zone.cc_controllers[ix].type > 1) {
+      if (
+        zone.cc_controllers[ix].type > 1 &&
+        zone.cc_controllers[ix].type < 5
+      ) {
         return;
       }
       e.preventDefault();
       if (zone.editCC) {
         return;
       }
+      const factor = is14bit ? (e.shiftKey ? 1 : 8) : 1;
       const newV = Math.min(
         Math.max(
-          parseInt(zone.cc_controllers[ix].val + Math.sign(e.deltaY)),
+          parseInt(
+            zone.cc_controllers[ix].val +
+              Math.sign(e.deltaY + e.deltaX) * factor
+          ),
           0
         ),
-        127
+        is14bit ? 16383 : 127
       );
       if (newV != zone.cc_controllers[ix].val) {
         zone.cc_controllers[ix].val = newV;
@@ -1202,7 +1219,11 @@ function renderControllersForZone(/** @type {Zone} */ zone, index) {
       }
     });
     pot.addEventListener('mousedown', (e) => {
-      if (zone.cc_controllers[ix].type > 1 || zone.editCC) {
+      if (
+        (zone.cc_controllers[ix].type > 1 &&
+          zone.cc_controllers[ix].type < 5) ||
+        zone.editCC
+      ) {
         return;
       }
       potDragHandler.startDrag(
@@ -1211,7 +1232,7 @@ function renderControllersForZone(/** @type {Zone} */ zone, index) {
         (v) => {
           const oldVal = zone.cc_controllers[ix].val;
           if (v != oldVal) {
-            zone.cc_controllers[ix].val = v;
+            zone.cc_controllers[ix].val = is14bit ? v : v >> 7;
             zone.sendCC(ix);
             updateControllerValues(zone, index);
           }
@@ -1471,16 +1492,20 @@ function describeArc(x, y, radius, startAngle, endAngle) {
 
 function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
   zone.cc_controllers.forEach((c, ix) => {
+    const is14bit = c.type == 5 || c.type == 6;
+    const isBiploar = c.type == 2 || c.type == 6;
     const rangePath = describeArc(28, 30, 18, -135, 135);
-    const valDegrees = 270 * (c.type == 1 ? (c.val - 64) / 64 : c.val / 127);
-    const valuePath =
-      c.type == 1
-        ? describeArc(28, 30, 18, 0, valDegrees / 2)
-        : describeArc(28, 30, 18, -135, -135 + valDegrees);
+    const valDegrees = is14bit
+      ? 270 * (isBiploar ? (c.val - 8192) / 8192 : c.val / 16383)
+      : 270 * (isBiploar ? (c.val - 64) / 64 : c.val / 127);
+    const valuePath = isBiploar
+      ? describeArc(28, 30, 18, 0, valDegrees / 2)
+      : describeArc(28, 30, 18, -135, -135 + valDegrees);
     DOM.element(`#pot_range_${zoneindex}_${ix}`).setAttribute('d', rangePath);
     DOM.element(`#pot_value_${zoneindex}_${ix}`).setAttribute('d', valuePath);
-    DOM.element(`#pot_zero_${zoneindex}_${ix}`).style.display =
-      c.type == 1 ? 'block' : 'none';
+    DOM.element(`#pot_zero_${zoneindex}_${ix}`).style.display = isBiploar
+      ? 'block'
+      : 'none';
     const potcontainer = DOM.element(`#pot_${zoneindex}_${ix}`);
     potcontainer.dataset.type = c.type;
     DOM.element(`#pot_${zoneindex}_${ix} div.cclabel`).innerHTML =
@@ -1488,8 +1513,8 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
     let displayValue = c.val;
     if (c.type == 0) {
       displayValue = zone.remapCCValue(c.val, ix);
-    } else if (c.type == 1) {
-      displayValue = displayValue - 64;
+    } else if (isBiploar) {
+      displayValue = is14bit ? displayValue - 8192 : displayValue - 64;
     }
     DOM.element(`#pot_${zoneindex}_${ix} .value`).innerHTML = displayValue;
     const tools = DOM.element(`#zone${zoneindex} .cc-editor`);
@@ -1542,6 +1567,8 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
       if (zone.editCC) {
         tools.dataset.type = c.type;
         tools.querySelector('.cclabel').value = c.label;
+        tools.querySelector('.cc-out-lsb').value =
+          typeof c.number_lsb == 'undefined' ? '' : c.number_lsb;
         tools.querySelector('.cc-in').value =
           typeof c.number_in == 'undefined' ? '' : c.number_in;
         tools.querySelector('.cc-out').value = c.number;
