@@ -1025,6 +1025,7 @@ li {
 .ccpots .container {
   display: flex;
   flex-wrap: wrap;
+  width: 634px;
 }
 
 .show-cc .ccpots {
