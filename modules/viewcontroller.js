@@ -476,6 +476,11 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       renderControllersForZone(zone, zoneindex);
       updateControllerValues(zone, zoneindex);
     },
+    cc_change_group: () => {
+      zone.cc_controllers[zone.selectedCCIndex].group = element.selectedIndex;
+      renderControllersForZone(zone, zoneindex);
+      updateControllerValues(zone, zoneindex);
+    },
     _cc_move: (direction) => {
       const pos = Number(zone.selectedCCIndex);
       let targetPos = pos;
@@ -1508,6 +1513,7 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
       : 'none';
     const potcontainer = DOM.element(`#pot_${zoneindex}_${ix}`);
     potcontainer.dataset.type = c.type;
+    potcontainer.dataset.group = c.group || 0;
     DOM.element(`#pot_${zoneindex}_${ix} div.cclabel`).innerHTML =
       c.type == 4 ? 'Note to CC' : c.label;
     let displayValue = c.val;
@@ -1575,6 +1581,7 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
         tools.querySelector('.cc-min').value = c.min || 0;
         tools.querySelector('.cc-max').value = c.max || 127;
         tools.querySelector('.cc_change_type').value = c.type;
+        tools.querySelector('.cc_change_group').selectedIndex = c.group || 0;
         tools.querySelector('.cc_notenum2cc').value = c.note_cc || '';
         tools.querySelector('.cc_notevelocity2cc').value = c.velocity_cc || '';
       }

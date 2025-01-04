@@ -510,7 +510,18 @@
           data-change="${index}:cc_label"
           tabindex="-1"
         />
-
+        <label class="hide-type-2">Color</label>
+        <select
+          class="cc_change_group hide-type-2"
+          data-change="${index}:cc_change_group"
+          tabindex="-1"
+        >
+          <option>Standard</option>
+          <option>Green</option>
+          <option>Blue</option>
+          <option>Violet</option>
+          <option>Yellow</option>
+        </select>
         <div style="flex-grow: 1"></div>
         <div class="action" data-action="${index}:cc_left">
           <span class="material-icons" title="Move left">arrow_back</span>

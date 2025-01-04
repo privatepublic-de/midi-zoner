@@ -1046,6 +1046,7 @@ li {
   height: 72px;
   margin: 1px 1px 1px 1px;
   border: 1px solid var(--darker-2);
+  background-color: var(--groupcolor);
 }
 
 .cc-edit .ccpot.selected {
@@ -1055,6 +1056,22 @@ li {
 
 .cc-edit .ccpot {
   cursor: pointer;
+}
+
+.ccpot[data-group='0'] {
+  --groupcolor: transparent;
+}
+.ccpot[data-group='1'] {
+  --groupcolor: #00990070;
+}
+.ccpot[data-group='2'] {
+  --groupcolor: #4646d3e9;
+}
+.ccpot[data-group='3'] {
+  --groupcolor: #8332ab70;
+}
+.ccpot[data-group='4'] {
+  --groupcolor: #c1a801cf;
 }
 
 .ccpot[data-type='2'] {
