@@ -1025,7 +1025,7 @@ li {
 .ccpots .container {
   display: flex;
   flex-wrap: wrap;
-  width: 634px;
+  width: calc((var(--ccpot-width) + 2px) * 9 +20px);
 }
 
 .show-cc .ccpots {
@@ -1075,8 +1075,9 @@ li {
 }
 
 .ccpot[data-type='2'] {
-  box-shadow: none;
-  border: none;
+  border-color: transparent;
+  width: calc(var(--ccpot-width) / 2);
+  margin: 1px 0.5px;
 }
 
 .ccpot[data-type='2'] * {
@@ -1084,7 +1085,7 @@ li {
 }
 
 .cc-edit .ccpot[data-type='2']::after {
-  content: '(spacer)';
+  content: '|...|';
   position: absolute;
   font-size: 9px;
   font-style: italic;
@@ -1272,12 +1273,13 @@ li {
   text-align: center;
   background-color: var(--darker-0);
   cursor: pointer;
-  color: var(--text-base-color);
+  color: var(--brighter-2);
+  margin-bottom: 1px;
 }
 
 .ccbtn:hover,
 .ccbtn.selected {
-  background-color: var(--brighter-3);
+  background-color: var(--brighter-2);
   color: var(--darker-4);
 }
 
