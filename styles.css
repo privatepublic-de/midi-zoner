@@ -1058,6 +1058,28 @@ li {
   cursor: pointer;
 }
 
+.zone.disabled .ccpot {
+  pointer-events: none;
+  background-color: transparent;
+  height: 18px;
+  overflow: hidden;
+  .cclabel {
+    display: none;
+  }
+  svg {
+    top: 0;
+  }
+  .value {
+    display: none;
+  }
+}
+.zone.disabled .ccpotttools {
+  display: none;
+}
+.zone.disabled .ccpots {
+  background-color: transparent;
+}
+
 .ccpot[data-group='0'] {
   --groupcolor: transparent;
 }
