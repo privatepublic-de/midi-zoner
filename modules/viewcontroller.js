@@ -392,6 +392,15 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
         updateControllerValues(zone, zoneindex);
       }
     },
+    cc_discrete_values: () => {
+      element.value = element.value.replace(/[^0-9,]/, ''); // TODO generalize
+      const discreteValues = element.value
+        .split(',')
+        .map((v) => (v != '' ? parseInt(v) : v));
+      console.log(discreteValues);
+      zone.cc_controllers[zone.selectedCCIndex].discreteValues = discreteValues;
+      updateControllerValues(zone, zoneindex);
+    },
     cc_notenum2cc: () => {
       element.value = element.value.replace(/[^0-9]/, ''); // TODO generalize
       if (element.value != '') {
@@ -1217,7 +1226,26 @@ function renderControllersForZone(/** @type {Zone} */ zone, index) {
         is14bit ? 16383 : 127
       );
       if (newV != zone.cc_controllers[ix].val) {
-        zone.cc_controllers[ix].val = newV;
+        if (is14bit) {
+          zone.cc_controllers[ix].val = newV;
+        } else {
+          const discreteValues = zone.cc_controllers[ix].discreteValues;
+          if (discreteValues?.length > 0) {
+            const nextiX =
+              discreteValues.indexOf(zone.cc_controllers[ix].val) +
+              (newV < zone.cc_controllers[ix].val ? -1 : 1);
+            zone.cc_controllers[ix].val =
+              discreteValues[
+                nextiX < 0
+                  ? 0
+                  : nextiX >= discreteValues.length
+                  ? discreteValues.length - 1
+                  : nextiX
+              ];
+          } else {
+            zone.cc_controllers[ix].val = newV;
+          }
+        }
         zone.sendCC(ix);
         updateControllerValues(zone, index);
         triggerSave();
@@ -1237,7 +1265,11 @@ function renderControllersForZone(/** @type {Zone} */ zone, index) {
         (v) => {
           const oldVal = zone.cc_controllers[ix].val;
           if (v != oldVal) {
-            zone.cc_controllers[ix].val = is14bit ? v : v >> 7;
+            if (is14bit) {
+              zone.cc_controllers[ix].val = v;
+            } else {
+              zone.snap2DiscreteValue(v >> 7, ix);
+            }
             zone.sendCC(ix);
             updateControllerValues(zone, index);
           }
@@ -1584,6 +1616,8 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
         tools.querySelector('.cc_change_group').selectedIndex = c.group || 0;
         tools.querySelector('.cc_notenum2cc').value = c.note_cc || '';
         tools.querySelector('.cc_notevelocity2cc').value = c.velocity_cc || '';
+        tools.querySelector('.cc_discrete_values').value =
+          c.discreteValues?.join(',') || '';
       }
     } else {
       DOM.removeClass(`#pot_${zoneindex}_${ix}`, 'selected');

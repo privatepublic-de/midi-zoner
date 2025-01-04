@@ -951,6 +951,22 @@ class Zone {
     const ctrl = this.cc_controllers[ccIndex];
     return parseInt(ctrl.min + (ctrl.max - ctrl.min) * (valueIn / 127.0));
   }
+
+  snap2DiscreteValue(value, ccIndex) {
+    const ctrl = this.cc_controllers[ccIndex];
+    if (
+      ctrl.type == 0 &&
+      ctrl.discreteValues != null &&
+      ctrl.discreteValues.length > 0
+    ) {
+      const closest = ctrl.discreteValues.reduce((prev, curr) => {
+        return Math.abs(curr - value) < Math.abs(prev - value) ? curr : prev;
+      });
+      ctrl.val = closest;
+    } else {
+      ctrl.val = value;
+    }
+  }
 }
 
 class SeqStep {
