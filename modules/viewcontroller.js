@@ -1530,7 +1530,7 @@ function describeArc(x, y, radius, startAngle, endAngle) {
 function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
   zone.cc_controllers.forEach((c, ix) => {
     const is14bit = c.type == 5 || c.type == 6;
-    const isBiploar = c.type == 2 || c.type == 6;
+    const isBiploar = c.type == 1 || c.type == 6;
     const rangePath = describeArc(28, 30, 18, -135, 135);
     const valDegrees = is14bit
       ? 270 * (isBiploar ? (c.val - 8192) / 8192 : c.val / 16383)
@@ -1568,7 +1568,7 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
     }
     if (c.type == 3) {
       // buttons
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < 6; i++) {
         const btn = potcontainer.querySelector(`.ccbtn${i}`);
         const label = c[`buttonlabel${i}`];
         const value = c[`buttonvalue${i}`];
