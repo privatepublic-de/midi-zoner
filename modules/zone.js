@@ -146,7 +146,7 @@ class Zone {
   arp_enabled = false;
   arp_direction = 0; // 0=UP, 1=DOWN, 2=UP/DOWN, 3=RANDOM, 4=ORDER
   _arp_octaves = 0;
-  _arp_division = 8;
+  _arp_division = 11;
   arp_ticks = DIV_TICKS[8];
   arp_gatelength = 0.5;
   arp_repeat = 0;
@@ -1264,13 +1264,14 @@ class Sequence {
       this.previousStepNumber = this.currentStepNumber;
       this.currentStepNumber = (this.currentStepNumber + 1) % this.length;
       if (this.currentStepNumber === 0) {
+        this.cycleCount++;
         if (this.activeLayerIndex != this.nextLayerIndex) {
           this.activeLayerIndex = this.nextLayerIndex;
-          this.cycleCount = -1;
+          this.cycleCount = 0;
+          this.isFirstCycle = true;
           this.previousStepPlayed = false;
           this.updateZoneView();
         }
-        this.cycleCount++;
         if (this.cycleCount === 1) {
           this.isFirstCycle = false;
         }
