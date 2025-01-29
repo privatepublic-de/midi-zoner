@@ -732,7 +732,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
             zone.sequence.steps[zone.sequence.selectedStepNumber];
           zone.sequence.steps[zone.sequence.selectedStepNumber] = null;
           zone.sequence.selectedStepNumber = newPos;
-          zone.sequence.isHotRecordingNotes = false;
+          // zone.sequence.isHotRecordingNotes = false;
           updateValuesForZone(zoneindex);
         }
       }
@@ -955,7 +955,8 @@ function hoverOutHandler(ev) {
 
 function dblClickHandler(ev) {
   const e = ev.currentTarget;
-  const action = e.getAttribute('data-action');
+  const action =
+    e.getAttribute('data-dblclickaction') || e.getAttribute('data-action');
   const params = action.split(':');
   const zoneindex = params[0];
   const zone = zones.list[zoneindex];
@@ -978,6 +979,9 @@ function dblClickHandler(ev) {
       }
       zone.solo = true;
       updateValuesForAllZones();
+      break;
+    case 'seq_step_velocity_medium':
+      zone.sequence.velocityMediumSelectedStep();
       break;
   }
   triggerSave();
@@ -1108,6 +1112,9 @@ function appendZone(/** @type {Zone} */ zone, index) {
     });
   });
   DOM.all(`#zone${index} .pattern, #zone${index} .ch.solo`).forEach((e) => {
+    e.addEventListener('dblclick', dblClickHandler);
+  });
+  DOM.all(`#zone${index} .step-notes`).forEach((e) => {
     e.addEventListener('dblclick', dblClickHandler);
   });
   let hideOnLeaveTimeout = null;

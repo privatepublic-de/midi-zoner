@@ -1132,7 +1132,7 @@ class Sequence {
     this.updateRecordingState();
   }
 
-  recordNote(note, count) {
+  recordNote(note, inCount) {
     if (this.isLiveRecoding && this.currentStepNumber > -1) {
       if (this.liveTargetStep == null) {
         const rec2step =
@@ -1149,10 +1149,11 @@ class Sequence {
     } else {
       if (this.isHotRecordingNotes && this.selectedStepNumber > -1) {
         let seqstep = this.steps[this.selectedStepNumber] || new SeqStep();
-        if (count == 1 && !this.stepAddNotes) {
+        if (inCount == 1 && !this.stepAddNotes) {
           seqstep.notesArray.length = 0;
         }
         seqstep.notesArray.push(note);
+        seqstep.notesArray.sort((a, b) => a.number - b.number);
         this.steps[this.selectedStepNumber] = seqstep;
         this.updateRecordingState();
       }
@@ -1174,7 +1175,7 @@ class Sequence {
       this.selectedStepNumber > -1 &&
       count === 0
     ) {
-      this.isHotRecordingNotes = false;
+      // this.isHotRecordingNotes = false;
       this.selectedStep.notesArray.sort((a, b) => a.number - b.number);
       if (this.stepAdvance) {
         this.selectedStepNumber = (this.selectedStepNumber + 1) % this.length;
@@ -1208,12 +1209,10 @@ class Sequence {
                 note.number
               )}</span> `;
             });
-            if (this.isHotRecordingNotes) {
-              infoText += '<i>(recording)</i>';
-            }
           } else {
             if (this.isHotRecordingNotes) {
-              infoText += '<i>(play notes on input device)</i>';
+              infoText +=
+                '<span class="note"> ♪♪ </span> <i>... Play some notes!</i>';
             }
           }
           this.zone.sequencerElement.querySelector('.step-notes').innerHTML =
@@ -1393,6 +1392,25 @@ class Sequence {
       }
     });
     return count;
+  }
+
+  velocityMediumSelectedStep() {
+    if (
+      this.selectedStepNumber > -1 &&
+      this.selectedStep &&
+      this.selectedStep.notesArray
+    ) {
+      if (this.selectedStep.notesArray.length > 1) {
+        let medium = 0;
+        this.selectedStep.notesArray.forEach((note) => {
+          medium += note.velo;
+        });
+        medium = parseInt(medium / this.selectedStep.notesArray.length);
+        this.selectedStep.notesArray.forEach((note) => {
+          note.velo = medium;
+        });
+      }
+    }
   }
 }
 
