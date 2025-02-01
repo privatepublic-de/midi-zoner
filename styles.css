@@ -1038,7 +1038,7 @@ li {
   height: 72px;
   margin: 1px 1px 1px 1px;
   border: 1px solid var(--darker-2);
-  background-color: var(--groupcolor);
+  /* background-color: var(--groupcolor); */
 }
 
 .cc-edit .ccpot.selected {
@@ -1055,19 +1055,19 @@ li {
 }
 
 .ccpot[data-group='0'] {
-  --groupcolor: transparent;
+  --groupcolor: var(--darker-1);
 }
 .ccpot[data-group='1'] {
-  --groupcolor: #00990070;
+  --groupcolor: #47589c;
 }
 .ccpot[data-group='2'] {
-  --groupcolor: #464fd3e9;
+  --groupcolor: #279727;
 }
 .ccpot[data-group='3'] {
-  --groupcolor: #ab323270;
+  --groupcolor: #00908d;
 }
 .ccpot[data-group='4'] {
-  --groupcolor: #c1a801cf;
+  --groupcolor: #7b4c7b;
 }
 
 .ccpot[data-type='2'] {
@@ -1094,8 +1094,8 @@ li {
 
 .ccpot svg {
   position: absolute;
-  top: 8px;
-  left: 0;
+  top: 16px;
+  left: 2.5px;
 }
 
 .ccpot > .cclabel {
@@ -1104,10 +1104,15 @@ li {
   overflow: hidden;
   text-align: center;
   font-size: 9px;
-  color: var(--brighter-2);
-  background-color: var(--darker-1);
+  color: var(--brighter-3);
+  /* background-color: var(--darker-1); */
+  background-color: var(--groupcolor);
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+input.cclabel {
+  background-color: var(--bg-color);
 }
 
 .ccpot .value {
@@ -1118,7 +1123,7 @@ li {
   right: 0;
   text-align: center;
   font-size: 9px;
-  color: var(--brighter-1);
+  color: var(--brighter-2);
 }
 
 .cc-editor {
@@ -1264,9 +1269,13 @@ li {
 .ccpot[data-type='3'] .buttons {
   display: flex;
   flex-direction: column;
-  height: 56px;
-  justify-content: center;
-  margin: 0 2px;
+  flex-wrap: wrap;
+  max-height: 56px;
+  width: calc(var(--ccpot-width)-4px);
+  overflow: hidden;
+  justify-content: start;
+  margin: 4px 2px;
+  gap: 2px;
 }
 
 .cc-edit .buttons {
@@ -1280,16 +1289,16 @@ li {
   text-overflow: ellipsis;
   text-wrap: nowrap;
   text-align: center;
-  background-color: var(--darker-0);
   cursor: pointer;
   color: var(--brighter-2);
-  border-top: 1px solid var(--darker-2);
+  border: 1px inset var(--darker-2);
 }
 
 .ccbtn:hover,
 .ccbtn.selected {
-  background-color: var(--brighter-2);
+  background-color: var(--brighter-3);
   color: var(--darker-4);
+  border-style: outset;
 }
 
 .innertoggle {

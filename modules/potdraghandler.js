@@ -49,8 +49,8 @@ class PotDragHandler {
       this.cy += el.offsetTop;
       el = el.offsetParent;
     } while (el);
-    this.cx += 28;
-    this.cy += 36;
+    this.cx += 30;
+    this.cy += 48;
     this.isDragging = true;
     this.updateValueCallback(this.valueForCoordinates(e.pageX, e.pageY));
     DOM.addClass(document.body, 'dragvalue');

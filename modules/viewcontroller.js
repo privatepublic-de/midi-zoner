@@ -339,6 +339,9 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
     cc_edit: () => {
       // TODO rename to toggle
       zone.editCC = !zone.editCC;
+      if (params[2] != null) {
+        zone.selectedCCIndex = params[2];
+      }
       updateControllerValues(zone, zoneindex);
     },
     cc_select: () => {
@@ -399,7 +402,6 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       const discreteValues = element.value
         .split(',')
         .map((v) => (v != '' ? parseInt(v) : v));
-      console.log(discreteValues);
       zone.cc_controllers[zone.selectedCCIndex].discreteValues = discreteValues;
       updateControllerValues(zone, zoneindex);
     },
@@ -1537,6 +1539,20 @@ function describeArc(x, y, radius, startAngle, endAngle) {
   ].join(' ');
 }
 
+function describeDiscreteValues(/** @type {Array<number>} */ values) {
+  let path = '';
+  if (values != null && values.length > 0) {
+    for (let i = 0; i < values.length; i++) {
+      const degrees = -135 + 270 * (values[i] / 127);
+      const point1 = polarToCartesian(28, 30, 15, degrees);
+      const point2 = polarToCartesian(28, 30, 21, degrees);
+      path +=
+        'M ' + point1.x + ' ' + point1.y + 'L ' + point2.x + ' ' + point2.y;
+    }
+  }
+  return path;
+}
+
 function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
   zone.cc_controllers.forEach((c, ix) => {
     const is14bit = c.type == 5 || c.type == 6;
@@ -1553,6 +1569,10 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
     DOM.element(`#pot_zero_${zoneindex}_${ix}`).style.display = isBiploar
       ? 'block'
       : 'none';
+    DOM.element(`#pot_discrete_${zoneindex}_${ix}`).setAttribute(
+      'd',
+      describeDiscreteValues(c.discreteValues)
+    );
     const potcontainer = DOM.element(`#pot_${zoneindex}_${ix}`);
     potcontainer.dataset.type = c.type;
     potcontainer.dataset.group = c.group || 0;
@@ -1578,7 +1598,7 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
     }
     if (c.type == 3) {
       // buttons
-      for (let i = 0; i < 6; i++) {
+      for (let i = 0; i < 8; i++) {
         const btn = potcontainer.querySelector(`.ccbtn${i}`);
         const label = c[`buttonlabel${i}`];
         const value = c[`buttonvalue${i}`];

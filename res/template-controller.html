@@ -2,12 +2,13 @@
   class="ccpot ${ cc.type == 2 ? 'spacer' : '' }"
   id="pot_${zoneindex}_${ix}"
   data-action="${zoneindex}:cc_select:${ix}"
+  data-contextmenu="${zoneindex}:cc_edit:${ix},${zoneindex}:send_all_cc"
 >
   <div class="cclabel">${cc.label}</div>
   <div class="rotary ccpotcontroller">
     <svg
-      width="100%"
-      height="100%"
+      width="56"
+      height="56"
       viewBox="0 0 56 56"
       xmlns="http://www.w3.org/2000/svg"
     >
@@ -21,8 +22,15 @@
       <path
         id="pot_value_${zoneindex}_${ix}"
         d=""
-        stroke="var(--brighter-2)"
+        stroke="var(--brighter-3)"
         stroke-width="6"
+        fill="none"
+      />
+      <path
+        id="pot_discrete_${zoneindex}_${ix}"
+        d=""
+        stroke="var(--bg-color)"
+        stroke-width="1"
         fill="none"
       />
       <rect
@@ -50,10 +58,16 @@
       4
     </div>
     <div class="ccbtn ccbtn4" data-action="${zoneindex}:cc_button_trig:${ix}:4">
-      4
+      5
     </div>
     <div class="ccbtn ccbtn5" data-action="${zoneindex}:cc_button_trig:${ix}:5">
-      4
+      6
+    </div>
+    <div class="ccbtn ccbtn6" data-action="${zoneindex}:cc_button_trig:${ix}:6">
+      7
+    </div>
+    <div class="ccbtn ccbtn7" data-action="${zoneindex}:cc_button_trig:${ix}:7">
+      8
     </div>
   </div>
   <div class="info ccpotcontroller"></div>
