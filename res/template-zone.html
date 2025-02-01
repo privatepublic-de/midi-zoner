@@ -468,23 +468,10 @@
   </div>
 
   <div class="ccpots shadowed-zone-block" data-action="${index}:cc_select:-1">
-    <div class="ccpotttools">
-      <div
-        class="action edit-cc-button"
-        data-action="${index}:cc_edit"
-        title="Edit controls"
-      >
-        <i class="material-icons" title="Edit controls">edit</i>
-      </div>
-      <div
-        class="action"
-        data-action="${index}:send_all_cc"
-        title="Send all values"
-      >
-        <i class="material-icons">double_arrow</i>
-      </div>
-    </div>
-    <div class="container"></div>
+    <div
+      class="container"
+      data-contextmenu="${index}:cc_edit,${index}:send_all_cc"
+    ></div>
     <div class="cc-editor popup">
       <div class="flex-row">
         <label>Type</label>

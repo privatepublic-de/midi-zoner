@@ -858,15 +858,6 @@ input[type='range'] {
   width: 100%;
 }
 
-/* .rangeborder {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  border: 1px solid var(--brighter-1);
-} */
-
 .marker {
   position: absolute;
   display: none;
@@ -1025,7 +1016,8 @@ li {
 .ccpots .container {
   display: flex;
   flex-wrap: wrap;
-  width: calc((var(--ccpot-width) + 2px) * 9 +20px);
+  /* width: calc((var(--ccpot-width) + 2px) * 9 +20px); */
+  padding: 0 4px;
 }
 
 .show-cc .ccpots {
@@ -1069,10 +1061,10 @@ li {
   --groupcolor: #00990070;
 }
 .ccpot[data-group='2'] {
-  --groupcolor: #4646d3e9;
+  --groupcolor: #464fd3e9;
 }
 .ccpot[data-group='3'] {
-  --groupcolor: #8332ab70;
+  --groupcolor: #ab323270;
 }
 .ccpot[data-group='4'] {
   --groupcolor: #c1a801cf;
@@ -1089,7 +1081,7 @@ li {
 }
 
 .cc-edit .ccpot[data-type='2']::after {
-  content: '|...|';
+  content: '...';
   position: absolute;
   font-size: 9px;
   font-style: italic;
@@ -1227,14 +1219,6 @@ li {
   .hide-type-6 {
     display: none;
   }
-}
-
-.ccpotttools {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  gap: 6px;
-  padding: 6px 8px;
 }
 
 .ccpots.cc-edit .edit-cc-button {

@@ -24,7 +24,9 @@ const contextMenuActionLabel = {
   seq_copy_to_layer_2:
     '<i class="material-icons">double_arrow</i> Duplicate to layer C',
   seq_copy_to_layer_3:
-    '<i class="material-icons">double_arrow</i> Duplicate to layer D'
+    '<i class="material-icons">double_arrow</i> Duplicate to layer D',
+  cc_edit: '<i class="material-icons">edit</i> Edit CC controllers',
+  send_all_cc: '<i class="material-icons">double_arrow</i> Send all CC values'
 };
 
 let zones = {};
@@ -340,7 +342,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       updateControllerValues(zone, zoneindex);
     },
     cc_select: () => {
-      if (params[2] == -1) {
+      if (params[2] == -1 || zone.selectedCCIndex == params[2]) {
         zone.editCC = false;
         updateControllerValues(zone, zoneindex);
       } else {
@@ -1262,7 +1264,8 @@ function renderControllersForZone(/** @type {Zone} */ zone, index) {
       if (
         (zone.cc_controllers[ix].type > 1 &&
           zone.cc_controllers[ix].type < 5) ||
-        zone.editCC
+        zone.editCC ||
+        e.button !== 0
       ) {
         return;
       }
