@@ -318,6 +318,9 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
     toggle_show_cc: () => {
       zone.show_cc = !zone.show_cc;
       updateValuesForZone(zoneindex);
+      if (zone.show_cc) {
+        toast('Right click to edit CC controllers.');
+      }
     },
     add_cc_controller: () => {
       zone.cc_controllers.push({
@@ -334,7 +337,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
     },
     send_all_cc: () => {
       zone.sendAllCC();
-      toast('Sent all CC values!');
+      toast('All CC values sent!');
     },
     cc_edit: () => {
       // TODO rename to toggle
@@ -454,7 +457,10 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
         number_in: null,
         min: 0,
         max: 127,
-        type: 0,
+        type:
+          zone.selectedCCIndex > -1
+            ? zone.cc_controllers[zone.selectedCCIndex].type
+            : 0,
         label: `Ctrl #${parseInt(zone.selectedCCIndex) + 1}`,
         val: 0,
         note_cc: null,

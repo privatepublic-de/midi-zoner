@@ -1058,16 +1058,16 @@ li {
   --groupcolor: var(--darker-1);
 }
 .ccpot[data-group='1'] {
-  --groupcolor: #47589c;
+  --groupcolor: hsl(18, 39%, 54%);
 }
 .ccpot[data-group='2'] {
-  --groupcolor: #279727;
+  --groupcolor: hsl(353, 58%, 39%);
 }
 .ccpot[data-group='3'] {
-  --groupcolor: #00908d;
+  --groupcolor: hsl(223, 74%, 66%);
 }
 .ccpot[data-group='4'] {
-  --groupcolor: #7b4c7b;
+  --groupcolor: hsl(192, 76%, 61%);
 }
 
 .ccpot[data-type='2'] {
