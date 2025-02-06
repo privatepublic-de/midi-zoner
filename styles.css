@@ -46,18 +46,78 @@
 
 .zone[data-colorindex='0'] {
   --zone-color: #2a4f5f;
+  .ccpot[data-group='1'] {
+    --groupcolor: #2a9d8f;
+  }
+  .ccpot[data-group='2'] {
+    --groupcolor: #e9c46a;
+  }
+  .ccpot[data-group='3'] {
+    --groupcolor: #f4a261;
+  }
+  .ccpot[data-group='4'] {
+    --groupcolor: #e76f51;
+  }
 }
 .zone[data-colorindex='1'] {
   --zone-color: #2a9d8f;
+  .ccpot[data-group='1'] {
+    --groupcolor: #2a4f5f;
+  }
+  .ccpot[data-group='2'] {
+    --groupcolor: #e9c46a;
+  }
+  .ccpot[data-group='3'] {
+    --groupcolor: #f4a261;
+  }
+  .ccpot[data-group='4'] {
+    --groupcolor: #e76f51;
+  }
 }
 .zone[data-colorindex='2'] {
   --zone-color: #e9c46a;
+  .ccpot[data-group='1'] {
+    --groupcolor: #2a4f5f;
+  }
+  .ccpot[data-group='2'] {
+    --groupcolor: #2a9d8f;
+  }
+  .ccpot[data-group='3'] {
+    --groupcolor: #f4a261;
+  }
+  .ccpot[data-group='4'] {
+    --groupcolor: #e76f51;
+  }
 }
 .zone[data-colorindex='3'] {
   --zone-color: #f4a261;
+  .ccpot[data-group='1'] {
+    --groupcolor: #2a4f5f;
+  }
+  .ccpot[data-group='2'] {
+    --groupcolor: #2a9d8f;
+  }
+  .ccpot[data-group='3'] {
+    --groupcolor: #e9c46a;
+  }
+  .ccpot[data-group='4'] {
+    --groupcolor: #e76f51;
+  }
 }
 .zone[data-colorindex='4'] {
   --zone-color: #e76f51;
+  .ccpot[data-group='1'] {
+    --groupcolor: #2a4f5f;
+  }
+  .ccpot[data-group='2'] {
+    --groupcolor: #2a9d8f;
+  }
+  .ccpot[data-group='3'] {
+    --groupcolor: #e9c46a;
+  }
+  .ccpot[data-group='4'] {
+    --groupcolor: #f4a261;
+  }
 }
 
 @font-face {
@@ -1056,18 +1116,6 @@ li {
 
 .ccpot[data-group='0'] {
   --groupcolor: var(--darker-1);
-}
-.ccpot[data-group='1'] {
-  --groupcolor: hsl(18, 39%, 54%);
-}
-.ccpot[data-group='2'] {
-  --groupcolor: hsl(353, 58%, 39%);
-}
-.ccpot[data-group='3'] {
-  --groupcolor: hsl(223, 74%, 66%);
-}
-.ccpot[data-group='4'] {
-  --groupcolor: hsl(192, 76%, 61%);
 }
 
 .ccpot[data-type='2'] {
