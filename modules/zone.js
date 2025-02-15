@@ -560,11 +560,17 @@ class Zone {
       //   }
       //   context.stroke();
       // }
-      context.strokeStyle = '#ffffff70';
+      context.strokeStyle = '#ffffff60';
+      context.beginPath();
+      context.moveTo(0, note_top);
+      context.lineTo(cwidth, note_top);
+      context.stroke();
+
       function drawNote(number, fillStyle, fillStyleBlack) {
         const isBlack = Note.isBlackKey(number);
         const wkIndex = Note.nearestWhiteKeyIndex(number);
         context.fillStyle = isBlack ? fillStyleBlack : fillStyle;
+
         context.beginPath();
         if (isBlack) {
           context.roundRect(
