@@ -261,15 +261,18 @@ select {
   top: -40%;
 }
 
-#midisettings select,
-.clockOutOption select {
-  width: 170px;
+select {
   border: 1px solid var(--darker-3);
   background-color: var(--darker-2);
   color: var(--brighter-3);
   font-size: 12px;
   padding: 0;
   margin: 0 2px;
+}
+
+#midisettings select,
+.clockOutOption select {
+  width: 170px;
 }
 
 #midiInputSelector,
@@ -1426,47 +1429,6 @@ input.cclabel {
   align-items: flex-start;
 }
 
-.seq-layer-indicator {
-  position: relative;
-  width: 48px;
-  margin-top: 4px;
-  padding: 0 4px;
-  text-align: center;
-  color: var(--brighter-3);
-  background-color: var(--darker-1);
-}
-
-.seq-layer-indicator::before {
-  content: ' ';
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  border: 1px solid var(--darker-2);
-  border-top: none;
-  border-left: none;
-  left: 0;
-  margin: 1px 0 0 1px;
-}
-
-.zone.disabled.show-seq .seq-layer-indicator {
-  margin-top: 0;
-  color: var(--brighter-1);
-  font-size: 10px;
-}
-
-.seq-layer-indicator.pending {
-  animation: layerChangeIndication 500ms infinite alternate linear;
-}
-
-@keyframes layerChangeIndication {
-  0% {
-    background-color: var(--darker-1);
-  }
-  100% {
-    background-color: var(--brighter-2);
-  }
-}
-
 .step-container {
   display: flex;
   flex-wrap: wrap;
@@ -1893,6 +1855,19 @@ body:not(.running) .seqprogress {
 
 .selectSeq.selected {
   background-color: var(--orange-highlight);
+}
+
+.selectSeq.pending {
+  animation: seqLayerPending 100ms infinite alternate ease-out;
+}
+
+@keyframes seqLayerPending {
+  0% {
+    background-color: var(--bg-topbar-button);
+  }
+  100% {
+    background-color: var(--brighter-1);
+  }
 }
 
 .tb-button {

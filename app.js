@@ -618,6 +618,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const el = ev.target;
     view.selectSequencerLayer(parseInt(el.dataset.selectSeqLayer));
   });
+  DOM.on('#tools #seqquant', 'change', (ev) => {
+    Sequence.setQuantDiv(ev.target.value);
+  });
   view.initController({ saveData: saveZones, data: zones, midi });
 
   contextMenuElement.addEventListener('mouseleave', function () {

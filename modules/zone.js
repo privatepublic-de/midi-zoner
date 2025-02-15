@@ -1036,6 +1036,13 @@ class Sequence {
   static MAX_STEPS = 256;
   static CYCLE_CONDITIONS = [];
   static ACTIVE_LAYER_INDEX = 0;
+  static NEXT_LAYER_INDEX = 0;
+  static LAYER_TICK_N = 0;
+  static LAYER_QUANT_TICKS = DIV_TICKS[2];
+
+  static setQuantDiv(index) {
+    Sequence.LAYER_QUANT_TICKS = DIV_TICKS[index];
+  }
 
   _active = false;
   layers = [new SeqLayer(), new SeqLayer(), new SeqLayer(), new SeqLayer()];
@@ -1056,8 +1063,6 @@ class Sequence {
   liveTargetLength = 0;
   liveTargetStepNumber = -1;
   tickn = 0;
-  activeLayerIndex = Sequence.ACTIVE_LAYER_INDEX;
-  nextLayerIndex = Sequence.ACTIVE_LAYER_INDEX;
 
   constructor(zone) {
     this.zone = zone;
@@ -1134,7 +1139,7 @@ class Sequence {
    * @returns {SeqLayer}
    */
   get activeLayer() {
-    return this.layers[this.activeLayerIndex];
+    return this.layers[Sequence.ACTIVE_LAYER_INDEX];
   }
 
   /**
@@ -1222,9 +1227,9 @@ class Sequence {
     }
   }
 
-  updateZoneView() {
+  updateZoneView(allZones) {
     const event = new CustomEvent(Zone.updateZoneViewEventName, {
-      detail: this.zone
+      detail: allZones ? null : this.zone
     });
     window.dispatchEvent(event);
   }
@@ -1267,6 +1272,14 @@ class Sequence {
 
   clock(pos) {
     this.tickn = pos % this.ticks;
+    Sequence.LAYER_TICK_N = pos % Sequence.LAYER_QUANT_TICKS;
+    if (
+      Sequence.LAYER_TICK_N === 0 &&
+      Sequence.ACTIVE_LAYER_INDEX != Sequence.NEXT_LAYER_INDEX
+    ) {
+      Sequence.ACTIVE_LAYER_INDEX = Sequence.NEXT_LAYER_INDEX;
+      this.updateZoneView(true);
+    }
     if (this.activeSteps.length > 0) {
       // check for active steps ending
       const clearSteps = [];
@@ -1301,13 +1314,6 @@ class Sequence {
       this.currentStepNumber = (this.currentStepNumber + 1) % this.length;
       if (this.currentStepNumber === 0) {
         this.cycleCount++;
-        if (this.activeLayerIndex != this.nextLayerIndex) {
-          this.activeLayerIndex = this.nextLayerIndex;
-          this.cycleCount = 0;
-          this.isFirstCycle = true;
-          this.previousStepPlayed = false;
-          this.updateZoneView();
-        }
         if (this.cycleCount === 1) {
           this.isFirstCycle = false;
         }
@@ -1370,7 +1376,7 @@ class Sequence {
     this.liveTargetLength = 0;
     this.liveTargetStep = null;
     this.isLiveRecoding = false;
-    this.activeLayerIndex = this.nextLayerIndex;
+    Sequence.ACTIVE_LAYER_INDEX = Sequence.NEXT_LAYER_INDEX;
     this.updateRecordingState();
     requestAnimationFrame(this.zone.renderSequence.bind(this.zone));
     requestAnimationFrame(this.zone.renderNotes.bind(this.zone));

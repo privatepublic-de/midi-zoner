@@ -56,10 +56,15 @@ function initController({ saveData, data, midi }) {
   elAllHoldOff = DOM.element('#allHoldOff');
   elAllHoldOff.addEventListener('click', allHoldOff);
   window.addEventListener(Zone.updateZoneViewEventName, (ev) => {
-    const index = zones.list.indexOf(ev.detail);
-    if (index > -1) {
-      updateValuesForZone(index);
+    if (ev.detail != null) {
+      const index = zones.list.indexOf(ev.detail);
+      if (index > -1) {
+        updateValuesForZone(index);
+      }
+    } else {
+      updateValuesForAllZones();
     }
+    selectSequencerLayer(Sequence.ACTIVE_LAYER_INDEX);
   });
   numberInputController = new NumberInputController();
   numberInputController.addInputElements(
@@ -1431,16 +1436,6 @@ function updateValuesForZone(index) {
       DOM.element(`#zone${index} .seq_steps`).value = zone.sequence.length;
       DOM.element(`#zone${index} .seq_division`).selectedIndex =
         zone.sequence.division;
-      const layerIndicator = DOM.element(`#zone${index} .seq-layer-indicator`);
-      if (zone.sequence.activeLayerIndex != zone.sequence.nextLayerIndex) {
-        layerIndicator.classList.add('pending');
-        layerIndicator.innerHTML = 'ABCD'.charAt(zone.sequence.nextLayerIndex);
-      } else {
-        layerIndicator.classList.remove('pending');
-        layerIndicator.innerHTML = 'ABCD'.charAt(
-          zone.sequence.activeLayerIndex
-        );
-      }
     } else {
       DOM.removeClass(`#zone${index}`, 'show-seq');
       if (zone.sequence.steps.length > 0) {
@@ -1813,16 +1808,21 @@ function toggleSequencerOnZone(index) {
 
 function selectSequencerLayer(layerIndex) {
   const clockRunning = midiController.isClockRunning;
-  Sequence.ACTIVE_LAYER_INDEX = layerIndex;
-  zones.list.forEach((zone) => {
-    zone.sequence.nextLayerIndex = layerIndex;
-    if (!clockRunning) {
-      zone.sequence.activeLayerIndex = layerIndex;
-    }
-  });
   DOM.removeClass('#tools *[data-select-seq-layer]', 'selected');
+  DOM.removeClass('#tools *[data-select-seq-layer]', 'pending');
+  if (clockRunning) {
+    if (Sequence.ACTIVE_LAYER_INDEX != layerIndex) {
+      Sequence.NEXT_LAYER_INDEX = layerIndex;
+      DOM.addClass(
+        DOM.all('#tools *[data-select-seq-layer]')[Sequence.NEXT_LAYER_INDEX],
+        'pending'
+      );
+    }
+  } else {
+    Sequence.ACTIVE_LAYER_INDEX = layerIndex;
+  }
   DOM.addClass(
-    DOM.all('#tools *[data-select-seq-layer]')[layerIndex],
+    DOM.all('#tools *[data-select-seq-layer]')[Sequence.ACTIVE_LAYER_INDEX],
     'selected'
   );
   updateValuesForAllZones();
