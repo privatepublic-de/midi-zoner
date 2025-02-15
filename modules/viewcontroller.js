@@ -1811,8 +1811,8 @@ function selectSequencerLayer(layerIndex) {
   DOM.removeClass('#tools *[data-select-seq-layer]', 'selected');
   DOM.removeClass('#tools *[data-select-seq-layer]', 'pending');
   if (clockRunning) {
+    Sequence.NEXT_LAYER_INDEX = layerIndex;
     if (Sequence.ACTIVE_LAYER_INDEX != layerIndex) {
-      Sequence.NEXT_LAYER_INDEX = layerIndex;
       DOM.addClass(
         DOM.all('#tools *[data-select-seq-layer]')[Sequence.NEXT_LAYER_INDEX],
         'pending'
