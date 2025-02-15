@@ -357,6 +357,7 @@ class Zone {
 
   handleMidi(message, data, fromSequencer) {
     if (this.shouldHandleMidi(message, fromSequencer)) {
+      const fromMidiInput = !fromSequencer;
       switch (message) {
         case MIDI.MESSAGE.NOTE_OFF:
         case MIDI.MESSAGE.NOTE_ON:
@@ -394,8 +395,17 @@ class Zone {
                 );
                 this.midiActiveNotes[srcKey] = playNote;
                 this.addNote(playNote);
-                if (!fromSequencer) {
-                  this.sequence.recordNote(playNote, this.activeNotes.length);
+                if (fromMidiInput) {
+                  let filteredActiveNotes = [...this.activeNotes];
+                  this.sequence.activeNotes().forEach((seqNote) => {
+                    filteredActiveNotes = filteredActiveNotes.filter(
+                      (activeNote) => activeNote.number !== seqNote.number
+                    );
+                  });
+                  this.sequence.recordNote(
+                    playNote,
+                    filteredActiveNotes.length
+                  );
                 }
               } else {
                 const srcNote = this.midiActiveNotes[srcKey];
@@ -409,7 +419,6 @@ class Zone {
                     this.midi.send(outevent, this.outputPortId);
                   }
                 } else {
-                  console.log(`No src note for ${srcKey}, clearing ${key}`);
                   this.removeNote(key);
                 }
                 if (!fromSequencer) {
@@ -754,9 +763,6 @@ class Zone {
                 break;
               case 2: // updown
                 this.arp.noteindex += this.arp.inc;
-                // console.log(
-                //   `i: ${this.arp.noteindex}/${notes.length}, inc: ${this.arp.inc}`
-                // );
                 if (this.arp.noteindex >= notes.length) {
                   this.arp.noteindex = this.arp.noteindex % notes.length;
                   if (this.arp.octave >= this.arp_octaves) {
@@ -994,6 +1000,14 @@ class SeqStep {
     }
     return result;
   }
+  static addNote(notesArray, /** @type {Note} */ note) {
+    if (!notesArray.some((n) => n.number === note.number)) {
+      notesArray.push(note);
+      notesArray.sort((a, b) => a.number - b.number);
+      return true;
+    }
+    return false;
+  }
 }
 
 class SeqLayer {
@@ -1125,15 +1139,18 @@ class Sequence {
     if (this._selectedStep > -1) {
       this.isLiveRecoding = false;
       this.isHotRecordingNotes = true;
-      // console.log('Start recording', this._selectedStep);
     } else {
       this.isHotRecordingNotes = false;
     }
     this.updateRecordingState();
   }
 
-  recordNote(note, inCount) {
-    if (this.isLiveRecoding && this.currentStepNumber > -1) {
+  recordNote(/** @type {Note} */ note, inCount) {
+    if (
+      !this.isHotRecordingNotes &&
+      this.isLiveRecoding &&
+      this.currentStepNumber > -1
+    ) {
       if (this.liveTargetStep == null) {
         const rec2step =
           this.tickn >= this.ticks - this.ticks / 3
@@ -1143,19 +1160,33 @@ class Sequence {
         this.liveTargetStep = SeqStep.from(this.steps[rec2step]);
         this.liveTargetLength = 1;
       }
-      this.liveTargetStep.notesArray.push(note);
-      // this.updateRecordingState();
-      this.updateZoneView();
+      if (SeqStep.addNote(this.liveTargetStep.notesArray, note)) {
+        this.updateZoneView();
+      }
+      // this.liveTargetStep.notesArray.push(note);
+      // if (
+      //   !this.liveTargetStep.notesArray.some((n) => n.number === note.number)
+      // ) {
+      //   this.liveTargetStep.notesArray.push(note);
+      //   this.liveTargetStep.notesArray.sort((a, b) => a.number - b.number);
+      //   this.updateZoneView();
+      // }
     } else {
       if (this.isHotRecordingNotes && this.selectedStepNumber > -1) {
-        let seqstep = this.steps[this.selectedStepNumber] || new SeqStep();
+        const seqstep = this.steps[this.selectedStepNumber] || new SeqStep();
         if (inCount == 1 && !this.stepAddNotes) {
           seqstep.notesArray.length = 0;
         }
-        seqstep.notesArray.push(note);
-        seqstep.notesArray.sort((a, b) => a.number - b.number);
-        this.steps[this.selectedStepNumber] = seqstep;
-        this.updateRecordingState();
+        if (SeqStep.addNote(seqstep.notesArray, note)) {
+          this.steps[this.selectedStepNumber] = seqstep;
+          this.updateRecordingState();
+        }
+        // if (!seqstep.notesArray.some((n) => n.number === note.number)) {
+        //   seqstep.notesArray.push(note);
+        //   seqstep.notesArray.sort((a, b) => a.number - b.number);
+        //   this.steps[this.selectedStepNumber] = seqstep;
+        //   this.updateRecordingState();
+        // }
       }
     }
   }
@@ -1374,7 +1405,6 @@ class Sequence {
         return !this.isFirstCycle;
     }
     const condition = Sequence.CYCLE_CONDITIONS[step.condition - 5];
-    // console.log(condition, this.cycleCount, this.cycleCount % condition[0]);
     return this.cycleCount % condition[0] === condition[1] - 1;
   }
 
@@ -1421,7 +1451,10 @@ if (Sequence.CYCLE_CONDITIONS.length == 0) {
       Sequence.CYCLE_CONDITIONS.push([cycles, b + 1]);
     }
   }
-  console.log('Seq: Initialized cycle conditions: ', Sequence.CYCLE_CONDITIONS);
+  console.log(
+    'Sequence: Initialized cycle conditions: ',
+    Sequence.CYCLE_CONDITIONS
+  );
 }
 
 module.exports = {
