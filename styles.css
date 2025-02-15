@@ -414,13 +414,13 @@ input:focus-visible {
     display: block;
   }
   .zone {
-    width: 90% !important;
+    /* width: 90% !important; */
     margin: 0 auto 5px auto;
   }
-  .zone .euclid {
+  /* .zone .euclid {
     right: auto !important;
     left: 250px;
-  }
+  } */
 }
 
 .zone {
