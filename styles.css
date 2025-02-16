@@ -1769,7 +1769,7 @@ body:not(.running) .seqprogress {
   position: fixed;
   width: 260px;
   left: 50%;
-  bottom: 48px;
+  bottom: 32px;
   margin-left: -130px;
   background-color: var(--bg-toast);
   color: var(--text-toast-color);
@@ -1844,6 +1844,10 @@ body:not(.running) .seqprogress {
   border: 1px solid var(--border-topbar);
   border-bottom: none;
   border-radius: 4px 4px 0 0;
+}
+
+#tools > * {
+  text-wrap: nowrap;
 }
 
 .selectSeq {
