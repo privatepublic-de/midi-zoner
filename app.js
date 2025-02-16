@@ -13,7 +13,9 @@ const zones = {
   selectedInputPorts: {},
   tempo: 120,
   sendInternalClockIfPlaying: false, // TODO misnomed; means send everything
-  outputConfigNames: {}
+  outputConfigNames: {},
+  seqLayerIndex: 0,
+  seqLayerQuantIndex: 0
 };
 
 const debounce = function (func, delay) {
@@ -448,6 +450,9 @@ document.addEventListener('DOMContentLoaded', function () {
         updateBpmInput();
         updateClockOutputCount();
         midi.setInternalBPM(zones.tempo);
+        view.selectSequencerLayer(zones.seqLayerIndex || 0);
+        Sequence.setQuantDiv(zones.seqLayerQuantIndex);
+        DOM.element('#tools #seqquant').value = zones.seqLayerQuantIndex;
         document.body.addEventListener('keydown', (ev) => {
           if (document.activeElement.tagName != 'INPUT') {
             if (ev.key == ' ') {
@@ -616,10 +621,16 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   DOM.on('#tools *[data-select-seq-layer]', 'click', (ev) => {
     const el = ev.target;
-    view.selectSequencerLayer(parseInt(el.dataset.selectSeqLayer));
+    const selectedLayer = parseInt(el.dataset.selectSeqLayer);
+    view.selectSequencerLayer(selectedLayer);
+    zones.seqLayerIndex = selectedLayer;
+    saveZones();
   });
   DOM.on('#tools #seqquant', 'change', (ev) => {
+    const quantDiv = parseInt(ev.target.value);
     Sequence.setQuantDiv(ev.target.value);
+    zones.seqLayerQuantIndex = quantDiv;
+    saveZones();
   });
   view.initController({ saveData: saveZones, data: zones, midi });
 
