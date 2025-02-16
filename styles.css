@@ -417,13 +417,14 @@ input:focus-visible {
     display: block;
   }
   .zone {
-    /* width: 90% !important; */
+    width: 90% !important;
+    max-width: 800px;
     margin: 0 auto 5px auto;
   }
-  /* .zone .euclid {
+  .zone .euclid {
     right: auto !important;
     left: 250px;
-  } */
+  }
 }
 
 .zone {
@@ -1768,7 +1769,7 @@ body:not(.running) .seqprogress {
   position: fixed;
   width: 260px;
   left: 50%;
-  top: 48px;
+  bottom: 48px;
   margin-left: -130px;
   background-color: var(--bg-toast);
   color: var(--text-toast-color);
