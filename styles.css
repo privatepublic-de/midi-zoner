@@ -1497,6 +1497,10 @@ input.cclabel {
   outline: 2px solid var(--brighter-4);
 }
 
+.disabled .seq .grid .step.playhead {
+  outline-width: 1px;
+}
+
 .seq .grid .step.unused {
   display: none;
 }
@@ -1504,7 +1508,7 @@ input.cclabel {
 .seq .grid .step.active,
 .step-info .stepmarker {
   background-color: var(--brighter-1);
-  border-color: var(--brighter-3) !important;
+  /* border-color: var(--brighter-3) !important; */
   color: var(--brighter-4);
 }
 
@@ -1555,11 +1559,11 @@ input.cclabel {
 }
 
 .seq .grid .step:nth-child(4n + 1) {
-  border-bottom-color: var(--darker-4);
+  box-shadow: 0 1.5px 2px var(--darker-4);
 }
 
-.seq .grid .step.active:nth-child(4n + 1) {
-  border-bottom-color: var(--brighter-4) !important;
+.disabled .seq .grid .step:nth-child(4n + 1) {
+  box-shadow: none;
 }
 
 .seq .step-info {
