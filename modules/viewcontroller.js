@@ -1810,8 +1810,8 @@ function selectSequencerLayer(layerIndex) {
   const clockRunning = midiController.isClockRunning;
   DOM.removeClass('#tools *[data-select-seq-layer]', 'selected');
   DOM.removeClass('#tools *[data-select-seq-layer]', 'pending');
+  Sequence.NEXT_LAYER_INDEX = layerIndex;
   if (clockRunning) {
-    Sequence.NEXT_LAYER_INDEX = layerIndex;
     if (Sequence.ACTIVE_LAYER_INDEX != layerIndex) {
       DOM.addClass(
         DOM.all('#tools *[data-select-seq-layer]')[Sequence.NEXT_LAYER_INDEX],
