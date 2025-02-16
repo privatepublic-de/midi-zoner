@@ -18,13 +18,13 @@ const contextMenuActionLabel = {
   seq_copy: '<i class="material-icons">content_copy</i> Copy sequence',
   seq_paste: '<i class="material-icons">content_paste</i> Paste sequence',
   seq_copy_to_layer_0:
-    '<i class="material-icons">double_arrow</i> Duplicate to layer A',
+    '<i class="material-icons">double_arrow</i> Copy to layer A',
   seq_copy_to_layer_1:
-    '<i class="material-icons">double_arrow</i> Duplicate to layer B',
+    '<i class="material-icons">double_arrow</i> Copy to layer B',
   seq_copy_to_layer_2:
-    '<i class="material-icons">double_arrow</i> Duplicate to layer C',
+    '<i class="material-icons">double_arrow</i> Copy to layer C',
   seq_copy_to_layer_3:
-    '<i class="material-icons">double_arrow</i> Duplicate to layer D',
+    '<i class="material-icons">double_arrow</i> Copy to layer D',
   cc_edit: '<i class="material-icons">edit</i> Edit CC controllers',
   send_all_cc: '<i class="material-icons">double_arrow</i> Send all CC values'
 };
