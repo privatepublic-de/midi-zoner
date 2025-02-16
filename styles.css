@@ -39,7 +39,7 @@
   --darker-4: rgba(0, 0, 0, 1);
 
   --red-highlight: rgba(196, 0, 0, 0.4);
-  --orange-highlight: #df8e4b;
+  --white-highlight: #ccc;
   --record-highlight: rgba(255, 0, 0, 0.8);
   --green-highlight: rgba(0, 196, 0, 1);
 }
@@ -1859,7 +1859,8 @@ body:not(.running) .seqprogress {
 }
 
 .selectSeq.selected {
-  background-color: var(--orange-highlight);
+  background-color: var(--white-highlight);
+  color: #000;
 }
 
 .selectSeq.pending {
