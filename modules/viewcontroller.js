@@ -210,8 +210,6 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
     arp_enabled: () => {
       applyParamToggle();
       if (zone.arp_enabled) {
-        // zone.sequence.active = false;
-        // zone.sequence.selectedStepNumber = -1;
         updateValuesForZone(zoneindex);
         zone.renderPattern();
       }
@@ -260,7 +258,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
         updateValuesForZone(zoneindex);
       }
       if (!zone.enabled && zone.sequence.active) {
-        zone.sequence.selectedStepNumber = -1;
+        zone.sequence.clearSelection();
         zone.sequence.isLiveRecoding = false;
         updateValuesForZone(zoneindex);
       }
@@ -539,21 +537,11 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
     },
     toggle_seq: () => {
       zone.sequence.active = !zone.sequence.active;
-      zone.sequence.selectedStepNumber = -1;
+      zone.sequence.clearSelection();
       if (zone.sequence.active) {
-        // zone.arp_enabled = false;
         zone.renderNotes();
       } else {
         zone.sequence.isLiveRecoding = false;
-      }
-      updateValuesForZone(zoneindex);
-    },
-    select_step: () => {
-      const stepNo = parseInt(params[2]);
-      if (zone.sequence.selectedStepNumber == stepNo) {
-        zone.sequence.selectedStepNumber = -1;
-      } else {
-        zone.sequence.selectedStepNumber = stepNo;
       }
       updateValuesForZone(zoneindex);
     },
@@ -568,10 +556,10 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
     },
     seq_step_length: () => {
       const v = parseInt(element.value);
-      if (zone.sequence.selectedStep) {
-        zone.sequence.selectedStep.length = v;
-        updateValuesForZone(zoneindex);
-      }
+      zone.sequence.selectedStepNumbers.forEach((n) => {
+        if (zone.sequence.steps[n]) zone.sequence.steps[n].length = v;
+      });
+      updateValuesForZone(zoneindex);
     },
     seq_clear_all: () => {
       zone.sequence.steps.length = 0;
@@ -649,6 +637,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       }, 100);
     },
     seq_clear_step: () => {
+      // clear right clicked step
       if (params[2] != 'undefined') {
         zone.sequence.steps[parseInt(params[2])] = null;
         updateValuesForZone(zoneindex);
@@ -656,17 +645,22 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       }
     },
     seq_clear_selected_step: () => {
-      if (zone.sequence.selectedStepNumber != -1) {
-        zone.sequence.steps[zone.sequence.selectedStepNumber] = null;
+      const stepcount = zone.sequence.selectedStepNumbers.size;
+      if (stepcount > 0) {
+        zone.sequence.selectedStepNumbers.forEach((n) => {
+          zone.sequence.steps[n] = null;
+        });
         updateValuesForZone(zoneindex);
-        toast('Step cleared');
+        toast(`${stepcount} step${stepcount > 1 ? 's' : ''} cleared`);
       }
     },
     seq_step_probability: () => {
-      if (zone.sequence.selectedStep) {
-        zone.sequence.selectedStep.probability = calcPercentage();
-        updateValuesForZone(zoneindex);
-      }
+      zone.sequence.selectedStepNumbers.forEach((n) => {
+        if (zone.sequence.steps[n] != null) {
+          zone.sequence.steps[n].probability = calcPercentage();
+        }
+      });
+      updateValuesForZone(zoneindex);
     },
     seq_step_velocity: () => {
       if (zone.sequence.selectedStep) {
@@ -709,10 +703,11 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       }
     },
     seq_gatelength: () => {
-      if (zone.sequence.selectedStep) {
-        zone.sequence.selectedStep.gateLength = calcPercentage();
-        updateValuesForZone(zoneindex);
-      }
+      zone.sequence.selectedStepNumbers.forEach((n) => {
+        if (zone.sequence.steps[n])
+          zone.sequence.steps[n].gateLength = calcPercentage();
+      });
+      updateValuesForZone(zoneindex);
     },
     seq_copy_step: () => {
       if (params[2] != 'undefined') {
@@ -753,7 +748,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       }
     },
     seq_move: () => {
-      zone.sequence.selectedStepNumber = -1;
+      zone.sequence.clearSelection();
       const direction = parseInt(params[2]);
       const limit = zone.sequence.length;
       const newSeq = [];
@@ -828,10 +823,11 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       }
     },
     seq_step_condition: () => {
-      if (zone.sequence.selectedStep) {
-        zone.sequence.selectedStep.condition = element.selectedIndex;
-        updateValuesForZone(zoneindex);
-      }
+      zone.sequence.selectedStepNumbers.forEach((n) => {
+        if (zone.sequence.steps[n])
+          zone.sequence.steps[n].condition = element.selectedIndex;
+      });
+      updateValuesForZone(zoneindex);
     },
     seq_step_add_notes: () => {
       zone.sequence.stepAddNotes = !zone.sequence.stepAddNotes;
@@ -842,7 +838,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       updateValuesForZone(zoneindex);
     },
     seq_record_live: () => {
-      zone.sequence.selectedStepNumber = -1;
+      zone.sequence.clearSelection();
       zone.sequence.isLiveRecoding = !zone.sequence.isLiveRecoding;
       updateValuesForZone(zoneindex);
       toast(
@@ -1075,6 +1071,44 @@ function appendZone(/** @type {Zone} */ zone, index) {
     e.addEventListener('focus', actionHandler);
     e.addEventListener('blur', actionHandler);
   });
+  // drag select multiple steps
+  let isDragSelect = false;
+  DOM.on(`#zone${index} .step-info`, 'mouseup', (ev) => {
+    ev.stopPropagation();
+  });
+  DOM.on(`#zone${index} .seq`, 'mouseup', (ev) => {
+    if (ev.button != 0) return;
+    if (!isDragSelect) {
+      zone.sequence.clearSelection();
+      updateValuesForZone(index);
+    }
+    isDragSelect = false;
+  });
+  DOM.on(`#zone${index} .seq`, 'mouseleave', () => {
+    isDragSelect = false;
+  });
+  DOM.all(`#zone${index} *[data-dragselect]`).forEach((e) => {
+    const stepnumber = parseInt(e.dataset.dragselect);
+    e.addEventListener('mousedown', (ev) => {
+      if (ev.button != 0) return;
+      if (zone.sequence.selectedStepNumbers.has(stepnumber)) {
+        isDragSelect = false;
+        zone.sequence.clearSelection();
+      } else {
+        isDragSelect = true;
+        zone.sequence.clearSelection();
+        zone.sequence.selectedStepNumber = stepnumber;
+      }
+      updateValuesForZone(index);
+    });
+    e.addEventListener('mouseenter', (ev) => {
+      if (isDragSelect) {
+        zone.sequence.selectedStepNumbers.add(stepnumber);
+        updateValuesForZone(index);
+      }
+    });
+  });
+  // drag velocity value
   const followValueDiv = DOM.element('#valuefollow');
   DOM.all(`#zone${index} *[data-dragvalue]`).forEach((e) => {
     let dragstartx = 0;
@@ -1381,6 +1415,11 @@ function updateValuesForZone(index) {
       DOM.all(`#zone${index} .seq .grid .step`).forEach((e, i) => {
         if (i < zone.sequence.length) {
           DOM.removeClass(e, 'unused');
+          if (zone.sequence.selectedStepNumbers.has(i)) {
+            DOM.addClass(e, 'multiselection');
+          } else {
+            DOM.removeClass(e, 'multiselection');
+          }
           if (
             (zone.sequence.steps[i] && zone.sequence.steps[i].length > 0) ||
             zone.sequence.liveTargetStepNumber == i
@@ -1400,11 +1439,14 @@ function updateValuesForZone(index) {
       } else {
         DOM.removeClass(`#zone${index} .seq_record_live`, 'selected');
       }
-      if (zone.sequence.selectedStepNumber > -1) {
+      if (zone.sequence.hasSelection) {
         DOM.addClass(`#zone${index} .seq`, 'has-selection');
-        DOM.all(`#zone${index} .seq .grid .step`)[
-          zone.sequence.selectedStepNumber
-        ].classList.add('selected-step');
+        if (zone.sequence.selectedStepNumbers.size > 1) {
+          DOM.addClass(`#zone${index} .seq`, 'multi-selection');
+        }
+        // DOM.all(`#zone${index} .seq .grid .step`)[
+        //   zone.sequence.selectedStepNumber
+        // ].classList.add('selected-step');
         if (zone.sequence.stepAddNotes) {
           DOM.addClass(`#zone${index} .seq-step-add-notes`, 'selected');
         }
@@ -1412,26 +1454,28 @@ function updateValuesForZone(index) {
           DOM.addClass(`#zone${index} .seq-step-advance`, 'selected');
         }
 
-        let step = zone.sequence.steps[zone.sequence.selectedStepNumber];
+        let step = zone.sequence.selectedStep;
         if (step && step.length > 0) {
           let pcnt = parseInt(step.probability * 100);
           setPercent('seq_step_probability', pcnt);
           pcnt = parseInt(step.gateLength * 100);
           setPercent('seq_gatelength', pcnt);
-
           DOM.element(`#zone${index} .seq_step_condition`).selectedIndex =
             zone.sequence.steps[zone.sequence.selectedStepNumber].condition;
           DOM.element(`#zone${index} .seq_step_length`).value =
             zone.sequence.steps[zone.sequence.selectedStepNumber].length;
         } else {
-          DOM.element(`#zone${index} .seq_step_length`).value = 1;
-          DOM.element(`#zone${index} .seq_step_condition`).selectedIndex = 0;
-          setPercent('seq_step_probability', 100);
-          setPercent('seq_gatelength', 100);
+          if (zone.sequence.selectedStepNumbers.size == 1) {
+            DOM.element(`#zone${index} .seq_step_length`).value = 1;
+            DOM.element(`#zone${index} .seq_step_condition`).selectedIndex = 0;
+            setPercent('seq_step_probability', 100);
+            setPercent('seq_gatelength', 100);
+          }
         }
         zone.sequence.updateRecordingState();
       } else {
         DOM.removeClass(`#zone${index} .seq`, 'has-selection');
+        DOM.removeClass(`#zone${index} .seq`, 'multi-selection');
       }
       DOM.element(`#zone${index} .seq_steps`).value = zone.sequence.length;
       DOM.element(`#zone${index} .seq_division`).selectedIndex =

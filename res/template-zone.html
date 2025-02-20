@@ -87,7 +87,6 @@
   </div>
   <div
     class="seq shadowed-zone-block"
-    data-action="${index}:select_step:-1"
     data-contextmenu="${index}:seq_copy,${index}:seq_paste,-,${index}:seq_copy_to_layer_0:0,${index}:seq_copy_to_layer_1:1,${index}:seq_copy_to_layer_2:2,${index}:seq_copy_to_layer_3:3,-,${index}:seq_clear_all"
   >
     <div class="grid">
@@ -304,7 +303,7 @@
             <i class="material-icons">arrow_forward</i>
           </div>
           <select
-            class=""
+            class="seq_step_condition_apply"
             data-change="${index}:seq_step_apply_to_all"
             style="background-color: transparent; flex-grow: 1"
             tabindex="-1"

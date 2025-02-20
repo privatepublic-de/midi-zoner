@@ -40,6 +40,7 @@
 
   --red-highlight: rgba(196, 0, 0, 0.4);
   --white-highlight: #ccc;
+  --multiselect-highlight: #704949;
   --record-highlight: rgba(255, 0, 0, 0.8);
   --green-highlight: rgba(0, 196, 0, 1);
 }
@@ -1512,9 +1513,13 @@ input.cclabel {
   color: var(--brighter-4);
 }
 
+.seq .grid .step.multiselection {
+  background-color: var(--multiselect-highlight) !important;
+}
+
 .seq .grid .step {
   position: relative;
-  cursor: zoom-in;
+  cursor: pointer;
   /* overflow: hidden; */
 }
 
@@ -1551,7 +1556,6 @@ input.cclabel {
   background-color: var(--brighter-2);
   color: var(--brighter-4);
   box-shadow: 0 0 10px var(--brighter-4);
-  cursor: zoom-out;
 }
 
 .seq.hot .step.selected-step {
@@ -1638,6 +1642,7 @@ input.cclabel {
 
 .step-notes i {
   color: var(--bg-color);
+  line-height: var(--step-size);
 }
 
 .zone[data-colorindex='0'] .popup {
@@ -1648,8 +1653,12 @@ input.cclabel {
   display: block;
 }
 
-.seq.has-selection {
-  cursor: zoom-out;
+.seq.multi-selection .seq_step_condition_apply {
+  visibility: hidden;
+}
+.seq.multi-selection .seq-step-advance,
+.seq.multi-selection .seq-step-add-notes {
+  display: none;
 }
 
 .seqprogress {

@@ -1046,6 +1046,7 @@ class Sequence {
 
   _active = false;
   layers = [new SeqLayer(), new SeqLayer(), new SeqLayer(), new SeqLayer()];
+  selectedStepNumbers = new Set();
   currentStepNumber = -1;
   previousStepNumber = -1;
   zone = null;
@@ -1128,32 +1129,46 @@ class Sequence {
     this.activeLayer.steps = steplist;
   }
 
-  get selectedStepNumber() {
-    return this._selectedStep;
+  clearSelection() {
+    this.selectedStepNumbers.clear();
   }
 
-  get selectedStep() {
-    return this._selectedStep > -1 ? this.steps[this._selectedStep] : null;
-  }
-  /**
-   * @returns {SeqLayer}
-   */
-  get activeLayer() {
-    return this.layers[Sequence.ACTIVE_LAYER_INDEX];
+  get selectedStepNumber() {
+    return this.selectedStepNumbers.size == 1
+      ? this.selectedStepNumbers.values().next().value
+      : -1;
   }
 
   /**
    * @param {number} v
    */
   set selectedStepNumber(v) {
-    this._selectedStep = v;
-    if (this._selectedStep > -1) {
+    this.selectedStepNumbers.clear();
+    if (v > -1) {
+      this.selectedStepNumbers.add(v);
       this.isLiveRecoding = false;
       this.isHotRecordingNotes = true;
     } else {
       this.isHotRecordingNotes = false;
     }
     this.updateRecordingState();
+  }
+
+  get selectedStep() {
+    return this.selectedStepNumber > -1
+      ? this.steps[this.selectedStepNumber]
+      : null;
+  }
+
+  get hasSelection() {
+    return this.selectedStepNumbers.size > 0;
+  }
+
+  /**
+   * @returns {SeqLayer}
+   */
+  get activeLayer() {
+    return this.layers[Sequence.ACTIVE_LAYER_INDEX];
   }
 
   recordNote(/** @type {Note} */ note, inCount) {
@@ -1237,33 +1252,41 @@ class Sequence {
   updateRecordingState() {
     requestAnimationFrame(
       (() => {
-        if (this.selectedStepNumber > -1) {
-          const notesArray = this.steps[this.selectedStepNumber]
-            ? this.steps[this.selectedStepNumber].notesArray
-            : null;
-          this.zone.sequencerElement.querySelector('.stepmarker').innerHTML =
-            this.selectedStepNumber + 1;
-          let infoText = '';
-          if (notesArray && notesArray.length > 0) {
-            notesArray.forEach((note) => {
-              const velopcnt = (note.velo / 127) * 100;
-              infoText += `<span class="note"><span class="velocity" style="height:${velopcnt}%"></span>${Note.display(
-                note.number
-              )}</span> `;
-            });
-          } else {
-            if (this.isHotRecordingNotes) {
-              infoText +=
-                '<span class="note"> ♪♪ </span> <i>... Play some notes!</i>';
+        if (this.hasSelection) {
+          if (this.selectedStepNumber > -1) {
+            const notesArray = this.steps[this.selectedStepNumber]
+              ? this.steps[this.selectedStepNumber].notesArray
+              : null;
+            this.zone.sequencerElement.querySelector('.stepmarker').innerHTML =
+              this.selectedStepNumber + 1;
+            let infoText = '';
+            if (notesArray && notesArray.length > 0) {
+              notesArray.forEach((note) => {
+                const velopcnt = (note.velo / 127) * 100;
+                infoText += `<span class="note"><span class="velocity" style="height:${velopcnt}%"></span>${Note.display(
+                  note.number
+                )}</span> `;
+              });
+            } else {
+              if (this.isHotRecordingNotes) {
+                infoText +=
+                  '<span class="note"> ♪♪ </span> <i>... Play some notes!</i>';
+              }
             }
-          }
-          this.zone.sequencerElement.querySelector('.step-notes').innerHTML =
-            infoText;
+            this.zone.sequencerElement.querySelector('.step-notes').innerHTML =
+              infoText;
 
-          if (this.isHotRecordingNotes) {
-            this.zone.sequencerElement.classList.add('hot');
+            if (this.isHotRecordingNotes) {
+              this.zone.sequencerElement.classList.add('hot');
+            } else {
+              this.zone.sequencerElement.classList.remove('hot');
+            }
           } else {
-            this.zone.sequencerElement.classList.remove('hot');
+            this.zone.sequencerElement.querySelector('.stepmarker').innerHTML =
+              '...';
+            this.zone.sequencerElement.querySelector(
+              '.step-notes'
+            ).innerHTML = `<i>${this.selectedStepNumbers.size} selected steps</i>`;
           }
         }
       }).bind(this)
