@@ -730,7 +730,11 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       if (zone.sequence.hasSelection) {
         const direction = parseInt(params[2]);
         const newSelection = new Set();
-        zone.sequence.selectedStepNumbers.forEach((stepnumber) => {
+        const sortedNumbers =
+          direction < 0
+            ? [...zone.sequence.selectedStepNumbers].sort()
+            : [...zone.sequence.selectedStepNumbers].sort().reverse();
+        sortedNumbers.forEach((stepnumber) => {
           if (zone.sequence.isStepUsed(stepnumber)) {
             let newPos = (stepnumber + direction) % zone.sequence.length;
             if (newPos < 0) {
