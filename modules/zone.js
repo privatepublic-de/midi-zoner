@@ -1164,6 +1164,14 @@ class Sequence {
     return this.selectedStepNumbers.size > 0;
   }
 
+  isStepEmpty(index) {
+    return this.steps[index] == null || this.steps[index].length === 0;
+  }
+
+  isStepUsed(index) {
+    return !this.isStepEmpty(index);
+  }
+
   /**
    * @returns {SeqLayer}
    */

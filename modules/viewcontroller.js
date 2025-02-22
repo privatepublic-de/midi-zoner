@@ -727,24 +727,26 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       }
     },
     seq_step_move: () => {
-      if (zone.sequence.selectedStep) {
+      if (zone.sequence.hasSelection) {
         const direction = parseInt(params[2]);
-        let newPos =
-          (zone.sequence.selectedStepNumber + direction) % zone.sequence.length;
-        if (newPos < 0) {
-          newPos = zone.sequence.length - 1;
-        }
-        if (
-          !zone.sequence.steps[newPos] ||
-          zone.sequence.steps[newPos].length == 0
-        ) {
-          zone.sequence.steps[newPos] =
-            zone.sequence.steps[zone.sequence.selectedStepNumber];
-          zone.sequence.steps[zone.sequence.selectedStepNumber] = null;
-          zone.sequence.selectedStepNumber = newPos;
-          // zone.sequence.isHotRecordingNotes = false;
-          updateValuesForZone(zoneindex);
-        }
+        const newSelection = new Set();
+        zone.sequence.selectedStepNumbers.forEach((stepnumber) => {
+          if (zone.sequence.isStepUsed(stepnumber)) {
+            let newPos = (stepnumber + direction) % zone.sequence.length;
+            if (newPos < 0) {
+              newPos = zone.sequence.length - 1;
+            }
+            if (zone.sequence.isStepEmpty(newPos)) {
+              zone.sequence.steps[newPos] = zone.sequence.steps[stepnumber];
+              zone.sequence.steps[stepnumber] = null;
+              newSelection.add(newPos);
+            } else {
+              newSelection.add(stepnumber);
+            }
+          }
+        });
+        zone.sequence.selectedStepNumbers = newSelection;
+        updateValuesForZone(zoneindex);
       }
     },
     seq_move: () => {
@@ -1073,6 +1075,14 @@ function appendZone(/** @type {Zone} */ zone, index) {
   });
   // drag select multiple steps
   let isDragSelect = false;
+  function updateDragSelectStyle() {
+    const grid = DOM.element(`#zone${index} .seq .step-container`);
+    if (isDragSelect) {
+      grid.classList.add('dragselect');
+    } else {
+      grid.classList.remove('dragselect');
+    }
+  }
   DOM.on(`#zone${index} .step-info`, 'mouseup', (ev) => {
     ev.stopPropagation();
   });
@@ -1083,9 +1093,11 @@ function appendZone(/** @type {Zone} */ zone, index) {
       updateValuesForZone(index);
     }
     isDragSelect = false;
+    updateDragSelectStyle();
   });
   DOM.on(`#zone${index} .seq`, 'mouseleave', () => {
     isDragSelect = false;
+    updateDragSelectStyle();
   });
   DOM.all(`#zone${index} *[data-dragselect]`).forEach((e) => {
     const stepnumber = parseInt(e.dataset.dragselect);
@@ -1097,14 +1109,19 @@ function appendZone(/** @type {Zone} */ zone, index) {
       } else {
         isDragSelect = true;
         zone.sequence.clearSelection();
-        zone.sequence.selectedStepNumber = stepnumber;
+        if (zone.sequence.isStepUsed(stepnumber)) {
+          zone.sequence.selectedStepNumber = stepnumber;
+        }
       }
+      updateDragSelectStyle();
       updateValuesForZone(index);
     });
     e.addEventListener('mouseenter', (ev) => {
       if (isDragSelect) {
-        zone.sequence.selectedStepNumbers.add(stepnumber);
-        updateValuesForZone(index);
+        if (zone.sequence.isStepUsed(stepnumber)) {
+          zone.sequence.selectedStepNumbers.add(stepnumber);
+          updateValuesForZone(index);
+        }
       }
     });
   });

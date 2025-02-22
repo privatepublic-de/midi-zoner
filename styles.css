@@ -1523,6 +1523,10 @@ input.cclabel {
   /* overflow: hidden; */
 }
 
+.seq .grid .dragselect .step {
+  cursor: cell;
+}
+
 .seq .grid .step .activeothers {
   position: absolute;
   bottom: -2px;
