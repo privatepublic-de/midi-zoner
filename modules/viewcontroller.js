@@ -1433,9 +1433,9 @@ function updateValuesForZone(index) {
         if (i < zone.sequence.length) {
           DOM.removeClass(e, 'unused');
           if (zone.sequence.selectedStepNumbers.has(i)) {
-            DOM.addClass(e, 'multiselection');
+            DOM.addClass(e, 'selected');
           } else {
-            DOM.removeClass(e, 'multiselection');
+            DOM.removeClass(e, 'selected');
           }
           if (
             (zone.sequence.steps[i] && zone.sequence.steps[i].length > 0) ||

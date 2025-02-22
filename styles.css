@@ -40,7 +40,7 @@
 
   --red-highlight: rgba(196, 0, 0, 0.4);
   --white-highlight: #ccc;
-  --multiselect-highlight: #704949;
+  --multiselect-highlight: #f00;
   --record-highlight: rgba(255, 0, 0, 0.8);
   --green-highlight: rgba(0, 196, 0, 1);
 }
@@ -1513,8 +1513,9 @@ input.cclabel {
   color: var(--brighter-4);
 }
 
-.seq .grid .step.multiselection {
-  background-color: var(--multiselect-highlight) !important;
+.seq .grid .step.selected {
+  box-shadow: 0 0 8px var(--brighter-4);
+  outline: 4px solid var(--multiselect-highlight);
 }
 
 .seq .grid .step {
@@ -1554,16 +1555,6 @@ input.cclabel {
     background-color: var(--record-highlight);
     color: #fff;
   }
-}
-
-.seq .grid .step.selected-step {
-  background-color: var(--brighter-2);
-  color: var(--brighter-4);
-  box-shadow: 0 0 10px var(--brighter-4);
-}
-
-.seq.hot .step.selected-step {
-  background-color: var(--record-highlight) !important;
 }
 
 .seq .grid .step:nth-child(4n + 1) {
