@@ -92,6 +92,7 @@ for (let kn = 0; kn < 128; kn++) {
 
 class Zone {
   static solocount = 0;
+  /** @type {Map} */
   static seqClipboardStep = null;
   static seqClipboardSequence = null;
   static updateZoneViewEventName = 'update-zone-view';
@@ -1064,6 +1065,10 @@ class Sequence {
   liveTargetLength = 0;
   liveTargetStepNumber = -1;
   tickn = 0;
+
+  static cloneStep(step) {
+    return SeqStep.from(step);
+  }
 
   constructor(zone) {
     this.zone = zone;

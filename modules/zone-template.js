@@ -80,7 +80,7 @@ module.exports = {
 
     let sequencerGrid = '';
     for (let i = 0; i < Zone.Sequence.MAX_STEPS; i++) {
-      sequencerGrid += `<div class="step" data-dragselect="${i}" data-contextmenu="${index}:seq_copy_step:${i},${index}:seq_paste_step:${i},${index}:seq_paste_steps:${i},-,${index}:seq_clear_step:${i},${index}:seq_clear_all">${
+      sequencerGrid += `<div class="step" data-dragselect="${i}" data-contextmenu="${index}:seq_copy_step:${i},${index}:seq_paste_step:${i},-,${index}:seq_clear_step:${i},${index}:seq_clear_all">${
         i + 1
       }<div class="activeothers"></div></div>`;
     }

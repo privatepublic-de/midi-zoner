@@ -8,10 +8,8 @@ const { Sequence } = require('./zone');
 const { ipcRenderer } = require('electron');
 
 const contextMenuActionLabel = {
-  seq_copy_step: '<i class="material-icons">content_copy</i> Copy step',
-  seq_paste_step: '<i class="material-icons">content_paste</i> Paste step',
-  seq_paste_steps:
-    '<i class="material-icons">content_paste_go</i> Paste sequence from here',
+  seq_copy_step: '<i class="material-icons">content_copy</i> Copy step(s)',
+  seq_paste_step: '<i class="material-icons">content_paste</i> Paste step(s)',
   seq_clear_step: '<i class="material-icons">clear</i> Clear step',
   seq_clear_all:
     '<i class="material-icons">playlist_remove</i> Clear complete sequence',
@@ -711,16 +709,34 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
     },
     seq_copy_step: () => {
       if (params[2] != 'undefined') {
-        Zone.seqClipboardStep = JSON.stringify(
-          zone.sequence.steps[parseInt(params[2])]
-        );
+        const selStepIndex = parseInt(params[2]);
+        const stepsMap = new Map();
+        if (
+          zone.sequence.hasSelection &&
+          zone.sequence.selectedStepNumbers.has(selStepIndex)
+        ) {
+          // selected note is inside step selection
+          const sortedIndexes = [...zone.sequence.selectedStepNumbers].sort();
+          const offset = sortedIndexes[0];
+          sortedIndexes.forEach((stepindex) => {
+            stepsMap.set(stepindex - offset, zone.sequence.steps[stepindex]);
+          });
+        } else {
+          // copy single selected step
+          stepsMap.set(0, zone.sequence.steps[selStepIndex]);
+        }
+        Zone.seqClipboardStep = stepsMap;
       }
     },
     seq_paste_step: () => {
       if (params[2] != 'undefined' && Zone.seqClipboardStep) {
-        zone.sequence.steps[parseInt(params[2])] = JSON.parse(
-          Zone.seqClipboardStep
-        );
+        const targetStep = parseInt(params[2]);
+        const targetSteps = zone.sequence.steps;
+        Zone.seqClipboardStep.keys().forEach((stepindex) => {
+          targetSteps[targetStep + stepindex] = Sequence.cloneStep(
+            Zone.seqClipboardStep.get(stepindex)
+          );
+        });
         updateValuesForZone(zoneindex);
       } else {
         toast('Nothing to paste, clipboard is empty.');
@@ -812,22 +828,6 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
     seq_copy_to_layer_3: () => {
       actions.seq_copy_to_layer_0();
     },
-    seq_paste_steps: () => {
-      if (Zone.seqClipboardSequence) {
-        const startIndex = parseInt(params[2]);
-        const seqData = JSON.parse(Zone.seqClipboardSequence);
-        for (let i = 0; i < seqData.length; i++) {
-          zone.sequence.steps[startIndex + i] = seqData.steps[i];
-        }
-        if (zone.sequence.length < startIndex + seqData.length) {
-          zone.sequence.length = startIndex + seqData.length;
-        }
-        updateValuesForZone(zoneindex);
-        toast(`Sequence from clipboard pasted from step ${startIndex + 1}`);
-      } else {
-        toast('Clipboard is empty, nothing to paste');
-      }
-    },
     seq_step_condition: () => {
       zone.sequence.selectedStepNumbers.forEach((n) => {
         if (zone.sequence.steps[n])
@@ -886,7 +886,6 @@ function contextHandler(/** @type {MouseEvent} */ ev) {
         return zone.sequence.steps[parseInt(parts[2])] != null;
       case 'seq_paste_step':
         return Zone.seqClipboardStep != null;
-      case 'seq_paste_steps':
       case 'seq_paste':
         return Zone.seqClipboardSequence != null;
       case 'seq_copy_to_layer_0':
