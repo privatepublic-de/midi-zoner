@@ -8,8 +8,8 @@ const { Sequence } = require('./zone');
 const { ipcRenderer } = require('electron');
 
 const contextMenuActionLabel = {
-  seq_copy_step: '<i class="material-icons">content_copy</i> Copy step(s)',
-  seq_paste_step: '<i class="material-icons">content_paste</i> Paste step(s)',
+  seq_copy_step: '<i class="material-icons">content_copy</i> Copy ',
+  seq_paste_step: '<i class="material-icons">content_paste</i> Paste steps',
   seq_clear_step: '<i class="material-icons">clear</i> Clear step',
   seq_clear_all:
     '<i class="material-icons">playlist_remove</i> Clear complete sequence',
@@ -637,9 +637,16 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
     seq_clear_step: () => {
       // clear right clicked step
       if (params[2] != 'undefined') {
-        zone.sequence.steps[parseInt(params[2])] = null;
+        const stepno = parseInt(params[2]);
+        if (zone.sequence.selectedStepNumbers.has(stepno)) {
+          zone.sequence.selectedStepNumbers.forEach((n) => {
+            zone.sequence.steps[n] = null;
+          });
+        } else {
+          zone.sequence.steps[stepno] = null;
+        }
+        zone.sequence.clearSelection();
         updateValuesForZone(zoneindex);
-        toast('Step cleared');
       }
     },
     seq_clear_selected_step: () => {
@@ -649,7 +656,6 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
           zone.sequence.steps[n] = null;
         });
         updateValuesForZone(zoneindex);
-        toast(`${stepcount} step${stepcount > 1 ? 's' : ''} cleared`);
       }
     },
     seq_step_probability: () => {
@@ -722,21 +728,24 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
           const offset = sortedIndexes[0];
           console.log(offset, sortedIndexes);
           sortedIndexes.forEach((stepindex) => {
-            console.log(stepindex, stepindex - offset);
-            stepsMap.set(stepindex - offset, zone.sequence.steps[stepindex]);
+            if (zone.sequence.isStepUsed(stepindex)) {
+              stepsMap.set(stepindex - offset, zone.sequence.steps[stepindex]);
+            }
           });
         } else {
           // copy single selected step
-          stepsMap.set(0, zone.sequence.steps[selStepIndex]);
+          if (zone.sequence.isStepUsed(selStepIndex)) {
+            stepsMap.set(0, zone.sequence.steps[selStepIndex]);
+          }
         }
         Zone.seqClipboardStep = stepsMap;
       }
     },
     seq_paste_step: () => {
       if (params[2] != 'undefined' && Zone.seqClipboardStep) {
+        zone.sequence.clearSelection();
         const targetStep = parseInt(params[2]);
         const targetSteps = zone.sequence.steps;
-        console.log(targetStep, Zone.seqClipboardStep.keys());
         Zone.seqClipboardStep.keys().forEach((stepindex) => {
           targetSteps[(targetStep + stepindex) % zone.sequence.length] =
             Sequence.cloneStep(Zone.seqClipboardStep.get(stepindex));
@@ -883,6 +892,7 @@ function contextHandler(/** @type {MouseEvent} */ ev) {
   const contextMenuElement = DOM.element('#contextmenu');
 
   DOM.empty(contextMenuElement);
+
   function isEnabled(parts) {
     const zoneindex = parseInt(parts[0]);
     /** @type {Zone} */
@@ -905,12 +915,30 @@ function contextHandler(/** @type {MouseEvent} */ ev) {
     }
     return true;
   }
+  function labelString(parts) {
+    const zoneindex = parseInt(parts[0]);
+    /** @type {Zone} */
+    const zone = zones.list[zoneindex];
+    if (parts[1] == 'seq_copy_step') {
+      let subs;
+      if (
+        zone.sequence.selectedStepNumbers.has(parseInt(parts[2])) &&
+        zone.sequence.selectedStepNumbers.size > 1
+      ) {
+        subs = ' ' + zone.sequence.selectedStepNumbers.size + ' steps';
+      } else {
+        subs = ' step';
+      }
+      return contextMenuActionLabel[parts[1]] + subs;
+    }
+    return contextMenuActionLabel[parts[1]];
+  }
   menuActions.forEach((act) => {
     if (act == '-') {
       DOM.addHTML(contextMenuElement, 'beforeend', `<hr/>`);
     } else {
       const parts = act.split(':');
-      const name = contextMenuActionLabel[parts[1]];
+      const name = labelString(parts); //contextMenuActionLabel[parts[1]];
       const styleClass = isEnabled(parts) ? '' : 'disabled';
       DOM.addHTML(
         contextMenuElement,
@@ -928,11 +956,8 @@ function contextHandler(/** @type {MouseEvent} */ ev) {
   const srcRect = element.getBoundingClientRect();
   const menuRect = contextMenuElement.getBoundingClientRect();
 
-  let top = ev.clientY; // srcRect.top + srcRect.height;
-  let left = ev.clientX; //srcRect.left - 3;
-  // if (srcRect.width > menuRect.width) {
-  //  left = srcRect.left + srcRect.width / 2 - menuRect.width / 2;
-  // }
+  let top = ev.clientY;
+  let left = ev.clientX;
   if (left + menuRect.width > window.innerWidth) {
     left = window.innerWidth - menuRect.width;
   }
@@ -1117,8 +1142,10 @@ function appendZone(/** @type {Zone} */ zone, index) {
         zone.sequence.clearSelection();
       } else {
         isDragSelect = true;
-        zone.sequence.clearSelection();
-        if (zone.sequence.isStepUsed(stepnumber)) {
+        if (zone.sequence.hasSelection && ev.shiftKey) {
+          zone.sequence.selectedStepNumbers.add(stepnumber);
+        } else {
+          zone.sequence.clearSelection();
           zone.sequence.selectedStepNumber = stepnumber;
         }
       }
@@ -1497,7 +1524,7 @@ function updateValuesForZone(index) {
               : -1;
           DOM.all(`#zone${index} .seq .grid .step`).forEach((e, i) => {
             if (
-              (i >= selectedIndex && i < selectedIndex + length) ||
+              (i > selectedIndex && i < selectedIndex + length) ||
               i < overlapLength
             ) {
               DOM.addClass(e, 'activelength');

@@ -1249,8 +1249,8 @@ class Sequence {
       this.selectedStep.notesArray.sort((a, b) => a.number - b.number);
       if (this.stepAdvance) {
         this.selectedStepNumber = (this.selectedStepNumber + 1) % this.length;
-        this.updateZoneView();
       }
+      this.updateZoneView();
       this.updateRecordingState();
     }
   }
@@ -1299,7 +1299,7 @@ class Sequence {
               '...';
             this.zone.sequencerElement.querySelector(
               '.step-notes'
-            ).innerHTML = `<i>${this.selectedStepNumbers.size} selected steps</i>`;
+            ).innerHTML = `<i>${this.selectedStepNumbers.size} steps selected</i>`;
           }
         }
       }).bind(this)

@@ -1490,9 +1490,9 @@ input.cclabel {
   background-color: var(--zone-color);
 }
 
-.seq .grid .step:hover {
-  background-color: var(--brighter-2) !important;
-}
+/* .seq .grid .step:hover {
+  background-color: var(--brighter-0) !important;
+} */
 
 .seq .grid .step.playhead {
   outline: 2px solid var(--brighter-4);
