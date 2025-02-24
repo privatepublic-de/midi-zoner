@@ -1529,7 +1529,7 @@ input.cclabel {
 }
 
 .seq .grid .step.activelength {
-  border-bottom: 2px solid var(--multiselect-highlight);
+  background-color: var(--multiselect-highlight);
 }
 
 .seq_record_live.selected {
