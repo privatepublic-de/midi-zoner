@@ -716,9 +716,13 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
           zone.sequence.selectedStepNumbers.has(selStepIndex)
         ) {
           // selected note is inside step selection
-          const sortedIndexes = [...zone.sequence.selectedStepNumbers].sort();
+          const sortedIndexes = [...zone.sequence.selectedStepNumbers].sort(
+            (a, b) => a - b
+          );
           const offset = sortedIndexes[0];
+          console.log(offset, sortedIndexes);
           sortedIndexes.forEach((stepindex) => {
+            console.log(stepindex, stepindex - offset);
             stepsMap.set(stepindex - offset, zone.sequence.steps[stepindex]);
           });
         } else {
@@ -732,10 +736,10 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       if (params[2] != 'undefined' && Zone.seqClipboardStep) {
         const targetStep = parseInt(params[2]);
         const targetSteps = zone.sequence.steps;
+        console.log(targetStep, Zone.seqClipboardStep.keys());
         Zone.seqClipboardStep.keys().forEach((stepindex) => {
-          targetSteps[targetStep + stepindex] = Sequence.cloneStep(
-            Zone.seqClipboardStep.get(stepindex)
-          );
+          targetSteps[(targetStep + stepindex) % zone.sequence.length] =
+            Sequence.cloneStep(Zone.seqClipboardStep.get(stepindex));
         });
         updateValuesForZone(zoneindex);
       } else {
@@ -748,8 +752,10 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
         const newSelection = new Set();
         const sortedNumbers =
           direction < 0
-            ? [...zone.sequence.selectedStepNumbers].sort()
-            : [...zone.sequence.selectedStepNumbers].sort().reverse();
+            ? [...zone.sequence.selectedStepNumbers].sort((a, b) => a - b)
+            : [...zone.sequence.selectedStepNumbers]
+                .sort((a, b) => a - b)
+                .reverse();
         sortedNumbers.forEach((stepnumber) => {
           if (zone.sequence.isStepUsed(stepnumber)) {
             let newPos = (stepnumber + direction) % zone.sequence.length;
