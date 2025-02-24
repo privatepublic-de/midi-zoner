@@ -1438,6 +1438,10 @@ function updateValuesForZone(index) {
         `#zone${index} .seq .grid .step.selected-step`,
         'selected-step'
       );
+      DOM.removeClass(
+        `#zone${index} .seq .grid .step.activelength`,
+        'activelength'
+      );
       DOM.all(`#zone${index} .seq .grid .step`).forEach((e, i) => {
         if (i < zone.sequence.length) {
           DOM.removeClass(e, 'unused');
@@ -1457,8 +1461,6 @@ function updateValuesForZone(index) {
         } else {
           DOM.addClass(e, 'unused');
         }
-        e.querySelector('.activeothers').style.height =
-          zone.sequence.numberOfStepsStillActive(i) * 2 + 'px';
       });
       if (zone.sequence.isLiveRecoding) {
         DOM.addClass(`#zone${index} .seq_record_live`, 'selected');
@@ -1470,16 +1472,12 @@ function updateValuesForZone(index) {
         if (zone.sequence.selectedStepNumbers.size > 1) {
           DOM.addClass(`#zone${index} .seq`, 'multi-selection');
         }
-        // DOM.all(`#zone${index} .seq .grid .step`)[
-        //   zone.sequence.selectedStepNumber
-        // ].classList.add('selected-step');
         if (zone.sequence.stepAddNotes) {
           DOM.addClass(`#zone${index} .seq-step-add-notes`, 'selected');
         }
         if (zone.sequence.stepAdvance) {
           DOM.addClass(`#zone${index} .seq-step-advance`, 'selected');
         }
-
         let step = zone.sequence.selectedStep;
         if (step && step.length > 0) {
           let pcnt = parseInt(step.probability * 100);
@@ -1490,6 +1488,21 @@ function updateValuesForZone(index) {
             zone.sequence.steps[zone.sequence.selectedStepNumber].condition;
           DOM.element(`#zone${index} .seq_step_length`).value =
             zone.sequence.steps[zone.sequence.selectedStepNumber].length;
+          // mark selected step length
+          const selectedIndex = zone.sequence.selectedStepNumber;
+          const length = step.length;
+          const overlapLength =
+            selectedIndex + length > zone.sequence.length
+              ? (selectedIndex + length) % zone.sequence.length
+              : -1;
+          DOM.all(`#zone${index} .seq .grid .step`).forEach((e, i) => {
+            if (
+              (i >= selectedIndex && i < selectedIndex + length) ||
+              i < overlapLength
+            ) {
+              DOM.addClass(e, 'activelength');
+            }
+          });
         } else {
           if (zone.sequence.selectedStepNumbers.size == 1) {
             DOM.element(`#zone${index} .seq_step_length`).value = 1;

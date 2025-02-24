@@ -1456,22 +1456,6 @@ class Sequence {
     return this.cycleCount % condition[0] === condition[1] - 1;
   }
 
-  numberOfStepsStillActive(position) {
-    let count = 0;
-    this.steps.forEach((step, i) => {
-      if (step && step.length > 0) {
-        const start = i + 1;
-        const end = i + step.length;
-        const modlen = end % this.length;
-        const hasOverlap = modlen !== end && position < modlen;
-        if ((position >= start && position < end) || hasOverlap) {
-          count++;
-        }
-      }
-    });
-    return count;
-  }
-
   velocityMediumSelectedStep() {
     if (
       this.selectedStepNumber > -1 &&

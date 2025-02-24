@@ -1528,13 +1528,8 @@ input.cclabel {
   cursor: cell;
 }
 
-.seq .grid .step .activeothers {
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  right: 0;
-  height: 0;
-  background-color: var(--brighter-2);
+.seq .grid .step.activelength {
+  border-bottom: 2px solid var(--multiselect-highlight);
 }
 
 .seq_record_live.selected {
