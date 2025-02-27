@@ -3,7 +3,7 @@ module.exports = {
    * Returns first matching element for selector string or selector itself if it's no string.
    * @param {*} selector
    */
-  element: function (selector) {
+  get: function (selector) {
     if (typeof selector === 'string') {
       return document.querySelector(selector);
     } else {
@@ -117,27 +117,40 @@ module.exports = {
   /**
    * Adds style class to all matching elements.
    * @param {*} selector
-   * @param {string} className
+   * @param {string} classNames
    */
-  addClass: function (selector, className) {
+  addClass: function (selector, ...classNames) {
     DOM.all(selector, function (el) {
-      el.classList.add(className);
+      el.classList.add(...classNames);
     });
   },
   /**
    * Removes style class from all matching elements.
    * @param {*} selector
-   * @param {string} className
+   * @param {string} classNames
    */
-  removeClass: function (selector, className) {
-    if (className) {
+  removeClass: function (selector, ...classNames) {
+    if (classNames.length > 0) {
       DOM.all(selector, function (el) {
-        el.classList.remove(className);
+        el.classList.remove(...classNames);
       });
     } else {
       DOM.all(selector, function (el) {
         el.className = '';
       });
+    }
+  },
+  /**
+   * Switches style classes on (enabled) or off for all matching elements.
+   * @param {*} selector
+   * @param {boolean} enabled
+   * @param {string} classNames
+   */
+  switchClass: function (selector, enabled, ...classNames) {
+    if (enabled) {
+      DOM.addClass(selector, ...classNames);
+    } else {
+      DOM.removeClass(selector, ...classNames);
     }
   },
   /**
@@ -147,7 +160,7 @@ module.exports = {
    * @param {string} html
    */
   addHTML: function (selector, position, html) {
-    let element = DOM.element(selector);
+    let element = DOM.get(selector);
     element.insertAdjacentHTML(position, html);
     return element;
   },

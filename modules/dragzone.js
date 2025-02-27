@@ -14,12 +14,12 @@ module.exports = class DragZone {
 
   constructor(index, startMouseEvent, finishedCallback) {
     this.finishedCallback = finishedCallback;
-    this.zoneElement = DOM.element(`#zone${index}`);
+    this.zoneElement = DOM.get(`#zone${index}`);
     this.index = index;
     this.startY = 0;
     this.startX = 0;
     const offsets = DOM.clientOffsets(this.zoneElement);
-    const containerOffsets = DOM.clientOffsets(DOM.element('#zones'));
+    const containerOffsets = DOM.clientOffsets(DOM.get('#zones'));
     this.srcdim = {
       top: offsets.offsetTop,
       left: offsets.offsetLeft,
@@ -60,8 +60,7 @@ module.exports = class DragZone {
     let targetIndex = this.findDropElement(ev.pageX, ev.pageY);
     document.body.removeEventListener('mousemove', this.moveHandler, true);
     document.body.removeEventListener('mouseup', this.dropHandler, true);
-    DOM.removeClass('#zones', 'dragging');
-    DOM.removeClass('#zones', 'droptarget');
+    DOM.removeClass('#zones', 'dragging', 'droptarget');
     DOM.removeClass(document.body, 'zonedrag');
     this.zoneElement.style.display = 'block';
     if (this.hasmoved && targetIndex > -1) {
@@ -82,7 +81,7 @@ module.exports = class DragZone {
       if (i === this.index) {
         continue;
       }
-      const z = DOM.element(`#zone${i}`);
+      const z = DOM.get(`#zone${i}`);
       const offs = DOM.clientOffsets(z);
       if (
         pageX < offs.offsetLeft + offs.offsetWidth + scrollX &&

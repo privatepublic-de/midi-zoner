@@ -43,15 +43,15 @@ let toastElement;
  * @param {MIDI} references.midi - MIDI controller
  */
 function initController({ saveData, data, midi }) {
-  toastElement = DOM.element('#toast');
+  toastElement = DOM.get('#toast');
   triggerSave = saveData;
   zones = data;
   midiController = midi;
-  elAllMuteOff = DOM.element('#allMuteOff');
+  elAllMuteOff = DOM.get('#allMuteOff');
   elAllMuteOff.addEventListener('click', allMuteOff);
-  elAllSoloOff = DOM.element('#allSoloOff');
+  elAllSoloOff = DOM.get('#allSoloOff');
   elAllSoloOff.addEventListener('click', allSoloOff);
-  elAllHoldOff = DOM.element('#allHoldOff');
+  elAllHoldOff = DOM.get('#allHoldOff');
   elAllHoldOff.addEventListener('click', allHoldOff);
   window.addEventListener(Zone.updateZoneViewEventName, (ev) => {
     if (ev.detail != null) {
@@ -175,7 +175,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       updateValuesForZone(zoneindex);
     },
     toggle_filters: () => {
-      const settings = DOM.element(`#zone${zoneindex} .popupsettings`);
+      const settings = DOM.get(`#zone${zoneindex} .popupsettings`);
       if (settings.style.display == 'flex') {
         settings.style.display = 'none';
       } else {
@@ -292,7 +292,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       updateValuesForZone(zoneindex);
     },
     showeuclid: () => {
-      const dialog = DOM.element(`#zone${zoneindex} .euclid`);
+      const dialog = DOM.get(`#zone${zoneindex} .euclid`);
       if (dialog.style.display == 'block') {
         DOM.hide(dialog);
       } else {
@@ -300,8 +300,8 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       }
     },
     euclid: () => {
-      let hits = parseInt(DOM.element(`#euchits${zoneindex}`).value);
-      let len = parseInt(DOM.element(`#euclen${zoneindex}`).value);
+      let hits = parseInt(DOM.get(`#euchits${zoneindex}`).value);
+      let len = parseInt(DOM.get(`#euclen${zoneindex}`).value);
       if (!isNaN(hits) && !isNaN(len)) {
         hits = Math.min(32, Math.max(1, hits));
         len = Math.min(32, Math.max(2, len));
@@ -889,7 +889,7 @@ function contextHandler(/** @type {MouseEvent} */ ev) {
   const element = ev.currentTarget;
   const menuSpecification = element.getAttribute('data-contextmenu');
   const menuActions = menuSpecification.split(',');
-  const contextMenuElement = DOM.element('#contextmenu');
+  const contextMenuElement = DOM.get('#contextmenu');
 
   DOM.empty(contextMenuElement);
 
@@ -1068,28 +1068,28 @@ function renderLastZone() {
 
 function appendZone(/** @type {Zone} */ zone, index) {
   DOM.addHTML('#zones', 'beforeend', zoneTemplate.getHTML(zone, index));
-  zone.canvasElement = DOM.element(`#canvas${index}`);
-  zone.patternCanvas = DOM.element(`#canvasPattern${index}`);
-  zone.sequencerElement = DOM.element(`#zone${index} .seq`);
-  zone.sequencerGridElement = DOM.element(`#zone${index} .seq .grid`);
-  zone.sequencerProgressElement = DOM.element(`#zone${index} .seqprogress`);
+  zone.canvasElement = DOM.get(`#canvas${index}`);
+  zone.patternCanvas = DOM.get(`#canvasPattern${index}`);
+  zone.sequencerElement = DOM.get(`#zone${index} .seq`);
+  zone.sequencerGridElement = DOM.get(`#zone${index} .seq .grid`);
+  zone.sequencerProgressElement = DOM.get(`#zone${index} .seqprogress`);
   zone.sequencerGridStepElements = DOM.all(`#zone${index} .seq .grid .step`);
-  zone.dom.markerlow = DOM.element(`#zone${index} .marker.low`);
-  zone.dom.markerhigh = DOM.element(`#zone${index} .marker.high`);
-  zone.dom.join = DOM.element(`#zone${index} .join`);
-  zone.dom.current = DOM.element(`#zone${index} .current`);
+  zone.dom.markerlow = DOM.get(`#zone${index} .marker.low`);
+  zone.dom.markerhigh = DOM.get(`#zone${index} .marker.high`);
+  zone.dom.join = DOM.get(`#zone${index} .join`);
+  zone.dom.current = DOM.get(`#zone${index} .current`);
   renderMarkersForZone(index);
   renderControllersForZone(zone, index);
   initOutputPortsForZone(index);
   updateValuesForZone(index);
   zone.renderPattern();
-  const dragHandler = DOM.element(`#zone${index} .dragzone`);
+  const dragHandler = DOM.get(`#zone${index} .dragzone`);
   dragHandler.addEventListener('mousedown', (ev) => {
     if (zones.list.length > 1) {
       new DragZone(index, ev, () => {
         triggerSave();
         renderZones();
-        DOM.element(`#zone${index}`).scrollIntoView({ behavior: 'instant' });
+        DOM.get(`#zone${index}`).scrollIntoView({ behavior: 'instant' });
       });
     }
   });
@@ -1110,7 +1110,7 @@ function appendZone(/** @type {Zone} */ zone, index) {
   // drag select multiple steps
   let isDragSelect = false;
   function updateDragSelectStyle() {
-    const grid = DOM.element(`#zone${index} .seq .step-container`);
+    const grid = DOM.get(`#zone${index} .seq .step-container`);
     if (isDragSelect) {
       grid.classList.add('dragselect');
     } else {
@@ -1118,6 +1118,9 @@ function appendZone(/** @type {Zone} */ zone, index) {
     }
   }
   DOM.on(`#zone${index} .step-info`, 'mouseup', (ev) => {
+    ev.stopPropagation();
+  });
+  DOM.on(`#zone${index} .seq_transpose`, 'mouseup', (ev) => {
     ev.stopPropagation();
   });
   DOM.on(`#zone${index} .seq`, 'mouseup', (ev) => {
@@ -1162,7 +1165,7 @@ function appendZone(/** @type {Zone} */ zone, index) {
     });
   });
   // drag velocity value
-  const followValueDiv = DOM.element('#valuefollow');
+  const followValueDiv = DOM.get('#valuefollow');
   DOM.all(`#zone${index} *[data-dragvalue]`).forEach((e) => {
     let dragstartx = 0;
     let dragvalue = 0;
@@ -1263,7 +1266,7 @@ function renderMarkersForZone(index, tempLo, tempHigh) {
   const xhi = high / 127.0;
   const xclow = zone.low / 127.0;
   const xchi = zone.high / 127.0;
-  const width = DOM.element(`#zone${index} .range`).offsetWidth;
+  const width = DOM.get(`#zone${index} .range`).offsetWidth;
   const xpad = (0.75 / 127.0) * width;
   zone.dom.markerlow.style.left = `${xlow * width}px`;
   zone.dom.markerhigh.style.right = `${width - xhi * width - xpad}px`;
@@ -1281,16 +1284,8 @@ function renderMarkersForZone(index, tempLo, tempHigh) {
     e.style.left = `${((ocount * 12.0) / 127.0) * width}px`;
     e.innerHTML = ocount - 1;
   });
-  if (tempLo != undefined) {
-    DOM.addClass(zone.dom.markerlow, 'hover');
-  } else {
-    DOM.removeClass(zone.dom.markerlow, 'hover');
-  }
-  if (tempHigh != undefined) {
-    DOM.addClass(zone.dom.markerhigh, 'hover');
-  } else {
-    DOM.removeClass(zone.dom.markerhigh, 'hover');
-  }
+  DOM.switchClass(zone.dom.markerlow, tempLo != undefined, 'hover');
+  DOM.switchClass(zone.dom.markerhigh, tempHigh != undefined, 'hover');
 }
 
 function renderControllersForZone(/** @type {Zone} */ zone, index) {
@@ -1413,60 +1408,39 @@ function updateGeneralButtons() {
     muted += zones.list[i].enabled ? 0 : 1;
     held += zones.list[i].arp_hold ? 1 : 0;
   }
-  if (muted > 0) {
-    DOM.addClass(elAllMuteOff, 'active');
-  } else {
-    DOM.removeClass(elAllMuteOff, 'active');
-  }
-  if (Zone.solocount > 0) {
-    DOM.addClass(elAllSoloOff, 'active');
-  } else {
-    DOM.removeClass(elAllSoloOff, 'active');
-  }
-  if (held > 0) {
-    DOM.addClass(elAllHoldOff, 'active');
-  } else {
-    DOM.removeClass(elAllHoldOff, 'active');
-  }
+  DOM.switchClass(elAllMuteOff, muted > 0, 'active');
+  DOM.switchClass(elAllSoloOff, Zone.solocount > 0, 'active');
+  DOM.switchClass(elAllHoldOff, held > 0, 'active');
 }
 
 function updateValuesForZone(index) {
   /** @type {Zone} */
   const zone = zones.list[index];
-  const zoneElement = DOM.element(`#zone${index}`);
+  const zoneElement = DOM.get(`#zone${index}`);
   function setPercent(className, pcnt) {
-    DOM.element(`#zone${index} .percent.${className}`).value = pcnt;
-    DOM.element(`#zone${index} output[for="${className}${index}"]`).value =
+    DOM.get(`#zone${index} .percent.${className}`).value = pcnt;
+    DOM.get(`#zone${index} output[for="${className}${index}"]`).value =
       pcnt + '%';
   }
   if (zoneElement) {
     zoneElement.dataset['colorindex'] = zone.colorIndex;
     DOM.removeClass(`#zone${index} *[data-action]`, 'selected');
-    if (Zone.solocount > 0 && !zone.solo) {
-      DOM.addClass(`#zone${index}`, 'soloed-out');
-    } else {
-      DOM.removeClass(`#zone${index}`, 'soloed-out');
-    }
+    DOM.switchClass(
+      `#zone${index}`,
+      Zone.solocount > 0 && !zone.solo,
+      'soloed-out'
+    );
+    DOM.switchClass(`#zone${index}`, !zone.enabled, 'disabled');
+
     const zoneIsEnabled = zone.enabled && (Zone.solocount === 0 || zone.solo);
-    if (zoneIsEnabled) {
-      DOM.removeClass(`#zone${index}`, 'disabled');
-    } else {
-      DOM.addClass(`#zone${index}`, 'disabled');
-    }
-    if (zone.show_cc) {
-      DOM.addClass(`#zone${index}`, 'show-cc');
-    } else {
-      DOM.removeClass(`#zone${index}`, 'show-cc');
-    }
+    DOM.switchClass(`#zone${index}`, !zoneIsEnabled, 'disabled');
+    DOM.switchClass(`#zone${index}`, zone.show_cc, 'show-cc');
     if (zone.sequence.active) {
       DOM.addClass(`#zone${index}`, 'show-seq');
       DOM.hide(zone.sequencerProgressElement);
       DOM.removeClass(
-        `#zone${index} .seq .grid .step.selected-step`,
-        'selected-step'
-      );
-      DOM.removeClass(
-        `#zone${index} .seq .grid .step.activelength`,
+        `#zone${index} .seq .grid .step`,
+        'selected-step',
         'activelength'
       );
       DOM.all(`#zone${index} .seq .grid .step`).forEach((e, i) => {
@@ -1489,11 +1463,11 @@ function updateValuesForZone(index) {
           DOM.addClass(e, 'unused');
         }
       });
-      if (zone.sequence.isLiveRecoding) {
-        DOM.addClass(`#zone${index} .seq_record_live`, 'selected');
-      } else {
-        DOM.removeClass(`#zone${index} .seq_record_live`, 'selected');
-      }
+      DOM.switchClass(
+        `#zone${index} .seq_record_live`,
+        zone.sequence.isLiveRecoding,
+        'selected'
+      );
       if (zone.sequence.hasSelection) {
         DOM.addClass(`#zone${index} .seq`, 'has-selection');
         if (zone.sequence.selectedStepNumbers.size > 1) {
@@ -1511,9 +1485,9 @@ function updateValuesForZone(index) {
           setPercent('seq_step_probability', pcnt);
           pcnt = parseInt(step.gateLength * 100);
           setPercent('seq_gatelength', pcnt);
-          DOM.element(`#zone${index} .seq_step_condition`).selectedIndex =
+          DOM.get(`#zone${index} .seq_step_condition`).selectedIndex =
             zone.sequence.steps[zone.sequence.selectedStepNumber].condition;
-          DOM.element(`#zone${index} .seq_step_length`).value =
+          DOM.get(`#zone${index} .seq_step_length`).value =
             zone.sequence.steps[zone.sequence.selectedStepNumber].length;
           // mark selected step length
           const selectedIndex = zone.sequence.selectedStepNumber;
@@ -1532,19 +1506,22 @@ function updateValuesForZone(index) {
           });
         } else {
           if (zone.sequence.selectedStepNumbers.size == 1) {
-            DOM.element(`#zone${index} .seq_step_length`).value = 1;
-            DOM.element(`#zone${index} .seq_step_condition`).selectedIndex = 0;
+            DOM.get(`#zone${index} .seq_step_length`).value = 1;
+            DOM.get(`#zone${index} .seq_step_condition`).selectedIndex = 0;
             setPercent('seq_step_probability', 100);
             setPercent('seq_gatelength', 100);
           }
         }
         zone.sequence.updateRecordingState();
       } else {
-        DOM.removeClass(`#zone${index} .seq`, 'has-selection');
-        DOM.removeClass(`#zone${index} .seq`, 'multi-selection');
+        DOM.removeClass(
+          `#zone${index} .seq`,
+          'has-selection',
+          'multi-selection'
+        );
       }
-      DOM.element(`#zone${index} .seq_steps`).value = zone.sequence.length;
-      DOM.element(`#zone${index} .seq_division`).selectedIndex =
+      DOM.get(`#zone${index} .seq_steps`).value = zone.sequence.length;
+      DOM.get(`#zone${index} .seq_division`).selectedIndex =
         zone.sequence.division;
     } else {
       DOM.removeClass(`#zone${index}`, 'show-seq');
@@ -1575,19 +1552,15 @@ function updateValuesForZone(index) {
       }
     });
     ['channel', 'arp_direction', 'arp_division', 'arp_octaves'].forEach((p) => {
-      DOM.element(`#zone${index} .${p}`).selectedIndex = zone[p];
+      DOM.get(`#zone${index} .${p}`).selectedIndex = zone[p];
     });
     ['arp_gatelength', 'arp_probability'].forEach((p) => {
       const pcnt = parseInt(zone[p] * 100);
-      const elem = DOM.element(`#zone${index} .percent.${p}`);
+      const elem = DOM.get(`#zone${index} .percent.${p}`);
       elem.value = pcnt;
       elem.parentElement.querySelector('output').value = pcnt + '%';
     });
-    if (zone.arp_enabled) {
-      DOM.addClass(`#zone${index}`, 'arp-enabled');
-    } else {
-      DOM.removeClass(`#zone${index}`, 'arp-enabled');
-    }
+    DOM.switchClass(`#zone${index}`, zone.arp_enabled, 'arp-enabled');
     DOM.all(`#zone${index} .octselect`, (e) => {
       const parts = e.getAttribute('data-action').split(':');
       if (parts[2] == zone.octave) {
@@ -1595,18 +1568,18 @@ function updateValuesForZone(index) {
       }
     });
     setPercent('velocity_scaling', parseInt(zone.velocity_scaling * 100));
-    DOM.element(`#euchits${index}`).value = zone.euclid_hits;
-    DOM.element(`#euclen${index}`).value = zone.euclid_length;
-    DOM.element(`#zone${index} input.programnumber`).value = zone.pgm_no
+    DOM.get(`#euchits${index}`).value = zone.euclid_hits;
+    DOM.get(`#euclen${index}`).value = zone.euclid_length;
+    DOM.get(`#zone${index} input.programnumber`).value = zone.pgm_no
       ? zone.pgm_no
       : '';
-    DOM.element(`#fixedvel${index}`).value = zone.fixedvel_value;
-    const nameField = DOM.element(`#zone${index} .output-config-name`);
+    DOM.get(`#fixedvel${index}`).value = zone.fixedvel_value;
+    const nameField = DOM.get(`#zone${index} .output-config-name`);
     if (zones.outputConfigNames[zones.list[index].configId]) {
       nameField.value = zones.outputConfigNames[zones.list[index].configId];
     } else {
       nameField.value = '';
-      nameField.placeholder = DOM.element(
+      nameField.placeholder = DOM.get(
         `#zone${index} select.outport`
       ).selectedOptions[0].innerHTML;
     }
@@ -1675,19 +1648,19 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
     const valuePath = isBiploar
       ? describeArc(28, 30, 18, 0, valDegrees / 2)
       : describeArc(28, 30, 18, -135, -135 + valDegrees);
-    DOM.element(`#pot_range_${zoneindex}_${ix}`).setAttribute('d', rangePath);
-    DOM.element(`#pot_value_${zoneindex}_${ix}`).setAttribute('d', valuePath);
-    DOM.element(`#pot_zero_${zoneindex}_${ix}`).style.display = isBiploar
+    DOM.get(`#pot_range_${zoneindex}_${ix}`).setAttribute('d', rangePath);
+    DOM.get(`#pot_value_${zoneindex}_${ix}`).setAttribute('d', valuePath);
+    DOM.get(`#pot_zero_${zoneindex}_${ix}`).style.display = isBiploar
       ? 'block'
       : 'none';
-    DOM.element(`#pot_discrete_${zoneindex}_${ix}`).setAttribute(
+    DOM.get(`#pot_discrete_${zoneindex}_${ix}`).setAttribute(
       'd',
       describeDiscreteValues(c.discreteValues)
     );
-    const potcontainer = DOM.element(`#pot_${zoneindex}_${ix}`);
+    const potcontainer = DOM.get(`#pot_${zoneindex}_${ix}`);
     potcontainer.dataset.type = c.type;
     potcontainer.dataset.group = c.group || 0;
-    DOM.element(`#pot_${zoneindex}_${ix} div.cclabel`).innerHTML =
+    DOM.get(`#pot_${zoneindex}_${ix} div.cclabel`).innerHTML =
       c.type == 4 ? 'Note to CC' : c.label;
     let displayValue = c.val;
     if (c.type == 0) {
@@ -1695,8 +1668,8 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
     } else if (isBiploar) {
       displayValue = is14bit ? displayValue - 8192 : displayValue - 64;
     }
-    DOM.element(`#pot_${zoneindex}_${ix} .value`).innerHTML = displayValue;
-    const tools = DOM.element(`#zone${zoneindex} .cc-editor`);
+    DOM.get(`#pot_${zoneindex}_${ix} .value`).innerHTML = displayValue;
+    const tools = DOM.get(`#zone${zoneindex} .cc-editor`);
     if (c.type == 4) {
       let infotext = '';
       if (c.note_cc != null) {
@@ -1705,7 +1678,7 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
       if (c.velocity_cc != null) {
         infotext += '<div>Velocity: <br/>#' + c.velocity_cc + '</div>';
       }
-      DOM.element(`#pot_${zoneindex}_${ix} .info`).innerHTML = infotext;
+      DOM.get(`#pot_${zoneindex}_${ix} .info`).innerHTML = infotext;
     }
     if (c.type == 3) {
       // buttons
@@ -1764,12 +1737,7 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
       DOM.removeClass(`#pot_${zoneindex}_${ix}`, 'selected');
     }
   });
-
-  if (zone.editCC) {
-    DOM.addClass(`#zone${zoneindex} .ccpots`, 'cc-edit');
-  } else {
-    DOM.removeClass(`#zone${zoneindex} .ccpots`, 'cc-edit');
-  }
+  DOM.switchClass(`#zone${zoneindex} .ccpots`, zone.editCC, 'cc-edit');
 }
 
 let cachedOutputPorts;
@@ -1803,7 +1771,7 @@ function initOutputPortsForZone(index) {
 
 function updateOutputPortsForZone(index, outputs) {
   // const defaultOutput = outputs.filter((op) => op.isDefault);
-  const select = DOM.element(`#zone${index} select.outport`);
+  const select = DOM.get(`#zone${index} select.outport`);
   DOM.empty(select);
   const noSelectionLabel =
     outputs.length > 0 ? '(select MIDI output)' : '(no outputs available)';
@@ -1918,8 +1886,7 @@ function toggleSequencerOnZone(index) {
 
 function selectSequencerLayer(layerIndex) {
   const clockRunning = midiController.isClockRunning;
-  DOM.removeClass('#tools *[data-select-seq-layer]', 'selected');
-  DOM.removeClass('#tools *[data-select-seq-layer]', 'pending');
+  DOM.removeClass('#tools *[data-select-seq-layer]', 'selected', 'pending');
   Sequence.NEXT_LAYER_INDEX = layerIndex;
   if (clockRunning) {
     if (Sequence.ACTIVE_LAYER_INDEX != layerIndex) {
@@ -1956,7 +1923,7 @@ function toast(message, properties) {
   if (longer) {
     timeoutMS += 3000;
   }
-  DOM.element('#toast .toastinner').innerHTML = message;
+  DOM.get('#toast .toastinner').innerHTML = message;
   toastElement.style.top = toastElement.style.left = '';
   toastShow(longer);
   toastTimer = setTimeout(
@@ -1998,8 +1965,8 @@ class NumberInputController {
   valueRepeatIncrement = 0;
 
   constructor() {
-    this.elValueUp = DOM.element('#valueUp');
-    this.elValueDown = DOM.element('#valueDown');
+    this.elValueUp = DOM.get('#valueUp');
+    this.elValueDown = DOM.get('#valueDown');
     this.elValueBtnAttachedInput = null;
     this.elValueUp.addEventListener('mousedown', (ev) =>
       this.startValueChange(ev, 1)

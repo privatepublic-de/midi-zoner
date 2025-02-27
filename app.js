@@ -101,16 +101,16 @@ function resetHideOnLeaveContextMenuTimeout() {
 
 function closeContextMenu() {
   resetHideOnLeaveContextMenuTimeout();
-  DOM.element('#contextmenu').style.display = 'none';
+  DOM.get('#contextmenu').style.display = 'none';
   DOM.removeClass('*', 'contextMenuTrigger');
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-  const contextMenuElement = DOM.element('#contextmenu');
+  const contextMenuElement = DOM.get('#contextmenu');
   DOM.on(document, 'click', bodyClickHandler);
-  const select_in_clock = DOM.element('#midiClockInDeviceId');
-  const startClockButton = DOM.element('#startClockButton');
-  const bpmInput = DOM.element('#bpm');
+  const select_in_clock = DOM.get('#midiClockInDeviceId');
+  const startClockButton = DOM.get('#startClockButton');
+  const bpmInput = DOM.get('#bpm');
   const optionNoDevice = '<option value="">(No devices available)</option>';
   function updateBpmInput() {
     if (midi.deviceIdInClock == MIDI.INTERNAL_PORT_ID) {
@@ -134,7 +134,7 @@ document.addEventListener('DOMContentLoaded', function () {
         count++;
       }
     }
-    DOM.element('#clockOutPortsCount').innerHTML = count > 0 ? count : '-';
+    DOM.get('#clockOutPortsCount').innerHTML = count > 0 ? count : '-';
   }
 
   function updateInputDisplay(inputs) {
@@ -167,11 +167,11 @@ document.addEventListener('DOMContentLoaded', function () {
       displayString = '(no input device selected)';
     }
     displayString = count + ': ' + displayString;
-    DOM.element('#midiInputSelector').innerHTML = displayString;
+    DOM.get('#midiInputSelector').innerHTML = displayString;
   }
 
   function updateInputSelection(inputs) {
-    const listContainer = DOM.element('#inputPortWindow #inputPortList');
+    const listContainer = DOM.get('#inputPortWindow #inputPortList');
     DOM.empty(listContainer);
     if (!inputs) {
       return;
@@ -193,14 +193,14 @@ document.addEventListener('DOMContentLoaded', function () {
         <span class="chsel"><select tabindex="-1">${channelOptions}</select></span>
         </div>`
       );
-      DOM.element(
+      DOM.get(
         `#inputPortList .clockOutOption[data-portid="${inport.id}"] select`
       ).selectedIndex = (midi.selectedInputPorts[inport.id] || {}).ch || 0;
     });
     DOM.all('#inputPortWindow #inputPortList .clockOutOption').forEach(
       (option) => {
         const portid = parseInt(option.getAttribute('data-portid'));
-        const channelSelector = DOM.element(
+        const channelSelector = DOM.get(
           `#inputPortList .clockOutOption[data-portid="${portid}"] select`
         );
         option.addEventListener('click', (e) => {
@@ -208,11 +208,7 @@ document.addEventListener('DOMContentLoaded', function () {
             midi.selectedInputPorts[portid] &&
             midi.selectedInputPorts[portid].isSelected
           );
-          if (state) {
-            DOM.addClass(option, 'selected');
-          } else {
-            DOM.removeClass(option, 'selected');
-          }
+          DOM.switchClass(option, state, 'selected');
           midi.selectInputPort(portid, channelSelector.selectedIndex, state);
           zones.selectedInputPorts = midi.selectedInputPorts;
           midi.selectDevices(midi.deviceIdInClock);
@@ -233,7 +229,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function updateClockReceivers(outputs) {
-    const clockOutListContainer = DOM.element(
+    const clockOutListContainer = DOM.get(
       '#clockOutPortWindow #clockOutPortList'
     );
     DOM.empty(clockOutListContainer);
@@ -260,11 +256,7 @@ document.addEventListener('DOMContentLoaded', function () {
         option.addEventListener('click', (e) => {
           const portid = parseInt(option.getAttribute('data-portid'));
           const state = !(midi.clockOutputPorts[portid] === true);
-          if (state) {
-            DOM.addClass(option, 'selected');
-          } else {
-            DOM.removeClass(option, 'selected');
-          }
+          DOM.switchClass(option, state, 'selected');
           midi.updateClockOutputReceiver(portid, state);
           view.updateValuesForAllZones();
           zones.clockOutputPorts = midi.clockOutputPorts;
@@ -370,7 +362,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // availability handler
       if (midiavailable) {
         console.log('app: MIDI available');
-        DOM.element('#midiPanic').addEventListener('click', () => {
+        DOM.get('#midiPanic').addEventListener('click', () => {
           midi.panic();
         });
         loadZones(midi);
@@ -378,7 +370,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const updateClockInterface = function () {
           console.log('app: Clock input device changed');
         };
-        DOM.element('#midiClockInDeviceId').addEventListener(
+        DOM.get('#midiClockInDeviceId').addEventListener(
           'change',
           updateClockInterface
         );
@@ -397,13 +389,13 @@ document.addEventListener('DOMContentLoaded', function () {
           zones.list.push(newZone);
           saveZones();
           view.renderLastZone();
-          DOM.element(`#zone${zones.list.length - 1}`).scrollIntoView();
+          DOM.get(`#zone${zones.list.length - 1}`).scrollIntoView();
         }
         window.addEventListener('resize', () => {
           requestAnimationFrame(view.renderMarkersForAllZones);
         });
-        DOM.element('#newzone').addEventListener('click', createNewZone);
-        DOM.element('#deleteallzones').addEventListener('click', async () => {
+        DOM.get('#newzone').addEventListener('click', createNewZone);
+        DOM.get('#deleteallzones').addEventListener('click', async () => {
           await ipcRenderer
             .invoke(
               'open-confirm',
@@ -417,7 +409,7 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
         let colorOffset = 0;
-        DOM.element('#shuffleColors').addEventListener('click', () => {
+        DOM.get('#shuffleColors').addEventListener('click', () => {
           colorOffset++;
           zones.list.forEach((/** @type {Zone} */ zone, index) => {
             zone.randomizeColor(colorOffset + index);
@@ -452,7 +444,7 @@ document.addEventListener('DOMContentLoaded', function () {
         midi.setInternalBPM(zones.tempo);
         view.selectSequencerLayer(zones.seqLayerIndex || 0);
         Sequence.setQuantDiv(zones.seqLayerQuantIndex);
-        DOM.element('#tools #seqquant').value = zones.seqLayerQuantIndex;
+        DOM.get('#tools #seqquant').value = zones.seqLayerQuantIndex;
         document.body.addEventListener('keydown', (ev) => {
           if (document.activeElement.tagName != 'INPUT') {
             if (ev.key == ' ') {
@@ -485,7 +477,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
           }
         });
-        DOM.element('#save').addEventListener('click', async (e) => {
+        DOM.get('#save').addEventListener('click', async (e) => {
           await ipcRenderer
             .invoke('open-save', JSON.stringify(zones))
             .then((result) => {
@@ -497,7 +489,7 @@ document.addEventListener('DOMContentLoaded', function () {
               }
             });
         });
-        DOM.element('#load').addEventListener('click', async (e) => {
+        DOM.get('#load').addEventListener('click', async (e) => {
           await ipcRenderer.invoke('open-load').then((result) => {
             if (result) {
               try {
@@ -573,7 +565,7 @@ document.addEventListener('DOMContentLoaded', function () {
     },
     updateClockReceiverHandler: updateClockReceivers
   });
-  const clockIndicator = DOM.element('.clockIndicator');
+  const clockIndicator = DOM.get('.clockIndicator');
   setInterval(() => {
     if (midi.hasClock) {
       clockIndicator.classList.add('hasClock');
@@ -590,8 +582,8 @@ document.addEventListener('DOMContentLoaded', function () {
       localStorage.setItem('midiInClockId', inClockId);
     });
   });
-  DOM.element('#clockSendButton').addEventListener('click', (e) => {
-    const clockoutcontainer = DOM.element('#clockOutPortWindow');
+  DOM.get('#clockSendButton').addEventListener('click', (e) => {
+    const clockoutcontainer = DOM.get('#clockOutPortWindow');
     const isVisible = clockoutcontainer.style.display == 'block';
     clockoutcontainer.style.display = isVisible ? 'none' : 'block';
     if (!isVisible) {
@@ -602,8 +594,8 @@ document.addEventListener('DOMContentLoaded', function () {
       }, 0);
     }
   });
-  DOM.element('#midiInputSelector').addEventListener('click', () => {
-    const container = DOM.element('#inputPortWindow');
+  DOM.get('#midiInputSelector').addEventListener('click', () => {
+    const container = DOM.get('#inputPortWindow');
     const isVisible = container.style.display == 'block';
     container.style.display = isVisible ? 'none' : 'block';
     if (!isVisible) {
