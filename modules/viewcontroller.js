@@ -123,6 +123,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
   const zoneindex = params[0];
   /** @type {Zone} */
   const zone = zones.list[zoneindex];
+  const sequence = zone.sequence;
   ev.stopPropagation();
   const applyParamToggle = () => {
     zone[params[1]] = !zone[params[1]];
@@ -255,9 +256,9 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       } else {
         updateValuesForZone(zoneindex);
       }
-      if (!zone.enabled && zone.sequence.active) {
-        zone.sequence.clearSelection();
-        zone.sequence.isLiveRecoding = false;
+      if (!zone.enabled && sequence.active) {
+        sequence.clearSelection();
+        sequence.isLiveRecoding = false;
         updateValuesForZone(zoneindex);
       }
     },
@@ -534,42 +535,42 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       actions._cc_move(1);
     },
     toggle_seq: () => {
-      zone.sequence.active = !zone.sequence.active;
-      zone.sequence.clearSelection();
-      if (zone.sequence.active) {
+      sequence.active = !sequence.active;
+      sequence.clearSelection();
+      if (sequence.active) {
         zone.renderNotes();
       } else {
-        zone.sequence.isLiveRecoding = false;
+        sequence.isLiveRecoding = false;
       }
       updateValuesForZone(zoneindex);
     },
     seq_division: () => {
-      zone.sequence.division = element.selectedIndex;
+      sequence.division = element.selectedIndex;
       updateValuesForZone(zoneindex);
     },
     seq_steps: () => {
       const v = parseInt(element.value);
-      zone.sequence.length = v;
+      sequence.length = v;
       updateValuesForZone(zoneindex);
     },
     seq_step_length: () => {
       const v = parseInt(element.value);
-      zone.sequence.selectedStepNumbers.forEach((n) => {
-        if (zone.sequence.steps[n]) zone.sequence.steps[n].length = v;
+      sequence.selectedStepNumbers.forEach((n) => {
+        if (sequence.steps[n]) sequence.steps[n].length = v;
       });
       updateValuesForZone(zoneindex);
     },
     seq_clear_all: () => {
-      zone.sequence.steps.length = 0;
+      sequence.steps.length = 0;
       updateValuesForZone(zoneindex);
-      zone.sequence.selectedStepNumber = zone.sequence.selectedStepNumber;
+      sequence.selectedStepNumber = sequence.selectedStepNumber;
       toast('Sequence cleared');
     },
     seq_transpose: () => {
       const semitones = parseInt(element.options[element.selectedIndex].value);
-      zone.sequence.transpose(semitones);
+      sequence.transpose(semitones);
       toast(
-        (zone.sequence.hasSelection ? 'Selected steps' : 'Sequence') +
+        (sequence.hasSelection ? 'Selected steps' : 'Sequence') +
           ' transposed by ' +
           semitones +
           ' semitones'
@@ -579,7 +580,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
     },
     seq_adjust: () => {
       const adjustment = element.options[element.selectedIndex].value;
-      let seq = zone.sequence;
+      let seq = sequence;
       let srcLength = seq.length;
       let steps = [];
       for (let i = 0; i < srcLength; i++) {
@@ -622,7 +623,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
         case 'veloup':
         case 'velodown':
           let factor = adjustment == 'veloup' ? 1 + 1 / 3 : 0.75;
-          zone.sequence.steps.forEach((step) => {
+          sequence.steps.forEach((step) => {
             if (step != null) {
               step.notesArray.forEach((note) => {
                 const newvelo = note.velo * factor;
@@ -644,37 +645,37 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       // clear right clicked step
       if (params[2] != 'undefined') {
         const stepno = parseInt(params[2]);
-        if (zone.sequence.selectedStepNumbers.has(stepno)) {
-          zone.sequence.selectedStepNumbers.forEach((n) => {
-            zone.sequence.steps[n] = null;
+        if (sequence.selectedStepNumbers.has(stepno)) {
+          sequence.selectedStepNumbers.forEach((n) => {
+            sequence.steps[n] = null;
           });
         } else {
-          zone.sequence.steps[stepno] = null;
+          sequence.steps[stepno] = null;
         }
-        zone.sequence.clearSelection();
+        sequence.clearSelection();
         updateValuesForZone(zoneindex);
       }
     },
     seq_clear_selected_step: () => {
-      const stepcount = zone.sequence.selectedStepNumbers.size;
+      const stepcount = sequence.selectedStepNumbers.size;
       if (stepcount > 0) {
-        zone.sequence.selectedStepNumbers.forEach((n) => {
-          zone.sequence.steps[n] = null;
+        sequence.selectedStepNumbers.forEach((n) => {
+          sequence.steps[n] = null;
         });
         updateValuesForZone(zoneindex);
       }
     },
     seq_step_probability: () => {
-      zone.sequence.selectedStepNumbers.forEach((n) => {
-        if (zone.sequence.steps[n] != null) {
-          zone.sequence.steps[n].probability = calcPercentage();
+      sequence.selectedStepNumbers.forEach((n) => {
+        if (sequence.steps[n] != null) {
+          sequence.steps[n].probability = calcPercentage();
         }
       });
       updateValuesForZone(zoneindex);
     },
     seq_step_velocity: () => {
-      if (zone.sequence.selectedStep) {
-        zone.sequence.selectedStep.notesArray.forEach((note) => {
+      if (sequence.selectedStep) {
+        sequence.selectedStep.notesArray.forEach((note) => {
           const newvelo = note.velo + precalculatedValue;
           note.velo = Math.max(1, Math.min(127, newvelo));
         });
@@ -683,25 +684,25 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
     },
     seq_step_apply_to_all: () => {
       const actionIndex = element.selectedIndex;
-      if (zone.sequence.selectedStep && actionIndex > 0) {
+      if (sequence.selectedStep && actionIndex > 0) {
         let what = '';
-        zone.sequence.steps.forEach((s) => {
+        sequence.steps.forEach((s) => {
           if (s) {
             switch (actionIndex) {
               case 1:
-                s.length = zone.sequence.selectedStep.length;
+                s.length = sequence.selectedStep.length;
                 what = 'step length';
                 break;
               case 2:
-                s.gateLength = zone.sequence.selectedStep.gateLength;
+                s.gateLength = sequence.selectedStep.gateLength;
                 what = 'gate length';
                 break;
               case 3:
-                s.condition = zone.sequence.selectedStep.condition;
+                s.condition = sequence.selectedStep.condition;
                 what = 'trigger condition';
                 break;
               case 4:
-                s.probability = zone.sequence.selectedStep.probability;
+                s.probability = sequence.selectedStep.probability;
                 what = 'probability';
                 break;
             }
@@ -713,9 +714,8 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       }
     },
     seq_gatelength: () => {
-      zone.sequence.selectedStepNumbers.forEach((n) => {
-        if (zone.sequence.steps[n])
-          zone.sequence.steps[n].gateLength = calcPercentage();
+      sequence.selectedStepNumbers.forEach((n) => {
+        if (sequence.steps[n]) sequence.steps[n].gateLength = calcPercentage();
       });
       updateValuesForZone(zoneindex);
     },
@@ -724,24 +724,24 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
         const selStepIndex = parseInt(params[2]);
         const stepsMap = new Map();
         if (
-          zone.sequence.hasSelection &&
-          zone.sequence.selectedStepNumbers.has(selStepIndex)
+          sequence.hasSelection &&
+          sequence.selectedStepNumbers.has(selStepIndex)
         ) {
           // selected note is inside step selection
-          const sortedIndexes = [...zone.sequence.selectedStepNumbers].sort(
+          const sortedIndexes = [...sequence.selectedStepNumbers].sort(
             (a, b) => a - b
           );
           const offset = sortedIndexes[0];
           console.log(offset, sortedIndexes);
           sortedIndexes.forEach((stepindex) => {
-            if (zone.sequence.isStepUsed(stepindex)) {
-              stepsMap.set(stepindex - offset, zone.sequence.steps[stepindex]);
+            if (sequence.isStepUsed(stepindex)) {
+              stepsMap.set(stepindex - offset, sequence.steps[stepindex]);
             }
           });
         } else {
           // copy single selected step
-          if (zone.sequence.isStepUsed(selStepIndex)) {
-            stepsMap.set(0, zone.sequence.steps[selStepIndex]);
+          if (sequence.isStepUsed(selStepIndex)) {
+            stepsMap.set(0, sequence.steps[selStepIndex]);
           }
         }
         Zone.seqClipboardStep = stepsMap;
@@ -749,11 +749,11 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
     },
     seq_paste_step: () => {
       if (params[2] != 'undefined' && Zone.seqClipboardStep) {
-        zone.sequence.clearSelection();
+        sequence.clearSelection();
         const targetStep = parseInt(params[2]);
-        const targetSteps = zone.sequence.steps;
+        const targetSteps = sequence.steps;
         Zone.seqClipboardStep.keys().forEach((stepindex) => {
-          targetSteps[(targetStep + stepindex) % zone.sequence.length] =
+          targetSteps[(targetStep + stepindex) % sequence.length] =
             Sequence.cloneStep(Zone.seqClipboardStep.get(stepindex));
         });
         updateValuesForZone(zoneindex);
@@ -762,54 +762,52 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       }
     },
     seq_step_move: () => {
-      if (zone.sequence.hasSelection) {
+      if (sequence.hasSelection) {
         const direction = parseInt(params[2]);
         const newSelection = new Set();
         const sortedNumbers =
           direction < 0
-            ? [...zone.sequence.selectedStepNumbers].sort((a, b) => a - b)
-            : [...zone.sequence.selectedStepNumbers]
-                .sort((a, b) => a - b)
-                .reverse();
+            ? [...sequence.selectedStepNumbers].sort((a, b) => a - b)
+            : [...sequence.selectedStepNumbers].sort((a, b) => a - b).reverse();
         sortedNumbers.forEach((stepnumber) => {
-          if (zone.sequence.isStepUsed(stepnumber)) {
-            let newPos = (stepnumber + direction) % zone.sequence.length;
+          if (sequence.isStepUsed(stepnumber)) {
+            let newPos = (stepnumber + direction) % sequence.length;
             if (newPos < 0) {
-              newPos = zone.sequence.length - 1;
+              newPos = sequence.length - 1;
             }
-            if (zone.sequence.isStepEmpty(newPos)) {
-              zone.sequence.steps[newPos] = zone.sequence.steps[stepnumber];
-              zone.sequence.steps[stepnumber] = null;
+            if (sequence.isStepEmpty(newPos)) {
+              sequence.steps[newPos] = sequence.steps[stepnumber];
+              sequence.steps[stepnumber] = null;
               newSelection.add(newPos);
             } else {
               newSelection.add(stepnumber);
             }
           }
         });
-        zone.sequence.selectedStepNumbers = newSelection;
+        sequence.selectedStepNumbers = newSelection;
         updateValuesForZone(zoneindex);
       }
     },
     seq_move: () => {
-      zone.sequence.clearSelection();
+      sequence.clearSelection();
       const direction = parseInt(params[2]);
-      const limit = zone.sequence.length;
+      const limit = sequence.length;
       const newSeq = [];
       for (let i = 0; i < Sequence.MAX_STEPS; i++) {
-        newSeq[i] = zone.sequence.steps[i];
+        newSeq[i] = sequence.steps[i];
       }
       const srcOffset = direction > 0 ? limit - 1 : 1;
       for (let i = 0; i < limit; i++) {
-        newSeq[i] = zone.sequence.steps[(i + srcOffset) % limit];
+        newSeq[i] = sequence.steps[(i + srcOffset) % limit];
       }
-      zone.sequence.steps = newSeq;
+      sequence.steps = newSeq;
       updateValuesForZone(zoneindex);
     },
     seq_copy: () => {
       const copyData = {
-        steps: zone.sequence.steps,
-        length: zone.sequence.length,
-        division: zone.sequence.division
+        steps: sequence.steps,
+        length: sequence.length,
+        division: sequence.division
       };
       Zone.seqClipboardSequence = JSON.stringify(copyData);
       toast('Sequence copied to clipboard');
@@ -817,7 +815,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
     seq_paste: () => {
       if (Zone.seqClipboardSequence) {
         const copyData = JSON.parse(Zone.seqClipboardSequence);
-        Object.assign(zone.sequence, copyData);
+        Object.assign(sequence, copyData);
         updateValuesForZone(zoneindex);
         toast('Sequence pasted from clipboard');
       } else {
@@ -828,13 +826,13 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       const targetLayer = parseInt(params[2]);
       const copyData = JSON.parse(
         JSON.stringify({
-          steps: zone.sequence.steps,
-          length: zone.sequence.length,
-          division: zone.sequence.division,
-          ticks: zone.sequence.ticks
+          steps: sequence.steps,
+          length: sequence.length,
+          division: sequence.division,
+          ticks: sequence.ticks
         })
       );
-      Object.assign(zone.sequence.layers[targetLayer], copyData);
+      Object.assign(sequence.layers[targetLayer], copyData);
       updateValuesForZone(zoneindex);
       toast(
         'Sequence duplicated to layer ' + String.fromCharCode(65 + targetLayer)
@@ -850,26 +848,26 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       actions.seq_copy_to_layer_0();
     },
     seq_step_condition: () => {
-      zone.sequence.selectedStepNumbers.forEach((n) => {
-        if (zone.sequence.steps[n])
-          zone.sequence.steps[n].condition = element.selectedIndex;
+      sequence.selectedStepNumbers.forEach((n) => {
+        if (sequence.steps[n])
+          sequence.steps[n].condition = element.selectedIndex;
       });
       updateValuesForZone(zoneindex);
     },
     seq_step_add_notes: () => {
-      zone.sequence.stepAddNotes = !zone.sequence.stepAddNotes;
+      sequence.stepAddNotes = !sequence.stepAddNotes;
       updateValuesForZone(zoneindex);
     },
     seq_step_advance: () => {
-      zone.sequence.stepAdvance = !zone.sequence.stepAdvance;
+      sequence.stepAdvance = !sequence.stepAdvance;
       updateValuesForZone(zoneindex);
     },
     seq_record_live: () => {
-      zone.sequence.clearSelection();
-      zone.sequence.isLiveRecoding = !zone.sequence.isLiveRecoding;
+      sequence.clearSelection();
+      sequence.isLiveRecoding = !sequence.isLiveRecoding;
       updateValuesForZone(zoneindex);
       toast(
-        zone.sequence.isLiveRecoding
+        sequence.isLiveRecoding
           ? 'Live recording enabled!'
           : 'Stopped live recording'
       );
@@ -1089,6 +1087,7 @@ function appendZone(/** @type {Zone} */ zone, index) {
   initOutputPortsForZone(index);
   updateValuesForZone(index);
   zone.renderPattern();
+  const sequence = zone.sequence;
   const dragHandler = DOM.get(`#zone${index} .dragzone`);
   dragHandler.addEventListener('mousedown', (ev) => {
     if (zones.list.length > 1) {
@@ -1132,7 +1131,7 @@ function appendZone(/** @type {Zone} */ zone, index) {
   DOM.on(`#zone${index} .seq`, 'mouseup', (ev) => {
     if (ev.button != 0) return;
     if (!isDragSelect) {
-      zone.sequence.clearSelection();
+      sequence.clearSelection();
       updateValuesForZone(index);
     }
     isDragSelect = false;
@@ -1146,16 +1145,16 @@ function appendZone(/** @type {Zone} */ zone, index) {
     const stepnumber = parseInt(e.dataset.dragselect);
     e.addEventListener('mousedown', (ev) => {
       if (ev.button != 0) return;
-      if (zone.sequence.selectedStepNumbers.has(stepnumber)) {
+      if (sequence.selectedStepNumbers.has(stepnumber)) {
         isDragSelect = false;
-        zone.sequence.clearSelection();
+        sequence.clearSelection();
       } else {
         isDragSelect = true;
-        if (zone.sequence.hasSelection && ev.shiftKey) {
-          zone.sequence.selectedStepNumbers.add(stepnumber);
+        if (sequence.hasSelection && ev.shiftKey) {
+          sequence.selectedStepNumbers.add(stepnumber);
         } else {
-          zone.sequence.clearSelection();
-          zone.sequence.selectedStepNumber = stepnumber;
+          sequence.clearSelection();
+          sequence.selectedStepNumber = stepnumber;
         }
       }
       updateDragSelectStyle();
@@ -1163,8 +1162,8 @@ function appendZone(/** @type {Zone} */ zone, index) {
     });
     e.addEventListener('mouseenter', (ev) => {
       if (isDragSelect) {
-        if (zone.sequence.isStepUsed(stepnumber)) {
-          zone.sequence.selectedStepNumbers.add(stepnumber);
+        if (sequence.isStepUsed(stepnumber)) {
+          sequence.selectedStepNumbers.add(stepnumber);
           updateValuesForZone(index);
         }
       }
@@ -1422,6 +1421,7 @@ function updateGeneralButtons() {
 function updateValuesForZone(index) {
   /** @type {Zone} */
   const zone = zones.list[index];
+  const sequence = zone.sequence;
   const zoneElement = DOM.get(`#zone${index}`);
   function setPercent(className, pcnt) {
     DOM.get(`#zone${index} .percent.${className}`).value = pcnt;
@@ -1441,7 +1441,7 @@ function updateValuesForZone(index) {
     const zoneIsEnabled = zone.enabled && (Zone.solocount === 0 || zone.solo);
     DOM.switchClass(`#zone${index}`, !zoneIsEnabled, 'disabled');
     DOM.switchClass(`#zone${index}`, zone.show_cc, 'show-cc');
-    if (zone.sequence.active) {
+    if (sequence.active) {
       DOM.addClass(`#zone${index}`, 'show-seq');
       DOM.hide(zone.sequencerProgressElement);
       DOM.removeClass(
@@ -1450,16 +1450,16 @@ function updateValuesForZone(index) {
         'activelength'
       );
       DOM.all(`#zone${index} .seq .grid .step`).forEach((e, i) => {
-        if (i < zone.sequence.length) {
+        if (i < sequence.length) {
           DOM.removeClass(e, 'unused');
-          if (zone.sequence.selectedStepNumbers.has(i)) {
+          if (sequence.selectedStepNumbers.has(i)) {
             DOM.addClass(e, 'selected');
           } else {
             DOM.removeClass(e, 'selected');
           }
           if (
-            (zone.sequence.steps[i] && zone.sequence.steps[i].length > 0) ||
-            zone.sequence.liveTargetStepNumber == i
+            (sequence.steps[i] && sequence.steps[i].length > 0) ||
+            sequence.liveTargetStepNumber == i
           ) {
             DOM.addClass(e, 'active');
           } else {
@@ -1471,36 +1471,36 @@ function updateValuesForZone(index) {
       });
       DOM.switchClass(
         `#zone${index} .seq_record_live`,
-        zone.sequence.isLiveRecoding,
+        sequence.isLiveRecoding,
         'selected'
       );
-      if (zone.sequence.hasSelection) {
+      if (sequence.hasSelection) {
         DOM.addClass(`#zone${index} .seq`, 'has-selection');
-        if (zone.sequence.selectedStepNumbers.size > 1) {
+        if (sequence.selectedStepNumbers.size > 1) {
           DOM.addClass(`#zone${index} .seq`, 'multi-selection');
         }
-        if (zone.sequence.stepAddNotes) {
+        if (sequence.stepAddNotes) {
           DOM.addClass(`#zone${index} .seq-step-add-notes`, 'selected');
         }
-        if (zone.sequence.stepAdvance) {
+        if (sequence.stepAdvance) {
           DOM.addClass(`#zone${index} .seq-step-advance`, 'selected');
         }
-        let step = zone.sequence.selectedStep;
+        let step = sequence.selectedStep;
         if (step && step.length > 0) {
           let pcnt = parseInt(step.probability * 100);
           setPercent('seq_step_probability', pcnt);
           pcnt = parseInt(step.gateLength * 100);
           setPercent('seq_gatelength', pcnt);
           DOM.get(`#zone${index} .seq_step_condition`).selectedIndex =
-            zone.sequence.steps[zone.sequence.selectedStepNumber].condition;
+            sequence.steps[sequence.selectedStepNumber].condition;
           DOM.get(`#zone${index} .seq_step_length`).value =
-            zone.sequence.steps[zone.sequence.selectedStepNumber].length;
+            sequence.steps[sequence.selectedStepNumber].length;
           // mark selected step length
-          const selectedIndex = zone.sequence.selectedStepNumber;
+          const selectedIndex = sequence.selectedStepNumber;
           const length = step.length;
           const overlapLength =
-            selectedIndex + length > zone.sequence.length
-              ? (selectedIndex + length) % zone.sequence.length
+            selectedIndex + length > sequence.length
+              ? (selectedIndex + length) % sequence.length
               : -1;
           DOM.all(`#zone${index} .seq .grid .step`).forEach((e, i) => {
             if (
@@ -1511,14 +1511,14 @@ function updateValuesForZone(index) {
             }
           });
         } else {
-          if (zone.sequence.selectedStepNumbers.size == 1) {
+          if (sequence.selectedStepNumbers.size == 1) {
             DOM.get(`#zone${index} .seq_step_length`).value = 1;
             DOM.get(`#zone${index} .seq_step_condition`).selectedIndex = 0;
             setPercent('seq_step_probability', 100);
             setPercent('seq_gatelength', 100);
           }
         }
-        zone.sequence.updateRecordingState();
+        sequence.updateRecordingState();
       } else {
         DOM.removeClass(
           `#zone${index} .seq`,
@@ -1526,12 +1526,11 @@ function updateValuesForZone(index) {
           'multi-selection'
         );
       }
-      DOM.get(`#zone${index} .seq_steps`).value = zone.sequence.length;
-      DOM.get(`#zone${index} .seq_division`).selectedIndex =
-        zone.sequence.division;
+      DOM.get(`#zone${index} .seq_steps`).value = sequence.length;
+      DOM.get(`#zone${index} .seq_division`).selectedIndex = sequence.division;
     } else {
       DOM.removeClass(`#zone${index}`, 'show-seq');
-      if (zone.sequence.steps.length > 0) {
+      if (sequence.steps.length > 0) {
         DOM.show(zone.sequencerProgressElement);
       } else {
         DOM.hide(zone.sequencerProgressElement);
