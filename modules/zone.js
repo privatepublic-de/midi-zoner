@@ -1428,7 +1428,13 @@ class Sequence {
   }
 
   transpose(semitones) {
-    this.steps.forEach((astep) => {
+    let steplist;
+    if (this.hasSelection) {
+      steplist = this.selectedStepNumbers.values().map((n) => this.steps[n]);
+    } else {
+      steplist = this.steps;
+    }
+    steplist.forEach((astep) => {
       if (astep) {
         astep.notesArray.forEach((anote) => {
           if (anote) {
