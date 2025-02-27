@@ -133,7 +133,7 @@
   font-family: 'Pontano Sans';
   font-style: normal;
   font-weight: 400;
-  src: url(./res/PotanoSans-Regular.ttf) format('ttf');
+  src: url(./res/pontano-sans-v17-latin-regular.woff2) format('woff2');
 }
 
 .material-icons {
