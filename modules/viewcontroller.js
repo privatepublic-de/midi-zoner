@@ -568,8 +568,14 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
     seq_transpose: () => {
       const semitones = parseInt(element.options[element.selectedIndex].value);
       zone.sequence.transpose(semitones);
-      toast('Sequence transposed by ' + semitones + ' semitones');
+      toast(
+        (zone.sequence.hasSelection ? 'Selected steps' : 'Sequence') +
+          ' transposed by ' +
+          semitones +
+          ' semitones'
+      );
       element.selectedIndex = 0;
+      updateValuesForZone(zoneindex);
     },
     seq_adjust: () => {
       const adjustment = element.options[element.selectedIndex].value;
