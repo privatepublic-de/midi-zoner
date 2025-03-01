@@ -1136,6 +1136,7 @@ class Sequence {
 
   clearSelection() {
     this.selectedStepNumbers.clear();
+    this.isHotRecordingNotes = false;
   }
 
   get selectedStepNumber() {
@@ -1202,14 +1203,6 @@ class Sequence {
       if (SeqStep.addNote(this.liveTargetStep.notesArray, note)) {
         this.updateZoneView();
       }
-      // this.liveTargetStep.notesArray.push(note);
-      // if (
-      //   !this.liveTargetStep.notesArray.some((n) => n.number === note.number)
-      // ) {
-      //   this.liveTargetStep.notesArray.push(note);
-      //   this.liveTargetStep.notesArray.sort((a, b) => a.number - b.number);
-      //   this.updateZoneView();
-      // }
     } else {
       if (this.isHotRecordingNotes && this.selectedStepNumber > -1) {
         const seqstep = this.steps[this.selectedStepNumber] || new SeqStep();
@@ -1220,12 +1213,6 @@ class Sequence {
           this.steps[this.selectedStepNumber] = seqstep;
           this.updateRecordingState();
         }
-        // if (!seqstep.notesArray.some((n) => n.number === note.number)) {
-        //   seqstep.notesArray.push(note);
-        //   seqstep.notesArray.sort((a, b) => a.number - b.number);
-        //   this.steps[this.selectedStepNumber] = seqstep;
-        //   this.updateRecordingState();
-        // }
       }
     }
   }
