@@ -1658,9 +1658,9 @@ input.cclabel {
 .seqprogress {
   position: absolute;
   top: 32px;
-  left: 0;
+  left: 10px;
   height: 4px;
-  width: 100%;
+  right: 10px;
   background-size: 6.25% 100%;
   background-image: linear-gradient(
     to right,
