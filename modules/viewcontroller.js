@@ -1425,9 +1425,6 @@ function updateValuesForZone(index) {
   /** @type {Zone} */
   const zone = zones.list[index];
   const sequence = zone.sequence;
-  zone.sequencerProgressElement.style.backgroundSize = `${
-    100 / sequence.length
-  }% 100%`;
   const zoneElement = DOM.get(`#zone${index}`);
   function setPercent(className, pcnt) {
     DOM.get(`#zone${index} .percent.${className}`).value = pcnt;
@@ -1442,8 +1439,10 @@ function updateValuesForZone(index) {
       Zone.solocount > 0 && !zone.solo,
       'soloed-out'
     );
+    zone.sequencerProgressElement.style.backgroundSize = `${
+      100 / sequence.length
+    }% 100%`;
     DOM.switchClass(`#zone${index}`, !zone.enabled, 'disabled');
-
     const zoneIsEnabled = zone.enabled && (Zone.solocount === 0 || zone.solo);
     DOM.switchClass(`#zone${index}`, !zoneIsEnabled, 'disabled');
     DOM.switchClass(`#zone${index}`, zone.show_cc, 'show-cc');
