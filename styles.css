@@ -1658,17 +1658,8 @@ input.cclabel {
 .seqprogress {
   position: absolute;
   top: 32px;
-  left: 9px;
+  left: 0;
   height: 4px;
-  width: calc(100% - 18px);
-  padding: 0;
-  border: none;
-}
-
-.seqprogress::-webkit-progress-bar {
-  background-color: transparent;
-}
-.seqprogress::-webkit-progress-value {
   background-color: var(--brighter-2);
 }
 

@@ -710,10 +710,11 @@ class Zone {
         this.sequence.currentStepNumber > -1 &&
         this.sequence.steps.length > 0
       ) {
-        this.sequencerProgressElement.value =
-          ((this.sequence.currentStepNumber + 1) / this.sequence.length) * 100;
+        this.sequencerProgressElement.style.width = `${
+          ((this.sequence.currentStepNumber + 1) / this.sequence.length) * 100
+        }%`;
       } else {
-        this.sequencerProgressElement.value = 0;
+        this.sequencerProgressElement.style.width = 0;
       }
     }
   }
