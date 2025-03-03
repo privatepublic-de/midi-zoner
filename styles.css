@@ -1631,7 +1631,7 @@ input.cclabel {
 }
 
 .step-notes i {
-  color: var(--bg-color);
+  /* color: var(--bg-color); */
   line-height: var(--step-size);
 }
 
@@ -1823,7 +1823,7 @@ body:not(.running) .seqprogress {
 }
 
 .popup {
-  background-color: var(--bg-color-popup);
+  background-color: var(--bg-color);
   box-shadow: 1px 1px 4px var(--shadow-topbar);
   padding: 8px;
   color: var(--text-base-color);
@@ -1864,6 +1864,19 @@ body:not(.running) .seqprogress {
 .selectSeq.selected {
   background-color: var(--white-highlight);
   color: #000;
+}
+
+.selectSeq.sqlA.selected {
+  background-color: #2a9d8f;
+}
+.selectSeq.sqlB.selected {
+  background-color: #e9c46a;
+}
+.selectSeq.sqlC.selected {
+  background-color: #f4a261;
+}
+.selectSeq.sqlD.selected {
+  background-color: #e76f51;
 }
 
 .selectSeq.pending {
