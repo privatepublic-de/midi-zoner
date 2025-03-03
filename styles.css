@@ -39,6 +39,7 @@
   --darker-4: rgba(0, 0, 0, 1);
 
   --red-highlight: rgba(196, 0, 0, 0.4);
+  --light-red-highlight: #f00;
   --white-highlight: #ccc;
   --multiselect-highlight: #f00;
   --record-highlight: rgba(255, 0, 0, 0.8);
@@ -1398,6 +1399,11 @@ input.cclabel {
   --step-size: 20px;
 }
 
+.liveRecording .seq {
+  outline: 2px solid var(--light-red-highlight);
+  animation: live-recording-indicator 500ms infinite alternate ease-out;
+}
+
 .shadowed-zone-block {
   box-shadow: 0 0 8px var(--darker-1);
 }
@@ -1532,23 +1538,21 @@ input.cclabel {
   background-color: var(--multiselect-highlight);
 }
 
-.seq_record_live.selected {
-  animation: indicator 500ms infinite alternate ease-out;
-  box-shadow: 0 0 1px var(--brighter-4);
+.liveRecording .seq_record_live {
+  background-color: var(--light-red-highlight);
 }
 
 .seq_gatelength {
   margin-left: 4px;
 }
 
-@keyframes indicator {
+@keyframes live-recording-indicator {
   0% {
-    background-color: inherit;
+    outline-color: transparent;
   }
 
   100% {
-    background-color: var(--record-highlight);
-    color: #fff;
+    outline-color: var(--record-highlight);
   }
 }
 

@@ -1470,9 +1470,9 @@ function updateValuesForZone(index) {
         }
       });
       DOM.switchClass(
-        `#zone${index} .seq_record_live`,
+        `#zone${index}`,
         sequence.isLiveRecoding,
-        'selected'
+        'liveRecording'
       );
       if (sequence.hasSelection) {
         DOM.addClass(`#zone${index} .seq`, 'has-selection');
