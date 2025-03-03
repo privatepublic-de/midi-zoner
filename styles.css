@@ -1660,7 +1660,21 @@ input.cclabel {
   top: 32px;
   left: 0;
   height: 4px;
+  width: 100%;
+  background-size: 6.25% 100%;
+  background-image: linear-gradient(
+    to right,
+    var(--brighter-2) 1px,
+    transparent 1px
+  );
+}
+.seqprogress .inner {
+  position: absolute;
   background-color: var(--brighter-2);
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 0;
 }
 
 .show-seq .seqprogress {

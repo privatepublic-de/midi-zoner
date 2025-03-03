@@ -1077,6 +1077,9 @@ function appendZone(/** @type {Zone} */ zone, index) {
   zone.sequencerElement = DOM.get(`#zone${index} .seq`);
   zone.sequencerGridElement = DOM.get(`#zone${index} .seq .grid`);
   zone.sequencerProgressElement = DOM.get(`#zone${index} .seqprogress`);
+  zone.sequencerProgressElementInner = DOM.get(
+    `#zone${index} .seqprogress .inner`
+  );
   zone.sequencerGridStepElements = DOM.all(`#zone${index} .seq .grid .step`);
   zone.dom.markerlow = DOM.get(`#zone${index} .marker.low`);
   zone.dom.markerhigh = DOM.get(`#zone${index} .marker.high`);
@@ -1422,6 +1425,9 @@ function updateValuesForZone(index) {
   /** @type {Zone} */
   const zone = zones.list[index];
   const sequence = zone.sequence;
+  zone.sequencerProgressElement.style.backgroundSize = `${
+    100 / sequence.length
+  }% 100%`;
   const zoneElement = DOM.get(`#zone${index}`);
   function setPercent(className, pcnt) {
     DOM.get(`#zone${index} .percent.${className}`).value = pcnt;

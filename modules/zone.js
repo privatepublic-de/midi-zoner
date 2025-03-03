@@ -192,6 +192,7 @@ class Zone {
   sequencerGridElement = null;
   sequencerGridStepElements = null;
   sequencerProgressElement = null;
+  sequencerProgressElementInner = null;
 
   lastTouchedRangePoint = 0; // 0=none, 1=low, 2=high
 
@@ -710,11 +711,11 @@ class Zone {
         this.sequence.currentStepNumber > -1 &&
         this.sequence.steps.length > 0
       ) {
-        this.sequencerProgressElement.style.width = `${
+        this.sequencerProgressElementInner.style.width = `${
           ((this.sequence.currentStepNumber + 1) / this.sequence.length) * 100
         }%`;
       } else {
-        this.sequencerProgressElement.style.width = 0;
+        this.sequencerProgressElementInner.style.width = 0;
       }
     }
   }
