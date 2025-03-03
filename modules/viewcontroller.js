@@ -1495,21 +1495,6 @@ function updateValuesForZone(index) {
             sequence.steps[sequence.selectedStepNumber].condition;
           DOM.get(`#zone${index} .seq_step_length`).value =
             sequence.steps[sequence.selectedStepNumber].length;
-          // mark selected step length
-          const selectedIndex = sequence.selectedStepNumber;
-          const length = step.length;
-          const overlapLength =
-            selectedIndex + length > sequence.length
-              ? (selectedIndex + length) % sequence.length
-              : -1;
-          DOM.all(`#zone${index} .seq .grid .step`).forEach((e, i) => {
-            if (
-              (i > selectedIndex && i < selectedIndex + length) ||
-              i < overlapLength
-            ) {
-              DOM.addClass(e, 'activelength');
-            }
-          });
         } else {
           if (sequence.selectedStepNumbers.size == 1) {
             DOM.get(`#zone${index} .seq_step_length`).value = 1;
@@ -1518,6 +1503,26 @@ function updateValuesForZone(index) {
             setPercent('seq_gatelength', 100);
           }
         }
+        // mark selected step lengths
+        sequence.selectedStepNumbers.forEach((n) => {
+          const selectedIndex = n;
+          const step = sequence.steps[selectedIndex];
+          if (step && step.length > 0) {
+            const length = step.length;
+            const overlapLength =
+              selectedIndex + length > sequence.length
+                ? (selectedIndex + length) % sequence.length
+                : -1;
+            DOM.all(`#zone${index} .seq .grid .step`).forEach((e, i) => {
+              if (
+                (i > selectedIndex && i < selectedIndex + length) ||
+                i < overlapLength
+              ) {
+                DOM.addClass(e, 'activelength');
+              }
+            });
+          }
+        });
         sequence.updateRecordingState();
       } else {
         DOM.removeClass(
