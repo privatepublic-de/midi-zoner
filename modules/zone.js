@@ -711,11 +711,11 @@ class Zone {
         this.sequence.currentStepNumber > -1 &&
         this.sequence.steps.length > 0
       ) {
-        this.sequencerProgressElementInner.style.width = `${
-          ((this.sequence.currentStepNumber + 1) / this.sequence.length) * 100
+        this.sequencerProgressElementInner.style.left = `${
+          (this.sequence.currentStepNumber / this.sequence.length) * 100
         }%`;
       } else {
-        this.sequencerProgressElementInner.style.width = 0;
+        this.sequencerProgressElementInner.style.left = '-100%';
       }
     }
   }

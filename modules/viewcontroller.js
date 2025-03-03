@@ -1442,6 +1442,10 @@ function updateValuesForZone(index) {
     zone.sequencerProgressElement.style.backgroundSize = `${
       100 / sequence.length
     }% 100%`;
+    zone.sequencerProgressElementInner.style.width = `${
+      100 / sequence.length
+    }%`;
+
     DOM.switchClass(`#zone${index}`, !zone.enabled, 'disabled');
     const zoneIsEnabled = zone.enabled && (Zone.solocount === 0 || zone.solo);
     DOM.switchClass(`#zone${index}`, !zoneIsEnabled, 'disabled');
