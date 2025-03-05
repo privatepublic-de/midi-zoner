@@ -360,6 +360,7 @@ class Zone {
   handleMidi(message, data, fromSequencer) {
     if (this.shouldHandleMidi(message, fromSequencer)) {
       const fromMidiInput = !fromSequencer;
+      const isArpActive = this.arp_enabled && this.midi.isClockRunning;
       switch (message) {
         case MIDI.MESSAGE.NOTE_OFF:
         case MIDI.MESSAGE.NOTE_ON:
@@ -367,14 +368,13 @@ class Zone {
           const srcKey = key;
           let velo = this.scaledVelocity(data[2]);
           if (key >= this.low && key <= this.high) {
-            if (this.arp_enabled && this.arp_hold && this.arp_transpose) {
+            if (isArpActive && this.arp_hold && this.arp_transpose) {
               // transposer zone
               this.arp_transpose_amount = ((key + 12) % 24) - 12;
               requestAnimationFrame(this.renderNotes.bind(this));
               return null;
             }
-            key =
-              key + (this.arp_enabled || fromSequencer ? 0 : this.octave * 12);
+            key = key + (isArpActive || fromSequencer ? 0 : this.octave * 12);
             if (key >= 0 && key <= 127) {
               if (this.fixedvel && velo > 0) {
                 velo = this.fixedvel_value || 127;
@@ -383,7 +383,7 @@ class Zone {
               const outevent = new Uint8Array(data);
               if (message == MIDI.MESSAGE.NOTE_ON) {
                 this.convertNote2CC(key, velo);
-                if (!this.arp_enabled) {
+                if (!isArpActive) {
                   outevent[0] = message + this.channel;
                   outevent[1] = key;
                   outevent[2] = velo;
@@ -414,7 +414,7 @@ class Zone {
                 if (srcNote) {
                   this.midiActiveNotes[srcKey] = null;
                   this.removeNote(srcNote.number);
-                  if (!this.arp_enabled) {
+                  if (!isArpActive) {
                     outevent[0] = message + srcNote.channel;
                     outevent[1] = srcNote.number;
                     outevent[2] = velo;
