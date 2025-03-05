@@ -24,7 +24,7 @@ const DIV_TICKS = [
 
 const note_fill = 'rgba(255,255,255,1)';
 const note_fill_arp = 'rgba(0,0,0,.2)';
-const note_fill_arp_black = 'rgba(0,0,0,.33)';
+const note_fill_arp_black = 'rgba(0,0,0,.2)';
 const note_fill_arp_played = 'rgba(255,255,196,1)';
 const note_fill_black = 'rgba(0,0,0,1)';
 const note_top = 2;
@@ -553,22 +553,8 @@ class Zone {
       const whitekeyoffset = (notewidth - whitekeywidth) * 0.5;
 
       context.clearRect(0, 0, cwidth, rect.height);
-      // if (this.enabled) {
-      //   context.strokeStyle = '#ffffff40';
-      //   context.beginPath();
-      //   for (let i = 1; i < numberWhiteKeys; i++) {
-      //     context.moveTo(notewidth * i, note_top);
-      //     context.lineTo(notewidth * i, note_top + note_height);
-      //   }
-      //   context.stroke();
-      // }
-      // context.strokeStyle = '#ffffff10';
-      // context.beginPath();
-      // context.moveTo(0, note_top);
-      // context.lineTo(cwidth, note_top);
-      // context.stroke();
 
-      function drawNote(number, fillStyle, fillStyleBlack) {
+      const drawNote = (number, fillStyle, fillStyleBlack) => {
         const isBlack = Note.isBlackKey(number);
         const wkIndex = Note.nearestWhiteKeyIndex(number);
         context.fillStyle = isBlack ? fillStyleBlack : fillStyle;
@@ -592,12 +578,12 @@ class Zone {
           );
         }
         context.fill();
-        if (isBlack) {
+        if (isBlack && !this.arp_enabled) {
           context.stroke();
         }
-      }
+      };
 
-      function drawNoteList(list, fillStyle, fillStyleBlack) {
+      const drawNoteList = (list, fillStyle, fillStyleBlack) => {
         list.sort((a, b) => {
           const ba = Note.isBlackKey(a);
           const bb = Note.isBlackKey(b);
@@ -612,7 +598,7 @@ class Zone {
         list.forEach((n) => {
           drawNote(n, fillStyle, fillStyleBlack);
         });
-      }
+      };
 
       const list =
         this.arp_hold && this.arp_enabled
@@ -626,11 +612,9 @@ class Zone {
               list[i].number +
               (this.arp_transpose ? this.arp_transpose_amount : 0) +
               (this.octave + ao) * 12;
-            // drawNote(number, note_fill_arp, note_fill_arp_black);
             drawNumbers.push(number);
           }
         } else {
-          // drawNote(number, note_fill, note_fill_black);
           drawNumbers.push(list[i].number);
         }
       }
@@ -639,15 +623,6 @@ class Zone {
         this.arp_enabled ? note_fill_arp : note_fill,
         this.arp_enabled ? note_fill_arp_black : note_fill_black
       );
-      // if (this.sequence.active) {
-      //   drawNumbers.length = 0;
-      //   for (let snote of this.sequence.activeNotes()) {
-      //     const number = snote.number;
-      //     // drawNote(number, note_fill, note_fill_black);
-      //     drawNumbers.push(number);
-      //   }
-      //   drawNoteList(drawNumbers, note_fill, note_fill_black);
-      // }
       if (this.arp_enabled) {
         const note = this.arp.lastnote;
         if (note) {
