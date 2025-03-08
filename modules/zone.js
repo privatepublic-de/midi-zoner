@@ -174,11 +174,12 @@ class Zone {
   activeNotes = [];
   midiActiveNotes = [];
   holdList = [];
-  canvasElement = null;
-  patternCanvas = null;
+
   /** @type {MIDI} */
   midi = null;
-  dom = {};
+
+  /** @type {ZoneElements} */
+  elements = null;
 
   _colorIndex = null;
   pgm_no = null; // 1-based: 1-128
@@ -188,12 +189,6 @@ class Zone {
   rngProb = null;
 
   sequence = new Sequence(this);
-  sequencerElement = null;
-  sequencerGridElement = null;
-  sequencerGridStepElements = null;
-  sequencerProgressElement = null;
-  sequencerProgressElementInner = null;
-
   lastTouchedRangePoint = 0; // 0=none, 1=low, 2=high
 
   /**
@@ -540,8 +535,10 @@ class Zone {
   }
 
   renderNotes() {
-    if (this.canvasElement) {
-      const { context, rect } = DOM.scaledCanvasContext(this.canvasElement);
+    if (this.elements.canvasElement) {
+      const { context, rect } = DOM.scaledCanvasContext(
+        this.elements.canvasElement
+      );
 
       const cwidth = rect.width;
       const numberWhiteKeys = 10 * 7 + 4;
@@ -633,8 +630,10 @@ class Zone {
   }
 
   renderPattern() {
-    if (this.patternCanvas) {
-      const { context, rect } = DOM.scaledCanvasContext(this.patternCanvas);
+    if (this.elements.patternCanvas) {
+      const { context, rect } = DOM.scaledCanvasContext(
+        this.elements.patternCanvas
+      );
 
       const plen = this.arp_pattern.length;
       const width = rect.width / plen;
@@ -655,29 +654,25 @@ class Zone {
           context.fill();
         }
       }
-      // context.beginPath();
-      // context.strokeStyle = 'rgba(255,255,255,.67)';
-      // context.rect(0, 0, rect.width, rect.height);
-      // context.stroke();
     }
   }
 
   renderSequence() {
     if (this.sequence.active) {
       if (this.sequence.previousStepNumber > -1) {
-        this.sequencerGridStepElements[
+        this.elements.sequencerGridStepElements[
           this.sequence.previousStepNumber
         ].classList.remove('playhead');
       }
       if (this.sequence.currentStepNumber > -1) {
-        this.sequencerGridStepElements[
+        this.elements.sequencerGridStepElements[
           this.sequence.currentStepNumber
         ].classList.add('playhead');
       } else if (
         this.sequence.previousStepNumber == -1 &&
         this.sequence.currentStepNumber == -1
       ) {
-        this.sequencerGridStepElements.forEach((e) => {
+        this.elements.sequencerGridStepElements.forEach((e) => {
           e.classList.remove('playhead');
         });
       }
@@ -686,11 +681,11 @@ class Zone {
         this.sequence.currentStepNumber > -1 &&
         this.sequence.steps.length > 0
       ) {
-        this.sequencerProgressElementInner.style.left = `${
+        this.elements.sequencerProgressElementInner.style.left = `${
           (this.sequence.currentStepNumber / this.sequence.length) * 100
         }%`;
       } else {
-        this.sequencerProgressElementInner.style.left = '-100%';
+        this.elements.sequencerProgressElementInner.style.left = '-100%';
       }
     }
   }
@@ -959,6 +954,102 @@ class Zone {
   }
 }
 
+class ZoneElements {
+  /*
+  `#zone${index} *[data-action]`
+
+  `#zone${index} .seq-step-add-notes`;
+  `#zone${index} .seq-step-advance`;
+  `#zone${index} .seq_step_condition`;
+  `#zone${index} .seq_step_length`;
+
+  `#zone${index} .seq_steps`;
+  `#zone${index} .seq_division`
+  `#zone${index} .octselect`
+
+  `#euchits${index}`
+  `#euclen${index}`
+  `#zone${index} input.programnumber`
+  `#fixedvel${index}`
+  `#zone${index} .output-config-name`
+  `#zone${index} select.outport`
+
+  `#zone${index} .sendClock`
+   */
+  zoneElement;
+  actionElements;
+  canvasElement;
+  patternCanvas;
+  sequencerElement;
+  sequencerGridStepElements;
+  sequencerProgressElement;
+  sequencerProgressElementInner;
+  rangeOctaveElements;
+  rangeMarkerLow;
+  rangeMarkerHigh;
+  rangeJoin;
+  rangeCurrent;
+  octaveSelectors;
+  #cachedElements = {};
+  constructor(index) {
+    this.zoneElement = DOM.get(`#zone${index}`);
+    this.actionElements = DOM.all(`#zone${index} *[data-action]`);
+    this.canvasElement = DOM.get(`#canvas${index}`);
+    this.patternCanvas = DOM.get(`#canvasPattern${index}`);
+    this.sequencerElement = DOM.get(`#zone${index} .seq`);
+    this.sequencerProgressElement = DOM.get(`#zone${index} .seqprogress`);
+    this.sequencerProgressElementInner = DOM.get(
+      `#zone${index} .seqprogress .inner`
+    );
+    this.sequencerGridStepElements = DOM.all(`#zone${index} .seq .grid .step`);
+    this.rangeOctaveElements = DOM.all(`#zone${index} .range .oct`);
+    this.rangeMarkerLow = DOM.get(`#zone${index} .marker.low`);
+    this.rangeMarkerHigh = DOM.get(`#zone${index} .marker.high`);
+    this.rangeJoin = DOM.get(`#zone${index} .join`);
+    this.rangeCurrent = DOM.get(`#zone${index} .current`);
+    this.octaveSelectors = DOM.all(`#zone${index} .octselect`);
+  }
+
+  #getCachedElementForClassName(elementClassName) {
+    return this.#getCachedElement('.' + elementClassName);
+  }
+
+  #getCachedElement(selector) {
+    if (!this.#cachedElements[selector]) {
+      this.#cachedElements[selector] = this.zoneElement.querySelector(selector);
+    }
+    // console.log(selector, this.#cachedElements[selector]);
+    return this.#cachedElements[selector];
+  }
+
+  addSelected(elementClassName, isSelected) {
+    if (isSelected) {
+      this.#getCachedElementForClassName(elementClassName).classList.add(
+        'selected'
+      );
+    }
+  }
+
+  setSelectedIndex(elementClassName, index) {
+    this.#getCachedElementForClassName(elementClassName).selectedIndex = index;
+  }
+
+  setPercentage(elementClassName, percentage, zoneIndex) {
+    this.#getCachedElementForClassName(elementClassName).value = percentage;
+    this.#getCachedElement(
+      `output[for="${elementClassName}${zoneIndex}"]`
+    ).value = percentage + '%';
+  }
+
+  get(className) {
+    return this.#getCachedElementForClassName(className);
+  }
+
+  getSelector(selector) {
+    return this.#getCachedElement(selector);
+  }
+}
+
 class SeqStep {
   notesArray = [];
   lastPlayedArray = [];
@@ -1060,10 +1151,10 @@ class Sequence {
 
   set active(v) {
     this._active = v;
-    if (v && this.zone.sequencerGridStepElements) {
+    if (v && this.zone.elements) {
       requestAnimationFrame(
         (() => {
-          this.zone.sequencerGridStepElements.forEach((e) => {
+          this.zone.elements.sequencerGridStepElements.forEach((e) => {
             e.classList.remove('playhead');
           });
         }).bind(this)
@@ -1234,8 +1325,9 @@ class Sequence {
             const notesArray = this.steps[this.selectedStepNumber]
               ? this.steps[this.selectedStepNumber].notesArray
               : null;
-            this.zone.sequencerElement.querySelector('.stepmarker').innerHTML =
-              this.selectedStepNumber + 1;
+            this.zone.elements.sequencerElement.querySelector(
+              '.stepmarker'
+            ).innerHTML = this.selectedStepNumber + 1;
             let infoText = '';
             if (notesArray && notesArray.length > 0) {
               notesArray.forEach((note) => {
@@ -1250,18 +1342,20 @@ class Sequence {
                   '<span class="note"> ♪♪ </span> <i>... Play some notes!</i>';
               }
             }
-            this.zone.sequencerElement.querySelector('.step-notes').innerHTML =
-              infoText;
+            this.zone.elements.sequencerElement.querySelector(
+              '.step-notes'
+            ).innerHTML = infoText;
 
             if (this.isHotRecordingNotes) {
-              this.zone.sequencerElement.classList.add('hot');
+              this.zone.elements.sequencerElement.classList.add('hot');
             } else {
-              this.zone.sequencerElement.classList.remove('hot');
+              this.zone.elements.sequencerElement.classList.remove('hot');
             }
           } else {
-            this.zone.sequencerElement.querySelector('.stepmarker').innerHTML =
-              '...';
-            this.zone.sequencerElement.querySelector(
+            this.zone.elements.sequencerElement.querySelector(
+              '.stepmarker'
+            ).innerHTML = '...';
+            this.zone.elements.sequencerElement.querySelector(
               '.step-notes'
             ).innerHTML = `<i>${this.selectedStepNumbers.size} steps selected</i>`;
           }
@@ -1461,5 +1555,6 @@ if (Sequence.CYCLE_CONDITIONS.length == 0) {
 
 module.exports = {
   Zone,
-  Sequence
+  Sequence,
+  ZoneElements
 };

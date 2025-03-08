@@ -1,10 +1,9 @@
 const DOM = require('./domutils');
 const MIDI = require('./midi');
 const DragZone = require('./dragzone');
-const Zone = require('./zone').Zone;
 const zoneTemplate = require('./zone-template');
 const potDragHandler = require('./potdraghandler');
-const { Sequence } = require('./zone');
+const { Sequence, Zone, ZoneElements } = require('./zone');
 const { ipcRenderer } = require('electron');
 
 const contextMenuActionLabel = {
@@ -1072,19 +1071,7 @@ function renderLastZone() {
 
 function appendZone(/** @type {Zone} */ zone, index) {
   DOM.addHTML('#zones', 'beforeend', zoneTemplate.getHTML(zone, index));
-  zone.canvasElement = DOM.get(`#canvas${index}`);
-  zone.patternCanvas = DOM.get(`#canvasPattern${index}`);
-  zone.sequencerElement = DOM.get(`#zone${index} .seq`);
-  zone.sequencerGridElement = DOM.get(`#zone${index} .seq .grid`);
-  zone.sequencerProgressElement = DOM.get(`#zone${index} .seqprogress`);
-  zone.sequencerProgressElementInner = DOM.get(
-    `#zone${index} .seqprogress .inner`
-  );
-  zone.sequencerGridStepElements = DOM.all(`#zone${index} .seq .grid .step`);
-  zone.dom.markerlow = DOM.get(`#zone${index} .marker.low`);
-  zone.dom.markerhigh = DOM.get(`#zone${index} .marker.high`);
-  zone.dom.join = DOM.get(`#zone${index} .join`);
-  zone.dom.current = DOM.get(`#zone${index} .current`);
+  zone.elements = new ZoneElements(index);
   renderMarkersForZone(index);
   renderControllersForZone(zone, index);
   initOutputPortsForZone(index);
@@ -1131,7 +1118,7 @@ function appendZone(/** @type {Zone} */ zone, index) {
   DOM.on(`#zone${index} .seq_transpose`, 'mouseup', (ev) => {
     ev.stopPropagation();
   });
-  DOM.on(`#zone${index} .seq`, 'mouseup', (ev) => {
+  DOM.on(zone.elements.sequencerElement, 'mouseup', (ev) => {
     if (ev.button != 0) return;
     if (!isDragSelect) {
       sequence.clearSelection();
@@ -1140,7 +1127,7 @@ function appendZone(/** @type {Zone} */ zone, index) {
     isDragSelect = false;
     updateDragSelectStyle();
   });
-  DOM.on(`#zone${index} .seq`, 'mouseleave', () => {
+  DOM.on(zone.elements.sequencerElement, 'mouseleave', () => {
     isDragSelect = false;
     updateDragSelectStyle();
   });
@@ -1267,6 +1254,7 @@ function renderMarkersForAllZones() {
 }
 
 function renderMarkersForZone(index, tempLo, tempHigh) {
+  /** @type {Zone} */
   const zone = zones.list[index];
   const low = tempLo != undefined ? tempLo : zone.low;
   const high = tempHigh != undefined ? tempHigh : zone.high;
@@ -1276,24 +1264,28 @@ function renderMarkersForZone(index, tempLo, tempHigh) {
   const xchi = zone.high / 127.0;
   const width = DOM.get(`#zone${index} .range`).offsetWidth;
   const xpad = (0.75 / 127.0) * width;
-  zone.dom.markerlow.style.left = `${xlow * width}px`;
-  zone.dom.markerhigh.style.right = `${width - xhi * width - xpad}px`;
-  zone.dom.markerlow.innerHTML =
+  zone.elements.rangeMarkerLow.style.left = `${xlow * width}px`;
+  zone.elements.rangeMarkerHigh.style.right = `${width - xhi * width - xpad}px`;
+  zone.elements.rangeMarkerLow.innerHTML =
     MIDI.NOTENAMES[low % 12] + (parseInt(low / 12) - 1);
-  zone.dom.markerhigh.innerHTML =
+  zone.elements.rangeMarkerHigh.innerHTML =
     MIDI.NOTENAMES[high % 12] + (parseInt(high / 12) - 1);
-  zone.dom.join.style.left = `${xlow * width}px`;
-  zone.dom.join.style.right = `${width - xhi * width - xpad}px`;
-  zone.dom.current.style.left = `${xclow * width}px`;
-  zone.dom.current.style.right = `${width - xchi * width - xpad}px`;
+  zone.elements.rangeJoin.style.left = `${xlow * width}px`;
+  zone.elements.rangeJoin.style.right = `${width - xhi * width - xpad}px`;
+  zone.elements.rangeCurrent.style.left = `${xclow * width}px`;
+  zone.elements.rangeCurrent.style.right = `${width - xchi * width - xpad}px`;
   let ocount = 0;
-  DOM.all(`#zone${index} .range .oct`, (e) => {
+  zone.elements.rangeOctaveElements.forEach((e) => {
     ocount++;
     e.style.left = `${((ocount * 12.0) / 127.0) * width}px`;
     e.innerHTML = ocount - 1;
   });
-  DOM.switchClass(zone.dom.markerlow, tempLo != undefined, 'hover');
-  DOM.switchClass(zone.dom.markerhigh, tempHigh != undefined, 'hover');
+  DOM.switchClass(zone.elements.rangeMarkerLow, tempLo != undefined, 'hover');
+  DOM.switchClass(
+    zone.elements.rangeMarkerHigh,
+    tempHigh != undefined,
+    'hover'
+  );
 }
 
 function renderControllersForZone(/** @type {Zone} */ zone, index) {
@@ -1425,40 +1417,35 @@ function updateValuesForZone(index) {
   /** @type {Zone} */
   const zone = zones.list[index];
   const sequence = zone.sequence;
-  const zoneElement = DOM.get(`#zone${index}`);
-  function setPercent(className, pcnt) {
-    DOM.get(`#zone${index} .percent.${className}`).value = pcnt;
-    DOM.get(`#zone${index} output[for="${className}${index}"]`).value =
-      pcnt + '%';
-  }
+  const zoneElement = zone.elements.zoneElement;
   if (zoneElement) {
     zoneElement.dataset['colorindex'] = zone.colorIndex;
-    DOM.removeClass(`#zone${index} *[data-action]`, 'selected');
+    DOM.removeClass(zone.elements.actionElements, 'selected');
     DOM.switchClass(
-      `#zone${index}`,
+      zoneElement,
       Zone.solocount > 0 && !zone.solo,
       'soloed-out'
     );
-    zone.sequencerProgressElement.style.backgroundSize = `${
+    zone.elements.sequencerProgressElement.style.backgroundSize = `${
       100 / sequence.length
     }% 100%`;
-    zone.sequencerProgressElementInner.style.width = `${
+    zone.elements.sequencerProgressElementInner.style.width = `${
       100 / sequence.length
     }%`;
 
-    DOM.switchClass(`#zone${index}`, !zone.enabled, 'disabled');
+    DOM.switchClass(zoneElement, !zone.enabled, 'disabled');
     const zoneIsEnabled = zone.enabled && (Zone.solocount === 0 || zone.solo);
-    DOM.switchClass(`#zone${index}`, !zoneIsEnabled, 'disabled');
-    DOM.switchClass(`#zone${index}`, zone.show_cc, 'show-cc');
+    DOM.switchClass(zoneElement, !zoneIsEnabled, 'disabled');
+    DOM.switchClass(zoneElement, zone.show_cc, 'show-cc');
     if (sequence.active) {
-      DOM.addClass(`#zone${index}`, 'show-seq');
-      DOM.hide(zone.sequencerProgressElement);
+      DOM.addClass(zoneElement, 'show-seq');
+      DOM.hide(zone.elements.sequencerProgressElement);
       DOM.removeClass(
-        `#zone${index} .seq .grid .step`,
+        zone.elements.sequencerGridStepElements,
         'selected-step',
         'activelength'
       );
-      DOM.all(`#zone${index} .seq .grid .step`).forEach((e, i) => {
+      zone.elements.sequencerGridStepElements.forEach((e, i) => {
         if (i < sequence.length) {
           DOM.removeClass(e, 'unused');
           if (sequence.selectedStepNumbers.has(i)) {
@@ -1478,38 +1465,40 @@ function updateValuesForZone(index) {
           DOM.addClass(e, 'unused');
         }
       });
-      DOM.switchClass(
-        `#zone${index}`,
-        sequence.isLiveRecoding,
-        'liveRecording'
-      );
+      DOM.switchClass(zoneElement, sequence.isLiveRecoding, 'liveRecording');
       if (sequence.hasSelection) {
-        DOM.addClass(`#zone${index} .seq`, 'has-selection');
+        DOM.addClass(zone.elements.sequencerElement, 'has-selection');
         if (sequence.selectedStepNumbers.size > 1) {
-          DOM.addClass(`#zone${index} .seq`, 'multi-selection');
+          DOM.addClass(zone.elements.sequencerElement, 'multi-selection');
         }
         if (sequence.stepAddNotes) {
-          DOM.addClass(`#zone${index} .seq-step-add-notes`, 'selected');
+          zone.elements.get('seq-step-add-notes').classList.add('selected');
+          // DOM.addClass(`#zone${index} .seq-step-add-notes`, 'selected');
         }
         if (sequence.stepAdvance) {
-          DOM.addClass(`#zone${index} .seq-step-advance`, 'selected');
+          zone.elements.get('seq-step-advance').classList.add('selected');
+          // DOM.addClass(`#zone${index} .seq-step-advance`, 'selected');
         }
         let step = sequence.selectedStep;
         if (step && step.length > 0) {
-          let pcnt = parseInt(step.probability * 100);
-          setPercent('seq_step_probability', pcnt);
-          pcnt = parseInt(step.gateLength * 100);
-          setPercent('seq_gatelength', pcnt);
-          DOM.get(`#zone${index} .seq_step_condition`).selectedIndex =
-            sequence.steps[sequence.selectedStepNumber].condition;
-          DOM.get(`#zone${index} .seq_step_length`).value =
-            sequence.steps[sequence.selectedStepNumber].length;
+          zone.elements.setPercentage(
+            'seq_step_probability',
+            parseInt(step.probability * 100),
+            index
+          );
+          zone.elements.setPercentage(
+            'seq_gatelength',
+            parseInt(step.gateLength * 100),
+            index
+          );
+          zone.elements.setSelectedIndex('seq_step_condition', step.condition);
+          zone.elements.get('seq_step_length').value = step.length;
         } else {
           if (sequence.selectedStepNumbers.size == 1) {
-            DOM.get(`#zone${index} .seq_step_length`).value = 1;
-            DOM.get(`#zone${index} .seq_step_condition`).selectedIndex = 0;
-            setPercent('seq_step_probability', 100);
-            setPercent('seq_gatelength', 100);
+            zone.elements.get('seq_step_length').value = 1;
+            zone.elements.setSelectedIndex('seq_step_condition', 0);
+            zone.elements.setPercentage('seq_step_probability', 100, index);
+            zone.elements.setPercentage('seq_gatelength', 100, index);
           }
         }
         // mark selected step lengths
@@ -1522,7 +1511,7 @@ function updateValuesForZone(index) {
               selectedIndex + length > sequence.length
                 ? (selectedIndex + length) % sequence.length
                 : -1;
-            DOM.all(`#zone${index} .seq .grid .step`).forEach((e, i) => {
+            zone.elements.sequencerGridStepElements.forEach((e, i) => {
               if (
                 (i > selectedIndex && i < selectedIndex + length) ||
                 i < overlapLength
@@ -1535,19 +1524,19 @@ function updateValuesForZone(index) {
         sequence.updateRecordingState();
       } else {
         DOM.removeClass(
-          `#zone${index} .seq`,
+          zone.elements.sequencerElement,
           'has-selection',
           'multi-selection'
         );
       }
-      DOM.get(`#zone${index} .seq_steps`).value = sequence.length;
-      DOM.get(`#zone${index} .seq_division`).selectedIndex = sequence.division;
+      zone.elements.get('seq_steps').value = sequence.length;
+      zone.elements.setSelectedIndex('seq_division', sequence.division);
     } else {
-      DOM.removeClass(`#zone${index}`, 'show-seq');
+      DOM.removeClass(zoneElement, 'show-seq');
       if (sequence.steps.length > 0) {
-        DOM.show(zone.sequencerProgressElement);
+        DOM.show(zone.elements.sequencerProgressElement);
       } else {
-        DOM.hide(zone.sequencerProgressElement);
+        DOM.hide(zone.elements.sequencerProgressElement);
       }
     }
     [
@@ -1566,45 +1555,47 @@ function updateValuesForZone(index) {
       'sustain_on',
       'arp_repeat'
     ].forEach((p) => {
-      if (zone[p]) {
-        DOM.addClass(`#zone${index} .${p}`, 'selected');
-      }
+      zone.elements.addSelected(p, zone[p]);
     });
     ['channel', 'arp_direction', 'arp_division', 'arp_octaves'].forEach((p) => {
-      DOM.get(`#zone${index} .${p}`).selectedIndex = zone[p];
+      zone.elements.setSelectedIndex(p, zone[p]);
     });
     ['arp_gatelength', 'arp_probability'].forEach((p) => {
-      const pcnt = parseInt(zone[p] * 100);
-      const elem = DOM.get(`#zone${index} .percent.${p}`);
-      elem.value = pcnt;
-      elem.parentElement.querySelector('output').value = pcnt + '%';
+      zone.elements.setPercentage(p, parseInt(zone[p] * 100), index);
     });
-    DOM.switchClass(`#zone${index}`, zone.arp_enabled, 'arp-enabled');
-    DOM.all(`#zone${index} .octselect`, (e) => {
+    DOM.switchClass(zoneElement, zone.arp_enabled, 'arp-enabled');
+    zone.elements.octaveSelectors.forEach((e) => {
       const parts = e.getAttribute('data-action').split(':');
       if (parts[2] == zone.octave) {
         DOM.addClass(e, 'selected');
       }
     });
-    setPercent('velocity_scaling', parseInt(zone.velocity_scaling * 100));
-    DOM.get(`#euchits${index}`).value = zone.euclid_hits;
-    DOM.get(`#euclen${index}`).value = zone.euclid_length;
-    DOM.get(`#zone${index} input.programnumber`).value = zone.pgm_no
+    zone.elements.setPercentage(
+      'velocity_scaling',
+      parseInt(zone.velocity_scaling * 100),
+      index
+    );
+    zone.elements.getSelector(`#euchits${index}`).value = zone.euclid_hits;
+    zone.elements.getSelector(`#euclen${index}`).value = zone.euclid_length;
+    zone.elements.getSelector('input.programnumber').value = zone.pgm_no
       ? zone.pgm_no
       : '';
-    DOM.get(`#fixedvel${index}`).value = zone.fixedvel_value;
-    const nameField = DOM.get(`#zone${index} .output-config-name`);
+
+    zone.elements.getSelector(`#fixedvel${index}`).value = zone.fixedvel_value;
+    const nameField = zone.elements.get(`output-config-name`);
     if (zones.outputConfigNames[zones.list[index].configId]) {
       nameField.value = zones.outputConfigNames[zones.list[index].configId];
     } else {
       nameField.value = '';
-      nameField.placeholder = DOM.get(
-        `#zone${index} select.outport`
-      ).selectedOptions[0].innerHTML;
+      nameField.placeholder =
+        zone.elements.getSelector(
+          'select.outport'
+        ).selectedOptions[0].innerHTML;
     }
-    if (midiController.clockOutputPorts[zone.outputPortId] === true) {
-      DOM.addClass(`#zone${index} .sendClock`, 'selected');
-    }
+    zone.elements.addSelected(
+      'sendClock',
+      midiController.clockOutputPorts[zone.outputPortId] === true
+    );
     updateControllerValues(zone, index);
     updateGeneralButtons();
   }
