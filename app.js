@@ -414,7 +414,7 @@ document.addEventListener('DOMContentLoaded', function () {
           zones.list.forEach((/** @type {Zone} */ zone, index) => {
             zone.randomizeColor(colorOffset + index);
           });
-          view.renderZones();
+          view.updateValuesForAllZones();
           saveZones();
         });
         let clockRunning = false;
