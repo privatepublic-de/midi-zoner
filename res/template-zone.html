@@ -204,27 +204,6 @@
           data-dblclickaction="${index}:seq_step_velocity_medium"
           title="Drag with mouse to change velocity values, doubleclick to make equal"
         ></div>
-        <div
-          class="action warn"
-          title="Clear step"
-          data-action="${index}:seq_clear_selected_step"
-        >
-          <i class="material-icons">clear</i>
-        </div>
-        <div
-          class="check seq-step-add-notes"
-          data-action="${index}:seq_step_add_notes"
-          title="New notes are added (no overwrite)"
-        >
-          ${checkboxIcons}Add
-        </div>
-        <div
-          class="check seq-step-advance"
-          data-action="${index}:seq_step_advance"
-          title="Advance step after note input"
-        >
-          ${checkboxIcons}Advance
-        </div>
       </div>
       <div class="step-controls">
         <div class="label">Length</div>
@@ -280,6 +259,14 @@
           />
           <output for="seq_step_probability${index}">(unset)</output>
         </div>
+        <div
+          class="action"
+          title="Apply step properties to all active steps in sequence"
+          data-contextclick
+          data-contextmenu="label:Apply to all steps:,-,${index}:step_copy_length,${index}:step_copy_gate,${index}:step_copy_condition,${index}:step_copy_chance"
+        >
+          <i class="material-icons">copy_all</i>
+        </div>
       </div>
       <div class="step-controls">
         <div
@@ -291,30 +278,33 @@
         </div>
 
         <div
-          class="drop-down"
-          style="flex-grow: 1; justify-content: center"
-          title="Apply step properties to all active steps in sequence"
+          class="action"
+          title="Move step right (if free space)"
+          data-action="${index}:seq_step_move:1"
         >
-          <div
-            class="action"
-            title="Move step right (if free space)"
-            data-action="${index}:seq_step_move:1"
-          >
-            <i class="material-icons">arrow_forward</i>
-          </div>
-          <select
-            class="seq_step_condition_apply"
-            data-change="${index}:seq_step_apply_to_all"
-            style="background-color: transparent; flex-grow: 1"
-            tabindex="-1"
-          >
-            <option>Apply to all other steps…</option>
-            <hr />
-            <option>Step Length</option>
-            <option>Gate Length</option>
-            <option>Condition</option>
-            <option>Chance</option>
-          </select>
+          <i class="material-icons">arrow_forward</i>
+        </div>
+        <div
+          class="action warn"
+          title="Clear step"
+          data-action="${index}:seq_clear_selected_step"
+        >
+          <i class="material-icons">clear</i>
+        </div>
+        <div style="flex-grow: 1"></div>
+        <div
+          class="check seq-step-add-notes"
+          data-action="${index}:seq_step_add_notes"
+          title="New notes are added (no overwrite)"
+        >
+          ${checkboxIcons}Add new notes
+        </div>
+        <div
+          class="check seq-step-advance"
+          data-action="${index}:seq_step_advance"
+          title="Advance step after note input"
+        >
+          ${checkboxIcons}Advance
         </div>
       </div>
     </div>

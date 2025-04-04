@@ -1634,7 +1634,7 @@ input.cclabel {
 }
 
 .step-notes i {
-  /* color: var(--bg-color); */
+  color: var(--darker-2);
   line-height: var(--step-size);
 }
 
@@ -1951,7 +1951,8 @@ body:not(.running) .seqprogress {
   padding: 2px;
 }
 
-#contextmenu li.disabled {
+#contextmenu li.disabled,
+#contextmenu li.label {
   color: var(--brighter-1);
   font-style: italic;
   pointer-events: none;

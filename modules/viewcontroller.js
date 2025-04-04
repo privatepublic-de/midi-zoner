@@ -23,7 +23,11 @@ const contextMenuActionLabel = {
   seq_copy_to_layer_3:
     '<i class="material-icons">double_arrow</i> Copy to layer D',
   cc_edit: '<i class="material-icons">edit</i> Edit CC controllers',
-  send_all_cc: '<i class="material-icons">double_arrow</i> Send all CC values'
+  send_all_cc: '<i class="material-icons">double_arrow</i> Send all CC values',
+  step_copy_length: 'Step lenght',
+  step_copy_gate: 'Gate length',
+  step_copy_condition: 'Condition',
+  step_copy_chance: 'Chance'
 };
 
 let zones = {};
@@ -681,8 +685,8 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
         updateValuesForZone(zoneindex);
       }
     },
-    seq_step_apply_to_all: () => {
-      const actionIndex = element.selectedIndex;
+    _seq_step_apply_to_all: (actionIndex) => {
+      console.log('apply to all', actionIndex);
       if (sequence.selectedStep && actionIndex > 0) {
         let what = '';
         sequence.steps.forEach((s) => {
@@ -711,6 +715,18 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
         element.selectedIndex = 0;
         updateValuesForZone(zoneindex);
       }
+    },
+    step_copy_length: () => {
+      actions._seq_step_apply_to_all(1);
+    },
+    step_copy_gate: () => {
+      actions._seq_step_apply_to_all(2);
+    },
+    step_copy_condition: () => {
+      actions._seq_step_apply_to_all(3);
+    },
+    step_copy_chance: () => {
+      actions._seq_step_apply_to_all(4);
     },
     seq_gatelength: () => {
       sequence.selectedStepNumbers.forEach((n) => {
@@ -939,6 +955,13 @@ function contextHandler(/** @type {MouseEvent} */ ev) {
   menuActions.forEach((act) => {
     if (act == '-') {
       DOM.addHTML(contextMenuElement, 'beforeend', `<hr/>`);
+    } else if (act.startsWith('label:')) {
+      const label = act.substr(6);
+      DOM.addHTML(
+        contextMenuElement,
+        'beforeend',
+        `<li class="label">${label}</li>`
+      );
     } else {
       const parts = act.split(':');
       const name = labelString(parts); //contextMenuActionLabel[parts[1]];
@@ -1094,6 +1117,9 @@ function appendZone(/** @type {Zone} */ zone, index) {
   });
   DOM.all(`#zone${index} *[data-contextmenu]`).forEach((e) => {
     e.addEventListener('contextmenu', contextHandler);
+  });
+  DOM.all(`#zone${index} *[data-contextclick]`).forEach((e) => {
+    e.addEventListener('click', contextHandler);
   });
   DOM.all(`#zone${index} *[data-change]`).forEach((e) => {
     e.addEventListener('input', actionHandler);

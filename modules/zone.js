@@ -1344,8 +1344,7 @@ class Sequence {
               });
             } else {
               if (this.isHotRecordingNotes) {
-                infoText +=
-                  '<span class="note"> ♪♪ </span> <i>... Play some notes!</i>';
+                infoText += '<i>Empty step. Play some notes ...</i>';
               }
             }
             this.zone.elements.sequencerElement.querySelector(
