@@ -1338,7 +1338,9 @@ class Sequence {
             if (notesArray && notesArray.length > 0) {
               notesArray.forEach((note) => {
                 const velopcnt = (note.velo / 127) * 100;
-                infoText += `<span class="note"><span class="velocity" style="height:${velopcnt}%"></span>${Note.display(
+                infoText += `<span class="note${
+                  note.isBlackKey ? ' black' : ''
+                }"><span class="velocity" style="height:${velopcnt}%"></span>${Note.display(
                   note.number
                 )}</span> `;
               });

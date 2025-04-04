@@ -17,7 +17,6 @@
   --highlight-bpm-value: #0cc;
   --fg-midi-update: #000;
   --bg-midi-update: #fff;
-  --bg-valuefollow: #444;
   --bg-select-window: #111;
   --bg-toast: #ff9;
   --bg-toast-warning: #ff8888;
@@ -1462,8 +1461,11 @@ input.cclabel {
 
 .step-info .stepmarker {
   display: inline-flex;
+  background-color: var(--multiselect-highlight);
+  color: var(--text-base-color);
   cursor: default;
   min-width: var(--step-size);
+  border-radius: 50%;
 }
 
 .showarp {
@@ -1511,10 +1513,8 @@ input.cclabel {
   display: none;
 }
 
-.seq .grid .step.active,
-.step-info .stepmarker {
+.seq .grid .step.active {
   background-color: var(--brighter-1);
-  /* border-color: var(--brighter-3) !important; */
   color: var(--brighter-4);
 }
 
@@ -1574,14 +1574,18 @@ input.cclabel {
 }
 
 .seq .step-info .note {
-  border: 1px solid var(--brighter-1);
+  border: 1px solid var(--darker-3);
   background-color: var(--darker-0);
   color: var(--text-base-color);
   padding: 2px 4px 2px 4px;
   display: inline-block;
   position: relative;
   margin: 1px 0;
-  /* box-shadow: 0 1px 4px #00000060; */
+  border-radius: 0 0 6px 6px;
+  overflow: hidden;
+}
+.seq .step-info .note.black {
+  background-color: var(--darker-2);
 }
 
 .seq .step-info .note .velocity {
@@ -1616,17 +1620,19 @@ input.cclabel {
 }
 
 .euclid .zonebg,
-.step-controls .stepmarker,
 .step-controls .zonebg {
   background-color: var(--bg-color);
 }
 
 .step-notes {
-  /* background-color: var(--bg-color); */
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
   flex-grow: 1;
   padding: 2px;
   cursor: ew-resize;
   min-height: 26px;
+  font-size: 0.85em;
 }
 
 .step-notes:hover {
@@ -1917,22 +1923,6 @@ body:not(.running) .seqprogress {
 
 #deleteallzones.tb-button:hover {
   background-color: var(--red-highlight);
-}
-
-#valuefollow {
-  position: absolute;
-  display: none;
-  z-index: 1000;
-  pointer-events: none;
-  background: var(--bg-valuefollow);
-  color: var(--text-base-color);
-  border-radius: 4px;
-  padding: 4px;
-  margin-left: -1rem;
-  text-align: center;
-  font-size: 12px;
-  margin-top: 1rem;
-  box-shadow: 1px 1px 3px var(--shadow-zone);
 }
 
 #contextmenu {

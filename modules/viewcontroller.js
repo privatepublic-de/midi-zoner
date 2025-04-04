@@ -1186,35 +1186,31 @@ function appendZone(/** @type {Zone} */ zone, index) {
     });
   });
   // drag velocity value
-  const followValueDiv = DOM.get('#valuefollow');
   DOM.all(`#zone${index} *[data-dragvalue]`).forEach((e) => {
-    let dragstartx = 0;
+    let dragposlast = 0;
     let dragvalue = 0;
     let isdragging = false;
-    const hint = e.getAttribute('data-draghint');
     const updateDragValue = (ev) => {
-      followValueDiv.style.top = ev.pageY + 'px';
-      followValueDiv.style.left = ev.pageX + 'px';
-      followValueDiv.innerHTML = hint + (dragvalue >= 0 ? '+' : '') + dragvalue;
+      actionHandler(ev, { precalculatedValue: dragvalue });
     };
     e.addEventListener('mousedown', (ev) => {
       isdragging = true;
-      dragstartx = ev.pageX;
+      dragposlast = ev.pageX;
       dragvalue = 0;
-      followValueDiv.style.display = 'block';
       updateDragValue(ev);
     });
     e.addEventListener('mousemove', (ev) => {
       if (isdragging) {
-        dragvalue = ev.pageX - dragstartx;
+        dragvalue = ev.pageX - dragposlast < 0 ? -1 : 1;
+        dragposlast = ev.pageX;
         updateDragValue(ev);
       }
     });
     const dragendhandler = (ev) => {
       if (isdragging) {
         isdragging = false;
-        followValueDiv.style.display = 'none';
-        dragvalue = ev.pageX - dragstartx;
+        dragvalue = ev.pageX - dragposlast < 0 ? -1 : 1;
+        dragposlast = ev.pageX;
         actionHandler(ev, { precalculatedValue: dragvalue });
       }
     };
