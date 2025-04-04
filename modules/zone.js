@@ -984,12 +984,15 @@ class ZoneElements {
   sequencerGridStepElements;
   sequencerProgressElement;
   sequencerProgressElementInner;
+  rangeContainer;
   rangeOctaveElements;
   rangeMarkerLow;
   rangeMarkerHigh;
   rangeJoin;
   rangeCurrent;
   octaveSelectors;
+  ccEditor;
+  ccPots;
   #cachedElements = {};
   constructor(index) {
     this.zoneElement = DOM.get(`#zone${index}`);
@@ -1002,12 +1005,15 @@ class ZoneElements {
       `#zone${index} .seqprogress .inner`
     );
     this.sequencerGridStepElements = DOM.all(`#zone${index} .seq .grid .step`);
+    this.rangeContainer = DOM.get(`#zone${index} .range`);
     this.rangeOctaveElements = DOM.all(`#zone${index} .range .oct`);
     this.rangeMarkerLow = DOM.get(`#zone${index} .marker.low`);
     this.rangeMarkerHigh = DOM.get(`#zone${index} .marker.high`);
     this.rangeJoin = DOM.get(`#zone${index} .join`);
     this.rangeCurrent = DOM.get(`#zone${index} .current`);
     this.octaveSelectors = DOM.all(`#zone${index} .octselect`);
+    this.ccPots = DOM.all(`#zone${index} .ccpots`);
+    this.ccEditor = DOM.get(`#zone${index} .cc-editor`);
   }
 
   #getCachedElementForClassName(elementClassName) {

@@ -1262,7 +1262,7 @@ function renderMarkersForZone(index, tempLo, tempHigh) {
   const xhi = high / 127.0;
   const xclow = zone.low / 127.0;
   const xchi = zone.high / 127.0;
-  const width = DOM.get(`#zone${index} .range`).offsetWidth;
+  const width = zone.elements.rangeContainer.offsetWidth;
   const xpad = (0.75 / 127.0) * width;
   zone.elements.rangeMarkerLow.style.left = `${xlow * width}px`;
   zone.elements.rangeMarkerHigh.style.right = `${width - xhi * width - xpad}px`;
@@ -1647,11 +1647,12 @@ function describeDiscreteValues(/** @type {Array<number>} */ values) {
   return path;
 }
 
+const rangePath = describeArc(28, 30, 18, -135, 135);
+
 function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
   zone.cc_controllers.forEach((c, ix) => {
     const is14bit = c.type == 5 || c.type == 6;
     const isBiploar = c.type == 1 || c.type == 6;
-    const rangePath = describeArc(28, 30, 18, -135, 135);
     const valDegrees = is14bit
       ? 270 * (isBiploar ? (c.val - 8192) / 8192 : c.val / 16383)
       : 270 * (isBiploar ? (c.val - 64) / 64 : c.val / 127);
@@ -1679,7 +1680,7 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
       displayValue = is14bit ? displayValue - 8192 : displayValue - 64;
     }
     DOM.get(`#pot_${zoneindex}_${ix} .value`).innerHTML = displayValue;
-    const tools = DOM.get(`#zone${zoneindex} .cc-editor`);
+    const tools = zone.elements.ccEditor;
     if (c.type == 4) {
       let infotext = '';
       if (c.note_cc != null) {
@@ -1747,7 +1748,7 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
       DOM.removeClass(`#pot_${zoneindex}_${ix}`, 'selected');
     }
   });
-  DOM.switchClass(`#zone${zoneindex} .ccpots`, zone.editCC, 'cc-edit');
+  DOM.switchClass(zone.elements.ccPots, zone.editCC, 'cc-edit');
 }
 
 let cachedOutputPorts;
