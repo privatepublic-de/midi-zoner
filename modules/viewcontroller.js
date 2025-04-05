@@ -287,6 +287,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
             zones.list.splice(zoneindex, 1);
             midiController.updateUsedPorts(listUsedPorts());
             renderZones();
+            triggerSave();
             window.scrollTo({ top: scrollPos });
           }
         });
