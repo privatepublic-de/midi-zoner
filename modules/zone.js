@@ -179,7 +179,7 @@ class Zone {
   midi = null;
 
   /** @type {ZoneElements} */
-  elements = null;
+  elements = new ZoneElements();
 
   _colorIndex = null;
   pgm_no = null; // 1-based: 1-128
@@ -535,7 +535,7 @@ class Zone {
   }
 
   renderNotes() {
-    if (this.elements.canvasElement) {
+    if (this.elements.isReady) {
       const { context, rect } = DOM.scaledCanvasContext(
         this.elements.canvasElement
       );
@@ -630,7 +630,7 @@ class Zone {
   }
 
   renderPattern() {
-    if (this.elements.patternCanvas) {
+    if (this.elements.isReady) {
       const { context, rect } = DOM.scaledCanvasContext(
         this.elements.patternCanvas
       );
@@ -658,7 +658,7 @@ class Zone {
   }
 
   renderSequence() {
-    if (this.sequence.active) {
+    if (this.sequence.active && this.elements.isReady) {
       if (this.sequence.previousStepNumber > -1) {
         this.elements.sequencerGridStepElements[
           this.sequence.previousStepNumber
@@ -955,27 +955,7 @@ class Zone {
 }
 
 class ZoneElements {
-  /*
-  `#zone${index} *[data-action]`
-
-  `#zone${index} .seq-step-add-notes`;
-  `#zone${index} .seq-step-advance`;
-  `#zone${index} .seq_step_condition`;
-  `#zone${index} .seq_step_length`;
-
-  `#zone${index} .seq_steps`;
-  `#zone${index} .seq_division`
-  `#zone${index} .octselect`
-
-  `#euchits${index}`
-  `#euclen${index}`
-  `#zone${index} input.programnumber`
-  `#fixedvel${index}`
-  `#zone${index} .output-config-name`
-  `#zone${index} select.outport`
-
-  `#zone${index} .sendClock`
-   */
+  isReady = false;
   zoneElement;
   actionElements;
   canvasElement;
@@ -994,7 +974,8 @@ class ZoneElements {
   ccEditor;
   ccPots;
   #cachedElements = {};
-  constructor(index) {
+
+  init(index) {
     this.zoneElement = DOM.get(`#zone${index}`);
     this.actionElements = DOM.all(`#zone${index} *[data-action]`);
     this.canvasElement = DOM.get(`#canvas${index}`);
@@ -1014,6 +995,11 @@ class ZoneElements {
     this.octaveSelectors = DOM.all(`#zone${index} .octselect`);
     this.ccPots = DOM.all(`#zone${index} .ccpots`);
     this.ccEditor = DOM.get(`#zone${index} .cc-editor`);
+    this.isReady = true;
+  }
+
+  reset() {
+    this.isReady = false;
   }
 
   #getCachedElementForClassName(elementClassName) {

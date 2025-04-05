@@ -497,6 +497,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 view.renderZones();
                 saveZones();
               } catch (ex) {
+                console.log('app: Error loading file', ex);
                 viewcontroller.toast(
                   'Error loading file! The selected file is possibly no midi-zoner scene...',
                   {

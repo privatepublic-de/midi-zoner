@@ -686,7 +686,6 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       }
     },
     _seq_step_apply_to_all: (actionIndex) => {
-      console.log('apply to all', actionIndex);
       if (sequence.selectedStep && actionIndex > 0) {
         let what = '';
         sequence.steps.forEach((s) => {
@@ -747,7 +746,6 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
             (a, b) => a - b
           );
           const offset = sortedIndexes[0];
-          console.log(offset, sortedIndexes);
           sortedIndexes.forEach((stepindex) => {
             if (sequence.isStepUsed(stepindex)) {
               stepsMap.set(stepindex - offset, sequence.steps[stepindex]);
@@ -1065,6 +1063,9 @@ function dblClickHandler(ev) {
  */
 function renderZones() {
   DOM.empty('#zones');
+  zones.list.forEach((zone) => {
+    zone.elements.reset();
+  });
   zones.list.forEach((zone, index) => {
     appendZone(zone, index);
   });
@@ -1094,7 +1095,7 @@ function renderLastZone() {
 
 function appendZone(/** @type {Zone} */ zone, index) {
   DOM.addHTML('#zones', 'beforeend', zoneTemplate.getHTML(zone, index));
-  zone.elements = new ZoneElements(index);
+  zone.elements.init(index);
   renderMarkersForZone(index);
   renderControllersForZone(zone, index);
   initOutputPortsForZone(index);
@@ -1440,7 +1441,7 @@ function updateValuesForZone(index) {
   const zone = zones.list[index];
   const sequence = zone.sequence;
   const zoneElement = zone.elements.zoneElement;
-  if (zoneElement) {
+  if (zone.elements.isReady && zoneElement) {
     zoneElement.dataset['colorindex'] = zone.colorIndex;
     DOM.removeClass(zone.elements.actionElements, 'selected');
     DOM.switchClass(
