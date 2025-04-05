@@ -1000,6 +1000,7 @@ class ZoneElements {
 
   reset() {
     this.isReady = false;
+    this.#cachedElements = {};
   }
 
   #getCachedElementForClassName(elementClassName) {
