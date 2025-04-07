@@ -1157,14 +1157,9 @@ li {
   text-align: center;
   font-size: 9px;
   color: var(--brighter-3);
-  /* background-color: var(--darker-1); */
   background-color: var(--groupcolor);
   white-space: nowrap;
   text-overflow: ellipsis;
-}
-
-input.cclabel {
-  background-color: var(--bg-color);
 }
 
 .ccpot .value {

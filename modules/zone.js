@@ -971,7 +971,6 @@ class ZoneElements {
   rangeJoin;
   rangeCurrent;
   octaveSelectors;
-  ccEditor;
   ccPots;
   #cachedElements = {};
 
@@ -995,12 +994,15 @@ class ZoneElements {
     this.rangeCurrent = DOM.get(`#zone${index} .current`);
     this.octaveSelectors = DOM.all(`#zone${index} .octselect`);
     this.ccPots = DOM.all(`#zone${index} .ccpots`);
-    this.ccEditor = DOM.get(`#zone${index} .cc-editor`);
     this.isReady = true;
   }
 
   reset() {
     this.isReady = false;
+    this.#cachedElements = {};
+  }
+
+  emptyCache() {
     this.#cachedElements = {};
   }
 

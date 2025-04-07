@@ -1319,6 +1319,7 @@ function renderControllersForZone(/** @type {Zone} */ zone, index) {
     'afterbegin',
     zoneTemplate.getControllerHTML(zone, index)
   );
+  zone.elements.emptyCache();
   const suckEvent = (e) => {
     e.stopPropagation();
   };
@@ -1674,6 +1675,7 @@ function describeDiscreteValues(/** @type {Array<number>} */ values) {
 const rangePath = describeArc(28, 30, 18, -135, 135);
 
 function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
+  const elements = zone.elements;
   zone.cc_controllers.forEach((c, ix) => {
     const potselector = `#pot_${zoneindex}_${ix}`;
     const is14bit = c.type == 5 || c.type == 6;
@@ -1684,17 +1686,18 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
     const valuePath = isBiploar
       ? describeArc(28, 30, 18, 0, valDegrees / 2)
       : describeArc(28, 30, 18, -135, -135 + valDegrees);
-    DOM.get(`${potselector}_range`).setAttribute('d', rangePath);
-    DOM.get(`${potselector}_value`).setAttribute('d', valuePath);
-    DOM.get(`${potselector}_zero`).style.display = isBiploar ? 'block' : 'none';
-    DOM.get(`${potselector}_discrete`).setAttribute(
-      'd',
-      describeDiscreteValues(c.discreteValues)
-    );
-    const potcontainer = DOM.get(potselector);
+    elements.getSelector(`${potselector}_range`).setAttribute('d', rangePath);
+    elements.getSelector(`${potselector}_value`).setAttribute('d', valuePath);
+    elements.getSelector(`${potselector}_zero`).style.display = isBiploar
+      ? 'block'
+      : 'none';
+    elements
+      .getSelector(`${potselector}_discrete`)
+      .setAttribute('d', describeDiscreteValues(c.discreteValues));
+    const potcontainer = elements.getSelector(potselector);
     potcontainer.dataset.type = c.type;
     potcontainer.dataset.group = c.group || 0;
-    DOM.get(`${potselector} div.cclabel`).innerHTML =
+    elements.getSelector(`${potselector} div.cclabel`).innerHTML =
       c.type == 4 ? 'Note to CC' : c.label;
     let displayValue = c.val;
     if (c.type == 0) {
@@ -1702,8 +1705,7 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
     } else if (isBiploar) {
       displayValue = is14bit ? displayValue - 8192 : displayValue - 64;
     }
-    DOM.get(`${potselector} .value`).innerHTML = displayValue;
-    const tools = zone.elements.ccEditor;
+    elements.getSelector(`${potselector} .value`).innerHTML = displayValue;
     if (c.type == 4) {
       let infotext = '';
       if (c.note_cc != null) {
@@ -1712,12 +1714,12 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
       if (c.velocity_cc != null) {
         infotext += '<div>Velocity: <br/>#' + c.velocity_cc + '</div>';
       }
-      DOM.get(`${potselector} .info`).innerHTML = infotext;
+      elements.getSelector(`${potselector} .info`).innerHTML = infotext;
     }
     if (c.type == 3) {
       // buttons
       for (let i = 0; i < 8; i++) {
-        const btn = potcontainer.querySelector(`.ccbtn${i}`);
+        const btn = elements.getSelector(`${potselector} .ccbtn${i}`);
         const label = c[`buttonlabel${i}`];
         const value = c[`buttonvalue${i}`];
         if (
@@ -1736,10 +1738,10 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
           btn.style.display = 'none';
         }
         if (ix == zone.selectedCCIndex) {
-          const labelin = tools.querySelector(
+          const labelin = elements.getSelector(
             `input[data-change="${zoneindex}:cc_button_label:${i}"]`
           );
-          const valuein = tools.querySelector(
+          const valuein = elements.getSelector(
             `input[data-change="${zoneindex}:cc_button_value:${i}"]`
           );
           labelin.value = label || '';
@@ -1747,24 +1749,26 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
         }
       }
     }
-
     if (ix == zone.selectedCCIndex) {
       DOM.addClass(potselector, 'selected');
       if (zone.editCC) {
-        tools.dataset.type = c.type;
-        tools.querySelector('.cclabel').value = c.label;
-        tools.querySelector('.cc-out-lsb').value =
+        elements.getSelector('.cc-editor').dataset.type = c.type;
+        elements.getSelector('.cc-editor .cclabel').value = c.label;
+        elements.getSelector('.cc-editor .cc-out-lsb').value =
           typeof c.number_lsb == 'undefined' ? '' : c.number_lsb;
-        tools.querySelector('.cc-in').value =
+        elements.getSelector('.cc-editor .cc-in').value =
           typeof c.number_in == 'undefined' ? '' : c.number_in;
-        tools.querySelector('.cc-out').value = c.number;
-        tools.querySelector('.cc-min').value = c.min || 0;
-        tools.querySelector('.cc-max').value = c.max || 127;
-        tools.querySelector('.cc_change_type').value = c.type;
-        tools.querySelector('.cc_change_group').selectedIndex = c.group || 0;
-        tools.querySelector('.cc_notenum2cc').value = c.note_cc || '';
-        tools.querySelector('.cc_notevelocity2cc').value = c.velocity_cc || '';
-        tools.querySelector('.cc_discrete_values').value =
+        elements.getSelector('.cc-editor .cc-out').value = c.number;
+        elements.getSelector('.cc-editor .cc-min').value = c.min || 0;
+        elements.getSelector('.cc-editor .cc-max').value = c.max || 127;
+        elements.getSelector('.cc-editor .cc_change_type').value = c.type;
+        elements.getSelector('.cc-editor .cc_change_group').selectedIndex =
+          c.group || 0;
+        elements.getSelector('.cc-editor .cc_notenum2cc').value =
+          c.note_cc || '';
+        elements.getSelector('.cc-editor .cc_notevelocity2cc').value =
+          c.velocity_cc || '';
+        elements.getSelector('.cc-editor .cc_discrete_values').value =
           c.discreteValues?.join(',') || '';
       }
     } else {
