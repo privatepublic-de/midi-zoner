@@ -1006,42 +1006,35 @@ class ZoneElements {
     this.#cachedElements = {};
   }
 
-  #getCachedElementForClassName(elementClassName) {
-    return this.#getCachedElement('.' + elementClassName);
-  }
-
   #getCachedElement(selector) {
     if (!this.#cachedElements[selector]) {
       this.#cachedElements[selector] = this.zoneElement.querySelector(selector);
+      console.log(selector);
     }
     // console.log(selector, this.#cachedElements[selector]);
     return this.#cachedElements[selector];
   }
 
-  addSelected(elementClassName, isSelected) {
+  addSelectedStyle(selector, isSelected) {
     if (isSelected) {
-      this.#getCachedElementForClassName(elementClassName).classList.add(
-        'selected'
-      );
+      this.#getCachedElement(selector).classList.add('selected');
     }
   }
 
-  setSelectedIndex(elementClassName, index) {
-    this.#getCachedElementForClassName(elementClassName).selectedIndex = index;
+  setSelectedIndex(selector, index) {
+    this.#getCachedElement(selector).selectedIndex = index;
   }
 
-  setPercentage(elementClassName, percentage, zoneIndex) {
-    this.#getCachedElementForClassName(elementClassName).value = percentage;
-    this.#getCachedElement(
-      `output[for="${elementClassName}${zoneIndex}"]`
-    ).value = percentage + '%';
+  setPercentage(selector, percentage, zoneIndex) {
+    this.#getCachedElement(selector).value = percentage;
+    if (selector.startsWith('.')) {
+      selector = selector.substring(1);
+    }
+    this.#getCachedElement(`output[for="${selector}${zoneIndex}"]`).value =
+      percentage + '%';
   }
 
-  get(className) {
-    return this.#getCachedElementForClassName(className);
-  }
-
-  getSelector(selector) {
+  get(selector) {
     return this.#getCachedElement(selector);
   }
 }

@@ -1497,33 +1497,33 @@ function updateValuesForZone(index) {
           DOM.addClass(zone.elements.sequencerElement, 'multi-selection');
         }
         if (sequence.stepAddNotes) {
-          zone.elements.get('seq-step-add-notes').classList.add('selected');
+          zone.elements.get('.seq-step-add-notes').classList.add('selected');
           // DOM.addClass(`#zone${index} .seq-step-add-notes`, 'selected');
         }
         if (sequence.stepAdvance) {
-          zone.elements.get('seq-step-advance').classList.add('selected');
+          zone.elements.get('.seq-step-advance').classList.add('selected');
           // DOM.addClass(`#zone${index} .seq-step-advance`, 'selected');
         }
         let step = sequence.selectedStep;
         if (step && step.length > 0) {
           zone.elements.setPercentage(
-            'seq_step_probability',
+            '.seq_step_probability',
             parseInt(step.probability * 100),
             index
           );
           zone.elements.setPercentage(
-            'seq_gatelength',
+            '.seq_gatelength',
             parseInt(step.gateLength * 100),
             index
           );
-          zone.elements.setSelectedIndex('seq_step_condition', step.condition);
-          zone.elements.get('seq_step_length').value = step.length;
+          zone.elements.setSelectedIndex('.seq_step_condition', step.condition);
+          zone.elements.get('.seq_step_length').value = step.length;
         } else {
           if (sequence.selectedStepNumbers.size == 1) {
-            zone.elements.get('seq_step_length').value = 1;
-            zone.elements.setSelectedIndex('seq_step_condition', 0);
-            zone.elements.setPercentage('seq_step_probability', 100, index);
-            zone.elements.setPercentage('seq_gatelength', 100, index);
+            zone.elements.get('.seq_step_length').value = 1;
+            zone.elements.setSelectedIndex('.seq_step_condition', 0);
+            zone.elements.setPercentage('.seq_step_probability', 100, index);
+            zone.elements.setPercentage('.seq_gatelength', 100, index);
           }
         }
         // mark selected step lengths
@@ -1554,8 +1554,8 @@ function updateValuesForZone(index) {
           'multi-selection'
         );
       }
-      zone.elements.get('seq_steps').value = sequence.length;
-      zone.elements.setSelectedIndex('seq_division', sequence.division);
+      zone.elements.get('.seq_steps').value = sequence.length;
+      zone.elements.setSelectedIndex('.seq_division', sequence.division);
     } else {
       DOM.removeClass(zoneElement, 'show-seq');
       if (sequence.steps.length > 0) {
@@ -1580,13 +1580,13 @@ function updateValuesForZone(index) {
       'sustain_on',
       'arp_repeat'
     ].forEach((p) => {
-      zone.elements.addSelected(p, zone[p]);
+      zone.elements.addSelectedStyle('.' + p, zone[p]);
     });
     ['channel', 'arp_direction', 'arp_division', 'arp_octaves'].forEach((p) => {
-      zone.elements.setSelectedIndex(p, zone[p]);
+      zone.elements.setSelectedIndex('.' + p, zone[p]);
     });
     ['arp_gatelength', 'arp_probability'].forEach((p) => {
-      zone.elements.setPercentage(p, parseInt(zone[p] * 100), index);
+      zone.elements.setPercentage('.' + p, parseInt(zone[p] * 100), index);
     });
     DOM.switchClass(zoneElement, zone.arp_enabled, 'arp-enabled');
     zone.elements.octaveSelectors.forEach((e) => {
@@ -1596,29 +1596,27 @@ function updateValuesForZone(index) {
       }
     });
     zone.elements.setPercentage(
-      'velocity_scaling',
+      '.velocity_scaling',
       parseInt(zone.velocity_scaling * 100),
       index
     );
-    zone.elements.getSelector(`#euchits${index}`).value = zone.euclid_hits;
-    zone.elements.getSelector(`#euclen${index}`).value = zone.euclid_length;
-    zone.elements.getSelector('input.programnumber').value = zone.pgm_no
+    zone.elements.get(`#euchits${index}`).value = zone.euclid_hits;
+    zone.elements.get(`#euclen${index}`).value = zone.euclid_length;
+    zone.elements.get('input.programnumber').value = zone.pgm_no
       ? zone.pgm_no
       : '';
 
-    zone.elements.getSelector(`#fixedvel${index}`).value = zone.fixedvel_value;
-    const nameField = zone.elements.get(`output-config-name`);
+    zone.elements.get(`#fixedvel${index}`).value = zone.fixedvel_value;
+    const nameField = zone.elements.get('.output-config-name');
     if (zones.outputConfigNames[zones.list[index].configId]) {
       nameField.value = zones.outputConfigNames[zones.list[index].configId];
     } else {
       nameField.value = '';
       nameField.placeholder =
-        zone.elements.getSelector(
-          'select.outport'
-        ).selectedOptions[0].innerHTML;
+        zone.elements.get('select.outport').selectedOptions[0].innerHTML;
     }
-    zone.elements.addSelected(
-      'sendClock',
+    zone.elements.addSelectedStyle(
+      '.sendClock',
       midiController.clockOutputPorts[zone.outputPortId] === true
     );
     updateControllerValues(zone, index);
@@ -1686,18 +1684,18 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
     const valuePath = isBiploar
       ? describeArc(28, 30, 18, 0, valDegrees / 2)
       : describeArc(28, 30, 18, -135, -135 + valDegrees);
-    elements.getSelector(`${potselector}_range`).setAttribute('d', rangePath);
-    elements.getSelector(`${potselector}_value`).setAttribute('d', valuePath);
-    elements.getSelector(`${potselector}_zero`).style.display = isBiploar
+    elements.get(`${potselector}_range`).setAttribute('d', rangePath);
+    elements.get(`${potselector}_value`).setAttribute('d', valuePath);
+    elements.get(`${potselector}_zero`).style.display = isBiploar
       ? 'block'
       : 'none';
     elements
-      .getSelector(`${potselector}_discrete`)
+      .get(`${potselector}_discrete`)
       .setAttribute('d', describeDiscreteValues(c.discreteValues));
-    const potcontainer = elements.getSelector(potselector);
+    const potcontainer = elements.get(potselector);
     potcontainer.dataset.type = c.type;
     potcontainer.dataset.group = c.group || 0;
-    elements.getSelector(`${potselector} div.cclabel`).innerHTML =
+    elements.get(`${potselector} div.cclabel`).innerHTML =
       c.type == 4 ? 'Note to CC' : c.label;
     let displayValue = c.val;
     if (c.type == 0) {
@@ -1705,7 +1703,7 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
     } else if (isBiploar) {
       displayValue = is14bit ? displayValue - 8192 : displayValue - 64;
     }
-    elements.getSelector(`${potselector} .value`).innerHTML = displayValue;
+    elements.get(`${potselector} .value`).innerHTML = displayValue;
     if (c.type == 4) {
       let infotext = '';
       if (c.note_cc != null) {
@@ -1714,12 +1712,12 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
       if (c.velocity_cc != null) {
         infotext += '<div>Velocity: <br/>#' + c.velocity_cc + '</div>';
       }
-      elements.getSelector(`${potselector} .info`).innerHTML = infotext;
+      elements.get(`${potselector} .info`).innerHTML = infotext;
     }
     if (c.type == 3) {
       // buttons
       for (let i = 0; i < 8; i++) {
-        const btn = elements.getSelector(`${potselector} .ccbtn${i}`);
+        const btn = elements.get(`${potselector} .ccbtn${i}`);
         const label = c[`buttonlabel${i}`];
         const value = c[`buttonvalue${i}`];
         if (
@@ -1738,10 +1736,10 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
           btn.style.display = 'none';
         }
         if (ix == zone.selectedCCIndex) {
-          const labelin = elements.getSelector(
+          const labelin = elements.get(
             `input[data-change="${zoneindex}:cc_button_label:${i}"]`
           );
-          const valuein = elements.getSelector(
+          const valuein = elements.get(
             `input[data-change="${zoneindex}:cc_button_value:${i}"]`
           );
           labelin.value = label || '';
@@ -1752,23 +1750,22 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
     if (ix == zone.selectedCCIndex) {
       DOM.addClass(potselector, 'selected');
       if (zone.editCC) {
-        elements.getSelector('.cc-editor').dataset.type = c.type;
-        elements.getSelector('.cc-editor .cclabel').value = c.label;
-        elements.getSelector('.cc-editor .cc-out-lsb').value =
+        elements.get('.cc-editor').dataset.type = c.type;
+        elements.get('.cc-editor .cclabel').value = c.label;
+        elements.get('.cc-editor .cc-out-lsb').value =
           typeof c.number_lsb == 'undefined' ? '' : c.number_lsb;
-        elements.getSelector('.cc-editor .cc-in').value =
+        elements.get('.cc-editor .cc-in').value =
           typeof c.number_in == 'undefined' ? '' : c.number_in;
-        elements.getSelector('.cc-editor .cc-out').value = c.number;
-        elements.getSelector('.cc-editor .cc-min').value = c.min || 0;
-        elements.getSelector('.cc-editor .cc-max').value = c.max || 127;
-        elements.getSelector('.cc-editor .cc_change_type').value = c.type;
-        elements.getSelector('.cc-editor .cc_change_group').selectedIndex =
+        elements.get('.cc-editor .cc-out').value = c.number;
+        elements.get('.cc-editor .cc-min').value = c.min || 0;
+        elements.get('.cc-editor .cc-max').value = c.max || 127;
+        elements.get('.cc-editor .cc_change_type').value = c.type;
+        elements.get('.cc-editor .cc_change_group').selectedIndex =
           c.group || 0;
-        elements.getSelector('.cc-editor .cc_notenum2cc').value =
-          c.note_cc || '';
-        elements.getSelector('.cc-editor .cc_notevelocity2cc').value =
+        elements.get('.cc-editor .cc_notenum2cc').value = c.note_cc || '';
+        elements.get('.cc-editor .cc_notevelocity2cc').value =
           c.velocity_cc || '';
-        elements.getSelector('.cc-editor .cc_discrete_values').value =
+        elements.get('.cc-editor .cc_discrete_values').value =
           c.discreteValues?.join(',') || '';
       }
     } else {
