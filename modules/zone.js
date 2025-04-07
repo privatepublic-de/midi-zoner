@@ -976,6 +976,7 @@ class ZoneElements {
   #cachedElements = {};
 
   init(index) {
+    this.#cachedElements = {};
     this.zoneElement = DOM.get(`#zone${index}`);
     this.actionElements = DOM.all(`#zone${index} *[data-action]`);
     this.canvasElement = DOM.get(`#canvas${index}`);

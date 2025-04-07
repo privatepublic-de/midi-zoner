@@ -1675,6 +1675,7 @@ const rangePath = describeArc(28, 30, 18, -135, 135);
 
 function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
   zone.cc_controllers.forEach((c, ix) => {
+    const potselector = `#pot_${zoneindex}_${ix}`;
     const is14bit = c.type == 5 || c.type == 6;
     const isBiploar = c.type == 1 || c.type == 6;
     const valDegrees = is14bit
@@ -1683,19 +1684,17 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
     const valuePath = isBiploar
       ? describeArc(28, 30, 18, 0, valDegrees / 2)
       : describeArc(28, 30, 18, -135, -135 + valDegrees);
-    DOM.get(`#pot_range_${zoneindex}_${ix}`).setAttribute('d', rangePath);
-    DOM.get(`#pot_value_${zoneindex}_${ix}`).setAttribute('d', valuePath);
-    DOM.get(`#pot_zero_${zoneindex}_${ix}`).style.display = isBiploar
-      ? 'block'
-      : 'none';
-    DOM.get(`#pot_discrete_${zoneindex}_${ix}`).setAttribute(
+    DOM.get(`${potselector}_range`).setAttribute('d', rangePath);
+    DOM.get(`${potselector}_value`).setAttribute('d', valuePath);
+    DOM.get(`${potselector}_zero`).style.display = isBiploar ? 'block' : 'none';
+    DOM.get(`${potselector}_discrete`).setAttribute(
       'd',
       describeDiscreteValues(c.discreteValues)
     );
-    const potcontainer = DOM.get(`#pot_${zoneindex}_${ix}`);
+    const potcontainer = DOM.get(potselector);
     potcontainer.dataset.type = c.type;
     potcontainer.dataset.group = c.group || 0;
-    DOM.get(`#pot_${zoneindex}_${ix} div.cclabel`).innerHTML =
+    DOM.get(`${potselector} div.cclabel`).innerHTML =
       c.type == 4 ? 'Note to CC' : c.label;
     let displayValue = c.val;
     if (c.type == 0) {
@@ -1703,7 +1702,7 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
     } else if (isBiploar) {
       displayValue = is14bit ? displayValue - 8192 : displayValue - 64;
     }
-    DOM.get(`#pot_${zoneindex}_${ix} .value`).innerHTML = displayValue;
+    DOM.get(`${potselector} .value`).innerHTML = displayValue;
     const tools = zone.elements.ccEditor;
     if (c.type == 4) {
       let infotext = '';
@@ -1713,7 +1712,7 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
       if (c.velocity_cc != null) {
         infotext += '<div>Velocity: <br/>#' + c.velocity_cc + '</div>';
       }
-      DOM.get(`#pot_${zoneindex}_${ix} .info`).innerHTML = infotext;
+      DOM.get(`${potselector} .info`).innerHTML = infotext;
     }
     if (c.type == 3) {
       // buttons
@@ -1750,7 +1749,7 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
     }
 
     if (ix == zone.selectedCCIndex) {
-      DOM.addClass(`#pot_${zoneindex}_${ix}`, 'selected');
+      DOM.addClass(potselector, 'selected');
       if (zone.editCC) {
         tools.dataset.type = c.type;
         tools.querySelector('.cclabel').value = c.label;
@@ -1769,7 +1768,7 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
           c.discreteValues?.join(',') || '';
       }
     } else {
-      DOM.removeClass(`#pot_${zoneindex}_${ix}`, 'selected');
+      DOM.removeClass(potselector, 'selected');
     }
   });
   DOM.switchClass(zone.elements.ccPots, zone.editCC, 'cc-edit');
