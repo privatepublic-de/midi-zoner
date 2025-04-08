@@ -241,6 +241,10 @@ class Zone {
     };
   }
 
+  _$(selector) {
+    return this.elements.get(selector);
+  }
+
   randomizeColor(index) {
     const paletteIndex =
       typeof index == 'number' ? parseInt(index % 5) : this.colorIndex + 1;
@@ -1314,9 +1318,7 @@ class Sequence {
             const notesArray = this.steps[this.selectedStepNumber]
               ? this.steps[this.selectedStepNumber].notesArray
               : null;
-            this.zone.elements.sequencerElement.querySelector(
-              '.stepmarker'
-            ).innerHTML = this.selectedStepNumber + 1;
+            this.zone._$('.stepmarker').innerHTML = this.selectedStepNumber + 1;
             let infoText = '';
             if (notesArray && notesArray.length > 0) {
               notesArray.forEach((note) => {
@@ -1342,10 +1344,8 @@ class Sequence {
               this.zone.elements.sequencerElement.classList.remove('hot');
             }
           } else {
-            this.zone.elements.sequencerElement.querySelector(
-              '.stepmarker'
-            ).innerHTML = '...';
-            this.zone.elements.sequencerElement.querySelector(
+            this.zone._$('.stepmarker').innerHTML = '...';
+            this.zone._$(
               '.step-notes'
             ).innerHTML = `<i>${this.selectedStepNumbers.size} steps selected</i>`;
           }

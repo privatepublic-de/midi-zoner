@@ -179,7 +179,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       updateValuesForZone(zoneindex);
     },
     toggle_filters: () => {
-      const settings = DOM.get(`#zone${zoneindex} .popupsettings`);
+      const settings = zone._$('.popupsettings');
       if (settings.style.display == 'flex') {
         settings.style.display = 'none';
       } else {
@@ -187,9 +187,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       }
     },
     fixedvel_value: () => {
-      zone.fixedvel_value = document.getElementById(
-        'fixedvel' + zoneindex
-      ).value;
+      zone.fixedvel_value = zone._$('input.fixedvel_value').value;
     },
     fixedvel: () => {
       actions.fixedvel_value();
@@ -297,7 +295,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       updateValuesForZone(zoneindex);
     },
     showeuclid: () => {
-      const dialog = DOM.get(`#zone${zoneindex} .euclid`);
+      const dialog = zone._$('.euclid');
       if (dialog.style.display == 'block') {
         DOM.hide(dialog);
       } else {
@@ -305,8 +303,8 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       }
     },
     euclid: () => {
-      let hits = parseInt(DOM.get(`#euchits${zoneindex}`).value);
-      let len = parseInt(DOM.get(`#euclen${zoneindex}`).value);
+      let hits = parseInt(zone._$(`#euchits${zoneindex}`).value);
+      let len = parseInt(zone._$(`#euclen${zoneindex}`).value);
       if (!isNaN(hits) && !isNaN(len)) {
         hits = Math.min(32, Math.max(1, hits));
         len = Math.min(32, Math.max(2, len));
@@ -1103,13 +1101,13 @@ function appendZone(/** @type {Zone} */ zone, index) {
   updateValuesForZone(index);
   zone.renderPattern();
   const sequence = zone.sequence;
-  const dragHandler = DOM.get(`#zone${index} .dragzone`);
+  const dragHandler = zone._$('.dragzone');
   dragHandler.addEventListener('mousedown', (ev) => {
     if (zones.list.length > 1) {
       new DragZone(index, ev, () => {
         triggerSave();
         renderZones();
-        DOM.get(`#zone${index}`).scrollIntoView({ behavior: 'instant' });
+        zone.elements.zoneElement.scrollIntoView({ behavior: 'instant' });
       });
     }
   });
@@ -1133,7 +1131,7 @@ function appendZone(/** @type {Zone} */ zone, index) {
   // drag select multiple steps
   let isDragSelect = false;
   function updateDragSelectStyle() {
-    const grid = DOM.get(`#zone${index} .seq .step-container`);
+    const grid = zone._$('.seq .step-container');
     if (isDragSelect) {
       grid.classList.add('dragselect');
     } else {
@@ -1497,11 +1495,11 @@ function updateValuesForZone(index) {
           DOM.addClass(zone.elements.sequencerElement, 'multi-selection');
         }
         if (sequence.stepAddNotes) {
-          zone.elements.get('.seq-step-add-notes').classList.add('selected');
+          zone._$('.seq-step-add-notes').classList.add('selected');
           // DOM.addClass(`#zone${index} .seq-step-add-notes`, 'selected');
         }
         if (sequence.stepAdvance) {
-          zone.elements.get('.seq-step-advance').classList.add('selected');
+          zone._$('.seq-step-advance').classList.add('selected');
           // DOM.addClass(`#zone${index} .seq-step-advance`, 'selected');
         }
         let step = sequence.selectedStep;
@@ -1517,10 +1515,10 @@ function updateValuesForZone(index) {
             index
           );
           zone.elements.setSelectedIndex('.seq_step_condition', step.condition);
-          zone.elements.get('.seq_step_length').value = step.length;
+          zone._$('.seq_step_length').value = step.length;
         } else {
           if (sequence.selectedStepNumbers.size == 1) {
-            zone.elements.get('.seq_step_length').value = 1;
+            zone._$('.seq_step_length').value = 1;
             zone.elements.setSelectedIndex('.seq_step_condition', 0);
             zone.elements.setPercentage('.seq_step_probability', 100, index);
             zone.elements.setPercentage('.seq_gatelength', 100, index);
@@ -1554,7 +1552,7 @@ function updateValuesForZone(index) {
           'multi-selection'
         );
       }
-      zone.elements.get('.seq_steps').value = sequence.length;
+      zone._$('.seq_steps').value = sequence.length;
       zone.elements.setSelectedIndex('.seq_division', sequence.division);
     } else {
       DOM.removeClass(zoneElement, 'show-seq');
@@ -1600,20 +1598,18 @@ function updateValuesForZone(index) {
       parseInt(zone.velocity_scaling * 100),
       index
     );
-    zone.elements.get(`#euchits${index}`).value = zone.euclid_hits;
-    zone.elements.get(`#euclen${index}`).value = zone.euclid_length;
-    zone.elements.get('input.programnumber').value = zone.pgm_no
-      ? zone.pgm_no
-      : '';
+    zone._$('.euchits').value = zone.euclid_hits;
+    zone._$('.euclen').value = zone.euclid_length;
+    zone._$('input.programnumber').value = zone.pgm_no ? zone.pgm_no : '';
 
-    zone.elements.get(`#fixedvel${index}`).value = zone.fixedvel_value;
-    const nameField = zone.elements.get('.output-config-name');
+    zone._$('input.fixedvel_value').value = zone.fixedvel_value;
+    const nameField = zone._$('.output-config-name');
     if (zones.outputConfigNames[zones.list[index].configId]) {
       nameField.value = zones.outputConfigNames[zones.list[index].configId];
     } else {
       nameField.value = '';
       nameField.placeholder =
-        zone.elements.get('select.outport').selectedOptions[0].innerHTML;
+        zone._$('select.outport').selectedOptions[0].innerHTML;
     }
     zone.elements.addSelectedStyle(
       '.sendClock',
@@ -1673,7 +1669,6 @@ function describeDiscreteValues(/** @type {Array<number>} */ values) {
 const rangePath = describeArc(28, 30, 18, -135, 135);
 
 function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
-  const elements = zone.elements;
   zone.cc_controllers.forEach((c, ix) => {
     const potselector = `#pot_${zoneindex}_${ix}`;
     const is14bit = c.type == 5 || c.type == 6;
@@ -1684,18 +1679,16 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
     const valuePath = isBiploar
       ? describeArc(28, 30, 18, 0, valDegrees / 2)
       : describeArc(28, 30, 18, -135, -135 + valDegrees);
-    elements.get(`${potselector}_range`).setAttribute('d', rangePath);
-    elements.get(`${potselector}_value`).setAttribute('d', valuePath);
-    elements.get(`${potselector}_zero`).style.display = isBiploar
-      ? 'block'
-      : 'none';
-    elements
-      .get(`${potselector}_discrete`)
+    zone._$(`${potselector}_range`).setAttribute('d', rangePath);
+    zone._$(`${potselector}_value`).setAttribute('d', valuePath);
+    zone._$(`${potselector}_zero`).style.display = isBiploar ? 'block' : 'none';
+    zone
+      ._$(`${potselector}_discrete`)
       .setAttribute('d', describeDiscreteValues(c.discreteValues));
-    const potcontainer = elements.get(potselector);
+    const potcontainer = zone._$(potselector);
     potcontainer.dataset.type = c.type;
     potcontainer.dataset.group = c.group || 0;
-    elements.get(`${potselector} div.cclabel`).innerHTML =
+    zone._$(`${potselector} div.cclabel`).innerHTML =
       c.type == 4 ? 'Note to CC' : c.label;
     let displayValue = c.val;
     if (c.type == 0) {
@@ -1703,7 +1696,7 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
     } else if (isBiploar) {
       displayValue = is14bit ? displayValue - 8192 : displayValue - 64;
     }
-    elements.get(`${potselector} .value`).innerHTML = displayValue;
+    zone._$(`${potselector} .value`).innerHTML = displayValue;
     if (c.type == 4) {
       let infotext = '';
       if (c.note_cc != null) {
@@ -1712,12 +1705,12 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
       if (c.velocity_cc != null) {
         infotext += '<div>Velocity: <br/>#' + c.velocity_cc + '</div>';
       }
-      elements.get(`${potselector} .info`).innerHTML = infotext;
+      zone._$(`${potselector} .info`).innerHTML = infotext;
     }
     if (c.type == 3) {
       // buttons
       for (let i = 0; i < 8; i++) {
-        const btn = elements.get(`${potselector} .ccbtn${i}`);
+        const btn = zone._$(`${potselector} .ccbtn${i}`);
         const label = c[`buttonlabel${i}`];
         const value = c[`buttonvalue${i}`];
         if (
@@ -1736,10 +1729,10 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
           btn.style.display = 'none';
         }
         if (ix == zone.selectedCCIndex) {
-          const labelin = elements.get(
+          const labelin = zone._$(
             `input[data-change="${zoneindex}:cc_button_label:${i}"]`
           );
-          const valuein = elements.get(
+          const valuein = zone._$(
             `input[data-change="${zoneindex}:cc_button_value:${i}"]`
           );
           labelin.value = label || '';
@@ -1750,22 +1743,20 @@ function updateControllerValues(/** @type {Zone} */ zone, zoneindex) {
     if (ix == zone.selectedCCIndex) {
       DOM.addClass(potselector, 'selected');
       if (zone.editCC) {
-        elements.get('.cc-editor').dataset.type = c.type;
-        elements.get('.cc-editor .cclabel').value = c.label;
-        elements.get('.cc-editor .cc-out-lsb').value =
+        zone._$('.cc-editor').dataset.type = c.type;
+        zone._$('.cc-editor .cclabel').value = c.label;
+        zone._$('.cc-editor .cc-out-lsb').value =
           typeof c.number_lsb == 'undefined' ? '' : c.number_lsb;
-        elements.get('.cc-editor .cc-in').value =
+        zone._$('.cc-editor .cc-in').value =
           typeof c.number_in == 'undefined' ? '' : c.number_in;
-        elements.get('.cc-editor .cc-out').value = c.number;
-        elements.get('.cc-editor .cc-min').value = c.min || 0;
-        elements.get('.cc-editor .cc-max').value = c.max || 127;
-        elements.get('.cc-editor .cc_change_type').value = c.type;
-        elements.get('.cc-editor .cc_change_group').selectedIndex =
-          c.group || 0;
-        elements.get('.cc-editor .cc_notenum2cc').value = c.note_cc || '';
-        elements.get('.cc-editor .cc_notevelocity2cc').value =
-          c.velocity_cc || '';
-        elements.get('.cc-editor .cc_discrete_values').value =
+        zone._$('.cc-editor .cc-out').value = c.number;
+        zone._$('.cc-editor .cc-min').value = c.min || 0;
+        zone._$('.cc-editor .cc-max').value = c.max || 127;
+        zone._$('.cc-editor .cc_change_type').value = c.type;
+        zone._$('.cc-editor .cc_change_group').selectedIndex = c.group || 0;
+        zone._$('.cc-editor .cc_notenum2cc').value = c.note_cc || '';
+        zone._$('.cc-editor .cc_notevelocity2cc').value = c.velocity_cc || '';
+        zone._$('.cc-editor .cc_discrete_values').value =
           c.discreteValues?.join(',') || '';
       }
     } else {
