@@ -303,8 +303,8 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       }
     },
     euclid: () => {
-      let hits = parseInt(zone._$(`#euchits${zoneindex}`).value);
-      let len = parseInt(zone._$(`#euclen${zoneindex}`).value);
+      let hits = parseInt(zone._$('.euchits').value);
+      let len = parseInt(zone._$('.euclen').value);
       if (!isNaN(hits) && !isNaN(len)) {
         hits = Math.min(32, Math.max(1, hits));
         len = Math.min(32, Math.max(2, len));
