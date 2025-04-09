@@ -187,18 +187,6 @@ module.exports = {
       offsetHeight: rect.height
     };
   },
-  /* TODO Document */
-  scaledCanvasContext: function (canvas) {
-    const ctx = canvas.getContext('2d');
-    const dpr = window.devicePixelRatio;
-    const rect = canvas.getBoundingClientRect();
-    // Set the "actual" size of the canvas
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    // Scale the context to ensure correct drawing operations
-    ctx.scale(dpr, dpr);
-    return { context: ctx, rect: rect };
-  },
   /**
    * Convert hsl values (0-1) to rgb.
    * @param {number} h Hue

@@ -1,5 +1,4 @@
 const seedrandom = require('seedrandom');
-const DOM = require('./domutils');
 const MIDI = require('./midi');
 const DIV_TICKS = [
   192, // 2/1
@@ -96,6 +95,19 @@ class Zone {
   static seqClipboardStep = null;
   static seqClipboardSequence = null;
   static updateZoneViewEventName = 'update-zone-view';
+
+  static scaledCanvasContext(canvas) {
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio;
+    const rect = canvas.getBoundingClientRect();
+    // Set the "actual" size of the canvas
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    // Scale the context to ensure correct drawing operations
+    ctx.scale(dpr, dpr);
+    return { context: ctx, rect: rect };
+  }
+
   channel = 0; // 0-based
   preferredOutputPortId = MIDI.INTERNAL_PORT_ID;
   outputPortId = MIDI.INTERNAL_PORT_ID;
@@ -540,7 +552,7 @@ class Zone {
 
   renderNotes() {
     if (this.elements.isReady) {
-      const { context, rect } = DOM.scaledCanvasContext(
+      const { context, rect } = Zone.scaledCanvasContext(
         this.elements.canvasElement
       );
 
@@ -635,7 +647,7 @@ class Zone {
 
   renderPattern() {
     if (this.elements.isReady) {
-      const { context, rect } = DOM.scaledCanvasContext(
+      const { context, rect } = Zone.scaledCanvasContext(
         this.elements.patternCanvas
       );
 
@@ -980,24 +992,28 @@ class ZoneElements {
 
   init(index) {
     this.#cachedElements = {};
-    this.zoneElement = DOM.get(`#zone${index}`);
-    this.actionElements = DOM.all(`#zone${index} *[data-action]`);
-    this.canvasElement = DOM.get(`#canvas${index}`);
-    this.patternCanvas = DOM.get(`#canvasPattern${index}`);
-    this.sequencerElement = DOM.get(`#zone${index} .seq`);
-    this.sequencerProgressElement = DOM.get(`#zone${index} .seqprogress`);
-    this.sequencerProgressElementInner = DOM.get(
-      `#zone${index} .seqprogress .inner`
+    this.zoneElement = document.querySelector(`#zone${index}`);
+    this.actionElements = this.zoneElement.querySelectorAll('*[data-action]');
+    this.canvasElement = this.zoneElement.querySelector(`#canvas${index}`);
+    this.patternCanvas = this.zoneElement.querySelector(
+      `#canvasPattern${index}`
     );
-    this.sequencerGridStepElements = DOM.all(`#zone${index} .seq .grid .step`);
-    this.rangeContainer = DOM.get(`#zone${index} .range`);
-    this.rangeOctaveElements = DOM.all(`#zone${index} .range .oct`);
-    this.rangeMarkerLow = DOM.get(`#zone${index} .marker.low`);
-    this.rangeMarkerHigh = DOM.get(`#zone${index} .marker.high`);
-    this.rangeJoin = DOM.get(`#zone${index} .join`);
-    this.rangeCurrent = DOM.get(`#zone${index} .current`);
-    this.octaveSelectors = DOM.all(`#zone${index} .octselect`);
-    this.ccPots = DOM.all(`#zone${index} .ccpots`);
+    this.sequencerElement = this.zoneElement.querySelector('.seq');
+    this.sequencerProgressElement =
+      this.zoneElement.querySelector('.seqprogress');
+    this.sequencerProgressElementInner = this.zoneElement.querySelector(
+      '.seqprogress .inner'
+    );
+    this.sequencerGridStepElements =
+      this.zoneElement.querySelectorAll('.seq .grid .step');
+    this.rangeContainer = this.zoneElement.querySelector('.range');
+    this.rangeOctaveElements = this.zoneElement.querySelectorAll('.range .oct');
+    this.rangeMarkerLow = this.zoneElement.querySelector('.marker.low');
+    this.rangeMarkerHigh = this.zoneElement.querySelector('.marker.high');
+    this.rangeJoin = this.zoneElement.querySelector('.join');
+    this.rangeCurrent = this.zoneElement.querySelector('.current');
+    this.octaveSelectors = this.zoneElement.querySelectorAll('.octselect');
+    this.ccPots = this.zoneElement.querySelectorAll('.ccpots');
     this.isReady = true;
   }
 
@@ -1013,9 +1029,7 @@ class ZoneElements {
   #getCachedElement(selector) {
     if (!this.#cachedElements[selector]) {
       this.#cachedElements[selector] = this.zoneElement.querySelector(selector);
-      console.log(selector);
     }
-    // console.log(selector, this.#cachedElements[selector]);
     return this.#cachedElements[selector];
   }
 
