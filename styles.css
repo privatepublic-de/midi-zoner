@@ -489,9 +489,9 @@ input:focus-visible {
   box-shadow: none;
   /* background-image: none; */
   background-image: linear-gradient(
-    #00000000 0%,
-    #00000000 67%,
-    color(from var(--zone-color) srgb r g b / 0.2) 100%
+    color(from var(--zone-color) srgb r g b / 0.2) 0%,
+    #00000000 50%,
+    #00000000 100%
   );
   background-color: var(--bg-zone-disabled);
   --bg-color: var(--bg-zone-disabled);
