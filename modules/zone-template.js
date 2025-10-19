@@ -84,6 +84,18 @@ module.exports = {
         i + 1
       }</div>`;
     }
+    let drumLanes = '';
+    for (let ln = 0; ln < 8; ln++) {
+      drumLanes += `<div class="drum-lane"><div class="val"><input type="number" min="0" max="127" title="Note number" value="${
+        36 + ln
+      }" data-change="${index}:seq_drumlane_note:${ln}"/></div>`;
+      for (let i = 0; i < Zone.Sequence.MAX_STEPS_DRUMS; i++) {
+        drumLanes += `<div class="step" data-action="${index}:seq_drumstep_select" data-lane-index="${ln}" data-step-index="${i}">${
+          i + 1
+        }</div>`;
+      }
+      drumLanes += '</div>';
+    }
     const zoneMuteKeyboardHint =
       index < 10 ? `('${(index + 1) % 10}' on computer keyboard)` : '';
     return interpolateTemplate(templateZone, {
@@ -92,6 +104,7 @@ module.exports = {
       zoneMuteKeyboardHint: zoneMuteKeyboardHint,
       channelselector: channelselector,
       sequencerGrid: sequencerGrid,
+      drumLanes: drumLanes,
       seqMaxSteps: Sequence.MAX_STEPS,
       cycleConditions: cycleConditions,
       checkboxIcons: checkboxIcons,

@@ -555,6 +555,18 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       sequence.length = v;
       updateValuesForZone(zoneindex);
     },
+    seq_drumlane_note: () => {
+      const laneNo = parseInt(params[2]);
+      sequence.getDrumLane(laneNo).note = parseInt(element.value);
+      console.log(sequence.getDrumLane(laneNo));
+      updateValuesForZone(zoneindex);
+    },
+    seq_drumstep_select: () => {
+      const lane = parseInt(element.dataset.laneIndex);
+      const stepNo = parseInt(element.dataset.stepIndex);
+      sequence.toggleDrumStep(lane, stepNo);
+      updateValuesForZone(zoneindex);
+    },
     seq_step_length: () => {
       const v = parseInt(element.value);
       sequence.selectedStepNumbers.forEach((n) => {
@@ -882,6 +894,14 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
         sequence.isLiveRecoding
           ? 'Live recording enabled!'
           : 'Stopped live recording'
+      );
+    },
+    seq_drum_tracks: () => {
+      sequence.clearSelection();
+      sequence.isDrumSequence = !sequence.isDrumSequence;
+      updateValuesForZone(zoneindex);
+      toast(
+        sequence.isDrumSequence ? 'Drum sequence mode' : 'Note sequence mode'
       );
     },
     output_config_name: () => {
@@ -1463,94 +1483,124 @@ function updateValuesForZone(index) {
     if (sequence.active) {
       DOM.addClass(zoneElement, 'show-seq');
       DOM.hide(zone.elements.sequencerProgressElement);
-      DOM.removeClass(
-        zone.elements.sequencerGridStepElements,
-        'selected-step',
-        'activelength'
-      );
-      zone.elements.sequencerGridStepElements.forEach((e, i) => {
-        if (i < sequence.length) {
-          DOM.removeClass(e, 'unused');
-          if (sequence.selectedStepNumbers.has(i)) {
-            DOM.addClass(e, 'selected');
-          } else {
-            DOM.removeClass(e, 'selected');
-          }
-          if (
-            (sequence.steps[i] && sequence.steps[i].length > 0) ||
-            sequence.liveTargetStepNumber == i
+      DOM.switchClass(zoneElement, sequence.isDrumSequence, 'drumSequencer');
+      if (sequence.isDrumSequence) {
+        for (let laneIndex = 0; laneIndex < 8; laneIndex++) {
+          DOM.get(
+            `input[data-change="${index}:seq_drumlane_note:${laneIndex}"]`
+          ).value = sequence.getDrumLane(laneIndex).note;
+          for (
+            let stepIndex = 0;
+            stepIndex < Sequence.MAX_STEPS_DRUMS;
+            stepIndex++
           ) {
-            DOM.addClass(e, 'active');
-          } else {
-            DOM.removeClass(e, 'active');
-          }
-        } else {
-          DOM.addClass(e, 'unused');
-        }
-      });
-      DOM.switchClass(zoneElement, sequence.isLiveRecoding, 'liveRecording');
-      if (sequence.hasSelection) {
-        DOM.addClass(zone.elements.sequencerElement, 'has-selection');
-        if (sequence.selectedStepNumbers.size > 1) {
-          DOM.addClass(zone.elements.sequencerElement, 'multi-selection');
-        }
-        if (sequence.stepAddNotes) {
-          zone._$('.seq-step-add-notes').classList.add('selected');
-          // DOM.addClass(`#zone${index} .seq-step-add-notes`, 'selected');
-        }
-        if (sequence.stepAdvance) {
-          zone._$('.seq-step-advance').classList.add('selected');
-          // DOM.addClass(`#zone${index} .seq-step-advance`, 'selected');
-        }
-        let step = sequence.selectedStep;
-        if (step && step.length > 0) {
-          zone.elements.setPercentage(
-            '.seq_step_probability',
-            parseInt(step.probability * 100),
-            index
-          );
-          zone.elements.setPercentage(
-            '.seq_gatelength',
-            parseInt(step.gateLength * 100),
-            index
-          );
-          zone.elements.setSelectedIndex('.seq_step_condition', step.condition);
-          zone._$('.seq_step_length').value = step.length;
-        } else {
-          if (sequence.selectedStepNumbers.size == 1) {
-            zone._$('.seq_step_length').value = 1;
-            zone.elements.setSelectedIndex('.seq_step_condition', 0);
-            zone.elements.setPercentage('.seq_step_probability', 100, index);
-            zone.elements.setPercentage('.seq_gatelength', 100, index);
-          }
-        }
-        // mark selected step lengths
-        sequence.selectedStepNumbers.forEach((n) => {
-          const selectedIndex = n;
-          const step = sequence.steps[selectedIndex];
-          if (step && step.length > 0) {
-            const length = step.length;
-            const overlapLength =
-              selectedIndex + length > sequence.length
-                ? (selectedIndex + length) % sequence.length
-                : -1;
-            zone.elements.sequencerGridStepElements.forEach((e, i) => {
-              if (
-                (i > selectedIndex && i < selectedIndex + length) ||
-                i < overlapLength
-              ) {
-                DOM.addClass(e, 'activelength');
+            const stepElement =
+              zone.elements.sequencerDrumLanes[laneIndex][stepIndex];
+            if (stepIndex < sequence.length) {
+              DOM.removeClass(stepElement, 'unused');
+              if (sequence.hasDrumStep(laneIndex, stepIndex)) {
+                DOM.addClass(stepElement, 'active');
+              } else {
+                DOM.removeClass(stepElement, 'active');
               }
-            });
+            } else {
+              DOM.addClass(stepElement, 'unused');
+            }
           }
-        });
-        sequence.updateRecordingState();
+        }
       } else {
         DOM.removeClass(
-          zone.elements.sequencerElement,
-          'has-selection',
-          'multi-selection'
+          zone.elements.sequencerGridStepElements,
+          'selected-step',
+          'activelength'
         );
+        zone.elements.sequencerGridStepElements.forEach((stepElement, i) => {
+          if (i < sequence.length) {
+            DOM.removeClass(stepElement, 'unused');
+            if (sequence.selectedStepNumbers.has(i)) {
+              DOM.addClass(stepElement, 'selected');
+            } else {
+              DOM.removeClass(stepElement, 'selected');
+            }
+            if (
+              (sequence.steps[i] && sequence.steps[i].length > 0) ||
+              sequence.liveTargetStepNumber == i
+            ) {
+              DOM.addClass(stepElement, 'active');
+            } else {
+              DOM.removeClass(stepElement, 'active');
+            }
+          } else {
+            DOM.addClass(stepElement, 'unused');
+          }
+        });
+        DOM.switchClass(zoneElement, sequence.isLiveRecoding, 'liveRecording');
+        if (sequence.hasSelection) {
+          DOM.addClass(zone.elements.sequencerElement, 'has-selection');
+          if (sequence.selectedStepNumbers.size > 1) {
+            DOM.addClass(zone.elements.sequencerElement, 'multi-selection');
+          }
+          if (sequence.stepAddNotes) {
+            zone._$('.seq-step-add-notes').classList.add('selected');
+            // DOM.addClass(`#zone${index} .seq-step-add-notes`, 'selected');
+          }
+          if (sequence.stepAdvance) {
+            zone._$('.seq-step-advance').classList.add('selected');
+            // DOM.addClass(`#zone${index} .seq-step-advance`, 'selected');
+          }
+          let step = sequence.selectedStep;
+          if (step && step.length > 0) {
+            zone.elements.setPercentage(
+              '.seq_step_probability',
+              parseInt(step.probability * 100),
+              index
+            );
+            zone.elements.setPercentage(
+              '.seq_gatelength',
+              parseInt(step.gateLength * 100),
+              index
+            );
+            zone.elements.setSelectedIndex(
+              '.seq_step_condition',
+              step.condition
+            );
+            zone._$('.seq_step_length').value = step.length;
+          } else {
+            if (sequence.selectedStepNumbers.size == 1) {
+              zone._$('.seq_step_length').value = 1;
+              zone.elements.setSelectedIndex('.seq_step_condition', 0);
+              zone.elements.setPercentage('.seq_step_probability', 100, index);
+              zone.elements.setPercentage('.seq_gatelength', 100, index);
+            }
+          }
+          // mark selected step lengths
+          sequence.selectedStepNumbers.forEach((n) => {
+            const selectedIndex = n;
+            const step = sequence.steps[selectedIndex];
+            if (step && step.length > 0) {
+              const length = step.length;
+              const overlapLength =
+                selectedIndex + length > sequence.length
+                  ? (selectedIndex + length) % sequence.length
+                  : -1;
+              zone.elements.sequencerGridStepElements.forEach((e, i) => {
+                if (
+                  (i > selectedIndex && i < selectedIndex + length) ||
+                  i < overlapLength
+                ) {
+                  DOM.addClass(e, 'activelength');
+                }
+              });
+            }
+          });
+          sequence.updateRecordingState();
+        } else {
+          DOM.removeClass(
+            zone.elements.sequencerElement,
+            'has-selection',
+            'multi-selection'
+          );
+        }
       }
       zone._$('.seq_steps').value = sequence.length;
       zone.elements.setSelectedIndex('.seq_division', sequence.division);

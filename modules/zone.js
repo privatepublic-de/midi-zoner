@@ -675,22 +675,46 @@ class Zone {
 
   renderSequence() {
     if (this.sequence.active && this.elements.isReady) {
-      if (this.sequence.previousStepNumber > -1) {
-        this.elements.sequencerGridStepElements[
-          this.sequence.previousStepNumber
-        ].classList.remove('playhead');
-      }
-      if (this.sequence.currentStepNumber > -1) {
-        this.elements.sequencerGridStepElements[
-          this.sequence.currentStepNumber
-        ].classList.add('playhead');
-      } else if (
-        this.sequence.previousStepNumber == -1 &&
-        this.sequence.currentStepNumber == -1
-      ) {
-        this.elements.sequencerGridStepElements.forEach((e) => {
-          e.classList.remove('playhead');
-        });
+      if (this.sequence.isDrumSequence) {
+        if (this.sequence.previousStepNumber > -1) {
+          this.elements.sequencerDrumLanes.forEach((dl) => {
+            dl[this.sequence.previousStepNumber].classList.remove('playhead');
+          });
+        }
+        if (this.sequence.currentStepNumber > -1) {
+          this.elements.sequencerDrumLanes.forEach((dl) => {
+            dl[this.sequence.currentStepNumber].classList.add('playhead');
+          });
+          this.elements.sequencerDrumLanes[0][
+            this.sequence.currentStepNumber
+          ].scrollIntoView({ inline: 'center' });
+        } else if (
+          this.sequence.previousStepNumber == -1 &&
+          this.sequence.currentStepNumber == -1
+        ) {
+          this.elements.sequencerDrumStepElements.forEach((e) => {
+            e.classList.remove('playhead');
+          });
+          this.elements.sequencerDrumLanes[0][0].scrollIntoView();
+        }
+      } else {
+        if (this.sequence.previousStepNumber > -1) {
+          this.elements.sequencerGridStepElements[
+            this.sequence.previousStepNumber
+          ].classList.remove('playhead');
+        }
+        if (this.sequence.currentStepNumber > -1) {
+          this.elements.sequencerGridStepElements[
+            this.sequence.currentStepNumber
+          ].classList.add('playhead');
+        } else if (
+          this.sequence.previousStepNumber == -1 &&
+          this.sequence.currentStepNumber == -1
+        ) {
+          this.elements.sequencerGridStepElements.forEach((e) => {
+            e.classList.remove('playhead');
+          });
+        }
       }
     } else {
       if (
@@ -978,6 +1002,8 @@ class ZoneElements {
   patternCanvas;
   sequencerElement;
   sequencerGridStepElements;
+  sequencerDrumStepElements;
+  sequencerDrumLanes;
   sequencerProgressElement;
   sequencerProgressElementInner;
   rangeContainer;
@@ -1004,8 +1030,16 @@ class ZoneElements {
     this.sequencerProgressElementInner = this.zoneElement.querySelector(
       '.seqprogress .inner'
     );
-    this.sequencerGridStepElements =
-      this.zoneElement.querySelectorAll('.seq .grid .step');
+    this.sequencerGridStepElements = this.zoneElement.querySelectorAll(
+      '.seq .grid .step-container .step'
+    );
+    this.sequencerDrumStepElements = this.zoneElement.querySelectorAll(
+      '.seq .grid .drum-step-container .step'
+    );
+    this.sequencerDrumLanes = [];
+    this.zoneElement.querySelectorAll('.drum-lane').forEach((dl) => {
+      this.sequencerDrumLanes.push(dl.querySelectorAll('.step'));
+    });
     this.rangeContainer = this.zoneElement.querySelector('.range');
     this.rangeOctaveElements = this.zoneElement.querySelectorAll('.range .oct');
     this.rangeMarkerLow = this.zoneElement.querySelector('.marker.low');
@@ -1092,24 +1126,32 @@ class SeqStep {
   }
 }
 
+class DrumLane {
+  steps = [];
+  note = 36;
+}
+
 class SeqLayer {
   steps = [];
   division = 14;
   ticks = DIV_TICKS[this.division];
   length = 16;
+  drum_lanes = [];
 
   toJSON() {
     return {
       steps: this.steps,
       length: this.length,
       ticks: this.ticks,
-      division: this.division
+      division: this.division,
+      drum_lanes: this.drum_lanes
     };
   }
 }
 
 class Sequence {
   static MAX_STEPS = 256;
+  static MAX_STEPS_DRUMS = 64;
   static CYCLE_CONDITIONS = [];
   static ACTIVE_LAYER_INDEX = 0;
   static NEXT_LAYER_INDEX = 0;
@@ -1129,6 +1171,7 @@ class Sequence {
   _selectedStep = -1;
   isHotRecordingNotes = false;
   isLiveRecoding = false;
+  isDrumSequence = false;
   activeSteps = [];
   rngProb = seedrandom();
   cycleCount = -1;
@@ -1152,7 +1195,8 @@ class Sequence {
   toJSON() {
     return {
       active: this.active,
-      layers: this.layers
+      layers: this.layers,
+      isDrumSequence: this.isDrumSequence
     };
   }
 
@@ -1417,33 +1461,43 @@ class Sequence {
         }
       }
       if (this.active) {
-        const currentStep = this.steps[this.currentStepNumber];
-        if (this.active && currentStep) {
-          if (
-            this.checkCondition(currentStep) &&
-            this.rngProb() < currentStep.probability
-          ) {
-            currentStep.played = 0;
-            this.activeSteps.push(currentStep);
-            for (let inote of currentStep.notesArray) {
-              let note = Note.clone(inote);
-              note.number = note.number; // + this.zone.octave * 12;
-              note.channel = this.zone.channel;
-              note.portId = this.zone.outputPortId;
-              this.zone.handleMidi(
-                MIDI.MESSAGE.NOTE_ON,
-                Uint8Array.from([
-                  MIDI.MESSAGE.NOTE_ON + note.channel,
-                  note.number,
-                  note.velo
-                ]),
-                true
-              );
-              currentStep.lastPlayedArray.push(note);
+        const currentStepList = [];
+        if (this.isDrumSequence) {
+          for (let lane of this.activeLayer.drum_lanes) {
+            currentStepList.push(lane?.steps[this.currentStepNumber]);
+          }
+        } else {
+          currentStepList.push(this.steps[this.currentStepNumber]);
+        }
+        for (const currentStep of currentStepList) {
+          //const currentStep = this.steps[this.currentStepNumber];
+          if (currentStep) {
+            if (
+              this.checkCondition(currentStep) &&
+              this.rngProb() < currentStep.probability
+            ) {
+              currentStep.played = 0;
+              this.activeSteps.push(currentStep);
+              for (let inote of currentStep.notesArray) {
+                let note = Note.clone(inote);
+                note.number = note.number; // + this.zone.octave * 12;
+                note.channel = this.zone.channel;
+                note.portId = this.zone.outputPortId;
+                this.zone.handleMidi(
+                  MIDI.MESSAGE.NOTE_ON,
+                  Uint8Array.from([
+                    MIDI.MESSAGE.NOTE_ON + note.channel,
+                    note.number,
+                    note.velo
+                  ]),
+                  true
+                );
+                currentStep.lastPlayedArray.push(note);
+              }
+              this.previousStepPlayed = true;
+            } else {
+              this.previousStepPlayed = false;
             }
-            this.previousStepPlayed = true;
-          } else {
-            this.previousStepPlayed = false;
           }
         }
       }
@@ -1542,6 +1596,30 @@ class Sequence {
       }
     }
   }
+
+  getDrumLane(lane) {
+    if (this.activeLayer.drum_lanes[lane] == null) {
+      this.activeLayer.drum_lanes[lane] = new DrumLane();
+    }
+    return this.activeLayer.drum_lanes[lane];
+  }
+
+  toggleDrumStep(lane, stepNo) {
+    console.log('toggleDrumStep', lane, stepNo);
+    const drumLane = this.getDrumLane(lane);
+    if (drumLane.steps[stepNo] == null) {
+      const step = new SeqStep();
+      step.notesArray.push(new Note(drumLane.note, 96));
+      drumLane.steps[stepNo] = step;
+    } else {
+      drumLane.steps[stepNo] = null;
+    }
+    console.log('toggleDrumStep', drumLane);
+  }
+
+  hasDrumStep(lane, stepNo) {
+    return this.getDrumLane(lane).steps[stepNo] != null;
+  }
 }
 
 if (Sequence.CYCLE_CONDITIONS.length == 0) {
@@ -1560,5 +1638,6 @@ if (Sequence.CYCLE_CONDITIONS.length == 0) {
 module.exports = {
   Zone,
   Sequence,
+  SeqLayer,
   ZoneElements
 };

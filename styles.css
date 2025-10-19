@@ -4,7 +4,7 @@
   --text-contextmenu-color: #f0f6f8;
   --bg-window: #171717;
   --fg-window: #ddd;
-  --scrollbar: #383838;
+  --scrollbar: #ffffff30;
   --bg-topbar: #202020;
   --bg-topbar-transparent: #2020209f;
   --shadow-topbar: #000000;
@@ -189,6 +189,7 @@ select {
 ::-webkit-scrollbar {
   background-color: transparent;
   width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-thumb:window-inactive,
@@ -429,6 +430,7 @@ input:focus-visible {
 }
 
 .zone {
+  --scrollbar: #ffffff40;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -1994,4 +1996,38 @@ input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
+}
+
+.drumSequencer {
+  .seq_drum_tracks {
+    background-color: var(--brighter-2);
+    color: var(--text-base-color);
+  }
+  .step-container {
+    display: none;
+  }
+  .grid {
+    width: 100%;
+    overflow-x: auto;
+  }
+  .drum-step-container {
+    display: flex;
+    flex-direction: column;
+  }
+  .drum-lane {
+    display: flex;
+    align-items: center;
+  }
+  .drum-lane .val {
+    margin-right: 5px;
+  }
+  .seq .grid .step.playhead {
+    outline: none;
+    border-left-color: var(--brighter-4);
+    border-right-color: var(--brighter-4);
+  }
+}
+
+.drum-step-container {
+  display: none;
 }
