@@ -676,6 +676,14 @@ class Zone {
   renderSequence() {
     if (this.sequence.active && this.elements.isReady) {
       if (this.sequence.isDrumSequence) {
+        const progressPercent =
+          this.sequence.currentStepNumber / this.sequence.activeLayer.length;
+        this.elements.sequencerGridElement.scrollTo(
+          (this.elements.sequencerGridElement.scrollWidth -
+            this.elements.sequencerGridElement.offsetWidth * 0.75) *
+            progressPercent,
+          0
+        );
         if (this.sequence.previousStepNumber > -1) {
           this.elements.sequencerDrumLanes.forEach((dl) => {
             dl[this.sequence.previousStepNumber].classList.remove('playhead');
@@ -685,9 +693,10 @@ class Zone {
           this.elements.sequencerDrumLanes.forEach((dl) => {
             dl[this.sequence.currentStepNumber].classList.add('playhead');
           });
-          this.elements.sequencerDrumLanes[0][
-            this.sequence.currentStepNumber
-          ].scrollIntoView({ inline: 'center' });
+          // TODO container nearest doesn't work - fix with scrollby
+          // this.elements.sequencerDrumLanes[0][
+          //   this.sequence.currentStepNumber
+          // ].scrollIntoView({ inline: 'center', container: 'nearest' });
         } else if (
           this.sequence.previousStepNumber == -1 &&
           this.sequence.currentStepNumber == -1
@@ -695,7 +704,9 @@ class Zone {
           this.elements.sequencerDrumStepElements.forEach((e) => {
             e.classList.remove('playhead');
           });
-          this.elements.sequencerDrumLanes[0][0].scrollIntoView();
+          // this.elements.sequencerDrumLanes[0][0].scrollIntoView({
+          //   container: 'nearest'
+          // });
         }
       } else {
         if (this.sequence.previousStepNumber > -1) {
@@ -1001,6 +1012,7 @@ class ZoneElements {
   canvasElement;
   patternCanvas;
   sequencerElement;
+  sequencerGridElement;
   sequencerGridStepElements;
   sequencerDrumStepElements;
   sequencerDrumLanes;
@@ -1025,6 +1037,7 @@ class ZoneElements {
       `#canvasPattern${index}`
     );
     this.sequencerElement = this.zoneElement.querySelector('.seq');
+    this.sequencerGridElement = this.zoneElement.querySelector('.grid');
     this.sequencerProgressElement =
       this.zoneElement.querySelector('.seqprogress');
     this.sequencerProgressElementInner = this.zoneElement.querySelector(
@@ -1070,6 +1083,8 @@ class ZoneElements {
   addSelectedStyle(selector, isSelected) {
     if (isSelected) {
       this.#getCachedElement(selector).classList.add('selected');
+    } else {
+      this.#getCachedElement(selector).classList.remove('selected');
     }
   }
 
@@ -1129,6 +1144,7 @@ class SeqStep {
 class DrumLane {
   steps = [];
   note = 36;
+  enabled = true;
 }
 
 class SeqLayer {
@@ -1162,6 +1178,14 @@ class Sequence {
     Sequence.LAYER_QUANT_TICKS = DIV_TICKS[index];
   }
 
+  static getIdForDrumStep(laneIndex, stepIndex) {
+    return (laneIndex + 1) * 512 + stepIndex;
+  }
+
+  static getLaneAndStepIndexForDrumStepId(drumStepId) {
+    return [parseInt(drumStepId / 512) - 1, drumStepId & 511];
+  }
+
   _active = false;
   layers = [new SeqLayer(), new SeqLayer(), new SeqLayer(), new SeqLayer()];
   selectedStepNumbers = new Set();
@@ -1172,6 +1196,7 @@ class Sequence {
   isHotRecordingNotes = false;
   isLiveRecoding = false;
   isDrumSequence = false;
+  drumLanes = 8;
   activeSteps = [];
   rngProb = seedrandom();
   cycleCount = -1;
@@ -1196,7 +1221,8 @@ class Sequence {
     return {
       active: this.active,
       layers: this.layers,
-      isDrumSequence: this.isDrumSequence
+      isDrumSequence: this.isDrumSequence,
+      drumLanes: this.drumLanes
     };
   }
 
@@ -1280,9 +1306,34 @@ class Sequence {
   }
 
   get selectedStep() {
-    return this.selectedStepNumber > -1
-      ? this.steps[this.selectedStepNumber]
-      : null;
+    if (this.selectedStepNumber > -1) {
+      if (this.isDrumSequence) {
+        let laneIndex, stepIndex;
+        [laneIndex, stepIndex] = Sequence.getLaneAndStepIndexForDrumStepId(
+          this.selectedStepNumber
+        );
+        return this.activeLayer.drum_lanes[laneIndex]?.steps[stepIndex];
+      } else {
+        return this.steps[this.selectedStepNumber];
+      }
+    }
+    return null;
+  }
+
+  get selectedSteps() {
+    const result = [];
+    this.selectedStepNumbers.forEach((sn) => {
+      let step;
+      if (this.isDrumSequence) {
+        let laneIndex, stepIndex;
+        [laneIndex, stepIndex] = Sequence.getLaneAndStepIndexForDrumStepId(sn);
+        step = this.activeLayer.drum_lanes[laneIndex]?.steps[stepIndex];
+      } else {
+        step = this.steps[sn];
+      }
+      result.push(step);
+    });
+    return result;
   }
 
   get hasSelection() {
@@ -1290,7 +1341,13 @@ class Sequence {
   }
 
   isStepEmpty(index) {
-    return this.steps[index] == null || this.steps[index].length === 0;
+    if (this.isDrumSequence) {
+      let lindex, sindex;
+      [lindex, sindex] = Sequence.getLaneAndStepIndexForDrumStepId(index);
+      return this.activeLayer.drum_lanes[lindex]?.steps[sindex] == null;
+    } else {
+      return this.steps[index] == null || this.steps[index].length === 0;
+    }
   }
 
   isStepUsed(index) {
@@ -1373,10 +1430,16 @@ class Sequence {
       (() => {
         if (this.hasSelection) {
           if (this.selectedStepNumber > -1) {
-            const notesArray = this.steps[this.selectedStepNumber]
-              ? this.steps[this.selectedStepNumber].notesArray
-              : null;
-            this.zone._$('.stepmarker').innerHTML = this.selectedStepNumber + 1;
+            const notesArray = this.selectedStep?.notesArray;
+            if (this.isDrumSequence) {
+              this.zone._$('.stepmarker').innerHTML =
+                Sequence.getLaneAndStepIndexForDrumStepId(
+                  this.selectedStepNumber
+                )[1] + 1;
+            } else {
+              this.zone._$('.stepmarker').innerHTML =
+                this.selectedStepNumber + 1;
+            }
             let infoText = '';
             if (notesArray && notesArray.length > 0) {
               notesArray.forEach((note) => {
@@ -1463,14 +1526,22 @@ class Sequence {
       if (this.active) {
         const currentStepList = [];
         if (this.isDrumSequence) {
-          for (let lane of this.activeLayer.drum_lanes) {
-            currentStepList.push(lane?.steps[this.currentStepNumber]);
+          for (let ln = 0; ln < this.drumLanes; ln++) {
+            const lane = this.activeLayer.drum_lanes[ln];
+            if (!lane.enabled) {
+              continue;
+            }
+            const step = lane?.steps[this.currentStepNumber];
+            if (step != null && step.notesArray.length > 0) {
+              // change note number to lane note number
+              step.notesArray[0].number = lane.note;
+            }
+            currentStepList.push(step);
           }
         } else {
           currentStepList.push(this.steps[this.currentStepNumber]);
         }
         for (const currentStep of currentStepList) {
-          //const currentStep = this.steps[this.currentStepNumber];
           if (currentStep) {
             if (
               this.checkCondition(currentStep) &&
@@ -1480,7 +1551,6 @@ class Sequence {
               this.activeSteps.push(currentStep);
               for (let inote of currentStep.notesArray) {
                 let note = Note.clone(inote);
-                note.number = note.number; // + this.zone.octave * 12;
                 note.channel = this.zone.channel;
                 note.portId = this.zone.outputPortId;
                 this.zone.handleMidi(
@@ -1579,22 +1649,20 @@ class Sequence {
   }
 
   velocityMediumSelectedStep() {
+    let medium = 0;
     if (
       this.selectedStepNumber > -1 &&
       this.selectedStep &&
       this.selectedStep.notesArray
     ) {
-      if (this.selectedStep.notesArray.length > 1) {
-        let medium = 0;
+      if (this.selectedStep.notesArray.length > 0) {
         this.selectedStep.notesArray.forEach((note) => {
           medium += note.velo;
         });
         medium = parseInt(medium / this.selectedStep.notesArray.length);
-        this.selectedStep.notesArray.forEach((note) => {
-          note.velo = medium;
-        });
       }
     }
+    return medium / 127;
   }
 
   getDrumLane(lane) {
@@ -1604,17 +1672,14 @@ class Sequence {
     return this.activeLayer.drum_lanes[lane];
   }
 
-  toggleDrumStep(lane, stepNo) {
-    console.log('toggleDrumStep', lane, stepNo);
+  turnOnDrumStep(lane, stepNo) {
+    console.log('turnOnDrumStep', lane, stepNo);
     const drumLane = this.getDrumLane(lane);
     if (drumLane.steps[stepNo] == null) {
       const step = new SeqStep();
       step.notesArray.push(new Note(drumLane.note, 96));
       drumLane.steps[stepNo] = step;
-    } else {
-      drumLane.steps[stepNo] = null;
     }
-    console.log('toggleDrumStep', drumLane);
   }
 
   hasDrumStep(lane, stepNo) {
@@ -1636,6 +1701,7 @@ if (Sequence.CYCLE_CONDITIONS.length == 0) {
 }
 
 module.exports = {
+  Note,
   Zone,
   Sequence,
   SeqLayer,

@@ -1458,7 +1458,6 @@ li {
   font-size: 0.85em;
   text-align: center;
   cursor: pointer;
-  transition: background-color 200ms ease-out;
 }
 
 .step-info .stepmarker {
@@ -1504,14 +1503,21 @@ li {
 } */
 
 .seq .grid .step.playhead {
-  outline: 2px solid var(--brighter-4);
+  /* outline: 2px solid var(--brighter-4); */
+  background-color: var(--brighter-0) !important;
 }
 
-.disabled .seq .grid .step.playhead {
+.seq .grid .step.playhead.active,
+.disabled .seq .grid .step.playhead.active {
+  background-color: var(--brighter-3) !important;
+}
+
+/* .disabled .seq .grid .step.playhead {
   outline-width: 1px;
-}
+} */
 
-.seq .grid .step.unused {
+.seq .grid .step.unused,
+.seq .grid .drum-lane.unused {
   display: none;
 }
 
@@ -1532,7 +1538,7 @@ li {
 }
 
 .seq .grid .dragselect .step {
-  cursor: cell;
+  cursor: copy;
 }
 
 .seq .grid .step.activelength {
@@ -1557,11 +1563,13 @@ li {
   }
 }
 
-.seq .grid .step:nth-child(4n + 1) {
-  box-shadow: 0.5px 0.5px 1px inset var(--darker-4);
+.seq .grid .step-container .step:nth-child(4n + 1),
+.seq .grid .drum-step-container .step:nth-child(4n + 3) {
+  box-shadow: 0 0 3px var(--darker-4);
 }
 
-.disabled .seq .grid .step:nth-child(4n + 1) {
+.disabled .seq .grid .step-container .step:nth-child(4n + 1),
+.disabled .seq .grid .drum-step-container .step:nth-child(4n + 2) {
   box-shadow: none;
 }
 
@@ -1632,13 +1640,8 @@ li {
   gap: 2px;
   flex-grow: 1;
   padding: 2px;
-  cursor: ew-resize;
   min-height: 26px;
   font-size: 0.85em;
-}
-
-.step-notes:hover {
-  outline: 2px solid var(--darker-1);
 }
 
 .step-notes i {
@@ -2021,13 +2024,31 @@ input::-webkit-inner-spin-button {
   .drum-lane .val {
     margin-right: 5px;
   }
-  .seq .grid .step.playhead {
-    outline: none;
-    border-left-color: var(--brighter-4);
-    border-right-color: var(--brighter-4);
+  .drum-lane.disabled {
+    opacity: 0.33;
+  }
+  .hide-for-drumsequence {
+    visibility: hidden;
+  }
+  .only-for-drumsequence {
+    display: flex;
+  }
+  .dismiss-for-drumsequence {
+    display: none;
   }
 }
 
 .drum-step-container {
+  display: none;
+}
+
+.drumSequencer.disabled {
+  .drum-lane .val,
+  .drum-lane .action {
+    display: none;
+  }
+}
+
+.only-for-drumsequence {
   display: none;
 }

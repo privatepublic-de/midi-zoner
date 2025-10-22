@@ -74,7 +74,7 @@
         <i class="material-icons">palette</i>
       </div>
       <div class="dragzone rtool" title="Drag zone">
-        <i class="material-icons">swap_vert</i>
+        <i class="material-icons">drag_indicator</i>
       </div>
       <div
         class="delzone rtool"
@@ -107,6 +107,19 @@
           tabindex="-1"
         />
       </div>
+      <div class="label only-for-drumsequence">Lanes</div>
+      <div class="val only-for-drumsequence">
+        <input
+          title="Number of lanes in sequence"
+          class="seq_lanes"
+          type="number"
+          min="1"
+          max="8"
+          value="8"
+          data-change="${index}:seq_drum_lanes"
+          tabindex="-1"
+        />
+      </div>
       <div class="drop-down" title="Step resolution">
         <select
           class="seq_division"
@@ -130,7 +143,10 @@
       >
         <i class="material-icons">chevron_right</i>
       </div>
-      <div class="drop-down" title="Transpose whole sequence or selected steps">
+      <div
+        class="drop-down dismiss-for-drumsequence"
+        title="Transpose whole sequence or selected steps"
+      >
         <select
           class="seq_transpose"
           data-change="${index}:seq_transpose"
@@ -188,7 +204,7 @@
         <i class="material-icons">playlist_remove</i>
       </div>
       <div
-        class="action seq_record_live"
+        class="action seq_record_live dismiss-for-drumsequence"
         title="Live recording while sequence is playing"
         data-action="${index}:seq_record_live"
       >
@@ -204,18 +220,26 @@
     <div class="step-info popup" data-action="${index}:ignore">
       <div class="step-controls">
         <div class="stepmarker listen-indicator"></div>
-        <div
-          class="step-notes"
-          data-dragvalue="${index}:seq_step_velocity"
-          data-draghint="Velocity: "
-          data-dblclickaction="${index}:seq_step_velocity_medium"
-          title="Drag with mouse to change velocity values, doubleclick to make equal"
-        ></div>
+        <div class="step-notes"></div>
+        <div class="label">Velocity</div>
+        <div class="percent-holder">
+          <input
+            class="percent seq_step_velocity"
+            type="range"
+            min="1"
+            max="100"
+            data-change="${index}:seq_step_velocity"
+            id="seq_step_velocity${index}"
+            title="Velocity"
+            tabindex="-1"
+          />
+          <output for="seq_step_velocity${index}">(unset)</output>
+        </div>
       </div>
       <div class="step-controls">
-        <div class="label">Length</div>
+        <div class="label hide-for-drumsequence">Length</div>
         <input
-          class="seq_step_length"
+          class="seq_step_length hide-for-drumsequence"
           type="number"
           min="1"
           max="${seqMaxSteps}"
@@ -283,7 +307,6 @@
         >
           <i class="material-icons">arrow_back</i>
         </div>
-
         <div
           class="action"
           title="Move step right (if free space)"
@@ -300,14 +323,14 @@
         </div>
         <div style="flex-grow: 1"></div>
         <div
-          class="check seq-step-add-notes"
+          class="check seq-step-add-notes hide-for-drumsequence"
           data-action="${index}:seq_step_add_notes"
           title="New notes are added (no overwrite)"
         >
           ${checkboxIcons}Add new notes
         </div>
         <div
-          class="check seq-step-advance"
+          class="check seq-step-advance hide-for-drumsequence"
           data-action="${index}:seq_step_advance"
           title="Advance step after note input"
         >
