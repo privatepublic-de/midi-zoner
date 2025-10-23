@@ -573,8 +573,8 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       updateValuesForZone(zoneindex);
     },
     seq_toggle_lane_enabled: () => {
-      sequence.activeLayer.drum_lanes[parseInt(params[2])].enabled =
-        !sequence.activeLayer.drum_lanes[parseInt(params[2])].enabled;
+      const dl = sequence.getDrumLane(parseInt(params[2]));
+      dl.enabled = !dl.enabled;
       updateValuesForZone(zoneindex);
     },
     seq_step_length: () => {
@@ -687,7 +687,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
             let laneIndex, stepIndex;
             [laneIndex, stepIndex] =
               Sequence.getLaneAndStepIndexForDrumStepId(n);
-            sequence.activeLayer.drum_lanes[laneIndex].steps[stepIndex] = null;
+            sequence.getDrumLane(laneIndex).steps[stepIndex] = null;
           } else {
             sequence.steps[n] = null;
           }
@@ -1522,7 +1522,7 @@ function updateValuesForZone(index) {
           } else {
             zone.elements.get(`.lane${laneIndex}`).classList.remove('unused');
           }
-          const isEnabled = sequence.activeLayer.drum_lanes[laneIndex].enabled;
+          const isEnabled = sequence.getDrumLane(laneIndex).enabled;
           if (isEnabled) {
             zone.elements.get(`.lane${laneIndex}`).classList.remove('disabled');
           } else {

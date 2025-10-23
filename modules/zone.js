@@ -1196,7 +1196,7 @@ class Sequence {
   isHotRecordingNotes = false;
   isLiveRecoding = false;
   isDrumSequence = false;
-  drumLanes = 8;
+  drumLanes = 4;
   activeSteps = [];
   rngProb = seedrandom();
   cycleCount = -1;
@@ -1312,7 +1312,7 @@ class Sequence {
         [laneIndex, stepIndex] = Sequence.getLaneAndStepIndexForDrumStepId(
           this.selectedStepNumber
         );
-        return this.activeLayer.drum_lanes[laneIndex]?.steps[stepIndex];
+        return this.getDrumLane(laneIndex)?.steps[stepIndex];
       } else {
         return this.steps[this.selectedStepNumber];
       }
@@ -1327,7 +1327,7 @@ class Sequence {
       if (this.isDrumSequence) {
         let laneIndex, stepIndex;
         [laneIndex, stepIndex] = Sequence.getLaneAndStepIndexForDrumStepId(sn);
-        step = this.activeLayer.drum_lanes[laneIndex]?.steps[stepIndex];
+        step = this.getDrumLane(laneIndex)?.steps[stepIndex];
       } else {
         step = this.steps[sn];
       }
@@ -1344,7 +1344,7 @@ class Sequence {
     if (this.isDrumSequence) {
       let lindex, sindex;
       [lindex, sindex] = Sequence.getLaneAndStepIndexForDrumStepId(index);
-      return this.activeLayer.drum_lanes[lindex]?.steps[sindex] == null;
+      return this.getDrumLane(lindex)?.steps[sindex] == null;
     } else {
       return this.steps[index] == null || this.steps[index].length === 0;
     }
@@ -1527,7 +1527,7 @@ class Sequence {
         const currentStepList = [];
         if (this.isDrumSequence) {
           for (let ln = 0; ln < this.drumLanes; ln++) {
-            const lane = this.activeLayer.drum_lanes[ln];
+            const lane = this.getDrumLane(ln);
             if (!lane.enabled) {
               continue;
             }
@@ -1667,7 +1667,9 @@ class Sequence {
 
   getDrumLane(lane) {
     if (this.activeLayer.drum_lanes[lane] == null) {
-      this.activeLayer.drum_lanes[lane] = new DrumLane();
+      const nl = new DrumLane();
+      nl.note = lane + 36;
+      this.activeLayer.drum_lanes[lane] = nl;
     }
     return this.activeLayer.drum_lanes[lane];
   }
