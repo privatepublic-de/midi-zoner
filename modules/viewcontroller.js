@@ -585,10 +585,20 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       updateValuesForZone(zoneindex);
     },
     seq_clear_all: () => {
-      sequence.steps.length = 0;
-      updateValuesForZone(zoneindex);
-      sequence.selectedStepNumber = sequence.selectedStepNumber;
-      toast('Sequence cleared');
+      if (sequence.isDrumSequence) {
+        for (let i = 0; i < 8; i++) {
+          const lane = sequence.getDrumLane(i);
+          lane.steps.length = 0;
+        }
+        updateValuesForZone(zoneindex);
+        sequence.selectedStepNumber = sequence.selectedStepNumber;
+        toast('Drum sequence lanes cleared');
+      } else {
+        sequence.steps.length = 0;
+        updateValuesForZone(zoneindex);
+        sequence.selectedStepNumber = sequence.selectedStepNumber;
+        toast('Sequence cleared');
+      }
     },
     seq_transpose: () => {
       const semitones = parseInt(element.options[element.selectedIndex].value);
