@@ -1502,12 +1502,7 @@ li {
   background-color: var(--zone-color);
 }
 
-/* .seq .grid .step:hover {
-  background-color: var(--brighter-0) !important;
-} */
-
 .seq .grid .step.playhead {
-  /* outline: 2px solid var(--brighter-4); */
   background-color: var(--brighter-0) !important;
 }
 
@@ -1515,10 +1510,6 @@ li {
 .disabled .seq .grid .step.playhead.active {
   background-color: var(--brighter-3) !important;
 }
-
-/* .disabled .seq .grid .step.playhead {
-  outline-width: 1px;
-} */
 
 .seq .grid .step.unused,
 .seq .grid .drum-lane.unused {
@@ -1538,7 +1529,6 @@ li {
 .seq .grid .step {
   position: relative;
   cursor: pointer;
-  /* overflow: hidden; */
 }
 
 .seq .grid .dragselect .step {
@@ -1567,11 +1557,13 @@ li {
   }
 }
 
-.seq .grid .step-container .step:nth-child(4n + 1),
-.seq .grid .drum-step-container .step:nth-child(4n + 3) {
-  /* box-shadow: 0 0 3px var(--darker-4); */
+.seq .grid .step-container .step:nth-child(4n + 1) {
   border-bottom: 2px solid var(--darker-4);
   height: calc(var(--step-size) + 1px);
+}
+
+.seq .grid .drum-step-container .step:nth-child(4n + 3) {
+  border-bottom: 1px solid var(--darker-4);
 }
 
 .disabled .seq .grid .step-container .step:nth-child(4n + 1),
@@ -2023,6 +2015,9 @@ input::-webkit-inner-spin-button {
   .drum-step-container {
     display: flex;
     flex-direction: column;
+  }
+  .seq .grid .step {
+    border-radius: 50%;
   }
   .drum-lane {
     display: flex;
