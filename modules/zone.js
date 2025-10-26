@@ -1675,7 +1675,6 @@ class Sequence {
   }
 
   turnOnDrumStep(lane, stepNo) {
-    console.log('turnOnDrumStep', lane, stepNo);
     const drumLane = this.getDrumLane(lane);
     if (drumLane.steps[stepNo] == null) {
       const step = new SeqStep();

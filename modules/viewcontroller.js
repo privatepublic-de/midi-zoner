@@ -106,12 +106,10 @@ function findTouchedNote(
   };
 }
 
-function actionHandler(/** @type {MouseEvent} */ ev, properties) {
-  const precalculatedValue = properties
-    ? properties.precalculatedValue
-    : undefined;
+function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
   const element = ev.currentTarget;
   let action =
+    overrideaction ||
     element.getAttribute('data-action') ||
     element.getAttribute('data-change') ||
     element.getAttribute('data-dragvalue');
@@ -676,15 +674,22 @@ function actionHandler(/** @type {MouseEvent} */ ev, properties) {
       }, 100);
     },
     seq_clear_step: () => {
-      // clear right clicked step
+      // clear right clicked or double clicked step
       if (params[2] != 'undefined') {
         const stepno = parseInt(params[2]);
-        if (sequence.selectedStepNumbers.has(stepno)) {
-          sequence.selectedStepNumbers.forEach((n) => {
-            sequence.steps[n] = null;
-          });
+        if (sequence.isDrumSequence) {
+          let laneIndex, stepIndex;
+          [laneIndex, stepIndex] =
+            Sequence.getLaneAndStepIndexForDrumStepId(stepno);
+          sequence.getDrumLane(laneIndex).steps[stepIndex] = null;
         } else {
-          sequence.steps[stepno] = null;
+          if (sequence.selectedStepNumbers.has(stepno)) {
+            sequence.selectedStepNumbers.forEach((n) => {
+              sequence.steps[n] = null;
+            });
+          } else {
+            sequence.steps[stepno] = null;
+          }
         }
         sequence.clearSelection();
         updateValuesForZone(zoneindex);
@@ -1106,6 +1111,9 @@ function dblClickHandler(ev) {
       zone.solo = true;
       updateValuesForAllZones();
       break;
+    case 'seq_clear_step':
+      actionHandler(ev, action);
+      break;
   }
   triggerSave();
 }
@@ -1288,10 +1296,9 @@ function appendZone(/** @type {Zone} */ zone, index) {
       e.select();
     });
   });
-  DOM.all(`#zone${index} .pattern, #zone${index} .ch.solo`).forEach((e) => {
-    e.addEventListener('dblclick', dblClickHandler);
-  });
-  DOM.all(`#zone${index} .step-notes`).forEach((e) => {
+  DOM.all(
+    `#zone${index} .pattern, #zone${index} .ch.solo,  #zone${index} .step[data-dblclickaction]`
+  ).forEach((e) => {
     e.addEventListener('dblclick', dblClickHandler);
   });
   let hideOnLeaveTimeout = null;
@@ -1546,9 +1553,9 @@ function updateValuesForZone(index) {
             `input[data-change="${index}:seq_drumlane_note:${laneIndex}"]`
           );
           numberElement.value = sequence.getDrumLane(laneIndex).note;
-          numberElement.title = Note.display(
-            sequence.getDrumLane(laneIndex).note
-          );
+          numberElement.title =
+            'Trigger note: ' +
+            Note.display(sequence.getDrumLane(laneIndex).note);
           for (
             let stepIndex = 0;
             stepIndex < Sequence.MAX_STEPS_DRUMS;
