@@ -2000,10 +2000,17 @@ input::-webkit-inner-spin-button {
   margin: 0;
 }
 
+.seq_drum_tracks::after {
+  content: 'Notes';
+}
+
 .drumSequencer {
   .seq_drum_tracks {
-    background-color: var(--brighter-2);
+    background-color: var(--brighter-1);
     color: var(--text-base-color);
+  }
+  .seq_drum_tracks::after {
+    content: 'Drums';
   }
   .step-container {
     display: none;
