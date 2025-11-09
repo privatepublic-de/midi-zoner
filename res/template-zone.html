@@ -261,21 +261,6 @@
           />
           <output for="seq_gatelength${index}">(unset)</output>
         </div>
-        <div class="label">Condition</div>
-        <div class="drop-down" title="Select step play condition">
-          <select
-            class="seq_step_condition"
-            data-change="${index}:seq_step_condition"
-            tabindex="-1"
-          >
-            <option>always</option>
-            <option title="Previous was played">Prev.</option>
-            <option title="Previous was not played">Not prev.</option>
-            <option title="Only in first cycle">1st</option>
-            <option title="Not in first cycle">Not 1st</option>
-            ${cycleConditions}
-          </select>
-        </div>
         <div class="label">Chance</div>
         <div class="percent-holder">
           <input
@@ -290,13 +275,20 @@
           />
           <output for="seq_step_probability${index}">(unset)</output>
         </div>
-        <div
-          class="action"
-          title="Apply step properties to all active steps in sequence"
-          data-contextclick
-          data-contextmenu="label:Apply to all steps:,-,${index}:step_copy_length,${index}:step_copy_gate,${index}:step_copy_condition,${index}:step_copy_chance"
-        >
-          <i class="material-icons">copy_all</i>
+        <div class="label">Condition</div>
+        <div class="drop-down" title="Select step play condition">
+          <select
+            class="seq_step_condition"
+            data-change="${index}:seq_step_condition"
+            tabindex="-1"
+          >
+            <option>always</option>
+            <option title="Previous was played">Prev.</option>
+            <option title="Previous was not played">Not prev.</option>
+            <option title="Only in first cycle">1st</option>
+            <option title="Not in first cycle">Not 1st</option>
+            ${cycleConditions}
+          </select>
         </div>
       </div>
       <div class="step-controls">
@@ -322,6 +314,14 @@
           <i class="material-icons">clear</i>
         </div>
         <div style="flex-grow: 1"></div>
+        <div
+          class="check"
+          title="Apply step properties to all active steps in sequence"
+          data-contextclick
+          data-contextmenu="label:Apply to all steps:,-,${index}:step_copy_length,${index}:step_copy_gate,${index}:step_copy_condition,${index}:step_copy_chance"
+        >
+          Apply to all…
+        </div>
         <div
           class="check seq-step-add-notes hide-for-drumsequence"
           data-action="${index}:seq_step_add_notes"
