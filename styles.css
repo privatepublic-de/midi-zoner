@@ -569,7 +569,7 @@ input:focus-visible {
 }
 
 .disabled .channels input.output-config-name {
-  background-color: #333333;
+  background-color: hsl(from var(--zone-color) h calc(s * 0.33) calc(l * 0.2));
 }
 
 .sendClock {
