@@ -2073,7 +2073,7 @@ function toast(message, properties) {
     DOM.removeClass('#toast', 'warning');
   }
   if (longer) {
-    timeoutMS += 3000;
+    timeoutMS += 5000;
   }
   DOM.get('#toast .toastinner').innerHTML = message;
   toastElement.style.top = toastElement.style.left = '';

@@ -75,11 +75,11 @@ class MIDI {
           completeHandler(available, msg);
         }
         if (updatePortsHandler) {
-          updatePortsHandler(inputPorts, outputPorts);
+          updatePortsHandler(inputPorts, outputPorts, msg);
         }
       } else {
         if (updatePortsHandler) {
-          updatePortsHandler(inputPorts, outputPorts);
+          updatePortsHandler(inputPorts, outputPorts, msg);
         }
       }
     };
@@ -103,12 +103,13 @@ class MIDI {
     const onStateChange = (e) => {
       const port = e.port;
       const state = e.port.state;
+      const portName = e.port.name;
       if (state === 'disconnected') {
         delete this.knownPorts[port.id];
         const initResult = listInputsAndOutputs();
         reportStatus(
           initResult.success,
-          initResult.message,
+          `${portName} ${state}`,
           initResult.inputs,
           initResult.outputs
         );
@@ -118,7 +119,7 @@ class MIDI {
           const initResult = listInputsAndOutputs();
           reportStatus(
             initResult.success,
-            initResult.message,
+            `${portName} ${state}`,
             initResult.inputs,
             initResult.outputs
           );

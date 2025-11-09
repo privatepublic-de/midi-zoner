@@ -520,7 +520,7 @@ document.addEventListener('DOMContentLoaded', function () {
         console.log('app:', message);
       }
     },
-    updatePortsHandler: (inputs, outputs) => {
+    updatePortsHandler: (inputs, outputs, msg) => {
       if (activeUpdateTimer) {
         clearTimeout(activeUpdateTimer);
         activeUpdateTimer = null;
@@ -566,7 +566,7 @@ document.addEventListener('DOMContentLoaded', function () {
         setTimeout(() => {
           DOM.removeClass(document.body, 'updated');
         }, 1000);
-        viewcontroller.toast('MIDI devices updated!', {
+        viewcontroller.toast(`MIDI devices updated! <br/>${msg ? msg : ''}`, {
           longer: true
         });
       }, 100);
