@@ -111,8 +111,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
   let action =
     overrideaction ||
     element.getAttribute('data-action') ||
-    element.getAttribute('data-change') ||
-    element.getAttribute('data-dragvalue');
+    element.getAttribute('data-change');
   if (
     (ev.type == 'blur' || ev.type == 'focus') &&
     element.hasAttribute('data-focus-change')
@@ -1248,38 +1247,6 @@ function appendZone(/** @type {Zone} */ zone, index) {
       }
     });
   });
-  // drag velocity value
-  // DOM.all(`#zone${index} *[data-dragvalue]`).forEach((e) => {
-  //   let dragposlast = 0;
-  //   let dragvalue = 0;
-  //   let isdragging = false;
-  //   const updateDragValue = (ev) => {
-  //     actionHandler(ev, { precalculatedValue: dragvalue });
-  //   };
-  //   e.addEventListener('mousedown', (ev) => {
-  //     isdragging = true;
-  //     dragposlast = ev.pageX;
-  //     dragvalue = 0;
-  //     updateDragValue(ev);
-  //   });
-  //   e.addEventListener('mousemove', (ev) => {
-  //     if (isdragging) {
-  //       dragvalue = ev.pageX - dragposlast < 0 ? -1 : 1;
-  //       dragposlast = ev.pageX;
-  //       updateDragValue(ev);
-  //     }
-  //   });
-  //   const dragendhandler = (ev) => {
-  //     if (isdragging) {
-  //       isdragging = false;
-  //       dragvalue = ev.pageX - dragposlast < 0 ? -1 : 1;
-  //       dragposlast = ev.pageX;
-  //       actionHandler(ev, { precalculatedValue: dragvalue });
-  //     }
-  //   };
-  //   e.addEventListener('mouseup', dragendhandler);
-  //   e.addEventListener('mouseleave', dragendhandler);
-  // });
   DOM.all(`#zone${index} *[data-hover]`).forEach((e) => {
     e.addEventListener('mousemove', hoverHandler);
     e.addEventListener('mouseleave', hoverOutHandler);
