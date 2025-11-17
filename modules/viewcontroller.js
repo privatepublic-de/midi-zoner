@@ -107,8 +107,9 @@ function findTouchedNote(
 }
 
 function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
+  ev.stopPropagation();
   const element = ev.currentTarget;
-  let action =
+  let actionString =
     overrideaction ||
     element.getAttribute('data-action') ||
     element.getAttribute('data-change');
@@ -116,24 +117,28 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
     (ev.type == 'blur' || ev.type == 'focus') &&
     element.hasAttribute('data-focus-change')
   ) {
-    action = element.getAttribute('data-focus-change');
-    action += ':' + (ev.type == 'focus' ? 1 : 0);
+    actionString = element.getAttribute('data-focus-change');
+    actionString += ':' + (ev.type == 'focus' ? 1 : 0);
   }
-  const params = action.split(':');
+  const params = actionString.split(':');
   const zoneindex = params[0];
+  const action = params[1];
+  const actionProperty = action.substring(action.indexOf('_') + 1);
+  const actionParam1 = params[2];
+  const actionParam2 = params[3];
   /** @type {Zone} */
   const zone = zones.list[zoneindex];
+  /** @type {Sequence} */
   const sequence = zone.sequence;
-  ev.stopPropagation();
   const applyParamToggle = () => {
-    zone[params[1]] = !zone[params[1]];
+    zone[actionProperty] = !zone[actionProperty];
     updateValuesForZone(zoneindex);
   };
   const applySelectedIndex = () => {
-    zone[params[1]] = element.selectedIndex;
+    zone[actionProperty] = element.selectedIndex;
     updateValuesForZone(zoneindex);
   };
-  const calcPercentage = () => {
+  const calcAndDisplayPercentage = () => {
     const output = element.parentElement.querySelector(
       `output[for="${element.id}"]`
     );
@@ -144,7 +149,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
     return parseInt(element.value) / 100;
   };
   const applyPercentage = () => {
-    zone[params[1]] = calcPercentage();
+    zone[actionProperty] = calcAndDisplayPercentage();
     updateValuesForZone(zoneindex);
   };
   const actions = {
@@ -240,11 +245,11 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
       renderMarkersForZone(zoneindex);
     },
     zone_octave: () => {
-      zone.octave = parseInt(params[2]);
+      zone.octave = parseInt(actionParam1);
       updateValuesForZone(zoneindex);
     },
     // filter actions -----------------------------------------
-    toggle_filters: () => {
+    filters_toggle: () => {
       const settings = zone._$('.popupsettings');
       if (settings.style.display == 'flex') {
         settings.style.display = 'none';
@@ -252,22 +257,22 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
         settings.style.display = 'flex';
       }
     },
-    fixedvel_value: () => {
+    filters_fixedvel_value: () => {
       zone.fixedvel_value = zone._$('input.fixedvel_value').value;
     },
-    fixedvel: () => {
+    filters_fixedvel: () => {
       actions.fixedvel_value();
       applyParamToggle();
     },
-    velocity_scaling: applyPercentage,
-    cc: applyParamToggle,
-    sustain: applyParamToggle,
-    sustain_on: applyParamToggle,
-    mod: applyParamToggle,
-    at2mod: applyParamToggle,
-    pitchbend: applyParamToggle,
-    programchange: applyParamToggle,
-    changeprogram: () => {
+    filters_velocity_scaling: applyPercentage,
+    filters_cc: applyParamToggle,
+    filters_sustain: applyParamToggle,
+    filters_sustain_on: applyParamToggle,
+    filters_mod: applyParamToggle,
+    filters_at2mod: applyParamToggle,
+    filters_pitchbend: applyParamToggle,
+    filters_programchange: applyParamToggle,
+    filters_changeprogram: () => {
       const v = parseInt(element.value);
       if (v > 0 && v < 129) {
         zone.pgm_no = v;
@@ -275,7 +280,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
       }
     },
     // arpeggiator actions -----------------------------------------
-    arp_enabled: () => {
+    zone_arp_enabled: () => {
       applyParamToggle();
       if (zone.arp_enabled) {
         updateValuesForZone(zoneindex);
@@ -283,18 +288,18 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
       }
       zone.renderNotes();
     },
-    arp_hold: () => {
+    zone_arp_hold: () => {
       applyParamToggle();
       zone.renderNotes();
     },
-    arp_transpose: applyParamToggle,
-    arp_repeat: applyParamToggle,
-    arp_direction: applySelectedIndex,
-    arp_octaves: applySelectedIndex,
-    arp_division: applySelectedIndex,
-    arp_probability: applyPercentage,
-    arp_gatelength: applyPercentage,
-    arp_pattern: () => {
+    zone_arp_transpose: applyParamToggle,
+    zone_arp_repeat: applyParamToggle,
+    zone_arp_direction: applySelectedIndex,
+    zone_arp_octaves: applySelectedIndex,
+    zone_arp_division: applySelectedIndex,
+    zone_arp_probability: applyPercentage,
+    zone_arp_gatelength: applyPercentage,
+    zone_arp_pattern: () => {
       if (ev.target.tagName == 'CANVAS') {
         const index = parseInt(
           (ev.offsetX / element.offsetWidth) * zone.arp_pattern.length
@@ -303,7 +308,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
         zone.renderPattern();
       }
     },
-    showeuclid: () => {
+    zone_arp_showeuclid: () => {
       const dialog = zone._$('.euclid');
       if (dialog.style.display == 'block') {
         DOM.hide(dialog);
@@ -311,7 +316,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
         DOM.show(dialog);
       }
     },
-    euclid: () => {
+    zone_arp_euclid: () => {
       let hits = parseInt(zone._$('.euchits').value);
       let len = parseInt(zone._$('.euclen').value);
       if (!isNaN(hits) && !isNaN(len)) {
@@ -320,53 +325,40 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
         zone.createEuclidianPattern(len, hits);
       }
     },
-    pattern_shift: () => {
-      if (params[2] == -1) {
+    zone_arp_pattern_shift: () => {
+      if (actionParam1 == -1) {
         zone.arp_pattern.push(zone.arp_pattern.shift());
-      } else if (params[2] == 1) {
+      } else if (actionParam1 == 1) {
         zone.arp_pattern.unshift(zone.arp_pattern.pop());
       }
       zone.renderPattern();
     },
     // cc controller actions -----------------------------------------
-    toggle_show_cc: () => {
+    cc_toggle: () => {
       zone.show_cc = !zone.show_cc;
       updateValuesForZone(zoneindex);
       if (zone.show_cc) {
         toast('Right click to edit CC controllers.');
       }
     },
-    add_cc_controller: () => {
-      zone.cc_controllers.push({
-        number: 1,
-        number_in: null,
-        label: `Ctrl #${zone.cc_controllers.length + 1}`,
-        val: 0
-      });
-      renderControllersForZone(zone, zoneindex);
-      setTimeout(() => {
-        zone.editCC = true;
-        updateControllerValues(zone, zoneindex);
-      }, 0);
-    },
-    send_all_cc: () => {
+    cc_send_all: () => {
       zone.sendAllCC();
       toast('All CC values sent!');
     },
     cc_edit: () => {
       // TODO rename to toggle
       zone.editCC = !zone.editCC;
-      if (params[2] != null) {
-        zone.selectedCCIndex = params[2];
+      if (actionParam1 != null) {
+        zone.selectedCCIndex = actionParam1;
       }
       updateControllerValues(zone, zoneindex);
     },
     cc_select: () => {
-      if (params[2] == -1 || zone.selectedCCIndex == params[2]) {
+      if (actionParam1 == -1 || zone.selectedCCIndex == actionParam1) {
         zone.editCC = false;
         updateControllerValues(zone, zoneindex);
       } else {
-        zone.selectedCCIndex = params[2];
+        zone.selectedCCIndex = actionParam1;
         if (zone.editCC) {
           updateControllerValues(zone, zoneindex);
         }
@@ -445,21 +437,22 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
       updateControllerValues(zone, zoneindex);
     },
     cc_button_label: () => {
-      zone.cc_controllers[zone.selectedCCIndex][`buttonlabel${params[2]}`] =
+      zone.cc_controllers[zone.selectedCCIndex][`buttonlabel${actionParam1}`] =
         element.value;
       updateControllerValues(zone, zoneindex);
     },
     cc_button_value: () => {
       element.value = element.value.replace(/[^0-9]/, ''); // TODO generalize
       if (element.value != '') {
-        zone.cc_controllers[zone.selectedCCIndex][`buttonvalue${params[2]}`] =
-          parseInt(element.value);
+        zone.cc_controllers[zone.selectedCCIndex][
+          `buttonvalue${actionParam1}`
+        ] = parseInt(element.value);
         updateControllerValues(zone, zoneindex);
       }
     },
     cc_button_trig: () => {
-      const ccindex = params[2];
-      const btnindex = params[3];
+      const ccindex = actionParam1;
+      const btnindex = actionParam2;
       zone.cc_controllers[ccindex].val =
         zone.cc_controllers[ccindex][`buttonvalue${btnindex}`];
       zone.sendCC(ccindex);
@@ -571,7 +564,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
       updateValuesForZone(zoneindex);
     },
     seq_drumlane_note: () => {
-      const laneNo = parseInt(params[2]);
+      const laneNo = parseInt(actionParam1);
       sequence.getDrumLane(laneNo).note = parseInt(element.value);
       console.log(sequence.getDrumLane(laneNo));
       updateValuesForZone(zoneindex);
@@ -584,7 +577,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
       updateValuesForZone(zoneindex);
     },
     seq_toggle_lane_enabled: () => {
-      const dl = sequence.getDrumLane(parseInt(params[2]));
+      const dl = sequence.getDrumLane(parseInt(actionParam1));
       dl.enabled = !dl.enabled;
       updateValuesForZone(zoneindex);
     },
@@ -688,8 +681,8 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
     },
     seq_clear_step: () => {
       // clear right clicked or double clicked step
-      if (params[2] != 'undefined') {
-        const stepno = parseInt(params[2]);
+      if (actionParam1 != 'undefined') {
+        const stepno = parseInt(actionParam1);
         if (sequence.isDrumSequence) {
           let laneIndex, stepIndex;
           [laneIndex, stepIndex] =
@@ -726,14 +719,14 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
     seq_step_probability: () => {
       sequence.selectedStepNumbers.forEach((n) => {
         if (sequence.steps[n] != null) {
-          sequence.steps[n].probability = calcPercentage();
+          sequence.steps[n].probability = calcAndDisplayPercentage();
         }
       });
       updateValuesForZone(zoneindex);
     },
     seq_step_velocity: () => {
       if (sequence.selectedStep) {
-        const velo = calcPercentage() * 127;
+        const velo = calcAndDisplayPercentage() * 127;
         sequence.selectedStep.notesArray.forEach((note) => {
           note.velo = Math.max(1, Math.min(127, velo));
         });
@@ -785,7 +778,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
     seq_gatelength: () => {
       sequence.selectedSteps.forEach((step) => {
         if (step) {
-          step.gateLength = calcPercentage();
+          step.gateLength = calcAndDisplayPercentage();
         }
       });
       // sequence.selectedStepNumbers.forEach((n) => {
@@ -794,8 +787,8 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
       updateValuesForZone(zoneindex);
     },
     seq_copy_step: () => {
-      if (params[2] != 'undefined') {
-        const selStepIndex = parseInt(params[2]);
+      if (actionParam1 != 'undefined') {
+        const selStepIndex = parseInt(actionParam1);
         const stepsMap = new Map();
         if (
           sequence.hasSelection &&
@@ -821,9 +814,9 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
       }
     },
     seq_paste_step: () => {
-      if (params[2] != 'undefined' && Zone.seqClipboardStep) {
+      if (actionParam1 != 'undefined' && Zone.seqClipboardStep) {
         sequence.clearSelection();
-        const targetStep = parseInt(params[2]);
+        const targetStep = parseInt(actionParam1);
         const targetSteps = sequence.steps;
         Zone.seqClipboardStep.keys().forEach((stepindex) => {
           targetSteps[(targetStep + stepindex) % sequence.length] =
@@ -836,7 +829,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
     },
     seq_step_move: () => {
       if (sequence.hasSelection) {
-        const direction = parseInt(params[2]);
+        const direction = parseInt(actionParam1);
         const newSelection = new Set();
         const sortedNumbers =
           direction < 0
@@ -863,7 +856,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
     },
     seq_move: () => {
       sequence.clearSelection();
-      const direction = parseInt(params[2]);
+      const direction = parseInt(actionParam1);
       const limit = sequence.length;
       const newSeq = [];
       for (let i = 0; i < Sequence.MAX_STEPS; i++) {
@@ -896,7 +889,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
       }
     },
     seq_copy_to_layer_0: () => {
-      const targetLayer = parseInt(params[2]);
+      const targetLayer = parseInt(actionParam1);
       const copyData = JSON.parse(
         JSON.stringify({
           steps: sequence.steps,
@@ -959,7 +952,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
       );
     }
   };
-  actions[params[1]]?.();
+  actions[action]?.();
   triggerSave();
   window.dispatchEvent(new CustomEvent('closeContextMenu'));
 }
