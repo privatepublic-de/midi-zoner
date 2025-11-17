@@ -149,7 +149,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
   };
   const actions = {
     // zone actions -----------------------------------------
-    enabled: () => {
+    zone_enabled: () => {
       zone.enabled = !zone.enabled;
       if (zone.solo && !zone.enabled) {
         zone.solo = false;
@@ -163,14 +163,14 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
         updateValuesForZone(zoneindex);
       }
     },
-    solo: () => {
+    zone_solo: () => {
       zone.solo = !zone.solo;
       if (zone.solo) {
         zone.enabled = true;
       }
       updateValuesForAllZones();
     },
-    delete: async () => {
+    zone_delete: async () => {
       const number = parseInt(zoneindex) + 1;
       await ipcRenderer
         .invoke(
@@ -190,11 +190,11 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
           }
         });
     },
-    changeColor: () => {
+    zone_change_color: () => {
       zone.randomizeColor();
       updateValuesForZone(zoneindex);
     },
-    outport: () => {
+    zone_outport: () => {
       if (element.value.charAt(0) == '$') {
         const parts = element.value.substr(1).split(',');
         zone.channel = parseInt(parts[1]);
@@ -207,7 +207,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
         midiController.updateUsedPorts(listUsedPorts());
       }
     },
-    output_config_name: () => {
+    zone_output_config_name: () => {
       if (element.value == '') {
         delete zones.outputConfigNames[zone.configId];
       } else {
@@ -216,7 +216,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
       updateOutputPortsForAllZones(cachedOutputPorts);
       updateValuesForAllZones();
     },
-    sendClock: () => {
+    zone_send_clock: () => {
       let state = !(
         midiController.clockOutputPorts[zone.outputPortId] === true
       );
@@ -229,8 +229,8 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
       zones.clockOutputPorts = midiController.clockOutputPorts;
       updateValuesForAllZones();
     },
-    channel: applySelectedIndex,
-    range: () => {
+    zone_channel: applySelectedIndex,
+    zone_range: () => {
       const touchedNote = findTouchedNote(ev, element, zone);
       if (touchedNote.isLow) {
         zone.low = touchedNote.low;
@@ -239,7 +239,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
       }
       renderMarkersForZone(zoneindex);
     },
-    octave: () => {
+    zone_octave: () => {
       zone.octave = parseInt(params[2]);
       updateValuesForZone(zoneindex);
     },

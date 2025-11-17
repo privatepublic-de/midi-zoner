@@ -2,7 +2,7 @@
   <div class="channels">
     <div
       class="ch state enabled"
-      data-action="${index}:enabled"
+      data-action="${index}:zone_enabled"
       title="Enable zone ${zoneMuteKeyboardHint}"
     >
       <span class="material-icons isenabled"> check </span>
@@ -10,7 +10,7 @@
     </div>
     <div
       class="ch solo"
-      data-action="${index}:solo"
+      data-action="${index}:zone_solo"
       title="Solo Zone\n(Double click for this zone only)"
     >
       S
@@ -40,7 +40,7 @@
     <div class="outselection">
       <select
         class="outport"
-        data-change="${index}:outport"
+        data-change="${index}:zone_outport"
         title="Select output port or preset"
         tabindex="-1"
       >
@@ -52,13 +52,13 @@
         placeholder="(untitled)"
         onKeyUp="event.stopPropagation();"
         title="Edit output preset name"
-        data-change="${index}:output_config_name"
+        data-change="${index}:zone_output_config_name"
         tabindex="-1"
       />
     </div>
     <div
       class="sendClock"
-      data-action="${index}:sendClock"
+      data-action="${index}:zone_send_clock"
       title="Transmit clock to this device"
     >
       <i class="material-icons sel">watch_later</i
@@ -68,7 +68,7 @@
     <div class="zonetools">
       <div
         class="randzonecolor rtool"
-        data-action="${index}:changeColor"
+        data-action="${index}:zone_change_color"
         title="Change color"
       >
         <i class="material-icons">palette</i>
@@ -78,7 +78,7 @@
       </div>
       <div
         class="delzone rtool"
-        data-action="${index}:delete"
+        data-action="${index}:zone_delete"
         title="Remove zone"
       >
         <i class="material-icons">close</i>
@@ -742,8 +742,8 @@
   <div class="rangeholder shadowed-zone-block">
     <div
       class="range"
-      data-hover="${index}:range"
-      data-action="${index}:range"
+      data-hover="${index}:zone_range"
+      data-action="${index}:zone_range"
       title="Select start and end note
 (hold 'shift' for octave note stepping)"
     >
@@ -759,16 +759,16 @@
   <div class="settings">
     <div class="val label">Oct</div>
     <div class="val octaves" title="Transpose octave">
-      <a class="octselect" data-action="${index}:octave:-3"></a>
-      <a class="octselect" data-action="${index}:octave:-2"></a>
-      <a class="octselect" data-action="${index}:octave:-1"></a>
+      <a class="octselect" data-action="${index}:zone_octave:-3"></a>
+      <a class="octselect" data-action="${index}:zone_octave:-2"></a>
+      <a class="octselect" data-action="${index}:zone_octave:-1"></a>
       <a
         class="octselect octcenter selected"
-        data-action="${index}:octave:0"
+        data-action="${index}:zone_octave:0"
       ></a>
-      <a class="octselect" data-action="${index}:octave:1"></a>
-      <a class="octselect" data-action="${index}:octave:2"></a>
-      <a class="octselect" data-action="${index}:octave:3"></a>
+      <a class="octselect" data-action="${index}:zone_octave:1"></a>
+      <a class="octselect" data-action="${index}:zone_octave:2"></a>
+      <a class="octselect" data-action="${index}:zone_octave:3"></a>
     </div>
     <div class="action toggle_filters" data-action="${index}:toggle_filters">
       Filters <span class="material-icons">expand_more</span>
