@@ -148,104 +148,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
     updateValuesForZone(zoneindex);
   };
   const actions = {
-    range: () => {
-      const touchedNote = findTouchedNote(ev, element, zone);
-      if (touchedNote.isLow) {
-        zone.low = touchedNote.low;
-      } else {
-        zone.high = touchedNote.high;
-      }
-      renderMarkersForZone(zoneindex);
-    },
-    channel: applySelectedIndex,
-    outport: () => {
-      if (element.value.charAt(0) == '$') {
-        const parts = element.value.substr(1).split(',');
-        zone.channel = parseInt(parts[1]);
-        zone.preferredOutputPortId = zone.outputPortId = parseInt(parts[0]);
-        updateOutputPortsForZone(zoneindex, cachedOutputPorts);
-        midiController.updateUsedPorts(listUsedPorts());
-      } else {
-        zone.preferredOutputPortId = zone.outputPortId = element.value;
-        updateValuesForZone(zoneindex);
-        midiController.updateUsedPorts(listUsedPorts());
-      }
-    },
-    octave: () => {
-      zone.octave = parseInt(params[2]);
-      updateValuesForZone(zoneindex);
-    },
-    toggle_filters: () => {
-      const settings = zone._$('.popupsettings');
-      if (settings.style.display == 'flex') {
-        settings.style.display = 'none';
-      } else {
-        settings.style.display = 'flex';
-      }
-    },
-    fixedvel_value: () => {
-      zone.fixedvel_value = zone._$('input.fixedvel_value').value;
-    },
-    fixedvel: () => {
-      actions.fixedvel_value();
-      applyParamToggle();
-    },
-    velocity_scaling: applyPercentage,
-    cc: applyParamToggle,
-    sustain: applyParamToggle,
-    sustain_on: applyParamToggle,
-    mod: applyParamToggle,
-    at2mod: applyParamToggle,
-    pitchbend: applyParamToggle,
-    programchange: applyParamToggle,
-    arp_hold: () => {
-      applyParamToggle();
-      zone.renderNotes();
-    },
-    arp_transpose: applyParamToggle,
-    arp_repeat: applyParamToggle,
-    arp_enabled: () => {
-      applyParamToggle();
-      if (zone.arp_enabled) {
-        updateValuesForZone(zoneindex);
-        zone.renderPattern();
-      }
-      zone.renderNotes();
-    },
-    sendClock: () => {
-      let state = !(
-        midiController.clockOutputPorts[zone.outputPortId] === true
-      );
-      midiController.updateClockOutputReceiver(
-        zone.outputPortId != MIDI.INTERNAL_PORT_ID
-          ? zone.outputPortId
-          : zone.preferredOutputPortId,
-        state
-      );
-      zones.clockOutputPorts = midiController.clockOutputPorts;
-      updateValuesForAllZones();
-    },
-    arp_direction: applySelectedIndex,
-    arp_octaves: applySelectedIndex,
-    arp_division: applySelectedIndex,
-    arp_probability: applyPercentage,
-    arp_gatelength: applyPercentage,
-    arp_pattern: () => {
-      if (ev.target.tagName == 'CANVAS') {
-        const index = parseInt(
-          (ev.offsetX / element.offsetWidth) * zone.arp_pattern.length
-        );
-        zone.arp_pattern[index] = !zone.arp_pattern[index];
-        zone.renderPattern();
-      }
-    },
-    changeprogram: () => {
-      const v = parseInt(element.value);
-      if (v > 0 && v < 129) {
-        zone.pgm_no = v;
-        zone.sendProgramChange();
-      }
-    },
+    // zone actions -----------------------------------------
     enabled: () => {
       zone.enabled = !zone.enabled;
       if (zone.solo && !zone.enabled) {
@@ -291,6 +194,115 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
       zone.randomizeColor();
       updateValuesForZone(zoneindex);
     },
+    outport: () => {
+      if (element.value.charAt(0) == '$') {
+        const parts = element.value.substr(1).split(',');
+        zone.channel = parseInt(parts[1]);
+        zone.preferredOutputPortId = zone.outputPortId = parseInt(parts[0]);
+        updateOutputPortsForZone(zoneindex, cachedOutputPorts);
+        midiController.updateUsedPorts(listUsedPorts());
+      } else {
+        zone.preferredOutputPortId = zone.outputPortId = element.value;
+        updateValuesForZone(zoneindex);
+        midiController.updateUsedPorts(listUsedPorts());
+      }
+    },
+    output_config_name: () => {
+      if (element.value == '') {
+        delete zones.outputConfigNames[zone.configId];
+      } else {
+        zones.outputConfigNames[zone.configId] = element.value;
+      }
+      updateOutputPortsForAllZones(cachedOutputPorts);
+      updateValuesForAllZones();
+    },
+    sendClock: () => {
+      let state = !(
+        midiController.clockOutputPorts[zone.outputPortId] === true
+      );
+      midiController.updateClockOutputReceiver(
+        zone.outputPortId != MIDI.INTERNAL_PORT_ID
+          ? zone.outputPortId
+          : zone.preferredOutputPortId,
+        state
+      );
+      zones.clockOutputPorts = midiController.clockOutputPorts;
+      updateValuesForAllZones();
+    },
+    channel: applySelectedIndex,
+    range: () => {
+      const touchedNote = findTouchedNote(ev, element, zone);
+      if (touchedNote.isLow) {
+        zone.low = touchedNote.low;
+      } else {
+        zone.high = touchedNote.high;
+      }
+      renderMarkersForZone(zoneindex);
+    },
+    octave: () => {
+      zone.octave = parseInt(params[2]);
+      updateValuesForZone(zoneindex);
+    },
+    // filter actions -----------------------------------------
+    toggle_filters: () => {
+      const settings = zone._$('.popupsettings');
+      if (settings.style.display == 'flex') {
+        settings.style.display = 'none';
+      } else {
+        settings.style.display = 'flex';
+      }
+    },
+    fixedvel_value: () => {
+      zone.fixedvel_value = zone._$('input.fixedvel_value').value;
+    },
+    fixedvel: () => {
+      actions.fixedvel_value();
+      applyParamToggle();
+    },
+    velocity_scaling: applyPercentage,
+    cc: applyParamToggle,
+    sustain: applyParamToggle,
+    sustain_on: applyParamToggle,
+    mod: applyParamToggle,
+    at2mod: applyParamToggle,
+    pitchbend: applyParamToggle,
+    programchange: applyParamToggle,
+    changeprogram: () => {
+      const v = parseInt(element.value);
+      if (v > 0 && v < 129) {
+        zone.pgm_no = v;
+        zone.sendProgramChange();
+      }
+    },
+    // arpeggiator actions -----------------------------------------
+    arp_enabled: () => {
+      applyParamToggle();
+      if (zone.arp_enabled) {
+        updateValuesForZone(zoneindex);
+        zone.renderPattern();
+      }
+      zone.renderNotes();
+    },
+    arp_hold: () => {
+      applyParamToggle();
+      zone.renderNotes();
+    },
+    arp_transpose: applyParamToggle,
+    arp_repeat: applyParamToggle,
+    arp_direction: applySelectedIndex,
+    arp_octaves: applySelectedIndex,
+    arp_division: applySelectedIndex,
+    arp_probability: applyPercentage,
+    arp_gatelength: applyPercentage,
+    arp_pattern: () => {
+      if (ev.target.tagName == 'CANVAS') {
+        const index = parseInt(
+          (ev.offsetX / element.offsetWidth) * zone.arp_pattern.length
+        );
+        zone.arp_pattern[index] = !zone.arp_pattern[index];
+        zone.renderPattern();
+      }
+    },
     showeuclid: () => {
       const dialog = zone._$('.euclid');
       if (dialog.style.display == 'block') {
@@ -316,6 +328,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
       }
       zone.renderPattern();
     },
+    // cc controller actions -----------------------------------------
     toggle_show_cc: () => {
       zone.show_cc = !zone.show_cc;
       updateValuesForZone(zoneindex);
@@ -533,6 +546,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
     cc_right: () => {
       actions._cc_move(1);
     },
+    // sequencer actions -----------------------------------------
     toggle_seq: () => {
       sequence.active = !sequence.active;
       sequence.clearSelection();
@@ -943,15 +957,6 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
       toast(
         sequence.isDrumSequence ? 'Drum sequence mode' : 'Note sequence mode'
       );
-    },
-    output_config_name: () => {
-      if (element.value == '') {
-        delete zones.outputConfigNames[zone.configId];
-      } else {
-        zones.outputConfigNames[zone.configId] = element.value;
-      }
-      updateOutputPortsForAllZones(cachedOutputPorts);
-      updateValuesForAllZones();
     }
   };
   actions[params[1]]?.();
