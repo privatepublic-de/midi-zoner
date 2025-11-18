@@ -1168,7 +1168,7 @@ class SeqLayer {
 class Sequence {
   static MAX_STEPS = 256;
   static MAX_STEPS_DRUMS = 64;
-  static MAX_LANES_DRUMS = 12;
+  static MAX_LANES_DRUMS = 10;
   static CYCLE_CONDITIONS = [];
   static ACTIVE_LAYER_INDEX = 0;
   static NEXT_LAYER_INDEX = 0;
