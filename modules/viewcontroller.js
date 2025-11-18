@@ -590,7 +590,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
     },
     seq_clear_all: () => {
       if (sequence.isDrumSequence) {
-        for (let i = 0; i < 8; i++) {
+        for (let i = 0; i < Sequence.MAX_LANES_DRUMS; i++) {
           const lane = sequence.getDrumLane(i);
           lane.steps.length = 0;
         }
@@ -1498,7 +1498,11 @@ function updateValuesForZone(index) {
           'activelength'
         );
         zone.elements.get('.seq_lanes').value = sequence.drumLanes;
-        for (let laneIndex = 0; laneIndex < 8; laneIndex++) {
+        for (
+          let laneIndex = 0;
+          laneIndex < Sequence.MAX_LANES_DRUMS;
+          laneIndex++
+        ) {
           if (laneIndex >= sequence.drumLanes) {
             zone.elements.get(`.lane${laneIndex}`).classList.add('unused');
           } else {

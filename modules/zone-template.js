@@ -85,7 +85,7 @@ module.exports = {
       }</div>`;
     }
     let drumLanes = '';
-    for (let ln = 0; ln < 8; ln++) {
+    for (let ln = 0; ln < Zone.Sequence.MAX_LANES_DRUMS; ln++) {
       drumLanes += `
         <div class="drum-lane lane${ln}"><div class="action seq_toggle_lane_enabled" data-action="${index}:seq_toggle_lane_enabled:${ln}" title="Enabled drum lane"><span class="material-icons sel"> check </span>
       <span class="material-icons unsel"> close </span></div><div class="val"><input type="number" min="0" max="127" title="Note number" value="${
