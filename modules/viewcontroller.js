@@ -571,8 +571,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
     },
     seq_drumstep_select: () => {
       sequence.turnOnDrumStep(
-        parseInt(element.dataset.laneIndex),
-        parseInt(element.dataset.stepIndex)
+        ...Sequence.getLaneAndStepIndexForDrumStepId(parseInt(actionParam1))
       );
       updateValuesForZone(zoneindex);
     },
@@ -684,8 +683,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
       if (actionParam1 != 'undefined') {
         const stepno = parseInt(actionParam1);
         if (sequence.isDrumSequence) {
-          let laneIndex, stepIndex;
-          [laneIndex, stepIndex] =
+          const [laneIndex, stepIndex] =
             Sequence.getLaneAndStepIndexForDrumStepId(stepno);
           sequence.getDrumLane(laneIndex).steps[stepIndex] = null;
         } else {
@@ -705,8 +703,7 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
       if (sequence.selectedStepNumbers.size > 0) {
         sequence.selectedStepNumbers.forEach((n) => {
           if (sequence.isDrumSequence) {
-            let laneIndex, stepIndex;
-            [laneIndex, stepIndex] =
+            const [laneIndex, stepIndex] =
               Sequence.getLaneAndStepIndexForDrumStepId(n);
             sequence.getDrumLane(laneIndex).steps[stepIndex] = null;
           } else {

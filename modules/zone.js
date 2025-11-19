@@ -1309,8 +1309,7 @@ class Sequence {
   get selectedStep() {
     if (this.selectedStepNumber > -1) {
       if (this.isDrumSequence) {
-        let laneIndex, stepIndex;
-        [laneIndex, stepIndex] = Sequence.getLaneAndStepIndexForDrumStepId(
+        const [laneIndex, stepIndex] = Sequence.getLaneAndStepIndexForDrumStepId(
           this.selectedStepNumber
         );
         return this.getDrumLane(laneIndex)?.steps[stepIndex];
@@ -1326,8 +1325,7 @@ class Sequence {
     this.selectedStepNumbers.forEach((sn) => {
       let step;
       if (this.isDrumSequence) {
-        let laneIndex, stepIndex;
-        [laneIndex, stepIndex] = Sequence.getLaneAndStepIndexForDrumStepId(sn);
+        const [laneIndex, stepIndex] = Sequence.getLaneAndStepIndexForDrumStepId(sn);
         step = this.getDrumLane(laneIndex)?.steps[stepIndex];
       } else {
         step = this.steps[sn];
@@ -1343,8 +1341,7 @@ class Sequence {
 
   isStepEmpty(index) {
     if (this.isDrumSequence) {
-      let lindex, sindex;
-      [lindex, sindex] = Sequence.getLaneAndStepIndexForDrumStepId(index);
+      const [lindex, sindex] = Sequence.getLaneAndStepIndexForDrumStepId(index);
       return this.getDrumLane(lindex)?.steps[sindex] == null;
     } else {
       return this.steps[index] == null || this.steps[index].length === 0;

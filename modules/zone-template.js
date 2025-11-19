@@ -93,7 +93,7 @@ module.exports = {
       }" data-change="${index}:seq_drumlane_note:${ln}"/></div>`;
       for (let i = 0; i < Zone.Sequence.MAX_STEPS_DRUMS; i++) {
         const stepId = Zone.Sequence.getIdForDrumStep(ln, i);
-        drumLanes += `<div class="step" data-action="${index}:seq_drumstep_select" data-dblclickaction="${index}:seq_clear_step:${stepId}" data-lane-index="${ln}" data-step-index="${i}"  data-dragselect="${stepId}}">${
+        drumLanes += `<div class="step" data-action="${index}:seq_drumstep_select:${stepId}" data-dblclickaction="${index}:seq_clear_step:${stepId}" data-lane-index="${ln}" data-step-index="${i}"  data-dragselect="${stepId}}">${
           i + 1
         }</div>`;
       }
