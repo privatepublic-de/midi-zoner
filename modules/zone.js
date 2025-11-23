@@ -1309,9 +1309,8 @@ class Sequence {
   get selectedStep() {
     if (this.selectedStepNumber > -1) {
       if (this.isDrumSequence) {
-        const [laneIndex, stepIndex] = Sequence.getLaneAndStepIndexForDrumStepId(
-          this.selectedStepNumber
-        );
+        const [laneIndex, stepIndex] =
+          Sequence.getLaneAndStepIndexForDrumStepId(this.selectedStepNumber);
         return this.getDrumLane(laneIndex)?.steps[stepIndex];
       } else {
         return this.steps[this.selectedStepNumber];
@@ -1325,7 +1324,8 @@ class Sequence {
     this.selectedStepNumbers.forEach((sn) => {
       let step;
       if (this.isDrumSequence) {
-        const [laneIndex, stepIndex] = Sequence.getLaneAndStepIndexForDrumStepId(sn);
+        const [laneIndex, stepIndex] =
+          Sequence.getLaneAndStepIndexForDrumStepId(sn);
         step = this.getDrumLane(laneIndex)?.steps[stepIndex];
       } else {
         step = this.steps[sn];
@@ -1442,11 +1442,19 @@ class Sequence {
             if (notesArray && notesArray.length > 0) {
               notesArray.forEach((note) => {
                 const velopcnt = (note.velo / 127) * 100;
+                let noteString;
+                if (this.isDrumSequence) {
+                  const [laneNr] = Sequence.getLaneAndStepIndexForDrumStepId(
+                    this.selectedStepNumber
+                  );
+                  const lane = this.getDrumLane(laneNr);
+                  noteString = `#${lane.note} (${Note.display(lane.note)})`;
+                } else {
+                  noteString = Note.display(note.number);
+                }
                 infoText += `<span class="note${
                   note.isBlackKey ? ' black' : ''
-                }"><span class="velocity" style="height:${velopcnt}%"></span>${Note.display(
-                  note.number
-                )}</span> `;
+                }"><span class="velocity" style="height:${velopcnt}%"></span>${noteString}</span> `;
               });
             } else {
               if (this.isHotRecordingNotes) {

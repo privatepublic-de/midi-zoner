@@ -1595,6 +1595,7 @@ li {
   border-radius: 0 0 6px 6px;
   overflow: hidden;
 }
+
 .seq .step-info .note.black {
   background-color: var(--darker-2);
 }
@@ -2046,6 +2047,12 @@ input::-webkit-inner-spin-button {
   }
   .dismiss-for-drumsequence {
     display: none;
+  }
+  .seq .step-info .note {
+    border-radius: 4px;
+  }
+  .seq .step-info .note.black {
+    background-color: inherit;
   }
 }
 
