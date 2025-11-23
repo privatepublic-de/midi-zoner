@@ -570,9 +570,13 @@ function actionHandler(/** @type {MouseEvent} */ ev, overrideaction) {
       updateValuesForZone(zoneindex);
     },
     seq_drumstep_select: () => {
-      sequence.turnOnDrumStep(
-        ...Sequence.getLaneAndStepIndexForDrumStepId(parseInt(actionParam1))
-      );
+      if (ev.shiftKey) {
+        actions.seq_clear_step();
+      } else {
+        sequence.turnOnDrumStep(
+          ...Sequence.getLaneAndStepIndexForDrumStepId(parseInt(actionParam1))
+        );
+      }
       updateValuesForZone(zoneindex);
     },
     seq_toggle_lane_enabled: () => {
