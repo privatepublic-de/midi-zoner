@@ -1131,8 +1131,17 @@ function renderZones() {
 }
 
 function addPlaceholder() {
+  DOM.all('#zones .zone.addnewzone', (e) => e.remove());
+  DOM.addHTML(
+    '#zones',
+    'beforeend',
+    '<div class="zone addnewzone"><a class="action" data-action="0:add_new_zone" title="Add new zone">+ Add zone</a></div>'
+  );
+  DOM.on('#zones .zone.addnewzone a', 'click', () => {
+    DOM.get('#newzone').click();
+  });
   DOM.all('#zones .zone.placeholder', (e) => e.remove());
-  if (zones.list.length % 2) {
+  if (zones.list.length % 2 == 0) {
     DOM.addHTML(
       '#zones',
       'beforeend',

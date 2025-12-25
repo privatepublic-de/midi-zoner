@@ -455,6 +455,20 @@ input:focus-visible {
   visibility: hidden;
 }
 
+.zone.addnewzone {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: flex-start;
+  box-shadow: none;
+  background: none;
+  color: var(--brighter-0);
+  padding-top: 6px;
+  a:hover {
+    background-color: var(--brighter-0);
+  }
+}
+
 .zonenumber {
   position: absolute;
   bottom: 7px;
