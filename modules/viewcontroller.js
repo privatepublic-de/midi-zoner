@@ -2059,12 +2059,10 @@ function toast(message, properties) {
 
 function toastHide() {
   DOM.hide(toastElement);
-  toastElement.classList.remove('fade', 'fadelong');
 }
 
 function toastShow(longer) {
   DOM.show(toastElement);
-  toastElement.classList.add(longer ? 'fadelong' : 'fade');
 }
 
 function deleteAllZones() {

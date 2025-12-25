@@ -20,6 +20,7 @@
   --bg-select-window: #111;
   --bg-toast: #ff9;
   --bg-toast-warning: #ff8888;
+  --shadow-toast: #ffffffc0;
   --bg-contextmenu: #333333;
   --shadow-zone: #111;
   --bg-color-popup: #333333;
@@ -1791,14 +1792,14 @@ body:not(.running) .seqprogress {
 
 #toast {
   position: fixed;
-  width: 260px;
+  width: 300px;
   left: 50%;
-  bottom: 32px;
-  margin-left: -130px;
+  top: 30%;
+  margin-left: -150px;
   background-color: var(--bg-toast);
   color: var(--text-toast-color);
   font-size: 12px;
-  box-shadow: 1px 1px 3px var(--shadow-zone);
+  box-shadow: 1px 1px 10px var(--shadow-toast);
   display: none;
   z-index: 2;
 }
@@ -1807,28 +1808,11 @@ body:not(.running) .seqprogress {
   background-color: var(--bg-toast-warning);
 }
 
-/* #toast.fade {
-  animation: 2s 1 ease-in toastfade;
-}
-
-#toast.fadelong {
-  animation: 500ms 1 ease-in toastfade;
-} */
-
 #toast .toastinner {
-  padding: 5px;
+  padding: 10px;
   text-align: center;
   word-wrap: break-word;
 }
-
-/* @keyframes toastfade {
-  0% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
-} */
 
 .popupsettings {
   position: absolute;
