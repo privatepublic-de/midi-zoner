@@ -1,8 +1,8 @@
-import electron = require('electron');
+import electron from 'electron';
 import { app, BrowserWindow, Menu, powerSaveBlocker, ipcMain, dialog, shell } from 'electron';
-import settings = require('electron-settings');
-import path = require('path');
-import fs = require('fs');
+import settings from 'electron-settings';
+import path from 'path';
+import fs from 'fs';
 
 interface WindowRect {
   x: number;

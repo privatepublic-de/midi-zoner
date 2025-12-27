@@ -1,5 +1,5 @@
 import { ActionContext, ActionHelpers, ActionMap } from '../types';
-const { ipcRenderer } = require('electron');
+import { ipcRenderer } from 'electron';
 
 export function createCCActions(
   ctx: ActionContext,

@@ -1,4 +1,4 @@
-import DOM = require('../domutils');
+import DOM from '../domutils';
 import { ToastProperties } from './types';
 
 let toastElement: HTMLElement;

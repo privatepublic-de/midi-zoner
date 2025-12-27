@@ -1,5 +1,5 @@
-import seedrandom = require('seedrandom');
-import MIDI = require('../midi');
+import seedrandom from 'seedrandom';
+import MIDI from '../midi';
 import { Note } from './note';
 import { ZoneElements } from './zone-elements';
 import { Sequence } from './sequence';

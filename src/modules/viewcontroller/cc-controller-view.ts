@@ -1,6 +1,6 @@
-import DOM = require('../domutils');
-import zoneTemplate = require('../zone-template');
-import potDragHandler = require('../potdraghandler');
+import DOM from '../domutils';
+import * as zoneTemplate from '../zone-template';
+import potDragHandler from '../potdraghandler';
 import { ZoneType, ZonesData } from './types';
 
 function polarToCartesian(

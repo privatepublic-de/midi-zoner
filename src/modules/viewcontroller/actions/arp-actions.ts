@@ -1,4 +1,4 @@
-import DOM = require('../../domutils');
+import DOM from '../../domutils';
 import { ActionContext, ActionHelpers, ActionMap } from '../types';
 
 export function createArpActions(

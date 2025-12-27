@@ -1,7 +1,7 @@
-import DOM = require('../domutils');
-import MIDI = require('../midi');
-import DragZone = require('../dragzone');
-import zoneTemplate = require('../zone-template');
+import DOM from '../domutils';
+import MIDI from '../midi';
+import DragZone from '../dragzone';
+import * as zoneTemplate from '../zone-template';
 import { Zone } from '../zone/zone-class';
 import { Sequence } from '../zone/sequence';
 import { Note } from '../zone/note';
@@ -869,12 +869,12 @@ function updateOutputPortsForAllZones(outputs: PortDescriptor[]): Set<string> {
   return updateOutputPortsForAllZonesInternal(zones, outputs, updateValuesForAllZones);
 }
 
-export = {
+export {
   initController,
   renderZones,
   renderLastZone,
   renderMarkersForAllZones,
-  updateOutputPortsForAllZone: updateOutputPortsForAllZones,
+  updateOutputPortsForAllZones as updateOutputPortsForAllZone,
   updateControllerValues,
   updateValuesForAllZones,
   soloZone,

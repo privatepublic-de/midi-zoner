@@ -1,4 +1,4 @@
-import MIDI = require('../midi');
+import MIDI from '../midi';
 
 export class Note {
   static WHITE_KEY_ARRAY: number[] = [];

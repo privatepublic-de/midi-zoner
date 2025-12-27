@@ -1,10 +1,11 @@
 import { Zone } from './zone/zone-class';
 import { Sequence } from './zone/sequence';
 
+import fs from 'fs';
+import path from 'path';
+
 // Type alias for the Zone class type
 type ZoneType = Zone;
-import fs = require('fs');
-import path = require('path');
 
 const templateZone = fs.readFileSync(
   path.join(__dirname, '../../res/template-zone.html'),
@@ -65,65 +66,63 @@ const octavemarkers = '<span class="oct"></span>'.repeat(10);
 const checkboxIcons =
   '<span class="material-icons sel">check_box</span><span class="material-icons unsel">check_box_outline_blank</span>';
 
-export = {
-  getControllerHTML: function (zone: ZoneType, zoneindex: number): string {
-    let controllers = '';
-    zone.cc_controllers.forEach((cc: any, ix: number) => {
-      controllers += interpolateTemplate(templateController, {
-        cc: cc,
-        ix: ix,
-        zoneindex: zoneindex
-      });
+export function getControllerHTML(zone: ZoneType, zoneindex: number): string {
+  let controllers = '';
+  zone.cc_controllers.forEach((cc: any, ix: number) => {
+    controllers += interpolateTemplate(templateController, {
+      cc: cc,
+      ix: ix,
+      zoneindex: zoneindex
     });
-    return controllers;
-  },
+  });
+  return controllers;
+}
 
-  getHTML: function (zone: ZoneType, zoneindex: number): string {
-    const index = zoneindex;
-    let channelselector = `<select class="channel" data-change="${index}:zone_channel" tabindex="-1">`;
-    for (let i = 0; i < 16; i++) {
-      channelselector += `<option value="${i}">Ch ${i + 1}</option>`;
-    }
-    channelselector += '</select>';
+export function getHTML(zone: ZoneType, zoneindex: number): string {
+  const index = zoneindex;
+  let channelselector = `<select class="channel" data-change="${index}:zone_channel" tabindex="-1">`;
+  for (let i = 0; i < 16; i++) {
+    channelselector += `<option value="${i}">Ch ${i + 1}</option>`;
+  }
+  channelselector += '</select>';
 
-    let sequencerGrid = '';
-    for (let i = 0; i < Sequence.MAX_STEPS; i++) {
-      sequencerGrid += `<div class="step" data-dragselect="${i}" data-contextmenu="${index}:seq_copy_step:${i},${index}:seq_paste_step:${i},-,${index}:seq_clear_step:${i},${index}:seq_clear_all">${
+  let sequencerGrid = '';
+  for (let i = 0; i < Sequence.MAX_STEPS; i++) {
+    sequencerGrid += `<div class="step" data-dragselect="${i}" data-contextmenu="${index}:seq_copy_step:${i},${index}:seq_paste_step:${i},-,${index}:seq_clear_step:${i},${index}:seq_clear_all">${
+      i + 1
+    }</div>`;
+  }
+
+  let drumLanes = '';
+  for (let ln = 0; ln < Sequence.MAX_LANES_DRUMS; ln++) {
+    drumLanes += `
+      <div class="drum-lane lane${ln}"><div class="action seq_toggle_lane_enabled" data-action="${index}:seq_toggle_lane_enabled:${ln}" title="Enabled drum lane"><span class="material-icons sel"> check </span>
+    <span class="material-icons unsel"> close </span></div><div class="val"><input type="number" min="0" max="127" title="Note number" value="${
+      36 + ln
+    }" data-change="${index}:seq_drumlane_note:${ln}"/></div>`;
+    for (let i = 0; i < Sequence.MAX_STEPS_DRUMS; i++) {
+      const stepId = Sequence.getIdForDrumStep(ln, i);
+      drumLanes += `<div class="step" data-action="${index}:seq_drumstep_select:${stepId}" data-dblclickaction="${index}:seq_clear_step:${stepId}" data-dragselect="${stepId}}">${
         i + 1
       }</div>`;
     }
-
-    let drumLanes = '';
-    for (let ln = 0; ln < Sequence.MAX_LANES_DRUMS; ln++) {
-      drumLanes += `
-        <div class="drum-lane lane${ln}"><div class="action seq_toggle_lane_enabled" data-action="${index}:seq_toggle_lane_enabled:${ln}" title="Enabled drum lane"><span class="material-icons sel"> check </span>
-      <span class="material-icons unsel"> close </span></div><div class="val"><input type="number" min="0" max="127" title="Note number" value="${
-        36 + ln
-      }" data-change="${index}:seq_drumlane_note:${ln}"/></div>`;
-      for (let i = 0; i < Sequence.MAX_STEPS_DRUMS; i++) {
-        const stepId = Sequence.getIdForDrumStep(ln, i);
-        drumLanes += `<div class="step" data-action="${index}:seq_drumstep_select:${stepId}" data-dblclickaction="${index}:seq_clear_step:${stepId}" data-dragselect="${stepId}}">${
-          i + 1
-        }</div>`;
-      }
-      drumLanes += '</div>';
-    }
-
-    const zoneMuteKeyboardHint =
-      index < 10 ? `('${(index + 1) % 10}' on computer keyboard)` : '';
-
-    return interpolateTemplate(templateZone, {
-      index: index,
-      zoneNumber: index + 1,
-      zoneMuteKeyboardHint: zoneMuteKeyboardHint,
-      channelselector: channelselector,
-      sequencerGrid: sequencerGrid,
-      drumLanes: drumLanes,
-      seqMaxSteps: Sequence.MAX_STEPS,
-      cycleConditions: cycleConditions,
-      checkboxIcons: checkboxIcons,
-      noteLengthOptions: noteLengthOptions,
-      octavemarkers: octavemarkers
-    });
+    drumLanes += '</div>';
   }
-};
+
+  const zoneMuteKeyboardHint =
+    index < 10 ? `('${(index + 1) % 10}' on computer keyboard)` : '';
+
+  return interpolateTemplate(templateZone, {
+    index: index,
+    zoneNumber: index + 1,
+    zoneMuteKeyboardHint: zoneMuteKeyboardHint,
+    channelselector: channelselector,
+    sequencerGrid: sequencerGrid,
+    drumLanes: drumLanes,
+    seqMaxSteps: Sequence.MAX_STEPS,
+    cycleConditions: cycleConditions,
+    checkboxIcons: checkboxIcons,
+    noteLengthOptions: noteLengthOptions,
+    octavemarkers: octavemarkers
+  });
+}

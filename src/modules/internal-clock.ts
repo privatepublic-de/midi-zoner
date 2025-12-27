@@ -58,7 +58,4 @@ function setBPM(bpm: number): void {
 startTime = audioContext.currentTime + 0.005;
 scheduleClock();
 
-export = {
-  setHandler,
-  setBPM
-};
+export { setHandler, setBPM };

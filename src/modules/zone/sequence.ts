@@ -1,5 +1,5 @@
-import seedrandom = require('seedrandom');
-import MIDI = require('../midi');
+import seedrandom from 'seedrandom';
+import MIDI from '../midi';
 import { Note } from './note';
 import { SeqStep } from './seq-step';
 import { SeqLayer, DIV_TICKS, DivTick } from './seq-layer';
@@ -244,11 +244,13 @@ export class Sequence {
   }
 
   updateZoneView(allZones?: boolean): void {
-    const { Zone } = require('./zone-class');
-    const event = new CustomEvent(Zone.updateZoneViewEventName, {
-      detail: allZones ? null : this.zone
+    // Dynamic import to avoid circular dependency
+    import('./zone-class').then(({ Zone }) => {
+      const event = new CustomEvent(Zone.updateZoneViewEventName, {
+        detail: allZones ? null : this.zone
+      });
+      window.dispatchEvent(event);
     });
-    window.dispatchEvent(event);
   }
 
   updateRecordingState(): void {

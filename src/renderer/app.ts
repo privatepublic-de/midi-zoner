@@ -1,12 +1,11 @@
-import DOM = require('../modules/domutils');
+import DOM from '../modules/domutils';
 import { Zone } from '../modules/zone/zone-class';
 import { Sequence } from '../modules/zone/sequence';
 import { SeqLayer } from '../modules/zone/seq-layer';
 import { SeqStep } from '../modules/zone/seq-step';
-import MIDI = require('../modules/midi');
-import viewcontroller = require('../modules/viewcontroller');
-import view = require('../modules/viewcontroller');
-const { ipcRenderer } = require('electron');
+import MIDI from '../modules/midi';
+import * as view from '../modules/viewcontroller';
+import { ipcRenderer } from 'electron';
 
 // Type aliases for class types
 type ZoneType = Zone;
@@ -442,7 +441,7 @@ document.addEventListener('DOMContentLoaded', function () {
             )
             .then((result: boolean) => {
               if (result == true) {
-                viewcontroller.deleteAllZones();
+                view.deleteAllZones();
               }
             });
         });
@@ -520,7 +519,7 @@ document.addEventListener('DOMContentLoaded', function () {
             .invoke('open-save', JSON.stringify(zones))
             .then((result: { canceled: boolean; message: string; warning?: boolean }) => {
               if (!result.canceled) {
-                viewcontroller.toast(result.message, {
+                view.toast(result.message, {
                   longer: true,
                   warning: result.warning
                 });
@@ -536,7 +535,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 saveZones();
               } catch (ex) {
                 console.log('app: Error loading file', ex);
-                viewcontroller.toast(
+                view.toast(
                   'Error loading file! The selected file is possibly no midi-zoner scene...',
                   {
                     longer: true,
@@ -597,7 +596,7 @@ document.addEventListener('DOMContentLoaded', function () {
         setTimeout(() => {
           DOM.removeClass(document.body, 'updated');
         }, 1000);
-        viewcontroller.toast(`MIDI devices updated! <br/>${msg ? msg : ''}`, {
+        view.toast(`MIDI devices updated! <br/>${msg ? msg : ''}`, {
           longer: true
         });
       }, 100);

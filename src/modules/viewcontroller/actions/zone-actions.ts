@@ -1,6 +1,6 @@
-import MIDI = require('../../midi');
+import MIDI from '../../midi';
 import { ActionContext, ActionHelpers, ActionMap } from '../types';
-const { ipcRenderer } = require('electron');
+import { ipcRenderer } from 'electron';
 
 export function createZoneActions(
   ctx: ActionContext,

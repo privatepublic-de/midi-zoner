@@ -340,4 +340,4 @@ const DOM = {
   hexToRgb
 };
 
-export = DOM;
+export default DOM;

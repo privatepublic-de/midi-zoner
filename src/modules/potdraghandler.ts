@@ -1,4 +1,4 @@
-import DOM = require('./domutils');
+import DOM from './domutils';
 
 type UpdateValueCallback = (value: number) => void;
 type FinishedCallback = () => void;
@@ -76,4 +76,4 @@ class PotDragHandler {
   }
 }
 
-export = new PotDragHandler();
+export default new PotDragHandler();

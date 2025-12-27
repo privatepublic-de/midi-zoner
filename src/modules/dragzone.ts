@@ -1,5 +1,5 @@
 import { webFrame } from 'electron';
-import DOM = require('./domutils');
+import DOM from './domutils';
 
 // Global zones reference - will be properly typed when app.ts is migrated
 declare const zones: { list: any[] };
@@ -115,4 +115,4 @@ class DragZone {
   }
 }
 
-export = DragZone;
+export default DragZone;

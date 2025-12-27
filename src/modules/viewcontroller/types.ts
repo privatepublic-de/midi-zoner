@@ -1,6 +1,6 @@
 import { Zone } from '../zone/zone-class';
 import { Sequence } from '../zone/sequence';
-import MIDI = require('../midi');
+import MIDI from '../midi';
 
 export type ZoneType = Zone;
 export type SequenceType = Sequence;

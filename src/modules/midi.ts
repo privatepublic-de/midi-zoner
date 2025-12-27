@@ -1,4 +1,4 @@
-import internalClock = require('./internal-clock');
+import * as internalClock from './internal-clock';
 
 interface PortDescriptor {
   id: string;
@@ -534,4 +534,4 @@ function toBinary(d: number, pad?: number): string {
     .toUpperCase();
 }
 
-export = MIDI;
+export default MIDI;

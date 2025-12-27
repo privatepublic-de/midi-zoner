@@ -1,4 +1,4 @@
-import DOM = require('../domutils');
+import DOM from '../domutils';
 
 export class NumberInputController {
   elValueDown: HTMLElement | null = null;

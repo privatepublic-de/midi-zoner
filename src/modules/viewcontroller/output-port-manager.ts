@@ -1,5 +1,5 @@
-import DOM = require('../domutils');
-import MIDI = require('../midi');
+import DOM from '../domutils';
+import MIDI from '../midi';
 import { ZonesData, PortDescriptor } from './types';
 
 let cachedOutputPorts: PortDescriptor[] = [];
