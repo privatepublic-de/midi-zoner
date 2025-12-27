@@ -1,4 +1,5 @@
 import { Note } from './note';
+import { SeqStepJSON } from './interfaces';
 
 export class SeqStep {
   notesArray: Note[] = [];
@@ -9,7 +10,7 @@ export class SeqStep {
   played = 0;
   gateLength = 1;
 
-  toJSON(): object {
+  toJSON(): SeqStepJSON {
     return {
       notesArray: this.notesArray,
       length: this.length,

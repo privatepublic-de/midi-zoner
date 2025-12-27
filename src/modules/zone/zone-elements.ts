@@ -1,25 +1,25 @@
 export class ZoneElements {
   isReady = false;
   zoneElement: HTMLElement | null = null;
-  actionElements: NodeListOf<Element> | null = null;
+  actionElements: NodeListOf<HTMLElement> | null = null;
   canvasElement: HTMLCanvasElement | null = null;
   patternCanvas: HTMLCanvasElement | null = null;
   sequencerElement: HTMLElement | null = null;
   sequencerGridElement: HTMLElement | null = null;
-  sequencerGridStepElements: NodeListOf<Element> | Element[] = [];
-  sequencerDrumStepElements: NodeListOf<Element> | Element[] = [];
-  sequencerDrumLanes: (NodeListOf<Element> | Element[])[] = [];
+  sequencerGridStepElements: NodeListOf<HTMLElement> | HTMLElement[] = [];
+  sequencerDrumStepElements: NodeListOf<HTMLElement> | HTMLElement[] = [];
+  sequencerDrumLanes: (NodeListOf<HTMLElement> | HTMLElement[])[] = [];
   sequencerProgressElement: HTMLElement | null = null;
   sequencerProgressElementInner: HTMLElement | null = null;
   rangeContainer: HTMLElement | null = null;
-  rangeOctaveElements: NodeListOf<Element> | null = null;
+  rangeOctaveElements: NodeListOf<HTMLElement> | null = null;
   rangeMarkerLow: HTMLElement | null = null;
   rangeMarkerHigh: HTMLElement | null = null;
   rangeJoin: HTMLElement | null = null;
   rangeCurrent: HTMLElement | null = null;
-  octaveSelectors: NodeListOf<Element> | null = null;
-  ccPots: NodeListOf<Element> | null = null;
-  private cachedElements: Record<string, Element | null> = {};
+  octaveSelectors: NodeListOf<HTMLElement> | null = null;
+  ccPots: NodeListOf<HTMLElement> | null = null;
+  private cachedElements: Record<string, HTMLElement | null> = {};
 
   init(index: number): void {
     this.cachedElements = {};
@@ -59,7 +59,7 @@ export class ZoneElements {
     this.cachedElements = {};
   }
 
-  private getCachedElement(selector: string): Element | null {
+  private getCachedElement(selector: string): HTMLElement | null {
     if (!this.cachedElements[selector]) {
       this.cachedElements[selector] = this.zoneElement?.querySelector(selector) || null;
     }
@@ -91,7 +91,7 @@ export class ZoneElements {
     if (outputEl) (outputEl as HTMLOutputElement).value = percentage + '%';
   }
 
-  get(selector: string): Element | null {
+  get(selector: string): HTMLElement | null {
     return this.getCachedElement(selector);
   }
 }

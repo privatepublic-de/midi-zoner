@@ -2,6 +2,7 @@ import DOM = require('../modules/domutils');
 import { Zone } from '../modules/zone/zone-class';
 import { Sequence } from '../modules/zone/sequence';
 import { SeqLayer } from '../modules/zone/seq-layer';
+import { SeqStep } from '../modules/zone/seq-step';
 import MIDI = require('../modules/midi');
 import viewcontroller = require('../modules/viewcontroller');
 import view = require('../modules/viewcontroller');
@@ -78,7 +79,7 @@ function loadZones(midi: MIDIInstance): void {
   }
 }
 
-function applyStoredZones(storedZones: any, midi: MIDIInstance, append?: boolean): void {
+function applyStoredZones(storedZones: Partial<ZonesData> & { list?: object[] }, midi: MIDIInstance, append?: boolean): void {
   if (storedZones) {
     const tempList = zones.list;
     if (!append) {
@@ -86,19 +87,19 @@ function applyStoredZones(storedZones: any, midi: MIDIInstance, append?: boolean
     }
     Object.assign(zones, storedZones);
     zones.list = append ? tempList : [];
-    for (let i = 0; i < storedZones.list.length; i++) {
+    for (let i = 0; i < (storedZones.list?.length ?? 0); i++) {
       const zone = new Zone(midi);
-      Object.assign(zone, storedZones.list[i]);
+      Object.assign(zone, storedZones.list![i]);
       const sequence = new Sequence(zone);
       const layers: SeqLayerType[] = [];
-      Object.assign(sequence, storedZones.list[i].sequence);
-      sequence.layers.forEach((slayer: any) => {
+      Object.assign(sequence, (storedZones.list![i] as { sequence?: object }).sequence);
+      sequence.layers.forEach((slayer: SeqLayer) => {
         const layer = new SeqLayer();
         Object.assign(layer, slayer);
         layers.push(layer);
       });
       sequence.layers = layers;
-      sequence.steps.forEach((st: any) => {
+      sequence.steps.forEach((st: SeqStep | null) => {
         if (st) {
           st.lastPlayedArray = [];
         }
@@ -315,7 +316,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   let activeUpdateTimer: ReturnType<typeof setTimeout> | null = null;
   const midi = new MIDI({
-    eventHandler: (event: any) => {
+    eventHandler: (event: MIDIMessageEvent) => {
       if (midi.deviceIdInClock == MIDI.INTERNAL_PORT_ID) {
         // handle start/stop messages with internal clock active
         if (

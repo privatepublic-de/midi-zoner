@@ -32,7 +32,7 @@ const scheduleClock = (): void => {
   timerID = setTimeout(scheduleClock, 0);
 };
 
-function setHandler(clockHandler: ClockHandler): void {
+function setHandler(clockHandler: ClockHandler | null): void {
   // hasStarted = true;
   tickHandler = clockHandler;
   // startTime = audioContext.currentTime + 0.005;

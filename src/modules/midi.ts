@@ -17,7 +17,7 @@ interface InputPortDef {
 interface MIDIHandlers {
   completeHandler?: (available: boolean, msg: string) => void;
   updatePortsHandler?: (inputs: PortDescriptor[], outputs: PortDescriptor[], msg?: string) => void;
-  eventHandler: (event: any) => void;
+  eventHandler: (event: MIDIMessageEvent) => void;
   clockHandler?: (pos: number) => void;
   transportHandler?: (started: boolean) => void;
   panicHandler?: () => void;
@@ -70,14 +70,14 @@ class MIDI {
   } as const;
 
   panicHandler?: () => void;
-  eventHandler: (event: any) => void;
+  eventHandler: (event: MIDIMessageEvent) => void;
   transportHandler?: (started: boolean) => void;
   updateClockReceiverHandler?: (outputs: PortDescriptor[]) => void;
   clockHandler?: (pos: number) => void;
-  midiAccess: any = null;
+  midiAccess: MIDIAccess | null = null;
   deviceIdInClock: string | null;
-  deviceInClock: any = null;
-  knownPorts: Record<string, any> = {};
+  deviceInClock: MIDIInput | null = null;
+  knownPorts: Record<string, MIDIInput | MIDIOutput> = {};
   usedPorts: Set<string> = new Set();
   clockOutputPorts: Record<string, boolean> = {};
   selectedInputPorts: Record<string, InputPortDef> = {};
@@ -132,7 +132,7 @@ class MIDI {
       }
     };
 
-    const onMIDISuccess = (midiAccess: any): void => {
+    const onMIDISuccess = (midiAccess: MIDIAccess): void => {
       console.log('MIDI: ready');
       this.midiAccess = midiAccess;
       const initResult = listInputsAndOutputs();
@@ -146,12 +146,12 @@ class MIDI {
       );
     };
 
-    const onMIDIFailure = (msg: any): void => {
+    const onMIDIFailure = (msg: DOMException): void => {
       console.log('MIDI: Failed to get MIDI access - ' + msg);
       reportStatus(false, 'No MIDI available');
     };
 
-    const onStateChange = (e: any): void => {
+    const onStateChange = (e: MIDIConnectionEvent): void => {
       const port = e.port;
       const state = e.port.state;
       const portName = e.port.name;
@@ -185,7 +185,7 @@ class MIDI {
       let countIn = 0;
       let countOut = 0;
 
-      const sortPortsComparator = (a: [string, any], b: [string, any]): number => {
+      const sortPortsComparator = (a: [string, MIDIPort], b: [string, MIDIPort]): number => {
         const aUpper = ('' + a[1].name).toUpperCase();
         const bUpper = ('' + b[1].name).toUpperCase();
         if (aUpper < bUpper) {
@@ -197,7 +197,7 @@ class MIDI {
         return 0;
       };
 
-      const sortedInputs = Array.from(this.midiAccess.inputs as Map<string, any>).sort(
+      const sortedInputs = Array.from(this.midiAccess.inputs).sort(
         sortPortsComparator
       );
       sortedInputs.forEach((entry) => {
@@ -212,7 +212,7 @@ class MIDI {
         countIn++;
       });
 
-      const sortedOutputs = Array.from(this.midiAccess.outputs as Map<string, any>).sort(
+      const sortedOutputs = Array.from(this.midiAccess.outputs).sort(
         sortPortsComparator
       );
       sortedOutputs.forEach((entry) => {
@@ -223,7 +223,7 @@ class MIDI {
       console.log('MIDI: ', countIn, 'inputs,', countOut, 'outputs');
       this.deviceIdInClock = selectedInClock;
 
-      const mapDescriptor = (port: [string, any]): PortDescriptor => {
+      const mapDescriptor = (port: [string, MIDIPort]): PortDescriptor => {
         let sName = port[1].name;
         if (sName.length > 20) {
           sName =
@@ -268,10 +268,9 @@ class MIDI {
     };
 
     // go ahead, start midi
-    if ('function' === typeof (window.navigator as any).requestMIDIAccess) {
+    if ('requestMIDIAccess' in navigator) {
       console.log('MIDI: System has MIDI support.');
-      (navigator as any)
-        .requestMIDIAccess({ sysex: true })
+      navigator.requestMIDIAccess({ sysex: true })
         .then(onMIDISuccess, onMIDIFailure);
     } else {
       console.log('MIDI: System has *no* MIDI support.');
@@ -279,9 +278,9 @@ class MIDI {
     }
   }
 
-  onMIDIMessage(event: any): void {
-    const portId = event.srcElement
-      ? event.srcElement.id
+  onMIDIMessage(event: MIDIMessageEvent): void {
+    const portId = event.target
+      ? (event.target as MIDIInput).id
       : MIDI.INTERNAL_PORT_ID;
     const midiMessage = event.data[0];
 
@@ -350,12 +349,12 @@ class MIDI {
     if (deviceIdInClock == MIDI.INTERNAL_PORT_ID) {
       internalClock.setHandler(this.onMIDIMessage.bind(this));
     } else {
-      internalClock.setHandler(null as any);
+      internalClock.setHandler(null);
     }
-    this.midiAccess?.inputs.forEach((entry: any) => {
-      entry.onmidimessage = undefined;
+    this.midiAccess?.inputs.forEach((entry: MIDIInput) => {
+      entry.onmidimessage = null;
     });
-    this.deviceInClock = this.midiAccess?.inputs.get(this.deviceIdInClock);
+    this.deviceInClock = this.midiAccess?.inputs.get(this.deviceIdInClock!) ?? null;
     if (this.deviceInClock) {
       this.deviceInClock.onmidimessage = this.onMIDIMessage.bind(this);
     }
@@ -406,7 +405,7 @@ class MIDI {
     if (!portId || portId == MIDI.INTERNAL_PORT_ID) {
       // do nothing
     } else {
-      const deviceOut = this.knownPorts[portId];
+      const deviceOut = this.knownPorts[portId] as MIDIOutput | undefined;
       if (deviceOut) {
         deviceOut.send(msg);
       }
@@ -418,7 +417,7 @@ class MIDI {
    */
   sendToAllUsedPorts(msg: Uint8Array): void {
     this.usedPorts.forEach((portId) => {
-      const deviceOut = this.knownPorts[portId];
+      const deviceOut = this.knownPorts[portId] as MIDIOutput | undefined;
       if (deviceOut) {
         deviceOut.send(msg);
       }
@@ -428,7 +427,7 @@ class MIDI {
   sendToAllClockReceiverPorts(msg: Uint8Array): void {
     for (const [portid, enabled] of Object.entries(this.clockOutputPorts)) {
       if (enabled) {
-        const deviceOut = this.knownPorts[portid];
+        const deviceOut = this.knownPorts[portid] as MIDIOutput | undefined;
         if (deviceOut) {
           deviceOut.send(msg);
         }
@@ -455,7 +454,7 @@ class MIDI {
    * Send program change message (0xc0) to given port.
    */
   sendProgramChange(portId: string, channel: number, no: number): void {
-    const deviceOut = this.knownPorts[portId];
+    const deviceOut = this.knownPorts[portId] as MIDIOutput | undefined;
     if (deviceOut) {
       deviceOut.send(Uint8Array.from([channel + MIDI.MESSAGE.PGM_CHANGE, no]));
     }

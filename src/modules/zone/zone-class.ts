@@ -4,7 +4,7 @@ import { Note } from './note';
 import { ZoneElements } from './zone-elements';
 import { Sequence } from './sequence';
 import { SeqStep } from './seq-step';
-import { CCController, ArpState } from './interfaces';
+import { CCController, ArpState, ZoneJSON } from './interfaces';
 import { NoteDisplay } from './note-display';
 import { DIV_TICKS, DivTick } from './seq-layer';
 
@@ -100,7 +100,7 @@ export class Zone {
     this.sequence = new Sequence(this);
   }
 
-  toJSON(): object {
+  toJSON(): ZoneJSON {
     return {
       channel: this.channel,
       preferredOutputPortId: this.preferredOutputPortId,

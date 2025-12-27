@@ -1,5 +1,6 @@
 import { SeqStep } from './seq-step';
 import { DrumLane } from './drum-lane';
+import { SeqLayerJSON } from './interfaces';
 
 export type DivTick = 192 | 144 | 96 | 72 | 64 | 48 | 36 | 32 | 24 | 18 | 16 | 12 | 9 | 8 | 6 | 4 | 3 | 2;
 
@@ -31,7 +32,7 @@ export class SeqLayer {
   length = 16;
   drum_lanes: DrumLane[] = [];
 
-  toJSON(): object {
+  toJSON(): SeqLayerJSON {
     return {
       steps: this.steps,
       length: this.length,

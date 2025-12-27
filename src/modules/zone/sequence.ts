@@ -4,6 +4,7 @@ import { Note } from './note';
 import { SeqStep } from './seq-step';
 import { SeqLayer, DIV_TICKS, DivTick } from './seq-layer';
 import { DrumLane } from './drum-lane';
+import { SequenceJSON } from './interfaces';
 import type { Zone } from './zone-class';
 
 export class Sequence {
@@ -67,7 +68,7 @@ export class Sequence {
     this.zone = zone;
   }
 
-  toJSON(): object {
+  toJSON(): SequenceJSON {
     return {
       active: this.active,
       layers: this.layers,
