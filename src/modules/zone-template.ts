@@ -1,7 +1,8 @@
-const { Zone, Sequence } = require('./zone');
+import { Zone } from './zone/zone-class';
+import { Sequence } from './zone/sequence';
 
 // Type alias for the Zone class type
-type ZoneType = InstanceType<typeof Zone>;
+type ZoneType = Zone;
 import fs = require('fs');
 import path = require('path');
 

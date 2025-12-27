@@ -3,12 +3,14 @@ import MIDI = require('./midi');
 import DragZone = require('./dragzone');
 import zoneTemplate = require('./zone-template');
 import potDragHandler = require('./potdraghandler');
-const { Sequence, Zone, Note } = require('./zone');
+import { Zone } from './zone/zone-class';
+import { Sequence } from './zone/sequence';
+import { Note } from './zone/note';
 const { ipcRenderer } = require('electron');
 
 // Type alias for the Zone class type
-type ZoneType = InstanceType<typeof Zone>;
-type SequenceType = InstanceType<typeof Sequence>;
+type ZoneType = Zone;
+type SequenceType = Sequence;
 
 interface ZonesData {
   list: ZoneType[];
