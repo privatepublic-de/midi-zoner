@@ -49,7 +49,10 @@ const zones: ZonesData = {
   seqLayerQuantIndex: 0
 };
 
-const debounce = function <T extends (...args: any[]) => void>(func: T, delay: number): T {
+const debounce = function <T extends (...args: any[]) => void>(
+  func: T,
+  delay: number
+): T {
   let timer: ReturnType<typeof setTimeout>;
   return function (this: any, ...args: any[]) {
     clearTimeout(timer);
@@ -78,7 +81,11 @@ function loadZones(midi: MIDIInstance): void {
   }
 }
 
-function applyStoredZones(storedZones: Partial<ZonesData> & { list?: object[] }, midi: MIDIInstance, append?: boolean): void {
+function applyStoredZones(
+  storedZones: Partial<ZonesData> & { list?: object[] },
+  midi: MIDIInstance,
+  append?: boolean
+): void {
   if (storedZones) {
     const tempList = zones.list;
     if (!append) {
@@ -91,7 +98,10 @@ function applyStoredZones(storedZones: Partial<ZonesData> & { list?: object[] },
       Object.assign(zone, storedZones.list![i]);
       const sequence = new Sequence(zone);
       const layers: SeqLayerType[] = [];
-      Object.assign(sequence, (storedZones.list![i] as { sequence?: object }).sequence);
+      Object.assign(
+        sequence,
+        (storedZones.list![i] as { sequence?: object }).sequence
+      );
       sequence.layers.forEach((slayer: SeqLayer) => {
         const layer = new SeqLayer();
         Object.assign(layer, slayer);
@@ -121,7 +131,10 @@ function bodyClickHandler(): void {
   DOM.hide('#toast');
 }
 
-function onBackgroundClick(callback: () => void, filterElement: string | Element): void {
+function onBackgroundClick(
+  callback: () => void,
+  filterElement: string | Element
+): void {
   DOM.on(filterElement, 'click', (ev) => {
     ev.stopPropagation();
   });
@@ -170,7 +183,8 @@ document.addEventListener('DOMContentLoaded', function () {
         count++;
       }
     }
-    (DOM.get('#clockOutPortsCount') as HTMLElement).innerHTML = count > 0 ? String(count) : '-';
+    (DOM.get('#clockOutPortsCount') as HTMLElement).innerHTML =
+      count > 0 ? String(count) : '-';
   }
 
   function updateInputDisplay(inputs: PortDescriptor[]): void {
@@ -207,7 +221,9 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function updateInputSelection(inputs: PortDescriptor[]): void {
-    const listContainer = DOM.get('#inputPortWindow #inputPortList') as HTMLElement;
+    const listContainer = DOM.get(
+      '#inputPortWindow #inputPortList'
+    ) as HTMLElement;
     DOM.empty(listContainer);
     if (!inputs) {
       return;
@@ -229,9 +245,11 @@ document.addEventListener('DOMContentLoaded', function () {
         <span class="chsel"><select tabindex="-1">${channelOptions}</select></span>
         </div>`
       );
-      (DOM.get(
-        `#inputPortList .clockOutOption[data-portid="${inport.id}"] select`
-      ) as HTMLSelectElement).selectedIndex = (midi.selectedInputPorts[inport.id] || {}).ch || 0;
+      (
+        DOM.get(
+          `#inputPortList .clockOutOption[data-portid="${inport.id}"] select`
+        ) as HTMLSelectElement
+      ).selectedIndex = (midi.selectedInputPorts[inport.id] || {}).ch || 0;
     });
     DOM.all('#inputPortWindow #inputPortList .clockOutOption').forEach(
       (option) => {
@@ -304,10 +322,16 @@ document.addEventListener('DOMContentLoaded', function () {
     updateClockOutputCount();
     DOM.all('#clockOutPortWindow input[name="sendinternal"]').forEach((el) => {
       const inputEl = el as HTMLInputElement;
-      if (inputEl.id == 'sendinternalplaying' && zones.sendInternalClockIfPlaying) {
+      if (
+        inputEl.id == 'sendinternalplaying' &&
+        zones.sendInternalClockIfPlaying
+      ) {
         inputEl.checked = true;
       }
-      if (inputEl.id == 'sendinternalalways' && !zones.sendInternalClockIfPlaying) {
+      if (
+        inputEl.id == 'sendinternalalways' &&
+        !zones.sendInternalClockIfPlaying
+      ) {
         inputEl.checked = true;
       }
     });
@@ -394,6 +418,13 @@ document.addEventListener('DOMContentLoaded', function () {
     },
     panicHandler: () => {
       zones.list.forEach((z) => z.panic());
+      console.log('app: distributed panic to all zones');
+      setTimeout(() => {
+        view.toast(
+          'Sent "notes off" and CC 120, 122, 123 to all channels and used ports!',
+          { longer: true }
+        );
+      }, 1);
     },
     completeHandler: (midiavailable: boolean, message: string) => {
       // availability handler
@@ -471,7 +502,10 @@ document.addEventListener('DOMContentLoaded', function () {
           }
         });
         bpmInput.addEventListener('input', (e) => {
-          const bpm = Math.min(Math.max(parseInt((e.target as HTMLInputElement).value), 30), 240);
+          const bpm = Math.min(
+            Math.max(parseInt((e.target as HTMLInputElement).value), 30),
+            240
+          );
           zones.tempo = bpm;
           midi.setInternalBPM(bpm);
           saveZones();
@@ -481,7 +515,9 @@ document.addEventListener('DOMContentLoaded', function () {
         midi.setInternalBPM(zones.tempo);
         view.selectSequencerLayer(zones.seqLayerIndex || 0);
         Sequence.setQuantDiv(zones.seqLayerQuantIndex);
-        (DOM.get('#tools #seqquant') as HTMLSelectElement).value = String(zones.seqLayerQuantIndex);
+        (DOM.get('#tools #seqquant') as HTMLSelectElement).value = String(
+          zones.seqLayerQuantIndex
+        );
         document.body.addEventListener('keydown', (ev) => {
           if ((document.activeElement as HTMLElement).tagName != 'INPUT') {
             if (ev.key == ' ') {
@@ -517,40 +553,52 @@ document.addEventListener('DOMContentLoaded', function () {
         DOM.get('#save')!.addEventListener('click', async (e) => {
           await ipcRenderer
             .invoke('open-save', JSON.stringify(zones))
-            .then((result: { canceled: boolean; message: string; warning?: boolean }) => {
-              if (!result.canceled) {
-                view.toast(result.message, {
-                  longer: true,
-                  warning: result.warning
-                });
+            .then(
+              (result: {
+                canceled: boolean;
+                message: string;
+                warning?: boolean;
+              }) => {
+                if (!result.canceled) {
+                  view.toast(result.message, {
+                    longer: true,
+                    warning: result.warning
+                  });
+                }
               }
-            });
+            );
         });
         DOM.get('#load')!.addEventListener('click', async (e) => {
-          await ipcRenderer.invoke('open-load').then((result: string | null) => {
-            if (result) {
-              try {
-                applyStoredZones(JSON.parse(result), midi, true);
-                view.renderZones();
-                saveZones();
-              } catch (ex) {
-                console.log('app: Error loading file', ex);
-                view.toast(
-                  'Error loading file! The selected file is possibly no midi-zoner scene...',
-                  {
-                    longer: true,
-                    warning: true
-                  }
-                );
+          await ipcRenderer
+            .invoke('open-load')
+            .then((result: string | null) => {
+              if (result) {
+                try {
+                  applyStoredZones(JSON.parse(result), midi, true);
+                  view.renderZones();
+                  saveZones();
+                } catch (ex) {
+                  console.log('app: Error loading file', ex);
+                  view.toast(
+                    'Error loading file! The selected file is possibly no midi-zoner scene...',
+                    {
+                      longer: true,
+                      warning: true
+                    }
+                  );
+                }
               }
-            }
-          });
+            });
         });
       } else {
         console.log('app:', message);
       }
     },
-    updatePortsHandler: (inputs: PortDescriptor[], outputs: PortDescriptor[], msg: string) => {
+    updatePortsHandler: (
+      inputs: PortDescriptor[],
+      outputs: PortDescriptor[],
+      msg: string
+    ) => {
       if (activeUpdateTimer) {
         clearTimeout(activeUpdateTimer);
         activeUpdateTimer = null;
@@ -614,7 +662,9 @@ document.addEventListener('DOMContentLoaded', function () {
   const list = [select_in_clock];
   list.forEach((el) => {
     el.addEventListener('change', () => {
-      const inClockId = (DOM.find(select_in_clock, 'option:checked')[0] as HTMLOptionElement).value;
+      const inClockId = (
+        DOM.find(select_in_clock, 'option:checked')[0] as HTMLOptionElement
+      ).value;
       midi.selectDevices(inClockId);
       updateBpmInput();
       localStorage.setItem('midiInClockId', inClockId);
@@ -646,7 +696,11 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   DOM.on('#clockOutPortWindow input[name="sendinternal"]', 'change', () => {
     midi.sendClockIfPlaying = zones.sendInternalClockIfPlaying =
-      (document.querySelector('input[name="sendinternal"]:checked') as HTMLInputElement).value == '1';
+      (
+        document.querySelector(
+          'input[name="sendinternal"]:checked'
+        ) as HTMLInputElement
+      ).value == '1';
     saveZones();
   });
   DOM.on('#tools *[data-select-seq-layer]', 'click', (ev) => {
