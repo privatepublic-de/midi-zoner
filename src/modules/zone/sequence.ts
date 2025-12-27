@@ -16,6 +16,14 @@ export class Sequence {
   static LAYER_TICK_N = 0;
   static LAYER_QUANT_TICKS: DivTick = DIV_TICKS[2];
 
+  static {
+    for (let cycles = 2; cycles < 9; cycles++) {
+      for (let b = 0; b < cycles; b++) {
+        Sequence.CYCLE_CONDITIONS.push([cycles, b + 1]);
+      }
+    }
+  }
+
   static setQuantDiv(index: number): void {
     Sequence.LAYER_QUANT_TICKS = DIV_TICKS[index] as DivTick;
   }
@@ -475,14 +483,4 @@ export class Sequence {
   hasDrumStep(lane: number, stepNo: number): boolean {
     return this.getDrumLane(lane).steps[stepNo] != null;
   }
-}
-
-// Initialize CYCLE_CONDITIONS
-if (Sequence.CYCLE_CONDITIONS.length == 0) {
-  for (let cycles = 2; cycles < 9; cycles++) {
-    for (let b = 0; b < cycles; b++) {
-      Sequence.CYCLE_CONDITIONS.push([cycles, b + 1]);
-    }
-  }
-  console.log('Sequence: Initialized cycle conditions: ', Sequence.CYCLE_CONDITIONS);
 }

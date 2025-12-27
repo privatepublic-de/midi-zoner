@@ -3,6 +3,16 @@ import MIDI = require('../midi');
 export class Note {
   static WHITE_KEY_ARRAY: number[] = [];
 
+  static {
+    let whiteKeyCount = -1;
+    for (let kn = 0; kn < 128; kn++) {
+      if (!Note.isBlackKey(kn)) {
+        whiteKeyCount++;
+      }
+      Note.WHITE_KEY_ARRAY[kn] = whiteKeyCount;
+    }
+  }
+
   static isBlackKey(n: number): boolean {
     const nn = n % 12;
     return nn == 1 || nn == 3 || nn == 6 || nn == 8 || nn == 10;
@@ -50,13 +60,4 @@ export class Note {
     }
     this.isBlackKey = Note.isBlackKey(number);
   }
-}
-
-// Initialize whitekey index numbers
-let whiteKeyCount = -1;
-for (let kn = 0; kn < 128; kn++) {
-  if (!Note.isBlackKey(kn)) {
-    whiteKeyCount++;
-  }
-  Note.WHITE_KEY_ARRAY[kn] = whiteKeyCount;
 }
