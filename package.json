@@ -2,26 +2,41 @@
   "name": "midi-zoner",
   "version": "1.2.0",
   "description": "Play multiple MIDI devices, channels and note ranges from one MIDI input source. Includes an arpeggiator with euclidian patterns and CC controllers.",
-  "main": "main.js",
+  "main": "dist/main/main.js",
   "scripts": {
-    "start": "electron .",
-    "pack:osx": "electron-packager . --out=dist/osx --platform=darwin --arch=x64 --icon='./assets/zoner.icns' --overwrite --ignore='assets'",
-    "pack:osx:arm": "electron-packager . --out=dist/osx --platform=darwin --arch=arm64 --icon='./assets/zoner.icns' --overwrite --ignore='assets'",
-    "build:win": "electron-builder -w",
-    "build:mac": "electron-builder -m",
-    "build:linux": "electron-builder -l",
+    "start": "npm run build:ts && electron .",
+    "dev": "concurrently \"npm run watch\" \"sleep 3 && electron .\"",
+    "watch": "tsc --watch",
+    "build:ts": "tsc",
+    "clean": "rimraf dist",
+    "typecheck": "tsc --noEmit",
+    "pack:osx": "npm run build:ts && electron-packager . --out=dist/osx --platform=darwin --arch=x64 --icon='./assets/zoner.icns' --overwrite --ignore='src|assets'",
+    "pack:osx:arm": "npm run build:ts && electron-packager . --out=dist/osx --platform=darwin --arch=arm64 --icon='./assets/zoner.icns' --overwrite --ignore='src|assets'",
+    "build:win": "npm run build:ts && electron-builder -w",
+    "build:mac": "npm run build:ts && electron-builder -m",
+    "build:linux": "npm run build:ts && electron-builder -l",
     "build:all": "npm run build:win && npm run build:mac && npm run build:linux && npm run pack:osx"
   },
   "author": "Peter Witzel - privatepublic.de",
   "license": "ISC",
   "devDependencies": {
+    "@types/node": "^25.0.3",
+    "concurrently": "^9.2.1",
     "electron": "^29.2.0",
     "electron-builder": "24.13.3",
-    "electron-packager": "17.1.2"
+    "electron-packager": "17.1.2",
+    "rimraf": "^6.1.2",
+    "typescript": "^5.9.3"
   },
   "build": {
     "appId": "de.privatepublic.midizoner",
     "productName": "midi-zoner",
+    "files": [
+      "dist/**/*",
+      "res/**/*",
+      "index.html",
+      "styles.css"
+    ],
     "mac": {
       "target": "dmg",
       "icon": "assets/zoner.icns",
