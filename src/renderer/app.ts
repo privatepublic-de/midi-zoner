@@ -1,13 +1,15 @@
 import DOM = require('../modules/domutils');
-const { Zone, Sequence, SeqLayer } = require('../modules/zone');
+import { Zone } from '../modules/zone/zone-class';
+import { Sequence } from '../modules/zone/sequence';
+import { SeqLayer } from '../modules/zone/seq-layer';
 import MIDI = require('../modules/midi');
 import viewcontroller = require('../modules/viewcontroller');
 import view = require('../modules/viewcontroller');
 const { ipcRenderer } = require('electron');
 
 // Type aliases for class types
-type ZoneType = InstanceType<typeof Zone>;
-type SeqLayerType = InstanceType<typeof SeqLayer>;
+type ZoneType = Zone;
+type SeqLayerType = SeqLayer;
 type MIDIInstance = InstanceType<typeof MIDI>;
 
 interface InputPortDef {
