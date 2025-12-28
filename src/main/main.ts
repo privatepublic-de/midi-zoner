@@ -50,6 +50,14 @@ function createWindow(): void {
     win!.show();
   });
   win.loadFile(path.join(__dirname, '../../index.html'));
+
+  // Forward renderer console messages to main process terminal
+  win.webContents.on('console-message', (_event, level, message, line, sourceId) => {
+    const levelNames = ['DEBUG', 'INFO', 'WARN', 'ERROR'];
+    const source = sourceId ? `${sourceId}:${line}` : '';
+    console.log(`[${levelNames[level] || 'LOG'}] ${message}${source ? ` (${source})` : ''}`);
+  });
+
   win.on('close', () => {
     saveWindowPos(win!);
   });
