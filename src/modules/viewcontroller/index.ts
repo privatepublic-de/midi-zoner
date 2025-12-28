@@ -21,21 +21,32 @@ import {
   getCachedOutputPorts
 } from './output-port-manager';
 import {
-  ZonesData, ZoneType, SequenceType, MIDIInstance,
-  TouchedNoteResult, PortDescriptor, ActionContext, ActionHelpers
+  ZonesData,
+  ZoneType,
+  SequenceType,
+  MIDIInstance,
+  TouchedNoteResult,
+  PortDescriptor,
+  ActionContext,
+  ActionHelpers
 } from './types';
 
 const contextMenuActionLabel: Record<string, string> = {
   seq_copy_step: '<i class="material-icons">content_copy</i> Copy ',
   seq_paste_step: '<i class="material-icons">content_paste</i> Paste steps',
   seq_clear_step: '<i class="material-icons">clear</i> Clear step',
-  seq_clear_all: '<i class="material-icons">playlist_remove</i> Clear complete sequence',
+  seq_clear_all:
+    '<i class="material-icons">playlist_remove</i> Clear complete sequence',
   seq_copy: '<i class="material-icons">content_copy</i> Copy sequence',
   seq_paste: '<i class="material-icons">content_paste</i> Paste sequence',
-  seq_copy_to_layer_0: '<i class="material-icons">double_arrow</i> Copy to layer A',
-  seq_copy_to_layer_1: '<i class="material-icons">double_arrow</i> Copy to layer B',
-  seq_copy_to_layer_2: '<i class="material-icons">double_arrow</i> Copy to layer C',
-  seq_copy_to_layer_3: '<i class="material-icons">double_arrow</i> Copy to layer D',
+  seq_copy_to_layer_0:
+    '<i class="material-icons">double_arrow</i> Copy to layer A',
+  seq_copy_to_layer_1:
+    '<i class="material-icons">double_arrow</i> Copy to layer B',
+  seq_copy_to_layer_2:
+    '<i class="material-icons">double_arrow</i> Copy to layer C',
+  seq_copy_to_layer_3:
+    '<i class="material-icons">double_arrow</i> Copy to layer D',
   cc_edit: '<i class="material-icons">edit</i> Edit CC controllers',
   send_all_cc: '<i class="material-icons">double_arrow</i> Send all CC values',
   step_copy_length: 'Step lenght',
@@ -92,7 +103,9 @@ function findTouchedNote(
   zone: ZoneType
 ): TouchedNoteResult {
   let num = parseInt(
-    String(((ev.clientX - DOM.clientOffsets(e).offsetLeft) / e.offsetWidth) * 128)
+    String(
+      ((ev.clientX - DOM.clientOffsets(e).offsetLeft) / e.offsetWidth) * 128
+    )
   );
   const isLow =
     zone.lastTouchedRangePoint === 1 ||
@@ -146,7 +159,9 @@ function actionHandler(ev: MouseEvent, overrideaction?: string): void {
     updateValuesForZone(zoneindex);
   };
   const applySelectedIndex = (): void => {
-    (zone as any)[actionProperty] = (element as HTMLSelectElement).selectedIndex;
+    (zone as any)[actionProperty] = (
+      element as HTMLSelectElement
+    ).selectedIndex;
     updateValuesForZone(zoneindex);
   };
   const calcAndDisplayPercentage = (): number => {
@@ -184,7 +199,12 @@ function actionHandler(ev: MouseEvent, overrideaction?: string): void {
     listUsedPorts: () => listUsedPortsInternal(zones),
     toast,
     updateOutputPortsForZone: (index: number, outputs: PortDescriptor[]) =>
-      updateOutputPortsForZoneInternal(zones, index, outputs, updateValuesForAllZones),
+      updateOutputPortsForZoneInternal(
+        zones,
+        index,
+        outputs,
+        updateValuesForAllZones
+      ),
     cachedOutputPorts: getCachedOutputPorts(),
     findTouchedNote,
     updateControllerValues,
@@ -310,9 +330,13 @@ function hoverHandler(ev: MouseEvent): void {
   const zoneindex = parseInt(params[0]);
   const zone: ZoneType = zones.list[zoneindex];
   switch (params[1]) {
-    case 'range':
+    case 'zone_range':
       const result = findTouchedNote(ev, e, zone);
-      renderMarkersForZone(zoneindex, result.low ?? undefined, result.high ?? undefined);
+      renderMarkersForZone(
+        zoneindex,
+        result.low ?? undefined,
+        result.high ?? undefined
+      );
       break;
   }
   updateValuesForZone(zoneindex);
@@ -335,19 +359,19 @@ function dblClickHandler(ev: MouseEvent): void {
   const zoneindex = parseInt(params[0]);
   const zone = zones.list[zoneindex];
   switch (params[1]) {
-    case 'range':
+    case 'zone_range':
       zone.high = 127;
       zone.low = 0;
       renderMarkersForZone(zoneindex);
       break;
-    case 'arp_pattern':
+    case 'zone_arp_pattern':
       zone.arp_pattern.length = 8;
       for (let i = 0; i < zone.arp_pattern.length; i++) {
         zone.arp_pattern[i] = true;
       }
       zone.renderPattern();
       break;
-    case 'solo':
+    case 'zone_solo':
       for (var i = 0; i < zones.list.length; i++) {
         zones.list[i].solo = false;
       }
@@ -420,7 +444,9 @@ function appendZone(zone: ZoneType, index: number): void {
       new DragZone(index, ev, () => {
         triggerSave();
         renderZones();
-        zone.elements.zoneElement!.scrollIntoView({ behavior: 'instant' } as ScrollIntoViewOptions);
+        zone.elements.zoneElement!.scrollIntoView({
+          behavior: 'instant'
+        } as ScrollIntoViewOptions);
       });
     }
   });
@@ -506,7 +532,7 @@ function appendZone(zone: ZoneType, index: number): void {
     e.addEventListener('dblclick', dblClickHandler as EventListener);
   });
   DOM.all(`input[type="text"],input[type="number"]`).forEach((e) => {
-    e.addEventListener('keyup', function(this: HTMLElement, event) {
+    e.addEventListener('keyup', function (this: HTMLElement, event) {
       if ((event as KeyboardEvent).keyCode === 13) {
         event.preventDefault();
         this.dispatchEvent(new Event('input'));
@@ -531,7 +557,9 @@ function appendZone(zone: ZoneType, index: number): void {
     e.addEventListener('mouseleave', function (this: HTMLElement, ev) {
       if (
         (ev as MouseEvent).relatedTarget &&
-        ((ev as MouseEvent).relatedTarget as HTMLElement).classList.contains('preventLeave')
+        ((ev as MouseEvent).relatedTarget as HTMLElement).classList.contains(
+          'preventLeave'
+        )
       ) {
         return;
       }
@@ -554,7 +582,11 @@ function renderMarkersForAllZones(): void {
   }
 }
 
-function renderMarkersForZone(index: number, tempLo?: number, tempHigh?: number): void {
+function renderMarkersForZone(
+  index: number,
+  tempLo?: number,
+  tempHigh?: number
+): void {
   const zone: ZoneType = zones.list[index];
   const low = tempLo != undefined ? tempLo : zone.low;
   const high = tempHigh != undefined ? tempHigh : zone.high;
@@ -565,7 +597,9 @@ function renderMarkersForZone(index: number, tempLo?: number, tempHigh?: number)
   const width = zone.elements.rangeContainer!.offsetWidth;
   const xpad = (0.75 / 127.0) * width;
   zone.elements.rangeMarkerLow!.style.left = `${xlow * width}px`;
-  zone.elements.rangeMarkerHigh!.style.right = `${width - xhi * width - xpad}px`;
+  zone.elements.rangeMarkerHigh!.style.right = `${
+    width - xhi * width - xpad
+  }px`;
   zone.elements.rangeMarkerLow!.innerHTML =
     MIDI.NOTENAMES[low % 12] + (parseInt(String(low / 12)) - 1);
   zone.elements.rangeMarkerHigh!.innerHTML =
@@ -581,7 +615,11 @@ function renderMarkersForZone(index: number, tempLo?: number, tempHigh?: number)
     e.innerHTML = String(ocount - 1);
   });
   DOM.switchClass(zone.elements.rangeMarkerLow!, tempLo != undefined, 'hover');
-  DOM.switchClass(zone.elements.rangeMarkerHigh!, tempHigh != undefined, 'hover');
+  DOM.switchClass(
+    zone.elements.rangeMarkerHigh!,
+    tempHigh != undefined,
+    'hover'
+  );
 }
 
 function updateValuesForAllZones(): void {
@@ -591,7 +629,8 @@ function updateValuesForAllZones(): void {
 }
 
 function updateGeneralButtons(): void {
-  let muted = 0, held = 0;
+  let muted = 0,
+    held = 0;
   for (let i = 0; i < zones.list.length; i++) {
     muted += zones.list[i].enabled ? 0 : 1;
     held += zones.list[i].arp_hold ? 1 : 0;
@@ -606,11 +645,21 @@ function updateValuesForZone(index: number): void {
   const sequence = zone.sequence;
   const zoneElement = zone.elements.zoneElement;
   if (zone.elements.isReady && zoneElement) {
-    (zoneElement as HTMLElement).dataset['colorindex'] = String(zone.colorIndex);
+    (zoneElement as HTMLElement).dataset['colorindex'] = String(
+      zone.colorIndex
+    );
     DOM.removeClass(zone.elements.actionElements!, 'selected');
-    DOM.switchClass(zoneElement, Zone.solocount > 0 && !zone.solo, 'soloed-out');
-    zone.elements.sequencerProgressElement!.style.backgroundSize = `${100 / sequence.length}% 100%`;
-    zone.elements.sequencerProgressElementInner!.style.width = `${100 / sequence.length}%`;
+    DOM.switchClass(
+      zoneElement,
+      Zone.solocount > 0 && !zone.solo,
+      'soloed-out'
+    );
+    zone.elements.sequencerProgressElement!.style.backgroundSize = `${
+      100 / sequence.length
+    }% 100%`;
+    zone.elements.sequencerProgressElementInner!.style.width = `${
+      100 / sequence.length
+    }%`;
 
     DOM.switchClass(zoneElement, !zone.enabled, 'disabled');
     const zoneIsEnabled = zone.enabled && (Zone.solocount === 0 || zone.solo);
@@ -622,9 +671,19 @@ function updateValuesForZone(index: number): void {
       DOM.hide(zone.elements.sequencerProgressElement!);
       DOM.switchClass(zoneElement, sequence.isDrumSequence, 'drumSequencer');
       if (sequence.isDrumSequence) {
-        DOM.removeClass(zone.elements.sequencerDrumStepElements!, 'selected-step', 'activelength');
-        (zone.elements.get('.seq_lanes') as HTMLInputElement).value = String(sequence.drumLanes);
-        for (let laneIndex = 0; laneIndex < Sequence.MAX_LANES_DRUMS; laneIndex++) {
+        DOM.removeClass(
+          zone.elements.sequencerDrumStepElements!,
+          'selected-step',
+          'activelength'
+        );
+        (zone.elements.get('.seq_lanes') as HTMLInputElement).value = String(
+          sequence.drumLanes
+        );
+        for (
+          let laneIndex = 0;
+          laneIndex < Sequence.MAX_LANES_DRUMS;
+          laneIndex++
+        ) {
           if (laneIndex >= sequence.drumLanes) {
             zone.elements.get(`.lane${laneIndex}`)!.classList.add('unused');
           } else {
@@ -632,18 +691,30 @@ function updateValuesForZone(index: number): void {
           }
           const isEnabled = sequence.getDrumLane(laneIndex).enabled;
           if (isEnabled) {
-            zone.elements.get(`.lane${laneIndex}`)!.classList.remove('disabled');
+            zone.elements
+              .get(`.lane${laneIndex}`)!
+              .classList.remove('disabled');
           } else {
             zone.elements.get(`.lane${laneIndex}`)!.classList.add('disabled');
           }
-          zone.elements.addSelectedStyle(`.lane${laneIndex} .seq_toggle_lane_enabled`, isEnabled);
+          zone.elements.addSelectedStyle(
+            `.lane${laneIndex} .seq_toggle_lane_enabled`,
+            isEnabled
+          );
           const numberElement = zone.elements.get(
             `input[data-change="${index}:seq_drumlane_note:${laneIndex}"]`
           ) as HTMLInputElement;
           numberElement.value = String(sequence.getDrumLane(laneIndex).note);
-          numberElement.title = 'Trigger note: ' + Note.display(sequence.getDrumLane(laneIndex).note);
-          for (let stepIndex = 0; stepIndex < Sequence.MAX_STEPS_DRUMS; stepIndex++) {
-            const stepElement = zone.elements.sequencerDrumLanes![laneIndex][stepIndex];
+          numberElement.title =
+            'Trigger note: ' +
+            Note.display(sequence.getDrumLane(laneIndex).note);
+          for (
+            let stepIndex = 0;
+            stepIndex < Sequence.MAX_STEPS_DRUMS;
+            stepIndex++
+          ) {
+            const stepElement =
+              zone.elements.sequencerDrumLanes![laneIndex][stepIndex];
             if (stepIndex < sequence.length && laneIndex < sequence.drumLanes) {
               DOM.removeClass(stepElement, 'unused');
               if (sequence.hasDrumStep(laneIndex, stepIndex)) {
@@ -651,7 +722,11 @@ function updateValuesForZone(index: number): void {
               } else {
                 DOM.removeClass(stepElement, 'active');
               }
-              if (sequence.selectedStepNumbers.has(Sequence.getIdForDrumStep(laneIndex, stepIndex))) {
+              if (
+                sequence.selectedStepNumbers.has(
+                  Sequence.getIdForDrumStep(laneIndex, stepIndex)
+                )
+              ) {
                 DOM.addClass(stepElement, 'selected');
               } else {
                 DOM.removeClass(stepElement, 'selected');
@@ -662,7 +737,11 @@ function updateValuesForZone(index: number): void {
           }
         }
       } else {
-        DOM.removeClass(zone.elements.sequencerGridStepElements!, 'selected-step', 'activelength');
+        DOM.removeClass(
+          zone.elements.sequencerGridStepElements!,
+          'selected-step',
+          'activelength'
+        );
         zone.elements.sequencerGridStepElements!.forEach((stepElement, i) => {
           if (i < sequence.length) {
             DOM.removeClass(stepElement, 'unused');
@@ -671,7 +750,10 @@ function updateValuesForZone(index: number): void {
             } else {
               DOM.removeClass(stepElement, 'selected');
             }
-            if ((sequence.steps[i] && sequence.steps[i].length > 0) || sequence.liveTargetStepNumber == i) {
+            if (
+              (sequence.steps[i] && sequence.steps[i].length > 0) ||
+              sequence.liveTargetStepNumber == i
+            ) {
               DOM.addClass(stepElement, 'active');
             } else {
               DOM.removeClass(stepElement, 'active');
@@ -695,11 +777,25 @@ function updateValuesForZone(index: number): void {
         }
         const step = sequence.selectedStep;
         if (step && step.length > 0) {
-          zone.elements.setPercentage('.seq_step_probability', parseInt(String(step.probability * 100)), index);
-          zone.elements.setPercentage('.seq_gatelength', parseInt(String(step.gateLength * 100)), index);
-          zone.elements.setPercentage('.seq_step_velocity', parseInt(String(sequence.velocityMediumSelectedStep() * 100)), index);
+          zone.elements.setPercentage(
+            '.seq_step_probability',
+            parseInt(String(step.probability * 100)),
+            index
+          );
+          zone.elements.setPercentage(
+            '.seq_gatelength',
+            parseInt(String(step.gateLength * 100)),
+            index
+          );
+          zone.elements.setPercentage(
+            '.seq_step_velocity',
+            parseInt(String(sequence.velocityMediumSelectedStep() * 100)),
+            index
+          );
           zone.elements.setSelectedIndex('.seq_step_condition', step.condition);
-          (zone._$('.seq_step_length') as HTMLInputElement).value = String(step.length);
+          (zone._$('.seq_step_length') as HTMLInputElement).value = String(
+            step.length
+          );
         } else {
           if (sequence.selectedStepNumbers.size == 1) {
             (zone._$('.seq_step_length') as HTMLInputElement).value = '1';
@@ -713,11 +809,15 @@ function updateValuesForZone(index: number): void {
           const step = sequence.steps[selectedIndex];
           if (step && step.length > 0) {
             const length = step.length;
-            const overlapLength = selectedIndex + length > sequence.length
-              ? (selectedIndex + length) % sequence.length
-              : -1;
+            const overlapLength =
+              selectedIndex + length > sequence.length
+                ? (selectedIndex + length) % sequence.length
+                : -1;
             zone.elements.sequencerGridStepElements!.forEach((e, i) => {
-              if ((i > selectedIndex && i < selectedIndex + length) || i < overlapLength) {
+              if (
+                (i > selectedIndex && i < selectedIndex + length) ||
+                i < overlapLength
+              ) {
                 DOM.addClass(e, 'activelength');
               }
             });
@@ -725,9 +825,15 @@ function updateValuesForZone(index: number): void {
         });
         sequence.updateRecordingState();
       } else {
-        DOM.removeClass(zone.elements.sequencerElement!, 'has-selection', 'multi-selection');
+        DOM.removeClass(
+          zone.elements.sequencerElement!,
+          'has-selection',
+          'multi-selection'
+        );
       }
-      (zone._$('.seq_steps') as HTMLInputElement).value = String(sequence.length);
+      (zone._$('.seq_steps') as HTMLInputElement).value = String(
+        sequence.length
+      );
       zone.elements.setSelectedIndex('.seq_division', sequence.division);
     } else {
       DOM.removeClass(zoneElement, 'show-seq');
@@ -737,15 +843,33 @@ function updateValuesForZone(index: number): void {
         DOM.hide(zone.elements.sequencerProgressElement!);
       }
     }
-    ['cc', 'mod', 'at2mod', 'sustain', 'fixedvel', 'pitchbend', 'enabled', 'solo', 'programchange',
-     'arp_enabled', 'arp_hold', 'arp_transpose', 'sustain_on', 'arp_repeat'].forEach((p) => {
+    [
+      'cc',
+      'mod',
+      'at2mod',
+      'sustain',
+      'fixedvel',
+      'pitchbend',
+      'enabled',
+      'solo',
+      'programchange',
+      'arp_enabled',
+      'arp_hold',
+      'arp_transpose',
+      'sustain_on',
+      'arp_repeat'
+    ].forEach((p) => {
       zone.elements.addSelectedStyle('.' + p, (zone as any)[p]);
     });
     ['channel', 'arp_direction', 'arp_division', 'arp_octaves'].forEach((p) => {
       zone.elements.setSelectedIndex('.' + p, (zone as any)[p]);
     });
     ['arp_gatelength', 'arp_probability'].forEach((p) => {
-      zone.elements.setPercentage('.' + p, parseInt(String((zone as any)[p] * 100)), index);
+      zone.elements.setPercentage(
+        '.' + p,
+        parseInt(String((zone as any)[p] * 100)),
+        index
+      );
     });
     DOM.switchClass(zoneElement, zone.arp_enabled, 'arp-enabled');
     zone.elements.octaveSelectors!.forEach((e) => {
@@ -754,19 +878,32 @@ function updateValuesForZone(index: number): void {
         DOM.addClass(e, 'selected');
       }
     });
-    zone.elements.setPercentage('.velocity_scaling', parseInt(String(zone.velocity_scaling * 100)), index);
+    zone.elements.setPercentage(
+      '.velocity_scaling',
+      parseInt(String(zone.velocity_scaling * 100)),
+      index
+    );
     (zone._$('.euchits') as HTMLInputElement).value = String(zone.euclid_hits);
     (zone._$('.euclen') as HTMLInputElement).value = String(zone.euclid_length);
-    (zone._$('input.programnumber') as HTMLInputElement).value = zone.pgm_no ? String(zone.pgm_no) : '';
-    (zone._$('input.fixedvel_value') as HTMLInputElement).value = String(zone.fixedvel_value);
+    (zone._$('input.programnumber') as HTMLInputElement).value = zone.pgm_no
+      ? String(zone.pgm_no)
+      : '';
+    (zone._$('input.fixedvel_value') as HTMLInputElement).value = String(
+      zone.fixedvel_value
+    );
     const nameField = zone._$('.output-config-name') as HTMLInputElement;
     if (zones.outputConfigNames[zones.list[index].configId]) {
       nameField.value = zones.outputConfigNames[zones.list[index].configId];
     } else {
       nameField.value = '';
-      nameField.placeholder = (zone._$('select.outport') as HTMLSelectElement).selectedOptions[0].innerHTML;
+      nameField.placeholder = (
+        zone._$('select.outport') as HTMLSelectElement
+      ).selectedOptions[0].innerHTML;
     }
-    zone.elements.addSelectedStyle('.sendClock', midiController.clockOutputPorts[zone.outputPortId] === true);
+    zone.elements.addSelectedStyle(
+      '.sendClock',
+      midiController.clockOutputPorts[zone.outputPortId] === true
+    );
     updateControllerValues(zone, index);
     updateGeneralButtons();
   }
@@ -866,7 +1003,11 @@ function deleteAllZones(): void {
 }
 
 function updateOutputPortsForAllZones(outputs: PortDescriptor[]): Set<string> {
-  return updateOutputPortsForAllZonesInternal(zones, outputs, updateValuesForAllZones);
+  return updateOutputPortsForAllZonesInternal(
+    zones,
+    outputs,
+    updateValuesForAllZones
+  );
 }
 
 export {
