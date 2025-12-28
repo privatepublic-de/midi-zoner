@@ -441,7 +441,7 @@ function appendZone(zone: ZoneType, index: number): void {
   const dragHandler = zone._$('.dragzone') as HTMLElement;
   dragHandler.addEventListener('mousedown', (ev) => {
     if (zones.list.length > 1) {
-      new DragZone(index, ev, () => {
+      new DragZone(zones, index, ev, () => {
         triggerSave();
         renderZones();
         zone.elements.zoneElement!.scrollIntoView({

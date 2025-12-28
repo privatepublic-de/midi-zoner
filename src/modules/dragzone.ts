@@ -1,8 +1,5 @@
-import { webFrame } from 'electron';
 import DOM from './domutils';
-
-// Global zones reference - will be properly typed when app.ts is migrated
-declare const zones: { list: any[] };
+import { ZonesData } from './viewcontroller/types';
 
 interface SrcDim {
   top: number;
@@ -21,15 +18,22 @@ class DragZone {
   moveHandler: ((ev: MouseEvent) => void) | null = null;
   dropHandler: ((ev: MouseEvent) => void) | null = null;
   hasmoved = false;
+  zones: ZonesData;
   zoneElement: HTMLElement;
   startY = 0;
   startX = 0;
   finishedCallback: FinishedCallback;
 
-  constructor(index: number, startMouseEvent: MouseEvent, finishedCallback: FinishedCallback) {
+  constructor(
+    zones: ZonesData,
+    index: number,
+    startMouseEvent: MouseEvent,
+    finishedCallback: FinishedCallback
+  ) {
     this.finishedCallback = finishedCallback;
     this.zoneElement = DOM.get(`#zone${index}`) as HTMLElement;
     this.index = index;
+    this.zones = zones;
     this.startY = 0;
     this.startX = 0;
     const offsets = DOM.clientOffsets(this.zoneElement);
@@ -56,8 +60,16 @@ class DragZone {
     this.zoneElement.style.left = `${this.srcdim.left}px`;
     this.zoneElement.style.width = `${this.srcdim.width}px`;
     this.zoneElement.style.height = `${this.srcdim.height}px`;
-    document.body.addEventListener('mousemove', this.moveHandler as EventListener, true);
-    document.body.addEventListener('mouseup', this.dropHandler as EventListener, true);
+    document.body.addEventListener(
+      'mousemove',
+      this.moveHandler as EventListener,
+      true
+    );
+    document.body.addEventListener(
+      'mouseup',
+      this.dropHandler as EventListener,
+      true
+    );
     DOM.addClass(document.body, 'zonedrag');
     this.findDropElement(startMouseEvent.pageX, startMouseEvent.pageY);
     setTimeout(() => {
@@ -72,15 +84,23 @@ class DragZone {
 
   drop(ev: MouseEvent): void {
     const targetIndex = this.findDropElement(ev.pageX, ev.pageY);
-    document.body.removeEventListener('mousemove', this.moveHandler as EventListener, true);
-    document.body.removeEventListener('mouseup', this.dropHandler as EventListener, true);
+    document.body.removeEventListener(
+      'mousemove',
+      this.moveHandler as EventListener,
+      true
+    );
+    document.body.removeEventListener(
+      'mouseup',
+      this.dropHandler as EventListener,
+      true
+    );
     DOM.removeClass('#zones', 'dragging', 'droptarget');
     DOM.removeClass(document.body, 'zonedrag');
     this.zoneElement.style.display = 'block';
     if (this.hasmoved && targetIndex > -1) {
-      const temp = zones.list[targetIndex];
-      zones.list[targetIndex] = zones.list[this.index];
-      zones.list[this.index] = temp;
+      const temp = this.zones.list[targetIndex];
+      this.zones.list[targetIndex] = this.zones.list[this.index];
+      this.zones.list[this.index] = temp;
     }
     this.finishedCallback();
   }
@@ -93,7 +113,7 @@ class DragZone {
     this.zoneElement.style.top = `${y}px`;
     this.zoneElement.style.left = `${x}px`;
     let found = -1;
-    for (let i = 0; i < zones.list.length; i++) {
+    for (let i = 0; i < this.zones.list.length; i++) {
       if (i === this.index) {
         continue;
       }
