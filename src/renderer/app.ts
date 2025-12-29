@@ -128,7 +128,7 @@ function bodyClickHandler(): void {
   if (callback) {
     callback();
   }
-  DOM.hide('#toast');
+  DOM.removeClass('#toast', 'fade');
 }
 
 function onBackgroundClick(

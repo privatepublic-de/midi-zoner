@@ -18,9 +18,9 @@
   --fg-midi-update: #000;
   --bg-midi-update: #fff;
   --bg-select-window: #111;
-  --bg-toast: #ff9;
+  --bg-toast: #ced935;
   --bg-toast-warning: #ff8888;
-  --shadow-toast: #ffffffc0;
+  --shadow-toast: #000000c0;
   --bg-contextmenu: #333333;
   --shadow-zone: #111;
   --bg-color-popup: #333333;
@@ -1808,14 +1808,20 @@ body:not(.running) .seqprogress {
   position: fixed;
   width: 300px;
   left: 50%;
-  top: 30%;
+  top: -100px;
   margin-left: -150px;
-  background-color: var(--bg-toast);
   color: var(--text-toast-color);
+  background-color: var(--bg-toast);
   font-size: 12px;
-  box-shadow: 1px 1px 10px var(--shadow-toast);
-  display: none;
+  box-shadow: 1px 1px 4px var(--shadow-toast);
   z-index: 2;
+  opacity: 0;
+  transition: opacity 200ms, top 200ms;
+}
+
+#toast.fade {
+  opacity: 1;
+  top: 50px;
 }
 
 #toast.warning {

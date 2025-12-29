@@ -37,9 +37,11 @@ export function toast(message: string, properties?: ToastProperties): void {
 }
 
 export function toastHide(): void {
-  DOM.hide(toastElement);
+  toastElement.classList.remove('fade');
+  // DOM.hide(toastElement);
 }
 
 export function toastShow(longer?: boolean): void {
-  DOM.show(toastElement);
+  // DOM.show(toastElement);
+  toastElement.classList.add('fade');
 }
