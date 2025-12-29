@@ -605,8 +605,14 @@ document.addEventListener('DOMContentLoaded', function () {
       }
       activeUpdateTimer = setTimeout(() => {
         console.log('app: MIDI port update');
-        console.log('app: inputs', inputs);
-        console.log('app: outputs', outputs);
+        console.log(
+          'app: MIDI inputs ----------',
+          JSON.stringify(inputs, null, 2)
+        );
+        console.log(
+          'app: MIDI outputs ----------',
+          JSON.stringify(outputs, null, 2)
+        );
         // midi settings
         DOM.empty(select_in_clock);
         DOM.addHTML(

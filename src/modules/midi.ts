@@ -16,7 +16,11 @@ interface InputPortDef {
 
 interface MIDIHandlers {
   completeHandler?: (available: boolean, msg: string) => void;
-  updatePortsHandler?: (inputs: PortDescriptor[], outputs: PortDescriptor[], msg?: string) => void;
+  updatePortsHandler?: (
+    inputs: PortDescriptor[],
+    outputs: PortDescriptor[],
+    msg?: string
+  ) => void;
   eventHandler: (event: MIDIMessageEvent) => void;
   clockHandler?: (pos: number) => void;
   transportHandler?: (started: boolean) => void;
@@ -185,7 +189,10 @@ class MIDI {
       let countIn = 0;
       let countOut = 0;
 
-      const sortPortsComparator = (a: [string, MIDIPort], b: [string, MIDIPort]): number => {
+      const sortPortsComparator = (
+        a: [string, MIDIPort],
+        b: [string, MIDIPort]
+      ): number => {
         const aUpper = ('' + a[1].name).toUpperCase();
         const bUpper = ('' + b[1].name).toUpperCase();
         if (aUpper < bUpper) {
@@ -270,7 +277,8 @@ class MIDI {
     // go ahead, start midi
     if ('requestMIDIAccess' in navigator) {
       console.log('MIDI: System has MIDI support.');
-      navigator.requestMIDIAccess({ sysex: true })
+      navigator
+        .requestMIDIAccess({ sysex: true })
         .then(onMIDISuccess, onMIDIFailure);
     } else {
       console.log('MIDI: System has *no* MIDI support.');
@@ -344,7 +352,7 @@ class MIDI {
   }
 
   selectDevices(deviceIdInClock: string | null): void {
-    console.log('MIDI: selectDevices(), inClock', deviceIdInClock);
+    // console.log('MIDI: selectDevices(), inClock', deviceIdInClock);
     this.deviceIdInClock = deviceIdInClock;
     if (deviceIdInClock == MIDI.INTERNAL_PORT_ID) {
       internalClock.setHandler(this.onMIDIMessage.bind(this));
@@ -354,7 +362,8 @@ class MIDI {
     this.midiAccess?.inputs.forEach((entry: MIDIInput) => {
       entry.onmidimessage = null;
     });
-    this.deviceInClock = this.midiAccess?.inputs.get(this.deviceIdInClock!) ?? null;
+    this.deviceInClock =
+      this.midiAccess?.inputs.get(this.deviceIdInClock!) ?? null;
     if (this.deviceInClock) {
       this.deviceInClock.onmidimessage = this.onMIDIMessage.bind(this);
     }
@@ -499,12 +508,12 @@ class MIDI {
    */
   updateUsedPorts(set: Set<string>): void {
     this.usedPorts = set;
-    console.log(
-      'MIDI: Used ports updated. Used:',
-      this.usedPorts,
-      ', clock:',
-      this.clockOutputPorts
-    );
+    // console.log(
+    //   'MIDI: Used ports updated. Used:',
+    //   JSON.stringify(this.usedPorts),
+    //   ', clock:',
+    //   JSON.stringify(this.clockOutputPorts)
+    // );
   }
 
   updateClockOutputReceiver(portid: string, enabled: boolean): void {
