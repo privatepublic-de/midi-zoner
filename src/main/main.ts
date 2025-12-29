@@ -3,6 +3,7 @@ import { app, BrowserWindow, Menu, powerSaveBlocker, ipcMain, dialog, shell } fr
 import settings from 'electron-settings';
 import path from 'path';
 import fs from 'fs';
+import { SourceMapConsumer, RawSourceMap, NullableMappedPosition } from 'source-map';
 
 interface WindowRect {
   x: number;
@@ -18,6 +19,64 @@ interface SaveResult {
 }
 
 powerSaveBlocker.start('prevent-app-suspension');
+
+// Source map cache for resolving TypeScript locations
+const sourceMapCache = new Map<string, SourceMapConsumer>();
+
+async function resolveSourceLocation(
+  sourceId: string,
+  line: number
+): Promise<{ file: string; line: number } | null> {
+  if (!sourceId) return null;
+
+  // Convert file:// URL to path if present
+  let jsPath = sourceId;
+  if (sourceId.startsWith('file://')) {
+    jsPath = sourceId.replace(/^file:\/\//, '');
+  }
+
+  // Only process .js files from our dist directory
+  if (!jsPath.endsWith('.js') || !jsPath.includes('/dist/')) {
+    return null;
+  }
+
+  // Ensure absolute path
+  if (!path.isAbsolute(jsPath)) {
+    return null;
+  }
+
+  const mapPath = jsPath + '.map';
+
+  try {
+    // Check cache first
+    let consumer = sourceMapCache.get(mapPath);
+
+    if (!consumer && fs.existsSync(mapPath)) {
+      const mapContent = fs.readFileSync(mapPath, 'utf-8');
+      const rawMap: RawSourceMap = JSON.parse(mapContent);
+      consumer = await new SourceMapConsumer(rawMap);
+      sourceMapCache.set(mapPath, consumer);
+    }
+
+    if (consumer) {
+      // Try columns 0-100 to find a valid mapping (handles indentation)
+      let pos: NullableMappedPosition = { source: null, line: null, column: null, name: null };
+      for (let col = 0; col < 100 && !pos.source; col++) {
+        pos = consumer.originalPositionFor({ line, column: col });
+      }
+      if (pos.source && pos.line) {
+        // Resolve to absolute path from sourceRoot
+        const distDir = path.dirname(jsPath);
+        const srcFile = path.resolve(distDir, pos.source);
+        return { file: srcFile, line: pos.line };
+      }
+    }
+  } catch {
+    // Silently ignore source map errors
+  }
+
+  return null;
+}
 
 const defaultWidth = 1000;
 const defaultHeight = 730;
@@ -52,9 +111,14 @@ function createWindow(): void {
   win.loadFile(path.join(__dirname, '../../index.html'));
 
   // Forward renderer console messages to main process terminal
-  win.webContents.on('console-message', (_event, level, message, line, sourceId) => {
+  win.webContents.on('console-message', async (_event, level, message, line, sourceId) => {
     const levelNames = ['DEBUG', 'INFO', 'WARN', 'ERROR'];
-    const source = sourceId ? `${sourceId}:${line}` : '';
+    const original = await resolveSourceLocation(sourceId, line);
+    const source = original
+      ? `${original.file}:${original.line}`
+      : sourceId
+        ? `${sourceId}:${line}`
+        : '';
     console.log(`[${levelNames[level] || 'LOG'}] ${message}${source ? ` (${source})` : ''}`);
   });
 

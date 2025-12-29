@@ -26,6 +26,7 @@
     "electron-builder": "24.13.3",
     "electron-packager": "17.1.2",
     "rimraf": "^6.1.2",
+    "source-map": "^0.7.6",
     "typescript": "^5.9.3"
   },
   "build": {
