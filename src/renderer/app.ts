@@ -81,40 +81,46 @@ function loadZones(midi: MIDIInstance): void {
   }
 }
 
+function createZone(midi: MIDIInstance, zoneData: Zone): Zone {
+  const zone = new Zone(midi);
+  Object.assign(zone, zoneData);
+  const sequence = new Sequence(zone);
+  const layers: SeqLayerType[] = [];
+  Object.assign(sequence, (zoneData as { sequence?: object }).sequence);
+  sequence.layers.forEach((slayer: SeqLayer) => {
+    const layer = new SeqLayer();
+    Object.assign(layer, slayer);
+    layers.push(layer);
+  });
+  sequence.layers = layers;
+  sequence.steps.forEach((st: SeqStep | null) => {
+    if (st) {
+      st.lastPlayedArray = [];
+    }
+  });
+  zone.sequence = sequence;
+  return zone;
+}
+
 function applyStoredZones(
   storedZones: Partial<ZonesData> & { list?: object[] },
   midi: MIDIInstance,
   append?: boolean
 ): void {
   if (storedZones) {
-    const tempList = zones.list;
-    if (!append) {
+    if (append) {
+      // add storedZones to existing zones, but don't overwrite any settings
+      for (let i = 0; i < (storedZones.list?.length ?? 0); i++) {
+        zones.list.push(createZone(midi, storedZones.list![i]));
+      }
+    } else {
+      // overwrite existing zones with stored zones
       zones.list.forEach((z) => z.dismiss());
-    }
-    Object.assign(zones, storedZones);
-    zones.list = append ? tempList : [];
-    for (let i = 0; i < (storedZones.list?.length ?? 0); i++) {
-      const zone = new Zone(midi);
-      Object.assign(zone, storedZones.list![i]);
-      const sequence = new Sequence(zone);
-      const layers: SeqLayerType[] = [];
-      Object.assign(
-        sequence,
-        (storedZones.list![i] as { sequence?: object }).sequence
-      );
-      sequence.layers.forEach((slayer: SeqLayer) => {
-        const layer = new SeqLayer();
-        Object.assign(layer, slayer);
-        layers.push(layer);
-      });
-      sequence.layers = layers;
-      sequence.steps.forEach((st: SeqStep | null) => {
-        if (st) {
-          st.lastPlayedArray = [];
-        }
-      });
-      zone.sequence = sequence;
-      zones.list.push(zone);
+      Object.assign(zones, storedZones);
+      zones.list = [];
+      for (let i = 0; i < (storedZones.list?.length ?? 0); i++) {
+        zones.list.push(createZone(midi, storedZones.list![i]));
+      }
     }
     midi.clockOutputPorts = zones.clockOutputPorts;
     midi.selectedInputPorts = zones.selectedInputPorts;
