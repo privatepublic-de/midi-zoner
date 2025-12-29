@@ -80,7 +80,8 @@ async function resolveSourceLocation(
 
 const defaultWidth = 1000;
 const defaultHeight = 730;
-const iconPath = path.join(__dirname, '../../res/zoner.png');
+const projectRoot = path.join(__dirname, '../..');
+const iconPath = path.join(projectRoot, 'res/zoner.png');
 
 let win: BrowserWindow | null;
 
@@ -115,7 +116,7 @@ function createWindow(): void {
     const levelNames = ['DEBUG', 'INFO', 'WARN', 'ERROR'];
     const original = await resolveSourceLocation(sourceId, line);
     const source = original
-      ? `${original.file}:${original.line}`
+      ? `${path.relative(projectRoot, original.file)}:${original.line}`
       : sourceId
         ? `${sourceId}:${line}`
         : '';
