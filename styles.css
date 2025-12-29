@@ -1819,6 +1819,10 @@ body:not(.running) .seqprogress {
   transition: opacity 200ms, top 200ms;
 }
 
+#toast:hover {
+  opacity: 0.5 !important;
+}
+
 #toast.fade {
   opacity: 1;
   top: 50px;

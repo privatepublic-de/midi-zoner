@@ -6,6 +6,9 @@ let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
 export function initToast(): void {
   toastElement = DOM.get('#toast') as HTMLElement;
+  toastElement.addEventListener('click', () => {
+    toastHide();
+  });
 }
 
 export function toast(message: string, properties?: ToastProperties): void {
