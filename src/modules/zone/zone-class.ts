@@ -465,6 +465,7 @@ export class Zone {
       context.clearRect(0, 0, cwidth, rect.height);
 
       if (this.sustain_state) {
+        context.fillStyle = NoteDisplay.fillSustain;
         context.fillRect(0, rect.height - 2, cwidth, 2);
       }
 
