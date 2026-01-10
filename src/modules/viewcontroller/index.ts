@@ -48,7 +48,7 @@ const contextMenuActionLabel: Record<string, string> = {
   seq_copy_to_layer_3:
     '<i class="material-icons">double_arrow</i> Copy to layer D',
   cc_edit: '<i class="material-icons">edit</i> Edit CC controllers',
-  send_all_cc: '<i class="material-icons">double_arrow</i> Send all CC values',
+  cc_send_all: '<i class="material-icons">double_arrow</i> Send all CC values',
   step_copy_length: 'Step lenght',
   step_copy_gate: 'Gate length',
   step_copy_condition: 'Condition',
