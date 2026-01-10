@@ -7,8 +7,14 @@ export function createSeqActions(
   helpers: ActionHelpers
 ): ActionMap {
   const {
-    zone, zoneindex, sequence, element, actionParam1, ev,
-    updateValuesForZone, toast
+    zone,
+    zoneindex,
+    sequence,
+    element,
+    actionParam1,
+    ev,
+    updateValuesForZone,
+    toast
   } = ctx;
   const { calcAndDisplayPercentage } = helpers;
 
@@ -38,7 +44,9 @@ export function createSeqActions(
     },
     seq_drumlane_note: () => {
       const laneNo = parseInt(actionParam1);
-      sequence.getDrumLane(laneNo).note = parseInt((element as HTMLInputElement).value);
+      sequence.getDrumLane(laneNo).note = parseInt(
+        (element as HTMLInputElement).value
+      );
       console.log(sequence.getDrumLane(laneNo));
       updateValuesForZone(zoneindex);
     },
@@ -59,8 +67,10 @@ export function createSeqActions(
     },
     seq_step_length: () => {
       const v = parseInt((element as HTMLInputElement).value);
-      sequence.selectedStepNumbers.forEach((n) => {
-        if (sequence.steps[n]) sequence.steps[n].length = v;
+      sequence.selectedSteps.forEach((step) => {
+        if (step) {
+          step.length = v;
+        }
       });
       updateValuesForZone(zoneindex);
     },
@@ -82,7 +92,9 @@ export function createSeqActions(
     },
     seq_transpose: () => {
       const selectElement = element as HTMLSelectElement;
-      const semitones = parseInt(selectElement.options[selectElement.selectedIndex].value);
+      const semitones = parseInt(
+        selectElement.options[selectElement.selectedIndex].value
+      );
       sequence.transpose(semitones);
       toast(
         (sequence.hasSelection ? 'Selected steps' : 'Sequence') +
@@ -95,10 +107,11 @@ export function createSeqActions(
     },
     seq_adjust: () => {
       const selectElement = element as HTMLSelectElement;
-      const adjustment = selectElement.options[selectElement.selectedIndex].value;
+      const adjustment =
+        selectElement.options[selectElement.selectedIndex].value;
       let seq = sequence;
       let srcLength = seq.length;
-      let steps: (typeof seq.steps[number] | null)[] = [];
+      let steps: ((typeof seq.steps)[number] | null)[] = [];
       for (let i = 0; i < srcLength; i++) {
         steps[i] = seq.steps[i];
       }
@@ -148,7 +161,9 @@ export function createSeqActions(
             }
           });
           toast(
-            'All steps changed velocity by ' + parseInt(String(factor * 100)) + '%'
+            'All steps changed velocity by ' +
+              parseInt(String(factor * 100)) +
+              '%'
           );
           updateValuesForZone(zoneindex);
           break;
@@ -192,27 +207,30 @@ export function createSeqActions(
       }
     },
     seq_step_probability: () => {
-      sequence.selectedStepNumbers.forEach((n) => {
-        if (sequence.steps[n] != null) {
-          sequence.steps[n].probability = calcAndDisplayPercentage();
+      sequence.selectedSteps.forEach((step) => {
+        if (step) {
+          step.probability = calcAndDisplayPercentage();
         }
       });
       updateValuesForZone(zoneindex);
     },
     seq_step_velocity: () => {
-      if (sequence.selectedStep) {
-        const velo = calcAndDisplayPercentage() * 127;
-        sequence.selectedStep.notesArray.forEach((note) => {
+      const velo = calcAndDisplayPercentage() * 127;
+      sequence.selectedSteps.forEach((step) => {
+        step?.notesArray.forEach((note) => {
           note.velo = Math.max(1, Math.min(127, velo));
         });
-        updateValuesForZone(zoneindex);
-      }
+      });
     },
     _seq_step_apply_to_all: (actionIndex?: number) => {
-      const idx = actionIndex !== undefined ? actionIndex : parseInt(actionParam1);
+      const idx =
+        actionIndex !== undefined ? actionIndex : parseInt(actionParam1);
+      const allSteps = sequence.isDrumSequence
+        ? sequence.drumSteps
+        : sequence.steps;
       if (sequence.selectedStep && idx > 0) {
         let what = '';
-        sequence.steps.forEach((s) => {
+        allSteps.forEach((s) => {
           if (s) {
             switch (idx) {
               case 1:
@@ -289,10 +307,12 @@ export function createSeqActions(
         sequence.clearSelection();
         const targetStep = parseInt(actionParam1);
         const targetSteps = sequence.steps;
-        Array.from(Zone.seqClipboardStep.keys()).forEach((stepindex: number) => {
-          targetSteps[(targetStep + stepindex) % sequence.length] =
-            Sequence.cloneStep(Zone.seqClipboardStep!.get(stepindex));
-        });
+        Array.from(Zone.seqClipboardStep.keys()).forEach(
+          (stepindex: number) => {
+            targetSteps[(targetStep + stepindex) % sequence.length] =
+              Sequence.cloneStep(Zone.seqClipboardStep!.get(stepindex));
+          }
+        );
         updateValuesForZone(zoneindex);
       } else {
         toast('Nothing to paste, clipboard is empty.');
@@ -329,7 +349,7 @@ export function createSeqActions(
       sequence.clearSelection();
       const direction = parseInt(actionParam1);
       const limit = sequence.length;
-      const newSeq: (typeof sequence.steps[number] | null)[] = [];
+      const newSeq: ((typeof sequence.steps)[number] | null)[] = [];
       for (let i = 0; i < Sequence.MAX_STEPS; i++) {
         newSeq[i] = sequence.steps[i];
       }

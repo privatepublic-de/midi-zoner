@@ -127,6 +127,14 @@ export class Sequence {
     this.activeLayer.steps = steplist;
   }
 
+  get drumSteps(): (SeqStep | null)[] {
+    const result = [];
+    this.activeLayer.drum_lanes.forEach((drumlane) => {
+      if (drumlane.steps?.length > 0) result.push(...drumlane.steps);
+    });
+    return result;
+  }
+
   clearSelection(): void {
     this.selectedStepNumbers.clear();
     this.isHotRecordingNotes = false;
