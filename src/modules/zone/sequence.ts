@@ -33,7 +33,9 @@ export class Sequence {
     return (laneIndex + 1) * 512 + stepIndex;
   }
 
-  static getLaneAndStepIndexForDrumStepId(drumStepId: number): [number, number] {
+  static getLaneAndStepIndexForDrumStepId(
+    drumStepId: number
+  ): [number, number] {
     return [Math.floor(drumStepId / 512) - 1, drumStepId & 511];
   }
 
@@ -151,7 +153,8 @@ export class Sequence {
   get selectedStep(): SeqStep | null {
     if (this.selectedStepNumber > -1) {
       if (this.isDrumSequence) {
-        const [laneIndex, stepIndex] = Sequence.getLaneAndStepIndexForDrumStepId(this.selectedStepNumber);
+        const [laneIndex, stepIndex] =
+          Sequence.getLaneAndStepIndexForDrumStepId(this.selectedStepNumber);
         return this.getDrumLane(laneIndex)?.steps[stepIndex] || null;
       } else {
         return this.steps[this.selectedStepNumber];
@@ -165,7 +168,8 @@ export class Sequence {
     this.selectedStepNumbers.forEach((sn) => {
       let step: SeqStep | null;
       if (this.isDrumSequence) {
-        const [laneIndex, stepIndex] = Sequence.getLaneAndStepIndexForDrumStepId(sn);
+        const [laneIndex, stepIndex] =
+          Sequence.getLaneAndStepIndexForDrumStepId(sn);
         step = this.getDrumLane(laneIndex)?.steps[stepIndex] || null;
       } else {
         step = this.steps[sn];
@@ -184,7 +188,9 @@ export class Sequence {
       const [lindex, sindex] = Sequence.getLaneAndStepIndexForDrumStepId(index);
       return this.getDrumLane(lindex)?.steps[sindex] == null;
     } else {
-      return this.steps[index] == null || this.steps[index]?.notesArray.length === 0;
+      return (
+        this.steps[index] == null || this.steps[index]?.notesArray.length === 0
+      );
     }
   }
 
@@ -197,11 +203,16 @@ export class Sequence {
   }
 
   recordNote(note: Note, inCount: number): void {
-    if (!this.isHotRecordingNotes && this.isLiveRecoding && this.currentStepNumber > -1) {
+    if (
+      !this.isHotRecordingNotes &&
+      this.isLiveRecoding &&
+      this.currentStepNumber > -1
+    ) {
       if (this.liveTargetStep == null) {
-        const rec2step = this.tickn >= this.ticks - this.ticks / 3
-          ? (this.currentStepNumber + 1) % this.length
-          : this.currentStepNumber;
+        const rec2step =
+          this.tickn >= this.ticks - this.ticks / 3
+            ? (this.currentStepNumber + 1) % this.length
+            : this.currentStepNumber;
         this.liveTargetStepNumber = rec2step;
         this.liveTargetStep = SeqStep.from(this.steps[rec2step]);
         this.liveTargetLength = 1;
@@ -233,7 +244,11 @@ export class Sequence {
       this.updateRecordingState();
       this.updateZoneView();
     }
-    if (this.isHotRecordingNotes && this.selectedStepNumber > -1 && count === 0) {
+    if (
+      this.isHotRecordingNotes &&
+      this.selectedStepNumber > -1 &&
+      count === 0
+    ) {
       this.selectedStep?.notesArray.sort((a, b) => a.number - b.number);
       if (this.stepAdvance) {
         this.selectedStepNumber = (this.selectedStepNumber + 1) % this.length;
@@ -261,7 +276,11 @@ export class Sequence {
           const stepMarker = this.zone._$('.stepmarker') as HTMLElement;
           if (stepMarker) {
             if (this.isDrumSequence) {
-              stepMarker.innerHTML = String(Sequence.getLaneAndStepIndexForDrumStepId(this.selectedStepNumber)[1] + 1);
+              stepMarker.innerHTML = String(
+                Sequence.getLaneAndStepIndexForDrumStepId(
+                  this.selectedStepNumber
+                )[1] + 1
+              );
             } else {
               stepMarker.innerHTML = String(this.selectedStepNumber + 1);
             }
@@ -272,20 +291,25 @@ export class Sequence {
               const velopcnt = (note.velo / 127) * 100;
               let noteString: string;
               if (this.isDrumSequence) {
-                const [laneNr] = Sequence.getLaneAndStepIndexForDrumStepId(this.selectedStepNumber);
+                const [laneNr] = Sequence.getLaneAndStepIndexForDrumStepId(
+                  this.selectedStepNumber
+                );
                 const lane = this.getDrumLane(laneNr);
                 noteString = `#${lane.note} (${Note.display(lane.note)})`;
               } else {
                 noteString = Note.display(note.number);
               }
-              infoText += `<span class="note${note.isBlackKey ? ' black' : ''}"><span class="velocity" style="height:${velopcnt}%"></span>${noteString}</span> `;
+              infoText += `<span class="note${
+                note.isBlackKey ? ' black' : ''
+              }"><span class="velocity" style="height:${velopcnt}%"></span>${noteString}</span> `;
             });
           } else {
             if (this.isHotRecordingNotes) {
               infoText += '<i>Empty step. Play some notes ...</i>';
             }
           }
-          const stepNotes = this.zone.elements.sequencerElement?.querySelector('.step-notes');
+          const stepNotes =
+            this.zone.elements.sequencerElement?.querySelector('.step-notes');
           if (stepNotes) stepNotes.innerHTML = infoText;
 
           if (this.isHotRecordingNotes) {
@@ -297,7 +321,8 @@ export class Sequence {
           const stepMarker = this.zone._$('.stepmarker') as HTMLElement;
           if (stepMarker) stepMarker.innerHTML = '...';
           const stepNotes = this.zone._$('.step-notes') as HTMLElement;
-          if (stepNotes) stepNotes.innerHTML = `<i>${this.selectedStepNumbers.size} steps selected</i>`;
+          if (stepNotes)
+            stepNotes.innerHTML = `<i>${this.selectedStepNumbers.size} steps selected</i>`;
         }
       }
     });
@@ -306,7 +331,10 @@ export class Sequence {
   clock(pos: number): void {
     this.tickn = pos % this.ticks;
     Sequence.LAYER_TICK_N = pos % Sequence.LAYER_QUANT_TICKS;
-    if (Sequence.LAYER_TICK_N === 0 && Sequence.ACTIVE_LAYER_INDEX != Sequence.NEXT_LAYER_INDEX) {
+    if (
+      Sequence.LAYER_TICK_N === 0 &&
+      Sequence.ACTIVE_LAYER_INDEX != Sequence.NEXT_LAYER_INDEX
+    ) {
       Sequence.ACTIVE_LAYER_INDEX = Sequence.NEXT_LAYER_INDEX;
       this.updateZoneView(true);
     }
@@ -320,14 +348,20 @@ export class Sequence {
           for (const note of astep.lastPlayedArray) {
             this.zone.handleMidi(
               MIDI.MESSAGE.NOTE_OFF,
-              Uint8Array.from([MIDI.MESSAGE.NOTE_OFF + note.channel, note.number, note.velo]),
+              Uint8Array.from([
+                MIDI.MESSAGE.NOTE_OFF + note.channel,
+                note.number,
+                note.velo
+              ]),
               true
             );
           }
           astep.lastPlayedArray.length = 0;
         }
       });
-      this.activeSteps = this.activeSteps.filter((item) => !clearSteps.includes(item));
+      this.activeSteps = this.activeSteps.filter(
+        (item) => !clearSteps.includes(item)
+      );
     }
     if (this.tickn == this.ticks - 1) {
       this.liveTargetLength++;
@@ -358,7 +392,10 @@ export class Sequence {
         }
         for (const currentStep of currentStepList) {
           if (currentStep) {
-            if (this.checkCondition(currentStep) && this.rngProb() < currentStep.probability) {
+            if (
+              this.checkCondition(currentStep) &&
+              this.rngProb() < currentStep.probability
+            ) {
               currentStep.played = 0;
               this.activeSteps.push(currentStep);
               for (const inote of currentStep.notesArray) {
@@ -367,7 +404,11 @@ export class Sequence {
                 note.portId = this.zone.outputPortId;
                 this.zone.handleMidi(
                   MIDI.MESSAGE.NOTE_ON,
-                  Uint8Array.from([MIDI.MESSAGE.NOTE_ON + note.channel, note.number, note.velo]),
+                  Uint8Array.from([
+                    MIDI.MESSAGE.NOTE_ON + note.channel,
+                    note.number,
+                    note.velo
+                  ]),
                   true
                 );
                 currentStep.lastPlayedArray.push(note);
@@ -388,7 +429,11 @@ export class Sequence {
       for (const note of astep.lastPlayedArray) {
         this.zone.handleMidi(
           MIDI.MESSAGE.NOTE_OFF,
-          Uint8Array.from([MIDI.MESSAGE.NOTE_OFF + note.channel, note.number, note.velo]),
+          Uint8Array.from([
+            MIDI.MESSAGE.NOTE_OFF + note.channel,
+            note.number,
+            0
+          ]),
           true
         );
       }
@@ -454,7 +499,11 @@ export class Sequence {
 
   velocityMediumSelectedStep(): number {
     let medium = 0;
-    if (this.selectedStepNumber > -1 && this.selectedStep && this.selectedStep.notesArray) {
+    if (
+      this.selectedStepNumber > -1 &&
+      this.selectedStep &&
+      this.selectedStep.notesArray
+    ) {
       if (this.selectedStep.notesArray.length > 0) {
         this.selectedStep.notesArray.forEach((note) => {
           medium += note.velo;
