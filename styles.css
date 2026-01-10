@@ -1549,7 +1549,7 @@ li {
 }
 
 .seq .grid .dragselect .step {
-  cursor: copy;
+  cursor: url(res/select-cursor.png) 16 16, copy;
 }
 
 .seq .grid .step.activelength {
