@@ -324,9 +324,11 @@ class MIDI {
         !this.sendClockIfPlaying ||
         (this.sendClockIfPlaying && this.isClockRunning);
       if (propagate) {
+        // Use timestamp from internal clock for precise scheduling
+        const timestamp = (event as { timestamp?: number }).timestamp;
         for (const [portid, enabled] of Object.entries(this.clockOutputPorts)) {
           if (enabled) {
-            this.send(event.data, portid);
+            this.send(event.data, portid, timestamp);
           }
         }
       }
@@ -408,15 +410,15 @@ class MIDI {
   }
 
   /**
-   * Send MIDI message to given portId
+   * Send MIDI message to given portId, optionally scheduled at timestamp
    */
-  send(msg: Uint8Array, portId: string): void {
+  send(msg: Uint8Array, portId: string, timestamp?: number): void {
     if (!portId || portId == MIDI.INTERNAL_PORT_ID) {
       // do nothing
     } else {
       const deviceOut = this.knownPorts[portId] as MIDIOutput | undefined;
       if (deviceOut) {
-        deviceOut.send(msg);
+        deviceOut.send(msg, timestamp);
       }
     }
   }
