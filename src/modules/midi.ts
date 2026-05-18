@@ -92,8 +92,12 @@ class MIDI {
   isClockRunning = false;
   hasClock = false;
   sendClockIfPlaying = false;
+  detectedBpm: number | null = null;
+  bpmDetectedHandler: ((bpm: number | null) => void) | null = null;
   private _warnedMissingPorts = new Set<string>();
   private _clockLostTimeout: ReturnType<typeof setTimeout> | null = null;
+  private _bpmTimestamps: number[] = [];
+  private _bpmTicksSinceUpdate = 0;
 
   constructor({
     completeHandler,
@@ -305,7 +309,24 @@ class MIDI {
       if (midiMessage === MIDI.MESSAGE.CLOCK) {
         this.hasClock = true;
         clearTimeout(this._clockLostTimeout!);
-        this._clockLostTimeout = setTimeout(() => { this.hasClock = false; }, 500);
+        this._clockLostTimeout = setTimeout(() => {
+          this.hasClock = false;
+          if (this.bpmDetectedHandler) this.bpmDetectedHandler(null);
+        }, 500);
+        if (this.deviceIdInClock !== MIDI.INTERNAL_PORT_ID && this.bpmDetectedHandler) {
+          this._bpmTimestamps.push(event.timeStamp);
+          if (this._bpmTimestamps.length > 97) {
+            this._bpmTimestamps.shift();
+          }
+          this._bpmTicksSinceUpdate++;
+          if (this._bpmTicksSinceUpdate >= 24 && this._bpmTimestamps.length >= 2) {
+            this._bpmTicksSinceUpdate = 0;
+            const n = this._bpmTimestamps.length - 1;
+            const avgMs = (this._bpmTimestamps[n] - this._bpmTimestamps[0]) / n;
+            this.detectedBpm = 60000 / (avgMs * 24);
+            this.bpmDetectedHandler(this.detectedBpm);
+          }
+        }
       }
       if (
         midiMessage === MIDI.MESSAGE.START ||
@@ -360,6 +381,12 @@ class MIDI {
 
   selectDevices(deviceIdInClock: string | null): void {
     // console.log('MIDI: selectDevices(), inClock', deviceIdInClock);
+    if (deviceIdInClock !== this.deviceIdInClock) {
+      this._bpmTimestamps = [];
+      this._bpmTicksSinceUpdate = 0;
+      this.detectedBpm = null;
+      if (this.bpmDetectedHandler) this.bpmDetectedHandler(null);
+    }
     this.deviceIdInClock = deviceIdInClock;
     if (deviceIdInClock == MIDI.INTERNAL_PORT_ID) {
       internalClock.setHandler(this.onMIDIMessage.bind(this));

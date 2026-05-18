@@ -322,6 +322,10 @@ input:focus-visible {
   visibility: visible;
 }
 
+#midisettings .isExternal .internal:not(#startClockButton) {
+  visibility: visible;
+}
+
 #clockSendButton {
   position: relative;
   background-color: var(--darker-2);
@@ -1540,8 +1544,8 @@ li {
   vertical-align: middle;
 }
 
-.clockIndicator.hasClock {
-  border-right-color: #0a0 !important;
+#bpm.hasClock {
+  border-color: #0a0 !important;
 }
 
 .seq {

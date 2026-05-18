@@ -183,10 +183,16 @@ document.addEventListener('DOMContentLoaded', function () {
   function updateBpmInput(): void {
     if (midi.deviceIdInClock == MIDI.INTERNAL_PORT_ID) {
       DOM.addClass('.clocksettings', 'isInternal');
+      DOM.removeClass('.clocksettings', 'isExternal');
+      bpmInput.setAttribute('type', 'number');
       bpmInput.value = String(zones.tempo);
+      bpmInput.disabled = false;
     } else {
       DOM.removeClass('.clocksettings', 'isInternal');
-      bpmInput.value = '';
+      DOM.addClass('.clocksettings', 'isExternal');
+      bpmInput.setAttribute('type', 'text');
+      bpmInput.value = midi.detectedBpm !== null ? midi.detectedBpm.toFixed(1) : '---';
+      bpmInput.disabled = true;
     }
   }
   function updateClockOutputCount(): void {
@@ -542,6 +548,12 @@ document.addEventListener('DOMContentLoaded', function () {
           saveZones();
         });
         updateBpmInput();
+        midi.bpmDetectedHandler = (bpm: number | null) => {
+          if (midi.deviceIdInClock !== MIDI.INTERNAL_PORT_ID) {
+            bpmInput.value = bpm !== null ? bpm.toFixed(1) : '---';
+            bpmInput.classList.toggle('hasClock', bpm !== null);
+          }
+        };
         updateClockOutputCount();
         midi.setInternalBPM(zones.tempo);
         view.selectSequencerLayer(zones.seqLayerIndex || 0);
@@ -692,14 +704,6 @@ document.addEventListener('DOMContentLoaded', function () {
     },
     updateClockReceiverHandler: updateClockReceivers
   });
-  const clockIndicator = DOM.get('.clockIndicator') as HTMLElement;
-  setInterval(() => {
-    if (midi.hasClock) {
-      clockIndicator.classList.add('hasClock');
-    } else {
-      clockIndicator.classList.remove('hasClock');
-    }
-  }, 999);
   const list = [select_in_clock];
   list.forEach((el) => {
     el.addEventListener('change', () => {
