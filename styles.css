@@ -580,6 +580,7 @@ input:focus-visible {
   display: flex;
   justify-content: center;
   align-items: center;
+  height: 20px;
   font-size: 16px;
   color: var(--brighter-1);
   cursor: pointer;
@@ -804,9 +805,9 @@ input:focus-visible {
 .zonetools {
   display: flex;
   justify-content: flex-end;
-  align-items: center;
   gap: 5px;
   flex-shrink: 0;
+  height: 20px;
 }
 
 .zone input.zone-label {
@@ -817,7 +818,6 @@ input:focus-visible {
   color: var(--text-base-color);
   font-size: 11px;
   text-align: left;
-  padding: 0 4px;
   padding: 0 4px;
   border: none;
   outline: none;
@@ -836,7 +836,7 @@ input:focus-visible {
 }
 
 .rtool .material-icons {
-  vertical-align: top;
+  vertical-align: middle;
 }
 
 .dragzone {
