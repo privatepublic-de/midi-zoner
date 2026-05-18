@@ -2072,6 +2072,20 @@ body:not(.running) .seqprogress {
   background-color: var(--red-highlight);
 }
 
+.tb-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  margin-left: 4px;
+}
+
+.tb-label:hover {
+  background-color: var(--brighter-1);
+}
+
 #contextmenu {
   position: fixed;
   display: none;

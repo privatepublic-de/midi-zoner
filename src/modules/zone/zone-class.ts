@@ -14,17 +14,29 @@ export class Zone {
   static seqClipboardSequence: string | null = null;
   static updateZoneViewEventName = 'update-zone-view';
 
+  private static _canvasSizeCache = new WeakMap<HTMLCanvasElement, DOMRect>();
+  private static _resizeObserver = new ResizeObserver((entries) => {
+    for (const entry of entries) {
+      Zone._canvasSizeCache.delete(entry.target as HTMLCanvasElement);
+    }
+  });
+
   static scaledCanvasContext(canvas: HTMLCanvasElement): {
     context: CanvasRenderingContext2D;
     rect: DOMRect;
   } {
     const ctx = canvas.getContext('2d')!;
     const dpr = window.devicePixelRatio;
-    const rect = canvas.getBoundingClientRect();
+    let rect = Zone._canvasSizeCache.get(canvas);
+    if (!rect) {
+      rect = canvas.getBoundingClientRect();
+      Zone._canvasSizeCache.set(canvas, rect);
+      Zone._resizeObserver.observe(canvas);
+    }
     canvas.width = rect.width * dpr;
     canvas.height = rect.height * dpr;
     ctx.scale(dpr, dpr);
-    return { context: ctx, rect: rect };
+    return { context: ctx, rect };
   }
 
   channel = 0;
@@ -78,7 +90,12 @@ export class Zone {
   pitchbend = true;
   euclid_hits = 5;
   euclid_length = 8;
-  arp_enabled = false;
+  private _arp_enabled = false;
+  get arp_enabled(): boolean { return this._arp_enabled; }
+  set arp_enabled(v: boolean) {
+    this._arp_enabled = v;
+    if (v) this.notesChanged();
+  }
   arp_direction = 0;
   _arp_octaves = 0;
   _arp_division = 11;
@@ -117,6 +134,9 @@ export class Zone {
   rngProb: () => number;
   sequence: Sequence;
   lastTouchedRangePoint = 0;
+  readonly _renderNotesBound = this.renderNotes.bind(this);
+  readonly _renderPatternBound = this.renderPattern.bind(this);
+  readonly _renderSequenceBound = this.renderSequence.bind(this);
 
   constructor(midi: MIDI, colorIndex?: number) {
     this.midi = midi;
@@ -210,7 +230,7 @@ export class Zone {
 
   set arp_octaves(v: number) {
     this._arp_octaves = v;
-    requestAnimationFrame(this.renderNotes.bind(this));
+    requestAnimationFrame(this._renderNotesBound);
   }
 
   get solo(): boolean {
@@ -301,7 +321,7 @@ export class Zone {
           if (key >= this.low && key <= this.high) {
             if (isArpActive && this.arp_hold && this.arp_transpose) {
               this.arp_transpose_amount = ((key + 12) % 24) - 12;
-              requestAnimationFrame(this.renderNotes.bind(this));
+              requestAnimationFrame(this._renderNotesBound);
               return;
             }
             key = key + (isArpActive || fromSequencer ? 0 : this.octave * 12);
@@ -380,7 +400,7 @@ export class Zone {
           if (data[1] == 0x01 && !this.mod) return;
           if (data[1] == 0x40) {
             this.sustain_state = data[2] > 0;
-            requestAnimationFrame(this.renderNotes.bind(this));
+            requestAnimationFrame(this._renderNotesBound);
           }
           if (!this.cc && data[1] != 0x40 && data[1] != 0x01) return;
           const ccOutevent = new Uint8Array(data);
@@ -445,14 +465,12 @@ export class Zone {
     if (this.enabled || fromSequencer) {
       this.arp.orderlist = Array.from(this.activeNotes);
       this.arp_holdlist = Array.from(this.holdList);
-      this.arp.sortedlist = Array.from(this.arp.orderlist).sort(
-        (a, b) => a.number - b.number
-      );
-      this.arp_sortedHoldList = Array.from(this.arp_holdlist).sort(
-        (a, b) => a.number - b.number
-      );
+      if (this.arp_enabled) {
+        this.arp.sortedlist = this.arp.orderlist.slice().sort((a, b) => a.number - b.number);
+        this.arp_sortedHoldList = this.arp_holdlist.slice().sort((a, b) => a.number - b.number);
+      }
     }
-    requestAnimationFrame(this.renderNotes.bind(this));
+    requestAnimationFrame(this._renderNotesBound);
   }
 
   renderNotes(): void {
@@ -692,16 +710,9 @@ export class Zone {
       this.arp.patternPos = (this.arp.patternPos + 1) % this.arp_pattern.length;
       if (this.arp_enabled && this.arp_pattern[this.arp.patternPos]) {
         this.arp.beat = true;
-        let notes: Note[];
-        if (this.arp_hold) {
-          notes = Array.from(
-            this.arp_direction > 2 ? this.arp_holdlist : this.arp_sortedHoldList
-          );
-        } else {
-          notes = Array.from(
-            this.arp_direction > 2 ? this.arp.orderlist : this.arp.sortedlist
-          );
-        }
+        const notes: Note[] = this.arp_hold
+          ? (this.arp_direction > 2 ? this.arp_holdlist : this.arp_sortedHoldList)
+          : (this.arp_direction > 2 ? this.arp.orderlist : this.arp.sortedlist);
         if (notes.length > 0) {
           const repetition = this.arp_repeat && this.arp.repeattrig;
           if (!repetition) {
@@ -791,9 +802,9 @@ export class Zone {
           }
         }
         this.arp.repeattrig = !this.arp.repeattrig;
-        requestAnimationFrame(this.renderNotes.bind(this));
+        requestAnimationFrame(this._renderNotesBound);
       }
-      requestAnimationFrame(this.renderPattern.bind(this));
+      requestAnimationFrame(this._renderPatternBound);
     } else if (tickn >= offtick) {
       this.arp.beat = false;
       this.arpNoteOff();
@@ -813,7 +824,7 @@ export class Zone {
       );
       this.arp.lastnote = null;
       this.arp.repeatnote = note;
-      requestAnimationFrame(this.renderNotes.bind(this));
+      requestAnimationFrame(this._renderNotesBound);
     }
   }
 
@@ -825,8 +836,8 @@ export class Zone {
     this.arp.octave = 0;
     this.arpNoteOff();
     this.sequence.stopped();
-    requestAnimationFrame(this.renderPattern.bind(this));
-    requestAnimationFrame(this.renderSequence.bind(this));
+    requestAnimationFrame(this._renderPatternBound);
+    requestAnimationFrame(this._renderSequenceBound);
   }
 
   dismiss(): void {

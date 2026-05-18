@@ -93,7 +93,7 @@ function initController({ saveData, data, midi }: ControllerInitParams): void {
     } else {
       updateValuesForAllZones();
     }
-    selectSequencerLayer(Sequence.ACTIVE_LAYER_INDEX);
+    selectSequencerLayer(zones.list[0]?.sequence.activeLayerIndex ?? 0);
   }) as EventListener);
   numberInputController = new NumberInputController();
   numberInputController.addInputElements(
@@ -252,13 +252,13 @@ function contextHandler(ev: MouseEvent): void {
       case 'seq_paste':
         return Zone.seqClipboardSequence != null;
       case 'seq_copy_to_layer_0':
-        return Sequence.ACTIVE_LAYER_INDEX != 0;
+        return (zones.list[0]?.sequence.activeLayerIndex ?? 0) !== 0;
       case 'seq_copy_to_layer_1':
-        return Sequence.ACTIVE_LAYER_INDEX != 1;
+        return (zones.list[0]?.sequence.activeLayerIndex ?? 0) !== 1;
       case 'seq_copy_to_layer_2':
-        return Sequence.ACTIVE_LAYER_INDEX != 2;
+        return (zones.list[0]?.sequence.activeLayerIndex ?? 0) !== 2;
       case 'seq_copy_to_layer_3':
-        return Sequence.ACTIVE_LAYER_INDEX != 3;
+        return (zones.list[0]?.sequence.activeLayerIndex ?? 0) !== 3;
     }
     return true;
   }
@@ -1009,19 +1009,25 @@ function toggleSequencerOnZone(index: number): void {
 function selectSequencerLayer(layerIndex: number): void {
   const clockRunning = midiController.isClockRunning;
   DOM.removeClass('#tools *[data-select-seq-layer]', 'selected', 'pending');
-  Sequence.NEXT_LAYER_INDEX = layerIndex;
+  zones.list.forEach((z) => (z.sequence.nextLayerIndex = layerIndex));
+  const currentActiveLayer = zones.list[0]?.sequence.activeLayerIndex ?? layerIndex;
   if (clockRunning) {
-    if (Sequence.ACTIVE_LAYER_INDEX != layerIndex) {
+    if (currentActiveLayer !== layerIndex) {
       DOM.addClass(
-        DOM.all('#tools *[data-select-seq-layer]')[Sequence.NEXT_LAYER_INDEX],
+        DOM.all('#tools *[data-select-seq-layer]')[layerIndex],
         'pending'
       );
     }
   } else {
-    Sequence.ACTIVE_LAYER_INDEX = layerIndex;
+    zones.list.forEach((z) => {
+      z.sequence.activeLayerIndex = layerIndex;
+      z.sequence.nextLayerIndex = layerIndex;
+    });
   }
   DOM.addClass(
-    DOM.all('#tools *[data-select-seq-layer]')[Sequence.ACTIVE_LAYER_INDEX],
+    DOM.all('#tools *[data-select-seq-layer]')[
+      zones.list[0]?.sequence.activeLayerIndex ?? layerIndex
+    ],
     'selected'
   );
   updateValuesForAllZones();

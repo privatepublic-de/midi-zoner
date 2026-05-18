@@ -92,6 +92,8 @@ class MIDI {
   isClockRunning = false;
   hasClock = false;
   sendClockIfPlaying = false;
+  private _warnedMissingPorts = new Set<string>();
+  private _clockLostTimeout: ReturnType<typeof setTimeout> | null = null;
 
   constructor({
     completeHandler,
@@ -110,9 +112,7 @@ class MIDI {
     this.clockHandler = clockHandler;
     this.deviceIdInClock = localStorage.getItem('midiInClockId');
 
-    setInterval(() => {
-      this.hasClock = false;
-    }, 1000);
+    // hasClock is cleared by a per-tick watchdog in onMIDIMessage
 
     let trueReported = false;
 
@@ -181,6 +181,7 @@ class MIDI {
             initResult.outputs
           );
         }
+        this._warnedMissingPorts.clear();
         this.selectDevices(this.deviceIdInClock);
       }
     };
@@ -303,6 +304,8 @@ class MIDI {
     ) {
       if (midiMessage === MIDI.MESSAGE.CLOCK) {
         this.hasClock = true;
+        clearTimeout(this._clockLostTimeout!);
+        this._clockLostTimeout = setTimeout(() => { this.hasClock = false; }, 500);
       }
       if (
         midiMessage === MIDI.MESSAGE.START ||
@@ -429,6 +432,9 @@ class MIDI {
       const deviceOut = this.knownPorts[portId] as MIDIOutput | undefined;
       if (deviceOut) {
         deviceOut.send(msg, timestamp);
+      } else if (!this._warnedMissingPorts.has(portId)) {
+        console.warn(`MIDI.send(): port "${portId}" not found — device disconnected?`);
+        this._warnedMissingPorts.add(portId);
       }
     }
   }

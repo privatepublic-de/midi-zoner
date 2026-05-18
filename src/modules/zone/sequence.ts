@@ -12,8 +12,6 @@ export class Sequence {
   static MAX_STEPS_DRUMS = 64;
   static MAX_LANES_DRUMS = 10;
   static CYCLE_CONDITIONS: [number, number][] = [];
-  static ACTIVE_LAYER_INDEX = 0;
-  static NEXT_LAYER_INDEX = 0;
   static LAYER_TICK_N = 0;
   static LAYER_QUANT_TICKS: DivTick = DIV_TICKS[2];
 
@@ -43,6 +41,8 @@ export class Sequence {
     return SeqStep.from(step);
   }
 
+  activeLayerIndex = 0;
+  nextLayerIndex = 0;
   _active = false;
   layers = [new SeqLayer(), new SeqLayer(), new SeqLayer(), new SeqLayer()];
   selectedStepNumbers = new Set<number>();
@@ -207,7 +207,7 @@ export class Sequence {
   }
 
   get activeLayer(): SeqLayer {
-    return this.layers[Sequence.ACTIVE_LAYER_INDEX];
+    return this.layers[this.activeLayerIndex];
   }
 
   recordNote(note: Note, inCount: number): void {
@@ -341,9 +341,9 @@ export class Sequence {
     Sequence.LAYER_TICK_N = pos % Sequence.LAYER_QUANT_TICKS;
     if (
       Sequence.LAYER_TICK_N === 0 &&
-      Sequence.ACTIVE_LAYER_INDEX != Sequence.NEXT_LAYER_INDEX
+      this.activeLayerIndex !== this.nextLayerIndex
     ) {
-      Sequence.ACTIVE_LAYER_INDEX = Sequence.NEXT_LAYER_INDEX;
+      this.activeLayerIndex = this.nextLayerIndex;
       this.updateZoneView(true);
     }
     if (this.activeSteps.length > 0) {
@@ -428,7 +428,7 @@ export class Sequence {
           }
         }
       }
-      requestAnimationFrame(this.zone.renderSequence.bind(this.zone));
+      requestAnimationFrame(this.zone._renderSequenceBound);
     }
   }
 
@@ -455,10 +455,10 @@ export class Sequence {
     this.liveTargetLength = 0;
     this.liveTargetStep = null;
     this.isLiveRecoding = false;
-    Sequence.ACTIVE_LAYER_INDEX = Sequence.NEXT_LAYER_INDEX;
+    this.activeLayerIndex = this.nextLayerIndex;
     this.updateRecordingState();
-    requestAnimationFrame(this.zone.renderSequence.bind(this.zone));
-    requestAnimationFrame(this.zone.renderNotes.bind(this.zone));
+    requestAnimationFrame(this.zone._renderSequenceBound);
+    requestAnimationFrame(this.zone._renderNotesBound);
     this.updateZoneView();
   }
 

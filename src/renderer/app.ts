@@ -28,6 +28,7 @@ interface ZonesData {
   outputConfigNames: Record<string, string>;
   seqLayerIndex: number;
   seqLayerQuantIndex: number;
+  keySwitchEnabled: boolean;
 }
 
 interface PortDescriptor {
@@ -46,7 +47,8 @@ const zones: ZonesData = {
   sendInternalClockIfPlaying: false, // TODO misnomed; means send everything
   outputConfigNames: {},
   seqLayerIndex: 0,
-  seqLayerQuantIndex: 0
+  seqLayerQuantIndex: 0,
+  keySwitchEnabled: true
 };
 
 const debounce = function <T extends (...args: any[]) => void>(
@@ -389,6 +391,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       let msgtype = event.data[0] & 0xf0;
       if (
+        zones.keySwitchEnabled &&
         msgtype === MIDI.MESSAGE.NOTE_ON &&
         event.data[1] < 16 &&
         event.data[2] > 0
@@ -546,6 +549,8 @@ document.addEventListener('DOMContentLoaded', function () {
         (DOM.get('#tools #seqquant') as HTMLSelectElement).value = String(
           zones.seqLayerQuantIndex
         );
+        (DOM.get('#keySwitchEnabled') as HTMLInputElement).checked =
+          zones.keySwitchEnabled !== false;
         document.body.addEventListener('keydown', (ev) => {
           if ((document.activeElement as HTMLElement).tagName != 'INPUT') {
             if (ev.key == ' ') {
@@ -750,6 +755,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const quantDiv = parseInt((ev.target as HTMLSelectElement).value);
     Sequence.setQuantDiv(quantDiv);
     zones.seqLayerQuantIndex = quantDiv;
+    saveZones();
+  });
+  DOM.on('#keySwitchEnabled', 'change', (ev) => {
+    zones.keySwitchEnabled = (ev.target as HTMLInputElement).checked;
     saveZones();
   });
   view.initController({ saveData: saveZones, data: zones as any, midi });
