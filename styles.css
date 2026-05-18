@@ -1188,6 +1188,8 @@ input[type='range'] {
   cursor: pointer;
   background-color: var(--brighter-0);
   padding: 0 1px;
+  border-radius: 3px;
+  overflow: hidden;
 }
 
 .pattern canvas {

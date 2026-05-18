@@ -561,24 +561,52 @@ export class Zone {
         this.elements.patternCanvas
       );
       const plen = this.arp_pattern.length;
-      const width = rect.width / plen;
-      const colorEnabled = 'rgba(255, 255, 255, 0.25)';
-      const colorCurrentStep = '#ffffff';
+      const cellW = rect.width / plen;
+      const h = rect.height;
+
       context.clearRect(0, 0, rect.width, rect.height);
-      context.lineWidth = 2;
-      for (let i = 0; i < plen; i++) {
-        const isCurrent = i === this.arp.patternPos;
-        if (this.arp_pattern[i]) {
-          context.fillStyle = colorEnabled;
-          context.fillRect(0.5 + width * i, 0.5, width - 0.5, 14.5);
-        }
-        if (isCurrent) {
-          context.fillStyle = colorCurrentStep;
-          context.beginPath();
-          context.arc(width * i + width / 2, 8, width / 4, 0, 2 * Math.PI);
-          context.fill();
+
+      // Subtle group separators every 8 steps for long patterns
+      if (plen > 8) {
+        context.fillStyle = 'rgba(255, 255, 255, 0.07)';
+        for (let g = 8; g < plen; g += 8) {
+          context.fillRect(Math.round(cellW * g) - 1, 0, 1, h);
         }
       }
+
+      const gap = cellW > 3 ? Math.min(1.5, cellW * 0.12) : 0;
+      const barW = Math.max(1, cellW - gap * 2);
+      const barH = h * 0.6;
+      const barY = (h - barH) / 2;
+      const radius = cellW >= 6 ? Math.min(2, barW / 2, barH / 2) : 0;
+
+      for (let i = 0; i < plen; i++) {
+        const x = cellW * i + gap;
+        if (this.arp_pattern[i]) {
+          context.fillStyle = 'rgba(255, 255, 255, 0.65)';
+          if (radius > 0 && typeof context.roundRect === 'function') {
+            context.beginPath();
+            context.roundRect(x, barY, barW, barH, radius);
+            context.fill();
+          } else {
+            context.fillRect(x, barY, barW, barH);
+          }
+        } else {
+          context.fillStyle = 'rgba(255, 255, 255, 0.13)';
+          context.fillRect(x, h / 2 - 0.5, barW, 1);
+        }
+      }
+
+      // Playhead: zone-color tinted vertical bar with glow
+      const playX = cellW * this.arp.patternPos + cellW / 2;
+      const zoneColor = getComputedStyle(this.elements.patternCanvas).getPropertyValue('--zone-color').trim() || '#e9c46a';
+      context.filter = 'brightness(2.4) saturate(2)';
+      context.shadowColor = zoneColor;
+      context.shadowBlur = 6;
+      context.fillStyle = zoneColor;
+      context.fillRect(Math.round(playX) - 1, 0, 3, h);
+      context.shadowBlur = 0;
+      context.filter = 'none';
     }
   }
 
