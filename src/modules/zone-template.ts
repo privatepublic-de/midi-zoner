@@ -80,11 +80,10 @@ export function getControllerHTML(zone: ZoneType, zoneindex: number): string {
 
 export function getHTML(zone: ZoneType, zoneindex: number): string {
   const index = zoneindex;
-  let channelselector = `<select class="channel" data-change="${index}:zone_channel" tabindex="-1">`;
+  let channelOptions = '';
   for (let i = 0; i < 16; i++) {
-    channelselector += `<option value="${i}">Ch ${i + 1}</option>`;
+    channelOptions += `<option value="${i}">Ch ${i + 1}</option>`;
   }
-  channelselector += '</select>';
 
   let sequencerGrid = '';
   for (let i = 0; i < Sequence.MAX_STEPS; i++) {
@@ -116,7 +115,7 @@ export function getHTML(zone: ZoneType, zoneindex: number): string {
     index: index,
     zoneNumber: index + 1,
     zoneMuteKeyboardHint: zoneMuteKeyboardHint,
-    channelselector: channelselector,
+    channelOptions: channelOptions,
     sequencerGrid: sequencerGrid,
     drumLanes: drumLanes,
     seqMaxSteps: Sequence.MAX_STEPS,

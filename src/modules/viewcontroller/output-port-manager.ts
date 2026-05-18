@@ -3,9 +3,52 @@ import MIDI from '../midi';
 import { ZonesData, PortDescriptor } from './types';
 
 let cachedOutputPorts: PortDescriptor[] = [];
+let cachedInputPorts: PortDescriptor[] = [];
 
 export function getCachedOutputPorts(): PortDescriptor[] {
   return cachedOutputPorts;
+}
+
+export function getCachedInputPorts(): PortDescriptor[] {
+  return cachedInputPorts;
+}
+
+export function updateInputPortsForAllZones(
+  zones: ZonesData,
+  inputs: PortDescriptor[]
+): void {
+  cachedInputPorts = inputs;
+  for (let i = 0; i < zones.list.length; i++) {
+    updateInputPortsForZone(zones, i, inputs);
+  }
+}
+
+export function initInputPortsForZone(
+  zones: ZonesData,
+  index: number
+): void {
+  if (cachedInputPorts.length > 0) {
+    updateInputPortsForZone(zones, index, cachedInputPorts);
+  }
+}
+
+export function updateInputPortsForZone(
+  zones: ZonesData,
+  index: number,
+  inputs: PortDescriptor[]
+): void {
+  const select = DOM.get(`#zone${index} select.inport`) as HTMLSelectElement;
+  if (!select) return;
+  DOM.empty(select);
+  DOM.addHTML(select, 'beforeend', '<option value="">Global</option>');
+  inputs.forEach((port) => {
+    DOM.addHTML(
+      select,
+      'beforeend',
+      `<option value="${port.id}">${port.name}</option>`
+    );
+  });
+  select.value = zones.list[index].inputPortId || '';
 }
 
 export function listUsedPorts(zones: ZonesData): Set<string> {

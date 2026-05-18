@@ -74,10 +74,21 @@ const channelOptions = (function (): string {
   return result;
 })();
 
+function syncZoneInputPorts(midi: MIDIInstance): void {
+  const portIds = new Set<string>();
+  zones.list.forEach((zone) => {
+    if (zone.inputPortId) portIds.add(zone.inputPortId);
+  });
+  midi.zoneInputPorts = portIds;
+  midi.selectDevices(midi.deviceIdInClock);
+  zones.selectedInputPorts = midi.selectedInputPorts;
+}
+
 function loadZones(midi: MIDIInstance): void {
   const zonesJson = localStorage.getItem('zones');
   if (zonesJson) {
     applyStoredZones(JSON.parse(zonesJson), midi);
+    syncZoneInputPorts(midi);
   }
 }
 
@@ -396,7 +407,18 @@ document.addEventListener('DOMContentLoaded', function () {
       if (msgtype === MIDI.MESSAGE.NOTE_ON && event.data[2] === 0) {
         msgtype = MIDI.MESSAGE.NOTE_OFF;
       }
+      const sourcePortId = event.target
+        ? (event.target as MIDIInput).id
+        : MIDI.INTERNAL_PORT_ID;
+      const sourceChannel = event.data[0] & 0x0f;
       zones.list.forEach((zone, index) => {
+        if (zone.inputPortId !== null) {
+          if (zone.inputPortId !== sourcePortId) return;
+          if (zone.inputChannel !== null && zone.inputChannel !== sourceChannel) return;
+        } else if (midi.zoneInputPorts.has(sourcePortId)) {
+          const portDef = midi.selectedInputPorts[sourcePortId];
+          if (!portDef?.isSelected || portDef.ch !== sourceChannel) return;
+        }
         const resultMessage = zone.handleMidi(msgtype, event.data);
         if (resultMessage == 'updateCC') {
           requestAnimationFrame(() => {
@@ -581,6 +603,7 @@ document.addEventListener('DOMContentLoaded', function () {
               if (result) {
                 try {
                   applyStoredZones(JSON.parse(result), midi, true);
+                  syncZoneInputPorts(midi);
                   view.renderZones();
                   saveZones();
                 } catch (ex) {
@@ -641,6 +664,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         // zones
         midi.updateUsedPorts(view.updateOutputPortsForAllZone(outputs));
+        view.updateInputPortsForAllZones(inputs);
         if (midi.knownPorts[midi.deviceIdInClock] == null) {
           console.log(
             'app: Clock in port',

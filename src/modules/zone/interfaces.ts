@@ -87,6 +87,9 @@ export interface SequenceJSON {
 export interface ZoneJSON {
   channel: number;
   preferredOutputPortId: string;
+  inputPortId?: string | null;
+  inputChannel?: number | null;
+  label?: string;
   enabled: boolean;
   solo: boolean;
   programchange: boolean;

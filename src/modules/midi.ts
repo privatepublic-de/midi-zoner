@@ -12,6 +12,7 @@ interface InputPortDef {
   id: string;
   ch: number;
   isSelected: boolean;
+  allChannels?: boolean;
 }
 
 interface MIDIHandlers {
@@ -85,6 +86,7 @@ class MIDI {
   usedPorts: Set<string> = new Set();
   clockOutputPorts: Record<string, boolean> = {};
   selectedInputPorts: Record<string, InputPortDef> = {};
+  zoneInputPorts: Set<string> = new Set();
   outputPortsRegistered: PortDescriptor[] = [];
   songposition = 0;
   isClockRunning = false;
@@ -344,11 +346,11 @@ class MIDI {
     }
 
     const channel = event.data[0] & 0x0f;
-    if (
-      this.selectedInputPorts[portId] &&
-      this.selectedInputPorts[portId].isSelected &&
-      this.selectedInputPorts[portId].ch === channel
-    ) {
+    const portDef = this.selectedInputPorts[portId];
+    if (this.zoneInputPorts.has(portId)) {
+      // Port has per-zone subscribers: pass all channels, app.ts filters per-zone
+      this.eventHandler(event);
+    } else if (portDef && portDef.isSelected && (portDef.allChannels || portDef.ch === channel)) {
       this.eventHandler(event);
     }
   }
@@ -372,6 +374,14 @@ class MIDI {
     Object.values(this.selectedInputPorts).forEach((inputDef) => {
       if (inputDef.isSelected) {
         const deviceIn = this.midiAccess?.inputs.get(inputDef.id);
+        if (deviceIn) {
+          deviceIn.onmidimessage = this.onMIDIMessage.bind(this);
+        }
+      }
+    });
+    this.zoneInputPorts.forEach((portId) => {
+      if (!this.selectedInputPorts[portId]?.isSelected) {
+        const deviceIn = this.midiAccess?.inputs.get(portId);
         if (deviceIn) {
           deviceIn.onmidimessage = this.onMIDIMessage.bind(this);
         }

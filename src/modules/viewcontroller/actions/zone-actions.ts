@@ -11,7 +11,8 @@ export function createZoneActions(
     zones, midiController, triggerSave,
     updateValuesForZone, updateValuesForAllZones,
     renderMarkersForZone, renderZones, listUsedPorts,
-    updateOutputPortsForZone, cachedOutputPorts, findTouchedNote
+    updateOutputPortsForZone, cachedOutputPorts,
+    updateInputPortsForZone, cachedInputPorts, findTouchedNote
   } = ctx;
   const { applySelectedIndex } = helpers;
 
@@ -99,6 +100,30 @@ export function createZoneActions(
       updateValuesForAllZones();
     },
     zone_channel: applySelectedIndex,
+    zone_label: () => {
+      zone.label = (element as HTMLInputElement).value;
+    },
+    zone_input_port: () => {
+      const select = element as HTMLSelectElement;
+      zone.inputPortId = select.value || null;
+      const portIds = new Set<string>();
+      zones.list.forEach((z) => { if (z.inputPortId) portIds.add(z.inputPortId); });
+      midiController.zoneInputPorts = portIds;
+      midiController.selectDevices(midiController.deviceIdInClock);
+      updateValuesForZone(zoneindex);
+    },
+    zone_input_channel: () => {
+      const select = element as HTMLSelectElement;
+      const val = parseInt(select.value);
+      zone.inputChannel = isNaN(val) || val < 0 ? null : val;
+      updateValuesForZone(zoneindex);
+    },
+    iorouting_toggle: () => {
+      const popup = zone._$('.iorouting-popup') as HTMLElement;
+      if (popup) {
+        popup.style.display = popup.style.display === 'block' ? 'none' : 'block';
+      }
+    },
     zone_range: () => {
       const touchedNote = findTouchedNote(ev, element, zone);
       if (touchedNote.isLow) {

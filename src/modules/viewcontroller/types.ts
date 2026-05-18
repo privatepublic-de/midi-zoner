@@ -48,6 +48,8 @@ export interface ActionContext {
   toast: (msg: string, props?: ToastProperties) => void;
   updateOutputPortsForZone: (index: number, outputs: PortDescriptor[]) => void;
   cachedOutputPorts: PortDescriptor[];
+  cachedInputPorts: PortDescriptor[];
+  updateInputPortsForZone: (index: number, inputs: PortDescriptor[]) => void;
   findTouchedNote: (ev: MouseEvent, e: HTMLElement, zone: ZoneType) => TouchedNoteResult;
   updateControllerValues: (zone: ZoneType, index: number) => void;
   selectSequencerLayer: (index: number) => void;

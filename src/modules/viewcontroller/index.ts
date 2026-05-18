@@ -18,7 +18,11 @@ import {
   updateOutputPortsForZone as updateOutputPortsForZoneInternal,
   initOutputPortsForZone as initOutputPortsForZoneInternal,
   listUsedPorts as listUsedPortsInternal,
-  getCachedOutputPorts
+  getCachedOutputPorts,
+  updateInputPortsForAllZones as updateInputPortsForAllZonesInternal,
+  updateInputPortsForZone as updateInputPortsForZoneInternal,
+  initInputPortsForZone as initInputPortsForZoneInternal,
+  getCachedInputPorts
 } from './output-port-manager';
 import {
   ZonesData,
@@ -206,6 +210,9 @@ function actionHandler(ev: MouseEvent, overrideaction?: string): void {
         updateValuesForAllZones
       ),
     cachedOutputPorts: getCachedOutputPorts(),
+    cachedInputPorts: getCachedInputPorts(),
+    updateInputPortsForZone: (index: number, inputs: PortDescriptor[]) =>
+      updateInputPortsForZoneInternal(zones, index, inputs),
     findTouchedNote,
     updateControllerValues,
     selectSequencerLayer
@@ -435,6 +442,7 @@ function appendZone(zone: ZoneType, index: number): void {
   renderMarkersForZone(index);
   renderControllersForZone(zone, index);
   initOutputPortsForZoneInternal(zones, index, updateValuesForAllZones);
+  initInputPortsForZoneInternal(zones, index);
   updateValuesForZone(index);
   zone.renderPattern();
   const sequence = zone.sequence;
@@ -900,10 +908,38 @@ function updateValuesForZone(index: number): void {
         zone._$('select.outport') as HTMLSelectElement
       ).selectedOptions[0].innerHTML;
     }
+    const labelField = zone._$('.zone-label') as HTMLInputElement;
+    if (labelField && document.activeElement !== labelField) {
+      labelField.value = zone.label || '';
+    }
     zone.elements.addSelectedStyle(
       '.sendClock',
       midiController.clockOutputPorts[zone.outputPortId] === true
     );
+    const inportSelect = zone._$('select.inport') as HTMLSelectElement;
+    if (inportSelect) {
+      inportSelect.value = zone.inputPortId || '';
+    }
+    const inchannelSelect = zone._$('select.inchannel') as HTMLSelectElement;
+    if (inchannelSelect) {
+      inchannelSelect.value = zone.inputChannel !== null ? String(zone.inputChannel) : '-1';
+    }
+    const routingText = zone._$('.iorouting-text') as HTMLElement;
+    if (routingText) {
+      const isPreset = !!zones.outputConfigNames[zones.list[index].configId];
+      const outPortName = nameField.value || nameField.placeholder || '';
+      const outStr = isPreset
+        ? `→ ${outPortName.substring(0, 18)}`
+        : `→ ${outPortName.substring(0, 14)} Ch${zone.channel + 1}`;
+      let display = outStr;
+      if (zone.inputPortId) {
+        const inPort = getCachedInputPorts().find((p) => p.id === zone.inputPortId);
+        const inName = inPort ? inPort.name.substring(0, 10) : '?';
+        const chStr = zone.inputChannel !== null ? `:${zone.inputChannel + 1}` : '';
+        display = `${inName}${chStr} ${outStr}`;
+      }
+      routingText.textContent = display;
+    }
     updateControllerValues(zone, index);
     updateGeneralButtons();
   }
@@ -1010,12 +1046,18 @@ function updateOutputPortsForAllZones(outputs: PortDescriptor[]): Set<string> {
   );
 }
 
+function updateInputPortsForAllZones(inputs: PortDescriptor[]): void {
+  updateInputPortsForAllZonesInternal(zones, inputs);
+  updateValuesForAllZones();
+}
+
 export {
   initController,
   renderZones,
   renderLastZone,
   renderMarkersForAllZones,
   updateOutputPortsForAllZones as updateOutputPortsForAllZone,
+  updateInputPortsForAllZones,
   updateControllerValues,
   updateValuesForAllZones,
   soloZone,

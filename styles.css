@@ -568,23 +568,8 @@ input:focus-visible {
   margin-left: 13px;
 }
 
-.channels input.output-config-name {
-  position: absolute;
-  left: 0;
-  text-align: left;
-  width: 135px;
-  background-color: var(--bg-color);
-  color: var(--text-base-color);
-  height: 20px;
-  padding: 0 4px;
-}
-
 .output-config-name::placeholder {
   color: var(--text-base-color);
-}
-
-.disabled .channels input.output-config-name {
-  background-color: hsl(from var(--zone-color) h calc(s * 0.33) calc(l * 0.2));
 }
 
 .sendClock {
@@ -598,6 +583,128 @@ input:focus-visible {
 
 .sendClock.selected {
   color: var(--text-base-color);
+}
+
+.iorouting {
+  position: relative;
+  margin-left: 13px;
+  flex: 2 0 80px;
+  min-width: 0;
+}
+
+.iorouting-display {
+  display: flex;
+  align-items: center;
+  height: 20px;
+  width: 100%;
+  padding: 0 6px 0 4px;
+  cursor: pointer;
+  background-color: var(--bg-color);
+  color: var(--text-base-color);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  border-right: 6px solid transparent;
+  transition: filter 0.1s ease;
+}
+
+.iorouting-display:hover {
+  filter: brightness(1.15);
+}
+
+.iorouting-display::after {
+  content: '';
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid var(--brighter-2);
+  pointer-events: none;
+}
+
+.iorouting-popup {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 100;
+  display: none;
+  min-width: 280px;
+  margin-top: 2px;
+}
+
+.ior-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 5px;
+}
+
+.ior-row:last-child {
+  margin-bottom: 0;
+}
+
+.ior-row-input {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(0, 0, 0, 0.15);
+  opacity: 0.75;
+}
+
+.ior-row-input:hover,
+.ior-row-input:focus-within {
+  opacity: 1;
+}
+
+.ior-label {
+  width: 20px;
+  font-size: 11px;
+  color: var(--brighter-3);
+  flex-shrink: 0;
+  text-align: left;
+  display: flex;
+  align-items: center;
+}
+
+.iorouting-popup select,
+.iorouting-popup input.output-config-name {
+  background-color: rgba(0, 0, 0, 0.12);
+  border: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.25);
+  border-radius: 2px 2px 0 0;
+  padding: 0 4px;
+  height: 22px;
+  color: inherit;
+}
+
+.iorouting-popup select:hover,
+.iorouting-popup input.output-config-name:hover {
+  background-color: rgba(0, 0, 0, 0.18);
+}
+
+.iorouting-popup select.inport,
+.iorouting-popup select.outport {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+}
+
+.iorouting-popup select.inchannel,
+.iorouting-popup select.channel {
+  width: 66px;
+  flex-shrink: 0;
+}
+
+.iorouting-popup input.output-config-name {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.iorouting-popup .sendClock {
+  font-size: 14px;
+  flex-shrink: 0;
 }
 .ch.enabled.selected,
 .ch.selected {
@@ -693,9 +800,28 @@ input:focus-visible {
 .zonetools {
   display: flex;
   justify-content: flex-end;
-  flex-grow: 1;
   align-items: center;
   gap: 5px;
+  flex-shrink: 0;
+}
+
+.zone input.zone-label {
+  flex: 1 0 70px;
+  min-width: 0;
+  height: 20px;
+  background-color: transparent;
+  color: var(--text-base-color);
+  font-size: 11px;
+  text-align: left;
+  padding: 0 4px;
+  padding: 0 4px;
+  border: none;
+  outline: none;
+}
+
+.zone input.zone-label::placeholder {
+  color: var(--brighter-2);
+  font-style: italic;
 }
 
 .rtool {
@@ -919,6 +1045,10 @@ input[type='range'] {
   vertical-align: top;
   width: 150px;
   text-align: left;
+}
+
+.iorouting-popup select.outport {
+  width: auto;
 }
 
 .zone select.channel {

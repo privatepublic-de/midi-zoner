@@ -37,24 +37,57 @@
     >
       CC
     </div>
-    <div class="outselection">
-      <select
-        class="outport"
-        data-change="${index}:zone_outport"
-        title="Select output port or preset"
-        tabindex="-1"
-      >
-        <option value="*"></option>
-      </select>
-      <input
-        type="text"
-        class="output-config-name"
-        placeholder="(untitled)"
-        onKeyUp="event.stopPropagation();"
-        title="Edit output preset name"
-        data-change="${index}:zone_output_config_name"
-        tabindex="-1"
-      />
+    <input
+      type="text"
+      class="zone-label"
+      placeholder="Zone ${zoneNumber}"
+      onKeyUp="event.stopPropagation();"
+      data-change="${index}:zone_label"
+      tabindex="-1"
+    />
+    <div class="iorouting">
+      <div
+        class="iorouting-display"
+        data-action="${index}:iorouting_toggle"
+        title="Configure input/output routing"
+      ><span class="iorouting-text"></span></div>
+      <div class="iorouting-popup popup hideonleave">
+        <div class="ior-row">
+          <span class="ior-label">Out</span>
+          <select
+            class="outport"
+            data-change="${index}:zone_outport"
+            tabindex="-1"
+          >
+            <option value="*"></option>
+          </select>
+          <select class="channel" data-change="${index}:zone_channel" tabindex="-1">
+            ${channelOptions}
+          </select>
+        </div>
+        <div class="ior-row">
+          <span class="ior-label" title="Name this output configuration as a preset"><i class="material-icons" style="font-size:13px;vertical-align:middle">bookmark_border</i></span>
+          <input
+            type="text"
+            class="output-config-name"
+            placeholder="name this preset…"
+            onKeyUp="event.stopPropagation();"
+            title="Name this output configuration as a preset"
+            data-change="${index}:zone_output_config_name"
+            tabindex="-1"
+          />
+        </div>
+        <div class="ior-row ior-row-input">
+          <span class="ior-label">In</span>
+          <select class="inport" data-change="${index}:zone_input_port" tabindex="-1">
+            <option value="">Global</option>
+          </select>
+          <select class="inchannel" data-change="${index}:zone_input_channel" tabindex="-1">
+            <option value="-1">All ch</option>
+            ${channelOptions}
+          </select>
+        </div>
+      </div>
     </div>
     <div
       class="sendClock"
@@ -64,7 +97,6 @@
       <i class="material-icons sel">watch_later</i
       ><i class="material-icons unsel">query_builder</i>
     </div>
-    ${channelselector}
     <div class="zonetools">
       <div
         class="randzonecolor rtool"

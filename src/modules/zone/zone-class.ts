@@ -30,6 +30,9 @@ export class Zone {
   channel = 0;
   preferredOutputPortId = MIDI.INTERNAL_PORT_ID;
   outputPortId = MIDI.INTERNAL_PORT_ID;
+  inputPortId: string | null = null;
+  inputChannel: number | null = null;
+  label = '';
   enabled = true;
   _solo = false;
   programchange = false;
@@ -128,6 +131,9 @@ export class Zone {
     return {
       channel: this.channel,
       preferredOutputPortId: this.preferredOutputPortId,
+      inputPortId: this.inputPortId,
+      inputChannel: this.inputChannel,
+      label: this.label,
       enabled: this.enabled,
       solo: this.solo,
       programchange: this.programchange,
