@@ -52,6 +52,14 @@
         title="Configure input/output routing"
       ><span class="iorouting-text"></span></div>
       <div class="iorouting-popup popup hideonleave">
+        <input
+          type="text"
+          class="output-config-name"
+          placeholder="Name this output config…"
+          onKeyUp="event.stopPropagation();"
+          data-change="${index}:zone_output_config_name"
+          tabindex="-1"
+        />
         <div class="ior-row">
           <span class="ior-label">Out</span>
           <select
@@ -64,18 +72,6 @@
           <select class="channel" data-change="${index}:zone_channel" tabindex="-1">
             ${channelOptions}
           </select>
-        </div>
-        <div class="ior-row">
-          <span class="ior-label" title="Name this output configuration as a preset"><i class="material-icons" style="font-size:13px;vertical-align:middle">bookmark_border</i></span>
-          <input
-            type="text"
-            class="output-config-name"
-            placeholder="name this preset…"
-            onKeyUp="event.stopPropagation();"
-            title="Name this output configuration as a preset"
-            data-change="${index}:zone_output_config_name"
-            tabindex="-1"
-          />
         </div>
         <div class="ior-row ior-row-input">
           <span class="ior-label">In</span>
@@ -803,7 +799,7 @@
       <a class="octselect" data-action="${index}:zone_octave:3"></a>
     </div>
     <div class="action toggle_filters" data-action="${index}:filters_toggle">
-      Filters <span class="material-icons">expand_more</span>
+      Filters
     </div>
     <div class="popupsettings popup hideonleave">
       <div

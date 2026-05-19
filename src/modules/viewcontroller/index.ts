@@ -940,7 +940,7 @@ function updateValuesForZone(index: number): void {
         const inName = inPort ? inPort.name.substring(0, 10) : '?';
         const chStr =
           zone.inputChannel !== null ? `:${zone.inputChannel + 1}` : '';
-        display = `${inName}${chStr} → ${outStr}`;
+        display = `${inName}${chStr} ${outStr}`;
       }
       routingText.textContent = display;
     }

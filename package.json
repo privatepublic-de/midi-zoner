@@ -11,7 +11,7 @@
     "clean": "rimraf dist",
     "typecheck": "tsc --noEmit",
     "pack:osx": "npm run build:ts && electron-packager . --out=dist/osx --platform=darwin --arch=x64 --icon='./assets/zoner.icns' --overwrite --ignore='src|assets'",
-    "pack:osx:arm": "npm run build:ts && electron-packager . --out=dist/osx --platform=darwin --arch=arm64 --icon='./assets/zoner.icns' --overwrite --ignore='src|assets'",
+    "pack:osx:arm": "npm run build:ts && electron-packager . --out=dist/osx --platform=darwin --arch=arm64 --icon='./assets/zoner.icns' --overwrite --ignore='src|assets' && codesign --force --deep --sign - 'dist/osx/midi-zoner-darwin-arm64/midi-zoner.app'",
     "build:win": "npm run build:ts && electron-builder -w",
     "build:mac": "npm run build:ts && electron-builder -m",
     "build:linux": "npm run build:ts && electron-builder -l",

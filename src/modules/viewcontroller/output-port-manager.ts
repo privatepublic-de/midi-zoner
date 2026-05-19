@@ -131,6 +131,10 @@ export function updateOutputPortsForZone(
   if (preferredPortAvailable) {
     select.value = preferredOutputPortId;
     zones.list[index].outputPortId = preferredOutputPortId;
+    const configId = preferredOutputPortId + ',' + zones.list[index].channel;
+    if (zones.outputConfigNames?.[configId]) {
+      select.value = '$' + configId;
+    }
   } else {
     select.value = MIDI.INTERNAL_PORT_ID;
     zones.list[index].outputPortId = MIDI.INTERNAL_PORT_ID;

@@ -259,12 +259,16 @@ select {
 
 #clockSendButton::after,
 #midiInputSelector::after {
-  content: '⌄';
+  content: '';
   position: absolute;
-  font-size: 15px;
-  color: var(--brighter-3);
-  right: 0;
-  top: -40%;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-75%) rotate(45deg);
+  width: 5px;
+  height: 5px;
+  border-right: 1.5px solid var(--brighter-3);
+  border-bottom: 1.5px solid var(--brighter-3);
+  pointer-events: none;
 }
 
 select {
@@ -572,9 +576,6 @@ input:focus-visible {
   margin-left: 13px;
 }
 
-.output-config-name::placeholder {
-  color: var(--text-base-color);
-}
 
 .sendClock {
   display: flex;
@@ -600,32 +601,33 @@ input:focus-visible {
 .iorouting-display {
   display: flex;
   align-items: center;
+  position: relative;
   height: 20px;
   width: 100%;
   padding: 0 6px 0 4px;
   cursor: pointer;
-  background-color: var(--bg-color);
+  background-color: var(--darker-1);
   color: var(--text-base-color);
   font-size: 11px;
   white-space: nowrap;
   overflow: hidden;
   border-right: 6px solid transparent;
-  transition: filter 0.1s ease;
 }
 
 .iorouting-display:hover {
-  filter: brightness(1.15);
+  background-color: var(--darker-2);
 }
 
 .iorouting-display::after {
   content: '';
   position: absolute;
-  right: 2px;
+  right: 5px;
   top: 50%;
-  transform: translateY(-50%);
-  border-left: 4px solid transparent;
-  border-right: 4px solid transparent;
-  border-top: 5px solid var(--brighter-2);
+  transform: translateY(-75%) rotate(45deg);
+  width: 5px;
+  height: 5px;
+  border-right: 1.5px solid var(--brighter-3);
+  border-bottom: 1.5px solid var(--brighter-3);
   pointer-events: none;
 }
 
@@ -672,9 +674,8 @@ input:focus-visible {
   align-items: center;
 }
 
-.iorouting-popup select,
-.iorouting-popup input.output-config-name {
-  background-color: rgba(0, 0, 0, 0.12);
+.iorouting-popup select {
+  background-color: var(--darker-1);
   border: none;
   border-bottom: 1px solid rgba(0, 0, 0, 0.25);
   border-radius: 2px 2px 0 0;
@@ -683,9 +684,8 @@ input:focus-visible {
   color: inherit;
 }
 
-.iorouting-popup select:hover,
-.iorouting-popup input.output-config-name:hover {
-  background-color: rgba(0, 0, 0, 0.18);
+.iorouting-popup select:hover {
+  background-color: var(--darker-2);
 }
 
 .iorouting-popup select.inport,
@@ -701,11 +701,6 @@ input:focus-visible {
   flex-shrink: 0;
 }
 
-.iorouting-popup input.output-config-name {
-  flex: 1;
-  min-width: 0;
-  text-align: left;
-}
 
 .iorouting-popup .sendClock {
   font-size: 14px;
@@ -773,7 +768,8 @@ input:focus-visible {
 }
 
 .zone.disabled .range,
-.zone.disabled .toggle_filters {
+.zone.disabled .toggle_filters,
+.zone.disabled .iorouting-display {
   pointer-events: none;
 }
 
@@ -828,6 +824,26 @@ input:focus-visible {
   font-style: italic;
 }
 
+.iorouting-popup input.output-config-name {
+  width: 100%;
+  height: 22px;
+  background-color: transparent;
+  color: var(--text-base-color);
+  font-size: 12px;
+  text-align: left;
+  padding: 2px 4px 6px;
+  border: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+  outline: none;
+  margin-bottom: 8px;
+  box-sizing: border-box;
+}
+
+.iorouting-popup input.output-config-name::placeholder {
+  color: var(--brighter-2);
+  font-style: italic;
+}
+
 .rtool {
   font-size: 14px;
   color: var(--text-base-color);
@@ -874,6 +890,19 @@ input:focus-visible {
 }
 .action.toggle_filters:hover {
   background-color: var(--darker-1);
+}
+.action.toggle_filters::after {
+  content: '';
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 4px;
+  margin-bottom: 1px;
+  width: 5px;
+  height: 5px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  pointer-events: none;
 }
 
 .check {
@@ -1045,7 +1074,6 @@ input[type='range'] {
 }
 
 .zone select.outport {
-  background-color: transparent;
   vertical-align: top;
   width: 150px;
   text-align: left;
@@ -1053,10 +1081,6 @@ input[type='range'] {
 
 .iorouting-popup select.outport {
   width: auto;
-}
-
-.zone select.channel {
-  background-color: transparent;
 }
 
 .zone select {
