@@ -922,21 +922,25 @@ function updateValuesForZone(index: number): void {
     }
     const inchannelSelect = zone._$('select.inchannel') as HTMLSelectElement;
     if (inchannelSelect) {
-      inchannelSelect.value = zone.inputChannel !== null ? String(zone.inputChannel) : '-1';
+      inchannelSelect.value =
+        zone.inputChannel !== null ? String(zone.inputChannel) : '-1';
     }
     const routingText = zone._$('.iorouting-text') as HTMLElement;
     if (routingText) {
       const isPreset = !!zones.outputConfigNames[zones.list[index].configId];
       const outPortName = nameField.value || nameField.placeholder || '';
       const outStr = isPreset
-        ? `→ ${outPortName.substring(0, 18)}`
-        : `→ ${outPortName.substring(0, 14)} Ch${zone.channel + 1}`;
+        ? `${outPortName.substring(0, 18)}`
+        : `${outPortName.substring(0, 14)} (Ch${zone.channel + 1})`;
       let display = outStr;
       if (zone.inputPortId) {
-        const inPort = getCachedInputPorts().find((p) => p.id === zone.inputPortId);
+        const inPort = getCachedInputPorts().find(
+          (p) => p.id === zone.inputPortId
+        );
         const inName = inPort ? inPort.name.substring(0, 10) : '?';
-        const chStr = zone.inputChannel !== null ? `:${zone.inputChannel + 1}` : '';
-        display = `${inName}${chStr} ${outStr}`;
+        const chStr =
+          zone.inputChannel !== null ? `:${zone.inputChannel + 1}` : '';
+        display = `${inName}${chStr} → ${outStr}`;
       }
       routingText.textContent = display;
     }
@@ -1010,7 +1014,8 @@ function selectSequencerLayer(layerIndex: number): void {
   const clockRunning = midiController.isClockRunning;
   DOM.removeClass('#tools *[data-select-seq-layer]', 'selected', 'pending');
   zones.list.forEach((z) => (z.sequence.nextLayerIndex = layerIndex));
-  const currentActiveLayer = zones.list[0]?.sequence.activeLayerIndex ?? layerIndex;
+  const currentActiveLayer =
+    zones.list[0]?.sequence.activeLayerIndex ?? layerIndex;
   if (clockRunning) {
     if (currentActiveLayer !== layerIndex) {
       DOM.addClass(
