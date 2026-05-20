@@ -43,14 +43,6 @@ const contextMenuActionLabel: Record<string, string> = {
     '<i class="material-icons">playlist_remove</i> Clear complete sequence',
   seq_copy: '<i class="material-icons">content_copy</i> Copy sequence',
   seq_paste: '<i class="material-icons">content_paste</i> Paste sequence',
-  seq_copy_to_layer_0:
-    '<i class="material-icons">double_arrow</i> Copy to layer A',
-  seq_copy_to_layer_1:
-    '<i class="material-icons">double_arrow</i> Copy to layer B',
-  seq_copy_to_layer_2:
-    '<i class="material-icons">double_arrow</i> Copy to layer C',
-  seq_copy_to_layer_3:
-    '<i class="material-icons">double_arrow</i> Copy to layer D',
   cc_edit: '<i class="material-icons">edit</i> Edit CC controllers',
   cc_send_all: '<i class="material-icons">double_arrow</i> Send all CC values',
   step_copy_length: 'Step lenght',
@@ -93,7 +85,6 @@ function initController({ saveData, data, midi }: ControllerInitParams): void {
     } else {
       updateValuesForAllZones();
     }
-    selectSequencerLayer(zones.list[0]?.sequence.activeLayerIndex ?? 0);
   }) as EventListener);
   numberInputController = new NumberInputController();
   numberInputController.addInputElements(
@@ -215,7 +206,7 @@ function actionHandler(ev: MouseEvent, overrideaction?: string): void {
       updateInputPortsForZoneInternal(zones, index, inputs),
     findTouchedNote,
     updateControllerValues,
-    selectSequencerLayer
+    selectArrangement
   };
 
   const helpers: ActionHelpers = {
@@ -251,14 +242,6 @@ function contextHandler(ev: MouseEvent): void {
         return Zone.seqClipboardStep != null;
       case 'seq_paste':
         return Zone.seqClipboardSequence != null;
-      case 'seq_copy_to_layer_0':
-        return (zones.list[0]?.sequence.activeLayerIndex ?? 0) !== 0;
-      case 'seq_copy_to_layer_1':
-        return (zones.list[0]?.sequence.activeLayerIndex ?? 0) !== 1;
-      case 'seq_copy_to_layer_2':
-        return (zones.list[0]?.sequence.activeLayerIndex ?? 0) !== 2;
-      case 'seq_copy_to_layer_3':
-        return (zones.list[0]?.sequence.activeLayerIndex ?? 0) !== 3;
     }
     return true;
   }
@@ -445,7 +428,6 @@ function appendZone(zone: ZoneType, index: number): void {
   initInputPortsForZoneInternal(zones, index);
   updateValuesForZone(index);
   zone.renderPattern();
-  const sequence = zone.sequence;
   const dragHandler = zone._$('.dragzone') as HTMLElement;
   dragHandler.addEventListener('mousedown', (ev) => {
     if (zones.list.length > 1) {
@@ -478,7 +460,7 @@ function appendZone(zone: ZoneType, index: number): void {
 
   let isDragSelect = false;
   function updateDragSelectStyle(): void {
-    const grid = sequence.isDrumSequence
+    const grid = zone.sequence.isDrumSequence
       ? zone._$('.seq .drum-step-container')
       : zone._$('.seq .step-container');
     if (isDragSelect) {
@@ -496,7 +478,7 @@ function appendZone(zone: ZoneType, index: number): void {
   DOM.on(zone.elements.sequencerElement!, 'mouseup', (ev) => {
     if ((ev as MouseEvent).button != 0) return;
     if (!isDragSelect) {
-      sequence.clearSelection();
+      zone.sequence.clearSelection();
       updateValuesForZone(index);
     }
     isDragSelect = false;
@@ -510,16 +492,16 @@ function appendZone(zone: ZoneType, index: number): void {
     const stepnumber = parseInt((e as HTMLElement).dataset.dragselect!);
     e.addEventListener('mousedown', (ev) => {
       if ((ev as MouseEvent).button != 0) return;
-      if (sequence.selectedStepNumbers.has(stepnumber)) {
+      if (zone.sequence.selectedStepNumbers.has(stepnumber)) {
         isDragSelect = false;
-        sequence.clearSelection();
+        zone.sequence.clearSelection();
       } else {
         isDragSelect = true;
-        if (sequence.hasSelection && (ev as MouseEvent).shiftKey) {
-          sequence.selectedStepNumbers.add(stepnumber);
+        if (zone.sequence.hasSelection && (ev as MouseEvent).shiftKey) {
+          zone.sequence.selectedStepNumbers.add(stepnumber);
         } else {
-          sequence.clearSelection();
-          sequence.selectedStepNumber = stepnumber;
+          zone.sequence.clearSelection();
+          zone.sequence.selectedStepNumber = stepnumber;
         }
       }
       updateDragSelectStyle();
@@ -527,8 +509,8 @@ function appendZone(zone: ZoneType, index: number): void {
     });
     e.addEventListener('mouseenter', (ev) => {
       if (isDragSelect) {
-        if (sequence.isStepUsed(stepnumber)) {
-          sequence.selectedStepNumbers.add(stepnumber);
+        if (zone.sequence.isStepUsed(stepnumber)) {
+          zone.sequence.selectedStepNumbers.add(stepnumber);
           updateValuesForZone(index);
         }
       }
@@ -1010,31 +992,35 @@ function toggleSequencerOnZone(index: number): void {
   }
 }
 
-function selectSequencerLayer(layerIndex: number): void {
+function selectArrangement(arrIndex: number): void {
   const clockRunning = midiController.isClockRunning;
-  DOM.removeClass('#tools *[data-select-seq-layer]', 'selected', 'pending');
-  zones.list.forEach((z) => (z.sequence.nextLayerIndex = layerIndex));
-  const currentActiveLayer =
-    zones.list[0]?.sequence.activeLayerIndex ?? layerIndex;
+  DOM.removeClass('#tools *[data-select-arrangement]', 'selected', 'pending');
+  zones.nextArrangementIndex = arrIndex;
   if (clockRunning) {
-    if (currentActiveLayer !== layerIndex) {
+    if (zones.arrangementIndex !== arrIndex) {
       DOM.addClass(
-        DOM.all('#tools *[data-select-seq-layer]')[layerIndex],
+        DOM.all('#tools *[data-select-arrangement]')[arrIndex],
         'pending'
       );
     }
   } else {
     zones.list.forEach((z) => {
-      z.sequence.activeLayerIndex = layerIndex;
-      z.sequence.nextLayerIndex = layerIndex;
+      z.saveArrangement(zones.arrangementIndex);
+      z.stopped();
+      z.loadArrangement(arrIndex);
     });
+    zones.arrangementIndex = arrIndex;
+    triggerSave();
   }
   DOM.addClass(
-    DOM.all('#tools *[data-select-seq-layer]')[
-      zones.list[0]?.sequence.activeLayerIndex ?? layerIndex
-    ],
+    DOM.all('#tools *[data-select-arrangement]')[zones.arrangementIndex],
     'selected'
   );
+  const indicator = document.getElementById('arrangementIndicator');
+  if (indicator) {
+    indicator.textContent = String.fromCharCode(65 + zones.arrangementIndex);
+    indicator.dataset.arr = String(zones.arrangementIndex);
+  }
   updateValuesForAllZones();
 }
 
@@ -1074,7 +1060,7 @@ export {
   soloZone,
   toggleZoneMute,
   allSoloOff,
-  selectSequencerLayer,
+  selectArrangement,
   toggleSequencerOnZone,
   toast,
   deleteAllZones

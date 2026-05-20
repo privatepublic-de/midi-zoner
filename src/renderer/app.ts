@@ -1,15 +1,14 @@
 import DOM from '../modules/domutils';
 import { Zone } from '../modules/zone/zone-class';
 import { Sequence } from '../modules/zone/sequence';
-import { SeqLayer } from '../modules/zone/seq-layer';
-import { SeqStep } from '../modules/zone/seq-step';
+import { DIV_TICKS } from '../modules/zone/seq-layer';
 import MIDI from '../modules/midi';
 import * as view from '../modules/viewcontroller';
 import { ipcRenderer } from 'electron';
+import { ZoneArrangementJSON } from '../modules/zone/interfaces';
 
 // Type aliases for class types
 type ZoneType = Zone;
-type SeqLayerType = SeqLayer;
 type MIDIInstance = InstanceType<typeof MIDI>;
 
 interface InputPortDef {
@@ -26,8 +25,9 @@ interface ZonesData {
   tempo: number;
   sendInternalClockIfPlaying: boolean;
   outputConfigNames: Record<string, string>;
-  seqLayerIndex: number;
-  seqLayerQuantIndex: number;
+  arrangementIndex: number;
+  nextArrangementIndex: number;
+  arrangementQuantIndex: number;
   keySwitchEnabled: boolean;
 }
 
@@ -44,10 +44,11 @@ const zones: ZonesData = {
   clockOutputPorts: {},
   selectedInputPorts: {},
   tempo: 120,
-  sendInternalClockIfPlaying: false, // TODO misnomed; means send everything
+  sendInternalClockIfPlaying: false, // TODO misnamed; means send everything
   outputConfigNames: {},
-  seqLayerIndex: 0,
-  seqLayerQuantIndex: 0,
+  arrangementIndex: 0,
+  nextArrangementIndex: 0,
+  arrangementQuantIndex: 2,
   keySwitchEnabled: true
 };
 
@@ -94,24 +95,82 @@ function loadZones(midi: MIDIInstance): void {
   }
 }
 
-function createZone(midi: MIDIInstance, zoneData: Zone): Zone {
+function migrateFromLegacyZone(zoneData: any): ZoneArrangementJSON[] {
+  const oldLayers: any[] = zoneData.sequence?.layers || [];
+  const baseFields = {
+    enabled: zoneData.enabled ?? true,
+    solo: zoneData.solo ?? false,
+    octave: zoneData.octave ?? 0,
+    fixedvel: zoneData.fixedvel ?? false,
+    fixedvel_value: zoneData.fixedvel_value ?? 127,
+    velocity_scaling: zoneData.velocity_scaling ?? 1,
+    mod: zoneData.mod ?? true,
+    sustain: zoneData.sustain ?? true,
+    cc: zoneData.cc ?? false,
+    at2mod: zoneData.at2mod ?? false,
+    pitchbend: zoneData.pitchbend ?? true,
+    programchange: zoneData.programchange ?? false,
+    arp_enabled: zoneData.arp_enabled ?? false,
+    arp_hold: zoneData.arp_hold ?? false,
+    arp_direction: zoneData.arp_direction ?? 0,
+    arp_octaves: zoneData.arp_octaves ?? 0,
+    arp_division: zoneData.arp_division ?? 11,
+    arp_gatelength: zoneData.arp_gatelength ?? 0.5,
+    arp_repeat: zoneData.arp_repeat ?? 0,
+    arp_probability: zoneData.arp_probability ?? 1,
+    arp_velocity: zoneData.arp_velocity ?? 0,
+    arp_transpose: zoneData.arp_transpose ?? false,
+    arp_transpose_amount: zoneData.arp_transpose_amount ?? 0,
+    arp_pattern: zoneData.arp_pattern ?? [true, true, true, true, true, true, true, true],
+    arp_holdlist: zoneData.arp_holdlist ?? [],
+    arp_sortedHoldList: zoneData.arp_sortedHoldList ?? [],
+    euclid_hits: zoneData.euclid_hits ?? 5,
+    euclid_length: zoneData.euclid_length ?? 8,
+  };
+  // Map each legacy seq layer (A/B/C/D) to the corresponding arrangement
+  return [0, 1, 2, 3].map((i) => {
+    const layer = oldLayers[i] || oldLayers[0] || {};
+    return {
+      ...baseFields,
+      sequence: {
+        active: zoneData.sequence?.active ?? false,
+        steps: layer.steps ?? [],
+        length: layer.length ?? 16,
+        ticks: layer.ticks ?? DIV_TICKS[14],
+        division: layer.division ?? 14,
+        isDrumSequence: zoneData.sequence?.isDrumSequence ?? false,
+        drumLanes: zoneData.sequence?.drumLanes ?? 4,
+        drum_lanes: layer.drum_lanes ?? []
+      }
+    };
+  });
+}
+
+function createZone(midi: MIDIInstance, zoneData: any): Zone {
   const zone = new Zone(midi);
-  Object.assign(zone, zoneData);
-  const sequence = new Sequence(zone);
-  const layers: SeqLayerType[] = [];
-  Object.assign(sequence, (zoneData as { sequence?: object }).sequence);
-  sequence.layers.forEach((slayer: SeqLayer) => {
-    const layer = new SeqLayer();
-    Object.assign(layer, slayer);
-    layers.push(layer);
-  });
-  sequence.layers = layers;
-  sequence.steps.forEach((st: SeqStep | null) => {
-    if (st) {
-      st.lastPlayedArray = [];
+
+  zone.channel = zoneData.channel ?? 0;
+  zone.preferredOutputPortId = zoneData.preferredOutputPortId ?? MIDI.INTERNAL_PORT_ID;
+  zone.outputPortId = zoneData.preferredOutputPortId ?? MIDI.INTERNAL_PORT_ID;
+  zone.inputPortId = zoneData.inputPortId ?? null;
+  zone.inputChannel = zoneData.inputChannel ?? null;
+  zone.label = zoneData.label ?? '';
+  zone.low = zoneData.low ?? 0;
+  zone.high = zoneData.high ?? 127;
+  zone.show_cc = zoneData.show_cc ?? false;
+  if (zoneData.cc_controllers) zone.cc_controllers = zoneData.cc_controllers;
+  if (zoneData.colorIndex != null) zone.colorIndex = zoneData.colorIndex;
+
+  if (Array.isArray(zoneData.arrangements) && zoneData.arrangements.length > 0) {
+    zone.arrangements = [...zoneData.arrangements];
+    while (zone.arrangements.length < 4) {
+      zone.arrangements.push(JSON.parse(JSON.stringify(zone.arrangements[0])));
     }
-  });
-  zone.sequence = sequence;
+  } else {
+    zone.arrangements = migrateFromLegacyZone(zoneData);
+  }
+
+  zone.loadArrangement(zones.arrangementIndex || 0);
   return zone;
 }
 
@@ -134,6 +193,7 @@ function applyStoredZones(
       for (let i = 0; i < (storedZones.list?.length ?? 0); i++) {
         zones.list.push(createZone(midi, storedZones.list![i]));
       }
+      Sequence.setQuantDiv(zones.arrangementQuantIndex ?? 2);
     }
     midi.clockOutputPorts = zones.clockOutputPorts;
     midi.selectedInputPorts = zones.selectedInputPorts;
@@ -437,6 +497,20 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     },
     clockHandler: (pos: number) => {
+      if (zones.nextArrangementIndex !== zones.arrangementIndex) {
+        Sequence.QUANT_TICK_N = pos % Sequence.QUANT_TICKS;
+        if (Sequence.QUANT_TICK_N === 0) {
+          const newIndex = zones.nextArrangementIndex;
+          zones.list.forEach((z) => {
+            z.saveArrangement(zones.arrangementIndex);
+            z.stopped();
+            z.loadArrangement(newIndex);
+          });
+          zones.arrangementIndex = newIndex;
+          view.selectArrangement(newIndex);
+          saveZones();
+        }
+      }
       for (let i = 0; i < zones.list.length; i++) {
         zones.list[i].clock(pos);
       }
@@ -556,10 +630,10 @@ document.addEventListener('DOMContentLoaded', function () {
         };
         updateClockOutputCount();
         midi.setInternalBPM(zones.tempo);
-        view.selectSequencerLayer(zones.seqLayerIndex || 0);
-        Sequence.setQuantDiv(zones.seqLayerQuantIndex);
+        view.selectArrangement(zones.arrangementIndex || 0);
+        Sequence.setQuantDiv(zones.arrangementQuantIndex ?? 2);
         (DOM.get('#tools #seqquant') as HTMLSelectElement).value = String(
-          zones.seqLayerQuantIndex
+          zones.arrangementQuantIndex ?? 2
         );
         (DOM.get('#keySwitchEnabled') as HTMLInputElement).checked =
           zones.keySwitchEnabled !== false;
@@ -587,9 +661,9 @@ document.addEventListener('DOMContentLoaded', function () {
               if (letterIndex > -1) {
                 view.toggleSequencerOnZone(letterIndex);
               } else {
-                const layerIndex = 'ZXCV'.indexOf(ev.code.charAt(3));
-                if (layerIndex > -1) {
-                  view.selectSequencerLayer(layerIndex);
+                const arrIndex = 'ZXCV'.indexOf(ev.code.charAt(3));
+                if (arrIndex > -1) {
+                  view.selectArrangement(arrIndex);
                 }
               }
             }
@@ -748,17 +822,15 @@ document.addEventListener('DOMContentLoaded', function () {
       ).value == '1';
     saveZones();
   });
-  DOM.on('#tools *[data-select-seq-layer]', 'click', (ev) => {
+  DOM.on('#tools *[data-select-arrangement]', 'click', (ev) => {
     const el = ev.target as HTMLElement;
-    const selectedLayer = parseInt(el.dataset.selectSeqLayer!);
-    view.selectSequencerLayer(selectedLayer);
-    zones.seqLayerIndex = selectedLayer;
-    saveZones();
+    const selectedArr = parseInt(el.dataset.selectArrangement!);
+    view.selectArrangement(selectedArr);
   });
   DOM.on('#tools #seqquant', 'change', (ev) => {
     const quantDiv = parseInt((ev.target as HTMLSelectElement).value);
     Sequence.setQuantDiv(quantDiv);
-    zones.seqLayerQuantIndex = quantDiv;
+    zones.arrangementQuantIndex = quantDiv;
     saveZones();
   });
   DOM.on('#keySwitchEnabled', 'change', (ev) => {

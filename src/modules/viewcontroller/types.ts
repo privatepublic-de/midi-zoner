@@ -10,6 +10,8 @@ export interface ZonesData {
   list: ZoneType[];
   outputConfigNames: Record<string, string>;
   clockOutputPorts: Record<string, boolean>;
+  arrangementIndex: number;
+  nextArrangementIndex: number;
 }
 
 export interface ToastProperties {
@@ -52,7 +54,7 @@ export interface ActionContext {
   updateInputPortsForZone: (index: number, inputs: PortDescriptor[]) => void;
   findTouchedNote: (ev: MouseEvent, e: HTMLElement, zone: ZoneType) => TouchedNoteResult;
   updateControllerValues: (zone: ZoneType, index: number) => void;
-  selectSequencerLayer: (index: number) => void;
+  selectArrangement: (index: number) => void;
 }
 
 export interface ActionHelpers {

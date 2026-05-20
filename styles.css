@@ -387,6 +387,40 @@ input:focus-visible {
   margin: 0 0 0 8px;
 }
 
+#arrangementIndicator {
+  font-size: 34px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  padding: 0 14px;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  border-left: 1px solid var(--border-topbar);
+  border-right: 1px solid var(--border-topbar);
+  transition: color 150ms ease, text-shadow 150ms ease;
+  cursor: default;
+  user-select: none;
+}
+
+#arrangementIndicator[data-arr="0"] {
+  color: #2a9d8f;
+  text-shadow: 0 0 14px rgba(42, 157, 143, 0.5);
+}
+#arrangementIndicator[data-arr="1"] {
+  color: #e9c46a;
+  text-shadow: 0 0 14px rgba(233, 196, 106, 0.5);
+}
+#arrangementIndicator[data-arr="2"] {
+  color: #f4a261;
+  text-shadow: 0 0 14px rgba(244, 162, 97, 0.5);
+}
+#arrangementIndicator[data-arr="3"] {
+  color: #e76f51;
+  text-shadow: 0 0 14px rgba(231, 111, 81, 0.5);
+}
+
 #displayBPM {
   display: inline-block;
   text-align: center;

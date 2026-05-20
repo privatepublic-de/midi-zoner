@@ -4,7 +4,7 @@ import { Note } from './note';
 import { ZoneElements } from './zone-elements';
 import { Sequence } from './sequence';
 import { SeqStep } from './seq-step';
-import { CCController, ArpState, ZoneJSON } from './interfaces';
+import { CCController, ArpState, ZoneJSON, ZoneArrangementJSON } from './interfaces';
 import { NoteDisplay } from './note-display';
 import { DIV_TICKS, DivTick } from './seq-layer';
 
@@ -133,6 +133,8 @@ export class Zone {
   rngArpOct: () => number;
   rngProb: () => number;
   sequence: Sequence;
+  arrangements: ZoneArrangementJSON[] = [];
+  currentArrangementIndex = 0;
   lastTouchedRangePoint = 0;
   readonly _renderNotesBound = this.renderNotes.bind(this);
   readonly _renderPatternBound = this.renderPattern.bind(this);
@@ -145,20 +147,31 @@ export class Zone {
     this.rngProb = seedrandom();
     this.colorIndex = colorIndex || 0;
     this.sequence = new Sequence(this);
+    const defaultArr = this.captureArrangement();
+    this.arrangements = [0, 1, 2, 3].map(() => JSON.parse(JSON.stringify(defaultArr)));
   }
 
   toJSON(): ZoneJSON {
+    this.arrangements[this.currentArrangementIndex] = this.captureArrangement();
     return {
       channel: this.channel,
       preferredOutputPortId: this.preferredOutputPortId,
       inputPortId: this.inputPortId,
       inputChannel: this.inputChannel,
       label: this.label,
-      enabled: this.enabled,
-      solo: this.solo,
-      programchange: this.programchange,
+      colorIndex: this._colorIndex,
       low: this.low,
       high: this.high,
+      show_cc: this.show_cc,
+      cc_controllers: this.cc_controllers,
+      arrangements: this.arrangements
+    };
+  }
+
+  captureArrangement(): ZoneArrangementJSON {
+    return {
+      enabled: this.enabled,
+      solo: this.solo,
       octave: this.octave,
       fixedvel: this.fixedvel,
       fixedvel_value: this.fixedvel_value,
@@ -168,6 +181,7 @@ export class Zone {
       cc: this.cc,
       at2mod: this.at2mod,
       pitchbend: this.pitchbend,
+      programchange: this.programchange,
       arp_enabled: this.arp_enabled,
       arp_hold: this.arp_hold,
       arp_direction: this.arp_direction,
@@ -176,16 +190,68 @@ export class Zone {
       arp_gatelength: this.arp_gatelength,
       arp_repeat: this.arp_repeat,
       arp_probability: this.arp_probability,
+      arp_velocity: this.arp_velocity,
+      arp_transpose: this.arp_transpose,
+      arp_transpose_amount: this.arp_transpose_amount,
       arp_pattern: this.arp_pattern,
       arp_holdlist: this.arp_holdlist,
       arp_sortedHoldList: this.arp_sortedHoldList,
-      colorIndex: this._colorIndex,
       euclid_hits: this.euclid_hits,
       euclid_length: this.euclid_length,
-      show_cc: this.show_cc,
-      cc_controllers: this.cc_controllers,
-      sequence: this.sequence
+      sequence: this.sequence.toJSON()
     };
+  }
+
+  applyArrangement(data: ZoneArrangementJSON): void {
+    this.enabled = data.enabled ?? true;
+    this.solo = data.solo ?? false;
+    this.octave = data.octave ?? 0;
+    this.fixedvel = data.fixedvel ?? false;
+    this.fixedvel_value = data.fixedvel_value ?? 127;
+    this.velocity_scaling = data.velocity_scaling ?? 1;
+    this.mod = data.mod ?? true;
+    this.sustain = data.sustain ?? true;
+    this.cc = data.cc ?? false;
+    this.at2mod = data.at2mod ?? false;
+    this.pitchbend = data.pitchbend ?? true;
+    this.programchange = data.programchange ?? false;
+    this.arp_enabled = data.arp_enabled ?? false;
+    this.arp_hold = data.arp_hold ?? false;
+    this.arp_direction = data.arp_direction ?? 0;
+    this.arp_octaves = data.arp_octaves ?? 0;
+    this.arp_division = data.arp_division ?? 11;
+    this.arp_gatelength = data.arp_gatelength ?? 0.5;
+    this.arp_repeat = data.arp_repeat ?? 0;
+    this.arp_probability = data.arp_probability ?? 1;
+    this.arp_velocity = data.arp_velocity ?? 0;
+    this.arp_transpose = data.arp_transpose ?? false;
+    this.arp_transpose_amount = data.arp_transpose_amount ?? 0;
+    this.arp_pattern = data.arp_pattern ?? [true, true, true, true, true, true, true, true];
+    this.arp_holdlist = data.arp_holdlist ?? [];
+    this.arp_sortedHoldList = data.arp_sortedHoldList ?? [];
+    this.euclid_hits = data.euclid_hits ?? 5;
+    this.euclid_length = data.euclid_length ?? 8;
+
+    const seq = new Sequence(this);
+    const sd = data.sequence || {};
+    seq._steps = (sd as any).steps || [];
+    seq.division = (sd as any).division ?? 14;
+    seq._length = (sd as any).length ?? 16;
+    seq.drum_lanes = (sd as any).drum_lanes || [];
+    seq.isDrumSequence = (sd as any).isDrumSequence ?? false;
+    seq.drumLanes = (sd as any).drumLanes ?? 4;
+    seq.active = (sd as any).active ?? false;
+    seq._steps.forEach((st: any) => { if (st) st.lastPlayedArray = []; });
+    this.sequence = seq;
+  }
+
+  saveArrangement(index: number): void {
+    this.arrangements[index] = this.captureArrangement();
+  }
+
+  loadArrangement(index: number): void {
+    this.currentArrangementIndex = index;
+    this.applyArrangement(this.arrangements[index]);
   }
 
   _$(selector: string): Element | null {
@@ -632,7 +698,7 @@ export class Zone {
     if (this.sequence.active && this.elements.isReady) {
       if (this.sequence.isDrumSequence) {
         const progressPercent =
-          this.sequence.currentStepNumber / this.sequence.activeLayer.length;
+          this.sequence.currentStepNumber / this.sequence.length;
         this.elements.sequencerGridElement?.scrollTo(
           (this.elements.sequencerGridElement.scrollWidth -
             this.elements.sequencerGridElement.offsetWidth * 0.75) *

@@ -69,6 +69,7 @@ export interface DrumLaneJSON {
   enabled: boolean;
 }
 
+// Retained for loading legacy scene files that used the 4-layer structure
 export interface SeqLayerJSON {
   steps: (SeqStepJSON | null)[];
   length: number;
@@ -79,22 +80,18 @@ export interface SeqLayerJSON {
 
 export interface SequenceJSON {
   active: boolean;
-  layers: SeqLayerJSON[];
+  steps: (SeqStepJSON | null)[];
+  length: number;
+  ticks: number;
+  division: number;
   isDrumSequence: boolean;
   drumLanes: number;
+  drum_lanes: DrumLaneJSON[];
 }
 
-export interface ZoneJSON {
-  channel: number;
-  preferredOutputPortId: string;
-  inputPortId?: string | null;
-  inputChannel?: number | null;
-  label?: string;
+export interface ZoneArrangementJSON {
   enabled: boolean;
   solo: boolean;
-  programchange: boolean;
-  low: number;
-  high: number;
   octave: number;
   fixedvel: boolean;
   fixedvel_value: number;
@@ -104,6 +101,7 @@ export interface ZoneJSON {
   cc: boolean;
   at2mod: boolean;
   pitchbend: boolean;
+  programchange: boolean;
   arp_enabled: boolean;
   arp_hold: boolean;
   arp_direction: number;
@@ -112,13 +110,27 @@ export interface ZoneJSON {
   arp_gatelength: number;
   arp_repeat: number;
   arp_probability: number;
+  arp_velocity: number;
+  arp_transpose: boolean;
+  arp_transpose_amount: number;
   arp_pattern: boolean[];
   arp_holdlist: Note[];
   arp_sortedHoldList: Note[];
-  colorIndex: number | null;
   euclid_hits: number;
   euclid_length: number;
+  sequence: SequenceJSON;
+}
+
+export interface ZoneJSON {
+  channel: number;
+  preferredOutputPortId: string;
+  inputPortId?: string | null;
+  inputChannel?: number | null;
+  label?: string;
+  colorIndex: number | null;
+  low: number;
+  high: number;
   show_cc: boolean;
   cc_controllers: CCController[];
-  sequence: SequenceJSON;
+  arrangements: ZoneArrangementJSON[];
 }

@@ -118,8 +118,9 @@ export interface ZonesState {
   tempo: number;
   sendInternalClockIfPlaying: boolean;
   outputConfigNames: Record<string, string>;
-  seqLayerIndex: number;
-  seqLayerQuantIndex: number;
+  arrangementIndex: number;
+  nextArrangementIndex: number;
+  arrangementQuantIndex: number;
 }
 
 // IPC Types

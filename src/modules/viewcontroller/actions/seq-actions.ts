@@ -379,31 +379,6 @@ export function createSeqActions(
         toast('Clipboard is empty, nothing to paste');
       }
     },
-    seq_copy_to_layer_0: () => {
-      const targetLayer = parseInt(actionParam1);
-      const copyData = JSON.parse(
-        JSON.stringify({
-          steps: sequence.steps,
-          length: sequence.length,
-          division: sequence.division,
-          ticks: sequence.ticks
-        })
-      );
-      Object.assign(sequence.layers[targetLayer], copyData);
-      updateValuesForZone(zoneindex);
-      toast(
-        'Sequence duplicated to layer ' + String.fromCharCode(65 + targetLayer)
-      );
-    },
-    seq_copy_to_layer_1: () => {
-      actions.seq_copy_to_layer_0();
-    },
-    seq_copy_to_layer_2: () => {
-      actions.seq_copy_to_layer_0();
-    },
-    seq_copy_to_layer_3: () => {
-      actions.seq_copy_to_layer_0();
-    },
     seq_step_condition: () => {
       sequence.selectedSteps.forEach((step) => {
         if (step) {

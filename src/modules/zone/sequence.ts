@@ -2,8 +2,8 @@ import seedrandom from 'seedrandom';
 import MIDI from '../midi';
 import { Note } from './note';
 import { SeqStep } from './seq-step';
-import { SeqLayer, DIV_TICKS, DivTick } from './seq-layer';
 import { DrumLane } from './drum-lane';
+import { DIV_TICKS, DivTick } from './seq-layer';
 import { SequenceJSON } from './interfaces';
 import type { Zone } from './zone-class';
 
@@ -12,8 +12,8 @@ export class Sequence {
   static MAX_STEPS_DRUMS = 64;
   static MAX_LANES_DRUMS = 10;
   static CYCLE_CONDITIONS: [number, number][] = [];
-  static LAYER_TICK_N = 0;
-  static LAYER_QUANT_TICKS: DivTick = DIV_TICKS[2];
+  static QUANT_TICK_N = 0;
+  static QUANT_TICKS: DivTick = DIV_TICKS[2];
 
   static {
     for (let cycles = 2; cycles < 9; cycles++) {
@@ -24,7 +24,7 @@ export class Sequence {
   }
 
   static setQuantDiv(index: number): void {
-    Sequence.LAYER_QUANT_TICKS = DIV_TICKS[index] as DivTick;
+    Sequence.QUANT_TICKS = DIV_TICKS[index] as DivTick;
   }
 
   static getIdForDrumStep(laneIndex: number, stepIndex: number): number {
@@ -41,10 +41,12 @@ export class Sequence {
     return SeqStep.from(step);
   }
 
-  activeLayerIndex = 0;
-  nextLayerIndex = 0;
   _active = false;
-  layers = [new SeqLayer(), new SeqLayer(), new SeqLayer(), new SeqLayer()];
+  _steps: (SeqStep | null)[] = [];
+  _length = 16;
+  _division = 14;
+  _ticks: DivTick = DIV_TICKS[14] as DivTick;
+  drum_lanes: DrumLane[] = [];
   selectedStepNumbers = new Set<number>();
   currentStepNumber = -1;
   previousStepNumber = -1;
@@ -73,9 +75,13 @@ export class Sequence {
   toJSON(): SequenceJSON {
     return {
       active: this.active,
-      layers: this.layers,
+      steps: this._steps,
+      length: this._length,
+      ticks: this._ticks,
+      division: this._division,
       isDrumSequence: this.isDrumSequence,
-      drumLanes: this.drumLanes
+      drumLanes: this.drumLanes,
+      drum_lanes: this.drum_lanes
     };
   }
 
@@ -95,41 +101,41 @@ export class Sequence {
   }
 
   get length(): number {
-    return this.activeLayer.length;
+    return this._length;
   }
 
   set length(len: number) {
-    this.activeLayer.length = len;
+    this._length = len;
   }
 
   get division(): number {
-    return this.activeLayer.division;
+    return this._division;
   }
 
   set division(v: number) {
-    this.activeLayer.division = v;
-    this.activeLayer.ticks = DIV_TICKS[v];
+    this._division = v;
+    this._ticks = DIV_TICKS[v] as DivTick;
   }
 
   get ticks(): number {
-    return this.activeLayer.ticks;
+    return this._ticks;
   }
 
   set ticks(v: number) {
-    // only for backwards compatibility
+    // backward compatibility only — ticks are derived from division at runtime
   }
 
   get steps(): (SeqStep | null)[] {
-    return this.activeLayer.steps;
+    return this._steps;
   }
 
   set steps(steplist: (SeqStep | null)[]) {
-    this.activeLayer.steps = steplist;
+    this._steps = steplist;
   }
 
   get drumSteps(): (SeqStep | null)[] {
     const result = [];
-    this.activeLayer.drum_lanes.forEach((drumlane) => {
+    this.drum_lanes.forEach((drumlane) => {
       if (drumlane.steps?.length > 0) result.push(...drumlane.steps);
     });
     return result;
@@ -204,10 +210,6 @@ export class Sequence {
 
   isStepUsed(index: number): boolean {
     return !this.isStepEmpty(index);
-  }
-
-  get activeLayer(): SeqLayer {
-    return this.layers[this.activeLayerIndex];
   }
 
   recordNote(note: Note, inCount: number): void {
@@ -338,14 +340,6 @@ export class Sequence {
 
   clock(pos: number): void {
     this.tickn = pos % this.ticks;
-    Sequence.LAYER_TICK_N = pos % Sequence.LAYER_QUANT_TICKS;
-    if (
-      Sequence.LAYER_TICK_N === 0 &&
-      this.activeLayerIndex !== this.nextLayerIndex
-    ) {
-      this.activeLayerIndex = this.nextLayerIndex;
-      this.updateZoneView(true);
-    }
     if (this.activeSteps.length > 0) {
       const clearSteps: SeqStep[] = [];
       this.activeSteps.forEach((astep) => {
@@ -455,7 +449,6 @@ export class Sequence {
     this.liveTargetLength = 0;
     this.liveTargetStep = null;
     this.isLiveRecoding = false;
-    this.activeLayerIndex = this.nextLayerIndex;
     this.updateRecordingState();
     requestAnimationFrame(this.zone._renderSequenceBound);
     requestAnimationFrame(this.zone._renderNotesBound);
@@ -523,12 +516,12 @@ export class Sequence {
   }
 
   getDrumLane(lane: number): DrumLane {
-    if (this.activeLayer.drum_lanes[lane] == null) {
+    if (this.drum_lanes[lane] == null) {
       const nl = new DrumLane();
       nl.note = lane + 36;
-      this.activeLayer.drum_lanes[lane] = nl;
+      this.drum_lanes[lane] = nl;
     }
-    return this.activeLayer.drum_lanes[lane];
+    return this.drum_lanes[lane];
   }
 
   turnOnDrumStep(lane: number, stepNo: number): void {
