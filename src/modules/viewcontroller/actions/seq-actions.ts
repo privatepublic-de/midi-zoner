@@ -1,5 +1,6 @@
 import { Zone } from '../../zone/zone-class';
 import { Sequence } from '../../zone/sequence';
+import { SeqStep } from '../../zone/seq-step';
 import { ActionContext, ActionHelpers, ActionMap } from '../types';
 
 export function createSeqActions(
@@ -47,7 +48,6 @@ export function createSeqActions(
       sequence.getDrumLane(laneNo).note = parseInt(
         (element as HTMLInputElement).value
       );
-      console.log(sequence.getDrumLane(laneNo));
       updateValuesForZone(zoneindex);
     },
     seq_drumstep_select: () => {
@@ -65,6 +65,66 @@ export function createSeqActions(
       dl.enabled = !dl.enabled;
       updateValuesForZone(zoneindex);
     },
+    seq_toggle_lane_solo: () => {
+      const laneNo = parseInt(actionParam1);
+      const dl = sequence.getDrumLane(laneNo);
+      dl.solo = !dl.solo;
+      updateValuesForZone(zoneindex);
+    },
+    seq_toggle_lane_euclid: () => {
+      const laneNo = parseInt(actionParam1);
+      const laneEl = zone.elements.get(`.lane${laneNo}`);
+      laneEl?.classList.toggle('euc-open');
+      const hitsInput = zone.elements.get(`.lane${laneNo} .euc-hits`) as HTMLInputElement | null;
+      if (hitsInput) {
+        hitsInput.max = String(sequence.length);
+        hitsInput.value = String(Math.min(parseInt(hitsInput.value), sequence.length));
+        const valDisplay = zone.elements.get(`.lane${laneNo} .euc-val`) as HTMLElement | null;
+        if (valDisplay) valDisplay.textContent = hitsInput.value;
+      }
+    },
+    seq_euclid_lane: () => {
+      const laneNo = parseInt(actionParam1);
+      const hitsInput = zone.elements.get(
+        `.lane${laneNo} .euc-hits`
+      ) as HTMLInputElement | null;
+      const hits = hitsInput ? parseInt(hitsInput.value) : 4;
+      const valDisplay = zone.elements.get(`.lane${laneNo} .euc-val`) as HTMLElement | null;
+      if (valDisplay) valDisplay.textContent = String(hits);
+      sequence.fillDrumLaneEuclidean(laneNo, hits);
+      updateValuesForZone(zoneindex);
+    },
+    seq_copy_lane: () => {
+      const laneNo = parseInt(actionParam1);
+      const lane = sequence.getDrumLane(laneNo);
+      const steps = [];
+      for (let i = 0; i < sequence.length; i++) {
+        steps.push(lane.steps[i] ? JSON.parse(JSON.stringify(lane.steps[i])) : null);
+      }
+      Zone.seqClipboardDrumLane = { steps, length: sequence.length };
+      toast('Lane pattern copied');
+    },
+    seq_paste_lane: () => {
+      if (!Zone.seqClipboardDrumLane) {
+        toast('Clipboard is empty, nothing to paste');
+        return;
+      }
+      const laneNo = parseInt(actionParam1);
+      const lane = sequence.getDrumLane(laneNo);
+      const src = Zone.seqClipboardDrumLane;
+      for (let i = 0; i < sequence.length; i++) {
+        const srcStep = src.steps[i % src.length];
+        if (srcStep) {
+          const copied = JSON.parse(JSON.stringify(srcStep));
+          copied.lastPlayedArray = [];
+          lane.steps[i] = copied;
+        } else {
+          lane.steps[i] = null;
+        }
+      }
+      updateValuesForZone(zoneindex);
+      toast('Lane pattern pasted');
+    },
     seq_step_length: () => {
       const v = parseInt((element as HTMLInputElement).value);
       sequence.selectedSteps.forEach((step) => {
@@ -76,7 +136,7 @@ export function createSeqActions(
     },
     seq_clear_all: () => {
       if (sequence.isDrumSequence) {
-        for (let i = 0; i < Sequence.MAX_LANES_DRUMS; i++) {
+        for (let i = 0; i < sequence.drumLanes; i++) {
           const lane = sequence.getDrumLane(i);
           lane.steps.length = 0;
         }
@@ -109,64 +169,129 @@ export function createSeqActions(
       const selectElement = element as HTMLSelectElement;
       const adjustment =
         selectElement.options[selectElement.selectedIndex].value;
-      let seq = sequence;
-      let srcLength = seq.length;
-      let steps: ((typeof seq.steps)[number] | null)[] = [];
-      for (let i = 0; i < srcLength; i++) {
-        steps[i] = seq.steps[i];
-      }
-      let stepsCopy = JSON.parse(JSON.stringify(steps));
-      switch (adjustment) {
-        case 'double':
-          seq.length = seq.length * 2;
+      const seq = sequence;
+      const srcLength = seq.length;
+      if (seq.isDrumSequence) {
+        const laneCopies: ((SeqStep | null)[])[] = [];
+        for (let ln = 0; ln < seq.drumLanes; ln++) {
+          const lane = seq.getDrumLane(ln);
+          const copy: (SeqStep | null)[] = [];
           for (let i = 0; i < srcLength; i++) {
-            seq.steps[srcLength + i] = stepsCopy[i];
+            copy[i] = lane.steps[i] ? JSON.parse(JSON.stringify(lane.steps[i])) : null;
           }
-          updateValuesForZone(zoneindex);
-          toast('Sequence doubled');
-          break;
-        case 'halftime':
-          seq.length = seq.length * 2;
-          for (let i = 0; i < srcLength; i++) {
-            seq.steps[i * 2] = stepsCopy[i];
-            if (seq.steps[i * 2]) {
-              seq.steps[i * 2].length = seq.steps[i * 2].length * 2;
+          laneCopies[ln] = copy;
+        }
+        switch (adjustment) {
+          case 'double':
+            seq.length = srcLength * 2;
+            for (let ln = 0; ln < seq.drumLanes; ln++) {
+              const lane = seq.getDrumLane(ln);
+              for (let i = 0; i < srcLength; i++) {
+                lane.steps[srcLength + i] = laneCopies[ln][i];
+              }
             }
-            seq.steps[i * 2 + 1] = null;
-          }
-          updateValuesForZone(zoneindex);
-          toast('Sequence made half time slower');
-          break;
-        case 'thirdtime':
-          seq.length = seq.length * 3;
-          for (let i = 0; i < srcLength; i++) {
-            seq.steps[i * 3] = stepsCopy[i];
-            if (seq.steps[i * 3]) {
-              seq.steps[i * 3].length = seq.steps[i * 3].length * 3;
+            toast('Drum sequence doubled');
+            break;
+          case 'halftime':
+            seq.length = srcLength * 2;
+            for (let ln = 0; ln < seq.drumLanes; ln++) {
+              const lane = seq.getDrumLane(ln);
+              for (let i = 0; i < srcLength; i++) {
+                lane.steps[i * 2] = laneCopies[ln][i];
+                if (lane.steps[i * 2]) {
+                  lane.steps[i * 2]!.length = lane.steps[i * 2]!.length * 2;
+                }
+                lane.steps[i * 2 + 1] = null;
+              }
             }
-            seq.steps[i * 3 + 1] = seq.steps[i * 3 + 2] = null;
-          }
-          updateValuesForZone(zoneindex);
-          toast('Sequence made one-third time slower');
-          break;
-        case 'veloup':
-        case 'velodown':
-          let factor = adjustment == 'veloup' ? 1 + 1 / 3 : 0.75;
-          sequence.steps.forEach((step) => {
-            if (step != null) {
-              step.notesArray.forEach((note) => {
-                const newvelo = note.velo * factor;
-                note.velo = Math.max(1, Math.min(127, newvelo));
+            toast('Drum sequence made half time slower');
+            break;
+          case 'thirdtime':
+            seq.length = srcLength * 3;
+            for (let ln = 0; ln < seq.drumLanes; ln++) {
+              const lane = seq.getDrumLane(ln);
+              for (let i = 0; i < srcLength; i++) {
+                lane.steps[i * 3] = laneCopies[ln][i];
+                if (lane.steps[i * 3]) {
+                  lane.steps[i * 3]!.length = lane.steps[i * 3]!.length * 3;
+                }
+                lane.steps[i * 3 + 1] = lane.steps[i * 3 + 2] = null;
+              }
+            }
+            toast('Drum sequence made one-third time slower');
+            break;
+          case 'veloup':
+          case 'velodown': {
+            const factor = adjustment === 'veloup' ? 1 + 1 / 3 : 0.75;
+            for (let ln = 0; ln < seq.drumLanes; ln++) {
+              seq.getDrumLane(ln).steps.forEach((step) => {
+                if (step) {
+                  step.notesArray.forEach((note) => {
+                    note.velo = Math.max(1, Math.min(127, note.velo * factor));
+                  });
+                }
               });
             }
-          });
-          toast(
-            'All steps changed velocity by ' +
-              parseInt(String(factor * 100)) +
-              '%'
-          );
-          updateValuesForZone(zoneindex);
-          break;
+            toast('Drum steps changed velocity by ' + parseInt(String(factor * 100)) + '%');
+            break;
+          }
+        }
+        updateValuesForZone(zoneindex);
+      } else {
+        const steps: ((typeof seq.steps)[number] | null)[] = [];
+        for (let i = 0; i < srcLength; i++) {
+          steps[i] = seq.steps[i];
+        }
+        const stepsCopy = JSON.parse(JSON.stringify(steps));
+        switch (adjustment) {
+          case 'double':
+            seq.length = seq.length * 2;
+            for (let i = 0; i < srcLength; i++) {
+              seq.steps[srcLength + i] = stepsCopy[i];
+            }
+            updateValuesForZone(zoneindex);
+            toast('Sequence doubled');
+            break;
+          case 'halftime':
+            seq.length = seq.length * 2;
+            for (let i = 0; i < srcLength; i++) {
+              seq.steps[i * 2] = stepsCopy[i];
+              if (seq.steps[i * 2]) {
+                seq.steps[i * 2].length = seq.steps[i * 2].length * 2;
+              }
+              seq.steps[i * 2 + 1] = null;
+            }
+            updateValuesForZone(zoneindex);
+            toast('Sequence made half time slower');
+            break;
+          case 'thirdtime':
+            seq.length = seq.length * 3;
+            for (let i = 0; i < srcLength; i++) {
+              seq.steps[i * 3] = stepsCopy[i];
+              if (seq.steps[i * 3]) {
+                seq.steps[i * 3].length = seq.steps[i * 3].length * 3;
+              }
+              seq.steps[i * 3 + 1] = seq.steps[i * 3 + 2] = null;
+            }
+            updateValuesForZone(zoneindex);
+            toast('Sequence made one-third time slower');
+            break;
+          case 'veloup':
+          case 'velodown': {
+            const factor = adjustment === 'veloup' ? 1 + 1 / 3 : 0.75;
+            sequence.steps.forEach((step) => {
+              if (step != null) {
+                step.notesArray.forEach((note) => {
+                  const newvelo = note.velo * factor;
+                  note.velo = Math.max(1, Math.min(127, newvelo));
+                });
+              }
+            });
+            toast('All steps changed velocity by ' + parseInt(String(factor * 100)) + '%');
+            updateValuesForZone(zoneindex);
+            break;
+          }
+        }
       }
       setTimeout(() => {
         selectElement.selectedIndex = 0;
@@ -361,18 +486,48 @@ export function createSeqActions(
       updateValuesForZone(zoneindex);
     },
     seq_copy: () => {
-      const copyData = {
-        steps: sequence.steps,
-        length: sequence.length,
-        division: sequence.division
-      };
-      Zone.seqClipboardSequence = JSON.stringify(copyData);
+      if (sequence.isDrumSequence) {
+        const drum_lanes_copy = [];
+        for (let ln = 0; ln < sequence.drumLanes; ln++) {
+          const lane = sequence.getDrumLane(ln);
+          drum_lanes_copy.push(JSON.parse(JSON.stringify(lane)));
+        }
+        Zone.seqClipboardSequence = JSON.stringify({
+          isDrumSequence: true,
+          drum_lanes: drum_lanes_copy,
+          drumLanes: sequence.drumLanes,
+          length: sequence.length,
+          division: sequence.division
+        });
+      } else {
+        Zone.seqClipboardSequence = JSON.stringify({
+          isDrumSequence: false,
+          steps: sequence.steps,
+          length: sequence.length,
+          division: sequence.division
+        });
+      }
       toast('Sequence copied to clipboard');
     },
     seq_paste: () => {
       if (Zone.seqClipboardSequence) {
         const copyData = JSON.parse(Zone.seqClipboardSequence);
-        Object.assign(sequence, copyData);
+        if (copyData.isDrumSequence && sequence.isDrumSequence) {
+          sequence.drum_lanes = copyData.drum_lanes || [];
+          sequence.drumLanes = copyData.drumLanes ?? sequence.drumLanes;
+          sequence.length = copyData.length;
+          sequence.division = copyData.division;
+          sequence.drum_lanes.forEach((lane: any) => {
+            if (lane?.steps) {
+              lane.steps.forEach((st: any) => { if (st) st.lastPlayedArray = []; });
+            }
+          });
+        } else if (!copyData.isDrumSequence && !sequence.isDrumSequence) {
+          Object.assign(sequence, copyData);
+        } else {
+          toast('Cannot paste: clipboard contains a different sequence type');
+          return;
+        }
         updateValuesForZone(zoneindex);
         toast('Sequence pasted from clipboard');
       } else {

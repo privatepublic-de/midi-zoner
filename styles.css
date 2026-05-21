@@ -2290,3 +2290,77 @@ input::-webkit-inner-spin-button {
 .only-for-drumsequence {
   display: none;
 }
+
+/* Velocity fill on active drum steps */
+.drumSequencer .seq .grid .step.active {
+  position: relative;
+  overflow: hidden;
+}
+.drumSequencer .seq .grid .step.active::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: calc(var(--velo, 0.75) * 100%);
+  background: rgba(255, 255, 255, 0.22);
+  pointer-events: none;
+}
+
+/* Lane solo button */
+.drum-lane .seq_toggle_lane_solo {
+  opacity: 0.4;
+  font-size: 14px;
+  padding: 0 3px;
+}
+.drum-lane .seq_toggle_lane_solo.selected {
+  opacity: 1;
+  color: var(--accent-color, #f90);
+}
+.drum-lane.soloed-out {
+  opacity: 0.2;
+}
+
+/* Euclidean fill button and panel */
+.lane-euc-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+.drum-lane .lane-euc-btn {
+  font-size: 10px;
+  font-weight: bold;
+  padding: 0 4px;
+  opacity: 0.5;
+  letter-spacing: -0.5px;
+}
+.drum-lane.euc-open .lane-euc-btn {
+  opacity: 1;
+  color: var(--accent-color, #f90);
+}
+.euc-panel {
+  display: none;
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  background: var(--bg-2, #1a2a2a);
+  border: 1px solid var(--border-color, #3a5a5a);
+  border-radius: 4px;
+  z-index: 10;
+  white-space: nowrap;
+}
+.drum-lane.euc-open .euc-panel {
+  display: flex;
+}
+.euc-panel .euc-hits {
+  width: 80px;
+}
+.euc-panel .euc-val {
+  font-size: 11px;
+  min-width: 16px;
+  text-align: right;
+  opacity: 0.7;
+}

@@ -43,9 +43,11 @@ const contextMenuActionLabel: Record<string, string> = {
     '<i class="material-icons">playlist_remove</i> Clear complete sequence',
   seq_copy: '<i class="material-icons">content_copy</i> Copy sequence',
   seq_paste: '<i class="material-icons">content_paste</i> Paste sequence',
+  seq_copy_lane: '<i class="material-icons">content_copy</i> Copy lane pattern',
+  seq_paste_lane: '<i class="material-icons">content_paste</i> Paste lane pattern',
   cc_edit: '<i class="material-icons">edit</i> Edit CC controllers',
   cc_send_all: '<i class="material-icons">double_arrow</i> Send all CC values',
-  step_copy_length: 'Step lenght',
+  step_copy_length: 'Step length',
   step_copy_gate: 'Gate length',
   step_copy_condition: 'Condition',
   step_copy_chance: 'Chance'
@@ -242,6 +244,8 @@ function contextHandler(ev: MouseEvent): void {
         return Zone.seqClipboardStep != null;
       case 'seq_paste':
         return Zone.seqClipboardSequence != null;
+      case 'seq_paste_lane':
+        return Zone.seqClipboardDrumLane != null;
     }
     return true;
   }
@@ -329,7 +333,6 @@ function hoverHandler(ev: MouseEvent): void {
       );
       break;
   }
-  updateValuesForZone(zoneindex);
 }
 
 function hoverOutHandler(ev: MouseEvent): void {
@@ -521,7 +524,7 @@ function appendZone(zone: ZoneType, index: number): void {
     e.addEventListener('mouseleave', hoverOutHandler as EventListener);
     e.addEventListener('dblclick', dblClickHandler as EventListener);
   });
-  DOM.all(`input[type="text"],input[type="number"]`).forEach((e) => {
+  DOM.all(`#zone${index} input[type="text"],#zone${index} input[type="number"]`).forEach((e) => {
     e.addEventListener('keyup', function (this: HTMLElement, event) {
       if ((event as KeyboardEvent).keyCode === 13) {
         event.preventDefault();
@@ -669,6 +672,7 @@ function updateValuesForZone(index: number): void {
         (zone.elements.get('.seq_lanes') as HTMLInputElement).value = String(
           sequence.drumLanes
         );
+        const drumLaneSoloCount = sequence.getDrumLaneSoloCount();
         for (
           let laneIndex = 0;
           laneIndex < Sequence.MAX_LANES_DRUMS;
@@ -679,25 +683,33 @@ function updateValuesForZone(index: number): void {
           } else {
             zone.elements.get(`.lane${laneIndex}`)!.classList.remove('unused');
           }
-          const isEnabled = sequence.getDrumLane(laneIndex).enabled;
-          if (isEnabled) {
-            zone.elements
-              .get(`.lane${laneIndex}`)!
-              .classList.remove('disabled');
-          } else {
-            zone.elements.get(`.lane${laneIndex}`)!.classList.add('disabled');
-          }
+          const lane = sequence.getDrumLane(laneIndex);
+          const isEnabled = lane.enabled;
+          const isSoloed = lane.solo;
+          const soloCount = drumLaneSoloCount;
+          DOM.switchClass(
+            zone.elements.get(`.lane${laneIndex}`)!,
+            !isEnabled,
+            'disabled'
+          );
+          DOM.switchClass(
+            zone.elements.get(`.lane${laneIndex}`)!,
+            soloCount > 0 && !isSoloed,
+            'soloed-out'
+          );
           zone.elements.addSelectedStyle(
             `.lane${laneIndex} .seq_toggle_lane_enabled`,
             isEnabled
           );
+          zone.elements.addSelectedStyle(
+            `.lane${laneIndex} .seq_toggle_lane_solo`,
+            isSoloed
+          );
           const numberElement = zone.elements.get(
             `input[data-change="${index}:seq_drumlane_note:${laneIndex}"]`
           ) as HTMLInputElement;
-          numberElement.value = String(sequence.getDrumLane(laneIndex).note);
-          numberElement.title =
-            'Trigger note: ' +
-            Note.display(sequence.getDrumLane(laneIndex).note);
+          numberElement.value = String(lane.note);
+          numberElement.title = 'Trigger note: ' + Note.display(lane.note);
           for (
             let stepIndex = 0;
             stepIndex < Sequence.MAX_STEPS_DRUMS;
@@ -707,10 +719,16 @@ function updateValuesForZone(index: number): void {
               zone.elements.sequencerDrumLanes![laneIndex][stepIndex];
             if (stepIndex < sequence.length && laneIndex < sequence.drumLanes) {
               DOM.removeClass(stepElement, 'unused');
-              if (sequence.hasDrumStep(laneIndex, stepIndex)) {
+              const step = lane.steps[stepIndex];
+              if (step != null) {
                 DOM.addClass(stepElement, 'active');
+                (stepElement as HTMLElement).style.setProperty(
+                  '--velo',
+                  String((step.notesArray[0]?.velo ?? 96) / 127)
+                );
               } else {
                 DOM.removeClass(stepElement, 'active');
+                (stepElement as HTMLElement).style.removeProperty('--velo');
               }
               if (
                 sequence.selectedStepNumbers.has(

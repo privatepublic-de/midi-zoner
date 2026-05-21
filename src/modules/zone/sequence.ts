@@ -4,13 +4,13 @@ import { Note } from './note';
 import { SeqStep } from './seq-step';
 import { DrumLane } from './drum-lane';
 import { DIV_TICKS, DivTick } from './seq-layer';
-import { SequenceJSON } from './interfaces';
+import { SequenceJSON, UPDATE_ZONE_VIEW_EVENT } from './interfaces';
 import type { Zone } from './zone-class';
 
 export class Sequence {
   static MAX_STEPS = 256;
   static MAX_STEPS_DRUMS = 64;
-  static MAX_LANES_DRUMS = 10;
+  static MAX_LANES_DRUMS = 12;
   static CYCLE_CONDITIONS: [number, number][] = [];
   static QUANT_TICK_N = 0;
   static QUANT_TICKS: DivTick = DIV_TICKS[2];
@@ -57,6 +57,7 @@ export class Sequence {
   isDrumSequence = false;
   drumLanes = 4;
   activeSteps: SeqStep[] = [];
+  private readonly _midiMsgBuf = new Uint8Array(3);
   private rngProb = seedrandom();
   cycleCount = -1;
   previousStepPlayed = false;
@@ -269,13 +270,9 @@ export class Sequence {
   }
 
   updateZoneView(allZones?: boolean): void {
-    // Dynamic import to avoid circular dependency
-    import('./zone-class').then(({ Zone }) => {
-      const event = new CustomEvent(Zone.updateZoneViewEventName, {
-        detail: allZones ? null : this.zone
-      });
-      window.dispatchEvent(event);
-    });
+    window.dispatchEvent(new CustomEvent(UPDATE_ZONE_VIEW_EVENT, {
+      detail: allZones ? null : this.zone
+    }));
   }
 
   updateRecordingState(): void {
@@ -348,15 +345,10 @@ export class Sequence {
         if (astep.length - 1 - astep.played === 0 && this.tickn >= offtick) {
           clearSteps.push(astep);
           for (const note of astep.lastPlayedArray) {
-            this.zone.handleMidi(
-              MIDI.MESSAGE.NOTE_OFF,
-              Uint8Array.from([
-                MIDI.MESSAGE.NOTE_OFF + note.channel,
-                note.number,
-                note.velo
-              ]),
-              true
-            );
+            this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_OFF + note.channel;
+            this._midiMsgBuf[1] = note.number;
+            this._midiMsgBuf[2] = note.velo;
+            this.zone.handleMidi(MIDI.MESSAGE.NOTE_OFF, this._midiMsgBuf, true);
           }
           astep.lastPlayedArray.length = 0;
         }
@@ -378,21 +370,37 @@ export class Sequence {
         }
       }
       if (this.active) {
-        const currentStepList: (SeqStep | null)[] = [];
         if (this.isDrumSequence) {
+          const soloCount = this.getDrumLaneSoloCount();
+          let anyPlayed = false;
           for (let ln = 0; ln < this.drumLanes; ln++) {
             const lane = this.getDrumLane(ln);
             if (!lane.enabled) continue;
-            const step = lane?.steps[this.currentStepNumber];
+            if (soloCount > 0 && !lane.solo) continue;
+            const step = lane.steps[this.currentStepNumber];
             if (step != null && step.notesArray.length > 0) {
-              step.notesArray[0].number = lane.note;
+              if (
+                this.checkCondition(step) &&
+                this.rngProb() < step.probability
+              ) {
+                step.played = 0;
+                this.activeSteps.push(step);
+                const velo = step.notesArray[0].velo;
+                const note = new Note(lane.note, velo);
+                note.channel = this.zone.channel;
+                note.portId = this.zone.outputPortId;
+                this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + note.channel;
+                this._midiMsgBuf[1] = note.number;
+                this._midiMsgBuf[2] = note.velo;
+                this.zone.handleMidi(MIDI.MESSAGE.NOTE_ON, this._midiMsgBuf, true);
+                step.lastPlayedArray.push(note);
+                anyPlayed = true;
+              }
             }
-            currentStepList.push(step);
           }
+          this.previousStepPlayed = anyPlayed;
         } else {
-          currentStepList.push(this.steps[this.currentStepNumber]);
-        }
-        for (const currentStep of currentStepList) {
+          const currentStep = this.steps[this.currentStepNumber];
           if (currentStep) {
             if (
               this.checkCondition(currentStep) &&
@@ -404,15 +412,10 @@ export class Sequence {
                 const note = Note.clone(inote);
                 note.channel = this.zone.channel;
                 note.portId = this.zone.outputPortId;
-                this.zone.handleMidi(
-                  MIDI.MESSAGE.NOTE_ON,
-                  Uint8Array.from([
-                    MIDI.MESSAGE.NOTE_ON + note.channel,
-                    note.number,
-                    note.velo
-                  ]),
-                  true
-                );
+                this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + note.channel;
+                this._midiMsgBuf[1] = note.number;
+                this._midiMsgBuf[2] = note.velo;
+                this.zone.handleMidi(MIDI.MESSAGE.NOTE_ON, this._midiMsgBuf, true);
                 currentStep.lastPlayedArray.push(note);
               }
               this.previousStepPlayed = true;
@@ -429,15 +432,10 @@ export class Sequence {
   stopped(): void {
     this.activeSteps.forEach((astep) => {
       for (const note of astep.lastPlayedArray) {
-        this.zone.handleMidi(
-          MIDI.MESSAGE.NOTE_OFF,
-          Uint8Array.from([
-            MIDI.MESSAGE.NOTE_OFF + note.channel,
-            note.number,
-            0
-          ]),
-          true
-        );
+        this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_OFF + note.channel;
+        this._midiMsgBuf[1] = note.number;
+        this._midiMsgBuf[2] = 0;
+        this.zone.handleMidi(MIDI.MESSAGE.NOTE_OFF, this._midiMsgBuf, true);
       }
       astep.lastPlayedArray.length = 0;
     });
@@ -522,6 +520,30 @@ export class Sequence {
       this.drum_lanes[lane] = nl;
     }
     return this.drum_lanes[lane];
+  }
+
+  getDrumLaneSoloCount(): number {
+    return this.drum_lanes.filter((l) => l != null && l.solo).length;
+  }
+
+  fillDrumLaneEuclidean(laneIndex: number, hits: number, offset = 0): void {
+    const length = this._length;
+    hits = Math.max(0, Math.min(hits, length));
+    offset = ((offset % length) + length) % length;
+    const lane = this.getDrumLane(laneIndex);
+    for (let i = 0; i < length; i++) {
+      lane.steps[i] = null;
+    }
+    if (hits === 0) return;
+    const s = hits / length;
+    let previous = -1;
+    for (let i = 0; i < length; i++) {
+      const current = Math.floor(i * s);
+      if (current !== previous) {
+        this.turnOnDrumStep(laneIndex, (i + offset) % length);
+      }
+      previous = current;
+    }
   }
 
   turnOnDrumStep(lane: number, stepNo: number): void {

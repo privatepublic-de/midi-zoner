@@ -1,5 +1,7 @@
 import { Note } from './note';
 
+export const UPDATE_ZONE_VIEW_EVENT = 'update-zone-view';
+
 export enum CCControllerType {
   UNIPOLAR_ROTARY = 0,
   BIPOLAR_ROTARY = 1,
@@ -59,7 +61,7 @@ export interface SeqStepJSON {
   length: number;
   probability: number;
   condition: number;
-  lastPlayedArray: Note[];
+  lastPlayedArray?: Note[];
   gateLength: number;
 }
 
@@ -67,6 +69,7 @@ export interface DrumLaneJSON {
   steps: (SeqStepJSON | null)[];
   note: number;
   enabled: boolean;
+  solo?: boolean;
 }
 
 // Retained for loading legacy scene files that used the 4-layer structure

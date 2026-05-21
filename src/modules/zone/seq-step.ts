@@ -16,7 +16,6 @@ export class SeqStep {
       length: this.length,
       probability: this.probability,
       condition: this.condition,
-      lastPlayedArray: this.lastPlayedArray,
       gateLength: this.gateLength
     };
   }

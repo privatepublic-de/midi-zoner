@@ -4,7 +4,7 @@ import { Note } from './note';
 import { ZoneElements } from './zone-elements';
 import { Sequence } from './sequence';
 import { SeqStep } from './seq-step';
-import { CCController, ArpState, ZoneJSON, ZoneArrangementJSON } from './interfaces';
+import { CCController, ArpState, ZoneJSON, ZoneArrangementJSON, SeqStepJSON, UPDATE_ZONE_VIEW_EVENT } from './interfaces';
 import { NoteDisplay } from './note-display';
 import { DIV_TICKS, DivTick } from './seq-layer';
 
@@ -12,7 +12,8 @@ export class Zone {
   static solocount = 0;
   static seqClipboardStep: Map<number, SeqStep> | null = null;
   static seqClipboardSequence: string | null = null;
-  static updateZoneViewEventName = 'update-zone-view';
+  static seqClipboardDrumLane: { steps: (SeqStepJSON | null)[], length: number } | null = null;
+  static updateZoneViewEventName = UPDATE_ZONE_VIEW_EVENT;
 
   private static _canvasSizeCache = new WeakMap<HTMLCanvasElement, DOMRect>();
   private static _resizeObserver = new ResizeObserver((entries) => {
@@ -33,9 +34,13 @@ export class Zone {
       Zone._canvasSizeCache.set(canvas, rect);
       Zone._resizeObserver.observe(canvas);
     }
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    ctx.scale(dpr, dpr);
+    const newW = Math.round(rect.width * dpr);
+    const newH = Math.round(rect.height * dpr);
+    if (canvas.width !== newW || canvas.height !== newH) {
+      canvas.width = newW;
+      canvas.height = newH;
+      ctx.scale(dpr, dpr);
+    }
     return { context: ctx, rect };
   }
 
@@ -127,7 +132,9 @@ export class Zone {
   holdList: Note[] = [];
   midi: MIDI;
   elements = new ZoneElements();
+  private readonly _midiMsgBuf = new Uint8Array(3);
   _colorIndex: number | null = null;
+  private _cachedZoneColor: string | null = null;
   pgm_no: number | null = null;
   rngArp: () => number;
   rngArpOct: () => number;
@@ -242,6 +249,11 @@ export class Zone {
     seq.drumLanes = (sd as any).drumLanes ?? 4;
     seq.active = (sd as any).active ?? false;
     seq._steps.forEach((st: any) => { if (st) st.lastPlayedArray = []; });
+    seq.drum_lanes.forEach((lane: any) => {
+      if (lane?.steps) {
+        lane.steps.forEach((st: any) => { if (st) st.lastPlayedArray = []; });
+      }
+    });
     this.sequence = seq;
   }
 
@@ -271,6 +283,7 @@ export class Zone {
   set colorIndex(i: number) {
     i = i % 5;
     this._colorIndex = i;
+    this._cachedZoneColor = null;
   }
 
   get colorIndex(): number {
@@ -347,19 +360,7 @@ export class Zone {
   }
 
   removeNote(number: number): void {
-    let index = -1;
-    do {
-      index = -1;
-      for (let i = 0; i < this.activeNotes.length; i++) {
-        if (this.activeNotes[i].number === number) {
-          index = i;
-          break;
-        }
-      }
-      if (index > -1) {
-        this.activeNotes.splice(index, 1);
-      }
-    } while (index > -1);
+    this.activeNotes = this.activeNotes.filter((n) => n.number !== number);
   }
 
   shouldHandleMidi(message: number, fromSequencer?: boolean): boolean {
@@ -683,7 +684,10 @@ export class Zone {
 
       // Playhead: zone-color tinted vertical bar with glow
       const playX = cellW * this.arp.patternPos + cellW / 2;
-      const zoneColor = getComputedStyle(this.elements.patternCanvas).getPropertyValue('--zone-color').trim() || '#e9c46a';
+      if (!this._cachedZoneColor) {
+        this._cachedZoneColor = getComputedStyle(this.elements.patternCanvas).getPropertyValue('--zone-color').trim() || '#e9c46a';
+      }
+      const zoneColor = this._cachedZoneColor;
       context.filter = 'brightness(2.4) saturate(2)';
       context.shadowColor = zoneColor;
       context.shadowBlur = 6;
@@ -857,14 +861,10 @@ export class Zone {
               this.outputPortId
             );
             this.arp.lastnote = note;
-            this.midi.send(
-              Uint8Array.from([
-                MIDI.MESSAGE.NOTE_ON + this.channel,
-                note.number,
-                this.fixedvel ? this.fixedvel_value || 127 : note.velo
-              ]),
-              this.outputPortId
-            );
+            this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + this.channel;
+            this._midiMsgBuf[1] = note.number;
+            this._midiMsgBuf[2] = this.fixedvel ? this.fixedvel_value || 127 : note.velo;
+            this.midi.send(this._midiMsgBuf, this.outputPortId);
           }
         }
         this.arp.repeattrig = !this.arp.repeattrig;
@@ -880,14 +880,10 @@ export class Zone {
   arpNoteOff(): void {
     if (this.arp.lastnote) {
       const note = this.arp.lastnote;
-      this.midi.send(
-        Uint8Array.from([
-          MIDI.MESSAGE.NOTE_OFF + note.channel,
-          note.number,
-          note.velo
-        ]),
-        note.portId
-      );
+      this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_OFF + note.channel;
+      this._midiMsgBuf[1] = note.number;
+      this._midiMsgBuf[2] = note.velo;
+      this.midi.send(this._midiMsgBuf, note.portId);
       this.arp.lastnote = null;
       this.arp.repeatnote = note;
       requestAnimationFrame(this._renderNotesBound);
