@@ -15,6 +15,10 @@ let tickHandler: ClockHandler | null = null;
 let timerID: ReturnType<typeof setTimeout> | null = null;
 
 const scheduleClock = (): void => {
+  if (!tickHandler) {
+    timerID = null;
+    return;
+  }
   const currentTime = audioContext.currentTime - startTime;
 
   while (nextClockTime < currentTime + scheduleAheadTime) {
@@ -22,7 +26,7 @@ const scheduleClock = (): void => {
     const offsetMs = (nextClockTime - currentTime) * 1000;
     const timestamp = performance.now() + Math.max(0, offsetMs);
 
-    tickHandler?.({ data: clockMSG.data, timestamp });
+    tickHandler({ data: clockMSG.data, timestamp });
     nextClockTime += tempo;
   }
 
@@ -31,6 +35,10 @@ const scheduleClock = (): void => {
 
 function setHandler(clockHandler: ClockHandler | null): void {
   tickHandler = clockHandler;
+  if (clockHandler && timerID === null) {
+    nextClockTime = audioContext.currentTime - startTime;
+    timerID = setTimeout(scheduleClock, 0);
+  }
 }
 
 function setBPM(bpm: number): void {
@@ -38,6 +46,5 @@ function setBPM(bpm: number): void {
 }
 
 startTime = audioContext.currentTime + 0.005;
-scheduleClock();
 
 export { setHandler, setBPM };

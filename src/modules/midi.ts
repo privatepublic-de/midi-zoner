@@ -214,13 +214,15 @@ class MIDI {
       const sortedInputs = Array.from(this.midiAccess.inputs).sort(
         sortPortsComparator
       );
+      const savedMidiInId = localStorage.getItem('midiInId');
+      const savedMidiInClockId = localStorage.getItem('midiInClockId');
       sortedInputs.forEach((entry) => {
         const input = entry[1];
         this.knownPorts[input.id] = input;
-        if (input.id == localStorage.getItem('midiInId')) {
+        if (input.id == savedMidiInId) {
           selectedIn = input.id;
         }
-        if (input.id == localStorage.getItem('midiInClockId')) {
+        if (input.id == savedMidiInClockId) {
           selectedInClock = input.id;
         }
         countIn++;

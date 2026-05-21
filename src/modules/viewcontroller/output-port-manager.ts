@@ -59,6 +59,8 @@ export function listUsedPorts(zones: ZonesData): Set<string> {
   return usedPorts;
 }
 
+const _noop = (): void => {};
+
 export function updateOutputPortsForAllZones(
   zones: ZonesData,
   outputs: PortDescriptor[],
@@ -66,8 +68,9 @@ export function updateOutputPortsForAllZones(
 ): Set<string> {
   cachedOutputPorts = outputs;
   for (let i = 0; i < zones.list.length; i++) {
-    updateOutputPortsForZone(zones, i, outputs, updateValuesForAllZones);
+    updateOutputPortsForZone(zones, i, outputs, _noop);
   }
+  updateValuesForAllZones();
   return listUsedPorts(zones);
 }
 
