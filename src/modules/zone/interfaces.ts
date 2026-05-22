@@ -70,6 +70,8 @@ export interface DrumLaneJSON {
   note: number;
   enabled: boolean;
   solo?: boolean;
+  length?: number;
+  label?: string;
 }
 
 // Retained for loading legacy scene files that used the 4-layer structure

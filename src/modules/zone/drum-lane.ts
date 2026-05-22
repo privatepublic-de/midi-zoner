@@ -5,4 +5,10 @@ export class DrumLane {
   note = 36;
   enabled = true;
   solo = false;
+  length = 16;
+  label = '';
+  currentStep = -1;
+  previousStep = -1;
+  cycleCount = -1;
+  isFirstCycle = true;
 }

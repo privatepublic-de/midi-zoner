@@ -96,19 +96,25 @@ export function getHTML(zone: ZoneType, zoneindex: number): string {
   for (let ln = 0; ln < Sequence.MAX_LANES_DRUMS; ln++) {
     drumLanes += `
       <div class="drum-lane lane${ln}" data-contextmenu="${index}:seq_copy_lane:${ln},${index}:seq_paste_lane:${ln}">
-        <div class="action seq_toggle_lane_enabled" data-action="${index}:seq_toggle_lane_enabled:${ln}" title="Enable lane">
-          <span class="material-icons sel"> check </span>
-          <span class="material-icons unsel"> close </span>
-        </div>
-        <div class="action seq_toggle_lane_solo" data-action="${index}:seq_toggle_lane_solo:${ln}" title="Solo lane">
-          <span class="material-icons">headphones</span>
-        </div>
-        <div class="val"><input type="number" min="0" max="127" title="Note number" value="${36 + ln}" data-change="${index}:seq_drumlane_note:${ln}"/></div>
-        <div class="lane-euc-wrap">
-          <div class="action lane-euc-btn" data-action="${index}:seq_toggle_lane_euclid:${ln}" title="Euclidean fill">EU</div>
-          <div class="euc-panel">
-            <input class="euc-hits" type="range" min="1" max="32" value="4" data-change="${index}:seq_euclid_lane:${ln}"/>
-            <span class="euc-val">4</span>
+        <div class="lane-header">
+          <div class="action ch enabled seq_toggle_lane_enabled" data-action="${index}:seq_toggle_lane_enabled:${ln}" title="Enable lane">
+            <span class="material-icons sel"> check </span>
+            <span class="material-icons unsel"> close </span>
+          </div>
+          <div class="action ch solo seq_toggle_lane_solo" data-action="${index}:seq_toggle_lane_solo:${ln}" title="Solo lane">S</div>
+          <input class="lane-label" type="text" maxlength="5" placeholder="${ln + 1}" title="Lane label" data-change="${index}:seq_drum_lane_label:${ln}" tabindex="-1"/>
+          <div class="lane-controls-ext">
+            <div class="lane-ctrl-label">Note</div>
+            <div class="val"><input type="number" min="0" max="127" title="Note number" value="${36 + ln}" data-change="${index}:seq_drumlane_note:${ln}"/></div>
+            <div class="lane-ctrl-label">Len</div>
+            <div class="val lane-len-wrap"><input type="number" class="lane-steps" min="1" max="${Sequence.MAX_STEPS_DRUMS}" value="16" title="Steps in lane" data-change="${index}:seq_drum_lane_steps:${ln}" tabindex="-1"/></div>
+            <div class="lane-euc-wrap">
+              <div class="action lane-euc-btn" data-action="${index}:seq_toggle_lane_euclid:${ln}" title="Euclidean fill">Euclid</div>
+              <div class="euc-panel">
+                <input class="euc-hits" type="range" min="1" max="32" value="4" data-change="${index}:seq_euclid_lane:${ln}"/>
+                <span class="euc-val">4</span>
+              </div>
+            </div>
           </div>
         </div>`;
     for (let i = 0; i < Sequence.MAX_STEPS_DRUMS; i++) {

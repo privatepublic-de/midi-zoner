@@ -710,6 +710,14 @@ function updateValuesForZone(index: number): void {
           ) as HTMLInputElement;
           numberElement.value = String(lane.note);
           numberElement.title = 'Trigger note: ' + Note.display(lane.note);
+          const laneStepsEl = zone.elements.get(
+            `input[data-change="${index}:seq_drum_lane_steps:${laneIndex}"]`
+          ) as HTMLInputElement | null;
+          if (laneStepsEl) laneStepsEl.value = String(lane.length ?? sequence.length);
+          const laneLabelEl = zone.elements.get(
+            `input[data-change="${index}:seq_drum_lane_label:${laneIndex}"]`
+          ) as HTMLInputElement | null;
+          if (laneLabelEl) laneLabelEl.value = (lane as any).label ?? '';
           for (
             let stepIndex = 0;
             stepIndex < Sequence.MAX_STEPS_DRUMS;
@@ -717,7 +725,7 @@ function updateValuesForZone(index: number): void {
           ) {
             const stepElement =
               zone.elements.sequencerDrumLanes![laneIndex][stepIndex];
-            if (stepIndex < sequence.length && laneIndex < sequence.drumLanes) {
+            if (stepIndex < (lane.length ?? sequence.length) && laneIndex < sequence.drumLanes) {
               DOM.removeClass(stepElement, 'unused');
               const step = lane.steps[stepIndex];
               if (step != null) {
@@ -839,9 +847,9 @@ function updateValuesForZone(index: number): void {
           'multi-selection'
         );
       }
-      (zone._$('.seq_steps') as HTMLInputElement).value = String(
-        sequence.length
-      );
+      if (!sequence.isDrumSequence) {
+        (zone._$('.seq_steps') as HTMLInputElement).value = String(sequence.length);
+      }
       zone.elements.setSelectedIndex('.seq_division', sequence.division);
     } else {
       DOM.removeClass(zoneElement, 'show-seq');

@@ -2249,8 +2249,48 @@ input::-webkit-inner-spin-button {
     display: flex;
     align-items: center;
   }
-  .drum-lane .val {
-    margin-right: 5px;
+  .lane-header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    padding-right: 6px;
+  }
+  .lane-controls-ext {
+    display: none;
+    align-items: center;
+    gap: 4px;
+  }
+  &.lanes-expanded .lane-controls-ext {
+    display: flex;
+  }
+  .lane-label {
+    width: 36px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--brighter-1);
+    color: inherit;
+    font-size: 10px;
+    padding: 1px 2px;
+    outline: none;
+    font-family: inherit;
+  }
+  .lane-label:focus {
+    border-bottom-color: var(--brighter-3);
+  }
+  .lane-label::placeholder {
+    opacity: 0.3;
+  }
+  .lane-ctrl-label {
+    font-size: 10px;
+    opacity: 0.6;
+  }
+  .lane-len-wrap input {
+    width: 34px;
+    opacity: 0.6;
+  }
+  .lane-len-wrap input:focus {
+    opacity: 1;
   }
   .drum-lane.disabled {
     opacity: 0.33;
@@ -2307,15 +2347,21 @@ input::-webkit-inner-spin-button {
   pointer-events: none;
 }
 
-/* Lane solo button */
-.drum-lane .seq_toggle_lane_solo {
-  opacity: 0.4;
-  font-size: 14px;
-  padding: 0 3px;
+/* Global lane controls expand/collapse button */
+.lanes-expand-btn {
+  opacity: 0.45;
+  transition: opacity 150ms, color 150ms;
 }
-.drum-lane .seq_toggle_lane_solo.selected {
+.drumSequencer.lanes-expanded .lanes-expand-btn {
   opacity: 1;
   color: var(--accent-color, #f90);
+}
+
+/* Lane enable/solo buttons — inherit .ch.enabled / .ch.solo zone-level styles */
+.drum-lane .seq_toggle_lane_enabled .sel,
+.drum-lane .seq_toggle_lane_enabled .unsel {
+  margin-right: 0;
+  font-size: 14px;
 }
 .drum-lane.soloed-out {
   opacity: 0.2;
@@ -2327,11 +2373,7 @@ input::-webkit-inner-spin-button {
   flex-shrink: 0;
 }
 .drum-lane .lane-euc-btn {
-  font-size: 10px;
-  font-weight: bold;
-  padding: 0 4px;
   opacity: 0.5;
-  letter-spacing: -0.5px;
 }
 .drum-lane.euc-open .lane-euc-btn {
   opacity: 1;

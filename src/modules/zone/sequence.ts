@@ -375,12 +375,18 @@ export class Sequence {
           let anyPlayed = false;
           for (let ln = 0; ln < this.drumLanes; ln++) {
             const lane = this.getDrumLane(ln);
+            lane.previousStep = lane.currentStep;
+            lane.currentStep = (lane.currentStep + 1) % lane.length;
+            if (lane.currentStep === 0) {
+              lane.cycleCount++;
+              if (lane.cycleCount === 1) lane.isFirstCycle = false;
+            }
             if (!lane.enabled) continue;
             if (soloCount > 0 && !lane.solo) continue;
-            const step = lane.steps[this.currentStepNumber];
+            const step = lane.steps[lane.currentStep];
             if (step != null && step.notesArray.length > 0) {
               if (
-                this.checkCondition(step) &&
+                this.checkCondition(step, lane.cycleCount, lane.isFirstCycle) &&
                 this.rngProb() < step.probability
               ) {
                 step.played = 0;
@@ -441,6 +447,14 @@ export class Sequence {
     });
     this.activeSteps.length = 0;
     this.currentStepNumber = this.previousStepNumber = -1;
+    this.drum_lanes.forEach((lane) => {
+      if (lane) {
+        lane.currentStep = -1;
+        lane.previousStep = -1;
+        lane.cycleCount = -1;
+        lane.isFirstCycle = true;
+      }
+    });
     this.cycleCount = -1;
     this.previousStepPlayed = false;
     this.isFirstCycle = true;
@@ -479,7 +493,7 @@ export class Sequence {
     });
   }
 
-  checkCondition(step: SeqStep): boolean {
+  checkCondition(step: SeqStep, cycleCnt = this.cycleCount, firstCycle = this.isFirstCycle): boolean {
     switch (step.condition) {
       case 0:
         return true;
@@ -488,12 +502,12 @@ export class Sequence {
       case 2:
         return !this.previousStepPlayed;
       case 3:
-        return this.isFirstCycle;
+        return firstCycle;
       case 4:
-        return !this.isFirstCycle;
+        return !firstCycle;
     }
     const condition = Sequence.CYCLE_CONDITIONS[step.condition - 5];
-    return this.cycleCount % condition[0] === condition[1] - 1;
+    return cycleCnt % condition[0] === condition[1] - 1;
   }
 
   velocityMediumSelectedStep(): number {
@@ -517,6 +531,7 @@ export class Sequence {
     if (this.drum_lanes[lane] == null) {
       const nl = new DrumLane();
       nl.note = lane + 36;
+      nl.length = this._length;
       this.drum_lanes[lane] = nl;
     }
     return this.drum_lanes[lane];
@@ -527,10 +542,10 @@ export class Sequence {
   }
 
   fillDrumLaneEuclidean(laneIndex: number, hits: number, offset = 0): void {
-    const length = this._length;
+    const lane = this.getDrumLane(laneIndex);
+    const length = lane.length;
     hits = Math.max(0, Math.min(hits, length));
     offset = ((offset % length) + length) % length;
-    const lane = this.getDrumLane(laneIndex);
     for (let i = 0; i < length; i++) {
       lane.steps[i] = null;
     }

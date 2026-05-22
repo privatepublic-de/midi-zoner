@@ -249,9 +249,17 @@ export class Zone {
     seq.drumLanes = (sd as any).drumLanes ?? 4;
     seq.active = (sd as any).active ?? false;
     seq._steps.forEach((st: any) => { if (st) st.lastPlayedArray = []; });
-    seq.drum_lanes.forEach((lane: any) => {
+    seq.drum_lanes.forEach((lane: any, i: number) => {
       if (lane?.steps) {
         lane.steps.forEach((st: any) => { if (st) st.lastPlayedArray = []; });
+      }
+      if (lane) {
+        lane.length = lane.length ?? seq._length;
+        lane.label = lane.label ?? '';
+        lane.currentStep = -1;
+        lane.previousStep = -1;
+        lane.cycleCount = -1;
+        lane.isFirstCycle = true;
       }
     });
     this.sequence = seq;
@@ -701,33 +709,34 @@ export class Zone {
   renderSequence(): void {
     if (this.sequence.active && this.elements.isReady) {
       if (this.sequence.isDrumSequence) {
-        const progressPercent =
-          this.sequence.currentStepNumber / this.sequence.length;
-        this.elements.sequencerGridElement?.scrollTo(
-          (this.elements.sequencerGridElement.scrollWidth -
-            this.elements.sequencerGridElement.offsetWidth * 0.75) *
-            progressPercent,
-          0
-        );
-        if (this.sequence.previousStepNumber > -1) {
-          this.elements.sequencerDrumLanes.forEach((dl) => {
-            (
-              dl[this.sequence.previousStepNumber] as HTMLElement
-            )?.classList.remove('playhead');
-          });
-        }
-        if (this.sequence.currentStepNumber > -1) {
-          this.elements.sequencerDrumLanes.forEach((dl) => {
-            (dl[this.sequence.currentStepNumber] as HTMLElement)?.classList.add(
-              'playhead'
-            );
-          });
-        } else if (
-          this.sequence.previousStepNumber == -1 &&
-          this.sequence.currentStepNumber == -1
-        ) {
+        if (this.sequence.previousStepNumber == -1 && this.sequence.currentStepNumber == -1) {
           this.elements.sequencerDrumStepElements.forEach((e) => {
             (e as HTMLElement).classList.remove('playhead');
+          });
+        } else {
+          let maxFrac = 0;
+          for (let ln = 0; ln < this.sequence.drumLanes; ln++) {
+            const lane = this.sequence.drum_lanes[ln];
+            if (lane && lane.currentStep > -1 && lane.length > 0) {
+              const frac = lane.currentStep / lane.length;
+              if (frac > maxFrac) maxFrac = frac;
+            }
+          }
+          this.elements.sequencerGridElement?.scrollTo(
+            (this.elements.sequencerGridElement.scrollWidth -
+              this.elements.sequencerGridElement.offsetWidth * 0.75) *
+              maxFrac,
+            0
+          );
+          this.elements.sequencerDrumLanes.forEach((dl, laneIndex) => {
+            const lane = this.sequence.drum_lanes[laneIndex];
+            if (!lane) return;
+            if (lane.previousStep > -1) {
+              (dl[lane.previousStep] as HTMLElement)?.classList.remove('playhead');
+            }
+            if (lane.currentStep > -1) {
+              (dl[lane.currentStep] as HTMLElement)?.classList.add('playhead');
+            }
           });
         }
       } else {

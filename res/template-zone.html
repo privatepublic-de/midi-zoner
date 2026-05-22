@@ -122,8 +122,8 @@
       <div class="drum-step-container">${drumLanes}</div>
     </div>
     <div class="seqtools">
-      <div class="label">Steps</div>
-      <div class="val">
+      <div class="label dismiss-for-drumsequence">Steps</div>
+      <div class="val dismiss-for-drumsequence">
         <input
           title="Number of steps in sequence"
           class="seq_steps"
@@ -134,6 +134,9 @@
           data-change="${index}:seq_steps"
           tabindex="-1"
         />
+      </div>
+      <div class="action only-for-drumsequence lanes-expand-btn" data-action="${index}:seq_toggle_lanes_expand" title="Expand/collapse lane controls">
+        <i class="material-icons">edit</i>
       </div>
       <div class="label only-for-drumsequence">Lanes</div>
       <div class="val only-for-drumsequence">

@@ -50,6 +50,22 @@ export function createSeqActions(
       );
       updateValuesForZone(zoneindex);
     },
+    seq_drum_lane_label: () => {
+      const laneNo = parseInt(actionParam1);
+      sequence.getDrumLane(laneNo).label = (element as HTMLInputElement).value.slice(0, 5);
+    },
+    seq_toggle_lanes_expand: () => {
+      document.getElementById(`zone${zoneindex}`)?.classList.toggle('lanes-expanded');
+    },
+    seq_drum_lane_steps: () => {
+      const laneNo = parseInt(actionParam1);
+      const v = Math.max(1, Math.min(Sequence.MAX_STEPS_DRUMS, parseInt((element as HTMLInputElement).value)));
+      const lane = sequence.getDrumLane(laneNo);
+      lane.length = v;
+      lane.currentStep = -1;
+      lane.previousStep = -1;
+      updateValuesForZone(zoneindex);
+    },
     seq_drumstep_select: () => {
       if (ev.shiftKey) {
         actions.seq_clear_step();
@@ -77,8 +93,9 @@ export function createSeqActions(
       laneEl?.classList.toggle('euc-open');
       const hitsInput = zone.elements.get(`.lane${laneNo} .euc-hits`) as HTMLInputElement | null;
       if (hitsInput) {
-        hitsInput.max = String(sequence.length);
-        hitsInput.value = String(Math.min(parseInt(hitsInput.value), sequence.length));
+        const laneLen = sequence.getDrumLane(laneNo).length;
+        hitsInput.max = String(laneLen);
+        hitsInput.value = String(Math.min(parseInt(hitsInput.value), laneLen));
         const valDisplay = zone.elements.get(`.lane${laneNo} .euc-val`) as HTMLElement | null;
         if (valDisplay) valDisplay.textContent = hitsInput.value;
       }
@@ -98,10 +115,10 @@ export function createSeqActions(
       const laneNo = parseInt(actionParam1);
       const lane = sequence.getDrumLane(laneNo);
       const steps = [];
-      for (let i = 0; i < sequence.length; i++) {
+      for (let i = 0; i < lane.length; i++) {
         steps.push(lane.steps[i] ? JSON.parse(JSON.stringify(lane.steps[i])) : null);
       }
-      Zone.seqClipboardDrumLane = { steps, length: sequence.length };
+      Zone.seqClipboardDrumLane = { steps, length: lane.length };
       toast('Lane pattern copied');
     },
     seq_paste_lane: () => {
@@ -112,7 +129,7 @@ export function createSeqActions(
       const laneNo = parseInt(actionParam1);
       const lane = sequence.getDrumLane(laneNo);
       const src = Zone.seqClipboardDrumLane;
-      for (let i = 0; i < sequence.length; i++) {
+      for (let i = 0; i < lane.length; i++) {
         const srcStep = src.steps[i % src.length];
         if (srcStep) {
           const copied = JSON.parse(JSON.stringify(srcStep));
@@ -172,54 +189,43 @@ export function createSeqActions(
       const seq = sequence;
       const srcLength = seq.length;
       if (seq.isDrumSequence) {
-        const laneCopies: ((SeqStep | null)[])[] = [];
-        for (let ln = 0; ln < seq.drumLanes; ln++) {
-          const lane = seq.getDrumLane(ln);
-          const copy: (SeqStep | null)[] = [];
-          for (let i = 0; i < srcLength; i++) {
-            copy[i] = lane.steps[i] ? JSON.parse(JSON.stringify(lane.steps[i])) : null;
-          }
-          laneCopies[ln] = copy;
-        }
         switch (adjustment) {
           case 'double':
-            seq.length = srcLength * 2;
-            for (let ln = 0; ln < seq.drumLanes; ln++) {
-              const lane = seq.getDrumLane(ln);
-              for (let i = 0; i < srcLength; i++) {
-                lane.steps[srcLength + i] = laneCopies[ln][i];
-              }
-            }
-            toast('Drum sequence doubled');
-            break;
           case 'halftime':
-            seq.length = srcLength * 2;
+          case 'thirdtime': {
+            const multiplier = adjustment === 'thirdtime' ? 3 : 2;
             for (let ln = 0; ln < seq.drumLanes; ln++) {
               const lane = seq.getDrumLane(ln);
-              for (let i = 0; i < srcLength; i++) {
-                lane.steps[i * 2] = laneCopies[ln][i];
-                if (lane.steps[i * 2]) {
-                  lane.steps[i * 2]!.length = lane.steps[i * 2]!.length * 2;
-                }
-                lane.steps[i * 2 + 1] = null;
+              const laneLen = lane.length;
+              const newLen = Math.min(Sequence.MAX_STEPS_DRUMS, laneLen * multiplier);
+              const copy: (SeqStep | null)[] = [];
+              for (let i = 0; i < laneLen; i++) {
+                copy[i] = lane.steps[i] ? JSON.parse(JSON.stringify(lane.steps[i])) : null;
               }
-            }
-            toast('Drum sequence made half time slower');
-            break;
-          case 'thirdtime':
-            seq.length = srcLength * 3;
-            for (let ln = 0; ln < seq.drumLanes; ln++) {
-              const lane = seq.getDrumLane(ln);
-              for (let i = 0; i < srcLength; i++) {
-                lane.steps[i * 3] = laneCopies[ln][i];
-                if (lane.steps[i * 3]) {
-                  lane.steps[i * 3]!.length = lane.steps[i * 3]!.length * 3;
+              if (adjustment === 'double') {
+                for (let i = 0; i < laneLen && laneLen + i < newLen; i++) {
+                  lane.steps[laneLen + i] = copy[i];
                 }
-                lane.steps[i * 3 + 1] = lane.steps[i * 3 + 2] = null;
+              } else {
+                for (let i = 0; i < laneLen; i++) {
+                  const pos = i * multiplier;
+                  if (pos < newLen) {
+                    lane.steps[pos] = copy[i];
+                    if (lane.steps[pos]) lane.steps[pos]!.length = lane.steps[pos]!.length * multiplier;
+                  }
+                  for (let k = 1; k < multiplier; k++) {
+                    if (pos + k < newLen) lane.steps[pos + k] = null;
+                  }
+                }
               }
+              lane.length = newLen;
+              lane.currentStep = -1;
+              lane.previousStep = -1;
             }
-            toast('Drum sequence made one-third time slower');
+            const label = adjustment === 'double' ? 'doubled' : adjustment === 'halftime' ? 'half time' : 'one-third time';
+            toast(`Drum lanes ${label}`);
             break;
+          }
           case 'veloup':
           case 'velodown': {
             const factor = adjustment === 'veloup' ? 1 + 1 / 3 : 0.75;
