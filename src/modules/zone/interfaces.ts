@@ -63,6 +63,9 @@ export interface SeqStepJSON {
   condition: number;
   lastPlayedArray?: Note[];
   gateLength: number;
+  ratchetCount?: number;
+  ratchetResolution?: number;
+  ratchetVelocityDelta?: number;
 }
 
 export interface DrumLaneJSON {

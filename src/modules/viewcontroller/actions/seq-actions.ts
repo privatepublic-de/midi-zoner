@@ -408,6 +408,27 @@ export function createSeqActions(
       });
       updateValuesForZone(zoneindex);
     },
+    seq_step_ratchet_count: () => {
+      const v = Math.max(1, parseInt((element as HTMLInputElement).value) || 1);
+      sequence.selectedSteps.forEach((step) => {
+        if (step) step.ratchetCount = v;
+      });
+      updateValuesForZone(zoneindex);
+    },
+    seq_step_ratchet_res: () => {
+      const v = parseInt((element as HTMLSelectElement).value);
+      sequence.selectedSteps.forEach((step) => {
+        if (step) step.ratchetResolution = v;
+      });
+      updateValuesForZone(zoneindex);
+    },
+    seq_step_ratchet_delta: () => {
+      const v = parseInt((element as HTMLInputElement).value) || 0;
+      sequence.selectedSteps.forEach((step) => {
+        if (step) step.ratchetVelocityDelta = v;
+      });
+      updateValuesForZone(zoneindex);
+    },
     seq_copy_step: () => {
       if (actionParam1 != 'undefined') {
         const selStepIndex = parseInt(actionParam1);

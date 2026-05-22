@@ -57,6 +57,7 @@ export class Sequence {
   isDrumSequence = false;
   drumLanes = 4;
   activeSteps: SeqStep[] = [];
+  private ratchetQueue: { note: Note; noteOnPos: number; noteOffPos: number }[] = [];
   private readonly _midiMsgBuf = new Uint8Array(3);
   private rngProb = seedrandom();
   cycleCount = -1;
@@ -337,6 +338,28 @@ export class Sequence {
 
   clock(pos: number): void {
     this.tickn = pos % this.ticks;
+    if (this.ratchetQueue.length > 0) {
+      // note-offs first so same-tick transitions are clean
+      for (let i = this.ratchetQueue.length - 1; i >= 0; i--) {
+        const ev = this.ratchetQueue[i];
+        if (ev.noteOnPos === -1 && pos >= ev.noteOffPos) {
+          this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_OFF + ev.note.channel;
+          this._midiMsgBuf[1] = ev.note.number;
+          this._midiMsgBuf[2] = 0;
+          this.zone.handleMidi(MIDI.MESSAGE.NOTE_OFF, this._midiMsgBuf, true);
+          this.ratchetQueue.splice(i, 1);
+        }
+      }
+      for (const ev of this.ratchetQueue) {
+        if (ev.noteOnPos !== -1 && pos >= ev.noteOnPos) {
+          this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + ev.note.channel;
+          this._midiMsgBuf[1] = ev.note.number;
+          this._midiMsgBuf[2] = ev.note.velo;
+          this.zone.handleMidi(MIDI.MESSAGE.NOTE_ON, this._midiMsgBuf, true);
+          ev.noteOnPos = -1;
+        }
+      }
+    }
     if (this.activeSteps.length > 0) {
       const clearSteps: SeqStep[] = [];
       this.activeSteps.forEach((astep) => {
@@ -389,18 +412,42 @@ export class Sequence {
                 this.checkCondition(step, lane.cycleCount, lane.isFirstCycle) &&
                 this.rngProb() < step.probability
               ) {
-                step.played = 0;
-                this.activeSteps.push(step);
-                const velo = step.notesArray[0].velo;
-                const note = new Note(lane.note, velo);
-                note.channel = this.zone.channel;
-                note.portId = this.zone.outputPortId;
-                this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + note.channel;
-                this._midiMsgBuf[1] = note.number;
-                this._midiMsgBuf[2] = note.velo;
-                this.zone.handleMidi(MIDI.MESSAGE.NOTE_ON, this._midiMsgBuf, true);
-                step.lastPlayedArray.push(note);
                 anyPlayed = true;
+                const ratchetCount = step.ratchetCount ?? 1;
+                if (ratchetCount > 1) {
+                  const baseVelo = step.notesArray[0].velo;
+                  const ratchetRes = step.ratchetResolution;
+                  const ratchetDelta = step.ratchetVelocityDelta ?? 0;
+                  const gateLen = Math.max(1, ratchetRes - 1);
+                  for (let hitIdx = 0; hitIdx < ratchetCount; hitIdx++) {
+                    const hitVelo = Math.max(1, Math.min(127, baseVelo + hitIdx * ratchetDelta));
+                    const hitNote = new Note(lane.note, hitVelo);
+                    hitNote.channel = this.zone.channel;
+                    hitNote.portId = this.zone.outputPortId;
+                    if (hitIdx === 0) {
+                      this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + hitNote.channel;
+                      this._midiMsgBuf[1] = hitNote.number;
+                      this._midiMsgBuf[2] = hitNote.velo;
+                      this.zone.handleMidi(MIDI.MESSAGE.NOTE_ON, this._midiMsgBuf, true);
+                      this.ratchetQueue.push({ note: hitNote, noteOnPos: -1, noteOffPos: pos + gateLen });
+                    } else {
+                      const firePos = pos + hitIdx * ratchetRes;
+                      this.ratchetQueue.push({ note: hitNote, noteOnPos: firePos, noteOffPos: firePos + gateLen });
+                    }
+                  }
+                } else {
+                  step.played = 0;
+                  this.activeSteps.push(step);
+                  const velo = step.notesArray[0].velo;
+                  const note = new Note(lane.note, velo);
+                  note.channel = this.zone.channel;
+                  note.portId = this.zone.outputPortId;
+                  this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + note.channel;
+                  this._midiMsgBuf[1] = note.number;
+                  this._midiMsgBuf[2] = note.velo;
+                  this.zone.handleMidi(MIDI.MESSAGE.NOTE_ON, this._midiMsgBuf, true);
+                  step.lastPlayedArray.push(note);
+                }
               }
             }
           }
@@ -446,6 +493,15 @@ export class Sequence {
       astep.lastPlayedArray.length = 0;
     });
     this.activeSteps.length = 0;
+    for (const ev of this.ratchetQueue) {
+      if (ev.noteOnPos === -1) {
+        this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_OFF + ev.note.channel;
+        this._midiMsgBuf[1] = ev.note.number;
+        this._midiMsgBuf[2] = 0;
+        this.zone.handleMidi(MIDI.MESSAGE.NOTE_OFF, this._midiMsgBuf, true);
+      }
+    }
+    this.ratchetQueue.length = 0;
     this.currentStepNumber = this.previousStepNumber = -1;
     this.drum_lanes.forEach((lane) => {
       if (lane) {

@@ -2347,6 +2347,12 @@ input::-webkit-inner-spin-button {
   pointer-events: none;
 }
 
+/* Ratchet indicator on active drum steps — subtle outline when ratchetCount > 1 */
+.drumSequencer .seq .grid .step.active[data-rc] {
+  outline: 1.5px dashed rgba(255, 165, 0, 0.6);
+  outline-offset: -1.5px;
+}
+
 /* Global lane controls expand/collapse button */
 .lanes-expand-btn {
   opacity: 0.45;

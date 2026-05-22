@@ -734,9 +734,16 @@ function updateValuesForZone(index: number): void {
                   '--velo',
                   String((step.notesArray[0]?.velo ?? 96) / 127)
                 );
+                const rc = step.ratchetCount ?? 1;
+                if (rc > 1) {
+                  (stepElement as HTMLElement).dataset.rc = String(rc);
+                } else {
+                  delete (stepElement as HTMLElement).dataset.rc;
+                }
               } else {
                 DOM.removeClass(stepElement, 'active');
                 (stepElement as HTMLElement).style.removeProperty('--velo');
+                delete (stepElement as HTMLElement).dataset.rc;
               }
               if (
                 sequence.selectedStepNumbers.has(
@@ -812,6 +819,12 @@ function updateValuesForZone(index: number): void {
           (zone._$('.seq_step_length') as HTMLInputElement).value = String(
             step.length
           );
+          const ratchetCountEl = zone._$('.seq_step_ratchet_count') as HTMLInputElement | null;
+          if (ratchetCountEl) ratchetCountEl.value = String(step.ratchetCount ?? 1);
+          const ratchetDeltaEl = zone._$('.seq_step_ratchet_delta') as HTMLInputElement | null;
+          if (ratchetDeltaEl) ratchetDeltaEl.value = String(step.ratchetVelocityDelta ?? 0);
+          const ratchetResEl = zone._$('.seq_step_ratchet_res') as HTMLSelectElement | null;
+          if (ratchetResEl) ratchetResEl.value = String(step.ratchetResolution ?? 6);
         } else {
           if (sequence.selectedStepNumbers.size == 1) {
             (zone._$('.seq_step_length') as HTMLInputElement).value = '1';

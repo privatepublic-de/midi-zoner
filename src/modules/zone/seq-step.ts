@@ -9,6 +9,9 @@ export class SeqStep {
   condition = 0;
   played = 0;
   gateLength = 1;
+  ratchetCount = 1;
+  ratchetResolution = 6;
+  ratchetVelocityDelta = 0;
 
   toJSON(): SeqStepJSON {
     return {
@@ -16,7 +19,10 @@ export class SeqStep {
       length: this.length,
       probability: this.probability,
       condition: this.condition,
-      gateLength: this.gateLength
+      gateLength: this.gateLength,
+      ratchetCount: this.ratchetCount,
+      ratchetResolution: this.ratchetResolution,
+      ratchetVelocityDelta: this.ratchetVelocityDelta
     };
   }
 

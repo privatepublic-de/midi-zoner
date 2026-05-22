@@ -322,6 +322,43 @@
           </select>
         </div>
       </div>
+      <div class="step-controls only-for-drumsequence">
+        <div class="label">Ratchet</div>
+        <input
+          class="seq_step_ratchet_count"
+          type="number"
+          min="1"
+          max="16"
+          value="1"
+          data-change="${index}:seq_step_ratchet_count"
+          title="Number of ratchet hits"
+          tabindex="-1"
+        />
+        <div class="label">Res</div>
+        <div class="drop-down">
+          <select class="seq_step_ratchet_res" data-change="${index}:seq_step_ratchet_res" title="Ratchet resolution" tabindex="-1">
+            <option value="24">1/4</option>
+            <option value="12">1/8</option>
+            <option value="8">1/8T</option>
+            <option value="6" selected>1/16</option>
+            <option value="4">1/32.</option>
+            <option value="3">1/32</option>
+            <option value="2">1/16T</option>
+            <option value="1">1 tick</option>
+          </select>
+        </div>
+        <div class="label">ΔVel</div>
+        <input
+          class="seq_step_ratchet_delta"
+          type="number"
+          min="-127"
+          max="127"
+          value="0"
+          data-change="${index}:seq_step_ratchet_delta"
+          title="Velocity change per ratchet hit"
+          tabindex="-1"
+        />
+      </div>
       <div class="step-controls">
         <div
           class="action"
