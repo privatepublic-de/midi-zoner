@@ -129,7 +129,9 @@
   font-family: 'Material Icons';
   font-style: normal;
   font-weight: 400;
-  src: local('Material Icons'), local('MaterialIcons-Regular'),
+  src:
+    local('Material Icons'),
+    local('MaterialIcons-Regular'),
     url(./res/MaterialIcons-Regular.woff2) format('woff2');
 }
 
@@ -287,7 +289,9 @@ select {
 
 #midiInputSelector,
 #midisettings select {
-  transition: background-color 1s, color 1s;
+  transition:
+    background-color 1s,
+    color 1s;
 }
 
 option {
@@ -399,24 +403,26 @@ input:focus-visible {
   flex-shrink: 0;
   border-left: 1px solid var(--border-topbar);
   border-right: 1px solid var(--border-topbar);
-  transition: color 150ms ease, text-shadow 150ms ease;
+  transition:
+    color 150ms ease,
+    text-shadow 150ms ease;
   cursor: default;
   user-select: none;
 }
 
-#arrangementIndicator[data-arr="0"] {
+#arrangementIndicator[data-arr='0'] {
   color: #2a9d8f;
   text-shadow: 0 0 14px rgba(42, 157, 143, 0.5);
 }
-#arrangementIndicator[data-arr="1"] {
+#arrangementIndicator[data-arr='1'] {
   color: #e9c46a;
   text-shadow: 0 0 14px rgba(233, 196, 106, 0.5);
 }
-#arrangementIndicator[data-arr="2"] {
+#arrangementIndicator[data-arr='2'] {
   color: #f4a261;
   text-shadow: 0 0 14px rgba(244, 162, 97, 0.5);
 }
-#arrangementIndicator[data-arr="3"] {
+#arrangementIndicator[data-arr='3'] {
   color: #e76f51;
   text-shadow: 0 0 14px rgba(231, 111, 81, 0.5);
 }
@@ -610,7 +616,6 @@ input:focus-visible {
   margin-left: 13px;
 }
 
-
 .sendClock {
   display: flex;
   justify-content: center;
@@ -734,7 +739,6 @@ input:focus-visible {
   width: 66px;
   flex-shrink: 0;
 }
-
 
 .iorouting-popup .sendClock {
   font-size: 14px;
@@ -1150,7 +1154,9 @@ input[type='range'] {
   font-size: 12px;
   padding: 1px 0 0 0;
   text-align: center;
-  transition: 400ms left, 400ms right;
+  transition:
+    400ms left,
+    400ms right;
 }
 
 .marker.low {
@@ -1743,7 +1749,9 @@ li {
 }
 
 .seq .grid .dragselect .step {
-  cursor: url(res/select-cursor.png) 16 16, copy;
+  cursor:
+    url(res/select-cursor.png) 16 16,
+    copy;
 }
 
 .seq .grid .step.activelength {
@@ -2010,7 +2018,9 @@ body:not(.running) .seqprogress {
   box-shadow: 1px 1px 4px var(--shadow-toast);
   z-index: 2;
   opacity: 0;
-  transition: opacity 200ms, top 200ms;
+  transition:
+    opacity 200ms,
+    top 200ms;
 }
 
 #toast:hover {
@@ -2349,14 +2359,16 @@ input::-webkit-inner-spin-button {
 
 /* Ratchet indicator on active drum steps — subtle outline when ratchetCount > 1 */
 .drumSequencer .seq .grid .step.active[data-rc] {
-  outline: 1.5px dashed rgba(255, 165, 0, 0.6);
+  outline: 1.5px dashed var(--brighter-3);
   outline-offset: -1.5px;
 }
 
 /* Global lane controls expand/collapse button */
 .lanes-expand-btn {
   opacity: 0.45;
-  transition: opacity 150ms, color 150ms;
+  transition:
+    opacity 150ms,
+    color 150ms;
 }
 .drumSequencer.lanes-expanded .lanes-expand-btn {
   opacity: 1;
