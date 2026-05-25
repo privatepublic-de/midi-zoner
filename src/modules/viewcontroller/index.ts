@@ -8,7 +8,7 @@ import { Note } from '../zone/note';
 
 import { initToast, toast } from './toast';
 import { NumberInputController } from './number-input-controller';
-import { createActionHandlers } from './actions';
+import { createActionHandlers, ratchetResToLabel } from './actions';
 import {
   updateControllerValues,
   renderControllersForZone as renderControllersForZoneInternal
@@ -820,11 +820,21 @@ function updateValuesForZone(index: number): void {
             step.length
           );
           const ratchetCountEl = zone._$('.seq_step_ratchet_count') as HTMLInputElement | null;
-          if (ratchetCountEl) ratchetCountEl.value = String(step.ratchetCount ?? 1);
+          if (ratchetCountEl) {
+            const countVal = step.ratchetCount ?? 1;
+            ratchetCountEl.value = String(countVal);
+            const countOut = ratchetCountEl.parentElement?.querySelector(`output[for="${ratchetCountEl.id}"]`) as HTMLOutputElement | null;
+            if (countOut) countOut.value = String(countVal);
+          }
           const ratchetDeltaEl = zone._$('.seq_step_ratchet_delta') as HTMLInputElement | null;
           if (ratchetDeltaEl) ratchetDeltaEl.value = String(step.ratchetVelocityDelta ?? 0);
-          const ratchetResEl = zone._$('.seq_step_ratchet_res') as HTMLSelectElement | null;
-          if (ratchetResEl) ratchetResEl.value = String(step.ratchetResolution ?? 6);
+          const ratchetResEl = zone._$('.seq_step_ratchet_res') as HTMLInputElement | null;
+          if (ratchetResEl) {
+            const resVal = step.ratchetResolution ?? 6;
+            ratchetResEl.value = String(resVal);
+            const resOut = ratchetResEl.parentElement?.querySelector(`output[for="${ratchetResEl.id}"]`) as HTMLOutputElement | null;
+            if (resOut) resOut.value = ratchetResToLabel(resVal);
+          }
         } else {
           if (sequence.selectedStepNumbers.size == 1) {
             (zone._$('.seq_step_length') as HTMLInputElement).value = '1';

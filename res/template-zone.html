@@ -324,28 +324,34 @@
       </div>
       <div class="step-controls only-for-drumsequence">
         <div class="label">Ratchet</div>
-        <input
-          class="seq_step_ratchet_count"
-          type="number"
-          min="1"
-          max="16"
-          value="1"
-          data-change="${index}:seq_step_ratchet_count"
-          title="Number of ratchet hits"
-          tabindex="-1"
-        />
+        <div class="percent-holder">
+          <input
+            class="percent seq_step_ratchet_count"
+            type="range"
+            min="1"
+            max="32"
+            value="1"
+            data-change="${index}:seq_step_ratchet_count"
+            id="seq_step_ratchet_count${index}"
+            title="Number of ratchet hits"
+            tabindex="-1"
+          />
+          <output for="seq_step_ratchet_count${index}">1</output>
+        </div>
         <div class="label">Res</div>
-        <div class="drop-down">
-          <select class="seq_step_ratchet_res" data-change="${index}:seq_step_ratchet_res" title="Ratchet resolution" tabindex="-1">
-            <option value="24">1/4</option>
-            <option value="12">1/8</option>
-            <option value="8">1/8T</option>
-            <option value="6" selected>1/16</option>
-            <option value="4">1/32.</option>
-            <option value="3">1/32</option>
-            <option value="2">1/16T</option>
-            <option value="1">1 tick</option>
-          </select>
+        <div class="percent-holder">
+          <input
+            class="percent seq_step_ratchet_res"
+            type="range"
+            min="1"
+            max="48"
+            value="6"
+            data-change="${index}:seq_step_ratchet_res"
+            id="seq_step_ratchet_res${index}"
+            title="Ratchet resolution"
+            tabindex="-1"
+          />
+          <output for="seq_step_ratchet_res${index}">1/16</output>
         </div>
         <div class="label">ΔVel</div>
         <input

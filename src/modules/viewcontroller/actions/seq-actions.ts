@@ -3,6 +3,16 @@ import { Sequence } from '../../zone/sequence';
 import { SeqStep } from '../../zone/seq-step';
 import { ActionContext, ActionHelpers, ActionMap } from '../types';
 
+const RATCHET_RES_LABELS: Record<number, string> = {
+  48: '1/2', 36: '1/4.', 32: '1/2T', 24: '1/4', 18: '1/8.',
+  16: '1/4T', 12: '1/8', 9: '1/16.', 8: '1/8T', 6: '1/16',
+  4: '1/32.', 3: '1/32', 2: '1/16T', 1: '1tk'
+};
+
+export function ratchetResToLabel(ticks: number): string {
+  return RATCHET_RES_LABELS[ticks] ?? `${ticks}tk`;
+}
+
 export function createSeqActions(
   ctx: ActionContext,
   helpers: ActionHelpers
@@ -410,13 +420,21 @@ export function createSeqActions(
     },
     seq_step_ratchet_count: () => {
       const v = Math.max(1, parseInt((element as HTMLInputElement).value) || 1);
+      const out = (element as HTMLInputElement).parentElement?.querySelector(
+        `output[for="${(element as HTMLInputElement).id}"]`
+      ) as HTMLOutputElement | null;
+      if (out) out.value = String(v);
       sequence.selectedSteps.forEach((step) => {
         if (step) step.ratchetCount = v;
       });
       updateValuesForZone(zoneindex);
     },
     seq_step_ratchet_res: () => {
-      const v = parseInt((element as HTMLSelectElement).value);
+      const v = parseInt((element as HTMLInputElement).value);
+      const out = (element as HTMLInputElement).parentElement?.querySelector(
+        `output[for="${(element as HTMLInputElement).id}"]`
+      ) as HTMLOutputElement | null;
+      if (out) out.value = ratchetResToLabel(v);
       sequence.selectedSteps.forEach((step) => {
         if (step) step.ratchetResolution = v;
       });
