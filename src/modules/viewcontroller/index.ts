@@ -948,22 +948,22 @@ function updateValuesForZone(index: number): void {
     }
     const routingText = zone._$('.iorouting-text') as HTMLElement;
     if (routingText) {
+      const portnameEl = routingText.querySelector('.iorouting-portname') as HTMLElement;
+      const chEl = routingText.querySelector('.iorouting-ch') as HTMLElement;
       const isPreset = !!zones.outputConfigNames[zones.list[index].configId];
       const outPortName = nameField.value || nameField.placeholder || '';
-      const outStr = isPreset
-        ? `${outPortName.substring(0, 18)}`
-        : `${outPortName.substring(0, 14)} (Ch${zone.channel + 1})`;
-      let display = outStr;
+      let portLabel = outPortName;
       if (zone.inputPortId) {
         const inPort = getCachedInputPorts().find(
           (p) => p.id === zone.inputPortId
         );
-        const inName = inPort ? inPort.name.substring(0, 10) : '?';
+        const inName = inPort ? inPort.name : '?';
         const chStr =
           zone.inputChannel !== null ? `:${zone.inputChannel + 1}` : '';
-        display = `${inName}${chStr} ${outStr}`;
+        portLabel = `${inName}${chStr} ${outPortName}`;
       }
-      routingText.textContent = display;
+      if (portnameEl) portnameEl.textContent = portLabel;
+      if (chEl) chEl.textContent = isPreset ? '' : `#${zone.channel + 1}`;
     }
     updateControllerValues(zone, index);
     updateGeneralButtons();
