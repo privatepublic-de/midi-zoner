@@ -2268,6 +2268,7 @@ input::-webkit-inner-spin-button {
   .grid {
     width: 100%;
     overflow-x: auto;
+    scrollbar-gutter: stable;
   }
   .drum-step-container {
     display: flex;
@@ -2297,22 +2298,27 @@ input::-webkit-inner-spin-button {
     width: 0;
     opacity: 0;
     overflow: hidden;
-    transition: width 0.2s ease-out, height 0.2s ease-out, opacity 0.15s ease-out;
+    transition:
+      width 0.2s ease-out,
+      height 0.2s ease-out,
+      opacity 0.15s ease-out;
   }
   &.lanes-expanded .lane-controls-ext {
+    background-color: var(--darker-2);
     width: auto;
     height: 20px;
     min-height: 0;
     opacity: 1;
-    transition: width 0.3s ease-in, height 0.3s ease-in, opacity 0.2s ease-in 0.1s;
+    transition:
+      width 0.3s ease-in,
+      height 0.3s ease-in,
+      opacity 0.2s ease-in 0.1s;
   }
   .lane-label {
     width: 36px;
     height: 18px;
     line-height: 18px;
-    background: transparent;
     border: none;
-    border-bottom: 1px solid var(--brighter-1);
     color: inherit;
     font-size: 10px;
     padding: 0 2px;
@@ -2449,7 +2455,9 @@ input::-webkit-inner-spin-button {
 }
 .drumSequencer.lanes-expanded .lanes-expand-btn {
   opacity: 1;
-  color: var(--accent-color, #f90);
+  border-color: transparent;
+  background-color: var(--accent-color, #f90);
+  color: var(--text-base-color);
 }
 
 /* Lane enable/solo buttons — inherit .ch.enabled / .ch.solo zone-level styles */
