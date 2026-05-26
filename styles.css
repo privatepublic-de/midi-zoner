@@ -595,27 +595,7 @@ input:focus-visible {
   100% { background-color: var(--zone-color); color: #000; }
 }
 
-/* Swing controls */
-.zone .swing-controls {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.zone .swing-toggle.selected {
-  background-color: var(--zone-color);
-  color: #000;
-}
-
-.zone .swing-controls input[type="range"] {
-  width: 60px;
-}
-
-.zone .swing-controls output {
-  min-width: 32px;
-  text-align: right;
-  color: var(--brighter-3);
-}
+/* Swing amount control - uses same styling as other percent-holder controls */
 
 .zone .check input[type='number'] {
   height: auto;

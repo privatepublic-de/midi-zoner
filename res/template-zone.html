@@ -160,6 +160,19 @@
           ${noteLengthOptions}
         </select>
       </div>
+      <div class="percent-holder" title="Swing amount for sequencer">
+        <input
+          type="range"
+          class="percent swing-amount"
+          data-change="${index}:zone_swing_amount"
+          id="swing_amount_seq${index}"
+          min="0"
+          max="100"
+          value="0"
+          tabindex="-1"
+        />
+        <output for="swing_amount_seq${index}">---</output>
+      </div>
       <div
         class="action"
         title="Move whole sequence 1 step left"
@@ -469,6 +482,19 @@
           t
         </span>
       </div>
+      <div class="percent-holder">
+        <input
+          type="range"
+          class="percent swing-amount"
+          data-change="${index}:zone_swing_amount"
+          id="swing_amount${index}"
+          min="0"
+          max="100"
+          value="0"
+          tabindex="-1"
+        />
+        <output for="swing_amount${index}">---</output>
+      </div>
     </div>
     <div class="arp-settings">
       <div class="label">Len</div>
@@ -499,26 +525,6 @@
           tabindex="-1"
         />
         <output for="arp_probability${index}">---</output>
-      </div>
-      <div class="label">Swing</div>
-      <div class="swing-controls">
-        <button
-          class="action swing-toggle"
-          data-action="${index}:zone_toggle_swing"
-          title="Toggle swing for sequencer and arpeggiator"
-        >Swing</button>
-        <input
-          type="range"
-          class="swing-amount"
-          min="0"
-          max="100"
-          value="0"
-          data-change="${index}:zone_swing_amount"
-          id="swing_amount${index}"
-          title="Swing amount percentage"
-          tabindex="-1"
-        />
-        <output for="swing_amount${index}">0%</output>
       </div>
       <div class="label">Pattern</div>
       <div
