@@ -442,28 +442,40 @@ export class Sequence {
         if (lane.cycleCount === 1) lane.isFirstCycle = false;
       }
 
+      // For disabled or soloed-out lanes, mark step as not played
+      if (!lane.enabled || (soloCount > 0 && !lane.solo)) {
+        lane.previousStepPlayed = false;
+        continue;
+      }
+      const step = lane.steps[lane.currentStep];
+
       // Check if swing is enabled and this step should be swung
       if (this.zone.swingEnabled && this.zone.swingAmount > 0) {
         const swingOffset = this.calculateSwingOffset(lane.currentStep);
         if (swingOffset > 0) {
-          // Schedule this drum step to fire later
-          this.swingPendingDrumSteps.push({
-            laneIndex: ln,
-            stepIndex: lane.currentStep,
-            laneCycleCount: lane.cycleCount,
-            laneIsFirstCycle: lane.isFirstCycle,
-            lanePreviousStepPlayed: lane.previousStepPlayed,
-            fireAtPos: pos + swingOffset
-          });
-          // Don't trigger now
+          // For swung steps, we still need to check condition and update previousStepPlayed
+          // but delay the actual triggering
+          if (step != null && step.notesArray.length > 0) {
+            const shouldPlay = 
+              this.checkCondition(step, lane.cycleCount, lane.isFirstCycle, lane.previousStepPlayed) &&
+              this.rngProb() < step.probability;
+            lane.previousStepPlayed = shouldPlay;
+            
+            // Schedule this drum step to fire later
+            this.swingPendingDrumSteps.push({
+              laneIndex: ln,
+              stepIndex: lane.currentStep,
+              laneCycleCount: lane.cycleCount,
+              laneIsFirstCycle: lane.isFirstCycle,
+              lanePreviousStepPlayed: lane.previousStepPlayed,
+              fireAtPos: pos + swingOffset
+            });
+          }
+          // Don't update previousStepPlayed for empty steps - retain value from last step with notes
+          // Don't schedule empty steps for swing
           continue;
         }
       }
-
-      // Normal triggering for non-swung or non-swing-enabled steps
-      if (!lane.enabled) continue;
-      if (soloCount > 0 && !lane.solo) continue;
-      const step = lane.steps[lane.currentStep];
       if (step != null && step.notesArray.length > 0) {
         this.triggerDrumStep(
           ln,
@@ -472,9 +484,9 @@ export class Sequence {
           lane.isFirstCycle,
           lane.previousStepPlayed
         );
-      } else {
-        lane.previousStepPlayed = false;
       }
+      // Don't update previousStepPlayed for empty steps - it should retain
+      // the value from the last step with notes
     }
   }
 
@@ -488,6 +500,13 @@ export class Sequence {
       if (this.zone.swingEnabled && this.zone.swingAmount > 0) {
         const swingOffset = this.calculateSwingOffset(this.currentStepNumber);
         if (swingOffset > 0) {
+          // For swung steps, update previousStepPlayed now but delay triggering
+          this.previousStepPlayed = currentStep != null &&
+            this.checkCondition(currentStep) &&
+            this.rngProb() < currentStep.probability;
+          if (!this.previousStepPlayed) {
+            this.previousStepPlayed = false;
+          }
           // Schedule this regular step to fire later
           this.swingPendingRegularSteps.push({
             stepIndex: this.currentStepNumber,
@@ -728,7 +747,7 @@ export class Sequence {
 
     const step = lane.steps[stepIndex];
     if (step == null || step.notesArray.length === 0) {
-      lane.previousStepPlayed = false;
+      // Don't update previousStepPlayed for empty steps - retain value from last step with notes
       return;
     }
 
