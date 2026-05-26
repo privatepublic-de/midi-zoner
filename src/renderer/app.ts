@@ -529,6 +529,9 @@ document.addEventListener('DOMContentLoaded', function () {
       if (started) {
         startClockButton.classList.add('selected');
         DOM.addClass(document.body, 'running');
+        document.querySelectorAll('.zone.lanes-expanded').forEach((el) => {
+          el.classList.remove('lanes-expanded');
+        });
       } else {
         startClockButton.classList.remove('selected');
         DOM.removeClass(document.body, 'running');
