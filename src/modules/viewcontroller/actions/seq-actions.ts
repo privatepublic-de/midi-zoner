@@ -463,12 +463,22 @@ export function createSeqActions(
           const offset = sortedIndexes[0];
           sortedIndexes.forEach((stepindex) => {
             if (sequence.isStepUsed(stepindex)) {
-              stepsMap.set(stepindex - offset, sequence.steps[stepindex]);
+              if (sequence.isDrumSequence) {
+                const [laneIndex, stepIdx] = Sequence.getLaneAndStepIndexForDrumStepId(stepindex);
+                stepsMap.set(stepindex - offset, sequence.getDrumLane(laneIndex).steps[stepIdx]);
+              } else {
+                stepsMap.set(stepindex - offset, sequence.steps[stepindex]);
+              }
             }
           });
         } else {
           if (sequence.isStepUsed(selStepIndex)) {
-            stepsMap.set(0, sequence.steps[selStepIndex]);
+            if (sequence.isDrumSequence) {
+              const [laneIndex, stepIdx] = Sequence.getLaneAndStepIndexForDrumStepId(selStepIndex);
+              stepsMap.set(0, sequence.getDrumLane(laneIndex).steps[stepIdx]);
+            } else {
+              stepsMap.set(0, sequence.steps[selStepIndex]);
+            }
           }
         }
         Zone.seqClipboardStep = stepsMap;
@@ -478,13 +488,24 @@ export function createSeqActions(
       if (actionParam1 != 'undefined' && Zone.seqClipboardStep) {
         sequence.clearSelection();
         const targetStep = parseInt(actionParam1);
-        const targetSteps = sequence.steps;
-        Array.from(Zone.seqClipboardStep.keys()).forEach(
-          (stepindex: number) => {
-            targetSteps[(targetStep + stepindex) % sequence.length] =
-              Sequence.cloneStep(Zone.seqClipboardStep!.get(stepindex));
-          }
-        );
+        if (sequence.isDrumSequence) {
+          const [targetLaneIndex, targetStepIndex] = Sequence.getLaneAndStepIndexForDrumStepId(targetStep);
+          const targetLane = sequence.getDrumLane(targetLaneIndex);
+          Array.from(Zone.seqClipboardStep.keys()).forEach(
+            (stepindex: number) => {
+              const newStepIndex = (targetStepIndex + stepindex) % targetLane.length;
+              targetLane.steps[newStepIndex] = Sequence.cloneStep(Zone.seqClipboardStep!.get(stepindex));
+            }
+          );
+        } else {
+          const targetSteps = sequence.steps;
+          Array.from(Zone.seqClipboardStep.keys()).forEach(
+            (stepindex: number) => {
+              targetSteps[(targetStep + stepindex) % sequence.length] =
+                Sequence.cloneStep(Zone.seqClipboardStep!.get(stepindex));
+            }
+          );
+        }
         updateValuesForZone(zoneindex);
       } else {
         toast('Nothing to paste, clipboard is empty.');
@@ -500,16 +521,34 @@ export function createSeqActions(
             : [...sequence.selectedStepNumbers].sort((a, b) => a - b).reverse();
         sortedNumbers.forEach((stepnumber) => {
           if (sequence.isStepUsed(stepnumber)) {
-            let newPos = (stepnumber + direction) % sequence.length;
-            if (newPos < 0) {
-              newPos = sequence.length - 1;
-            }
-            if (sequence.isStepEmpty(newPos)) {
-              sequence.steps[newPos] = sequence.steps[stepnumber];
-              sequence.steps[stepnumber] = null;
-              newSelection.add(newPos);
+            if (sequence.isDrumSequence) {
+              // Drum mode: stepnumber is a drum step ID
+              const [laneIndex, stepIndex] = Sequence.getLaneAndStepIndexForDrumStepId(stepnumber);
+              const lane = sequence.getDrumLane(laneIndex);
+              let newStepIndex = (stepIndex + direction) % lane.length;
+              if (newStepIndex < 0) {
+                newStepIndex = lane.length - 1;
+              }
+              if (lane.steps[newStepIndex] == null) {
+                lane.steps[newStepIndex] = lane.steps[stepIndex];
+                lane.steps[stepIndex] = null;
+                newSelection.add(Sequence.getIdForDrumStep(laneIndex, newStepIndex));
+              } else {
+                newSelection.add(stepnumber);
+              }
             } else {
-              newSelection.add(stepnumber);
+              // Regular mode: stepnumber is a simple index
+              let newPos = (stepnumber + direction) % sequence.length;
+              if (newPos < 0) {
+                newPos = sequence.length - 1;
+              }
+              if (sequence.isStepEmpty(newPos)) {
+                sequence.steps[newPos] = sequence.steps[stepnumber];
+                sequence.steps[stepnumber] = null;
+                newSelection.add(newPos);
+              } else {
+                newSelection.add(stepnumber);
+              }
             }
           }
         });
