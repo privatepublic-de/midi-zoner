@@ -95,6 +95,7 @@ export class Zone {
   pitchbend = true;
   euclid_hits = 5;
   euclid_length = 8;
+  midiLearnDrumLaneIndex: number | null = null;
   private _arp_enabled = false;
   get arp_enabled(): boolean { return this._arp_enabled; }
   set arp_enabled(v: boolean) {
@@ -391,6 +392,17 @@ export class Zone {
       switch (message) {
         case MIDI.MESSAGE.NOTE_OFF:
         case MIDI.MESSAGE.NOTE_ON:
+          // Handle drum lane MIDI learn - capture note number when input has focus
+          if (message === MIDI.MESSAGE.NOTE_ON && data[2] > 0 && 
+              this.midiLearnDrumLaneIndex !== null && 
+              this.sequence.isDrumSequence) {
+            const lane = this.sequence.getDrumLane(this.midiLearnDrumLaneIndex);
+            if (lane) {
+              lane.note = data[1];
+              this.midiLearnDrumLaneIndex = null;
+              return 'updateDrumLaneNote';
+            }
+          }
           let key = data[1];
           const srcKey = key;
           let velo = this.scaledVelocity(data[2]);

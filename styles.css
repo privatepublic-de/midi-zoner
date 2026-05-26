@@ -579,6 +579,22 @@ input:focus-visible {
   min-width: 4em;
 }
 
+/* MIDI learn for drum lane note inputs */
+.zone input[type='number'].midi-learn-active {
+  background-color: var(--zone-color);
+  color: #000;
+  font-weight: bold;
+}
+
+.zone input[type='number'].midi-learn-flash {
+  animation: midiLearnFlash 0.3s ease-out;
+}
+
+@keyframes midiLearnFlash {
+  0% { background-color: yellow; color: #000; }
+  100% { background-color: var(--zone-color); color: #000; }
+}
+
 .zone .check input[type='number'] {
   height: auto;
   padding: 0;

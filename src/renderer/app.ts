@@ -493,6 +493,16 @@ document.addEventListener('DOMContentLoaded', function () {
           requestAnimationFrame(() => {
             view.updateControllerValues(zone, index);
           });
+        } else if (resultMessage == 'updateDrumLaneNote') {
+          requestAnimationFrame(() => {
+            view.updateValuesForZone(index);
+            // Flash the input to show MIDI learn was successful
+            const input = document.querySelector(`#zone${index} input.midi-learn-active`) as HTMLInputElement;
+            if (input) {
+              input.classList.add('midi-learn-flash');
+              setTimeout(() => input.classList.remove('midi-learn-flash'), 300);
+            }
+          });
         }
       });
     },

@@ -461,6 +461,21 @@ function appendZone(zone: ZoneType, index: number): void {
     e.addEventListener('blur', actionHandler as EventListener);
   });
 
+  // MIDI learn for drum lane note inputs
+  DOM.all(`#zone${index} input[data-change^="${index}:seq_drumlane_note:"]`).forEach((e) => {
+    e.addEventListener('focus', (ev) => {
+      const laneIndex = parseInt((ev.target as HTMLInputElement).dataset.change?.split(':')[2] || '-1');
+      if (laneIndex >= 0) {
+        zone.midiLearnDrumLaneIndex = laneIndex;
+        (ev.target as HTMLInputElement).classList.add('midi-learn-active');
+      }
+    });
+    e.addEventListener('blur', (ev) => {
+      zone.midiLearnDrumLaneIndex = null;
+      (ev.target as HTMLInputElement).classList.remove('midi-learn-active');
+    });
+  });
+
   let isDragSelect = false;
   function updateDragSelectStyle(): void {
     const grid = zone.sequence.isDrumSequence
@@ -1106,6 +1121,7 @@ export {
   updateInputPortsForAllZones,
   updateControllerValues,
   updateValuesForAllZones,
+  updateValuesForZone,
   soloZone,
   toggleZoneMute,
   allSoloOff,
