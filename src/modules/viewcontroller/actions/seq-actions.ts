@@ -560,16 +560,34 @@ export function createSeqActions(
     seq_move: () => {
       sequence.clearSelection();
       const direction = parseInt(actionParam1);
-      const limit = sequence.length;
-      const newSeq: ((typeof sequence.steps)[number] | null)[] = [];
-      for (let i = 0; i < Sequence.MAX_STEPS; i++) {
-        newSeq[i] = sequence.steps[i];
+      
+      if (sequence.isDrumSequence) {
+        // Drum mode: shift all enabled lanes
+        for (let ln = 0; ln < sequence.drumLanes; ln++) {
+          const lane = sequence.getDrumLane(ln);
+          if (lane.enabled) {
+            const length = lane.length;
+            const newSteps: (SeqStep | null)[] = new Array(length).fill(null);
+            for (let i = 0; i < length; i++) {
+              const srcIndex = (i - direction + length) % length;
+              newSteps[i] = lane.steps[srcIndex];
+            }
+            lane.steps = newSteps;
+          }
+        }
+      } else {
+        // Regular mode: shift steps array
+        const limit = sequence.length;
+        const newSeq: ((typeof sequence.steps)[number] | null)[] = [];
+        for (let i = 0; i < Sequence.MAX_STEPS; i++) {
+          newSeq[i] = sequence.steps[i];
+        }
+        const srcOffset = direction > 0 ? limit - 1 : 1;
+        for (let i = 0; i < limit; i++) {
+          newSeq[i] = sequence.steps[(i + srcOffset) % limit];
+        }
+        sequence.steps = newSeq;
       }
-      const srcOffset = direction > 0 ? limit - 1 : 1;
-      for (let i = 0; i < limit; i++) {
-        newSeq[i] = sequence.steps[(i + srcOffset) % limit];
-      }
-      sequence.steps = newSeq;
       updateValuesForZone(zoneindex);
     },
     seq_copy: () => {
