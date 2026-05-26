@@ -62,12 +62,8 @@ export function createArpActions(
       }
       zone.renderPattern();
     },
-    // Swing controls (applied to both sequencer and arpeggiator)
-    // Note: swingEnabled is automatically true when swingAmount > 0
     zone_swing_amount: () => {
-      const value = parseInt((element as HTMLInputElement).value);
-      zone.swingAmount = value / 100; // Convert 0-100 to 0-1
-      zone.swingEnabled = value > 0; // Enable swing when amount > 0
+      zone.swingAmount = parseInt((element as HTMLInputElement).value) / 100;
       updateValuesForZone(zoneindex);
     },
   };

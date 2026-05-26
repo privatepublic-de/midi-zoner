@@ -96,8 +96,6 @@ export class Zone {
   euclid_hits = 5;
   euclid_length = 8;
   midiLearnDrumLaneIndex: number | null = null;
-  // Swing settings - applied to both sequencer and arpeggiator
-  swingEnabled = false;
   swingAmount: number = 0; // 0 to 1 (0% to 100%)
   private _arp_enabled = false;
   get arp_enabled(): boolean { return this._arp_enabled; }
@@ -215,7 +213,6 @@ export class Zone {
       euclid_hits: this.euclid_hits,
       euclid_length: this.euclid_length,
       sequence: this.sequence.toJSON(),
-      swingEnabled: this.swingEnabled,
       swingAmount: this.swingAmount
     };
   }
@@ -249,7 +246,6 @@ export class Zone {
     this.arp_sortedHoldList = data.arp_sortedHoldList ?? [];
     this.euclid_hits = data.euclid_hits ?? 5;
     this.euclid_length = data.euclid_length ?? 8;
-    this.swingEnabled = data.swingEnabled ?? false;
     this.swingAmount = data.swingAmount ?? 0;
 
     const seq = new Sequence(this);
@@ -806,7 +802,7 @@ export class Zone {
     this.sequence.clock(pos);
     
     // Process pending swung arpeggiator notes
-    if (this.swingEnabled && this.swingAmount > 0) {
+    if (this.swingAmount > 0) {
       this.processArpSwingPending(pos);
     }
     
@@ -820,7 +816,7 @@ export class Zone {
       this.arp.patternPos = (this.arp.patternPos + 1) % this.arp_pattern.length;
       
       // Check if this arp pattern position should swing
-      if (this.swingEnabled && this.swingAmount > 0 && this.arp_enabled && this.arp_pattern[this.arp.patternPos]) {
+      if (this.swingAmount > 0 && this.arp_enabled && this.arp_pattern[this.arp.patternPos]) {
         const swingOffset = this.calculateArpSwingOffset(this.arp.patternPos);
         if (swingOffset > 0) {
           // Schedule this arp pattern position to fire later

@@ -127,8 +127,6 @@ export interface ZoneArrangementJSON {
   euclid_hits: number;
   euclid_length: number;
   sequence: SequenceJSON;
-  // Swing settings
-  swingEnabled?: boolean;
   swingAmount?: number;
 }
 
