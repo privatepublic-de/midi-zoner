@@ -596,6 +596,12 @@ input:focus-visible {
 }
 
 /* Swing amount control - uses same styling as other percent-holder controls */
+.zone .swing-settings {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
 
 .zone .check input[type='number'] {
   height: auto;

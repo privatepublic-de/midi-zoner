@@ -160,19 +160,6 @@
           ${noteLengthOptions}
         </select>
       </div>
-      <div class="percent-holder" title="Swing amount for sequencer">
-        <input
-          type="range"
-          class="percent swing-amount"
-          data-change="${index}:zone_swing_amount"
-          id="swing_amount_seq${index}"
-          min="0"
-          max="100"
-          value="0"
-          tabindex="-1"
-        />
-        <output for="swing_amount_seq${index}">---</output>
-      </div>
       <div
         class="action"
         title="Move whole sequence 1 step left"
@@ -260,6 +247,23 @@
         data-action="${index}:seq_drum_tracks"
         title="Toggle sequencer mode"
       ></div>
+    </div>
+    <!-- Swing settings line -->
+    <div class="swing-settings">
+      <div class="label">Swing</div>
+      <div class="percent-holder">
+        <input
+          type="range"
+          class="percent swing-amount"
+          data-change="${index}:zone_swing_amount"
+          id="swing_amount_seq${index}"
+          min="0"
+          max="100"
+          value="0"
+          tabindex="-1"
+        />
+        <output for="swing_amount_seq${index}">---</output>
+      </div>
     </div>
     <div class="step-info popup" data-action="${index}:ignore">
       <div class="step-controls">
@@ -482,19 +486,6 @@
           t
         </span>
       </div>
-      <div class="percent-holder">
-        <input
-          type="range"
-          class="percent swing-amount"
-          data-change="${index}:zone_swing_amount"
-          id="swing_amount${index}"
-          min="0"
-          max="100"
-          value="0"
-          tabindex="-1"
-        />
-        <output for="swing_amount${index}">---</output>
-      </div>
     </div>
     <div class="arp-settings">
       <div class="label">Len</div>
@@ -579,6 +570,21 @@
             >&gt;</span
           >
         </div>
+      </div>
+      <!-- Swing settings line -->
+      <div class="label">Swing</div>
+      <div class="percent-holder">
+        <input
+          type="range"
+          class="percent swing-amount"
+          data-change="${index}:zone_swing_amount"
+          id="swing_amount_arp${index}"
+          min="0"
+          max="100"
+          value="0"
+          tabindex="-1"
+        />
+        <output for="swing_amount_arp${index}">---</output>
       </div>
     </div>
   </div>
