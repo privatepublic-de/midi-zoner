@@ -60,6 +60,20 @@ export class Sequence {
   private ratchetQueue: { note: Note; noteOnPos: number; noteOffPos: number }[] = [];
   private readonly _midiMsgBuf = new Uint8Array(3);
   private rngProb = seedrandom();
+  currentPos = 0; // Track current clock position for swing timing
+  // Swing pending steps
+  private swingPendingDrumSteps: {
+    laneIndex: number;
+    stepIndex: number;
+    laneCycleCount: number;
+    laneIsFirstCycle: boolean;
+    lanePreviousStepPlayed: boolean;
+    fireAtPos: number;
+  }[] = [];
+  private swingPendingRegularSteps: {
+    stepIndex: number;
+    fireAtPos: number;
+  }[] = [];
   cycleCount = -1;
   previousStepPlayed = false;
   isFirstCycle = true;
@@ -337,7 +351,18 @@ export class Sequence {
   }
 
   clock(pos: number): void {
+    this.currentPos = pos;
     this.tickn = pos % this.ticks;
+    
+    // Process pending swung steps first (before ratchet processing)
+    if (this.zone.swingEnabled && this.zone.swingAmount > 0) {
+      if (this.isDrumSequence) {
+        this.processPendingSwingDrumSteps(pos);
+      } else {
+        this.processPendingSwingRegularSteps(pos);
+      }
+    }
+    
     if (this.ratchetQueue.length > 0) {
       // note-offs first so same-tick transitions are clean
       for (let i = this.ratchetQueue.length - 1; i >= 0; i--) {
@@ -394,92 +419,93 @@ export class Sequence {
       }
       if (this.active) {
         if (this.isDrumSequence) {
-          const soloCount = this.getDrumLaneSoloCount();
-          for (let ln = 0; ln < this.drumLanes; ln++) {
-            const lane = this.getDrumLane(ln);
-            lane.previousStep = lane.currentStep;
-            lane.currentStep = (lane.currentStep + 1) % lane.length;
-            if (lane.currentStep === 0) {
-              lane.cycleCount++;
-              if (lane.cycleCount === 1) lane.isFirstCycle = false;
-            }
-            if (!lane.enabled) continue;
-            if (soloCount > 0 && !lane.solo) continue;
-            const step = lane.steps[lane.currentStep];
-            if (step != null && step.notesArray.length > 0) {
-              const shouldPlay = (
-                this.checkCondition(step, lane.cycleCount, lane.isFirstCycle, lane.previousStepPlayed) &&
-                this.rngProb() < step.probability
-              );
-              if (shouldPlay) {
-                const ratchetCount = step.ratchetCount ?? 1;
-                if (ratchetCount > 1) {
-                  const baseVelo = step.notesArray[0].velo;
-                  const ratchetRes = step.ratchetResolution;
-                  const ratchetDelta = step.ratchetVelocityDelta ?? 0;
-                  const gateLen = Math.max(1, ratchetRes - 1);
-                  for (let hitIdx = 0; hitIdx < ratchetCount; hitIdx++) {
-                    const hitVelo = Math.max(1, Math.min(127, baseVelo + hitIdx * ratchetDelta));
-                    const hitNote = new Note(lane.note, hitVelo);
-                    hitNote.channel = this.zone.channel;
-                    hitNote.portId = this.zone.outputPortId;
-                    if (hitIdx === 0) {
-                      this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + hitNote.channel;
-                      this._midiMsgBuf[1] = hitNote.number;
-                      this._midiMsgBuf[2] = hitNote.velo;
-                      this.zone.handleMidi(MIDI.MESSAGE.NOTE_ON, this._midiMsgBuf, true);
-                      this.ratchetQueue.push({ note: hitNote, noteOnPos: -1, noteOffPos: pos + gateLen });
-                    } else {
-                      const firePos = pos + hitIdx * ratchetRes;
-                      this.ratchetQueue.push({ note: hitNote, noteOnPos: firePos, noteOffPos: firePos + gateLen });
-                    }
-                  }
-                } else {
-                  step.played = 0;
-                  this.activeSteps.push(step);
-                  const velo = step.notesArray[0].velo;
-                  const note = new Note(lane.note, velo);
-                  note.channel = this.zone.channel;
-                  note.portId = this.zone.outputPortId;
-                  this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + note.channel;
-                  this._midiMsgBuf[1] = note.number;
-                  this._midiMsgBuf[2] = note.velo;
-                  this.zone.handleMidi(MIDI.MESSAGE.NOTE_ON, this._midiMsgBuf, true);
-                  step.lastPlayedArray.push(note);
-                }
-              }
-              lane.previousStepPlayed = shouldPlay;
-            } else {
-              lane.previousStepPlayed = false;
-            }
-          }
+          this.processDrumSequenceStep(pos);
         } else {
-          const currentStep = this.steps[this.currentStepNumber];
-          if (currentStep) {
-            if (
-              this.checkCondition(currentStep) &&
-              this.rngProb() < currentStep.probability
-            ) {
-              currentStep.played = 0;
-              this.activeSteps.push(currentStep);
-              for (const inote of currentStep.notesArray) {
-                const note = Note.clone(inote);
-                note.channel = this.zone.channel;
-                note.portId = this.zone.outputPortId;
-                this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + note.channel;
-                this._midiMsgBuf[1] = note.number;
-                this._midiMsgBuf[2] = note.velo;
-                this.zone.handleMidi(MIDI.MESSAGE.NOTE_ON, this._midiMsgBuf, true);
-                currentStep.lastPlayedArray.push(note);
-              }
-              this.previousStepPlayed = true;
-            } else {
-              this.previousStepPlayed = false;
-            }
-          }
+          this.processRegularSequenceStep(pos);
         }
       }
       requestAnimationFrame(this.zone._renderSequenceBound);
+    }
+  }
+
+  /**
+   * Process drum sequence steps at step boundary
+   */
+  private processDrumSequenceStep(pos: number): void {
+    const soloCount = this.getDrumLaneSoloCount();
+    for (let ln = 0; ln < this.drumLanes; ln++) {
+      const lane = this.getDrumLane(ln);
+      lane.previousStep = lane.currentStep;
+      lane.currentStep = (lane.currentStep + 1) % lane.length;
+      if (lane.currentStep === 0) {
+        lane.cycleCount++;
+        if (lane.cycleCount === 1) lane.isFirstCycle = false;
+      }
+
+      // Check if swing is enabled and this step should be swung
+      if (this.zone.swingEnabled && this.zone.swingAmount > 0) {
+        const swingOffset = this.calculateSwingOffset(lane.currentStep);
+        if (swingOffset > 0) {
+          // Schedule this drum step to fire later
+          this.swingPendingDrumSteps.push({
+            laneIndex: ln,
+            stepIndex: lane.currentStep,
+            laneCycleCount: lane.cycleCount,
+            laneIsFirstCycle: lane.isFirstCycle,
+            lanePreviousStepPlayed: lane.previousStepPlayed,
+            fireAtPos: pos + swingOffset
+          });
+          // Don't trigger now
+          continue;
+        }
+      }
+
+      // Normal triggering for non-swung or non-swing-enabled steps
+      if (!lane.enabled) continue;
+      if (soloCount > 0 && !lane.solo) continue;
+      const step = lane.steps[lane.currentStep];
+      if (step != null && step.notesArray.length > 0) {
+        this.triggerDrumStep(
+          ln,
+          lane.currentStep,
+          lane.cycleCount,
+          lane.isFirstCycle,
+          lane.previousStepPlayed
+        );
+      } else {
+        lane.previousStepPlayed = false;
+      }
+    }
+  }
+
+  /**
+   * Process regular sequence steps at step boundary
+   */
+  private processRegularSequenceStep(pos: number): void {
+    const currentStep = this.steps[this.currentStepNumber];
+    if (currentStep) {
+      // Check if swing is enabled and this step should be swung
+      if (this.zone.swingEnabled && this.zone.swingAmount > 0) {
+        const swingOffset = this.calculateSwingOffset(this.currentStepNumber);
+        if (swingOffset > 0) {
+          // Schedule this regular step to fire later
+          this.swingPendingRegularSteps.push({
+            stepIndex: this.currentStepNumber,
+            fireAtPos: pos + swingOffset
+          });
+          // Don't trigger now
+          return;
+        }
+      }
+
+      // Normal triggering
+      this.triggerRegularStep(this.currentStepNumber);
+      this.previousStepPlayed = currentStep != null &&
+        this.checkCondition(currentStep) &&
+        this.rngProb() < currentStep.probability;
+      if (!this.previousStepPlayed) {
+        this.previousStepPlayed = false;
+      }
     }
   }
 
@@ -630,5 +656,144 @@ export class Sequence {
 
   hasDrumStep(lane: number, stepNo: number): boolean {
     return this.getDrumLane(lane).steps[stepNo] != null;
+  }
+
+  // ========== SWING METHODS ==========
+
+  /**
+   * Calculate swing offset in ticks for a given step index
+   * Off-beat steps (1, 3, 5...) are delayed based on swingAmount
+   */
+  private calculateSwingOffset(stepIndex: number): number {
+    // stepIndex 0, 2, 4, 6... = on-beat (no swing)
+    // stepIndex 1, 3, 5, 7... = off-beat (swing applied)
+    if (stepIndex % 2 === 0) {
+      return 0; // On-beat, no swing
+    }
+
+    // Off-beat: calculate delay in ticks
+    // swingAmount of 0.5 = 50% swing (16th triplet feel)
+    const ticksPerStep = this.ticks;
+    const offset = this.zone.swingAmount * ticksPerStep * 0.5;
+    return Math.floor(offset);
+  }
+
+  /**
+   * Process any pending drum steps that should fire at the current position
+   */
+  private processPendingSwingDrumSteps(pos: number): void {
+    for (let i = this.swingPendingDrumSteps.length - 1; i >= 0; i--) {
+      const pending = this.swingPendingDrumSteps[i];
+      if (pos >= pending.fireAtPos) {
+        this.triggerDrumStep(
+          pending.laneIndex,
+          pending.stepIndex,
+          pending.laneCycleCount,
+          pending.laneIsFirstCycle,
+          pending.lanePreviousStepPlayed
+        );
+        this.swingPendingDrumSteps.splice(i, 1);
+      }
+    }
+  }
+
+  /**
+   * Process any pending regular sequence steps that should fire at the current position
+   */
+  private processPendingSwingRegularSteps(pos: number): void {
+    for (let i = this.swingPendingRegularSteps.length - 1; i >= 0; i--) {
+      const pending = this.swingPendingRegularSteps[i];
+      if (pos >= pending.fireAtPos) {
+        this.triggerRegularStep(pending.stepIndex);
+        this.swingPendingRegularSteps.splice(i, 1);
+      }
+    }
+  }
+
+  /**
+   * Trigger a drum sequence step for a specific lane
+   */
+  private triggerDrumStep(
+    laneIndex: number,
+    stepIndex: number,
+    laneCycleCount: number,
+    laneIsFirstCycle: boolean,
+    lanePreviousStepPlayed: boolean
+  ): void {
+    const lane = this.getDrumLane(laneIndex);
+    if (!lane || !lane.enabled) return;
+
+    const soloCount = this.getDrumLaneSoloCount();
+    if (soloCount > 0 && !lane.solo) return;
+
+    const step = lane.steps[stepIndex];
+    if (step == null || step.notesArray.length === 0) {
+      lane.previousStepPlayed = false;
+      return;
+    }
+
+    const shouldPlay =
+      this.checkCondition(step, laneCycleCount, laneIsFirstCycle, lanePreviousStepPlayed) &&
+      this.rngProb() < step.probability;
+
+    if (shouldPlay) {
+      const ratchetCount = step.ratchetCount ?? 1;
+      if (ratchetCount > 1) {
+        const baseVelo = step.notesArray[0].velo;
+        const ratchetRes = step.ratchetResolution;
+        const ratchetDelta = step.ratchetVelocityDelta ?? 0;
+        const gateLen = Math.max(1, ratchetRes - 1);
+        for (let hitIdx = 0; hitIdx < ratchetCount; hitIdx++) {
+          const hitVelo = Math.max(1, Math.min(127, baseVelo + hitIdx * ratchetDelta));
+          const hitNote = new Note(lane.note, hitVelo);
+          hitNote.channel = this.zone.channel;
+          hitNote.portId = this.zone.outputPortId;
+          if (hitIdx === 0) {
+            this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + hitNote.channel;
+            this._midiMsgBuf[1] = hitNote.number;
+            this._midiMsgBuf[2] = hitNote.velo;
+            this.zone.handleMidi(MIDI.MESSAGE.NOTE_ON, this._midiMsgBuf, true);
+            this.ratchetQueue.push({ note: hitNote, noteOnPos: -1, noteOffPos: this.currentPos + gateLen });
+          } else {
+            const firePos = this.currentPos + hitIdx * ratchetRes;
+            this.ratchetQueue.push({ note: hitNote, noteOnPos: firePos, noteOffPos: firePos + gateLen });
+          }
+        }
+      } else {
+        step.played = 0;
+        this.activeSteps.push(step);
+        const velo = step.notesArray[0].velo;
+        const note = new Note(lane.note, velo);
+        note.channel = this.zone.channel;
+        note.portId = this.zone.outputPortId;
+        this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + note.channel;
+        this._midiMsgBuf[1] = note.number;
+        this._midiMsgBuf[2] = note.velo;
+        this.zone.handleMidi(MIDI.MESSAGE.NOTE_ON, this._midiMsgBuf, true);
+        step.lastPlayedArray.push(note);
+      }
+    }
+    lane.previousStepPlayed = shouldPlay;
+  }
+
+  /**
+   * Trigger a regular sequence step
+   */
+  private triggerRegularStep(stepIndex: number): void {
+    const step = this.steps[stepIndex];
+    if (step && this.checkCondition(step) && this.rngProb() < step.probability) {
+      step.played = 0;
+      this.activeSteps.push(step);
+      for (const inote of step.notesArray) {
+        const note = Note.clone(inote);
+        note.channel = this.zone.channel;
+        note.portId = this.zone.outputPortId;
+        this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + note.channel;
+        this._midiMsgBuf[1] = note.number;
+        this._midiMsgBuf[2] = note.velo;
+        this.zone.handleMidi(MIDI.MESSAGE.NOTE_ON, this._midiMsgBuf, true);
+        step.lastPlayedArray.push(note);
+      }
+    }
   }
 }

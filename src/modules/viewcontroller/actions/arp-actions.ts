@@ -62,5 +62,20 @@ export function createArpActions(
       }
       zone.renderPattern();
     },
+    // Swing controls (applied to both sequencer and arpeggiator)
+    zone_toggle_swing: () => {
+      zone.swingEnabled = !zone.swingEnabled;
+      updateValuesForZone(zoneindex);
+    },
+    zone_swing_amount: () => {
+      const value = parseInt((element as HTMLInputElement).value);
+      zone.swingAmount = value / 100; // Convert 0-100 to 0-1
+      // Update the display
+      const output = element.parentElement?.querySelector(`output[for="${element.id}"]`) as HTMLOutputElement;
+      if (output) {
+        output.value = value + '%';
+      }
+      updateValuesForZone(zoneindex);
+    },
   };
 }

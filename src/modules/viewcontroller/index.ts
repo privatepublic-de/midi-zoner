@@ -926,6 +926,21 @@ function updateValuesForZone(index: number): void {
       );
     });
     DOM.switchClass(zoneElement, zone.arp_enabled, 'arp-enabled');
+    
+    // Update swing controls
+    const swingToggle = zone.elements.get('.swing-toggle') as HTMLElement;
+    if (swingToggle) {
+      DOM.switchClass(swingToggle, zone.swingEnabled, 'selected');
+    }
+    const swingSlider = zone.elements.get('.swing-controls input[type="range"]') as HTMLInputElement;
+    if (swingSlider) {
+      swingSlider.value = String(Math.round(zone.swingAmount * 100));
+      const swingOutput = zone.elements.get('.swing-controls output') as HTMLOutputElement;
+      if (swingOutput) {
+        swingOutput.value = Math.round(zone.swingAmount * 100) + '%';
+      }
+    }
+    
     zone.elements.octaveSelectors!.forEach((e) => {
       const parts = e.getAttribute('data-action')!.split(':');
       if (parts[2] == String(zone.octave)) {

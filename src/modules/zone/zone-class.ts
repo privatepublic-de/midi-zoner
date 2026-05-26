@@ -96,6 +96,9 @@ export class Zone {
   euclid_hits = 5;
   euclid_length = 8;
   midiLearnDrumLaneIndex: number | null = null;
+  // Swing settings - applied to both sequencer and arpeggiator
+  swingEnabled = false;
+  swingAmount: number = 0; // 0 to 1 (0% to 100%)
   private _arp_enabled = false;
   get arp_enabled(): boolean { return this._arp_enabled; }
   set arp_enabled(v: boolean) {
@@ -128,6 +131,11 @@ export class Zone {
     beat: false,
     octave: 0
   };
+  // Arpeggiator swing pending pattern positions
+  private arpSwingPending: {
+    patternPos: number;
+    fireAtPos: number;
+  }[] = [];
   activeNotes: Note[] = [];
   midiActiveNotes: (Note | null)[] = [];
   holdList: Note[] = [];
@@ -206,7 +214,9 @@ export class Zone {
       arp_sortedHoldList: this.arp_sortedHoldList,
       euclid_hits: this.euclid_hits,
       euclid_length: this.euclid_length,
-      sequence: this.sequence.toJSON()
+      sequence: this.sequence.toJSON(),
+      swingEnabled: this.swingEnabled,
+      swingAmount: this.swingAmount
     };
   }
 
@@ -239,6 +249,8 @@ export class Zone {
     this.arp_sortedHoldList = data.arp_sortedHoldList ?? [];
     this.euclid_hits = data.euclid_hits ?? 5;
     this.euclid_length = data.euclid_length ?? 8;
+    this.swingEnabled = data.swingEnabled ?? false;
+    this.swingAmount = data.swingAmount ?? 0;
 
     const seq = new Sequence(this);
     const sd = data.sequence || {};
@@ -792,6 +804,12 @@ export class Zone {
 
   clock(pos: number): void {
     this.sequence.clock(pos);
+    
+    // Process pending swung arpeggiator notes
+    if (this.swingEnabled && this.swingAmount > 0) {
+      this.processArpSwingPending(pos);
+    }
+    
     const tickn = pos % this.arp_ticks;
     const offtick = Math.min(
       this.arp_ticks * this.arp_gatelength,
@@ -800,103 +818,158 @@ export class Zone {
     if (tickn === 0) {
       const probable = this.rngProb() < this.arp_probability;
       this.arp.patternPos = (this.arp.patternPos + 1) % this.arp_pattern.length;
-      if (this.arp_enabled && this.arp_pattern[this.arp.patternPos]) {
-        this.arp.beat = true;
-        const notes: Note[] = this.arp_hold
-          ? (this.arp_direction > 2 ? this.arp_holdlist : this.arp_sortedHoldList)
-          : (this.arp_direction > 2 ? this.arp.orderlist : this.arp.sortedlist);
-        if (notes.length > 0) {
-          const repetition = this.arp_repeat && this.arp.repeattrig;
-          if (!repetition) {
-            const nextArpOctave = (dir: number): void => {
-              let noct = this.arp.octave + dir;
-              if (noct < 0) noct = this.arp_octaves;
-              else if (noct > this.arp_octaves) noct = 0;
-              this.arp.octave = noct;
-            };
-            switch (this.arp_direction) {
-              case 0:
-              case 4:
-                this.arp.noteindex++;
-                if (this.arp.noteindex >= notes.length) {
-                  this.arp.noteindex = 0;
-                  nextArpOctave(1);
-                }
-                break;
-              case 1:
-                this.arp.noteindex--;
-                if (this.arp.noteindex < 0) {
-                  this.arp.noteindex = notes.length - 1;
-                  nextArpOctave(-1);
-                }
-                break;
-              case 2:
-                this.arp.noteindex += this.arp.inc;
-                if (this.arp.noteindex >= notes.length) {
-                  this.arp.noteindex = this.arp.noteindex % notes.length;
-                  if (this.arp.octave >= this.arp_octaves) {
-                    this.arp.inc = -1;
-                    this.arp.noteindex = notes.length - 2;
-                    if (notes.length == 1) nextArpOctave(this.arp.inc);
-                  } else {
-                    nextArpOctave(this.arp.inc);
-                  }
-                } else if (this.arp.noteindex < 0) {
-                  if (this.arp.octave == 0) {
-                    this.arp.inc = 1;
-                    this.arp.noteindex = 1;
-                    if (notes.length == 1) nextArpOctave(this.arp.inc);
-                  } else {
-                    this.arp.noteindex = notes.length - 1;
-                    nextArpOctave(this.arp.inc);
-                  }
-                }
-                if (notes.length == 1) this.arp.noteindex = 0;
-                break;
-              case 3:
-                this.arp.noteindex = Math.floor(this.rngArp() * notes.length);
-                this.arp.octave = Math.floor(
-                  this.rngArpOct() * (this.arp_octaves + 1)
-                );
-                break;
-            }
-          }
-          if (
-            probable &&
-            this.arp.noteindex > -1 &&
-            this.arp.noteindex < notes.length
-          ) {
-            const activeNote = repetition
-              ? this.arp.repeatnote!
-              : notes[this.arp.noteindex];
-            let number = repetition
-              ? activeNote.number
-              : activeNote.number +
-                (this.octave + this.arp.octave) * 12 +
-                (this.arp_transpose ? this.arp_transpose_amount : 0);
-            while (number > 127) number -= 12;
-            while (number < 0) number += 12;
-            const note = new Note(
-              number,
-              activeNote.velo,
-              this.channel,
-              this.outputPortId
-            );
-            this.arp.lastnote = note;
-            this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + this.channel;
-            this._midiMsgBuf[1] = note.number;
-            this._midiMsgBuf[2] = this.fixedvel ? this.fixedvel_value || 127 : note.velo;
-            this.midi.send(this._midiMsgBuf, this.outputPortId);
-          }
+      
+      // Check if this arp pattern position should swing
+      if (this.swingEnabled && this.swingAmount > 0 && this.arp_enabled && this.arp_pattern[this.arp.patternPos]) {
+        const swingOffset = this.calculateArpSwingOffset(this.arp.patternPos);
+        if (swingOffset > 0) {
+          // Schedule this arp pattern position to fire later
+          this.arpSwingPending.push({
+            patternPos: this.arp.patternPos,
+            fireAtPos: pos + swingOffset
+          });
+          // Don't trigger now
+          requestAnimationFrame(this._renderPatternBound);
+          return;
         }
-        this.arp.repeattrig = !this.arp.repeattrig;
-        requestAnimationFrame(this._renderNotesBound);
+      }
+      
+      // Normal arpeggiator processing (not swung)
+      if (this.arp_enabled && this.arp_pattern[this.arp.patternPos]) {
+        this.triggerArpAtPatternPos(pos, probable);
       }
       requestAnimationFrame(this._renderPatternBound);
     } else if (tickn >= offtick) {
       this.arp.beat = false;
       this.arpNoteOff();
     }
+  }
+
+  /**
+   * Calculate swing offset for arpeggiator pattern position
+   */
+  private calculateArpSwingOffset(patternPos: number): number {
+    // patternPos 0, 2, 4, 6... = on-beat (no swing)
+    // patternPos 1, 3, 5, 7... = off-beat (swing applied)
+    if (patternPos % 2 === 0) {
+      return 0; // On-beat, no swing
+    }
+    
+    // Off-beat: calculate delay in ticks
+    const ticksPerArpStep = this.arp_ticks; // From DIV_TICKS
+    const offset = this.swingAmount * ticksPerArpStep * 0.5;
+    return Math.floor(offset);
+  }
+
+  /**
+   * Process pending swung arpeggiator notes
+   */
+  private processArpSwingPending(pos: number): void {
+    for (let i = this.arpSwingPending.length - 1; i >= 0; i--) {
+      const pending = this.arpSwingPending[i];
+      if (pos >= pending.fireAtPos) {
+        const probable = this.rngProb() < this.arp_probability;
+        this.triggerArpAtPatternPos(pos, probable);
+        this.arpSwingPending.splice(i, 1);
+      }
+    }
+  }
+
+  /**
+   * Trigger arpeggiator note at a specific pattern position
+   * Called both for normal timing and for swung timing
+   */
+  private triggerArpAtPatternPos(pos: number, probable: boolean): void {
+    this.arp.beat = true;
+    const notes: Note[] = this.arp_hold
+      ? (this.arp_direction > 2 ? this.arp_holdlist : this.arp_sortedHoldList)
+      : (this.arp_direction > 2 ? this.arp.orderlist : this.arp.sortedlist);
+    if (notes.length > 0) {
+      const repetition = this.arp_repeat && this.arp.repeattrig;
+      if (!repetition) {
+        const nextArpOctave = (dir: number): void => {
+          let noct = this.arp.octave + dir;
+          if (noct < 0) noct = this.arp_octaves;
+          else if (noct > this.arp_octaves) noct = 0;
+          this.arp.octave = noct;
+        };
+        switch (this.arp_direction) {
+          case 0:
+          case 4:
+            this.arp.noteindex++;
+            if (this.arp.noteindex >= notes.length) {
+              this.arp.noteindex = 0;
+              nextArpOctave(1);
+            }
+            break;
+          case 1:
+            this.arp.noteindex--;
+            if (this.arp.noteindex < 0) {
+              this.arp.noteindex = notes.length - 1;
+              nextArpOctave(-1);
+            }
+            break;
+          case 2:
+            this.arp.noteindex += this.arp.inc;
+            if (this.arp.noteindex >= notes.length) {
+              this.arp.noteindex = this.arp.noteindex % notes.length;
+              if (this.arp.octave >= this.arp_octaves) {
+                this.arp.inc = -1;
+                this.arp.noteindex = notes.length - 2;
+                if (notes.length == 1) nextArpOctave(this.arp.inc);
+              } else {
+                nextArpOctave(this.arp.inc);
+              }
+            } else if (this.arp.noteindex < 0) {
+              if (this.arp.octave == 0) {
+                this.arp.inc = 1;
+                this.arp.noteindex = 1;
+                if (notes.length == 1) nextArpOctave(this.arp.inc);
+              } else {
+                this.arp.noteindex = notes.length - 1;
+                nextArpOctave(this.arp.inc);
+              }
+            }
+            if (notes.length == 1) this.arp.noteindex = 0;
+            break;
+          case 3:
+            this.arp.noteindex = Math.floor(this.rngArp() * notes.length);
+            this.arp.octave = Math.floor(
+              this.rngArpOct() * (this.arp_octaves + 1)
+            );
+            break;
+        }
+      }
+      if (
+        probable &&
+        this.arp.noteindex > -1 &&
+        this.arp.noteindex < notes.length
+      ) {
+        const activeNote = repetition
+          ? this.arp.repeatnote!
+          : notes[this.arp.noteindex];
+        let number = repetition
+          ? activeNote.number
+          : activeNote.number +
+            (this.octave + this.arp.octave) * 12 +
+            (this.arp_transpose ? this.arp_transpose_amount : 0);
+        while (number > 127) number -= 12;
+        while (number < 0) number += 12;
+        const note = new Note(
+          number,
+          activeNote.velo,
+          this.channel,
+          this.outputPortId
+        );
+        this.arp.lastnote = note;
+        this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + this.channel;
+        this._midiMsgBuf[1] = note.number;
+        this._midiMsgBuf[2] = this.fixedvel ? this.fixedvel_value || 127 : note.velo;
+        this.midi.send(this._midiMsgBuf, this.outputPortId);
+      }
+    }
+    this.arp.repeattrig = !this.arp.repeattrig;
+    requestAnimationFrame(this._renderNotesBound);
   }
 
   arpNoteOff(): void {
