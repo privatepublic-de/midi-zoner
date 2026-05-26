@@ -395,7 +395,6 @@ export class Sequence {
       if (this.active) {
         if (this.isDrumSequence) {
           const soloCount = this.getDrumLaneSoloCount();
-          let anyPlayed = false;
           for (let ln = 0; ln < this.drumLanes; ln++) {
             const lane = this.getDrumLane(ln);
             lane.previousStep = lane.currentStep;
@@ -408,11 +407,11 @@ export class Sequence {
             if (soloCount > 0 && !lane.solo) continue;
             const step = lane.steps[lane.currentStep];
             if (step != null && step.notesArray.length > 0) {
-              if (
-                this.checkCondition(step, lane.cycleCount, lane.isFirstCycle) &&
+              const shouldPlay = (
+                this.checkCondition(step, lane.cycleCount, lane.isFirstCycle, lane.previousStepPlayed) &&
                 this.rngProb() < step.probability
-              ) {
-                anyPlayed = true;
+              );
+              if (shouldPlay) {
                 const ratchetCount = step.ratchetCount ?? 1;
                 if (ratchetCount > 1) {
                   const baseVelo = step.notesArray[0].velo;
@@ -449,9 +448,11 @@ export class Sequence {
                   step.lastPlayedArray.push(note);
                 }
               }
+              lane.previousStepPlayed = shouldPlay;
+            } else {
+              lane.previousStepPlayed = false;
             }
           }
-          this.previousStepPlayed = anyPlayed;
         } else {
           const currentStep = this.steps[this.currentStepNumber];
           if (currentStep) {
@@ -509,6 +510,7 @@ export class Sequence {
         lane.previousStep = -1;
         lane.cycleCount = -1;
         lane.isFirstCycle = true;
+        lane.previousStepPlayed = false;
       }
     });
     this.cycleCount = -1;
@@ -549,14 +551,14 @@ export class Sequence {
     });
   }
 
-  checkCondition(step: SeqStep, cycleCnt = this.cycleCount, firstCycle = this.isFirstCycle): boolean {
+  checkCondition(step: SeqStep, cycleCnt = this.cycleCount, firstCycle = this.isFirstCycle, previousStepPlayed = this.previousStepPlayed): boolean {
     switch (step.condition) {
       case 0:
         return true;
       case 1:
-        return this.previousStepPlayed;
+        return previousStepPlayed;
       case 2:
-        return !this.previousStepPlayed;
+        return !previousStepPlayed;
       case 3:
         return firstCycle;
       case 4:

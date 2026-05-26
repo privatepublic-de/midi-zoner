@@ -74,6 +74,7 @@ export function createSeqActions(
       lane.length = v;
       lane.currentStep = -1;
       lane.previousStep = -1;
+      lane.previousStepPlayed = false;
       updateValuesForZone(zoneindex);
     },
     seq_drumstep_select: () => {
@@ -231,6 +232,7 @@ export function createSeqActions(
               lane.length = newLen;
               lane.currentStep = -1;
               lane.previousStep = -1;
+              lane.previousStepPlayed = false;
             }
             const label = adjustment === 'double' ? 'doubled' : adjustment === 'halftime' ? 'half time' : 'one-third time';
             toast(`Drum lanes ${label}`);
@@ -566,6 +568,7 @@ export function createSeqActions(
             if (lane?.steps) {
               lane.steps.forEach((st: any) => { if (st) st.lastPlayedArray = []; });
             }
+            lane.previousStepPlayed = false;
           });
         } else if (!copyData.isDrumSequence && !sequence.isDrumSequence) {
           Object.assign(sequence, copyData);

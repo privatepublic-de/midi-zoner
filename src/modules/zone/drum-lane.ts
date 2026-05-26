@@ -11,4 +11,5 @@ export class DrumLane {
   previousStep = -1;
   cycleCount = -1;
   isFirstCycle = true;
+  previousStepPlayed = false;
 }

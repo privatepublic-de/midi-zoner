@@ -260,6 +260,7 @@ export class Zone {
         lane.previousStep = -1;
         lane.cycleCount = -1;
         lane.isFirstCycle = true;
+        lane.previousStepPlayed = false;
       }
     });
     this.sequence = seq;
