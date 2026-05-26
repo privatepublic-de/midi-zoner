@@ -115,6 +115,14 @@ export function getHTML(zone: ZoneType, zoneindex: number): string {
                 <span class="euc-val">4</span>
               </div>
             </div>
+            <div class="lane-shift-wrap">
+              <div class="action lane-shift-left" data-action="${index}:seq_drumlane_move:${ln}:-1" title="Shift lane left">
+                <i class="material-icons">chevron_left</i>
+              </div>
+              <div class="action lane-shift-right" data-action="${index}:seq_drumlane_move:${ln}:1" title="Shift lane right">
+                <i class="material-icons">chevron_right</i>
+              </div>
+            </div>
           </div>
         </div>`;
     for (let i = 0; i < Sequence.MAX_STEPS_DRUMS; i++) {

@@ -23,6 +23,7 @@ export function createSeqActions(
     sequence,
     element,
     actionParam1,
+    actionParam2,
     ev,
     updateValuesForZone,
     toast
@@ -654,6 +655,22 @@ export function createSeqActions(
       toast(
         sequence.isDrumSequence ? 'Drum sequence mode' : 'Note sequence mode'
       );
+    },
+    seq_drumlane_move: () => {
+      const laneIndex = parseInt(actionParam1);
+      const direction = parseInt(actionParam2);
+      const lane = sequence.getDrumLane(laneIndex);
+      const length = lane.length;
+      const newSteps: (SeqStep | null)[] = new Array(length).fill(null);
+      
+      for (let i = 0; i < length; i++) {
+        const srcIndex = (i - direction + length) % length;
+        newSteps[i] = lane.steps[srcIndex];
+      }
+      
+      lane.steps = newSteps;
+      sequence.clearSelection();
+      updateValuesForZone(zoneindex);
     }
   };
 
