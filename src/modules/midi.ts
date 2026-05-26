@@ -315,13 +315,19 @@ class MIDI {
           this.hasClock = false;
           if (this.bpmDetectedHandler) this.bpmDetectedHandler(null);
         }, 500);
-        if (this.deviceIdInClock !== MIDI.INTERNAL_PORT_ID && this.bpmDetectedHandler) {
+        if (
+          this.deviceIdInClock !== MIDI.INTERNAL_PORT_ID &&
+          this.bpmDetectedHandler
+        ) {
           this._bpmTimestamps.push(event.timeStamp);
           if (this._bpmTimestamps.length > 97) {
             this._bpmTimestamps.shift();
           }
           this._bpmTicksSinceUpdate++;
-          if (this._bpmTicksSinceUpdate >= 24 && this._bpmTimestamps.length >= 2) {
+          if (
+            this._bpmTicksSinceUpdate >= 24 &&
+            this._bpmTimestamps.length >= 2
+          ) {
             this._bpmTicksSinceUpdate = 0;
             const n = this._bpmTimestamps.length - 1;
             const avgMs = (this._bpmTimestamps[n] - this._bpmTimestamps[0]) / n;
@@ -376,7 +382,11 @@ class MIDI {
     if (this.zoneInputPorts.has(portId)) {
       // Port has per-zone subscribers: pass all channels, app.ts filters per-zone
       this.eventHandler(event);
-    } else if (portDef && portDef.isSelected && (portDef.allChannels || portDef.ch === channel)) {
+    } else if (
+      portDef &&
+      portDef.isSelected &&
+      (portDef.allChannels || portDef.ch === channel)
+    ) {
       this.eventHandler(event);
     }
   }
@@ -462,7 +472,6 @@ class MIDI {
       if (deviceOut) {
         deviceOut.send(msg, timestamp);
       } else if (!this._warnedMissingPorts.has(portId)) {
-        console.warn(`MIDI.send(): port "${portId}" not found — device disconnected?`);
         this._warnedMissingPorts.add(portId);
       }
     }
