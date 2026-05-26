@@ -108,19 +108,13 @@ export function getHTML(zone: ZoneType, zoneindex: number): string {
             <div class="val"><input type="number" min="0" max="127" title="Note number" value="${36 + ln}" data-change="${index}:seq_drumlane_note:${ln}"/></div>
             <div class="lane-ctrl-label">Len</div>
             <div class="val lane-len-wrap"><input type="number" class="lane-steps" min="1" max="${Sequence.MAX_STEPS_DRUMS}" value="16" title="Steps in lane" data-change="${index}:seq_drum_lane_steps:${ln}" tabindex="-1"/></div>
-            <div class="lane-euc-wrap">
-              <div class="action lane-euc-btn" data-action="${index}:seq_toggle_lane_euclid:${ln}" title="Euclidean fill">Euclid</div>
+            <div class="lane-toolbar">
+              <span class="action lane-shift-left" data-action="${index}:seq_drumlane_move:${ln}:-1" title="Shift lane left">‹</span>
+              <span class="action lane-shift-right" data-action="${index}:seq_drumlane_move:${ln}:1" title="Shift lane right">›</span>
+              <span class="action lane-euc-btn" data-action="${index}:seq_toggle_lane_euclid:${ln}" title="Euclidean fill">E</span>
               <div class="euc-panel">
                 <input class="euc-hits" type="range" min="1" max="32" value="4" data-change="${index}:seq_euclid_lane:${ln}"/>
                 <span class="euc-val">4</span>
-              </div>
-            </div>
-            <div class="lane-shift-wrap">
-              <div class="action lane-shift-left" data-action="${index}:seq_drumlane_move:${ln}:-1" title="Shift lane left">
-                <i class="material-icons">chevron_left</i>
-              </div>
-              <div class="action lane-shift-right" data-action="${index}:seq_drumlane_move:${ln}:1" title="Shift lane right">
-                <i class="material-icons">chevron_right</i>
               </div>
             </div>
           </div>

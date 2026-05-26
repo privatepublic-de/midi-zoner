@@ -2326,6 +2326,49 @@ input::-webkit-inner-spin-button {
   .drum-lane.disabled {
     opacity: 0.33;
   }
+  /* Lane toolbar - groups shift and euclidean controls */
+  .lane-toolbar {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: 4px;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .lane-toolbar .action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+    padding: 0;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .lane-toolbar .action:hover {
+    opacity: 0.8;
+  }
+  .lane-toolbar .action:active {
+    opacity: 1;
+  }
+  /* Shift buttons */
+  .lane-shift-left,
+  .lane-shift-right {
+    font-family: inherit;
+  }
+  /* Euclidean in toolbar - override existing */
+  .lane-toolbar .lane-euc-btn {
+    opacity: 0.5;
+  }
+  .lane-toolbar .lane-euc-btn:hover {
+    opacity: 0.8;
+  }
+  .drum-lane.euc-open .lane-toolbar .lane-euc-btn {
+    opacity: 1;
+    color: var(--accent-color, #f90);
+  }
   .hide-for-drumsequence {
     visibility: hidden;
   }
@@ -2406,24 +2449,12 @@ input::-webkit-inner-spin-button {
   opacity: 0.2;
 }
 
-/* Euclidean fill button and panel */
-.lane-euc-wrap {
-  position: relative;
-  flex-shrink: 0;
-}
-.drum-lane .lane-euc-btn {
-  opacity: 0.5;
-}
-.drum-lane.euc-open .lane-euc-btn {
-  opacity: 1;
-  color: var(--accent-color, #f90);
-}
+/* Euclidean panel - now inside lane-toolbar */
 .euc-panel {
   display: none;
   position: absolute;
   left: 100%;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 0;
   align-items: center;
   gap: 6px;
   padding: 3px 8px;
