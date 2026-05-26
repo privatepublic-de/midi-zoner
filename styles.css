@@ -2291,15 +2291,17 @@ input::-webkit-inner-spin-button {
     display: flex;
     align-items: center;
     gap: 4px;
-    max-height: 0;
+    height: 0;
+    min-height: 0;
     opacity: 0;
     overflow: hidden;
-    transition: max-height 0.2s ease-out, opacity 0.15s ease-out;
+    transition: height 0.2s ease-out, opacity 0.15s ease-out;
   }
   &.lanes-expanded .lane-controls-ext {
-    max-height: 28px;
+    height: 28px;
+    min-height: 0;
     opacity: 1;
-    transition: max-height 0.3s ease-in, opacity 0.2s ease-in 0.1s;
+    transition: height 0.3s ease-in, opacity 0.2s ease-in 0.1s;
   }
   .lane-label {
     width: 36px;
