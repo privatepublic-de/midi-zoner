@@ -2286,6 +2286,7 @@ input::-webkit-inner-spin-button {
     gap: 4px;
     flex-shrink: 0;
     padding-right: 6px;
+    min-height: 20px;
   }
   .lane-controls-ext {
     display: flex;
@@ -2300,19 +2301,21 @@ input::-webkit-inner-spin-button {
   }
   &.lanes-expanded .lane-controls-ext {
     width: auto;
-    height: 28px;
+    height: 20px;
     min-height: 0;
     opacity: 1;
     transition: width 0.3s ease-in, height 0.3s ease-in, opacity 0.2s ease-in 0.1s;
   }
   .lane-label {
     width: 36px;
+    height: 18px;
+    line-height: 18px;
     background: transparent;
     border: none;
     border-bottom: 1px solid var(--brighter-1);
     color: inherit;
     font-size: 10px;
-    padding: 1px 2px;
+    padding: 0 2px;
     outline: none;
     font-family: inherit;
   }
