@@ -600,7 +600,8 @@ input:focus-visible {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-top: 4px;
+  padding: 0 8px;
+  margin-bottom: 4px;
 }
 
 .zone .check input[type='number'] {
@@ -1678,6 +1679,10 @@ li {
   background-color: transparent;
 }
 
+.zone.disabled .swing-settings {
+  display: none;
+}
+
 .seqtools {
   display: flex;
   gap: 8px;
@@ -2411,6 +2416,9 @@ input::-webkit-inner-spin-button {
   .drum-lane.euc-open .lane-toolbar .lane-euc-btn {
     opacity: 1;
     color: var(--accent-color, #f90);
+  }
+  .drum-lane.euc-open .lane-controls-ext {
+    overflow: visible;
   }
   .hide-for-drumsequence {
     visibility: hidden;

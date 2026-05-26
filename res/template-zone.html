@@ -117,6 +117,23 @@
     class="seq shadowed-zone-block"
     data-contextmenu="${index}:seq_copy,${index}:seq_paste,-,${index}:seq_clear_all"
   >
+    <!-- Swing settings line -->
+    <div class="swing-settings">
+      <div class="label">Swing</div>
+      <div class="percent-holder">
+        <input
+          type="range"
+          class="percent swing-amount"
+          data-change="${index}:zone_swing_amount"
+          id="swing_amount_seq${index}"
+          min="0"
+          max="100"
+          value="0"
+          tabindex="-1"
+        />
+        <output for="swing_amount_seq${index}">---</output>
+      </div>
+    </div>
     <div class="grid">
       <div class="step-container">${sequencerGrid}</div>
       <div class="drum-step-container">${drumLanes}</div>
@@ -247,23 +264,6 @@
         data-action="${index}:seq_drum_tracks"
         title="Toggle sequencer mode"
       ></div>
-    </div>
-    <!-- Swing settings line -->
-    <div class="swing-settings">
-      <div class="label">Swing</div>
-      <div class="percent-holder">
-        <input
-          type="range"
-          class="percent swing-amount"
-          data-change="${index}:zone_swing_amount"
-          id="swing_amount_seq${index}"
-          min="0"
-          max="100"
-          value="0"
-          tabindex="-1"
-        />
-        <output for="swing_amount_seq${index}">---</output>
-      </div>
     </div>
     <div class="step-info popup" data-action="${index}:ignore">
       <div class="step-controls">
