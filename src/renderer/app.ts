@@ -506,7 +506,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       });
     },
-    clockHandler: (pos: number) => {
+    clockHandler: (pos: number, tickIntervalMs: number) => {
       if (zones.nextArrangementIndex !== zones.arrangementIndex) {
         Sequence.QUANT_TICK_N = pos % Sequence.QUANT_TICKS;
         if (Sequence.QUANT_TICK_N === 0) {
@@ -522,7 +522,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       }
       for (let i = 0; i < zones.list.length; i++) {
-        zones.list[i].clock(pos);
+        zones.list[i].clock(pos, tickIntervalMs);
       }
     },
     transportHandler: (started: boolean) => {

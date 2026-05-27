@@ -23,7 +23,7 @@ interface MIDIHandlers {
     msg?: string
   ) => void;
   eventHandler: (event: MIDIMessageEvent) => void;
-  clockHandler?: (pos: number) => void;
+  clockHandler?: (pos: number, tickIntervalMs: number) => void;
   transportHandler?: (started: boolean) => void;
   panicHandler?: () => void;
   updateClockReceiverHandler?: (outputs: PortDescriptor[]) => void;
@@ -78,7 +78,7 @@ class MIDI {
   eventHandler: (event: MIDIMessageEvent) => void;
   transportHandler?: (started: boolean) => void;
   updateClockReceiverHandler?: (outputs: PortDescriptor[]) => void;
-  clockHandler?: (pos: number) => void;
+  clockHandler?: (pos: number, tickIntervalMs: number) => void;
   midiAccess: MIDIAccess | null = null;
   deviceIdInClock: string | null;
   deviceInClock: MIDIInput | null = null;
@@ -94,10 +94,12 @@ class MIDI {
   sendClockIfPlaying = false;
   detectedBpm: number | null = null;
   bpmDetectedHandler: ((bpm: number | null) => void) | null = null;
+  currentTickIntervalMs: number = 60000 / 120 / 24;
   private _warnedMissingPorts = new Set<string>();
   private _clockLostTimeout: ReturnType<typeof setTimeout> | null = null;
   private _bpmTimestamps: number[] = [];
   private _bpmTicksSinceUpdate = 0;
+  private _recentTickTimestamps: number[] = [];
 
   constructor({
     completeHandler,
@@ -308,6 +310,9 @@ class MIDI {
         midiMessage === MIDI.MESSAGE.CONTINUE ||
         midiMessage === MIDI.MESSAGE.STOP)
     ) {
+      // Computed once and shared by the rolling-average update and the clockHandler call
+      let tickTimestamp = 0;
+
       if (midiMessage === MIDI.MESSAGE.CLOCK) {
         this.hasClock = true;
         clearTimeout(this._clockLostTimeout!);
@@ -315,6 +320,17 @@ class MIDI {
           this.hasClock = false;
           if (this.bpmDetectedHandler) this.bpmDetectedHandler(null);
         }, 500);
+
+        // Tick timestamp in performance.now() domain for the rolling-average tick interval
+        tickTimestamp = (event as { timestamp?: number }).timestamp ?? event.timeStamp;
+        this._recentTickTimestamps.push(tickTimestamp);
+        if (this._recentTickTimestamps.length > 4) this._recentTickTimestamps.shift();
+        if (this._recentTickTimestamps.length >= 2) {
+          const n = this._recentTickTimestamps.length - 1;
+          this.currentTickIntervalMs =
+            (this._recentTickTimestamps[n] - this._recentTickTimestamps[0]) / n;
+        }
+
         if (
           this.deviceIdInClock !== MIDI.INTERNAL_PORT_ID &&
           this.bpmDetectedHandler
@@ -372,7 +388,7 @@ class MIDI {
         this.clockHandler &&
         midiMessage === MIDI.MESSAGE.CLOCK
       ) {
-        this.clockHandler(this.songposition);
+        this.clockHandler(this.songposition, this.currentTickIntervalMs);
         this.songposition++;
       }
     }
@@ -396,6 +412,7 @@ class MIDI {
     if (deviceIdInClock !== this.deviceIdInClock) {
       this._bpmTimestamps = [];
       this._bpmTicksSinceUpdate = 0;
+      this._recentTickTimestamps = [];
       this.detectedBpm = null;
       if (this.bpmDetectedHandler) this.bpmDetectedHandler(null);
     }

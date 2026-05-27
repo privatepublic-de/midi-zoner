@@ -61,15 +61,15 @@ export class Sequence {
   private readonly _midiMsgBuf = new Uint8Array(3);
   private rngProb = mulberry32();
   currentPos = 0; // Track current clock position for swing timing
-  // Swing pending steps
+  // Swing pending steps (fireAtMs is a performance.now() timestamp)
   private swingPendingDrumSteps: {
     laneIndex: number;
     stepIndex: number;
-    fireAtPos: number;
+    fireAtMs: number;
   }[] = [];
   private swingPendingRegularSteps: {
     stepIndex: number;
-    fireAtPos: number;
+    fireAtMs: number;
   }[] = [];
   cycleCount = -1;
   previousStepPlayed = false;
@@ -347,17 +347,15 @@ export class Sequence {
     });
   }
 
-  clock(pos: number): void {
+  clock(pos: number, tickIntervalMs: number): void {
     this.currentPos = pos;
     this.tickn = pos % this.ticks;
-    
+
     // Process pending swung steps first (before ratchet processing)
-    if (this.zone.swingAmount > 0) {
-      if (this.isDrumSequence) {
-        this.processPendingSwingDrumSteps(pos);
-      } else {
-        this.processPendingSwingRegularSteps(pos);
-      }
+    if (this.isDrumSequence) {
+      this.processPendingSwingDrumSteps();
+    } else {
+      this.processPendingSwingRegularSteps();
     }
     
     if (this.ratchetQueue.length > 0) {
@@ -416,9 +414,9 @@ export class Sequence {
       }
       if (this.active) {
         if (this.isDrumSequence) {
-          this.processDrumSequenceStep(pos);
+          this.processDrumSequenceStep(tickIntervalMs);
         } else {
-          this.processRegularSequenceStep(pos);
+          this.processRegularSequenceStep(tickIntervalMs);
         }
       }
       requestAnimationFrame(this.zone._renderSequenceBound);
@@ -428,7 +426,7 @@ export class Sequence {
   /**
    * Process drum sequence steps at step boundary
    */
-  private processDrumSequenceStep(pos: number): void {
+  private processDrumSequenceStep(tickIntervalMs: number): void {
     const soloCount = this.getDrumLaneSoloCount();
     for (let ln = 0; ln < this.drumLanes; ln++) {
       const lane = this.getDrumLane(ln);
@@ -458,12 +456,12 @@ export class Sequence {
       if (!shouldPlay) continue;
 
       if (this.zone.swingAmount > 0) {
-        const swingOffset = this.calculateSwingOffset(lane.currentStep);
-        if (swingOffset > 0) {
+        const swingOffsetMs = this.calculateSwingOffsetMs(lane.currentStep, tickIntervalMs);
+        if (swingOffsetMs > 0) {
           this.swingPendingDrumSteps.push({
             laneIndex: ln,
             stepIndex: lane.currentStep,
-            fireAtPos: pos + swingOffset
+            fireAtMs: performance.now() + swingOffsetMs
           });
           continue;
         }
@@ -475,7 +473,7 @@ export class Sequence {
   /**
    * Process regular sequence steps at step boundary
    */
-  private processRegularSequenceStep(pos: number): void {
+  private processRegularSequenceStep(tickIntervalMs: number): void {
     const currentStep = this.steps[this.currentStepNumber];
     if (!currentStep) return;
 
@@ -486,11 +484,11 @@ export class Sequence {
     if (!shouldPlay) return;
 
     if (this.zone.swingAmount > 0) {
-      const swingOffset = this.calculateSwingOffset(this.currentStepNumber);
-      if (swingOffset > 0) {
+      const swingOffsetMs = this.calculateSwingOffsetMs(this.currentStepNumber, tickIntervalMs);
+      if (swingOffsetMs > 0) {
         this.swingPendingRegularSteps.push({
           stepIndex: this.currentStepNumber,
-          fireAtPos: pos + swingOffset
+          fireAtMs: performance.now() + swingOffsetMs
         });
         return;
       }
@@ -519,6 +517,8 @@ export class Sequence {
       }
     }
     this.ratchetQueue.length = 0;
+    this.swingPendingDrumSteps.length = 0;
+    this.swingPendingRegularSteps.length = 0;
     this.currentStepNumber = this.previousStepNumber = -1;
     this.drum_lanes.forEach((lane) => {
       if (lane) {
@@ -651,44 +651,37 @@ export class Sequence {
   // ========== SWING METHODS ==========
 
   /**
-   * Calculate swing offset in ticks for a given step index
-   * Off-beat steps (1, 3, 5...) are delayed based on swingAmount
+   * Calculate swing delay in milliseconds for a given step index.
+   * Off-beat steps (1, 3, 5...) are delayed; on-beat steps return 0.
    */
-  private calculateSwingOffset(stepIndex: number): number {
-    // stepIndex 0, 2, 4, 6... = on-beat (no swing)
-    // stepIndex 1, 3, 5, 7... = off-beat (swing applied)
-    if (stepIndex % 2 === 0) {
-      return 0; // On-beat, no swing
-    }
-
-    // Off-beat: calculate delay in ticks
-    // swingAmount of 0.5 = 50% swing (16th triplet feel)
-    const ticksPerStep = this.ticks;
-    const offset = this.zone.swingAmount * ticksPerStep * 0.5;
-    return Math.floor(offset);
+  private calculateSwingOffsetMs(stepIndex: number, tickIntervalMs: number): number {
+    if (stepIndex % 2 === 0) return 0;
+    return this.zone.swingAmount * this.ticks * 0.5 * tickIntervalMs;
   }
 
   /**
-   * Process any pending drum steps that should fire at the current position
+   * Fire any pending drum steps whose scheduled wall-clock time has arrived.
    */
-  private processPendingSwingDrumSteps(pos: number): void {
+  private processPendingSwingDrumSteps(): void {
+    const now = performance.now();
     for (let i = this.swingPendingDrumSteps.length - 1; i >= 0; i--) {
       const pending = this.swingPendingDrumSteps[i];
-      if (pos >= pending.fireAtPos) {
-        this.playDrumStep(pending.laneIndex, pending.stepIndex);
+      if (now >= pending.fireAtMs) {
+        this.playDrumStep(pending.laneIndex, pending.stepIndex, pending.fireAtMs);
         this.swingPendingDrumSteps.splice(i, 1);
       }
     }
   }
 
   /**
-   * Process any pending regular sequence steps that should fire at the current position
+   * Fire any pending regular steps whose scheduled wall-clock time has arrived.
    */
-  private processPendingSwingRegularSteps(pos: number): void {
+  private processPendingSwingRegularSteps(): void {
+    const now = performance.now();
     for (let i = this.swingPendingRegularSteps.length - 1; i >= 0; i--) {
       const pending = this.swingPendingRegularSteps[i];
-      if (pos >= pending.fireAtPos) {
-        this.playRegularStep(pending.stepIndex);
+      if (now >= pending.fireAtMs) {
+        this.playRegularStep(pending.stepIndex, pending.fireAtMs);
         this.swingPendingRegularSteps.splice(i, 1);
       }
     }
@@ -696,8 +689,9 @@ export class Sequence {
 
   /**
    * Play a drum step unconditionally (condition/probability already evaluated at boundary).
+   * timestamp, when provided, is forwarded to Web MIDI for hardware-precise scheduling.
    */
-  private playDrumStep(laneIndex: number, stepIndex: number): void {
+  private playDrumStep(laneIndex: number, stepIndex: number, timestamp?: number): void {
     const lane = this.getDrumLane(laneIndex);
     if (!lane || !lane.enabled) return;
 
@@ -722,7 +716,7 @@ export class Sequence {
           this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + hitNote.channel;
           this._midiMsgBuf[1] = hitNote.number;
           this._midiMsgBuf[2] = hitNote.velo;
-          this.zone.handleMidi(MIDI.MESSAGE.NOTE_ON, this._midiMsgBuf, true);
+          this.zone.handleMidi(MIDI.MESSAGE.NOTE_ON, this._midiMsgBuf, true, timestamp);
           this.ratchetQueue.push({ note: hitNote, noteOnPos: -1, noteOffPos: this.currentPos + gateLen });
         } else {
           const firePos = this.currentPos + hitIdx * ratchetRes;
@@ -739,15 +733,16 @@ export class Sequence {
       this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + note.channel;
       this._midiMsgBuf[1] = note.number;
       this._midiMsgBuf[2] = note.velo;
-      this.zone.handleMidi(MIDI.MESSAGE.NOTE_ON, this._midiMsgBuf, true);
+      this.zone.handleMidi(MIDI.MESSAGE.NOTE_ON, this._midiMsgBuf, true, timestamp);
       step.lastPlayedArray.push(note);
     }
   }
 
   /**
    * Play a regular sequence step unconditionally (condition/probability already evaluated at boundary).
+   * timestamp, when provided, is forwarded to Web MIDI for hardware-precise scheduling.
    */
-  private playRegularStep(stepIndex: number): void {
+  private playRegularStep(stepIndex: number, timestamp?: number): void {
     const step = this.steps[stepIndex];
     if (!step) return;
     step.played = 0;
@@ -759,7 +754,7 @@ export class Sequence {
       this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + note.channel;
       this._midiMsgBuf[1] = note.number;
       this._midiMsgBuf[2] = note.velo;
-      this.zone.handleMidi(MIDI.MESSAGE.NOTE_ON, this._midiMsgBuf, true);
+      this.zone.handleMidi(MIDI.MESSAGE.NOTE_ON, this._midiMsgBuf, true, timestamp);
       step.lastPlayedArray.push(note);
     }
   }

@@ -129,10 +129,11 @@ export class Zone {
     beat: false,
     octave: 0
   };
-  // Arpeggiator swing pending pattern positions
+  // Arpeggiator swing pending pattern positions (fireAtMs is a performance.now() timestamp)
   private arpSwingPending: {
     patternPos: number;
-    fireAtPos: number;
+    fireAtMs: number;
+    probable: boolean;
   }[] = [];
   activeNotes: Note[] = [];
   midiActiveNotes: (Note | null)[] = [];
@@ -392,7 +393,8 @@ export class Zone {
   handleMidi(
     message: number,
     data: Uint8Array,
-    fromSequencer?: boolean
+    fromSequencer?: boolean,
+    timestamp?: number
   ): string | void {
     if (this.shouldHandleMidi(message, fromSequencer)) {
       const fromMidiInput = !fromSequencer;
@@ -432,7 +434,7 @@ export class Zone {
                   outevent[0] = message + this.channel;
                   outevent[1] = key;
                   outevent[2] = velo;
-                  this.midi.send(outevent, this.outputPortId);
+                  this.midi.send(outevent, this.outputPortId, timestamp);
                 }
                 const playNote = new Note(
                   key,
@@ -798,14 +800,12 @@ export class Zone {
     }
   }
 
-  clock(pos: number): void {
-    this.sequence.clock(pos);
-    
-    // Process pending swung arpeggiator notes
-    if (this.swingAmount > 0) {
-      this.processArpSwingPending(pos);
-    }
-    
+  clock(pos: number, tickIntervalMs: number): void {
+    this.sequence.clock(pos, tickIntervalMs);
+
+    // Drain pending swung arpeggiator notes
+    this.processArpSwingPending();
+
     const tickn = pos % this.arp_ticks;
     const offtick = Math.min(
       this.arp_ticks * this.arp_gatelength,
@@ -814,25 +814,24 @@ export class Zone {
     if (tickn === 0) {
       const probable = this.rngProb() < this.arp_probability;
       this.arp.patternPos = (this.arp.patternPos + 1) % this.arp_pattern.length;
-      
+
       // Check if this arp pattern position should swing
       if (this.swingAmount > 0 && this.arp_enabled && this.arp_pattern[this.arp.patternPos]) {
-        const swingOffset = this.calculateArpSwingOffset(this.arp.patternPos);
-        if (swingOffset > 0) {
-          // Schedule this arp pattern position to fire later
+        const swingOffsetMs = this.calculateArpSwingOffsetMs(this.arp.patternPos, tickIntervalMs);
+        if (swingOffsetMs > 0) {
           this.arpSwingPending.push({
             patternPos: this.arp.patternPos,
-            fireAtPos: pos + swingOffset
+            fireAtMs: performance.now() + swingOffsetMs,
+            probable
           });
-          // Don't trigger now
           requestAnimationFrame(this._renderPatternBound);
           return;
         }
       }
-      
+
       // Normal arpeggiator processing (not swung)
       if (this.arp_enabled && this.arp_pattern[this.arp.patternPos]) {
-        this.triggerArpAtPatternPos(pos, probable);
+        this.triggerArpAtPatternPos(probable);
       }
       requestAnimationFrame(this._renderPatternBound);
     } else if (tickn >= offtick) {
@@ -842,40 +841,33 @@ export class Zone {
   }
 
   /**
-   * Calculate swing offset for arpeggiator pattern position
+   * Calculate swing delay in milliseconds for an arpeggiator pattern position.
+   * Off-beat positions (1, 3, 5...) are delayed; on-beat positions return 0.
    */
-  private calculateArpSwingOffset(patternPos: number): number {
-    // patternPos 0, 2, 4, 6... = on-beat (no swing)
-    // patternPos 1, 3, 5, 7... = off-beat (swing applied)
-    if (patternPos % 2 === 0) {
-      return 0; // On-beat, no swing
-    }
-    
-    // Off-beat: calculate delay in ticks
-    const ticksPerArpStep = this.arp_ticks; // From DIV_TICKS
-    const offset = this.swingAmount * ticksPerArpStep * 0.5;
-    return Math.floor(offset);
+  private calculateArpSwingOffsetMs(patternPos: number, tickIntervalMs: number): number {
+    if (patternPos % 2 === 0) return 0;
+    return this.swingAmount * this.arp_ticks * 0.5 * tickIntervalMs;
   }
 
   /**
-   * Process pending swung arpeggiator notes
+   * Fire any pending swung arpeggiator notes whose scheduled wall-clock time has arrived.
    */
-  private processArpSwingPending(pos: number): void {
+  private processArpSwingPending(): void {
+    const now = performance.now();
     for (let i = this.arpSwingPending.length - 1; i >= 0; i--) {
       const pending = this.arpSwingPending[i];
-      if (pos >= pending.fireAtPos) {
-        const probable = this.rngProb() < this.arp_probability;
-        this.triggerArpAtPatternPos(pos, probable);
+      if (now >= pending.fireAtMs) {
+        this.triggerArpAtPatternPos(pending.probable, pending.fireAtMs);
         this.arpSwingPending.splice(i, 1);
       }
     }
   }
 
   /**
-   * Trigger arpeggiator note at a specific pattern position
-   * Called both for normal timing and for swung timing
+   * Trigger arpeggiator note at a specific pattern position.
+   * timestamp, when provided, is forwarded to Web MIDI for hardware-precise scheduling.
    */
-  private triggerArpAtPatternPos(pos: number, probable: boolean): void {
+  private triggerArpAtPatternPos(probable: boolean, timestamp?: number): void {
     this.arp.beat = true;
     const notes: Note[] = this.arp_hold
       ? (this.arp_direction > 2 ? this.arp_holdlist : this.arp_sortedHoldList)
@@ -959,7 +951,7 @@ export class Zone {
         this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + this.channel;
         this._midiMsgBuf[1] = note.number;
         this._midiMsgBuf[2] = this.fixedvel ? this.fixedvel_value || 127 : note.velo;
-        this.midi.send(this._midiMsgBuf, this.outputPortId);
+        this.midi.send(this._midiMsgBuf, this.outputPortId, timestamp);
       }
     }
     this.arp.repeattrig = !this.arp.repeattrig;
@@ -985,6 +977,7 @@ export class Zone {
     this.arp.repeattrig = false;
     this.arp.inc = 1;
     this.arp.octave = 0;
+    this.arpSwingPending.length = 0;
     this.arpNoteOff();
     this.sequence.stopped();
     requestAnimationFrame(this._renderPatternBound);
