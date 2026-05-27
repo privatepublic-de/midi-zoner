@@ -112,7 +112,7 @@ export function getHTML(zone: ZoneType, zoneindex: number): string {
               <span class="action lane-shift-left" data-action="${index}:seq_drumlane_move:${ln}:-1" title="Shift lane left">‹</span>
               <span class="action lane-shift-right" data-action="${index}:seq_drumlane_move:${ln}:1" title="Shift lane right">›</span>
               <span class="action lane-euc-btn" data-action="${index}:seq_toggle_lane_euclid:${ln}" title="Euclidean fill">E</span>
-              <div class="euc-panel">
+              <div class="euc-panel hideonleave">
                 <input class="euc-hits" type="range" min="1" max="32" value="4" data-change="${index}:seq_euclid_lane:${ln}"/>
                 <span class="euc-val">4</span>
               </div>

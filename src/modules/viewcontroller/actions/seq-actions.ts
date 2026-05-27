@@ -102,14 +102,27 @@ export function createSeqActions(
     seq_toggle_lane_euclid: () => {
       const laneNo = parseInt(actionParam1);
       const laneEl = zone.elements.get(`.lane${laneNo}`);
-      laneEl?.classList.toggle('euc-open');
-      const hitsInput = zone.elements.get(`.lane${laneNo} .euc-hits`) as HTMLInputElement | null;
-      if (hitsInput) {
-        const laneLen = sequence.getDrumLane(laneNo).length;
-        hitsInput.max = String(laneLen);
-        hitsInput.value = String(Math.min(parseInt(hitsInput.value), laneLen));
-        const valDisplay = zone.elements.get(`.lane${laneNo} .euc-val`) as HTMLElement | null;
-        if (valDisplay) valDisplay.textContent = hitsInput.value;
+      const eucPanel = zone.elements.get(`.lane${laneNo} .euc-panel`) as HTMLElement | null;
+      if (!eucPanel || !laneEl) return;
+      const isOpen = eucPanel.style.display === 'flex';
+      if (isOpen) {
+        eucPanel.style.display = 'none';
+        laneEl.classList.remove('euc-open');
+      } else {
+        document.querySelectorAll('.euc-panel').forEach((p) => {
+          (p as HTMLElement).style.display = 'none';
+          p.closest('.drum-lane')?.classList.remove('euc-open');
+        });
+        const hitsInput = eucPanel.querySelector('.euc-hits') as HTMLInputElement | null;
+        if (hitsInput) {
+          const laneLen = sequence.getDrumLane(laneNo).length;
+          hitsInput.max = String(laneLen);
+          hitsInput.value = String(Math.min(parseInt(hitsInput.value), laneLen));
+          const valDisplay = eucPanel.querySelector('.euc-val') as HTMLElement | null;
+          if (valDisplay) valDisplay.textContent = hitsInput.value;
+        }
+        eucPanel.style.display = 'flex';
+        laneEl.classList.add('euc-open');
       }
     },
     seq_euclid_lane: () => {

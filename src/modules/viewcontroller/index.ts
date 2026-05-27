@@ -580,6 +580,7 @@ function appendZone(zone: ZoneType, index: number): void {
       }
       hideOnLeaveTimeout = setTimeout(() => {
         (this as HTMLElement).style.display = 'none';
+        (this as HTMLElement).closest('.drum-lane')?.classList.remove('euc-open');
       }, 667);
     });
     e.addEventListener('mousemove', function () {
