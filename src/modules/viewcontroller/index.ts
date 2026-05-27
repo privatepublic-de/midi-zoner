@@ -44,7 +44,8 @@ const contextMenuActionLabel: Record<string, string> = {
   seq_copy: '<i class="material-icons">content_copy</i> Copy sequence',
   seq_paste: '<i class="material-icons">content_paste</i> Paste sequence',
   seq_copy_lane: '<i class="material-icons">content_copy</i> Copy lane pattern',
-  seq_paste_lane: '<i class="material-icons">content_paste</i> Paste lane pattern',
+  seq_paste_lane:
+    '<i class="material-icons">content_paste</i> Paste lane pattern',
   cc_edit: '<i class="material-icons">edit</i> Edit CC controllers',
   cc_send_all: '<i class="material-icons">double_arrow</i> Send all CC values',
   step_copy_length: 'Step length',
@@ -462,9 +463,13 @@ function appendZone(zone: ZoneType, index: number): void {
   });
 
   // MIDI learn for drum lane note inputs
-  DOM.all(`#zone${index} input[data-change^="${index}:seq_drumlane_note:"]`).forEach((e) => {
+  DOM.all(
+    `#zone${index} input[data-change^="${index}:seq_drumlane_note:"]`
+  ).forEach((e) => {
     e.addEventListener('focus', (ev) => {
-      const laneIndex = parseInt((ev.target as HTMLInputElement).dataset.change?.split(':')[2] || '-1');
+      const laneIndex = parseInt(
+        (ev.target as HTMLInputElement).dataset.change?.split(':')[2] || '-1'
+      );
       if (laneIndex >= 0) {
         zone.midiLearnDrumLaneIndex = laneIndex;
         (ev.target as HTMLInputElement).classList.add('midi-learn-active');
@@ -539,7 +544,9 @@ function appendZone(zone: ZoneType, index: number): void {
     e.addEventListener('mouseleave', hoverOutHandler as EventListener);
     e.addEventListener('dblclick', dblClickHandler as EventListener);
   });
-  DOM.all(`#zone${index} input[type="text"],#zone${index} input[type="number"]`).forEach((e) => {
+  DOM.all(
+    `#zone${index} input[type="text"],#zone${index} input[type="number"]`
+  ).forEach((e) => {
     e.addEventListener('keyup', function (this: HTMLElement, event) {
       if ((event as KeyboardEvent).keyCode === 13) {
         event.preventDefault();
@@ -728,7 +735,8 @@ function updateValuesForZone(index: number): void {
           const laneStepsEl = zone.elements.get(
             `input[data-change="${index}:seq_drum_lane_steps:${laneIndex}"]`
           ) as HTMLInputElement | null;
-          if (laneStepsEl) laneStepsEl.value = String(lane.length ?? sequence.length);
+          if (laneStepsEl)
+            laneStepsEl.value = String(lane.length ?? sequence.length);
           const laneLabelEl = zone.elements.get(
             `input[data-change="${index}:seq_drum_lane_label:${laneIndex}"]`
           ) as HTMLInputElement | null;
@@ -740,7 +748,10 @@ function updateValuesForZone(index: number): void {
           ) {
             const stepElement =
               zone.elements.sequencerDrumLanes![laneIndex][stepIndex];
-            if (stepIndex < (lane.length ?? sequence.length) && laneIndex < sequence.drumLanes) {
+            if (
+              stepIndex < (lane.length ?? sequence.length) &&
+              laneIndex < sequence.drumLanes
+            ) {
               DOM.removeClass(stepElement, 'unused');
               const step = lane.steps[stepIndex];
               if (step != null) {
@@ -834,20 +845,31 @@ function updateValuesForZone(index: number): void {
           (zone._$('.seq_step_length') as HTMLInputElement).value = String(
             step.length
           );
-          const ratchetCountEl = zone._$('.seq_step_ratchet_count') as HTMLInputElement | null;
+          const ratchetCountEl = zone._$(
+            '.seq_step_ratchet_count'
+          ) as HTMLInputElement | null;
           if (ratchetCountEl) {
             const countVal = step.ratchetCount ?? 1;
             ratchetCountEl.value = String(countVal);
-            const countOut = ratchetCountEl.parentElement?.querySelector(`output[for="${ratchetCountEl.id}"]`) as HTMLOutputElement | null;
+            const countOut = ratchetCountEl.parentElement?.querySelector(
+              `output[for="${ratchetCountEl.id}"]`
+            ) as HTMLOutputElement | null;
             if (countOut) countOut.value = String(countVal);
           }
-          const ratchetDeltaEl = zone._$('.seq_step_ratchet_delta') as HTMLInputElement | null;
-          if (ratchetDeltaEl) ratchetDeltaEl.value = String(step.ratchetVelocityDelta ?? 0);
-          const ratchetResEl = zone._$('.seq_step_ratchet_res') as HTMLInputElement | null;
+          const ratchetDeltaEl = zone._$(
+            '.seq_step_ratchet_delta'
+          ) as HTMLInputElement | null;
+          if (ratchetDeltaEl)
+            ratchetDeltaEl.value = String(step.ratchetVelocityDelta ?? 0);
+          const ratchetResEl = zone._$(
+            '.seq_step_ratchet_res'
+          ) as HTMLInputElement | null;
           if (ratchetResEl) {
             const resVal = step.ratchetResolution ?? 6;
             ratchetResEl.value = String(resVal);
-            const resOut = ratchetResEl.parentElement?.querySelector(`output[for="${ratchetResEl.id}"]`) as HTMLOutputElement | null;
+            const resOut = ratchetResEl.parentElement?.querySelector(
+              `output[for="${ratchetResEl.id}"]`
+            ) as HTMLOutputElement | null;
             if (resOut) resOut.value = ratchetResToLabel(resVal);
           }
         } else {
@@ -886,7 +908,9 @@ function updateValuesForZone(index: number): void {
         );
       }
       if (!sequence.isDrumSequence) {
-        (zone._$('.seq_steps') as HTMLInputElement).value = String(sequence.length);
+        (zone._$('.seq_steps') as HTMLInputElement).value = String(
+          sequence.length
+        );
       }
       zone.elements.setSelectedIndex('.seq_division', sequence.division);
     } else {
@@ -926,21 +950,27 @@ function updateValuesForZone(index: number): void {
       );
     });
     DOM.switchClass(zoneElement, zone.arp_enabled, 'arp-enabled');
-    
+
     // Update swing controls (in both arp block and seqtools)
-    const swingSliders = zone.elements.get('.swing-amount') as HTMLInputElement | null;
+    const swingSliders = zone.elements.get(
+      '.swing-amount'
+    ) as HTMLInputElement | null;
     if (swingSliders) {
       // There are two sliders with the same class, update all of them
       DOM.all(`#zone${index} .swing-amount`).forEach((el) => {
-        (el as HTMLInputElement).value = String(Math.round(zone.swingAmount * 100));
+        (el as HTMLInputElement).value = String(
+          Math.round(zone.swingAmount * 100)
+        );
         // Update the associated output element
-        const output = document.querySelector(`output[for="${(el as HTMLInputElement).id}"]`) as HTMLOutputElement;
+        const output = document.querySelector(
+          `output[for="${(el as HTMLInputElement).id}"]`
+        ) as HTMLOutputElement;
         if (output) {
-          output.value = String(Math.round(zone.swingAmount * 100));
+          output.value = String(Math.round(zone.swingAmount * 100)) + '%';
         }
       });
     }
-    
+
     zone.elements.octaveSelectors!.forEach((e) => {
       const parts = e.getAttribute('data-action')!.split(':');
       if (parts[2] == String(zone.octave)) {
@@ -988,7 +1018,9 @@ function updateValuesForZone(index: number): void {
     }
     const routingText = zone._$('.iorouting-text') as HTMLElement;
     if (routingText) {
-      const portnameEl = routingText.querySelector('.iorouting-portname') as HTMLElement;
+      const portnameEl = routingText.querySelector(
+        '.iorouting-portname'
+      ) as HTMLElement;
       const chEl = routingText.querySelector('.iorouting-ch') as HTMLElement;
       const isPreset = !!zones.outputConfigNames[zones.list[index].configId];
       const outPortName = nameField.value || nameField.placeholder || '';
