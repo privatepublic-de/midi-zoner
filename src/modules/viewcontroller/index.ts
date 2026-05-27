@@ -695,6 +695,9 @@ function updateValuesForZone(index: number): void {
         (zone.elements.get('.seq_lanes') as HTMLInputElement).value = String(
           sequence.drumLanes
         );
+        (zone.elements.get('.drum-step-container') as HTMLElement)?.style.setProperty(
+          '--drum-lanes', String(sequence.drumLanes)
+        );
         const drumLaneSoloCount = sequence.getDrumLaneSoloCount();
         for (
           let laneIndex = 0;

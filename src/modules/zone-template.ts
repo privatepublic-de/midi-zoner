@@ -118,7 +118,13 @@ export function getHTML(zone: ZoneType, zoneindex: number): string {
               </div>
             </div>
           </div>
-        </div>`;
+        </div>
+        <div class="lane-expand-toggle" data-action="${index}:seq_toggle_lanes_expand" title="Expand/collapse lane controls">${
+          ln === 0
+            ? '<span class="lane-expand-chevron"><span class="expand-arrow"></span></span>'
+            : ''
+        }</div>`;
+
     for (let i = 0; i < Sequence.MAX_STEPS_DRUMS; i++) {
       const stepId = Sequence.getIdForDrumStep(ln, i);
       drumLanes += `<div class="step" data-action="${index}:seq_drumstep_select:${stepId}" data-dblclickaction="${index}:seq_clear_step:${stepId}" data-dragselect="${stepId}">${

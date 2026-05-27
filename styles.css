@@ -2321,34 +2321,92 @@ input::-webkit-inner-spin-button {
     align-items: center;
     gap: 4px;
     flex-shrink: 0;
-    padding-right: 6px;
+    padding-right: 0;
     min-height: 20px;
   }
   .lane-controls-ext {
     display: flex;
     align-items: center;
     gap: 4px;
-    padding: 0 4px;
-    height: 0;
+    height: 20px;
     min-height: 0;
-    width: 0;
-    opacity: 0;
+    max-width: 0;
     overflow: hidden;
+    opacity: 0;
+    transform: translateX(-10px);
     transition:
-      width 0.2s ease-out,
-      height 0.2s ease-out,
-      opacity 0.15s ease-out;
+      max-width 0.22s ease-out,
+      opacity 0.17s ease-out,
+      transform 0.22s ease-out;
   }
   &.lanes-expanded .lane-controls-ext {
     background-color: var(--darker-2);
-    width: auto;
+    max-width: 300px;
     height: 20px;
     min-height: 0;
     opacity: 1;
+    transform: translateX(0);
+    padding: 0 4px;
     transition:
-      width 0.3s ease-in,
-      height 0.3s ease-in,
-      opacity 0.2s ease-in 0.1s;
+      max-width 0.28s ease-in,
+      opacity 0.22s ease-in 0.06s,
+      transform 0.26s ease-in;
+  }
+  .lane-expand-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    align-self: stretch;
+    flex-shrink: 0;
+    background: rgba(0, 0, 0, 0.12);
+    cursor: pointer;
+    opacity: 0.5;
+    transition:
+      background-color 0.15s,
+      color 0.15s,
+      opacity 0.15s;
+  }
+  .drum-lane.lane0 .lane-expand-toggle {
+    position: relative;
+    overflow: visible;
+  }
+  .lane-expand-chevron {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: calc(var(--drum-lanes, 12) * 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .expand-arrow {
+    width: 7px;
+    height: 11px;
+    background: currentColor;
+    clip-path: polygon(0 0, 100% 50%, 0 100%);
+    transition: transform 0.26s ease-in-out;
+    flex-shrink: 0;
+  }
+  .drum-step-container:has(.lane-expand-toggle:hover) .lane-expand-toggle {
+    opacity: 0.8;
+  }
+  .drum-step-container:has(.lane-expand-toggle:hover) .expand-arrow {
+    transform: scale(1.25);
+  }
+  &.lanes-expanded .lane-expand-toggle {
+    opacity: 1;
+    background-color: var(--accent-color, #f90);
+    color: #fff;
+  }
+  &.lanes-expanded .expand-arrow {
+    transform: rotate(180deg);
+  }
+  &.lanes-expanded .drum-step-container:has(.lane-expand-toggle:hover) .expand-arrow {
+    transform: rotate(180deg) scale(1.25);
   }
   .lane-label {
     width: 36px;
@@ -2426,6 +2484,7 @@ input::-webkit-inner-spin-button {
   }
   .drum-lane.euc-open .lane-controls-ext {
     overflow: visible;
+    max-width: none;
   }
   .hide-for-drumsequence {
     visibility: hidden;
@@ -2485,22 +2544,9 @@ input::-webkit-inner-spin-button {
   outline-offset: -1.5px;
 }
 
-/* Global lane controls expand/collapse button */
-.lanes-expand-btn {
-  opacity: 0.45;
-  transition:
-    opacity 150ms,
-    color 150ms;
-}
-body.running .lanes-expand-btn {
+body.running .drumSequencer .lane-expand-toggle {
   pointer-events: none;
   opacity: 0.2;
-}
-.drumSequencer.lanes-expanded .lanes-expand-btn {
-  opacity: 1;
-  border-color: transparent;
-  background-color: var(--accent-color, #f90);
-  color: var(--text-base-color);
 }
 
 /* Lane enable/solo buttons — inherit .ch.enabled / .ch.solo zone-level styles */
