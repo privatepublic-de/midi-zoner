@@ -1,4 +1,4 @@
-import seedrandom from 'seedrandom';
+import { mulberry32 } from '../prng';
 import MIDI from '../midi';
 import { Note } from './note';
 import { SeqStep } from './seq-step';
@@ -59,7 +59,7 @@ export class Sequence {
   activeSteps: SeqStep[] = [];
   private ratchetQueue: { note: Note; noteOnPos: number; noteOffPos: number }[] = [];
   private readonly _midiMsgBuf = new Uint8Array(3);
-  private rngProb = seedrandom();
+  private rngProb = mulberry32();
   currentPos = 0; // Track current clock position for swing timing
   // Swing pending steps
   private swingPendingDrumSteps: {

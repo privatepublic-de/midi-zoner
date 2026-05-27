@@ -1,4 +1,4 @@
-import seedrandom from 'seedrandom';
+import { mulberry32, BagShuffle } from '../prng';
 import MIDI from '../midi';
 import { Note } from './note';
 import { ZoneElements } from './zone-elements';
@@ -143,8 +143,8 @@ export class Zone {
   _colorIndex: number | null = null;
   private _cachedZoneColor: string | null = null;
   pgm_no: number | null = null;
-  rngArp: () => number;
-  rngArpOct: () => number;
+  rngArp: BagShuffle;
+  rngArpOct: BagShuffle;
   rngProb: () => number;
   sequence: Sequence;
   arrangements: ZoneArrangementJSON[] = [];
@@ -156,9 +156,9 @@ export class Zone {
 
   constructor(midi: MIDI, colorIndex?: number) {
     this.midi = midi;
-    this.rngArp = seedrandom();
-    this.rngArpOct = seedrandom();
-    this.rngProb = seedrandom();
+    this.rngArp = new BagShuffle(mulberry32());
+    this.rngArpOct = new BagShuffle(mulberry32());
+    this.rngProb = mulberry32();
     this.colorIndex = colorIndex || 0;
     this.sequence = new Sequence(this);
     const defaultArr = this.captureArrangement();
@@ -929,10 +929,8 @@ export class Zone {
             if (notes.length == 1) this.arp.noteindex = 0;
             break;
           case 3:
-            this.arp.noteindex = Math.floor(this.rngArp() * notes.length);
-            this.arp.octave = Math.floor(
-              this.rngArpOct() * (this.arp_octaves + 1)
-            );
+            this.arp.noteindex = this.rngArp.next(notes.length);
+            this.arp.octave = this.rngArpOct.next(this.arp_octaves + 1);
             break;
         }
       }
