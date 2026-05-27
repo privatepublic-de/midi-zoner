@@ -591,8 +591,14 @@ input:focus-visible {
 }
 
 @keyframes midiLearnFlash {
-  0% { background-color: yellow; color: #000; }
-  100% { background-color: var(--zone-color); color: #000; }
+  0% {
+    background-color: yellow;
+    color: #000;
+  }
+  100% {
+    background-color: var(--zone-color);
+    color: #000;
+  }
 }
 
 /* Swing amount control - uses same styling as other percent-holder controls */
@@ -2511,7 +2517,7 @@ body.running .lanes-expand-btn {
 .euc-panel {
   display: none;
   position: absolute;
-  left: 100%;
+  right: 0;
   top: 0;
   align-items: center;
   gap: 6px;
@@ -2521,6 +2527,9 @@ body.running .lanes-expand-btn {
   border-radius: 4px;
   z-index: 10;
   white-space: nowrap;
+}
+.euc-panel::before {
+  content: 'Number of hits';
 }
 .drum-lane.euc-open .euc-panel {
   display: flex;
