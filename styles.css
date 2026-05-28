@@ -1705,6 +1705,13 @@ li {
 .seqtools .drop-down select {
   max-width: 7rem;
 }
+.seqtools-icon {
+  font-size: 14px;
+  opacity: 0.7;
+  pointer-events: none;
+  flex-shrink: 0;
+  margin-right: 3px;
+}
 
 .show-seq .seq {
   display: flex;
@@ -1958,7 +1965,8 @@ li {
     transparent 1px
   );
 }
-.seqprogress .inner {
+.seqprogress .inner,
+.seqprogress .lane-marker {
   position: absolute;
   background-color: var(--brighter-2);
   top: 0;
@@ -2519,6 +2527,9 @@ input::-webkit-inner-spin-button {
 .drumSequencer.disabled {
   .drum-lane .val,
   .drum-lane .action {
+    display: none;
+  }
+  .lane-expand-toggle {
     display: none;
   }
   .seq .grid .step {

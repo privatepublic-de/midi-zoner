@@ -732,11 +732,18 @@ function updateValuesForZone(index: number): void {
       Zone.solocount > 0 && !zone.solo,
       'soloed-out'
     );
+    let progressLen = sequence.length;
+    if (sequence.isDrumSequence) {
+      for (let ln = 0; ln < sequence.drumLanes; ln++) {
+        const l = sequence.drum_lanes[ln];
+        if (l && l.length > progressLen) progressLen = l.length;
+      }
+    }
     zone.elements.sequencerProgressElement!.style.backgroundSize = `${
-      100 / sequence.length
+      100 / progressLen
     }% 100%`;
     zone.elements.sequencerProgressElementInner!.style.width = `${
-      100 / sequence.length
+      100 / progressLen
     }%`;
 
     DOM.switchClass(zoneElement, !zone.enabled, 'disabled');
@@ -981,7 +988,23 @@ function updateValuesForZone(index: number): void {
       zone.elements.setSelectedIndex('.seq_division', sequence.division);
     } else {
       DOM.removeClass(zoneElement, 'show-seq');
-      if (sequence.steps.length > 0) {
+      // Rebuild drum lane markers (clear always, repopulate for drum mode)
+      zone.elements.sequencerDrumProgressMarkers.forEach((m) => m.remove());
+      zone.elements.sequencerDrumProgressMarkers = [];
+      if (sequence.isDrumSequence && sequence.drumLanes > 0) {
+        const seenLengths = new Set<number>();
+        for (let ln = 0; ln < sequence.drumLanes; ln++) {
+          const len = sequence.drum_lanes[ln]?.length ?? sequence.length;
+          if (seenLengths.has(len)) continue;
+          seenLengths.add(len);
+          const marker = document.createElement('div');
+          marker.className = 'lane-marker';
+          marker.style.width = `${100 / progressLen}%`;
+          zone.elements.sequencerProgressElement!.appendChild(marker);
+          zone.elements.sequencerDrumProgressMarkers.push(marker);
+        }
+        DOM.show(zone.elements.sequencerProgressElement!);
+      } else if (!sequence.isDrumSequence && sequence.steps.length > 0) {
         DOM.show(zone.elements.sequencerProgressElement!);
       } else {
         DOM.hide(zone.elements.sequencerProgressElement!);

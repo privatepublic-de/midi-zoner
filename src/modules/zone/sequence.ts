@@ -423,9 +423,6 @@ export class Sequence {
     }
   }
 
-  /**
-   * Process drum sequence steps at step boundary
-   */
   private processDrumSequenceStep(tickIntervalMs: number): void {
     const soloCount = this.getDrumLaneSoloCount();
     for (let ln = 0; ln < this.drumLanes; ln++) {
@@ -436,7 +433,6 @@ export class Sequence {
         lane.cycleCount++;
         if (lane.cycleCount === 1) lane.isFirstCycle = false;
       }
-
       if (!lane.enabled || (soloCount > 0 && !lane.solo)) {
         lane.previousStepPlayed = false;
         continue;

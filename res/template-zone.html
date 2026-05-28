@@ -139,6 +139,11 @@
       <div class="drum-step-container">${drumLanes}</div>
     </div>
     <div class="seqtools">
+      <div
+        class="action seq_drum_tracks"
+        data-action="${index}:seq_drum_tracks"
+        title="Toggle sequencer mode"
+      ><i class="material-icons seqtools-icon">view_comfy</i></div>
       <div class="label dismiss-for-drumsequence">Steps</div>
       <div class="val dismiss-for-drumsequence">
         <input
@@ -256,11 +261,6 @@
         <i class="material-icons">piano</i>
       </div>
       <div style="flex-grow: 1"></div>
-      <div
-        class="action seq_drum_tracks"
-        data-action="${index}:seq_drum_tracks"
-        title="Toggle sequencer mode"
-      ></div>
     </div>
     <div class="step-info popup" data-action="${index}:ignore">
       <div class="step-controls">
