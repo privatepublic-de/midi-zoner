@@ -582,8 +582,9 @@ document.addEventListener('DOMContentLoaded', function () {
           applyStoredZones(JSON.parse(snapshot), midi);
           syncZoneInputPorts(midi);
           view.renderZones();
-          // Sync arrangement indicator UI with the restored arrangementIndex
           view.selectArrangement(zones.arrangementIndex);
+          updateBpmInput();
+          midi.setInternalBPM(zones.tempo);
           saveZones();
           updateUndoRedoButtons();
         }
@@ -658,6 +659,17 @@ document.addEventListener('DOMContentLoaded', function () {
             }
           }
         });
+        let bpmDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+        const commitBpmGesture = (): void => {
+          if (bpmDebounceTimer) { clearTimeout(bpmDebounceTimer); bpmDebounceTimer = null; }
+          const currentJSON = JSON.stringify(zones);
+          undoHistory.endGesture(currentJSON);
+          if (document.activeElement === bpmInput) undoHistory.startGesture(currentJSON);
+        };
+        bpmInput.addEventListener('focus', () => {
+          bpmInput.select();
+          undoHistory.startGesture(JSON.stringify(zones));
+        });
         bpmInput.addEventListener('input', (e) => {
           const bpm = Math.min(
             Math.max(parseInt((e.target as HTMLInputElement).value), 30),
@@ -666,6 +678,11 @@ document.addEventListener('DOMContentLoaded', function () {
           zones.tempo = bpm;
           midi.setInternalBPM(bpm);
           saveZones();
+          if (bpmDebounceTimer) clearTimeout(bpmDebounceTimer);
+          bpmDebounceTimer = setTimeout(commitBpmGesture, 1000);
+        });
+        bpmInput.addEventListener('blur', () => {
+          commitBpmGesture();
         });
         updateBpmInput();
         midi.bpmDetectedHandler = (bpm: number | null) => {

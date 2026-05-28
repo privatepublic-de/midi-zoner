@@ -110,14 +110,16 @@ function initController({ saveData, data, midi, history }: ControllerInitParams)
     DOM.all(`#midisettings input[type=number]`)
   );
 
-  // Range slider gesture: one undo entry per drag, not per pixel
+  // Range slider gesture: one undo entry per drag, not per pixel.
+  // The one-shot mouseup is added only when a range slider actually starts,
+  // so it never fires on unrelated clicks (e.g. focusing a text input).
   document.addEventListener('mousedown', (ev) => {
     if ((ev.target as HTMLElement).matches('input[type="range"]')) {
       undoHistory.startGesture(JSON.stringify(zones));
+      window.addEventListener('mouseup', () => {
+        undoHistory.endGesture(JSON.stringify(zones));
+      }, { once: true });
     }
-  });
-  document.addEventListener('mouseup', () => {
-    undoHistory.endGesture(JSON.stringify(zones));
   });
 }
 
@@ -584,18 +586,36 @@ function appendZone(zone: ZoneType, index: number): void {
   DOM.all(
     `#zone${index} input[type="text"],#zone${index} input[type="number"]`
   ).forEach((e) => {
+    let inputDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+    // Commit the current typing gesture and restart if the field is still focused.
+    // Called after 1s of inactivity, on Enter, and on blur.
+    const commitInputGesture = (): void => {
+      if (inputDebounceTimer) { clearTimeout(inputDebounceTimer); inputDebounceTimer = null; }
+      const currentJSON = JSON.stringify(zones);
+      undoHistory.endGesture(currentJSON);
+      if (document.activeElement === e) {
+        undoHistory.startGesture(currentJSON);
+      }
+    };
+
     e.addEventListener('keyup', function (this: HTMLElement, event) {
       if ((event as KeyboardEvent).keyCode === 13) {
         event.preventDefault();
         this.dispatchEvent(new Event('input'));
+        commitInputGesture();
       }
     });
     e.addEventListener('focus', () => {
       (e as HTMLInputElement).select();
       undoHistory.startGesture(JSON.stringify(zones));
     });
+    e.addEventListener('input', () => {
+      if (inputDebounceTimer) clearTimeout(inputDebounceTimer);
+      inputDebounceTimer = setTimeout(commitInputGesture, 1000);
+    });
     e.addEventListener('blur', () => {
-      undoHistory.endGesture(JSON.stringify(zones));
+      commitInputGesture();
     });
   });
   DOM.all(
