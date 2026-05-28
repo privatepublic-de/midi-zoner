@@ -2359,7 +2359,9 @@ input::-webkit-inner-spin-button {
     width: 14px;
     align-self: stretch;
     flex-shrink: 0;
-    background: rgba(0, 0, 0, 0.12);
+    /* background: rgba(0, 0, 0, 0.12); */
+    border-left: 2px solid var(--darker-2);
+    color: var(--darker-2);
     cursor: pointer;
     opacity: 0.5;
     transition:
@@ -2399,13 +2401,15 @@ input::-webkit-inner-spin-button {
   }
   &.lanes-expanded .lane-expand-toggle {
     opacity: 1;
-    background-color: var(--accent-color, #f90);
-    color: #fff;
+    /* background-color: var(--accent-color, #f90); */
+    color: var(--darker-2);
   }
   &.lanes-expanded .expand-arrow {
     transform: rotate(180deg);
   }
-  &.lanes-expanded .drum-step-container:has(.lane-expand-toggle:hover) .expand-arrow {
+  &.lanes-expanded
+    .drum-step-container:has(.lane-expand-toggle:hover)
+    .expand-arrow {
     transform: rotate(180deg) scale(1.25);
   }
   .lane-label {
