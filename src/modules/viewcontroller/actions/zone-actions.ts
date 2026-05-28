@@ -8,7 +8,7 @@ export function createZoneActions(
 ): ActionMap {
   const {
     zone, zoneindex, sequence, element, actionParam1, ev,
-    zones, midiController, triggerSave,
+    zones, midiController, triggerSave, pushHistory,
     updateValuesForZone, updateValuesForAllZones,
     renderMarkersForZone, renderZones, listUsedPorts,
     updateOutputPortsForZone, cachedOutputPorts,
@@ -39,6 +39,7 @@ export function createZoneActions(
       updateValuesForAllZones();
     },
     zone_delete: async () => {
+      const snapshotBeforeDelete = JSON.stringify(zones);
       const number = zoneindex + 1;
       await ipcRenderer
         .invoke(
@@ -48,6 +49,7 @@ export function createZoneActions(
         )
         .then((result: boolean) => {
           if (result == true) {
+            pushHistory(snapshotBeforeDelete);
             const scrollPos = window.scrollY;
             zone.dismiss();
             zones.list.splice(zoneindex, 1);

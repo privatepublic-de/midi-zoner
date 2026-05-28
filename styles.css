@@ -375,6 +375,11 @@ input:focus-visible {
   color: var(--fg-topbar-button-active);
 }
 
+.lightButton:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
 .lightButton .material-icons {
   font-size: 14px;
 }

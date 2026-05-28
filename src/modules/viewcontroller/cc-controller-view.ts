@@ -163,7 +163,9 @@ export function renderControllersForZone(
   zone: ZoneType,
   index: number,
   actionHandler: (ev: MouseEvent, overrideaction?: string) => void,
-  triggerSave: () => void
+  triggerSave: () => void,
+  onGestureStart: () => void,
+  onGestureEnd: () => void
 ): void {
   DOM.all(`#zone${index} .ccpots .ccpot`).forEach((e) => e.remove());
   DOM.addHTML(
@@ -184,6 +186,7 @@ export function renderControllersForZone(
   DOM.all(`#zone${index} .ccpots .ccpot`).forEach((pot, ix) => {
     const is14bit =
       zone.cc_controllers[ix].type == 5 || zone.cc_controllers[ix].type == 6;
+    let scrollEndTimer: ReturnType<typeof setTimeout> | null = null;
     pot.addEventListener('wheel', (e) => {
       if (
         zone.cc_controllers[ix].type > 1 &&
@@ -208,6 +211,7 @@ export function renderControllersForZone(
         is14bit ? 16383 : 127
       );
       if (newV != zone.cc_controllers[ix].val) {
+        onGestureStart();
         if (is14bit) {
           zone.cc_controllers[ix].val = newV;
         } else {
@@ -231,6 +235,11 @@ export function renderControllersForZone(
         zone.sendCC(ix);
         updateControllerValues(zone, index);
         triggerSave();
+        if (scrollEndTimer) clearTimeout(scrollEndTimer);
+        scrollEndTimer = setTimeout(() => {
+          scrollEndTimer = null;
+          onGestureEnd();
+        }, 800);
       }
     });
     pot.addEventListener('mousedown', (e) => {
@@ -243,6 +252,7 @@ export function renderControllersForZone(
       ) {
         return;
       }
+      onGestureStart();
       potDragHandler.startDrag(
         pot as HTMLElement,
         mouseEvent,
@@ -259,6 +269,7 @@ export function renderControllersForZone(
           }
         },
         () => {
+          onGestureEnd();
           triggerSave();
         }
       );

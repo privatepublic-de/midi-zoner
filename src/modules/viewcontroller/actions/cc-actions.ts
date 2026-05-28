@@ -8,6 +8,7 @@ export function createCCActions(
 ): ActionMap {
   const {
     zone, zoneindex, element, actionParam1, actionParam2, ev,
+    zones, pushHistory, triggerSave,
     updateValuesForZone, updateControllerValues, toast
   } = ctx;
 
@@ -152,6 +153,7 @@ export function createCCActions(
       renderControllersForZone(zone, zoneindex);
     },
     cc_remove: async () => {
+      const snapshotBeforeRemove = JSON.stringify(zones);
       let description =
         '#' +
         (zone.selectedCCIndex + 1) +
@@ -166,9 +168,11 @@ export function createCCActions(
         )
         .then((result: boolean) => {
           if (result == true) {
+            pushHistory(snapshotBeforeRemove);
             zone.cc_controllers.splice(zone.selectedCCIndex, 1);
             zone.selectedCCIndex--;
             renderControllersForZone(zone, zoneindex);
+            triggerSave();
           }
         });
     },

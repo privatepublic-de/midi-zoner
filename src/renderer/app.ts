@@ -6,6 +6,7 @@ import MIDI from '../modules/midi';
 import * as view from '../modules/viewcontroller';
 import { ipcRenderer } from 'electron';
 import { ZoneArrangementJSON } from '../modules/zone/interfaces';
+import { UndoHistory } from '../modules/undo-history';
 
 // Type aliases for class types
 type ZoneType = Zone;
@@ -68,6 +69,8 @@ const debounce = function <T extends (...args: any[]) => void>(
 const saveZones = debounce(() => {
   localStorage.setItem('zones', JSON.stringify(zones));
 }, 500);
+
+const undoHistory = new UndoHistory();
 
 const channelOptions = (function (): string {
   var result = '';
@@ -568,7 +571,37 @@ document.addEventListener('DOMContentLoaded', function () {
         );
         updateClockInterface();
         view.renderZones();
+        function updateUndoRedoButtons(): void {
+          const undoBtn = DOM.get('#undoBtn') as HTMLButtonElement | null;
+          const redoBtn = DOM.get('#redoBtn') as HTMLButtonElement | null;
+          if (undoBtn) undoBtn.disabled = !undoHistory.canUndo;
+          if (redoBtn) redoBtn.disabled = !undoHistory.canRedo;
+        }
+
+        function applyUndoRedoSnapshot(snapshot: string): void {
+          applyStoredZones(JSON.parse(snapshot), midi);
+          syncZoneInputPorts(midi);
+          view.renderZones();
+          // Sync arrangement indicator UI with the restored arrangementIndex
+          view.selectArrangement(zones.arrangementIndex);
+          saveZones();
+          updateUndoRedoButtons();
+        }
+
+        DOM.get('#undoBtn')!.addEventListener('click', () => {
+          const snapshot = undoHistory.undo(JSON.stringify(zones));
+          if (snapshot) applyUndoRedoSnapshot(snapshot);
+        });
+        DOM.get('#redoBtn')!.addEventListener('click', () => {
+          const snapshot = undoHistory.redo(JSON.stringify(zones));
+          if (snapshot) applyUndoRedoSnapshot(snapshot);
+        });
+
+        undoHistory.onChange = updateUndoRedoButtons;
+        updateUndoRedoButtons();
+
         function createNewZone(): void {
+          undoHistory.push(JSON.stringify(zones));
           let colorIndex = 0;
           if (zones.list.length > 0) {
             colorIndex = zones.list[zones.list.length - 1].colorIndex + 1;
@@ -706,10 +739,12 @@ document.addEventListener('DOMContentLoaded', function () {
             .then((result: string | null) => {
               if (result) {
                 try {
+                  undoHistory.push(JSON.stringify(zones));
                   applyStoredZones(JSON.parse(result), midi, true);
                   syncZoneInputPorts(midi);
                   view.renderZones();
                   saveZones();
+                  updateUndoRedoButtons();
                 } catch (ex) {
                   console.log('app: Error loading file', ex);
                   view.toast(
@@ -850,7 +885,7 @@ document.addEventListener('DOMContentLoaded', function () {
     zones.keySwitchEnabled = (ev.target as HTMLInputElement).checked;
     saveZones();
   });
-  view.initController({ saveData: saveZones, data: zones as any, midi });
+  view.initController({ saveData: saveZones, data: zones as any, midi, history: undoHistory });
 
   contextMenuElement.addEventListener('mouseleave', function () {
     hideOnLeaveContextMenuTimeout = setTimeout(() => {

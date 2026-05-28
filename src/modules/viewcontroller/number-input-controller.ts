@@ -7,6 +7,8 @@ export class NumberInputController {
   timeoutValueRepeatDelay: ReturnType<typeof setTimeout> | null = null;
   intervalValueRepeat: ReturnType<typeof setInterval> | null = null;
   valueRepeatIncrement = 0;
+  onAttach: (() => void) | null = null;
+  onDetach: (() => void) | null = null;
 
   constructor() {
     this.elValueUp = DOM.get('#valueUp') as HTMLElement;
@@ -99,6 +101,7 @@ export class NumberInputController {
 
   attachValueButtons(inputelement: HTMLInputElement): void {
     if (inputelement.disabled) return;
+    this.onAttach?.();
     this.elValueBtnAttachedInput = inputelement;
     this.elValueUp!.style.display = this.elValueDown!.style.display = 'block';
     const valueUpRect = this.elValueUp!.getBoundingClientRect();
@@ -119,6 +122,7 @@ export class NumberInputController {
 
   detachValueButtons(inputelement: HTMLInputElement): void {
     this.breakValueChange();
+    this.onDetach?.();
     this.elValueUp!.style.display = this.elValueDown!.style.display = 'none';
   }
 }
