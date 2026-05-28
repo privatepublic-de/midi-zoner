@@ -1965,14 +1965,19 @@ li {
     transparent 1px
   );
 }
-.seqprogress .inner,
-.seqprogress .lane-marker {
+.seqprogress .inner {
   position: absolute;
   background-color: var(--brighter-2);
   top: 0;
   left: 0;
   bottom: 0;
   width: 1px;
+}
+.seqprogress .lane-marker {
+  position: absolute;
+  background-color: var(--brighter-2);
+  top: 0;
+  bottom: 0;
 }
 
 .show-seq .seqprogress {

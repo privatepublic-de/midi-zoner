@@ -1,5 +1,8 @@
 import DOM from '../domutils';
 import MIDI from '../midi';
+
+function gcd(a: number, b: number): number { return b === 0 ? a : gcd(b, a % b); }
+function lcm(a: number, b: number): number { return (a / gcd(a, b)) * b; }
 import DragZone from '../dragzone';
 import * as zoneTemplate from '../zone-template';
 import { Zone } from '../zone/zone-class';
@@ -739,6 +742,7 @@ function updateValuesForZone(index: number): void {
         if (l && l.length > progressLen) progressLen = l.length;
       }
     }
+    zone.elements.sequencerProgressElement!.style.backgroundImage = '';
     zone.elements.sequencerProgressElement!.style.backgroundSize = `${
       100 / progressLen
     }% 100%`;
@@ -988,22 +992,65 @@ function updateValuesForZone(index: number): void {
       zone.elements.setSelectedIndex('.seq_division', sequence.division);
     } else {
       DOM.removeClass(zoneElement, 'show-seq');
-      // Rebuild drum lane markers (clear always, repopulate for drum mode)
       zone.elements.sequencerDrumProgressMarkers.forEach((m) => m.remove());
       zone.elements.sequencerDrumProgressMarkers = [];
+      zone.elements.sequencerDrumProgressLcm = 0;
+      zone.elements.sequencerProgressElement!.style.height = '';
+
       if (sequence.isDrumSequence && sequence.drumLanes > 0) {
         const seenLengths = new Set<number>();
+        const uniqueLengths: number[] = [];
         for (let ln = 0; ln < sequence.drumLanes; ln++) {
           const len = sequence.drum_lanes[ln]?.length ?? sequence.length;
-          if (seenLengths.has(len)) continue;
-          seenLengths.add(len);
-          const marker = document.createElement('div');
-          marker.className = 'lane-marker';
-          marker.style.width = `${100 / progressLen}%`;
-          zone.elements.sequencerProgressElement!.appendChild(marker);
-          zone.elements.sequencerDrumProgressMarkers.push(marker);
+          if (!seenLengths.has(len)) { seenLengths.add(len); uniqueLengths.push(len); }
         }
-        DOM.show(zone.elements.sequencerProgressElement!);
+        let computedLcm = 1;
+        for (const len of uniqueLengths) {
+          computedLcm = lcm(computedLcm, len);
+          if (computedLcm > 100000) { computedLcm = 100000; break; } // safety ceiling
+        }
+
+        const progressEl = zone.elements.sequencerProgressElement!;
+        // Always use LCM mode; degrade gracefully for very dense patterns
+        zone.elements.sequencerDrumProgressLcm = computedLcm;
+        progressEl.style.backgroundImage = 'none';
+        zone.elements.sequencerProgressElementInner!.style.width = '2px';
+        const SLOT_H = 3;
+        progressEl.style.height = `${uniqueLengths.length * SLOT_H}px`;
+        const BAR_PX = 580;
+        uniqueLengths.forEach((len, slotIdx) => {
+          const top = slotIdx * SLOT_H;
+          const count = computedLcm / len;
+          const w = (len / computedLcm) * 100;
+          const blockPx = (len / computedLcm) * BAR_PX;
+          if (blockPx < 3 || count > 200) {
+            // Too dense to show alternation — solid strip
+            const strip = document.createElement('div');
+            strip.className = 'lane-marker';
+            strip.style.left = '0';
+            strip.style.width = '100%';
+            strip.style.top = `${top}px`;
+            strip.style.height = `${SLOT_H}px`;
+            strip.style.bottom = 'auto';
+            strip.style.opacity = '0.3';
+            progressEl.appendChild(strip);
+            zone.elements.sequencerDrumProgressMarkers.push(strip);
+          } else {
+            for (let n = 0; n < count; n++) {
+              const mark = document.createElement('div');
+              mark.className = 'lane-marker';
+              mark.style.left = `${n * w}%`;
+              mark.style.width = `${w}%`;
+              mark.style.top = `${top}px`;
+              mark.style.height = `${SLOT_H}px`;
+              mark.style.bottom = 'auto';
+              mark.style.opacity = n % 2 === 0 ? '0.5' : '0.18';
+              progressEl.appendChild(mark);
+              zone.elements.sequencerDrumProgressMarkers.push(mark);
+            }
+          }
+        });
+        DOM.show(progressEl);
       } else if (!sequence.isDrumSequence && sequence.steps.length > 0) {
         DOM.show(zone.elements.sequencerProgressElement!);
       } else {

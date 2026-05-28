@@ -787,20 +787,15 @@ export class Zone {
       }
     } else {
       if (this.sequence.isDrumSequence) {
-        if (this.elements.sequencerProgressElementInner) {
-          this.elements.sequencerProgressElementInner.style.left = '-100%';
-        }
         const pos = this.sequence.currentStepNumber;
-        const seen = new Set<number>();
-        let markerIdx = 0;
-        for (let ln = 0; ln < this.sequence.drumLanes; ln++) {
-          const len = this.sequence.drum_lanes[ln]?.length ?? this.sequence.length;
-          if (seen.has(len)) continue;
-          seen.add(len);
-          const markerEl = this.elements.sequencerDrumProgressMarkers[markerIdx++];
-          if (!markerEl) continue;
-          markerEl.style.left = pos > -1
-            ? `${((pos % len) / len) * 100}%`
+        const lcm = this.elements.sequencerDrumProgressLcm;
+        // LCM mode: static marks are fixed, only cursor moves.
+        // Use absolute step count so cursor spans the full LCM period
+        // regardless of sequence.length wrapping.
+        const absStep = this.sequence.cycleCount * this.sequence.length + pos;
+        if (this.elements.sequencerProgressElementInner) {
+          this.elements.sequencerProgressElementInner.style.left = pos > -1
+            ? `${((absStep % lcm) / lcm) * 100}%`
             : '-100%';
         }
       } else if (this.elements.sequencerProgressElementInner) {
