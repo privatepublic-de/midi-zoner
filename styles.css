@@ -1954,7 +1954,7 @@ li {
 
 .seqprogress {
   position: absolute;
-  top: 32px;
+  bottom: 0;
   left: 10px;
   height: 4px;
   right: 10px;
@@ -1967,7 +1967,7 @@ li {
 }
 .seqprogress .inner {
   position: absolute;
-  background-color: var(--brighter-2);
+  background-color: var(--zone-color);
   top: 0;
   left: 0;
   bottom: 0;
@@ -1978,6 +1978,19 @@ li {
   background-color: var(--brighter-2);
   top: 0;
   bottom: 0;
+}
+
+.seqprogress .lane-slot-idx-0 {
+  background-color: var(--brighter-3);
+}
+.seqprogress .lane-slot-idx-1 {
+  background-color: var(--brighter-2);
+}
+.seqprogress .lane-slot-idx-2 {
+  background-color: var(--brighter-1);
+}
+.seqprogress .lane-slot-idx-3 {
+  background-color: var(--brighter-0);
 }
 
 .show-seq .seqprogress {

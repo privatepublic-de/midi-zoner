@@ -1,8 +1,12 @@
 import DOM from '../domutils';
 import MIDI from '../midi';
 
-function gcd(a: number, b: number): number { return b === 0 ? a : gcd(b, a % b); }
-function lcm(a: number, b: number): number { return (a / gcd(a, b)) * b; }
+function gcd(a: number, b: number): number {
+  return b === 0 ? a : gcd(b, a % b);
+}
+function lcm(a: number, b: number): number {
+  return (a / gcd(a, b)) * b;
+}
 import DragZone from '../dragzone';
 import * as zoneTemplate from '../zone-template';
 import { Zone } from '../zone/zone-class';
@@ -74,7 +78,12 @@ interface ControllerInitParams {
   history: UndoHistory;
 }
 
-function initController({ saveData, data, midi, history }: ControllerInitParams): void {
+function initController({
+  saveData,
+  data,
+  midi,
+  history
+}: ControllerInitParams): void {
   initToast();
   undoHistory = history;
   const originalSave = saveData;
@@ -101,11 +110,14 @@ function initController({ saveData, data, midi, history }: ControllerInitParams)
     }
   }) as EventListener);
   numberInputController = new NumberInputController();
-  numberInputController.onAttach = () => undoHistory.startGesture(JSON.stringify(zones));
+  numberInputController.onAttach = () =>
+    undoHistory.startGesture(JSON.stringify(zones));
   numberInputController.onDetach = () => {
     // Don't end gesture if the input still has keyboard focus — the focus/blur pair
     // will handle that boundary instead (avoids premature commit mid-typing).
-    if (document.activeElement !== numberInputController.elValueBtnAttachedInput) {
+    if (
+      document.activeElement !== numberInputController.elValueBtnAttachedInput
+    ) {
       undoHistory.endGesture(JSON.stringify(zones));
     }
   };
@@ -119,9 +131,13 @@ function initController({ saveData, data, midi, history }: ControllerInitParams)
   document.addEventListener('mousedown', (ev) => {
     if ((ev.target as HTMLElement).matches('input[type="range"]')) {
       undoHistory.startGesture(JSON.stringify(zones));
-      window.addEventListener('mouseup', () => {
-        undoHistory.endGesture(JSON.stringify(zones));
-      }, { once: true });
+      window.addEventListener(
+        'mouseup',
+        () => {
+          undoHistory.endGesture(JSON.stringify(zones));
+        },
+        { once: true }
+      );
     }
   });
 }
@@ -594,7 +610,10 @@ function appendZone(zone: ZoneType, index: number): void {
     // Commit the current typing gesture and restart if the field is still focused.
     // Called after 1s of inactivity, on Enter, and on blur.
     const commitInputGesture = (): void => {
-      if (inputDebounceTimer) { clearTimeout(inputDebounceTimer); inputDebounceTimer = null; }
+      if (inputDebounceTimer) {
+        clearTimeout(inputDebounceTimer);
+        inputDebounceTimer = null;
+      }
       const currentJSON = JSON.stringify(zones);
       undoHistory.endGesture(currentJSON);
       if (document.activeElement === e) {
@@ -644,7 +663,9 @@ function appendZone(zone: ZoneType, index: number): void {
       }
       hideOnLeaveTimeout = setTimeout(() => {
         (this as HTMLElement).style.display = 'none';
-        (this as HTMLElement).closest('.drum-lane')?.classList.remove('euc-open');
+        (this as HTMLElement)
+          .closest('.drum-lane')
+          ?.classList.remove('euc-open');
       }, 667);
     });
     e.addEventListener('mousemove', function () {
@@ -655,7 +676,6 @@ function appendZone(zone: ZoneType, index: number): void {
     DOM.all(`#zone${index} input[type=number]`)
   );
 }
-
 
 function renderMarkersForAllZones(): void {
   for (let i = 0; i < zones.list.length; i++) {
@@ -768,9 +788,9 @@ function updateValuesForZone(index: number): void {
         (zone.elements.get('.seq_lanes') as HTMLInputElement).value = String(
           sequence.drumLanes
         );
-        (zone.elements.get('.drum-step-container') as HTMLElement)?.style.setProperty(
-          '--drum-lanes', String(sequence.drumLanes)
-        );
+        (
+          zone.elements.get('.drum-step-container') as HTMLElement
+        )?.style.setProperty('--drum-lanes', String(sequence.drumLanes));
         const drumLaneSoloCount = sequence.getDrumLaneSoloCount();
         for (
           let laneIndex = 0;
@@ -1002,14 +1022,20 @@ function updateValuesForZone(index: number): void {
         const uniqueLengths: number[] = [];
         for (let ln = 0; ln < sequence.drumLanes; ln++) {
           const len = sequence.drum_lanes[ln]?.length ?? sequence.length;
-          if (!seenLengths.has(len)) { seenLengths.add(len); uniqueLengths.push(len); }
+          if (!seenLengths.has(len)) {
+            seenLengths.add(len);
+            uniqueLengths.push(len);
+          }
         }
         let computedLcm = 1;
         for (const len of uniqueLengths) {
           computedLcm = lcm(computedLcm, len);
-          if (computedLcm > 100000) { computedLcm = 100000; break; } // safety ceiling
+          if (computedLcm > 100000) {
+            computedLcm = 100000;
+            break;
+          } // safety ceiling
         }
-
+        uniqueLengths.sort().reverse();
         const progressEl = zone.elements.sequencerProgressElement!;
         // Always use LCM mode; degrade gracefully for very dense patterns
         zone.elements.sequencerDrumProgressLcm = computedLcm;
@@ -1026,26 +1052,26 @@ function updateValuesForZone(index: number): void {
           if (blockPx < 3 || count > 200) {
             // Too dense to show alternation — solid strip
             const strip = document.createElement('div');
-            strip.className = 'lane-marker';
+            strip.className = `lane-marker lane-slot-idx-${slotIdx % 4}`;
             strip.style.left = '0';
             strip.style.width = '100%';
             strip.style.top = `${top}px`;
             strip.style.height = `${SLOT_H}px`;
             strip.style.bottom = 'auto';
             strip.style.opacity = '0.3';
-            progressEl.appendChild(strip);
+            progressEl.prepend(strip);
             zone.elements.sequencerDrumProgressMarkers.push(strip);
           } else {
             for (let n = 0; n < count; n++) {
               const mark = document.createElement('div');
-              mark.className = 'lane-marker';
+              mark.className = `lane-marker lane-slot-idx-${slotIdx}`;
               mark.style.left = `${n * w}%`;
               mark.style.width = `${w}%`;
               mark.style.top = `${top}px`;
               mark.style.height = `${SLOT_H}px`;
               mark.style.bottom = 'auto';
               mark.style.opacity = n % 2 === 0 ? '0.5' : '0.18';
-              progressEl.appendChild(mark);
+              progressEl.prepend(mark);
               zone.elements.sequencerDrumProgressMarkers.push(mark);
             }
           }
