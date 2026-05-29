@@ -121,7 +121,7 @@ export function getHTML(zone: ZoneType, zoneindex: number): string {
         </div>
         <div class="lane-expand-toggle" data-action="${index}:seq_toggle_lanes_expand" title="Expand/collapse lane controls">${
           ln === 0
-            ? '<span class="lane-expand-chevron"><span class="expand-arrow"></span></span>'
+            ? '<span class="lane-expand-chevron"><i class="material-icons">arrow_right</i></span>'
             : ''
         }</div>`;
 

@@ -2371,7 +2371,6 @@ input::-webkit-inner-spin-button {
       transform 0.22s ease-out;
   }
   &.lanes-expanded .lane-controls-ext {
-    background-color: var(--darker-2);
     max-width: 300px;
     height: 20px;
     min-height: 0;
@@ -2390,15 +2389,10 @@ input::-webkit-inner-spin-button {
     width: 14px;
     align-self: stretch;
     flex-shrink: 0;
-    /* background: rgba(0, 0, 0, 0.12); */
-    border-left: 2px solid var(--darker-2);
+    border-left: 1px solid var(--darker-2);
     color: var(--darker-2);
     cursor: pointer;
-    opacity: 0.5;
-    transition:
-      background-color 0.15s,
-      color 0.15s,
-      opacity 0.15s;
+    margin-right: 4px;
   }
   .drum-lane.lane0 .lane-expand-toggle {
     position: relative;
@@ -2407,42 +2401,32 @@ input::-webkit-inner-spin-button {
   .lane-expand-chevron {
     position: absolute;
     top: 0;
-    left: 0;
-    width: 100%;
+    width: 10px;
     height: calc(var(--drum-lanes, 12) * 100%);
+    font-size: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
     pointer-events: none;
     z-index: 1;
   }
-  .expand-arrow {
-    width: 7px;
-    height: 11px;
-    background: currentColor;
-    clip-path: polygon(0 0, 100% 50%, 0 100%);
-    transition: transform 0.26s ease-in-out;
-    flex-shrink: 0;
-  }
+
   .drum-step-container:has(.lane-expand-toggle:hover) .lane-expand-toggle {
-    opacity: 0.8;
+    color: var(--text-base-color);
+    border-color: var(--text-base-color);
   }
-  .drum-step-container:has(.lane-expand-toggle:hover) .expand-arrow {
-    transform: scale(1.25);
-  }
+
   &.lanes-expanded .lane-expand-toggle {
     opacity: 1;
-    /* background-color: var(--accent-color, #f90); */
     color: var(--darker-2);
+    border: none;
+    border-right: 1px solid var(--darker-1);
   }
-  &.lanes-expanded .expand-arrow {
+  &.lanes-expanded .lane-expand-chevron {
     transform: rotate(180deg);
+    margin-left: 2px;
   }
-  &.lanes-expanded
-    .drum-step-container:has(.lane-expand-toggle:hover)
-    .expand-arrow {
-    transform: rotate(180deg) scale(1.25);
-  }
+
   .lane-label {
     width: 36px;
     height: 18px;
@@ -2454,23 +2438,14 @@ input::-webkit-inner-spin-button {
     outline: none;
     font-family: inherit;
   }
-  .lane-label:focus {
-    border-bottom-color: var(--brighter-3);
-  }
-  .lane-label::placeholder {
-    opacity: 0.3;
-  }
+
   .lane-ctrl-label {
     font-size: 10px;
-    opacity: 0.6;
   }
   .lane-len-wrap input {
     width: 34px;
-    opacity: 0.6;
   }
-  .lane-len-wrap input:focus {
-    opacity: 1;
-  }
+
   .drum-lane.disabled {
     opacity: 0.33;
   }
@@ -2507,15 +2482,11 @@ input::-webkit-inner-spin-button {
     font-family: inherit;
   }
   /* Euclidean in toolbar - override existing */
-  .lane-toolbar .lane-euc-btn {
-    opacity: 0.5;
-  }
   .lane-toolbar .lane-euc-btn:hover {
     opacity: 0.8;
   }
   .drum-lane.euc-open .lane-toolbar .lane-euc-btn {
-    opacity: 1;
-    color: var(--accent-color, #f90);
+    color: var(--brighter-2);
   }
   .drum-lane.euc-open .lane-controls-ext {
     overflow: visible;
