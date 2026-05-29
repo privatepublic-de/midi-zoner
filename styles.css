@@ -2341,7 +2341,7 @@ input::-webkit-inner-spin-button {
     flex-direction: column;
   }
   .seq .grid .step {
-    border-radius: 50%;
+    border: none;
   }
   .drum-lane {
     display: flex;
@@ -2522,8 +2522,18 @@ input::-webkit-inner-spin-button {
     display: none;
   }
   .seq .grid .step {
-    border-radius: 4px;
     margin: 1px 4px 0 0;
+  }
+  .lane-label {
+    padding: 0;
+    margin: 0;
+    height: 10px;
+  }
+  .lane-header {
+    min-height: 10px;
+  }
+  .lane-controls-ext {
+    display: none;
   }
 }
 
