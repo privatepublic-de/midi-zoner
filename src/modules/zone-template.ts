@@ -95,7 +95,7 @@ export function getHTML(zone: ZoneType, zoneindex: number): string {
   let drumLanes = '';
   for (let ln = 0; ln < Sequence.MAX_LANES_DRUMS; ln++) {
     drumLanes += `
-      <div class="drum-lane lane${ln}" data-contextmenu="${index}:seq_copy_lane:${ln},${index}:seq_paste_lane:${ln}">
+      <div class="drum-lane lane${ln}" data-contextmenu="${index}:seq_copy_lane:${ln},${index}:seq_paste_lane:${ln},-,${index}:seq_clear_lane:${ln}">
         <div class="lane-header">
           <div class="action ch enabled seq_toggle_lane_enabled" data-action="${index}:seq_toggle_lane_enabled:${ln}" title="Enable lane">
             <span class="material-icons sel"> check </span>
@@ -127,7 +127,7 @@ export function getHTML(zone: ZoneType, zoneindex: number): string {
 
     for (let i = 0; i < Sequence.MAX_STEPS_DRUMS; i++) {
       const stepId = Sequence.getIdForDrumStep(ln, i);
-      drumLanes += `<div class="step" data-action="${index}:seq_drumstep_select:${stepId}" data-dblclickaction="${index}:seq_clear_step:${stepId}" data-dragselect="${stepId}">${
+      drumLanes += `<div class="step" data-action="${index}:seq_drumstep_select:${stepId}" data-dblclickaction="${index}:seq_clear_step:${stepId}" data-dragselect="${stepId}" data-contextmenu="${index}:seq_copy_step:${stepId},${index}:seq_paste_step:${stepId},-,${index}:seq_clear_step:${stepId}">${
         i + 1
       }</div>`;
     }

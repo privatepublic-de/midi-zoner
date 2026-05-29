@@ -54,6 +54,7 @@ const contextMenuActionLabel: Record<string, string> = {
   seq_copy_lane: '<i class="material-icons">content_copy</i> Copy lane pattern',
   seq_paste_lane:
     '<i class="material-icons">content_paste</i> Paste lane pattern',
+  seq_clear_lane: '<i class="material-icons">clear</i> Clear lane',
   cc_edit: '<i class="material-icons">edit</i> Edit CC controllers',
   cc_send_all: '<i class="material-icons">double_arrow</i> Send all CC values',
   step_copy_length: 'Step length',
@@ -289,7 +290,7 @@ function contextHandler(ev: MouseEvent): void {
     const zone: ZoneType = zones.list[zoneindex];
     switch (parts[1]) {
       case 'seq_copy_step':
-        return zone.sequence.steps[parseInt(parts[2])] != null;
+        return zone.sequence.isStepUsed(parseInt(parts[2]));
       case 'seq_paste_step':
         return Zone.seqClipboardStep != null;
       case 'seq_paste':

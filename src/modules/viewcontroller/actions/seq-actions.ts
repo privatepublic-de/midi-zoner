@@ -167,6 +167,13 @@ export function createSeqActions(
       updateValuesForZone(zoneindex);
       toast('Lane pattern pasted');
     },
+    seq_clear_lane: () => {
+      const laneNo = parseInt(actionParam1);
+      const lane = sequence.getDrumLane(laneNo);
+      lane.steps.length = 0;
+      updateValuesForZone(zoneindex);
+      toast('Lane cleared');
+    },
     seq_step_length: () => {
       const v = parseInt((element as HTMLInputElement).value);
       sequence.selectedSteps.forEach((step) => {
@@ -321,6 +328,50 @@ export function createSeqActions(
             });
             toast('All steps changed velocity by ' + parseInt(String(factor * 100)) + '%');
             updateValuesForZone(zoneindex);
+            break;
+          }
+          case 'euclid-distrib': {
+            const euclidPositions = (hits: number, length: number): number[] => {
+              const positions: number[] = [];
+              const s = hits / length;
+              let previous = -1;
+              for (let i = 0; i < length; i++) {
+                const current = Math.floor(i * s);
+                if (current !== previous) positions.push(i);
+                previous = current;
+              }
+              return positions;
+            };
+            if (seq.hasSelection) {
+              const sortedSelected = [...seq.selectedStepNumbers].sort((a, b) => a - b);
+              const firstPos = sortedSelected[0];
+              const lastPos = sortedSelected[sortedSelected.length - 1];
+              const span = lastPos - firstPos + 1;
+              const hitSteps = sortedSelected
+                .map(i => seq.steps[i])
+                .filter((s): s is SeqStep => s != null && s.notesArray.length > 0);
+              if (hitSteps.length > 0) {
+                const positions = euclidPositions(hitSteps.length, span);
+                for (let i = firstPos; i <= lastPos; i++) seq.steps[i] = null;
+                hitSteps.forEach((step, h) => { seq.steps[firstPos + positions[h]] = step; });
+                updateValuesForZone(zoneindex);
+                toast('Selected steps euclidean distributed');
+              }
+            } else {
+              const hitSteps: SeqStep[] = [];
+              for (let i = 0; i < srcLength; i++) {
+                if (seq.steps[i] != null && seq.steps[i]!.notesArray.length > 0) {
+                  hitSteps.push(seq.steps[i]!);
+                }
+              }
+              if (hitSteps.length > 0) {
+                const positions = euclidPositions(hitSteps.length, srcLength);
+                for (let i = 0; i < srcLength; i++) seq.steps[i] = null;
+                hitSteps.forEach((step, h) => { seq.steps[positions[h]] = step; });
+                updateValuesForZone(zoneindex);
+                toast('Sequence euclidean distributed');
+              }
+            }
             break;
           }
         }
