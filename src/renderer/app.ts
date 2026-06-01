@@ -462,16 +462,19 @@ document.addEventListener('DOMContentLoaded', function () {
       if (
         zones.keySwitchEnabled &&
         msgtype === MIDI.MESSAGE.NOTE_ON &&
-        event.data[1] < 16 &&
+        event.data[1] < 20 &&
         event.data[2] > 0
       ) {
         // handle key switches
         if (event.data[1] < 8) {
           // toggle mute
           view.toggleZoneMute(event.data[1]);
-        } else {
+        } else if (event.data[1] < 16) {
           // toggle sequencer
           view.toggleSequencerOnZone(event.data[1] - 8);
+        } else {
+          // select arrangement A/B/C/D (notes 16-19)
+          view.selectArrangement(event.data[1] - 16);
         }
         // do nothing else
         return;
