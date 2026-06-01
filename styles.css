@@ -454,6 +454,44 @@ input:focus-visible {
     text-shadow 150ms ease;
   cursor: default;
   user-select: none;
+  position: relative;
+}
+
+#arrangementIndicator[data-pending-arr]::after {
+  content: attr(data-pending-arr);
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  background-color: #000;
+  animation: pendingArrFade 480ms infinite alternate ease-in-out;
+}
+
+#arrangementIndicator[data-pending-arr='A']::after {
+  color: #2a9d8f;
+}
+#arrangementIndicator[data-pending-arr='B']::after {
+  color: #e9c46a;
+}
+#arrangementIndicator[data-pending-arr='C']::after {
+  color: #f4a261;
+}
+#arrangementIndicator[data-pending-arr='D']::after {
+  color: #e76f51;
+}
+
+@keyframes pendingArrFade {
+  0% {
+    opacity: 0.3;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 
 #arrangementIndicator[data-arr='0'] {

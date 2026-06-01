@@ -1300,6 +1300,11 @@ function selectArrangement(arrIndex: number): void {
   if (indicator) {
     indicator.textContent = String.fromCharCode(65 + zones.arrangementIndex);
     indicator.dataset.arr = String(zones.arrangementIndex);
+    if (clockRunning && zones.arrangementIndex !== arrIndex) {
+      indicator.dataset.pendingArr = String.fromCharCode(65 + arrIndex);
+    } else {
+      delete indicator.dataset.pendingArr;
+    }
   }
   updateValuesForAllZones();
 }
