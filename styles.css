@@ -2327,8 +2327,170 @@ body:not(.running) .seqprogress {
   margin-left: 4px;
 }
 
+.tb-label input[type='checkbox'] {
+  display: none;
+}
+
+.tb-label:has(input:checked) .unsel {
+  display: none;
+}
+
+.tb-label:has(input:checked) .sel {
+  display: inherit;
+}
+
 .tb-label:hover {
   background-color: var(--brighter-1);
+}
+
+/* Key switch help button */
+.ks-help-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: var(--brighter-1);
+  border: 1px solid var(--brighter-2);
+  border-radius: 50%;
+  color: var(--brighter-3);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background 80ms, color 80ms;
+}
+
+.ks-help-btn:hover {
+  background: var(--brighter-2);
+  color: var(--brighter-4);
+}
+
+/* Key switch help overlay */
+#keySwitchHelpOverlay {
+  position: fixed;
+  bottom: 36px;
+  right: 12px;
+  z-index: 200;
+  background-color: var(--bg-topbar);
+  border: 1px solid var(--border-topbar);
+  box-shadow: 0 -2px 12px rgba(0,0,0,0.7);
+  border-radius: 4px;
+  padding: 8px 10px 10px;
+  font-size: 11px;
+  color: var(--text-base-color);
+  display: none;
+  min-width: 280px;
+}
+
+#keySwitchHelpOverlay.open {
+  display: block;
+}
+
+.kshelp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--brighter-1);
+}
+
+.kshelp-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--brighter-3);
+}
+
+.kshelp-close {
+  background: none;
+  border: none;
+  color: var(--brighter-2);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.kshelp-close:hover {
+  color: var(--brighter-4);
+}
+
+.kshelp-close .material-icons {
+  font-size: 14px;
+}
+
+.kshelp-grid {
+  display: flex;
+  gap: 12px;
+}
+
+.kshelp-col {
+  flex: 1;
+}
+
+.kshelp-group {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 4px;
+  border-radius: 2px;
+  margin-bottom: 4px;
+}
+
+.kshelp-mute {
+  background: rgba(196, 0, 0, 0.35);
+  color: #ff9999;
+}
+
+.kshelp-seq {
+  background: rgba(0, 140, 130, 0.35);
+  color: #7de8e0;
+}
+
+.kshelp-arr {
+  background: rgba(180, 130, 0, 0.35);
+  color: #f0c84a;
+}
+
+.kshelp-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 0;
+  border-bottom: 1px solid var(--brighter-0);
+}
+
+.kshelp-row:last-child {
+  border-bottom: none;
+}
+
+.kshelp-num {
+  font-family: monospace;
+  font-size: 10px;
+  color: var(--brighter-2);
+  min-width: 16px;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.kshelp-note {
+  font-family: monospace;
+  font-size: 10px;
+  color: var(--brighter-3);
+  min-width: 38px;
+  flex-shrink: 0;
+}
+
+.kshelp-action {
+  color: var(--brighter-2);
+  font-size: 10px;
 }
 
 #contextmenu {
