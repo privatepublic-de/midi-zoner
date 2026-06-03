@@ -1721,7 +1721,7 @@ input[type='range'] {
   width: calc(var(--ccpot-width)-4px);
   overflow: hidden;
   justify-content: start;
-  margin: 4px 2px;
+  padding: 3px 1px 3px 1px;
   gap: 2px;
 }
 
@@ -1737,14 +1737,19 @@ input[type='range'] {
   text-align: center;
   cursor: pointer;
   color: var(--brighter-2);
-  border: 1px inset var(--darker-2);
+  box-shadow: 0 0 2px var(--darker-3);
 }
 
-.ccbtn:hover,
 .ccbtn.selected {
   background-color: var(--brighter-3);
   color: var(--darker-4);
-  border-style: outset;
+  box-shadow: 0 0 2px inset var(--darker-3);
+}
+
+.ccbtn:not(.selected):hover {
+  background-color: var(--brighter-1);
+  color: var(--brighter-4);
+  box-shadow: 0 0 2px var(--darker-3);
 }
 
 .fixedvel select {
