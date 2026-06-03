@@ -7,7 +7,7 @@ type ClockHandler = (msg: ClockMessage) => void;
 
 const audioContext = new AudioContext();
 const clockMSG: ClockMessage = { data: Uint8Array.from([0xf8]) };
-const scheduleAheadTime = 0.05; // 50ms lookahead
+const scheduleAheadTime = 0.1; // 100ms lookahead
 let tempo = 60 / 120 / 24; // defaults to 120bpm
 let nextClockTime = 0.0; // when the next tick is due (relative to startTime)
 let startTime = 0;
