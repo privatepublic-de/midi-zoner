@@ -55,6 +55,7 @@ const contextMenuActionLabel: Record<string, string> = {
   seq_paste_lane:
     '<i class="material-icons">content_paste</i> Paste lane pattern',
   seq_clear_lane: '<i class="material-icons">clear</i> Clear lane',
+  zone_export: '<i class="material-icons">save_alt</i> Save zone to file…',
   cc_edit: '<i class="material-icons">edit</i> Edit CC controllers',
   cc_send_all: '<i class="material-icons">double_arrow</i> Send all CC values',
   step_copy_length: 'Step length',

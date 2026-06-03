@@ -12,7 +12,8 @@ export function createZoneActions(
     updateValuesForZone, updateValuesForAllZones,
     renderMarkersForZone, renderZones, listUsedPorts,
     updateOutputPortsForZone, cachedOutputPorts,
-    updateInputPortsForZone, cachedInputPorts, findTouchedNote
+    updateInputPortsForZone, cachedInputPorts, findTouchedNote,
+    toast
   } = ctx;
   const { applySelectedIndex } = helpers;
 
@@ -141,6 +142,16 @@ export function createZoneActions(
     zone_octave: () => {
       zone.octave = parseInt(actionParam1);
       updateValuesForZone(zoneindex);
+    },
+    zone_export: async () => {
+      const payload = JSON.stringify({ list: [zone.toJSON()] });
+      await ipcRenderer
+        .invoke('open-save', payload)
+        .then((result: { canceled: boolean; message: string; warning?: boolean }) => {
+          if (!result.canceled) {
+            toast(result.message, { longer: true, warning: result.warning });
+          }
+        });
     },
   };
 }
