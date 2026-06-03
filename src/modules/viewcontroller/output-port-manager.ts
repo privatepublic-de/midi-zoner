@@ -5,6 +5,10 @@ import { ZonesData, PortDescriptor } from './types';
 let cachedOutputPorts: PortDescriptor[] = [];
 let cachedInputPorts: PortDescriptor[] = [];
 
+function esc(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 export function getCachedOutputPorts(): PortDescriptor[] {
   return cachedOutputPorts;
 }
@@ -48,7 +52,18 @@ export function updateInputPortsForZone(
       `<option value="${port.id}">${port.name}</option>`
     );
   });
-  select.value = zones.list[index].inputPortId || '';
+  const inputPortId = zones.list[index].inputPortId;
+  if (inputPortId && !inputs.find((p) => p.id === inputPortId)) {
+    const missingName = zones.knownPortNames?.[inputPortId];
+    if (missingName) {
+      DOM.addHTML(
+        select,
+        'beforeend',
+        `<option value="${esc(inputPortId)}">⚠ missing: ${esc(missingName)}</option>`
+      );
+    }
+  }
+  select.value = inputPortId || '';
 }
 
 export function listUsedPorts(zones: ZonesData): Set<string> {
@@ -139,7 +154,19 @@ export function updateOutputPortsForZone(
       select.value = '$' + configId;
     }
   } else {
-    select.value = MIDI.INTERNAL_PORT_ID;
+    const missingName = preferredOutputPortId !== MIDI.INTERNAL_PORT_ID
+      ? zones.knownPortNames?.[preferredOutputPortId]
+      : undefined;
+    if (missingName) {
+      DOM.addHTML(
+        select,
+        'beforeend',
+        `<option value="${esc(preferredOutputPortId)}">⚠ missing: ${esc(missingName)}</option>`
+      );
+      select.value = preferredOutputPortId;
+    } else {
+      select.value = MIDI.INTERNAL_PORT_ID;
+    }
     zones.list[index].outputPortId = MIDI.INTERNAL_PORT_ID;
   }
   updateValuesForAllZones();

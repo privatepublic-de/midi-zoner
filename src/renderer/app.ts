@@ -30,6 +30,7 @@ interface ZonesData {
   nextArrangementIndex: number;
   arrangementQuantIndex: number;
   keySwitchEnabled: boolean;
+  knownPortNames: Record<string, string>;
 }
 
 interface PortDescriptor {
@@ -50,7 +51,8 @@ const zones: ZonesData = {
   arrangementIndex: 0,
   nextArrangementIndex: 0,
   arrangementQuantIndex: 2,
-  keySwitchEnabled: true
+  keySwitchEnabled: true,
+  knownPortNames: {}
 };
 
 const debounce = function <T extends (...args: any[]) => void>(
@@ -831,6 +833,10 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
           DOM.addHTML(select_in_clock, 'beforeend', optionNoDevice);
         }
+        // remember port names so missing devices can be labelled
+        outputs.forEach((p) => { zones.knownPortNames[p.id] = p.name; });
+        inputs.forEach((p) => { zones.knownPortNames[p.id] = p.name; });
+        saveZones();
         // zones
         midi.updateUsedPorts(view.updateOutputPortsForAllZone(outputs));
         view.updateInputPortsForAllZones(inputs);

@@ -12,6 +12,7 @@ export interface ZonesData {
   clockOutputPorts: Record<string, boolean>;
   arrangementIndex: number;
   nextArrangementIndex: number;
+  knownPortNames: Record<string, string>;
 }
 
 export interface ToastProperties {

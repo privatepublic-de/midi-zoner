@@ -73,7 +73,10 @@ export function createZoneActions(
         updateOutputPortsForZone(zoneindex, cachedOutputPorts);
         midiController.updateUsedPorts(listUsedPorts());
       } else {
-        zone.preferredOutputPortId = zone.outputPortId = selectElement.value;
+        zone.preferredOutputPortId = selectElement.value;
+        zone.outputPortId = cachedOutputPorts.find((p) => p.id === selectElement.value)
+          ? selectElement.value
+          : MIDI.INTERNAL_PORT_ID;
         updateValuesForZone(zoneindex);
         midiController.updateUsedPorts(listUsedPorts());
       }
