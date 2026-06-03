@@ -635,7 +635,7 @@
           tabindex="-1"
         />
         <div style="flex-grow: 1"></div>
-        <label>In CC#</label>
+        <label title="Move a hardware control while in edit mode to auto-learn its CC number">In CC#</label>
         <input
           type="number"
           class="cc-in"
@@ -643,6 +643,7 @@
           max="127"
           data-change="${index}:cc_number_in"
           tabindex="-1"
+          placeholder="—"
         />
       </div>
       <div class="flex-row show-type-0 show-type-1 border-top">
@@ -665,13 +666,14 @@
           tabindex="-1"
         />
         <div style="flex-grow: 1"></div>
-        <label>Discrete Values</label>
+        <label>Steps / Snap</label>
         <input
           type="text"
           class="cc_discrete_values"
           data-change="${index}:cc_discrete_values"
           tabindex="-1"
           style="width: 8rem"
+          placeholder="8 or 0,64,127"
         />
       </div>
       <div class="flex-row show-type-4 border-top">

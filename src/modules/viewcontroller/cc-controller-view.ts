@@ -46,11 +46,12 @@ function describeArc(
   ].join(' ');
 }
 
-function describeDiscreteValues(values: number[]): string {
+function describeDiscreteValues(values: number[], is14bit: boolean): string {
   let path = '';
   if (values != null && values.length > 0) {
+    const maxVal = is14bit ? 16383 : 127;
     for (let i = 0; i < values.length; i++) {
-      const degrees = -135 + 270 * (values[i] / 127);
+      const degrees = -135 + 270 * (values[i] / maxVal);
       const point1 = polarToCartesian(28, 30, 15, degrees);
       const point2 = polarToCartesian(28, 30, 21, degrees);
       path +=
@@ -62,8 +63,9 @@ function describeDiscreteValues(values: number[]): string {
 
 const rangePath = describeArc(28, 30, 18, -135, 135);
 
-export function updateControllerValues(zone: ZoneType, zoneindex: number): void {
+export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIndex?: number): void {
   zone.cc_controllers.forEach((c, ix) => {
+    if (onlyIndex !== undefined && ix !== onlyIndex) return;
     const potselector = `#pot_${zoneindex}_${ix}`;
     const is14bit = c.type == 5 || c.type == 6;
     const isBiploar = c.type == 1 || c.type == 6;
@@ -73,16 +75,19 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number): void 
     const valuePath = isBiploar
       ? describeArc(28, 30, 18, 0, valDegrees / 2)
       : describeArc(28, 30, 18, -135, -135 + valDegrees);
-    zone._$(`${potselector}_range`)?.setAttribute('d', rangePath);
+    if (onlyIndex === undefined) {
+      zone._$(`${potselector}_range`)?.setAttribute('d', rangePath);
+    }
     zone._$(`${potselector}_value`)?.setAttribute('d', valuePath);
     (zone._$(`${potselector}_zero`) as HTMLElement).style.display = isBiploar ? 'block' : 'none';
     zone
       ._$(`${potselector}_discrete`)
-      ?.setAttribute('d', describeDiscreteValues(c.discreteValues || []));
+      ?.setAttribute('d', describeDiscreteValues(c.discreteValues || [], is14bit));
     const potcontainer = zone._$(potselector) as HTMLElement;
     potcontainer.dataset.type = String(c.type);
     potcontainer.dataset.group = String(c.group || 0);
-    (zone._$(`${potselector} div.cclabel`) as HTMLElement).innerHTML =
+    potcontainer.dataset.hasInput = c.number_in != null ? '1' : '';
+    (zone._$(`${potselector} div.cclabel`) as HTMLElement).textContent =
       c.type == 4 ? 'Note to CC' : c.label;
     let displayValue: number = c.val;
     if (c.type == 0) {
@@ -90,7 +95,7 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number): void 
     } else if (isBiploar) {
       displayValue = is14bit ? displayValue - 8192 : displayValue - 64;
     }
-    (zone._$(`${potselector} .value`) as HTMLElement).innerHTML = String(displayValue);
+    (zone._$(`${potselector} .value`) as HTMLElement).textContent = String(displayValue);
     if (c.type == 4) {
       let infotext = '';
       if (c.note_cc != null) {
@@ -112,7 +117,7 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number): void 
           label.trim() != ''
         ) {
           btn.style.display = 'block';
-          btn.innerHTML = label;
+          btn.textContent = label;
           if (value == c.val) {
             btn.classList.add('selected');
           } else {
@@ -140,8 +145,9 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number): void 
         (zone._$('.cc-editor .cclabel') as HTMLInputElement).value = c.label;
         (zone._$('.cc-editor .cc-out-lsb') as HTMLInputElement).value =
           typeof c.number_lsb == 'undefined' ? '' : String(c.number_lsb);
-        (zone._$('.cc-editor .cc-in') as HTMLInputElement).value =
-          typeof c.number_in == 'undefined' ? '' : String(c.number_in);
+        const ccInEl = zone._$('.cc-editor .cc-in') as HTMLInputElement;
+        ccInEl.value = c.number_in != null ? String(c.number_in) : '';
+        ccInEl.classList.add('midi-learn-active');
         (zone._$('.cc-editor .cc-out') as HTMLInputElement).value = String(c.number);
         (zone._$('.cc-editor .cc-min') as HTMLInputElement).value = String(c.min || 0);
         (zone._$('.cc-editor .cc-max') as HTMLInputElement).value = String(c.max || 127);
@@ -156,7 +162,13 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number): void 
       DOM.removeClass(potselector, 'selected');
     }
   });
+  const wasEditing = zone.elements.ccPots![0]?.classList.contains('cc-edit') ?? false;
   DOM.switchClass(zone.elements.ccPots!, zone.editCC, 'cc-edit');
+  if (zone.editCC && !wasEditing) {
+    requestAnimationFrame(() => {
+      (zone._$('.cc-editor') as HTMLElement)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    });
+  }
 }
 
 export function renderControllersForZone(
@@ -181,6 +193,10 @@ export function renderControllersForZone(
   DOM.on(`#zone${index} .ccpots input`, 'keyup', suckEvent);
   DOM.on(`#zone${index} .ccpots input`, 'focus', (e) => {
     (e.target as HTMLInputElement).select();
+    onGestureStart();
+  });
+  DOM.on(`#zone${index} .ccpots input`, 'blur', () => {
+    onGestureEnd();
   });
 
   DOM.all(`#zone${index} .ccpots .ccpot`).forEach((pot, ix) => {
@@ -233,7 +249,7 @@ export function renderControllersForZone(
           }
         }
         zone.sendCC(ix);
-        updateControllerValues(zone, index);
+        updateControllerValues(zone, index, ix);
         triggerSave();
         if (scrollEndTimer) clearTimeout(scrollEndTimer);
         scrollEndTimer = setTimeout(() => {
@@ -242,9 +258,21 @@ export function renderControllersForZone(
         }, 800);
       }
     });
+    (pot.querySelector('.cclabel') as HTMLElement).addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (zone.selectedCCIndex === ix && zone.editCC) {
+        zone.editCC = false;
+      } else {
+        zone.selectedCCIndex = ix;
+        zone.editCC = true;
+      }
+      updateControllerValues(zone, index);
+    });
+
     pot.addEventListener('mousedown', (e) => {
       const mouseEvent = e as MouseEvent;
       if (
+        (e.target as HTMLElement).closest('.cclabel') ||
         (zone.cc_controllers[ix].type > 1 &&
           zone.cc_controllers[ix].type < 5) ||
         zone.editCC ||
@@ -253,19 +281,22 @@ export function renderControllersForZone(
         return;
       }
       onGestureStart();
+      const currentValue14 = is14bit
+        ? zone.cc_controllers[ix].val
+        : zone.cc_controllers[ix].val << 7;
       potDragHandler.startDrag(
-        pot as HTMLElement,
         mouseEvent,
+        currentValue14,
         (v) => {
           const oldVal = zone.cc_controllers[ix].val;
-          if (v != oldVal) {
-            if (is14bit) {
-              zone.cc_controllers[ix].val = v;
-            } else {
-              zone.snap2DiscreteValue(v >> 7, ix);
-            }
+          if (is14bit) {
+            zone.cc_controllers[ix].val = v;
+          } else {
+            zone.snap2DiscreteValue(v >> 7, ix);
+          }
+          if (zone.cc_controllers[ix].val !== oldVal) {
             zone.sendCC(ix);
-            updateControllerValues(zone, index);
+            updateControllerValues(zone, index, ix);
           }
         },
         () => {
@@ -275,6 +306,25 @@ export function renderControllersForZone(
       );
     });
   });
+  if (zone.cc_controllers.length === 0) {
+    const container = document.querySelector(`#zone${index} .ccpots .container`) as HTMLElement;
+    const placeholder = document.createElement('div');
+    placeholder.className = 'ccpots-empty';
+    placeholder.innerHTML = '<span class="material-icons">add</span>';
+    placeholder.addEventListener('click', (e) => {
+      e.stopPropagation();
+      zone.cc_controllers.push({
+        number: 1, number_in: null, min: 0, max: 127, type: 0,
+        label: 'Ctrl #1', val: 0, note_cc: null, velocity_cc: null
+      } as any);
+      zone.selectedCCIndex = 0;
+      zone.editCC = true;
+      renderControllersForZone(zone, index, actionHandler, triggerSave, onGestureStart, onGestureEnd);
+      triggerSave();
+    });
+    container.appendChild(placeholder);
+  }
+
   DOM.all(`#zone${index} .ccpots *[data-action]`).forEach((e) => {
     e.addEventListener('click', actionHandler as EventListener);
   });

@@ -54,7 +54,7 @@ export interface ActionContext {
   cachedInputPorts: PortDescriptor[];
   updateInputPortsForZone: (index: number, inputs: PortDescriptor[]) => void;
   findTouchedNote: (ev: MouseEvent, e: HTMLElement, zone: ZoneType) => TouchedNoteResult;
-  updateControllerValues: (zone: ZoneType, index: number) => void;
+  updateControllerValues: (zone: ZoneType, index: number, onlyIndex?: number) => void;
   selectArrangement: (index: number) => void;
 }
 

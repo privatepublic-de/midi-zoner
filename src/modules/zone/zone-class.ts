@@ -496,19 +496,23 @@ export class Zone {
         case MIDI.MESSAGE.CONTROLLER:
           if (this.editCC && this.selectedCCIndex > -1) {
             this.cc_controllers[this.selectedCCIndex].number_in = data[1];
-            return 'updateCC';
+            return `midiLearn:${this.selectedCCIndex}`;
           }
-          let handledByCCControl = false;
+          let firstMatchedCC = -1;
+          let matchCount = 0;
           for (let i = 0; i < this.cc_controllers.length; i++) {
             const ctrl = this.cc_controllers[i];
             if (ctrl.type != 2 && ctrl.number_in == data[1]) {
               const is14bit = ctrl.type == 5 || ctrl.type == 6;
-              ctrl.val = is14bit ? data[2] << 7 : data[2];
+              ctrl.val = is14bit ? Math.round(data[2] * 16383 / 127) : data[2];
               this.sendCC(i);
-              handledByCCControl = true;
+              if (firstMatchedCC === -1) firstMatchedCC = i;
+              matchCount++;
             }
           }
-          if (handledByCCControl) return 'updateCC';
+          if (matchCount > 0) {
+            return matchCount === 1 ? `updateCC:${firstMatchedCC}` : 'updateCC';
+          }
           if (data[1] == 0x40 && !this.sustain) return;
           if (data[1] == 0x01 && !this.mod) return;
           if (data[1] == 0x40) {

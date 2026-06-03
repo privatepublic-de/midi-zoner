@@ -495,9 +495,19 @@ document.addEventListener('DOMContentLoaded', function () {
           if (!portDef?.isSelected || portDef.ch !== sourceChannel) return;
         }
         const resultMessage = zone.handleMidi(msgtype, event.data);
-        if (resultMessage == 'updateCC') {
+        if (resultMessage && /^(updateCC|midiLearn)/.test(resultMessage)) {
+          const colonPos = resultMessage.indexOf(':');
+          const onlyIndex = colonPos > -1 ? parseInt(resultMessage.slice(colonPos + 1)) : undefined;
+          const isLearn = resultMessage.startsWith('midiLearn');
           requestAnimationFrame(() => {
-            view.updateControllerValues(zone, index);
+            view.updateControllerValues(zone, index, onlyIndex);
+            if (isLearn) {
+              const ccInInput = document.querySelector(`#zone${index} .cc-editor .cc-in`) as HTMLInputElement;
+              if (ccInInput) {
+                ccInInput.classList.add('midi-learn-flash');
+                setTimeout(() => ccInInput.classList.remove('midi-learn-flash'), 300);
+              }
+            }
           });
         } else if (resultMessage == 'updateDrumLaneNote') {
           requestAnimationFrame(() => {

@@ -661,8 +661,25 @@ input:focus-visible {
   font-weight: bold;
 }
 
+.cc-editor .cc-in.midi-learn-active {
+  background-color: var(--brighter-1);
+  color: var(--text-base-color);
+  font-weight: bold;
+}
+
 .zone input[type='number'].midi-learn-flash {
   animation: midiLearnFlash 0.3s ease-out;
+}
+
+.ccpot[data-has-input='1']::after {
+  content: '';
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  bottom: 3px;
+  right: 3px;
+  border-radius: 50%;
+  background-color: var(--brighter-2);
 }
 
 @keyframes midiLearnFlash {
@@ -1327,9 +1344,13 @@ input[type='range'] {
   overflow: hidden;
 }
 
-.dragvalue .range,
-.dragvalue .zone:not(.show-cc) {
+.dragvalue {
+  cursor: ns-resize !important;
+}
+
+.dragvalue * {
   pointer-events: none;
+  cursor: ns-resize !important;
 }
 
 .range canvas {
@@ -1573,6 +1594,28 @@ input[type='range'] {
   background-color: var(--groupcolor);
   white-space: nowrap;
   text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.ccpots-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--ccpot-width);
+  height: 72px;
+  margin: 1px;
+  border: 1px dashed var(--darker-2);
+  cursor: pointer;
+  color: var(--darker-2);
+}
+
+.ccpots-empty:hover {
+  border-color: var(--brighter-1);
+  color: var(--brighter-1);
+}
+
+.ccpots-empty .material-icons {
+  font-size: 18px;
 }
 
 .ccpot .value {

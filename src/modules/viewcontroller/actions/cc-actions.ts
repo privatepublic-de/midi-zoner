@@ -16,6 +16,7 @@ export function createCCActions(
     cc_toggle: () => {
       zone.show_cc = !zone.show_cc;
       updateValuesForZone(zoneindex);
+      triggerSave();
       if (zone.show_cc) {
         toast('Right click to edit CC controllers.');
       }
@@ -45,12 +46,14 @@ export function createCCActions(
     cc_label: () => {
       zone.cc_controllers[zone.selectedCCIndex].label = (element as HTMLInputElement).value;
       updateControllerValues(zone, zoneindex);
+      triggerSave();
     },
     cc_number: () => {
       const inputElement = element as HTMLInputElement;
       inputElement.value = inputElement.value.replace(/[^0-9]/, '');
       if (inputElement.value != '') {
         zone.cc_controllers[zone.selectedCCIndex].number = parseInt(inputElement.value);
+        triggerSave();
       }
     },
     cc_number_lsb: () => {
@@ -58,6 +61,7 @@ export function createCCActions(
       inputElement.value = inputElement.value.replace(/[^0-9]/, '');
       if (inputElement.value != '') {
         zone.cc_controllers[zone.selectedCCIndex].number_lsb = parseInt(inputElement.value);
+        triggerSave();
       }
     },
     cc_number_in: () => {
@@ -65,6 +69,7 @@ export function createCCActions(
       inputElement.value = inputElement.value.replace(/[^0-9]/, '');
       if (inputElement.value != '') {
         zone.cc_controllers[zone.selectedCCIndex].number_in = parseInt(inputElement.value);
+        triggerSave();
       }
     },
     cc_min: () => {
@@ -73,6 +78,7 @@ export function createCCActions(
       if (inputElement.value != '') {
         zone.cc_controllers[zone.selectedCCIndex].min = parseInt(inputElement.value);
         updateControllerValues(zone, zoneindex);
+        triggerSave();
       }
     },
     cc_max: () => {
@@ -81,16 +87,36 @@ export function createCCActions(
       if (inputElement.value != '') {
         zone.cc_controllers[zone.selectedCCIndex].max = parseInt(inputElement.value);
         updateControllerValues(zone, zoneindex);
+        triggerSave();
       }
     },
     cc_discrete_values: () => {
       const inputElement = element as HTMLInputElement;
-      inputElement.value = inputElement.value.replace(/[^0-9,]/, '');
-      const discreteValues = inputElement.value
-        .split(',')
-        .map((v) => (v != '' ? parseInt(v) : v)) as number[];
+      inputElement.value = inputElement.value.replace(/[^0-9,]/g, '');
+      const raw = inputElement.value.trim();
+      let discreteValues: number[];
+      if (raw === '') {
+        discreteValues = [];
+      } else if (/^\d+$/.test(raw)) {
+        // Single integer 2–64: auto-expand to N equal steps
+        const n = parseInt(raw);
+        if (n >= 2 && n <= 64) {
+          const c = zone.cc_controllers[zone.selectedCCIndex];
+          const maxVal = (c.type === 5 || c.type === 6) ? 16383 : 127;
+          discreteValues = Array.from({ length: n }, (_, i) =>
+            Math.round(i * maxVal / (n - 1))
+          );
+        } else {
+          discreteValues = [n].filter(v => !isNaN(v) && v >= 0);
+        }
+      } else {
+        discreteValues = raw.split(',')
+          .map(v => parseInt(v))
+          .filter(v => !isNaN(v) && v >= 0);
+      }
       zone.cc_controllers[zone.selectedCCIndex].discreteValues = discreteValues;
       updateControllerValues(zone, zoneindex);
+      triggerSave();
     },
     cc_notenum2cc: () => {
       const inputElement = element as HTMLInputElement;
@@ -101,6 +127,7 @@ export function createCCActions(
         zone.cc_controllers[zone.selectedCCIndex].note_cc = null;
       }
       updateControllerValues(zone, zoneindex);
+      triggerSave();
     },
     cc_notevelocity2cc: () => {
       const inputElement = element as HTMLInputElement;
@@ -111,11 +138,13 @@ export function createCCActions(
         zone.cc_controllers[zone.selectedCCIndex].velocity_cc = null;
       }
       updateControllerValues(zone, zoneindex);
+      triggerSave();
     },
     cc_button_label: () => {
       (zone.cc_controllers[zone.selectedCCIndex] as any)[`buttonlabel${actionParam1}`] =
         (element as HTMLInputElement).value;
       updateControllerValues(zone, zoneindex);
+      triggerSave();
     },
     cc_button_value: () => {
       const inputElement = element as HTMLInputElement;
@@ -124,6 +153,7 @@ export function createCCActions(
         (zone.cc_controllers[zone.selectedCCIndex] as any)[`buttonvalue${actionParam1}`] =
           parseInt(inputElement.value);
         updateControllerValues(zone, zoneindex);
+        triggerSave();
       }
     },
     cc_button_trig: () => {
@@ -133,8 +163,10 @@ export function createCCActions(
         (zone.cc_controllers[ccindex] as any)[`buttonvalue${btnindex}`];
       zone.sendCC(ccindex);
       updateControllerValues(zone, zoneindex);
+      triggerSave();
     },
     cc_add: () => {
+      pushHistory(JSON.stringify(zones));
       zone.cc_controllers.splice(zone.selectedCCIndex + 1, 0, {
         number: 1,
         number_in: null,
@@ -151,6 +183,7 @@ export function createCCActions(
       } as any);
       zone.selectedCCIndex++;
       renderControllersForZone(zone, zoneindex);
+      triggerSave();
     },
     cc_remove: async () => {
       const snapshotBeforeRemove = JSON.stringify(zones);
@@ -177,14 +210,16 @@ export function createCCActions(
         });
     },
     cc_change_type: () => {
+      pushHistory(JSON.stringify(zones));
       zone.cc_controllers[zone.selectedCCIndex].type = parseInt((element as HTMLSelectElement).value);
       renderControllersForZone(zone, zoneindex);
-      updateControllerValues(zone, zoneindex);
+      triggerSave();
     },
     cc_change_group: () => {
+      pushHistory(JSON.stringify(zones));
       zone.cc_controllers[zone.selectedCCIndex].group = (element as HTMLSelectElement).selectedIndex;
       renderControllersForZone(zone, zoneindex);
-      updateControllerValues(zone, zoneindex);
+      triggerSave();
     },
     _cc_move: (direction?: number) => {
       const dir = direction !== undefined ? direction : parseInt(actionParam1);
@@ -206,11 +241,13 @@ export function createCCActions(
         }
       }
       if (pos != targetPos) {
+        pushHistory(JSON.stringify(zones));
         const v2 = zone.cc_controllers[targetPos];
         zone.cc_controllers[targetPos] = zone.cc_controllers[pos];
         zone.cc_controllers[pos] = v2;
         zone.selectedCCIndex = targetPos;
         renderControllersForZone(zone, zoneindex);
+        triggerSave();
       }
     },
     cc_left: () => {
