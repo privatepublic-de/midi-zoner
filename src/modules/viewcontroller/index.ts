@@ -1114,12 +1114,10 @@ function updateValuesForZone(index: number): void {
     });
     DOM.switchClass(zoneElement, zone.arp_enabled, 'arp-enabled');
 
-    // Update swing controls (in both arp block and seqtools)
     const swingSliders = zone.elements.get(
       '.swing-amount'
     ) as HTMLInputElement | null;
     if (swingSliders) {
-      // There are two sliders with the same class, update all of them
       DOM.all(`#zone${index} .swing-amount`).forEach((el) => {
         (el as HTMLInputElement).value = String(
           Math.round(zone.swingAmount * 100)
