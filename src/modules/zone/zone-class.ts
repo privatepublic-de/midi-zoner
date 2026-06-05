@@ -398,9 +398,9 @@ export class Zone {
   ): string | void {
     // Pass note-off through for actively sounding keyboard notes even when zone is disabled,
     // so held notes are not stuck when the arrangement switches and disables this zone.
-    if (!fromSequencer && message === MIDI.MESSAGE.NOTE_OFF && !this.shouldHandleMidi(message, fromSequencer)) {
+    if (message === MIDI.MESSAGE.NOTE_OFF && !this.shouldHandleMidi(message, fromSequencer)) {
       const srcNote = this.midiActiveNotes[data[1]];
-      if (srcNote) {
+      if (srcNote?.fromInput) {
         this.midiActiveNotes[data[1]] = null;
         this.removeNote(srcNote.number);
         const outevent = new Uint8Array(3);
@@ -457,6 +457,7 @@ export class Zone {
                   this.channel,
                   this.outputPortId
                 );
+                playNote.fromInput = fromMidiInput;
                 this.midiActiveNotes[srcKey] = playNote;
                 this.addNote(playNote);
                 if (fromMidiInput) {

@@ -50,6 +50,7 @@ export class Note {
   channel = 0;
   isBlackKey = false;
   portId = MIDI.INTERNAL_PORT_ID;
+  fromInput = true;
 
   constructor(number: number, velo: number, channel?: number, portId?: string) {
     this.number = number;
