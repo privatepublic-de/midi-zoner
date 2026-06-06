@@ -194,6 +194,14 @@ function applyStoredZones(
       // overwrite existing zones with stored zones
       zones.list.forEach((z) => z.dismiss());
       Object.assign(zones, storedZones);
+      // Ensure knownPortNames values are strings (old data may have stored objects)
+      if (zones.knownPortNames) {
+        for (const key of Object.keys(zones.knownPortNames)) {
+          if (typeof zones.knownPortNames[key] !== 'string') {
+            delete zones.knownPortNames[key];
+          }
+        }
+      }
       zones.list = [];
       for (let i = 0; i < (storedZones.list?.length ?? 0); i++) {
         zones.list.push(createZone(midi, storedZones.list![i]));

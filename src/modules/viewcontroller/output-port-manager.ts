@@ -5,8 +5,8 @@ import { ZonesData, PortDescriptor } from './types';
 let cachedOutputPorts: PortDescriptor[] = [];
 let cachedInputPorts: PortDescriptor[] = [];
 
-function esc(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+function esc(s: unknown): string {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 export function getCachedOutputPorts(): PortDescriptor[] {
@@ -53,9 +53,9 @@ export function updateInputPortsForZone(
     );
   });
   const inputPortId = zones.list[index].inputPortId;
-  if (inputPortId && !inputs.find((p) => p.id === inputPortId)) {
+  if (typeof inputPortId === 'string' && inputPortId && !inputs.find((p) => p.id === inputPortId)) {
     const missingName = zones.knownPortNames?.[inputPortId];
-    if (missingName) {
+    if (typeof missingName === 'string' && missingName) {
       DOM.addHTML(
         select,
         'beforeend',
@@ -157,7 +157,7 @@ export function updateOutputPortsForZone(
     const missingName = preferredOutputPortId !== MIDI.INTERNAL_PORT_ID
       ? zones.knownPortNames?.[preferredOutputPortId]
       : undefined;
-    if (missingName) {
+    if (typeof missingName === 'string' && missingName) {
       DOM.addHTML(
         select,
         'beforeend',
