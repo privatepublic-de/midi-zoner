@@ -898,13 +898,18 @@ function updateValuesForZone(index: number): void {
             } else {
               DOM.removeClass(stepElement, 'selected');
             }
-            if (
-              (sequence.steps[i] && sequence.steps[i].length > 0) ||
-              sequence.liveTargetStepNumber == i
-            ) {
+            const stepData = sequence.steps[i];
+            if ((stepData && stepData.length > 0) || sequence.liveTargetStepNumber == i) {
               DOM.addClass(stepElement, 'active');
+              const rc = stepData?.ratchetCount ?? 1;
+              if (rc > 1) {
+                (stepElement as HTMLElement).dataset.rc = String(rc);
+              } else {
+                delete (stepElement as HTMLElement).dataset.rc;
+              }
             } else {
               DOM.removeClass(stepElement, 'active');
+              delete (stepElement as HTMLElement).dataset.rc;
             }
           } else {
             DOM.addClass(stepElement, 'unused');

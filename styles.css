@@ -2840,7 +2840,7 @@ body:not(.running) .seqprogress {
   pointer-events: none;
 }
 
-.drumSequencer .seq .grid .step.active[data-rc] {
+.seq .grid .step.active[data-rc] {
   outline: 1.5px dashed var(--brighter-3);
   outline-offset: -1.5px;
 }
