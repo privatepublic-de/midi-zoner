@@ -951,14 +951,14 @@ function updateValuesForZone(index: number): void {
           );
           const ratchetCountEl = zone._$(
             '.seq_step_ratchet_count'
-          ) as HTMLInputElement | null;
+          ) as HTMLSelectElement | null;
           if (ratchetCountEl) {
             const countVal = step.ratchetCount ?? 1;
             ratchetCountEl.value = String(countVal);
-            const countOut = ratchetCountEl.parentElement?.querySelector(
-              `output[for="${ratchetCountEl.id}"]`
-            ) as HTMLOutputElement | null;
-            if (countOut) countOut.value = String(countVal);
+            const stepControls = ratchetCountEl.closest('.step-controls') as HTMLElement | null;
+            if (stepControls) {
+              stepControls.classList.toggle('ratchet-off', countVal <= 1);
+            }
           }
           const ratchetDeltaEl = zone._$(
             '.seq_step_ratchet_delta'
@@ -982,6 +982,11 @@ function updateValuesForZone(index: number): void {
             zone.elements.setSelectedIndex('.seq_step_condition', 0);
             zone.elements.setPercentage('.seq_step_probability', 100, index);
             zone.elements.setPercentage('.seq_gatelength', 100, index);
+            const ratchetCountEl2 = zone._$('.seq_step_ratchet_count') as HTMLSelectElement | null;
+            if (ratchetCountEl2) {
+              ratchetCountEl2.value = '1';
+              (ratchetCountEl2.closest('.step-controls') as HTMLElement | null)?.classList.add('ratchet-off');
+            }
           }
         }
         sequence.selectedStepNumbers.forEach((n) => {

@@ -717,7 +717,6 @@ input:focus-visible {
   font-size: 11px;
 }
 
-
 /* =============================================================
    ZONE SETTINGS ROW  (channels, IO routing, arp)
    ============================================================= */
@@ -2047,7 +2046,7 @@ input[type='range'] {
   display: flex;
   gap: 8px;
   align-items: center;
-  justify-content: space-evenly;
+  justify-content: start;
 }
 .step-controls:last-child {
   border-bottom: none;
@@ -2843,6 +2842,12 @@ body:not(.running) .seqprogress {
 .seq .grid .step.active[data-rc] {
   outline: 1.5px dashed var(--brighter-3);
   outline-offset: -1.5px;
+}
+
+.step-controls.ratchet-off .ratchet-param {
+  opacity: 0.3;
+  pointer-events: none;
+  transition: opacity 0.15s;
 }
 
 body.running .drumSequencer .lane-expand-toggle {

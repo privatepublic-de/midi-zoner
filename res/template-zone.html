@@ -50,7 +50,12 @@
         class="iorouting-display"
         data-action="${index}:iorouting_toggle"
         title="Configure input/output routing"
-      ><span class="iorouting-text"><span class="iorouting-portname"></span><span class="iorouting-ch"></span></span></div>
+      >
+        <span class="iorouting-text"
+          ><span class="iorouting-portname"></span
+          ><span class="iorouting-ch"></span
+        ></span>
+      </div>
       <div class="iorouting-popup popup hideonleave">
         <input
           type="text"
@@ -69,16 +74,28 @@
           >
             <option value="*"></option>
           </select>
-          <select class="channel" data-change="${index}:zone_channel" tabindex="-1">
+          <select
+            class="channel"
+            data-change="${index}:zone_channel"
+            tabindex="-1"
+          >
             ${channelOptions}
           </select>
         </div>
         <div class="ior-row ior-row-input">
           <span class="ior-label">In</span>
-          <select class="inport" data-change="${index}:zone_input_port" tabindex="-1">
+          <select
+            class="inport"
+            data-change="${index}:zone_input_port"
+            tabindex="-1"
+          >
             <option value="">Global</option>
           </select>
-          <select class="inchannel" data-change="${index}:zone_input_channel" tabindex="-1">
+          <select
+            class="inchannel"
+            data-change="${index}:zone_input_channel"
+            tabindex="-1"
+          >
             <option value="-1">All ch</option>
             ${channelOptions}
           </select>
@@ -322,23 +339,24 @@
         </div>
       </div>
       <div class="step-controls">
-        <div class="label">Ratchet</div>
-        <div class="percent-holder">
-          <input
-            class="percent seq_step_ratchet_count"
-            type="range"
-            min="1"
-            max="32"
-            value="1"
-            data-change="${index}:seq_step_ratchet_count"
-            id="seq_step_ratchet_count${index}"
-            title="Number of ratchet hits"
-            tabindex="-1"
-          />
-          <output for="seq_step_ratchet_count${index}">1</output>
-        </div>
-        <div class="label">Res</div>
-        <div class="percent-holder">
+        <div class="label">Note Repeat</div>
+        <select
+          class="seq_step_ratchet_count"
+          data-change="${index}:seq_step_ratchet_count"
+          title="Number of note repeats"
+          tabindex="-1"
+        >
+          <option value="1">—</option>
+          <option value="2">×2</option>
+          <option value="3">×3</option>
+          <option value="4">×4</option>
+          <option value="5">×5</option>
+          <option value="6">×6</option>
+          <option value="7">×7</option>
+          <option value="8">×8</option>
+        </select>
+        <div class="label ratchet-param">Rate</div>
+        <div class="percent-holder ratchet-param">
           <input
             class="percent seq_step_ratchet_res"
             type="range"
@@ -347,20 +365,20 @@
             value="6"
             data-change="${index}:seq_step_ratchet_res"
             id="seq_step_ratchet_res${index}"
-            title="Ratchet resolution"
+            title="Ratchet rate (subdivision between repeats)"
             tabindex="-1"
           />
           <output for="seq_step_ratchet_res${index}">1/16</output>
         </div>
-        <div class="label">ΔVel</div>
+        <div class="label ratchet-param">Δ Vel</div>
         <input
-          class="seq_step_ratchet_delta"
+          class="seq_step_ratchet_delta ratchet-param"
           type="number"
           min="-127"
           max="127"
           value="0"
           data-change="${index}:seq_step_ratchet_delta"
-          title="Velocity change per ratchet hit"
+          title="Velocity change per repeat"
           tabindex="-1"
         />
       </div>
@@ -464,8 +482,9 @@
           class="arp_transpose innertoggle"
           title="Use keyboard to transpose held arpeggio"
           data-action="${index}:zone_arp_transpose"
-          onclick="event.stopPropagation();"
-        >t<span class="arp_transpose_value"></span></span>
+          onclick="event.stopPropagation()"
+          >t<span class="arp_transpose_value"></span
+        ></span>
       </div>
     </div>
     <div class="arp-settings">
@@ -634,7 +653,10 @@
           tabindex="-1"
         />
         <div style="flex-grow: 1"></div>
-        <label title="Move a hardware control while in edit mode to auto-learn its CC number">In CC#</label>
+        <label
+          title="Move a hardware control while in edit mode to auto-learn its CC number"
+          >In CC#</label
+        >
         <input
           type="number"
           class="cc-in"
@@ -900,7 +922,7 @@
         <input
           type="number"
           class="fixedvel_value"
-          onclick="event.stopPropagation();"
+          onclick="event.stopPropagation()"
           data-change="${index}:filters_fixedvel_value"
           value="127"
           min="1"
@@ -937,7 +959,8 @@
         data-change="${index}:filters_changeprogram"
         tabindex="-1"
       />
-      <div class="label">Bank MSB:</div><input
+      <div class="label">Bank MSB:</div>
+      <input
         title="Bank MSB — CC 0 (0–127). Clear to disable."
         class="banknumber bank_msb"
         type="number"
@@ -947,7 +970,8 @@
         data-change="${index}:filters_changebank_msb"
         tabindex="-1"
       />
-      <div class="label">LSB:</div><input
+      <div class="label">LSB:</div>
+      <input
         title="Bank LSB — CC 32 (0–127). Clear to disable."
         class="banknumber bank_lsb"
         type="number"
@@ -962,7 +986,9 @@
       class="action sustain_on"
       data-action="${index}:filters_sustain_on"
       title="Send sustain pedal on to output"
-    >Sustain</div>
+    >
+      Sustain
+    </div>
     <div class="swing-in-settings">
       <div class="label">Swing</div>
       <div class="percent-holder">

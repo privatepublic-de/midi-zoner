@@ -486,11 +486,7 @@ export function createSeqActions(
       updateValuesForZone(zoneindex);
     },
     seq_step_ratchet_count: () => {
-      const v = Math.max(1, parseInt((element as HTMLInputElement).value) || 1);
-      const out = (element as HTMLInputElement).parentElement?.querySelector(
-        `output[for="${(element as HTMLInputElement).id}"]`
-      ) as HTMLOutputElement | null;
-      if (out) out.value = String(v);
+      const v = Math.max(1, parseInt((element as HTMLSelectElement).value) || 1);
       sequence.selectedSteps.forEach((step) => {
         if (step) step.ratchetCount = v;
       });
