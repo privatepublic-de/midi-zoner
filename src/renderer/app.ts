@@ -672,8 +672,8 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         let clockRunning = false;
         startClockButton.addEventListener('click', () => {
-          clockRunning = !clockRunning;
-          if (true || !midi.deviceInClock) {
+          if (midi.deviceIdInClock === MIDI.INTERNAL_PORT_ID) {
+            clockRunning = !clockRunning;
             if (clockRunning) {
               startClockButton.classList.add('selected');
               midi.startClock();
