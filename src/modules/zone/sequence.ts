@@ -234,7 +234,7 @@ export class Sequence {
       this.currentStepNumber > -1
     ) {
       let isSequentialAdvance = false;
-      if (this.liveTargetStep) {
+      if (this.liveTargetStep && this.currentPos - this.liveTargetStepStartPos >= this.ticks / 2) {
         // Commit notes immediately; length will be resolved when each note is released
         this.steps[this.liveTargetStepNumber] = this.liveTargetStep;
         for (const n of this.liveTargetStep.notesArray) {
