@@ -79,6 +79,8 @@ export class Sequence {
   liveTargetStep: SeqStep | null = null;
   liveTargetLength = 0;
   liveTargetStepNumber = -1;
+  liveNoteSteps = new Map<number, { stepIndex: number; startPos: number }>();
+  liveTargetStepStartPos = 0;
   tickn = 0;
 
   constructor(zone: Zone) {
@@ -231,13 +233,32 @@ export class Sequence {
       this.isLiveRecoding &&
       this.currentStepNumber > -1
     ) {
+      let isSequentialAdvance = false;
+      if (this.liveTargetStep) {
+        // Commit notes immediately; length will be resolved when each note is released
+        this.steps[this.liveTargetStepNumber] = this.liveTargetStep;
+        for (const n of this.liveTargetStep.notesArray) {
+          this.liveNoteSteps.set(n.number, {
+            stepIndex: this.liveTargetStepNumber,
+            startPos: this.liveTargetStepStartPos,
+          });
+        }
+        this.liveTargetStep = null;
+        this.liveTargetLength = 0;
+        this.liveTargetStepNumber = -1;
+        isSequentialAdvance = true;
+      }
       if (this.liveTargetStep == null) {
         const rec2step =
-          this.tickn >= this.ticks - this.ticks / 3
+          this.tickn >= this.ticks / 2
             ? (this.currentStepNumber + 1) % this.length
             : this.currentStepNumber;
         this.liveTargetStepNumber = rec2step;
         this.liveTargetStep = SeqStep.from(this.steps[rec2step]);
+        if ((inCount === 1 || isSequentialAdvance) && !this.stepAddNotes) {
+          this.liveTargetStep.notesArray.length = 0;
+        }
+        this.liveTargetStepStartPos = this.currentPos;
         this.liveTargetLength = 1;
       }
       if (SeqStep.addNote(this.liveTargetStep.notesArray, note)) {
@@ -257,15 +278,26 @@ export class Sequence {
     }
   }
 
-  noteReleased(count: number): void {
-    if (this.isLiveRecoding && this.liveTargetStep) {
-      this.liveTargetStep.length = this.liveTargetLength;
-      this.steps[this.liveTargetStepNumber] = this.liveTargetStep;
-      this.liveTargetStep = null;
-      this.liveTargetLength = 0;
-      this.liveTargetStepNumber = -1;
-      this.updateRecordingState();
+  noteReleased(noteNumber: number, count: number): void {
+    const pending = this.liveNoteSteps.get(noteNumber);
+    if (pending) {
+      const step = this.steps[pending.stepIndex];
+      if (step) {
+        step.length = Math.max(1, Math.round((this.currentPos - pending.startPos) / this.ticks));
+      }
+      this.liveNoteSteps.delete(noteNumber);
       this.updateZoneView();
+    }
+    if (this.isLiveRecoding && this.liveTargetStep) {
+      if (count === 0) {
+        this.liveTargetStep.length = this.liveTargetLength;
+        this.steps[this.liveTargetStepNumber] = this.liveTargetStep;
+        this.liveTargetStep = null;
+        this.liveTargetLength = 0;
+        this.liveTargetStepNumber = -1;
+        this.updateRecordingState();
+        this.updateZoneView();
+      }
     }
     if (
       this.isHotRecordingNotes &&

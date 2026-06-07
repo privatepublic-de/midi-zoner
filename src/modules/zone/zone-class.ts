@@ -489,7 +489,7 @@ export class Zone {
                   this.removeNote(key);
                 }
                 if (!fromSequencer) {
-                  this.sequence.noteReleased(this.activeNotes.length);
+                  this.sequence.noteReleased(srcNote ? srcNote.number : key, this.activeNotes.length);
                 }
               }
             }
