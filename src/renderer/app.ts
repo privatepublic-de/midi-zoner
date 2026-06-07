@@ -163,6 +163,9 @@ function createZone(midi: MIDIInstance, zoneData: any): Zone {
   zone.low = zoneData.low ?? 0;
   zone.high = zoneData.high ?? 127;
   zone.show_cc = zoneData.show_cc ?? false;
+  zone.pgm_no = zoneData.pgm_no ?? null;
+  zone.bank_msb = zoneData.bank_msb ?? null;
+  zone.bank_lsb = zoneData.bank_lsb ?? null;
   if (zoneData.cc_controllers) zone.cc_controllers = zoneData.cc_controllers;
   if (zoneData.colorIndex != null) zone.colorIndex = zoneData.colorIndex;
 
@@ -436,6 +439,7 @@ document.addEventListener('DOMContentLoaded', function () {
     midi.sendClockIfPlaying = zones.sendInternalClockIfPlaying;
   }
   let activeUpdateTimer: ReturnType<typeof setTimeout> | null = null;
+  let portsFirstUpdateDone = false;
   const midi = new MIDI({
     eventHandler: (event: MIDIMessageEvent) => {
       if (midi.deviceIdInClock == MIDI.INTERNAL_PORT_ID) {
@@ -785,6 +789,7 @@ document.addEventListener('DOMContentLoaded', function () {
                   view.renderZones();
                   saveZones();
                   updateUndoRedoButtons();
+                  zones.list.forEach((zone) => zone.sendProgramChange());
                 } catch (ex) {
                   console.log('app: Error loading file', ex);
                   view.toast(
@@ -846,8 +851,20 @@ document.addEventListener('DOMContentLoaded', function () {
         inputs.forEach((p) => { zones.knownPortNames[p.id] = p.name; });
         saveZones();
         // zones
+        const prevPortIds = zones.list.map((z) => z.outputPortId);
         midi.updateUsedPorts(view.updateOutputPortsForAllZone(outputs));
         view.updateInputPortsForAllZones(inputs);
+        zones.list.forEach((zone, i) => {
+          if (
+            zone.pgm_no != null &&
+            zone.preferredOutputPortId !== MIDI.INTERNAL_PORT_ID &&
+            zone.outputPortId === zone.preferredOutputPortId &&
+            (prevPortIds[i] !== zone.outputPortId || !portsFirstUpdateDone)
+          ) {
+            zone.sendProgramChange();
+          }
+        });
+        portsFirstUpdateDone = true;
         if (midi.knownPorts[midi.deviceIdInClock] == null) {
           console.log(
             'app: Clock in port',

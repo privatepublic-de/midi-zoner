@@ -713,6 +713,7 @@ input:focus-visible {
   font-size: 11px;
 }
 
+
 /* =============================================================
    ZONE SETTINGS ROW  (channels, IO routing, arp)
    ============================================================= */
@@ -2263,7 +2264,8 @@ body:not(.running) .seqprogress {
   word-wrap: break-word;
 }
 
-.popupsettings {
+.popupsettings,
+.programsettings {
   position: absolute;
   z-index: 1;
   top: calc(100% + 5px);
@@ -2274,6 +2276,13 @@ body:not(.running) .seqprogress {
   row-gap: 4px;
   column-gap: 16px;
   cursor: default;
+}
+.programsettings {
+  align-items: center;
+}
+.action.sustain_on.selected {
+  background-color: var(--brighter-2);
+  color: var(--brighter-4);
 }
 
 .popup {

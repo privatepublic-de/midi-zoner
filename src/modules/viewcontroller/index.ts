@@ -1149,6 +1149,10 @@ function updateValuesForZone(index: number): void {
     (zone._$('input.programnumber') as HTMLInputElement).value = zone.pgm_no
       ? String(zone.pgm_no)
       : '';
+    (zone._$('input.bank_msb') as HTMLInputElement).value =
+      zone.bank_msb != null ? String(zone.bank_msb) : '';
+    (zone._$('input.bank_lsb') as HTMLInputElement).value =
+      zone.bank_lsb != null ? String(zone.bank_lsb) : '';
     (zone._$('input.fixedvel_value') as HTMLInputElement).value = String(
       zone.fixedvel_value
     );

@@ -14,6 +14,16 @@ export function createFilterActions(
       if (settings.style.display == 'flex') {
         settings.style.display = 'none';
       } else {
+        (zone._$('.programsettings') as HTMLElement).style.display = 'none';
+        settings.style.display = 'flex';
+      }
+    },
+    program_toggle: () => {
+      const settings = zone._$('.programsettings') as HTMLElement;
+      if (settings.style.display == 'flex') {
+        settings.style.display = 'none';
+      } else {
+        (zone._$('.popupsettings') as HTMLElement).style.display = 'none';
         settings.style.display = 'flex';
       }
     },
@@ -37,7 +47,17 @@ export function createFilterActions(
       if (v > 0 && v < 129) {
         zone.pgm_no = v;
         zone.sendProgramChange();
+      } else if (isNaN(v)) {
+        zone.pgm_no = null;
       }
+    },
+    filters_changebank_msb: () => {
+      const v = parseInt((element as HTMLInputElement).value);
+      zone.bank_msb = (v >= 0 && v <= 127) ? v : null;
+    },
+    filters_changebank_lsb: () => {
+      const v = parseInt((element as HTMLInputElement).value);
+      zone.bank_lsb = (v >= 0 && v <= 127) ? v : null;
     },
   };
 }

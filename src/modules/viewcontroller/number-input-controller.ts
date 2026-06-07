@@ -47,7 +47,7 @@ export class NumberInputController {
         this.elValueBtnAttachedInput.value = String(nv);
         this.elValueBtnAttachedInput.dispatchEvent(new CustomEvent('input'));
       }
-      this.elValueBtnAttachedInput.focus();
+      this.elValueBtnAttachedInput.focus({ preventScroll: true });
     }
   }
 

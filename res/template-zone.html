@@ -848,22 +848,6 @@
     <div class="action toggle_filters" data-action="${index}:filters_toggle">
       Filters
     </div>
-    <div class="swing-in-settings">
-      <div class="label">Swing</div>
-      <div class="percent-holder">
-        <input
-          type="range"
-          class="percent swing-amount"
-          data-change="${index}:zone_swing_amount"
-          id="swing_amount${index}"
-          min="0"
-          max="100"
-          value="0"
-          tabindex="-1"
-        />
-        <output for="swing_amount${index}">---</output>
-      </div>
-    </div>
     <div class="popupsettings popup hideonleave">
       <div
         class="check pitchbend"
@@ -885,11 +869,6 @@
         title="Transmit sustain pedal messages (CC 64)"
       >
         ${checkboxIcons}Sustain
-        <span
-          class="innertoggle sustain_on"
-          data-action="${index}:filters_sustain_on"
-          >ON</span
-        >
       </div>
       <div
         class="check cc"
@@ -904,6 +883,13 @@
         title="Convert channel pressure (aftertouch) to mod (CC 1)"
       >
         ${checkboxIcons}Aftertouch &gt; MW
+      </div>
+      <div
+        class="check programchange"
+        data-action="${index}:filters_programchange"
+        title="Transmit program change messages"
+      >
+        ${checkboxIcons}Program
       </div>
       <div style="width: 100%"></div>
       <div
@@ -936,23 +922,62 @@
         />
         <output for="velocity_scaling${index}">---</output>
       </div>
-      <div
-        class="check programchange"
-        data-action="${index}:filters_programchange"
-        title="Transmit program change messages"
-      >
-        ${checkboxIcons}Program
+    </div>
+    <div class="action toggle_filters" data-action="${index}:program_toggle">
+      Program
+    </div>
+    <div class="programsettings popup hideonleave">
+      <div class="label">Program</div>
+      <input
+        title="Send a program change message (1–128). Clear to disable."
+        class="programnumber"
+        type="number"
+        value=""
+        min="1"
+        max="128"
+        data-change="${index}:filters_changeprogram"
+        tabindex="-1"
+      />
+      <div class="label">Bank MSB:</div><input
+        title="Bank MSB — CC 0 (0–127). Clear to disable."
+        class="banknumber bank_msb"
+        type="number"
+        value=""
+        min="0"
+        max="127"
+        data-change="${index}:filters_changebank_msb"
+        tabindex="-1"
+      />
+      <div class="label">LSB:</div><input
+        title="Bank LSB — CC 32 (0–127). Clear to disable."
+        class="banknumber bank_lsb"
+        type="number"
+        value=""
+        min="0"
+        max="127"
+        data-change="${index}:filters_changebank_lsb"
+        tabindex="-1"
+      />
+    </div>
+    <div
+      class="action sustain_on"
+      data-action="${index}:filters_sustain_on"
+      title="Send sustain pedal on to output"
+    >Sustain</div>
+    <div class="swing-in-settings">
+      <div class="label">Swing</div>
+      <div class="percent-holder">
         <input
-          title="Send a program change message"
-          class="programnumber"
-          type="number"
-          value=""
-          min="1"
-          max="128"
-          data-change="${index}:filters_changeprogram"
-          onclick="event.stopPropagation();"
+          type="range"
+          class="percent swing-amount"
+          data-change="${index}:zone_swing_amount"
+          id="swing_amount${index}"
+          min="0"
+          max="100"
+          value="0"
           tabindex="-1"
         />
+        <output for="swing_amount${index}">---</output>
       </div>
     </div>
   </div>

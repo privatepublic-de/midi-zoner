@@ -144,6 +144,8 @@ export class Zone {
   _colorIndex: number | null = null;
   private _cachedZoneColor: string | null = null;
   pgm_no: number | null = null;
+  bank_msb: number | null = null;
+  bank_lsb: number | null = null;
   rngArp: BagShuffle;
   rngArpOct: BagShuffle;
   rngProb: () => number;
@@ -178,6 +180,9 @@ export class Zone {
       low: this.low,
       high: this.high,
       show_cc: this.show_cc,
+      pgm_no: this.pgm_no,
+      bank_msb: this.bank_msb,
+      bank_lsb: this.bank_lsb,
       cc_controllers: this.cc_controllers,
       arrangements: this.arrangements
     };
@@ -1081,13 +1086,20 @@ export class Zone {
   }
 
   sendProgramChange(): void {
-    if (this.pgm_no) {
-      this.midi.sendProgramChange(
-        this.outputPortId,
-        this.channel,
-        this.pgm_no - 1
+    if (!this.pgm_no) return;
+    if (this.bank_msb != null) {
+      this.midi.send(
+        Uint8Array.from([MIDI.MESSAGE.CONTROLLER + this.channel, 0, this.bank_msb]),
+        this.outputPortId
       );
     }
+    if (this.bank_lsb != null) {
+      this.midi.send(
+        Uint8Array.from([MIDI.MESSAGE.CONTROLLER + this.channel, 32, this.bank_lsb]),
+        this.outputPortId
+      );
+    }
+    this.midi.sendProgramChange(this.outputPortId, this.channel, this.pgm_no - 1);
   }
 
   sendAllCC(): void {

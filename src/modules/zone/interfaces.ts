@@ -140,6 +140,9 @@ export interface ZoneJSON {
   low: number;
   high: number;
   show_cc: boolean;
+  pgm_no?: number | null;
+  bank_msb?: number | null;
+  bank_lsb?: number | null;
   cc_controllers: CCController[];
   arrangements: ZoneArrangementJSON[];
 }
