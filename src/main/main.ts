@@ -1,5 +1,5 @@
 import electron from 'electron';
-import { app, BrowserWindow, Menu, powerSaveBlocker, ipcMain, dialog, shell } from 'electron';
+import { app, BrowserWindow, Menu, powerSaveBlocker, ipcMain, dialog } from 'electron';
 import settings from 'electron-settings';
 import path from 'path';
 import fs from 'fs';
@@ -123,13 +123,25 @@ function createWindow(): void {
     console.log(`[${levelNames[level] || 'LOG'}] ${message}${source ? ` (${source})` : ''}`);
   });
 
+  win.webContents.on('before-input-event', (event, input) => {
+    if (input.type !== 'keyDown') return;
+    const isMac = process.platform === 'darwin';
+    if (isMac ? (input.meta && input.alt && input.code === 'KeyI') : (input.control && input.shift && input.code === 'KeyI')) {
+      event.preventDefault();
+      win!.webContents.toggleDevTools();
+    }
+  });
   win.on('close', () => {
     saveWindowPos(win!);
   });
   win.on('closed', () => {
     win = null;
   });
-  createApplicationMenu();
+  if (process.platform === 'darwin') {
+    Menu.setApplicationMenu(Menu.buildFromTemplate([{ role: 'appMenu' as const }]));
+  } else {
+    Menu.setApplicationMenu(null);
+  }
   ipcMain.handle('open-save', async (event, ...args): Promise<SaveResult> => {
     let eventResult: SaveResult = {
       canceled: true,
@@ -232,85 +244,6 @@ function storedWindowPos(): WindowRect | undefined {
     }
   }
   return rect;
-}
-
-function createApplicationMenu(): void {
-  const isMac = process.platform === 'darwin';
-
-  const template: Electron.MenuItemConstructorOptions[] = [
-    // { role: 'appMenu' }
-    ...(isMac
-      ? [
-          {
-            label: app.name,
-            submenu: [
-              { role: 'about' as const },
-              { type: 'separator' as const },
-              { role: 'services' as const },
-              { type: 'separator' as const },
-              { role: 'hide' as const },
-              { role: 'hideOthers' as const },
-              { role: 'unhide' as const },
-              { type: 'separator' as const },
-              { role: 'quit' as const }
-            ]
-          }
-        ]
-      : []),
-    // { role: 'fileMenu' }
-    {
-      label: 'File',
-      submenu: [isMac ? { role: 'close' as const } : { role: 'quit' as const }]
-    },
-    // { role: 'viewMenu' }
-    {
-      label: 'View',
-      submenu: [
-        { role: 'reload' as const },
-        { role: 'toggleDevTools' as const },
-        { type: 'separator' as const },
-        { role: 'resetZoom' as const },
-        { role: 'zoomIn' as const },
-        { role: 'zoomOut' as const },
-        { type: 'separator' as const },
-        { role: 'togglefullscreen' as const }
-      ]
-    },
-    // { role: 'windowMenu' }
-    {
-      label: 'Window',
-      submenu: [
-        { role: 'minimize' as const },
-        { role: 'zoom' as const },
-        ...(isMac
-          ? [{ type: 'separator' as const }, { role: 'front' as const }]
-          : [{ role: 'close' as const }])
-      ]
-    },
-    {
-      role: 'help',
-      submenu: [
-        {
-          label: 'Documentation',
-          click: async () => {
-            await shell.openExternal(
-              'https://github.com/privatepublic-de/midi-zoner/wiki'
-            );
-          }
-        },
-        { type: 'separator' as const },
-        {
-          label: 'About midi-zoner',
-          click: async () => {
-            openAboutWindow();
-          }
-        }
-      ]
-    }
-  ];
-
-  const menu = Menu.buildFromTemplate(template);
-  Menu.setApplicationMenu(menu);
 }
 
 function openAboutWindow(): void {

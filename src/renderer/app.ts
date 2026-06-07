@@ -4,7 +4,7 @@ import { Sequence } from '../modules/zone/sequence';
 import { DIV_TICKS } from '../modules/zone/seq-layer';
 import MIDI from '../modules/midi';
 import * as view from '../modules/viewcontroller';
-import { ipcRenderer } from 'electron';
+import { ipcRenderer, webFrame } from 'electron';
 import { ZoneArrangementJSON } from '../modules/zone/interfaces';
 import { UndoHistory } from '../modules/undo-history';
 
@@ -249,7 +249,24 @@ function closeContextMenu(): void {
   DOM.removeClass('*', 'contextMenuTrigger');
 }
 
+const ZOOM_STEP = 0.1;
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 2.0;
+const ZOOM_STORAGE_KEY = 'zoomFactor';
+let currentZoomFactor = parseFloat(localStorage.getItem(ZOOM_STORAGE_KEY) || '1');
+
+function applyZoom(factor: number): void {
+  currentZoomFactor = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, Math.round(factor * 10) / 10));
+  webFrame.setZoomFactor(currentZoomFactor);
+  localStorage.setItem(ZOOM_STORAGE_KEY, String(currentZoomFactor));
+}
+
+applyZoom(currentZoomFactor);
+
 document.addEventListener('DOMContentLoaded', function () {
+  DOM.get('#zoomIn')!.addEventListener('click', () => applyZoom(currentZoomFactor + ZOOM_STEP));
+  DOM.get('#zoomOut')!.addEventListener('click', () => applyZoom(currentZoomFactor - ZOOM_STEP));
+  DOM.get('#zoomReset')!.addEventListener('click', () => applyZoom(1.0));
   const contextMenuElement = DOM.get('#contextmenu') as HTMLElement;
   DOM.on(document, 'click', bodyClickHandler);
   const select_in_clock = DOM.get('#midiClockInDeviceId') as HTMLSelectElement;
