@@ -118,7 +118,6 @@ export interface ZoneArrangementJSON {
   arp_gatelength: number;
   arp_repeat: number;
   arp_probability: number;
-  arp_velocity: number;
   arp_transpose: boolean;
   arp_transpose_amount: number;
   arp_pattern: boolean[];

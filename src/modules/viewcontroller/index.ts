@@ -1114,6 +1114,12 @@ function updateValuesForZone(index: number): void {
       );
     });
     DOM.switchClass(zoneElement, zone.arp_enabled, 'arp-enabled');
+    const transposeEl = zone._$('.arp_transpose_value') as HTMLElement | null;
+    if (transposeEl) {
+      transposeEl.textContent = zone.arp_transpose
+        ? (zone.arp_transpose_amount > 0 ? '+' : '') + zone.arp_transpose_amount
+        : '';
+    }
 
     const swingSliders = zone.elements.get(
       '.swing-amount'

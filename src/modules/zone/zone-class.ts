@@ -110,7 +110,6 @@ export class Zone {
   arp_gatelength = 0.5;
   arp_repeat = 0;
   arp_probability = 1;
-  arp_velocity = 0;
   arp_hold = false;
   arp_transpose = false;
   arp_transpose_amount = 0;
@@ -210,7 +209,6 @@ export class Zone {
       arp_gatelength: this.arp_gatelength,
       arp_repeat: this.arp_repeat,
       arp_probability: this.arp_probability,
-      arp_velocity: this.arp_velocity,
       arp_transpose: this.arp_transpose,
       arp_transpose_amount: this.arp_transpose_amount,
       arp_pattern: this.arp_pattern,
@@ -244,7 +242,6 @@ export class Zone {
     this.arp_gatelength = data.arp_gatelength ?? 0.5;
     this.arp_repeat = data.arp_repeat ?? 0;
     this.arp_probability = data.arp_probability ?? 1;
-    this.arp_velocity = data.arp_velocity ?? 0;
     this.arp_transpose = data.arp_transpose ?? false;
     this.arp_transpose_amount = data.arp_transpose_amount ?? 0;
     this.arp_pattern = data.arp_pattern ?? [true, true, true, true, true, true, true, true];
@@ -597,6 +594,12 @@ export class Zone {
   }
 
   renderNotes(): void {
+    const transposeEl = this._$('.arp_transpose_value') as HTMLElement | null;
+    if (transposeEl) {
+      transposeEl.textContent = this.arp_transpose
+        ? (this.arp_transpose_amount > 0 ? '+' : '') + this.arp_transpose_amount
+        : '';
+    }
     if (this.elements.isReady && this.elements.canvasElement) {
       const { context, rect } = Zone.scaledCanvasContext(
         this.elements.canvasElement
