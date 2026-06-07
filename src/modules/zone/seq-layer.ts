@@ -20,9 +20,9 @@ export const DIV_TICKS: DivTick[] = [
   9, // 1/16.
   8, // 1/8t
   6, // 1/16
-  4, // 1/32.
+  4, // 1/16t
   3, // 1/32
-  2 // 1/16t
+  2 // 1/32t
 ]; // 24ppq
 
 export class SeqLayer {

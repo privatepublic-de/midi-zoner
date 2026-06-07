@@ -31,6 +31,7 @@ export class SeqStep {
     if (cloneStep) {
       Object.assign(result, cloneStep);
     }
+    result.lastPlayedArray = [];
     return result;
   }
 

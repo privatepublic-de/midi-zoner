@@ -419,13 +419,13 @@ export class Sequence {
         const offtick = Math.min(this.ticks * astep.gateLength, this.ticks - 1);
         if (astep.length - 1 - astep.played === 0 && this.tickn >= offtick) {
           clearSteps.push(astep);
-          for (const note of astep.lastPlayedArray) {
+          for (const note of (astep.lastPlayedArray ?? [])) {
             this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_OFF + note.channel;
             this._midiMsgBuf[1] = note.number;
             this._midiMsgBuf[2] = note.velo;
             this.zone.handleMidi(MIDI.MESSAGE.NOTE_OFF, this._midiMsgBuf, true);
           }
-          astep.lastPlayedArray.length = 0;
+          if (astep.lastPlayedArray) astep.lastPlayedArray.length = 0;
         }
       });
       this.activeSteps = this.activeSteps.filter(
@@ -527,13 +527,13 @@ export class Sequence {
 
   stopped(): void {
     this.activeSteps.forEach((astep) => {
-      for (const note of astep.lastPlayedArray) {
+      for (const note of (astep.lastPlayedArray ?? [])) {
         this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_OFF + note.channel;
         this._midiMsgBuf[1] = note.number;
         this._midiMsgBuf[2] = 0;
         this.zone.handleMidi(MIDI.MESSAGE.NOTE_OFF, this._midiMsgBuf, true);
       }
-      astep.lastPlayedArray.length = 0;
+      if (astep.lastPlayedArray) astep.lastPlayedArray.length = 0;
     });
     this.activeSteps.length = 0;
     for (const ev of this.ratchetQueue) {
@@ -572,7 +572,7 @@ export class Sequence {
   activeNotes(): Note[] {
     const result: Note[] = [];
     this.activeSteps.forEach((astep) => {
-      result.push(...astep.lastPlayedArray);
+      result.push(...(astep.lastPlayedArray ?? []));
     });
     return result;
   }
@@ -762,7 +762,7 @@ export class Sequence {
       this._midiMsgBuf[1] = note.number;
       this._midiMsgBuf[2] = note.velo;
       this.zone.handleMidi(MIDI.MESSAGE.NOTE_ON, this._midiMsgBuf, true, timestamp);
-      step.lastPlayedArray.push(note);
+      (step.lastPlayedArray ??= []).push(note);
     }
   }
 
@@ -773,17 +773,43 @@ export class Sequence {
   private playRegularStep(stepIndex: number, timestamp?: number): void {
     const step = this.steps[stepIndex];
     if (!step) return;
-    step.played = 0;
-    this.activeSteps.push(step);
-    for (const inote of step.notesArray) {
-      const note = Note.clone(inote);
-      note.channel = this.zone.channel;
-      note.portId = this.zone.outputPortId;
-      this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + note.channel;
-      this._midiMsgBuf[1] = note.number;
-      this._midiMsgBuf[2] = note.velo;
-      this.zone.handleMidi(MIDI.MESSAGE.NOTE_ON, this._midiMsgBuf, true, timestamp);
-      step.lastPlayedArray.push(note);
+    const ratchetCount = step.ratchetCount ?? 1;
+    if (ratchetCount > 1) {
+      const ratchetRes = step.ratchetResolution ?? 6;
+      const ratchetDelta = step.ratchetVelocityDelta ?? 0;
+      const gateLen = Math.max(1, ratchetRes - 1);
+      for (let hitIdx = 0; hitIdx < ratchetCount; hitIdx++) {
+        for (const inote of step.notesArray) {
+          const note = Note.clone(inote);
+          note.channel = this.zone.channel;
+          note.portId = this.zone.outputPortId;
+          note.velo = Math.max(1, Math.min(127, inote.velo + hitIdx * ratchetDelta));
+          if (hitIdx === 0) {
+            this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + note.channel;
+            this._midiMsgBuf[1] = note.number;
+            this._midiMsgBuf[2] = note.velo;
+            this.zone.handleMidi(MIDI.MESSAGE.NOTE_ON, this._midiMsgBuf, true, timestamp);
+            this.ratchetQueue.push({ note, noteOnPos: -1, noteOffPos: this.currentPos + gateLen });
+          } else {
+            const firePos = this.currentPos + hitIdx * ratchetRes;
+            this.ratchetQueue.push({ note, noteOnPos: firePos, noteOffPos: firePos + gateLen });
+          }
+        }
+      }
+    } else {
+      step.played = 0;
+      this.activeSteps.push(step);
+      step.lastPlayedArray ??= [];
+      for (const inote of step.notesArray) {
+        const note = Note.clone(inote);
+        note.channel = this.zone.channel;
+        note.portId = this.zone.outputPortId;
+        this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + note.channel;
+        this._midiMsgBuf[1] = note.number;
+        this._midiMsgBuf[2] = note.velo;
+        this.zone.handleMidi(MIDI.MESSAGE.NOTE_ON, this._midiMsgBuf, true, timestamp);
+        step.lastPlayedArray.push(note);
+      }
     }
   }
 }

@@ -53,7 +53,7 @@ const noteLengthOptions = (function (): string {
     ['1/4•', '1/2t', '1/4'],
     ['1/8•', '1/4t', '1/8'],
     ['1/16•', '1/8t', '1/16'],
-    ['1/32•', '1/32', '1/16t']
+    ['1/16t', '1/32', '1/32t']
   ].forEach((group) => {
     s += '<hr/>';
     group.forEach((opt) => (s += '<option>' + opt + '</option>'));

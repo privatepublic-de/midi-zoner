@@ -6,7 +6,7 @@ import { ActionContext, ActionHelpers, ActionMap } from '../types';
 const RATCHET_RES_LABELS: Record<number, string> = {
   48: '1/2', 36: '1/4.', 32: '1/2T', 24: '1/4', 18: '1/8.',
   16: '1/4T', 12: '1/8', 9: '1/16.', 8: '1/8T', 6: '1/16',
-  4: '1/32.', 3: '1/32', 2: '1/16T', 1: '1tk'
+  4: '1/16T', 3: '1/32', 2: '1/32T', 1: '1tk'
 };
 
 export function ratchetResToLabel(ticks: number): string {
