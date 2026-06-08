@@ -813,25 +813,22 @@ export class Zone {
           });
         }
       }
-    } else {
-      if (this.sequence.isDrumSequence) {
-        const pos = this.sequence.currentStepNumber;
-        const lcm = this.elements.sequencerDrumProgressLcm;
-        // LCM mode: static marks are fixed, only cursor moves.
-        // Use absolute step count so cursor spans the full LCM period
-        // regardless of sequence.length wrapping.
-        const absStep = this.sequence.cycleCount * this.sequence.length + pos;
-        if (this.elements.sequencerProgressElementInner) {
-          this.elements.sequencerProgressElementInner.style.left = pos > -1
-            ? `${((absStep % lcm) / lcm) * 100}%`
-            : '-100%';
-        }
-      } else if (this.elements.sequencerProgressElementInner) {
-        this.elements.sequencerProgressElementInner.style.left =
-          this.sequence.currentStepNumber > -1 && this.sequence.steps.length > 0
-            ? `${(this.sequence.currentStepNumber / this.sequence.length) * 100}%`
-            : '-100%';
-      }
+    }
+    if (this.sequence.isDrumSequence) {
+      this.elements.sequencerDrumLaneCursors.forEach((cursor, ln) => {
+        const lane = this.sequence.drum_lanes[ln];
+        if (!lane) return;
+        const pos = lane.currentStep;
+        cursor.style.left = pos > -1 && lane.length > 0
+          ? `${(pos / lane.length) * 100}%`
+          : '-100%';
+      });
+    } else if (this.elements.sequencerProgressElementInner) {
+      const pos = this.sequence.currentStepNumber;
+      this.elements.sequencerProgressElementInner.style.left =
+        pos > -1 && this.sequence.length > 0
+          ? `${(pos / this.sequence.length) * 100}%`
+          : '-100%';
     }
   }
 

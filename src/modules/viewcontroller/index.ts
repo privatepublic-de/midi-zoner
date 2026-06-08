@@ -1,12 +1,6 @@
 import DOM from '../domutils';
 import MIDI from '../midi';
 
-function gcd(a: number, b: number): number {
-  return b === 0 ? a : gcd(b, a % b);
-}
-function lcm(a: number, b: number): number {
-  return (a / gcd(a, b)) * b;
-}
 import DragZone from '../dragzone';
 import * as zoneTemplate from '../zone-template';
 import { Zone } from '../zone/zone-class';
@@ -743,6 +737,67 @@ function updateGeneralButtons(): void {
   DOM.switchClass(elAllHoldOff, held > 0, 'active');
 }
 
+function rebuildSeqProgress(zone: ZoneType, sequence: SequenceType): void {
+  const progressEl = zone.elements.sequencerProgressElement;
+  const innerEl = zone.elements.sequencerProgressElementInner;
+  if (!progressEl || !innerEl) return;
+
+  progressEl.querySelectorAll('.step-row').forEach((r) => r.remove());
+  zone.elements.sequencerDrumLaneCursors = [];
+
+  if (sequence.isDrumSequence) {
+    progressEl.classList.add('drum');
+    const ROW_H = 4;
+    progressEl.style.height = `${sequence.drumLanes * ROW_H}px`;
+    let hasAnyNotes = false;
+    for (let ln = 0; ln < sequence.drumLanes; ln++) {
+      const lane = sequence.drum_lanes[ln];
+      if (!lane) continue;
+      const laneLength = lane.length || 1;
+      const row = document.createElement('div');
+      row.className = `step-row lane-slot-idx-${ln % 4}`;
+      row.style.cssText = `position:absolute;left:0;right:0;top:${ln * ROW_H}px;height:${ROW_H}px;`;
+      const w = 100 / laneLength;
+      for (let s = 0; s < laneLength; s++) {
+        const hasNote = lane.steps[s] != null;
+        if (hasNote) hasAnyNotes = true;
+        const block = document.createElement('div');
+        block.className = hasNote ? 'step-block has-notes' : 'step-block';
+        block.style.cssText = `left:${s * w}%;width:${w}%;`;
+        row.appendChild(block);
+      }
+      const cursor = document.createElement('div');
+      cursor.className = 'lane-cursor';
+      cursor.style.cssText = `width:${w}%;left:-100%;`;
+      row.appendChild(cursor);
+      zone.elements.sequencerDrumLaneCursors.push(cursor);
+      progressEl.appendChild(row);
+    }
+    if (hasAnyNotes) DOM.show(progressEl); else DOM.hide(progressEl);
+  } else {
+    progressEl.classList.remove('drum');
+    progressEl.style.height = '';
+    const stepLen = sequence.length || 1;
+    const w = 100 / stepLen;
+    innerEl.style.width = `${w}%`;
+    const row = document.createElement('div');
+    row.className = 'step-row';
+    row.style.cssText = 'position:absolute;left:0;right:0;top:0;bottom:0;';
+    let hasAnyNotes = false;
+    for (let s = 0; s < stepLen; s++) {
+      const step = sequence.steps[s];
+      const hasNote = step != null && step.notesArray.length > 0;
+      if (hasNote) hasAnyNotes = true;
+      const block = document.createElement('div');
+      block.className = hasNote ? 'step-block has-notes' : 'step-block';
+      block.style.cssText = `left:${s * w}%;width:${w}%;`;
+      row.appendChild(block);
+    }
+    progressEl.appendChild(row);
+    if (hasAnyNotes) DOM.show(progressEl); else DOM.hide(progressEl);
+  }
+}
+
 function updateValuesForZone(index: number): void {
   const zone: ZoneType = zones.list[index];
   const sequence = zone.sequence;
@@ -757,29 +812,15 @@ function updateValuesForZone(index: number): void {
       Zone.solocount > 0 && !zone.solo,
       'soloed-out'
     );
-    let progressLen = sequence.length;
-    if (sequence.isDrumSequence) {
-      for (let ln = 0; ln < sequence.drumLanes; ln++) {
-        const l = sequence.drum_lanes[ln];
-        if (l && l.length > progressLen) progressLen = l.length;
-      }
-    }
-    zone.elements.sequencerProgressElement!.style.backgroundImage = '';
-    zone.elements.sequencerProgressElement!.style.backgroundSize = `${
-      100 / progressLen
-    }% 100%`;
-    zone.elements.sequencerProgressElementInner!.style.width = `${
-      100 / progressLen
-    }%`;
-
     DOM.switchClass(zoneElement, !zone.enabled, 'disabled');
     const zoneIsEnabled = zone.enabled && (Zone.solocount === 0 || zone.solo);
     DOM.switchClass(zoneElement, !zoneIsEnabled, 'disabled');
     DOM.switchClass(zoneElement, zone.show_cc, 'show-cc');
 
+    rebuildSeqProgress(zone, sequence);
+
     if (sequence.active) {
       DOM.addClass(zoneElement, 'show-seq');
-      DOM.hide(zone.elements.sequencerProgressElement!);
       DOM.switchClass(zoneElement, sequence.isDrumSequence, 'drumSequencer');
       if (sequence.isDrumSequence) {
         DOM.removeClass(
@@ -1024,76 +1065,6 @@ function updateValuesForZone(index: number): void {
       zone.elements.setSelectedIndex('.seq_division', sequence.division);
     } else {
       DOM.removeClass(zoneElement, 'show-seq');
-      zone.elements.sequencerDrumProgressMarkers.forEach((m) => m.remove());
-      zone.elements.sequencerDrumProgressMarkers = [];
-      zone.elements.sequencerDrumProgressLcm = 0;
-      zone.elements.sequencerProgressElement!.style.height = '';
-
-      if (sequence.isDrumSequence && sequence.drumLanes > 0) {
-        const seenLengths = new Set<number>();
-        const uniqueLengths: number[] = [];
-        for (let ln = 0; ln < sequence.drumLanes; ln++) {
-          const len = sequence.drum_lanes[ln]?.length ?? sequence.length;
-          if (!seenLengths.has(len)) {
-            seenLengths.add(len);
-            uniqueLengths.push(len);
-          }
-        }
-        let computedLcm = 1;
-        for (const len of uniqueLengths) {
-          computedLcm = lcm(computedLcm, len);
-          if (computedLcm > 100000) {
-            computedLcm = 100000;
-            break;
-          } // safety ceiling
-        }
-        uniqueLengths.sort().reverse();
-        const progressEl = zone.elements.sequencerProgressElement!;
-        // Always use LCM mode; degrade gracefully for very dense patterns
-        zone.elements.sequencerDrumProgressLcm = computedLcm;
-        progressEl.style.backgroundImage = 'none';
-        zone.elements.sequencerProgressElementInner!.style.width = '2px';
-        const SLOT_H = 3;
-        progressEl.style.height = `${uniqueLengths.length * SLOT_H}px`;
-        const BAR_PX = 580;
-        uniqueLengths.forEach((len, slotIdx) => {
-          const top = slotIdx * SLOT_H;
-          const count = computedLcm / len;
-          const w = (len / computedLcm) * 100;
-          const blockPx = (len / computedLcm) * BAR_PX;
-          if (blockPx < 3 || count > 200) {
-            // Too dense to show alternation — solid strip
-            const strip = document.createElement('div');
-            strip.className = `lane-marker lane-slot-idx-${slotIdx % 4}`;
-            strip.style.left = '0';
-            strip.style.width = '100%';
-            strip.style.top = `${top}px`;
-            strip.style.height = `${SLOT_H}px`;
-            strip.style.bottom = 'auto';
-            strip.style.opacity = '0.3';
-            progressEl.prepend(strip);
-            zone.elements.sequencerDrumProgressMarkers.push(strip);
-          } else {
-            for (let n = 0; n < count; n++) {
-              const mark = document.createElement('div');
-              mark.className = `lane-marker lane-slot-idx-${slotIdx}`;
-              mark.style.left = `${n * w}%`;
-              mark.style.width = `${w}%`;
-              mark.style.top = `${top}px`;
-              mark.style.height = `${SLOT_H}px`;
-              mark.style.bottom = 'auto';
-              mark.style.opacity = n % 2 === 0 ? '0.5' : '0.18';
-              progressEl.prepend(mark);
-              zone.elements.sequencerDrumProgressMarkers.push(mark);
-            }
-          }
-        });
-        DOM.show(progressEl);
-      } else if (!sequence.isDrumSequence && sequence.steps.length > 0) {
-        DOM.show(zone.elements.sequencerProgressElement!);
-      } else {
-        DOM.hide(zone.elements.sequencerProgressElement!);
-      }
     }
     [
       'cc',

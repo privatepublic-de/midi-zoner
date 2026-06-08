@@ -11,8 +11,7 @@ export class ZoneElements {
   sequencerDrumLanes: (NodeListOf<HTMLElement> | HTMLElement[])[] = [];
   sequencerProgressElement: HTMLElement | null = null;
   sequencerProgressElementInner: HTMLElement | null = null;
-  sequencerDrumProgressMarkers: HTMLElement[] = [];
-  sequencerDrumProgressLcm: number = 0;
+  sequencerDrumLaneCursors: HTMLElement[] = [];
   rangeContainer: HTMLElement | null = null;
   rangeOctaveElements: NodeListOf<HTMLElement> | null = null;
   rangeMarkerLow: HTMLElement | null = null;

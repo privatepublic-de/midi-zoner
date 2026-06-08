@@ -1424,31 +1424,31 @@ input[type='range'] {
   text-indent: 4px;
 }
 
-.show-seq .rangeholder {
+.show-seq:not(.disabled) .rangeholder {
   margin-top: 0;
 }
 
-.show-seq .range,
-.show-seq .join {
+.show-seq:not(.disabled) .range,
+.show-seq:not(.disabled) .join {
   height: 14px;
 }
 
-.show-seq .current {
+.show-seq:not(.disabled) .current {
   top: 2px;
   height: 10px;
 }
 
-.show-seq .marker {
+.show-seq:not(.disabled) .marker {
   font-size: 50%;
   width: 16px;
 }
 
-.show-seq .marker.high {
+.show-seq:not(.disabled) .marker.high {
   top: 5px;
   padding-right: 6px;
 }
 
-.show-seq .oct {
+.show-seq:not(.disabled) .oct {
   overflow: hidden;
 }
 
@@ -1830,8 +1830,7 @@ input[type='range'] {
 }
 
 .disabled .seq {
-  padding-top: 6px;
-  background-color: transparent;
+  display: none !important;
 }
 
 .seqtools {
@@ -2087,51 +2086,64 @@ input[type='range'] {
 }
 
 .seqprogress {
-  position: absolute;
-  bottom: 0;
-  left: 10px;
-  height: 4px;
-  right: 10px;
-  background-size: 6.25% 100%;
-  background-image: linear-gradient(
-    to right,
-    var(--brighter-1) 1px,
-    transparent 1px
-  );
+  position: relative;
+  display: none;
+  overflow: hidden;
+  height: 5px;
+  margin: 0 8px;
+  border-radius: 2px;
+  background-color: rgba(0, 0, 0, 0.2);
 }
-.seqprogress .inner {
+.seqprogress .step-row {
   position: absolute;
-  background-color: var(--zone-color);
-  top: 0;
   left: 0;
-  bottom: 0;
-  width: 1px;
+  right: 0;
 }
-.seqprogress .lane-marker {
+.seqprogress .step-block {
   position: absolute;
+  top: 1px;
+  bottom: 1px;
+  /* 1px right gap between steps */
+  box-sizing: border-box;
+  border-right: 1px solid transparent;
+}
+.seqprogress .step-block.has-notes {
   background-color: var(--brighter-2);
+  opacity: 0.3;
+}
+.show-seq .seqprogress .step-block.has-notes {
+  background-color: var(--zone-color);
+  opacity: 0.4;
+}
+.seqprogress .inner,
+.seqprogress .lane-cursor {
+  position: absolute;
   top: 0;
   bottom: 0;
-}
-
-.seqprogress .lane-slot-idx-0 {
-  background-color: var(--brighter-3);
-}
-.seqprogress .lane-slot-idx-1 {
-  background-color: var(--brighter-2);
-}
-.seqprogress .lane-slot-idx-2 {
-  background-color: var(--brighter-1);
-}
-.seqprogress .lane-slot-idx-3 {
-  background-color: var(--brighter-0);
-}
-
-.show-seq .seqprogress {
+  background-color: transparent;
+  border: 1px solid var(--zone-color);
+  box-sizing: border-box;
+  z-index: 1;
   display: none;
 }
-
-body:not(.running) .seqprogress {
+.seqprogress .inner {
+  width: 2px;
+}
+.disabled .seqprogress .inner,
+.disabled .seqprogress .lane-cursor {
+  border-color: var(--brighter-1);
+}
+.disabled:not(.show-seq) .seqprogress .inner,
+.disabled:not(.show-seq) .seqprogress .lane-cursor {
+  border-color: var(--brighter-0);
+}
+body.running .seqprogress .inner {
+  display: block;
+}
+body.running .seqprogress.drum .lane-cursor {
+  display: block;
+}
+.seqprogress.drum .inner {
   display: none !important;
 }
 
