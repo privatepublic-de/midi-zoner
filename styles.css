@@ -708,6 +708,14 @@ input:focus-visible {
   display: flex;
 }
 
+.strum-taper-holder {
+  display: none;
+}
+
+.strum-mode .strum-taper-holder {
+  display: flex;
+}
+
 .zone .check input[type='number'] {
   height: auto;
   padding: 0;

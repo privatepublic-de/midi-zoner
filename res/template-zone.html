@@ -445,6 +445,8 @@
           <option>Up / Down</option>
           <option>Random</option>
           <option>Order</option>
+          <option>Strum ↓</option>
+          <option>Strum ↑</option>
         </select>
       </div>
       <div class="drop-down">
@@ -516,6 +518,19 @@
           tabindex="-1"
         />
         <output for="arp_probability${index}">---</output>
+      </div>
+      <div class="strum-taper-holder label">Taper</div>
+      <div class="strum-taper-holder percent-holder">
+        <input
+          type="range"
+          class="percent arp_strum_taper"
+          data-change="${index}:zone_arp_strum_taper"
+          id="arp_strum_taper${index}"
+          min="0"
+          max="100"
+          tabindex="-1"
+        />
+        <output for="arp_strum_taper${index}">---</output>
       </div>
       <div class="label">Pattern</div>
       <div

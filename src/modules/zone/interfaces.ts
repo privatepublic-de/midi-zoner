@@ -17,7 +17,9 @@ export enum ArpDirection {
   DOWN = 1,
   UP_DOWN = 2,
   RANDOM = 3,
-  ORDER = 4
+  ORDER = 4,
+  STRUM_DOWN = 5,
+  STRUM_UP = 6
 }
 
 export enum StepCondition {
@@ -54,6 +56,7 @@ export interface ArpState {
   repeatnote: Note | null;
   beat: boolean;
   octave: number;
+  lastStrumNotes: Note[];
 }
 
 export interface SeqStepJSON {
@@ -123,6 +126,7 @@ export interface ZoneArrangementJSON {
   arp_pattern: boolean[];
   arp_holdlist: Note[];
   arp_sortedHoldList: Note[];
+  arp_strum_taper?: number;
   euclid_hits: number;
   euclid_length: number;
   sequence: SequenceJSON;

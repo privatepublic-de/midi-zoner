@@ -1087,7 +1087,7 @@ function updateValuesForZone(index: number): void {
     ['channel', 'arp_direction', 'arp_division', 'arp_octaves'].forEach((p) => {
       zone.elements.setSelectedIndex('.' + p, (zone as any)[p]);
     });
-    ['arp_gatelength', 'arp_probability'].forEach((p) => {
+    ['arp_gatelength', 'arp_probability', 'arp_strum_taper'].forEach((p) => {
       zone.elements.setPercentage(
         '.' + p,
         parseInt(String((zone as any)[p] * 100)),
@@ -1095,6 +1095,7 @@ function updateValuesForZone(index: number): void {
       );
     });
     DOM.switchClass(zoneElement, zone.arp_enabled, 'arp-enabled');
+    DOM.switchClass(zoneElement, zone.arp_direction >= 5, 'strum-mode');
     const transposeEl = zone._$('.arp_transpose_value') as HTMLElement | null;
     if (transposeEl) {
       transposeEl.textContent = zone.arp_transpose
