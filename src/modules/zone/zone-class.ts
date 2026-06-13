@@ -725,9 +725,10 @@ export class Zone {
             NoteDisplay.fillArpPlayed,
             NoteDisplay.fillArpPlayed
           );
-        this.arp.lastStrumNotes.forEach(n =>
-          drawNote(n.number, NoteDisplay.fillArpPlayed, NoteDisplay.fillArpPlayed)
-        );
+        if (this.arp.lastStrumNotes.length > 0) {
+          const n = this.arp.lastStrumNotes[this.arp.lastStrumNotes.length - 1];
+          drawNote(n.number, NoteDisplay.fillArpPlayed, NoteDisplay.fillArpPlayed);
+        }
       }
     }
   }
@@ -946,7 +947,6 @@ export class Zone {
         this._midiMsgBuf[2] = n.velo;
         this.midi.send(this._midiMsgBuf, n.portId);
         this.arp.lastStrumNotes.push(n);
-        this.arpStrumOffPending.push({ note: n, fireAtMs: pending.fireAtMs + pending.gateMs });
         this.arpStrumPending.splice(i, 1);
         requestAnimationFrame(this._renderNotesBound);
       }
@@ -1010,16 +1010,16 @@ export class Zone {
             const baseVelo = this.fixedvel ? this.fixedvel_value || 127 : note.velo;
             const velo = Math.max(1, Math.round(baseVelo * taperFactor));
             const fireAtMs = now + i * gap;
+            const taperedNote = new Note(note.number, velo, note.channel, note.portId);
+            this.arpStrumOffPending.push({ note: taperedNote, fireAtMs: fireAtMs + gateMs });
             if (i === 0) {
               this.convertNote2CC(note.number, velo);
               this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + this.channel;
               this._midiMsgBuf[1] = note.number;
               this._midiMsgBuf[2] = velo;
               this.midi.send(this._midiMsgBuf, this.outputPortId, timestamp);
-              this.arp.lastStrumNotes.push(note);
-              this.arpStrumOffPending.push({ note, fireAtMs: fireAtMs + gateMs });
+              this.arp.lastStrumNotes.push(taperedNote);
             } else {
-              const taperedNote = new Note(note.number, velo, note.channel, note.portId);
               this.arpStrumPending.push({ note: taperedNote, fireAtMs, gateMs });
             }
           });
