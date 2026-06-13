@@ -928,6 +928,7 @@ export class Zone {
       const pending = this.arpStrumPending[i];
       if (now >= pending.fireAtMs) {
         const n = pending.note;
+        this.convertNote2CC(n.number, n.velo);
         this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + n.channel;
         this._midiMsgBuf[1] = n.number;
         this._midiMsgBuf[2] = n.velo;
@@ -996,6 +997,7 @@ export class Zone {
             const velo = Math.max(1, Math.round(baseVelo * taperFactor));
             const fireAtMs = now + i * gap;
             if (i === 0) {
+              this.convertNote2CC(note.number, velo);
               this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + this.channel;
               this._midiMsgBuf[1] = note.number;
               this._midiMsgBuf[2] = velo;
@@ -1101,6 +1103,7 @@ export class Zone {
             const velo = Math.max(1, Math.round(baseVelo * Math.pow(0.8, i)));
             const ratchetNote = new Note(note.number, velo, note.channel, note.portId);
             if (i === 0) {
+              this.convertNote2CC(ratchetNote.number, ratchetNote.velo);
               this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + this.channel;
               this._midiMsgBuf[1] = ratchetNote.number;
               this._midiMsgBuf[2] = ratchetNote.velo;
@@ -1112,6 +1115,7 @@ export class Zone {
           }
         } else {
           this.arp.lastnote = note;
+          this.convertNote2CC(note.number, baseVelo);
           this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + this.channel;
           this._midiMsgBuf[1] = note.number;
           this._midiMsgBuf[2] = baseVelo;
