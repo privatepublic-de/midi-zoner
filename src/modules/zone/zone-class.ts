@@ -142,6 +142,7 @@ export class Zone {
   private arpStrumPending: { note: Note; fireAtMs: number; gateMs: number }[] = [];
   private arpStrumOffPending: { note: Note; fireAtMs: number }[] = [];
   private _lastTickIntervalMs = 60 / 120 / 24 * 1000;
+  private _strumGraceTimer: ReturnType<typeof setTimeout> | null = null;
   activeNotes: Note[] = [];
   midiActiveNotes: (Note | null)[] = [];
   holdList: Note[] = [];
@@ -604,9 +605,20 @@ export class Zone {
         this.arp_sortedHoldList = this.arp_holdlist.slice().sort((a, b) => a.number - b.number);
       }
     }
-    // Cancel any in-flight strum notes when all keys are released (non-hold mode)
-    if (this.arp_enabled && this.arp_direction >= 5 && !this.arp_hold && this.activeNotes.length === 0) {
-      this.arpNoteOff();
+    // Grace period on key release: defer strum cancellation by one arp step so a
+    // quick chord change feels seamless (guitar-like). If new notes arrive within
+    // the window the timer is cleared and the strum continues uninterrupted.
+    if (this.arp_enabled && this.arp_direction >= 5 && !this.arp_hold) {
+      if (this.activeNotes.length === 0) {
+        const graceMs = this.arp_ticks * this._lastTickIntervalMs;
+        this._strumGraceTimer = setTimeout(() => {
+          this._strumGraceTimer = null;
+          this.arpNoteOff();
+        }, graceMs);
+      } else if (this._strumGraceTimer !== null) {
+        clearTimeout(this._strumGraceTimer);
+        this._strumGraceTimer = null;
+      }
     }
     requestAnimationFrame(this._renderNotesBound);
   }
@@ -1161,6 +1173,7 @@ export class Zone {
     this.arp.octave = 0;
     this.arpSwingPending.length = 0;
     this.arpStrumOffPending.length = 0;
+    if (this._strumGraceTimer !== null) { clearTimeout(this._strumGraceTimer); this._strumGraceTimer = null; }
     this.arpNoteOff();
     this.sequence.stopped();
     requestAnimationFrame(this._renderPatternBound);
@@ -1171,6 +1184,7 @@ export class Zone {
     this.solo = false;
     this.arp_enabled = false;
     this.enabled = false;
+    if (this._strumGraceTimer !== null) { clearTimeout(this._strumGraceTimer); this._strumGraceTimer = null; }
     this.arpNoteOff();
     const outevent = new Uint8Array([0, 0, 0]);
     this.activeNotes.forEach((n) => {
