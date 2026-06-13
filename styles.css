@@ -1433,6 +1433,11 @@ input[type='range'] {
   text-indent: 4px;
 }
 
+.zone.disabled .oct {
+  background-color: var(--brighter-0);
+  color: transparent;
+}
+
 .show-seq:not(.disabled) .rangeholder {
   margin-top: 0;
 }
