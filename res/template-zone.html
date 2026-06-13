@@ -532,6 +532,33 @@
         />
         <output for="arp_strum_taper${index}">---</output>
       </div>
+      <div class="ratchet-holder label">Ratchet</div>
+      <div class="ratchet-holder percent-holder" title="Probability a step is ratcheted">
+        <input
+          type="range"
+          class="percent arp_ratchet_probability"
+          data-change="${index}:zone_arp_ratchet_probability"
+          id="arp_ratchet_probability${index}"
+          min="0"
+          max="100"
+          tabindex="-1"
+        />
+        <output for="arp_ratchet_probability${index}">---</output>
+      </div>
+      <div class="ratchet-holder drop-down">
+        <select
+          class="arp_ratchet_count"
+          data-change="${index}:zone_arp_ratchet_count"
+          title="Ratchet repeat count"
+          tabindex="-1"
+        >
+          <option>2×</option>
+          <option>3×</option>
+          <option>4×</option>
+        </select>
+      </div>
+    </div>
+    <div class="arp-settings">
       <div class="label">Pattern</div>
       <div
         class="pattern"
@@ -549,41 +576,41 @@
         data-action="${index}:zone_arp_showeuclid"
       >
         <i class="material-icons">edit</i>
-      </div>
-      <div class="euclid hideonleave popup">
-        <p>Create euclidian pattern</p>
-        <div>
-          <input
-            class="euchits"
-            type="number"
-            min="1"
-            max="32"
-            value="8"
-            size="3"
-            title="Steps"
-            tabindex="-1"
-          />
-          <div>in</div>
-          <input
-            type="number"
-            class="euclen"
-            min="1"
-            max="32"
-            value="8"
-            size="3"
-            title="Length"
-            tabindex="-1"
-          />
-          <div class="action" data-action="${index}:zone_arp_euclid">OK</div>
-        </div>
-        <div>
-          <span class="action" data-action="${index}:zone_arp_pattern_shift:-1"
-            >&lt;</span
-          >
-          <span>Shift pattern</span>
-          <span class="action" data-action="${index}:zone_arp_pattern_shift:1"
-            >&gt;</span
-          >
+        <div class="euclid hideonleave popup" onclick="event.stopPropagation()">
+          <p>Create euclidian pattern</p>
+          <div>
+            <input
+              class="euchits"
+              type="number"
+              min="1"
+              max="32"
+              value="8"
+              size="3"
+              title="Steps"
+              tabindex="-1"
+            />
+            <div>in</div>
+            <input
+              type="number"
+              class="euclen"
+              min="1"
+              max="32"
+              value="8"
+              size="3"
+              title="Length"
+              tabindex="-1"
+            />
+            <div class="action" data-action="${index}:zone_arp_euclid">OK</div>
+          </div>
+          <div>
+            <span class="action" data-action="${index}:zone_arp_pattern_shift:-1"
+              >&lt;</span
+            >
+            <span>Shift pattern</span>
+            <span class="action" data-action="${index}:zone_arp_pattern_shift:1"
+              >&gt;</span
+            >
+          </div>
         </div>
       </div>
     </div>

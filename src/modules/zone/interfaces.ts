@@ -127,6 +127,8 @@ export interface ZoneArrangementJSON {
   arp_holdlist: Note[];
   arp_sortedHoldList: Note[];
   arp_strum_taper?: number;
+  arp_ratchet_probability?: number;
+  arp_ratchet_count?: number;
   euclid_hits: number;
   euclid_length: number;
   sequence: SequenceJSON;

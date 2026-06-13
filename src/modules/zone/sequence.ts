@@ -483,7 +483,7 @@ export class Sequence {
 
       if (!shouldPlay) continue;
 
-      if (this.zone.swingAmount > 0) {
+      if (this.zone.swingAmount > 0 && !this.zone.arp_enabled) {
         const swingOffsetMs = this.calculateSwingOffsetMs(lane.currentStep, tickIntervalMs);
         if (swingOffsetMs > 0) {
           this.swingPendingDrumSteps.push({
@@ -511,7 +511,7 @@ export class Sequence {
 
     if (!shouldPlay) return;
 
-    if (this.zone.swingAmount > 0) {
+    if (this.zone.swingAmount > 0 && !this.zone.arp_enabled) {
       const swingOffsetMs = this.calculateSwingOffsetMs(this.currentStepNumber, tickIntervalMs);
       if (swingOffsetMs > 0) {
         this.swingPendingRegularSteps.push({

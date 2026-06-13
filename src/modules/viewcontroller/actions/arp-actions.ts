@@ -29,6 +29,8 @@ export function createArpActions(
     zone_arp_probability: applyPercentage,
     zone_arp_gatelength: applyPercentage,
     zone_arp_strum_taper: applyPercentage,
+    zone_arp_ratchet_probability: applyPercentage,
+    zone_arp_ratchet_count: applySelectedIndex,
     zone_arp_pattern: () => {
       if ((ev.target as HTMLElement).tagName == 'CANVAS') {
         const index = parseInt(

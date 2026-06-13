@@ -117,6 +117,8 @@ export class Zone {
   arp_holdlist: Note[] = [];
   arp_sortedHoldList: Note[] = [];
   arp_strum_taper = 0;
+  arp_ratchet_probability = 0;
+  arp_ratchet_count = 0;
   arp: ArpState = {
     orderlist: [],
     sortedlist: [],
@@ -136,8 +138,9 @@ export class Zone {
     fireAtMs: number;
     probable: boolean;
   }[] = [];
-  // Strum pending notes: individual chord notes scheduled to fire at wall-clock times
-  private arpStrumPending: { note: Note; fireAtMs: number }[] = [];
+  // Strum pending note-ons and per-note note-offs for equal gate lengths
+  private arpStrumPending: { note: Note; fireAtMs: number; gateMs: number }[] = [];
+  private arpStrumOffPending: { note: Note; fireAtMs: number }[] = [];
   private _lastTickIntervalMs = 60 / 120 / 24 * 1000;
   activeNotes: Note[] = [];
   midiActiveNotes: (Note | null)[] = [];
@@ -220,6 +223,8 @@ export class Zone {
       arp_holdlist: this.arp_holdlist,
       arp_sortedHoldList: this.arp_sortedHoldList,
       arp_strum_taper: this.arp_strum_taper,
+      arp_ratchet_probability: this.arp_ratchet_probability,
+      arp_ratchet_count: this.arp_ratchet_count,
       euclid_hits: this.euclid_hits,
       euclid_length: this.euclid_length,
       sequence: this.sequence.toJSON(),
@@ -254,6 +259,8 @@ export class Zone {
     this.arp_holdlist = data.arp_holdlist ?? [];
     this.arp_sortedHoldList = data.arp_sortedHoldList ?? [];
     this.arp_strum_taper = data.arp_strum_taper ?? 0;
+    this.arp_ratchet_probability = data.arp_ratchet_probability ?? 0;
+    this.arp_ratchet_count = data.arp_ratchet_count ?? 0;
     this.euclid_hits = data.euclid_hits ?? 5;
     this.euclid_length = data.euclid_length ?? 8;
     this.swingAmount = data.swingAmount ?? 0;
@@ -597,6 +604,10 @@ export class Zone {
         this.arp_sortedHoldList = this.arp_holdlist.slice().sort((a, b) => a.number - b.number);
       }
     }
+    // Cancel any in-flight strum notes when all keys are released (non-hold mode)
+    if (this.arp_enabled && this.arp_direction >= 5 && !this.arp_hold && this.activeNotes.length === 0) {
+      this.arpNoteOff();
+    }
     requestAnimationFrame(this._renderNotesBound);
   }
 
@@ -849,6 +860,7 @@ export class Zone {
     // Drain pending swung and strummed arpeggiator notes
     this.processArpSwingPending();
     this.processArpStrumPending();
+    this.processArpStrumOffPending();
 
     const tickn = pos % this.arp_ticks;
     const offtick = Math.min(
@@ -880,7 +892,10 @@ export class Zone {
       requestAnimationFrame(this._renderPatternBound);
     } else if (tickn >= offtick) {
       this.arp.beat = false;
-      this.arpNoteOff();
+      // Strum modes and active ratchet use per-note timers; off-tick only silences plain arp
+      if (this.arp_direction < 5 && this.arpStrumPending.length === 0 && this.arpStrumOffPending.length === 0) {
+        this.arpNoteOff();
+      }
     }
   }
 
@@ -918,7 +933,25 @@ export class Zone {
         this._midiMsgBuf[2] = n.velo;
         this.midi.send(this._midiMsgBuf, n.portId);
         this.arp.lastStrumNotes.push(n);
+        this.arpStrumOffPending.push({ note: n, fireAtMs: pending.fireAtMs + pending.gateMs });
         this.arpStrumPending.splice(i, 1);
+        requestAnimationFrame(this._renderNotesBound);
+      }
+    }
+  }
+
+  private processArpStrumOffPending(): void {
+    const now = performance.now();
+    for (let i = this.arpStrumOffPending.length - 1; i >= 0; i--) {
+      const pending = this.arpStrumOffPending[i];
+      if (now >= pending.fireAtMs) {
+        const n = pending.note;
+        this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_OFF + n.channel;
+        this._midiMsgBuf[1] = n.number;
+        this._midiMsgBuf[2] = n.velo;
+        this.midi.send(this._midiMsgBuf, n.portId);
+        this.arp.lastStrumNotes = this.arp.lastStrumNotes.filter(s => s !== n);
+        this.arpStrumOffPending.splice(i, 1);
         requestAnimationFrame(this._renderNotesBound);
       }
     }
@@ -953,21 +986,25 @@ export class Zone {
           const gap = chord.length > 1 ? gateMs / chord.length : 0;
           this.arp.lastStrumNotes = [];
           this.arpStrumPending.length = 0;
+          this.arpStrumOffPending.length = 0;
+          const now = performance.now();
           chord.forEach((note, i) => {
             const taperFactor = chord.length > 1
               ? 1 - this.arp_strum_taper * (i / (chord.length - 1)) * 0.9
               : 1;
             const baseVelo = this.fixedvel ? this.fixedvel_value || 127 : note.velo;
             const velo = Math.max(1, Math.round(baseVelo * taperFactor));
+            const fireAtMs = now + i * gap;
             if (i === 0) {
               this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + this.channel;
               this._midiMsgBuf[1] = note.number;
               this._midiMsgBuf[2] = velo;
               this.midi.send(this._midiMsgBuf, this.outputPortId, timestamp);
               this.arp.lastStrumNotes.push(note);
+              this.arpStrumOffPending.push({ note, fireAtMs: fireAtMs + gateMs });
             } else {
               const taperedNote = new Note(note.number, velo, note.channel, note.portId);
-              this.arpStrumPending.push({ note: taperedNote, fireAtMs: performance.now() + i * gap });
+              this.arpStrumPending.push({ note: taperedNote, fireAtMs, gateMs });
             }
           });
         }
@@ -1050,11 +1087,36 @@ export class Zone {
           this.channel,
           this.outputPortId
         );
-        this.arp.lastnote = note;
-        this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + this.channel;
-        this._midiMsgBuf[1] = note.number;
-        this._midiMsgBuf[2] = this.fixedvel ? this.fixedvel_value || 127 : note.velo;
-        this.midi.send(this._midiMsgBuf, this.outputPortId, timestamp);
+        const baseVelo = this.fixedvel ? this.fixedvel_value || 127 : note.velo;
+        const ratchetCount = this.arp_ratchet_probability > 0 &&
+          this.rngProb() < this.arp_ratchet_probability
+          ? [2, 3, 4][this.arp_ratchet_count]
+          : 1;
+        if (ratchetCount > 1) {
+          const subIntervalMs = this.arp_ticks * this._lastTickIntervalMs / ratchetCount;
+          const hitGateMs = subIntervalMs * this.arp_gatelength;
+          const now = performance.now();
+          for (let i = 0; i < ratchetCount; i++) {
+            const fireAtMs = now + i * subIntervalMs;
+            const velo = Math.max(1, Math.round(baseVelo * Math.pow(0.8, i)));
+            const ratchetNote = new Note(note.number, velo, note.channel, note.portId);
+            if (i === 0) {
+              this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + this.channel;
+              this._midiMsgBuf[1] = ratchetNote.number;
+              this._midiMsgBuf[2] = ratchetNote.velo;
+              this.midi.send(this._midiMsgBuf, this.outputPortId, timestamp);
+            } else {
+              this.arpStrumPending.push({ note: ratchetNote, fireAtMs, gateMs: hitGateMs });
+            }
+            this.arpStrumOffPending.push({ note: ratchetNote, fireAtMs: fireAtMs + hitGateMs });
+          }
+        } else {
+          this.arp.lastnote = note;
+          this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + this.channel;
+          this._midiMsgBuf[1] = note.number;
+          this._midiMsgBuf[2] = baseVelo;
+          this.midi.send(this._midiMsgBuf, this.outputPortId, timestamp);
+        }
       }
     }
     this.arp.repeattrig = !this.arp.repeattrig;
@@ -1072,14 +1134,15 @@ export class Zone {
       this.arp.repeatnote = note;
       requestAnimationFrame(this._renderNotesBound);
     }
-    if (this.arp.lastStrumNotes.length > 0 || this.arpStrumPending.length > 0) {
+    if (this.arpStrumPending.length > 0 || this.arpStrumOffPending.length > 0) {
       this.arpStrumPending.length = 0;
-      this.arp.lastStrumNotes.forEach(n => {
+      this.arpStrumOffPending.forEach(({ note: n }) => {
         this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_OFF + n.channel;
         this._midiMsgBuf[1] = n.number;
         this._midiMsgBuf[2] = n.velo;
         this.midi.send(this._midiMsgBuf, n.portId);
       });
+      this.arpStrumOffPending.length = 0;
       this.arp.lastStrumNotes = [];
     }
   }
@@ -1091,6 +1154,7 @@ export class Zone {
     this.arp.inc = 1;
     this.arp.octave = 0;
     this.arpSwingPending.length = 0;
+    this.arpStrumOffPending.length = 0;
     this.arpNoteOff();
     this.sequence.stopped();
     requestAnimationFrame(this._renderPatternBound);

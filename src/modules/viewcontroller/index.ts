@@ -1084,10 +1084,10 @@ function updateValuesForZone(index: number): void {
     ].forEach((p) => {
       zone.elements.addSelectedStyle('.' + p, (zone as any)[p]);
     });
-    ['channel', 'arp_direction', 'arp_division', 'arp_octaves'].forEach((p) => {
+    ['channel', 'arp_direction', 'arp_division', 'arp_octaves', 'arp_ratchet_count'].forEach((p) => {
       zone.elements.setSelectedIndex('.' + p, (zone as any)[p]);
     });
-    ['arp_gatelength', 'arp_probability', 'arp_strum_taper'].forEach((p) => {
+    ['arp_gatelength', 'arp_probability', 'arp_strum_taper', 'arp_ratchet_probability'].forEach((p) => {
       zone.elements.setPercentage(
         '.' + p,
         parseInt(String((zone as any)[p] * 100)),

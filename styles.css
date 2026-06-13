@@ -562,10 +562,6 @@ input:focus-visible {
     max-width: 800px;
     margin: 0 auto 5px auto;
   }
-  .zone .euclid {
-    right: auto !important;
-    left: 250px;
-  }
 }
 
 .zone {
@@ -714,6 +710,10 @@ input:focus-visible {
 
 .strum-mode .strum-taper-holder {
   display: flex;
+}
+
+.strum-mode .ratchet-holder {
+  display: none;
 }
 
 .zone .check input[type='number'] {
@@ -1140,6 +1140,7 @@ input:focus-visible {
 
 .patgen {
   margin-left: 4px;
+  position: relative;
 }
 
 .check.mini {
@@ -1496,7 +1497,7 @@ input[type='range'] {
   cursor: default;
   display: none;
   top: 100%;
-  right: 8px;
+  right: 0;
   text-align: center;
   line-height: 1.2em;
   z-index: 1;
