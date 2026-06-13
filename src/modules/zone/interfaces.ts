@@ -19,7 +19,8 @@ export enum ArpDirection {
   RANDOM = 3,
   ORDER = 4,
   STRUM_DOWN = 5,
-  STRUM_UP = 6
+  STRUM_UP = 6,
+  STRUM_ALT = 7
 }
 
 export enum StepCondition {

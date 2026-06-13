@@ -969,7 +969,7 @@ export class Zone {
       : (this.arp_direction > 2 ? this.arp.orderlist : this.arp.sortedlist);
     if (notes.length > 0) {
       // Strum modes: play entire chord (across all octaves) staggered across the gate window
-      if (this.arp_direction === 5 || this.arp_direction === 6) {
+      if (this.arp_direction === 5 || this.arp_direction === 6 || this.arp_direction === 7) {
         if (probable) {
           const base = notes.slice().sort((a, b) => a.number - b.number);
           const chord: Note[] = [];
@@ -982,7 +982,9 @@ export class Zone {
               chord.push(new Note(number, n.velo, this.channel, this.outputPortId));
             }
           }
-          if (this.arp_direction === 6) chord.reverse();
+          const strumUp = this.arp_direction === 6 || (this.arp_direction === 7 && this.arp.inc < 0);
+          if (strumUp) chord.reverse();
+          if (this.arp_direction === 7) this.arp.inc = -this.arp.inc;
           const gateMs = this.arp_ticks * this._lastTickIntervalMs * this.arp_gatelength;
           const gap = chord.length > 1 ? gateMs / chord.length : 0;
           this.arp.lastStrumNotes = [];
