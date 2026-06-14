@@ -959,6 +959,7 @@ document.addEventListener('DOMContentLoaded', function () {
     zones.arrangementQuantIndex = quantDiv;
     saveZones();
   });
+  DOM.on('#aboutBtn', 'click', () => ipcRenderer.invoke('open-about'));
   DOM.on('#keySwitchEnabled', 'change', (ev) => {
     zones.keySwitchEnabled = (ev.target as HTMLInputElement).checked;
     saveZones();

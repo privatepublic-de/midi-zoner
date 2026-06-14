@@ -186,6 +186,7 @@ function createWindow(): void {
       });
     return content;
   });
+  ipcMain.handle('open-about', () => openAboutWindow());
   ipcMain.handle('open-confirm', async (event, ...args): Promise<boolean> => {
     let confirmed = false;
     await dialog
