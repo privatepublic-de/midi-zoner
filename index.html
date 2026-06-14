@@ -4,33 +4,77 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="styles.css" />
-    <script src="app.js"></script>
+    <script>require('./dist/renderer/app.js');</script>
     <title>midi-zoner</title>
   </head>
+
   <body>
     <section id="midisettings">
       <div class="left">
         <div class="toolbar">
-          <a id="load" class="lightButton" title="Load scene"
-            ><i class="material-icons">folder_open</i></a
+          <a id="load" class="lightButton"
+            ><i class="material-icons">folder_open</i> Load</a
           >
-          <a id="save" class="lightButton" title="Save scene"
-            ><i class="material-icons">save</i> Save</a
+          <a id="save" class="lightButton"
+            ><i class="material-icons">archive</i> Save</a
           >
         </div>
-        <a id="allMuteOff" class="lightButton" title="Receive on all">R</a>
+        <a id="allMuteOff" class="lightButton" title="Enable all"
+          ><span class="material-icons"> check </span></a
+        >
         <a id="allSoloOff" class="lightButton" title="Un-solo all">S</a>
         <a id="allHoldOff" class="lightButton" title="All arpeggiator hold off"
           >H</a
         >
       </div>
+      <div id="arrangementIndicator" data-arr="0" title="Active arrangement">A</div>
+      <div class="controls" id="controls">
+        <div class="row">
+          <label>In:</label>
+          <span id="midiInputSelector">Choose inputs</span>
+        </div>
+        <div class="row clocksettings">
+          <label for="midiClockInDeviceId">Clock:</label>
+          <select id="midiClockInDeviceId" tabindex="-1">
+            <option>(No devices)</option>
+          </select>
+          <div class="" title="Select clock output ports" id="clockSendButton">
+            <i class="material-icons">query_builder</i>
+            <i class="material-icons">keyboard_double_arrow_right</i>
+            <span id="clockOutPortsCount">-</span>
+          </div>
+          <div
+            id="startClockButton"
+            class="toggle internal"
+            title="Start arpeggiators & sequencers"
+          ></div>
+          <div class="internal">
+            <label for="bpm">BPM:</label>
+            <input
+              type="number"
+              value="120"
+              min="30"
+              max="240"
+              id="bpm"
+              tabindex="-1"
+            />
+          </div>
+        </div>
+      </div>
       <div class="right">
-        <a id="toggleTheme" class="lightButton" title="Toggle display theme"
-          ><i class="material-icons">brightness_6</i></a
-        >
-        <a id="shuffleColors" class="lightButton" title="Shuffle colors"
-          ><i class="material-icons">palette</i></a
-        >
+        <div class="toolbar">
+          <a id="zoomOut" class="lightButton" title="Zoom out"><i class="material-icons">zoom_out</i></a
+          ><a id="zoomReset" class="lightButton" title="Reset zoom">1:1</
+          ><a id="zoomIn" class="lightButton" title="Zoom in"><i class="material-icons">zoom_in</i></a>
+          <a id="shuffleColors" class="lightButton" title="Shuffle colors"
+            ><i class="material-icons">palette</i></a
+          >
+          <a id="aboutBtn" class="lightButton" title="About midi-zoner"
+            ><i class="material-icons">info_outline</i></a
+          >
+        </div>
+        <button id="undoBtn" class="lightButton" title="Undo" disabled><i class="material-icons">undo</i></button>
+        <button id="redoBtn" class="lightButton" title="Redo" disabled><i class="material-icons">redo</i></button>
         <a
           id="midiPanic"
           class="lightButton"
@@ -39,50 +83,130 @@
           Panic
         </a>
       </div>
-      <div class="controls" id="controls">
-        <div class="row">
-          <div class="block">
-            <label for="midiInDeviceId">In:</label>
-            <select id="midiInDeviceId" tabindex="-1"
-              ><option>(No devices)</option></select
-            >
-          </div>
-          <div class="block">
-            <select id="midiInChannel" tabindex="-1"></select>
-          </div>
-        </div>
-        <div class="row clocksettings">
-          <div class="block">
-            <label for="midiClockInDeviceId">Clock:</label>
-            <select id="midiClockInDeviceId" tabindex="-1"
-              ><option value="*INTERNAL*">INTERNAL</option></select
-            >
-          </div>
-          <div class="block onlyinternal">
-            <label>BPM:</label>
-            <span id="displayBPM">130</span
-            ><span id="startClockButton" class="toggle"></span>
-            <span id="sendClock" title="Send internal clock to MIDI-Out devices"
-              ><span class="material-icons sel">check_circle</span
-              ><span class="material-icons unsel">radio_button_unchecked</span>
-              Send clock</span
-            >
-          </div>
-        </div>
-      </div>
     </section>
     <div class="padded">
       <section id="zones">
-        <div class="zone initialising">INITIALISING ...</div>
-      </section>
-      <section id="tools">
-        <a id="newzone" title="Add new zone"
-          ><span class="material-icons">
-            add
-          </span></a
-        >
+        <div class="zone initialising">INITIALIZING ...</div>
       </section>
     </div>
-    <div id="loadsave"></div>
+    <div id="tools">
+      <a id="newzone" class="tb-button" title="Add new zone">+ Add zone</a>
+      <a id="deleteallzones" class="tb-button" title="Delete all zones">
+        Delete all
+      </a>
+      <div style="margin-left: 6px">Arr:</div>
+      <div class="selectSeq sqlA selected" data-select-arrangement="0">A</div>
+      <div class="selectSeq sqlB" data-select-arrangement="1">B</div>
+      <div class="selectSeq sqlC" data-select-arrangement="2">C</div>
+      <div class="selectSeq sqlD" data-select-arrangement="3">D</div>
+      <div>Quant:</div>
+      <div>
+        <select id="seqquant">
+          <option value="2">4/4</option>
+          <option value="3">3/4</option>
+          <option value="8">1/4</option>
+          <option value="14">1/16</option>
+        </select>
+      </div>
+      <label class="tb-label check" title="When enabled, notes 0–15 (C-1 to D#0) act as zone-mute and sequencer-toggle key switches, and notes 16–19 (E0 to G0) select arrangements A–D, instead of being routed to zones">
+        <input type="checkbox" id="keySwitchEnabled" checked tabindex="-1" />
+        <span class="material-icons sel">check_box</span><span class="material-icons unsel">check_box_outline_blank</span> Key switches
+      </label>
+      <button id="keySwitchHelp" class="ks-help-btn" tabindex="-1" title="Key switch reference">?</button>
+    </div>
+    <div id="inputPortWindow">
+      <div id="inputPortList"></div>
+    </div>
+    <div id="clockOutPortWindow">
+      <div id="clockOutPortList"></div>
+      <p class="selectWindowHint">
+        All clock and start/stop messages are forwarded to the selected ports.
+      </p>
+      <p class="selectWindowHint">
+        Send clock<br />
+        <input
+          type="radio"
+          name="sendinternal"
+          value="0"
+          id="sendinternalalways"
+          tabindex="-1"
+        />
+        <label for="sendinternalalways">Always</label>
+        <input
+          type="radio"
+          name="sendinternal"
+          value="1"
+          id="sendinternalplaying"
+          tabindex="-1"
+        />
+        <label for="sendinternalplaying">Only when playing</label>
+      </p>
+    </div>
+    <div id="toast">
+      <div class="toastinner">This is the toast message!</div>
+    </div>
+    <menu id="contextmenu"></menu>
+    <div id="keySwitchHelpOverlay" role="dialog" aria-modal="true" aria-label="Key switch reference">
+      <div class="kshelp-header">
+        <span class="kshelp-title">Key Switch Reference</span>
+        <button class="kshelp-close" id="keySwitchHelpClose"><i class="material-icons">close</i></button>
+      </div>
+      <div class="kshelp-grid">
+        <div class="kshelp-col">
+          <div class="kshelp-group kshelp-mute">Zone Mute</div>
+          <div class="kshelp-row"><span class="kshelp-num">0</span><span class="kshelp-note">C&#8209;1</span><span class="kshelp-action">Zone 1</span></div>
+          <div class="kshelp-row"><span class="kshelp-num">1</span><span class="kshelp-note">C&#9839;&#8209;1</span><span class="kshelp-action">Zone 2</span></div>
+          <div class="kshelp-row"><span class="kshelp-num">2</span><span class="kshelp-note">D&#8209;1</span><span class="kshelp-action">Zone 3</span></div>
+          <div class="kshelp-row"><span class="kshelp-num">3</span><span class="kshelp-note">D&#9839;&#8209;1</span><span class="kshelp-action">Zone 4</span></div>
+          <div class="kshelp-row"><span class="kshelp-num">4</span><span class="kshelp-note">E&#8209;1</span><span class="kshelp-action">Zone 5</span></div>
+          <div class="kshelp-row"><span class="kshelp-num">5</span><span class="kshelp-note">F&#8209;1</span><span class="kshelp-action">Zone 6</span></div>
+          <div class="kshelp-row"><span class="kshelp-num">6</span><span class="kshelp-note">F&#9839;&#8209;1</span><span class="kshelp-action">Zone 7</span></div>
+          <div class="kshelp-row"><span class="kshelp-num">7</span><span class="kshelp-note">G&#8209;1</span><span class="kshelp-action">Zone 8</span></div>
+        </div>
+        <div class="kshelp-col">
+          <div class="kshelp-group kshelp-seq">Seq Toggle</div>
+          <div class="kshelp-row"><span class="kshelp-num">8</span><span class="kshelp-note">G&#9839;&#8209;1</span><span class="kshelp-action">Zone 1</span></div>
+          <div class="kshelp-row"><span class="kshelp-num">9</span><span class="kshelp-note">A&#8209;1</span><span class="kshelp-action">Zone 2</span></div>
+          <div class="kshelp-row"><span class="kshelp-num">10</span><span class="kshelp-note">A&#9839;&#8209;1</span><span class="kshelp-action">Zone 3</span></div>
+          <div class="kshelp-row"><span class="kshelp-num">11</span><span class="kshelp-note">B&#8209;1</span><span class="kshelp-action">Zone 4</span></div>
+          <div class="kshelp-row"><span class="kshelp-num">12</span><span class="kshelp-note">C0</span><span class="kshelp-action">Zone 5</span></div>
+          <div class="kshelp-row"><span class="kshelp-num">13</span><span class="kshelp-note">C&#9839;0</span><span class="kshelp-action">Zone 6</span></div>
+          <div class="kshelp-row"><span class="kshelp-num">14</span><span class="kshelp-note">D0</span><span class="kshelp-action">Zone 7</span></div>
+          <div class="kshelp-row"><span class="kshelp-num">15</span><span class="kshelp-note">D&#9839;0</span><span class="kshelp-action">Zone 8</span></div>
+        </div>
+        <div class="kshelp-col">
+          <div class="kshelp-group kshelp-arr">Arrangement</div>
+          <div class="kshelp-row"><span class="kshelp-num">16</span><span class="kshelp-note">E0</span><span class="kshelp-action">Select A</span></div>
+          <div class="kshelp-row"><span class="kshelp-num">17</span><span class="kshelp-note">F0</span><span class="kshelp-action">Select B</span></div>
+          <div class="kshelp-row"><span class="kshelp-num">18</span><span class="kshelp-note">F&#9839;0</span><span class="kshelp-action">Select C</span></div>
+          <div class="kshelp-row"><span class="kshelp-num">19</span><span class="kshelp-note">G0</span><span class="kshelp-action">Select D</span></div>
+        </div>
+      </div>
+    </div>
+    <a id="valueUp" class="valuebtn preventLeave">
+      <svg height="20" width="8" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="6,11 0,6 0,16" style="fill: #ffffff" />
+      </svg>
+    </a>
+    <a id="valueDown" class="valuebtn preventLeave"
+      ><svg height="20" width="8" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="2,11 8,6 8,16" style="fill: #ffffff" />
+      </svg>
+    </a>
+    <script>
+      (function () {
+        var overlay = document.getElementById('keySwitchHelpOverlay');
+        var btn = document.getElementById('keySwitchHelp');
+        var closeBtn = document.getElementById('keySwitchHelpClose');
+        function open() { overlay.classList.add('open'); }
+        function close() { overlay.classList.remove('open'); }
+        btn.addEventListener('click', function (e) { e.stopPropagation(); overlay.classList.toggle('open'); });
+        closeBtn.addEventListener('click', close);
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+        document.addEventListener('click', function (e) {
+          if (overlay.classList.contains('open') && !overlay.contains(e.target) && e.target !== btn) close();
+        });
+      })();
+    </script>
   </body>
 </html>

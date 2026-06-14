@@ -2,12 +2,13 @@
   font-family: 'Pontano Sans';
   font-style: normal;
   font-weight: 400;
-  src: url(PotanoSans-Regular.ttf) format('ttf');
+  src: url(pontano-sans-v17-latin-regular.woff2) format('woff2');
 }
 body {
   font-family: 'Pontano Sans', sans-serif;
   background: #272422;
   color: #ddd;
+  margin: 0 2rem;
 }
 .symbol {
   width: 150px;
@@ -29,4 +30,11 @@ h1 {
 
 a {
   color: #3476d8;
+}
+
+ul.features {
+  color: #ccc;
+  line-height: 1.7;
+  padding-left: 1.4em;
+  margin-top: 0.5em;
 }

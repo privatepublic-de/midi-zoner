@@ -1,0 +1,74 @@
+<div
+  class="ccpot ${ cc.type == 2 ? 'spacer' : '' }"
+  id="pot_${zoneindex}_${ix}"
+  data-action="${zoneindex}:cc_select:${ix}"
+  data-contextmenu="${zoneindex}:cc_edit:${ix},${zoneindex}:cc_send_all"
+>
+  <div class="cclabel">${cc.label}</div>
+  <div class="rotary ccpotcontroller">
+    <svg
+      width="56"
+      height="56"
+      viewBox="0 0 56 56"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        id="pot_${zoneindex}_${ix}_range"
+        d=""
+        stroke="var(--darker-1)"
+        stroke-width="6"
+        fill="none"
+      />
+      <path
+        id="pot_${zoneindex}_${ix}_value"
+        d=""
+        stroke="var(--brighter-3)"
+        stroke-width="6"
+        fill="none"
+      />
+      <path
+        id="pot_${zoneindex}_${ix}_discrete"
+        d=""
+        stroke="var(--bg-color)"
+        stroke-width="1"
+        fill="none"
+      />
+      <rect
+        id="pot_${zoneindex}_${ix}_zero"
+        x="27"
+        y="8"
+        width="2"
+        height="8"
+        fill="var(--brighter-2)"
+      />
+    </svg>
+    <span class="value">127</span>
+  </div>
+  <div class="buttons ccpotcontroller">
+    <div class="ccbtn ccbtn0" data-action="${zoneindex}:cc_button_trig:${ix}:0">
+      1
+    </div>
+    <div class="ccbtn ccbtn1" data-action="${zoneindex}:cc_button_trig:${ix}:1">
+      2
+    </div>
+    <div class="ccbtn ccbtn2" data-action="${zoneindex}:cc_button_trig:${ix}:2">
+      3
+    </div>
+    <div class="ccbtn ccbtn3" data-action="${zoneindex}:cc_button_trig:${ix}:3">
+      4
+    </div>
+    <div class="ccbtn ccbtn4" data-action="${zoneindex}:cc_button_trig:${ix}:4">
+      5
+    </div>
+    <div class="ccbtn ccbtn5" data-action="${zoneindex}:cc_button_trig:${ix}:5">
+      6
+    </div>
+    <div class="ccbtn ccbtn6" data-action="${zoneindex}:cc_button_trig:${ix}:6">
+      7
+    </div>
+    <div class="ccbtn ccbtn7" data-action="${zoneindex}:cc_button_trig:${ix}:7">
+      8
+    </div>
+  </div>
+  <div class="info ccpotcontroller"></div>
+</div>

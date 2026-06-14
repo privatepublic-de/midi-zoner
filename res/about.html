@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <head>
     <link rel="stylesheet" href="about.css" />
@@ -8,11 +8,22 @@
       <img src="zoner.png" class="symbol" />
       <h1>midi-zoner</h1>
       <div class="version">
-        Since 2020 by <a href="http://www.privatepublic.de">privatepublic.de</a
+        Since 2020 by <a href="https://www.privatepublic.de">privatepublic.de</a
         ><br />
         Version <span id="version"></span>
       </div>
       <p id="description"></p>
+      <ul class="features">
+        <li>Multiple independent zones, each with its own note range, output port, and MIDI channel</li>
+        <li>Arpeggiator with up/down/random/order modes, euclidean rhythm patterns, and strum modes (down, up, alternating) with velocity taper</li>
+        <li>Step sequencer with 4 layers (A–D), melodic and drum modes, per-step probability and conditions</li>
+        <li>4 global arrangements for live scene switching</li>
+        <li>CC controllers: rotary, bipolar, 14-bit, button banks, and note-to-CC</li>
+        <li>Multiple simultaneous MIDI input ports</li>
+        <li>Internal and external MIDI clock with configurable clock output routing</li>
+        <li>Key switches for muting zones and switching arrangements from a controller</li>
+        <li>Scene save and load as JSON files</li>
+      </ul>
       <p>
         Source code and documentation on GitHub:<br />
         <a href="https://github.com/privatepublic-de/midi-zoner"
