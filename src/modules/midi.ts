@@ -419,9 +419,11 @@ class MIDI {
       this._bpmTicksSinceUpdate = 0;
       this._recentTickTimestamps = [];
       this.detectedBpm = null;
+      this.deviceIdInClock = deviceIdInClock;
       if (this.bpmDetectedHandler) this.bpmDetectedHandler(null);
+    } else {
+      this.deviceIdInClock = deviceIdInClock;
     }
-    this.deviceIdInClock = deviceIdInClock;
     if (deviceIdInClock == MIDI.INTERNAL_PORT_ID) {
       internalClock.setHandler(this.onMIDIMessage.bind(this));
     } else {
