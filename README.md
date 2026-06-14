@@ -1,21 +1,57 @@
 # midi-zoner
 
-Application to play multiple MIDI devices, MIDI channels and note ranges from one MIDI input source. Includes an arpeggiator with euclidian patterns and customizable CC controllers.
+Play multiple MIDI devices, channels, and note ranges from a single MIDI input source — without opening a DAW.
 
-My main motive to start programming "midi-zoner": I wanted to interact and perform with my MIDI gear without the hassle of starting a big and bloated DAW to distribute my master keyboard to multiple destinations. And neither did I like to fiddle around with tiny 16-character LCD screens to configure mentioned master keyboard for multiple zones and channels.
+My main motivation for building midi-zoner: I wanted to interact and perform with my MIDI gear without the hassle of starting a big, bloated DAW just to split my master keyboard across multiple destinations. And I didn't want to fiddle with tiny 16-character LCD screens to configure zones either.
 
-This is an [Electron](https://www.electronjs.org/) application. Build it with node.js/npm.
+This is an [Electron](https://www.electronjs.org/) application built with TypeScript and the Web MIDI API.
 
-- Make sure you have a current version of node.js/npm installed
-- Clone this repository
-- In the repository's directory call `npm install`
-- Enter `npm start` to test the application
-- You can build the application with `npm run build:win` (exe file), `npm run build:linux` (AppImage) or `npm run build:mac` (dmg) for the respective platform. The application will be built to the "dist" directory. For Mac OS you can use `npm run pack:osx` to build a simple "app" without packing it into a dmg file.
+## Features
 
-## User manual
+- **Multiple independent zones** — each with its own note range, output port, MIDI channel, label, and color
+- **Arpeggiator** — up/down/random/order modes, euclidean rhythm patterns, strum modes (down/up/alternating) with velocity taper, ratchet, gate, chance, and hold with keyboard transposition
+- **Step sequencer** — melodic (up to 256 steps) and drum modes (up to 64 steps), per-step velocity/gate/length/chance/conditions, ratchet, live recording, copy/paste, transpose
+- **4 global arrangements (A/B/C/D)** — snapshot and switch entire zone configurations for live performance; switching is quantized
+- **CC controllers** — unipolar and bipolar rotary knobs, 14-bit precision, button banks, note-to-CC converters, and spacers
+- **Per-zone input routing** — assign a specific MIDI input port and channel per zone (in addition to global multi-input selection)
+- **Internal and external MIDI clock** — internal clock via Web Audio API for accurate timing; external clock from any MIDI input; configurable clock output routing per port
+- **Key switches** — MIDI notes 0–19 (C-2 to G0) mute zones, toggle sequencers, and switch arrangements from a hardware controller
+- **Swing** — per-zone swing amount (0–100%) applied to arpeggiator and sequencer timing
+- **Scene save/load** — export and import complete configurations as JSON files; auto-save to localStorage; undo/redo (20 levels)
+- **Panic** — send All Notes Off to all outputs instantly
 
-You can find the complete user manual on the wiki pages of this repository: [midi-zoner User Manual](https://github.com/privatepublic-de/midi-zoner/wiki)
+## Quick Start
 
-## Download releases
+```bash
+# Prerequisites: Node.js (current LTS) and npm
+git clone https://github.com/privatepublic-de/midi-zoner.git
+cd midi-zoner
+npm install
+npm start
+```
 
-Download pre-built release versions here under [releases](https://github.com/privatepublic-de/midi-zoner/releases). There are builds for Mac OS, Windows and Linux (AppImage) – all 64-Bit.
+## Building
+
+```bash
+npm run build:ts         # Compile TypeScript only
+npm run build:win        # Windows portable executable
+npm run build:mac        # macOS DMG installer
+npm run build:linux      # Linux AppImage
+npm run build:all        # All platforms + macOS app
+npm run pack:osx         # macOS .app without DMG (x64)
+npm run pack:osx:arm     # macOS .app without DMG (arm64)
+```
+
+Built files are placed in the `dist/` directory.
+
+## User Manual
+
+The complete user manual is on the wiki: [midi-zoner User Manual](https://github.com/privatepublic-de/midi-zoner/wiki)
+
+## Download
+
+Pre-built releases for macOS, Windows, and Linux (64-bit) are available under [releases](https://github.com/privatepublic-de/midi-zoner/releases).
+
+## License
+
+ISC — Peter Witzel / [privatepublic.de](https://www.privatepublic.de)

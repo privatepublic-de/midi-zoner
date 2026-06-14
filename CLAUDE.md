@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-midi-zoner is an Electron-based MIDI application that routes MIDI input to multiple output devices with extensive per-zone control. It features zone-based MIDI routing, arpeggiators with euclidean patterns, step sequencers, and customizable CC controllers. The application is built with TypeScript and uses the Web MIDI API.
+midi-zoner is an Electron-based MIDI application that routes MIDI input to multiple output devices with extensive per-zone control. It features zone-based MIDI routing, arpeggiators with euclidean patterns and strum modes, step sequencers, 4 global arrangements for live switching, key switches, and customizable CC controllers. The application is built with TypeScript and uses the Web MIDI API.
 
 ## Development Commands
 
@@ -36,10 +36,12 @@ src/
 └── modules/
     ├── midi.ts          # Web MIDI API wrapper
     ├── internal-clock.ts
+    ├── undo-history.ts
     ├── zone-template.ts
     ├── dragzone.ts
     ├── potdraghandler.ts
     ├── domutils.ts
+    ├── prng.ts
     ├── zone/            # Zone-related classes
     │   ├── interfaces.ts
     │   ├── note.ts
@@ -80,14 +82,15 @@ Web MIDI API wrapper with typed interfaces (MIDIAccess, MIDIInput, MIDIOutput, M
 - Clock input/output routing (external and internal clock selection)
 - Transport messages (start/stop/continue)
 - Multi-input port selection support
+- `midi.zoneInputPorts` — set of ports claimed by per-zone routing; these bypass the global channel gate so all channels pass through for zone-level filtering
 
 #### zone/ Directory
 Contains zone-related classes split into separate modules:
 
-- **zone-class.ts**: Main Zone class with note range, channel, output routing, arpeggiator, sequencer, and CC controllers
-- **sequence.ts**: Step sequencer with 4 layers (A-D), supports both melodic and drum modes
-- **seq-layer.ts**: Individual sequencer layer data with DIV_TICKS constants
-- **seq-step.ts**: Single sequencer step with notes, probability, conditions
+- **zone-class.ts**: Main Zone class with note range, channel, output/input routing, arpeggiator, sequencer, and CC controllers. Holds `arrangements[]` array and `captureArrangement()` / `applyArrangement()` methods
+- **sequence.ts**: Flat step sequencer (no sub-layers); supports melodic and drum modes. The old 4-layer system is replaced by global arrangements
+- **seq-layer.ts**: Contains only `DIV_TICKS` and `DivTick` — the tick-to-division mapping constants (24ppq)
+- **seq-step.ts**: Single sequencer step with notes, velocity, gate, length, probability, condition, and ratchet fields
 - **drum-lane.ts**: Drum sequencer lane
 - **note.ts**: MIDI note representation with velocity, channel, and portId
 - **note-display.ts**: Static NoteDisplay class with note name arrays
@@ -112,19 +115,22 @@ UI controller split into focused modules:
 
 #### Other Modules
 - **internal-clock.ts**: Generates internal MIDI clock at specified BPM using Web Audio API for timing accuracy
+- **undo-history.ts**: `UndoHistory` class — push/undo/redo stack (max 20 entries), with gesture grouping so continuous drags produce a single undo entry
 - **zone-template.ts**: Generates HTML templates for zones using string interpolation
 - **dragzone.ts**: Implements drag-and-drop reordering of zones
 - **potdraghandler.ts**: Handles mouse drag interactions for rotary CC controller knobs
 - **domutils.ts**: DOM utility functions for element selection and class management
+- **prng.ts**: Deterministic PRNG utilities (`mulberry32`, `BagShuffle`) used for arpeggiator randomization
 
 ### Data Flow
 
 1. **MIDI Input**: Web MIDI API → midi.ts → app.ts eventHandler
-2. **Zone Processing**: app.ts distributes MIDI events to zones based on note range and enabled state
-3. **Arpeggiator**: Triggered by internal-clock.ts or external MIDI clock, processes held notes
-4. **Sequencer**: Triggered by clock, reads active layer steps and triggers notes
-5. **MIDI Output**: Zone sends processed notes/CC → midi.ts → Web MIDI API output ports
-6. **Persistence**: Zones serialized to localStorage on every change (debounced 500ms). Scene files are JSON exports of the zones object.
+2. **Zone Filtering**: eventHandler checks per-zone `inputPortId`/`inputChannel` (if set) or falls back to global `selectedInputPorts` channel filter
+3. **Zone Processing**: app.ts distributes MIDI events to zones based on note range and enabled state
+4. **Arpeggiator**: Triggered by internal-clock.ts or external MIDI clock, processes held notes
+5. **Sequencer**: Triggered by clock, reads the flat `Sequence` steps for the active arrangement and triggers notes
+6. **MIDI Output**: Zone sends processed notes/CC → midi.ts → Web MIDI API output ports
+7. **Persistence**: Zones serialized to localStorage on every change (debounced 500ms). Scene files are JSON exports of the zones object. Every mutation is also pushed to `UndoHistory`.
 
 ### HTML Templates
 - **res/template-zone.html**: Zone UI template with placeholders for dynamic content
@@ -140,18 +146,24 @@ Global state is stored in the `zones` object in app.ts:
 - `zones.tempo`: BPM when using internal clock
 - `zones.sendInternalClockIfPlaying`: Clock sending mode
 - `zones.outputConfigNames{}`: Named output port configurations
-- `zones.seqLayerIndex`: Active sequencer layer (0-3)
-- `zones.seqLayerQuantIndex`: Quantization mode for layer recording
+- `zones.arrangementIndex`: Active arrangement (0–3, maps to A/B/C/D)
+- `zones.nextArrangementIndex`: Pending arrangement for quantized switching
+- `zones.arrangementQuantIndex`: Quantization mode for arrangement switching
 
 Solo mode is tracked via `Zone.solocount` static counter.
 
+Undo/redo state is tracked in a standalone `UndoHistory` instance in app.ts (not part of `zones`). Every discrete mutation calls `undoHistory.push()`; continuous gestures (e.g. dragging a CC knob) use `startGesture()` / `endGesture()` to collapse into a single entry.
+
 ### Key Concepts
 - **Zones are independent**: Each zone has its own sequencer, arpeggiator, and settings
+- **Arrangements**: 4 global snapshots (A/B/C/D) of all zone settings (enabled, arp, sequencer, filters, etc.). Zone identity (port, channel, range, CCs, label, color) is global and shared across arrangements. Switching is quantized to avoid mid-sequence jumps.
+- **Per-zone input routing**: `Zone.inputPortId` / `Zone.inputChannel` — when set, that zone only responds to that specific port+channel, overriding global input selection
 - **Zone.solo**: When any zone is soloed, all non-solo zones are muted
 - **Internal clock**: Generated via Web Audio API for precise timing, always runs in background
 - **Multi-input support**: Multiple MIDI input ports can be selected simultaneously
 - **Output presets**: Named configurations of output port + channel for quick recall
 - **DIV_TICKS array**: Maps note division indices to MIDI ticks (24ppq)
+- **Key switches**: When enabled, MIDI notes 0–7 mute zones 1–8, notes 8–15 toggle sequencers, notes 16–19 select arrangements A/B/C/D
 
 ## TypeScript Enums and Interfaces
 
@@ -173,9 +185,12 @@ enum CCControllerType {
 enum ArpDirection {
   UP = 0,
   DOWN = 1,
-  UP_DOWN = 2,    // Alternating
+  UP_DOWN = 2,      // Alternating up then down
   RANDOM = 3,
-  ORDER = 4       // As played
+  ORDER = 4,        // As played
+  STRUM_DOWN = 5,   // Fast descending sweep with velocity taper
+  STRUM_UP = 6,     // Fast ascending sweep with velocity taper
+  STRUM_ALT = 7     // Alternating strum direction
 }
 ```
 
@@ -183,27 +198,66 @@ enum ArpDirection {
 ```typescript
 enum StepCondition {
   ALWAYS = 0,
-  PREVIOUS = 1,
-  NOT_PREVIOUS = 2,
-  FIRST_CYCLE = 3,
-  NOT_FIRST_CYCLE = 4
-  // 5+ are cycle-based conditions
+  PREVIOUS = 1,       // Play if previous step played
+  NOT_PREVIOUS = 2,   // Play if previous step did NOT play
+  FIRST_CYCLE = 3,    // Play only on first loop cycle
+  NOT_FIRST_CYCLE = 4 // Play on every cycle except the first
+  // Values 5+ encode "every N cycles" as (N - 1 + 5)
 }
 ```
+
+### ZoneArrangementJSON (interfaces.ts)
+Each zone stores an array of 4 `ZoneArrangementJSON` objects (one per arrangement A/B/C/D). Captures: enabled/solo, octave, velocity/filter settings, all arp state (direction, hold, pattern, ratchet, strum taper, euclidean params, swing), and the flat `SequenceJSON`. Zone-global state (port, channel, range, CC controllers, label, color) lives in `ZoneJSON` itself, not in arrangements.
 
 ## Important Implementation Notes
 
 ### MIDI Note Numbers
 Note numbers range 0-127. Display format uses `Note.display()` which shows "C-1" to "G9".
 
+### Arrangements
+- 4 global arrangements A/B/C/D; each captures all per-zone settings (see `ZoneArrangementJSON`)
+- `zone.captureArrangement(index)` / `zone.applyArrangement(index)` — snapshot and restore
+- `zone.saveArrangement()` must be called **before** `zone.stopped()` during arrangement switching so the snapshot captures actual playing state
+- `migrateFromLegacyZone()` in app.ts converts old 4-layer scene files to the arrangement format (layer A → arrangement 0, etc.)
+- Switching is quantized: `zones.nextArrangementIndex` is set, applied on the next `arrangementQuantIndex` boundary
+- `enabled` and `solo` are per-arrangement, so switching arrangements can change mute/solo state
+
+### Undo/Redo
+- `UndoHistory` (src/modules/undo-history.ts) — max 20 entries, JSON snapshots of the full `zones` object
+- Discrete mutations: `undoHistory.push(JSON.stringify(zones))` after the change
+- Continuous gestures (CC knob drag, BPM input focus): `startGesture(before)` → `endGesture(after)` collapses to one entry
+- Scene file loads also push a snapshot so load is undoable
+- UI buttons `#undoBtn` / `#redoBtn` are disabled when the stack is empty
+
+### Key Switches
+When enabled (toggle in toolbar), MIDI notes 0–19 from any input are intercepted before zone routing:
+
+| Note range | Dec | Action |
+|---|---|---|
+| C-2 to G-1 | 0–7 | Mute/unmute zones 1–8 |
+| G#-1 to D#0 | 8–15 | Toggle sequencer on zones 1–8 |
+| E0 to G0 | 16–19 | Select arrangement A/B/C/D |
+
 ### Sequencer Features
-- 4 independent layers (A/B/C/D) per zone
-- Melodic mode: Multi-note polyphonic steps with velocity, gate, length, chance, and conditions
-- Drum mode: Up to 12 lanes of monophonic triggers
+- Flat single sequence per zone (no sub-layers); each arrangement stores its own `SequenceJSON`
+- Melodic mode: Up to 256 steps (`Sequence.MAX_STEPS`), multi-note polyphonic, with velocity, gate, length, chance, and conditions
+- Drum mode: Up to 64 steps (`Sequence.MAX_STEPS_DRUMS`), up to 12 lanes of monophonic triggers; per-lane enable, solo, note, euclidean fill
 - Step conditions: Always, Previous, Not Previous, 1st cycle, Not 1st cycle, Every N cycles
+- Per-step ratchet: count (1–8), rate (subdivision), velocity delta per repeat
 - Copy/paste steps and entire sequences
 - Transpose, double, half-time, velocity scaling operations
 - Live recording while sequence plays
+
+### Arpeggiator Features
+- Directions: Up, Down, Up/Down, Random, Order, Strum Down, Strum Up, Strum Alt
+- Strum modes: fast sweep across held notes with velocity taper (0–100%)
+- Ratchet: probability and count (2×/3×/4×) per step
+- Repeat: re-trigger the same note if still held
+- Hold: keep notes sounding after release; optional keyboard transposition
+- Euclidean pattern generator with shift control
+
+### Swing
+Per-zone swing amount (0–100%) stored in `ZoneArrangementJSON.swingAmount`. Applied to both arpeggiator and sequencer step timing by delaying every other tick.
 
 ### Clock Sources
 - External: MIDI clock from selected input port
@@ -218,11 +272,21 @@ Zones have color indices (0-N) that map to CSS classes. Colors can be randomized
 The application has no automated tests. Manual testing should cover:
 - Zone creation, deletion, reordering
 - Note routing with various ranges and octave transposition
-- Arpeggiator patterns and hold mode
-- Sequencer step editing and playback
-- CC controller interaction
+- Per-zone input port/channel filtering
+- Arpeggiator patterns, hold mode, strum modes, ratchet
+- Sequencer step editing and playback; per-step conditions and ratchet
+- Arrangement switching (A/B/C/D), quantized switching, key switches
+- CC controller interaction (all types including 14-bit)
+- Swing timing
+- Undo/redo (including gesture grouping for CC drags)
 - Multi-input port handling
 - Clock source switching (external ↔ internal)
-- Scene save/load
-- Solo/mute interactions
+- Scene save/load; backward compat with legacy 4-layer scenes
+- Solo/mute interactions (note: these are per-arrangement)
 - MIDI device connect/disconnect
+
+## Known Bugs and Minor Issues
+
+### Minor Issues
+1. **Drum lane count decrease leaves stale data** — `seq_drum_lanes` action (seq-actions.ts) only updates `sequence.drumLanes` (the display count) without clearing the sparse `drum_lanes` array. Decreasing then increasing the lane count restores old step data.
+2. **Arrangement switch stops live recording without a toast** — `z.stopped()` during arrangement switching resets `isLiveRecoding = false` and calls `updateRecordingState()` (which removes the CSS indicator), but there is no toast notification to tell the user recording was interrupted.
