@@ -212,7 +212,9 @@ Each zone stores an array of 4 `ZoneArrangementJSON` objects (one per arrangemen
 ## Important Implementation Notes
 
 ### MIDI Note Numbers
-Note numbers range 0-127. Display format uses `Note.display()` which shows "C-1" to "G9".
+Note numbers range 0-127. Display format uses `Note.display()` which produces `MIDI.NOTENAMES[note % 12] + (Math.floor(note / 12) - 1)`, giving a range of "C-1" (note 0) to "G9" (note 127).
+
+**Convention**: middle C (note 60) = C4. This matches most DAWs and Roland/Korg hardware. The Yamaha convention is one octave lower (middle C = C3, note 0 = C-2) — if a user's hardware labels notes differently, all displayed note names in midi-zoner will appear shifted by one octave.
 
 ### Arrangements
 - 4 global arrangements A/B/C/D; each captures all per-zone settings (see `ZoneArrangementJSON`)
