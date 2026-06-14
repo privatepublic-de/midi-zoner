@@ -202,62 +202,6 @@ export function renderControllersForZone(
   DOM.all(`#zone${index} .ccpots .ccpot`).forEach((pot, ix) => {
     const is14bit =
       zone.cc_controllers[ix].type == 5 || zone.cc_controllers[ix].type == 6;
-    let scrollEndTimer: ReturnType<typeof setTimeout> | null = null;
-    pot.addEventListener('wheel', (e) => {
-      if (
-        zone.cc_controllers[ix].type > 1 &&
-        zone.cc_controllers[ix].type < 5
-      ) {
-        return;
-      }
-      e.preventDefault();
-      if (zone.editCC) {
-        return;
-      }
-      const wheelEvent = e as WheelEvent;
-      const factor = is14bit ? (wheelEvent.shiftKey ? 1 : 8) : 1;
-      const newV = Math.min(
-        Math.max(
-          parseInt(
-            String(zone.cc_controllers[ix].val +
-              Math.sign(wheelEvent.deltaY + wheelEvent.deltaX) * factor)
-          ),
-          0
-        ),
-        is14bit ? 16383 : 127
-      );
-      if (newV != zone.cc_controllers[ix].val) {
-        onGestureStart();
-        if (is14bit) {
-          zone.cc_controllers[ix].val = newV;
-        } else {
-          const discreteValues = zone.cc_controllers[ix].discreteValues;
-          if (discreteValues?.length > 0) {
-            const nextiX =
-              discreteValues.indexOf(zone.cc_controllers[ix].val) +
-              (newV < zone.cc_controllers[ix].val ? -1 : 1);
-            zone.cc_controllers[ix].val =
-              discreteValues[
-                nextiX < 0
-                  ? 0
-                  : nextiX >= discreteValues.length
-                  ? discreteValues.length - 1
-                  : nextiX
-              ];
-          } else {
-            zone.cc_controllers[ix].val = newV;
-          }
-        }
-        zone.sendCC(ix);
-        updateControllerValues(zone, index, ix);
-        triggerSave();
-        if (scrollEndTimer) clearTimeout(scrollEndTimer);
-        scrollEndTimer = setTimeout(() => {
-          scrollEndTimer = null;
-          onGestureEnd();
-        }, 800);
-      }
-    });
     (pot.querySelector('.cclabel') as HTMLElement).addEventListener('click', (e) => {
       e.stopPropagation();
       if (zone.selectedCCIndex === ix && zone.editCC) {
