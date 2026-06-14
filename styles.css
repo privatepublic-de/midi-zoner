@@ -1399,7 +1399,7 @@ input[type='range'] {
 }
 
 .rangeholder {
-  background-color: var(--darker-0);
+  background-color: var(--darker-2);
 }
 
 .rangeholder:hover .marker {
