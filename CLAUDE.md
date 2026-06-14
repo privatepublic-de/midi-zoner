@@ -163,7 +163,7 @@ Undo/redo state is tracked in a standalone `UndoHistory` instance in app.ts (not
 - **Multi-input support**: Multiple MIDI input ports can be selected simultaneously
 - **Output presets**: Named configurations of output port + channel for quick recall
 - **DIV_TICKS array**: Maps note division indices to MIDI ticks (24ppq)
-- **Key switches**: When enabled, MIDI notes 0–7 mute zones 1–8, notes 8–15 toggle sequencers, notes 16–19 select arrangements A/B/C/D
+- **Key switches**: When enabled, MIDI notes 0–7 (C-1–G-1) mute zones 1–8, notes 8–15 (G#-1–D#0) toggle sequencers, notes 16–19 (E0–G0) select arrangements A/B/C/D
 
 ## TypeScript Enums and Interfaces
 
@@ -234,7 +234,7 @@ When enabled (toggle in toolbar), MIDI notes 0–19 from any input are intercept
 
 | Note range | Dec | Action |
 |---|---|---|
-| C-2 to G-1 | 0–7 | Mute/unmute zones 1–8 |
+| C-1 to G-1 | 0–7 | Mute/unmute zones 1–8 |
 | G#-1 to D#0 | 8–15 | Toggle sequencer on zones 1–8 |
 | E0 to G0 | 16–19 | Select arrangement A/B/C/D |
 
