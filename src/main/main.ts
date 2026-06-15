@@ -112,15 +112,15 @@ function createWindow(): void {
   win.loadFile(path.join(__dirname, '../../index.html'));
 
   // Forward renderer console messages to main process terminal
-  win.webContents.on('console-message', async (_event, level, message, line, sourceId) => {
-    const levelNames = ['DEBUG', 'INFO', 'WARN', 'ERROR'];
-    const original = await resolveSourceLocation(sourceId, line);
+  win.webContents.on('console-message', async (e) => {
+    const { level, message, lineNumber, sourceId } = e;
+    const original = await resolveSourceLocation(sourceId, lineNumber);
     const source = original
       ? `${path.relative(projectRoot, original.file)}:${original.line}`
       : sourceId
-        ? `${sourceId}:${line}`
+        ? `${sourceId}:${lineNumber}`
         : '';
-    console.log(`[${levelNames[level] || 'LOG'}] ${message}${source ? ` (${source})` : ''}`);
+    console.log(`[${level.toUpperCase()}] ${message}${source ? ` (${source})` : ''}`);
   });
 
   win.webContents.on('before-input-event', (event, input) => {
