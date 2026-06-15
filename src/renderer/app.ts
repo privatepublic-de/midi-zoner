@@ -731,7 +731,7 @@ document.addEventListener('DOMContentLoaded', function () {
         updateBpmInput();
         midi.bpmDetectedHandler = (bpm: number | null) => {
           if (midi.deviceIdInClock !== MIDI.INTERNAL_PORT_ID) {
-            bpmInput.value = bpm !== null ? bpm.toFixed(1) : '---';
+            bpmInput.value = bpm !== null ? bpm.toFixed(1) : '';
             bpmInput.classList.toggle('hasClock', bpm !== null);
           }
         };
