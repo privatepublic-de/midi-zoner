@@ -1354,7 +1354,7 @@ input[type='range'] {
 
 .range {
   position: relative;
-  height: 28px;
+  height: 16px;
   cursor: pointer;
   width: 100%;
   overflow: hidden;
@@ -1372,15 +1372,16 @@ input[type='range'] {
 .range canvas {
   position: absolute;
   left: 0;
-  bottom: 0;
-  height: 20px;
+  top: 0;
+  height: 100%;
   width: 100%;
 }
 
 .marker {
   position: absolute;
   display: none;
-  top: 7px;
+  top: 0;
+  z-index: 1;
   width: 32px;
   font-size: 12px;
   padding: 1px 0 0 0;
@@ -1395,7 +1396,7 @@ input[type='range'] {
 }
 
 .marker.high {
-  top: 10px;
+  top: 0;
 }
 
 .rangeholder {
@@ -1409,15 +1410,15 @@ input[type='range'] {
 .join {
   position: absolute;
   top: 0;
-  height: 28px;
+  height: 100%;
   background-color: var(--bg-color);
 }
 
 .current {
   display: none;
   position: absolute;
-  top: 6px;
-  height: 14px;
+  top: 2px;
+  height: calc(100% - 4px);
   background-color: var(--brighter-1);
 }
 
@@ -1432,41 +1433,15 @@ input[type='range'] {
   color: var(--brighter-2);
   width: 1px;
   bottom: 0;
+  z-index: 1;
   font-size: 8px;
   text-indent: 4px;
+  text-shadow: 0 0 3px var(--darker-2), 0 0 6px var(--darker-2);
 }
 
 .zone.disabled .oct {
   background-color: var(--brighter-0);
   color: transparent;
-}
-
-.show-seq:not(.disabled) .rangeholder {
-  margin-top: 0;
-}
-
-.show-seq:not(.disabled) .range,
-.show-seq:not(.disabled) .join {
-  height: 14px;
-}
-
-.show-seq:not(.disabled) .current {
-  top: 2px;
-  height: 10px;
-}
-
-.show-seq:not(.disabled) .marker {
-  font-size: 50%;
-  width: 16px;
-}
-
-.show-seq:not(.disabled) .marker.high {
-  top: 5px;
-  padding-right: 6px;
-}
-
-.show-seq:not(.disabled) .oct {
-  overflow: hidden;
 }
 
 .toggle {
