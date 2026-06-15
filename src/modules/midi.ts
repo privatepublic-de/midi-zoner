@@ -16,17 +16,11 @@ interface InputPortDef {
 }
 
 interface MIDIHandlers {
-  completeHandler?: (available: boolean, msg: string) => void;
-  updatePortsHandler?: (
-    inputs: PortDescriptor[],
-    outputs: PortDescriptor[],
-    msg?: string
-  ) => void;
+  portsChangedHandler?: (available: boolean, inputs: PortDescriptor[], outputs: PortDescriptor[], msg?: string) => void;
   eventHandler: (event: MIDIMessageEvent) => void;
   clockHandler?: (pos: number, tickIntervalMs: number) => void;
   transportHandler?: (started: boolean) => void;
   panicHandler?: () => void;
-  updateClockReceiverHandler?: (outputs: PortDescriptor[]) => void;
 }
 
 interface ListResult {
@@ -77,7 +71,6 @@ class MIDI {
   panicHandler?: () => void;
   eventHandler: (event: MIDIMessageEvent) => void;
   transportHandler?: (started: boolean) => void;
-  updateClockReceiverHandler?: (outputs: PortDescriptor[]) => void;
   clockHandler?: (pos: number, tickIntervalMs: number) => void;
   midiAccess: MIDIAccess | null = null;
   deviceIdInClock: string | null;
@@ -102,25 +95,18 @@ class MIDI {
   private _recentTickTimestamps: number[] = [];
 
   constructor({
-    completeHandler,
-    updatePortsHandler,
+    portsChangedHandler,
     eventHandler,
     clockHandler,
     transportHandler,
     panicHandler,
-    updateClockReceiverHandler
   }: MIDIHandlers) {
     console.log('MIDI: Initializing...');
     this.panicHandler = panicHandler;
     this.eventHandler = eventHandler;
     this.transportHandler = transportHandler;
-    this.updateClockReceiverHandler = updateClockReceiverHandler;
     this.clockHandler = clockHandler;
     this.deviceIdInClock = localStorage.getItem('midiInClockId');
-
-    // hasClock is cleared by a per-tick watchdog in onMIDIMessage
-
-    let trueReported = false;
 
     const reportStatus = (
       available: boolean,
@@ -129,18 +115,8 @@ class MIDI {
       outputPorts?: PortDescriptor[]
     ): void => {
       this.outputPortsRegistered = outputPorts || [];
-      if ((available && !trueReported) || !available) {
-        trueReported = available;
-        if (completeHandler) {
-          completeHandler(available, msg || '');
-        }
-        if (updatePortsHandler) {
-          updatePortsHandler(inputPorts || [], outputPorts || [], msg);
-        }
-      } else {
-        if (updatePortsHandler) {
-          updatePortsHandler(inputPorts || [], outputPorts || [], msg);
-        }
+      if (portsChangedHandler) {
+        portsChangedHandler(available, inputPorts || [], outputPorts || [], msg);
       }
     };
 
@@ -165,41 +141,39 @@ class MIDI {
 
     const onStateChange = (e: MIDIConnectionEvent): void => {
       const port = e.port;
-      const state = e.port.state;
       const portName = e.port.name;
-      if (state === 'disconnected') {
+      const wasNew = !this.knownPorts[port.id];
+
+      if (port.state === 'disconnected') {
         delete this.knownPorts[port.id];
-        const initResult = listInputsAndOutputs();
-        this.selectDevices(this.deviceIdInClock);
+        if (port.id === this.deviceIdInClock) {
+          // clock port gone — portsChangedHandler will fall back to internal
+          this.deviceIdInClock = null;
+        }
+      } else {
+        this._warnedMissingPorts.clear();
+      }
+
+      const initResult = listInputsAndOutputs();
+      this.selectDevices(this.deviceIdInClock);
+
+      // only report disconnect and genuinely new ports to avoid flooding the UI
+      if (port.state === 'disconnected' || wasNew) {
         setTimeout(() => {
           reportStatus(
             initResult.success,
-            `${portName} ${state}`,
+            `${portName} ${port.state}`,
             initResult.inputs,
             initResult.outputs
           );
         }, 0);
-      } else if (state === 'connected') {
-        this._warnedMissingPorts.clear();
-        const isNew = !this.knownPorts[port.id];
-        const initResult = listInputsAndOutputs();
-        this.selectDevices(this.deviceIdInClock);
-        if (isNew) {
-          setTimeout(() => {
-            reportStatus(
-              initResult.success,
-              `${portName} ${state}`,
-              initResult.inputs,
-              initResult.outputs
-            );
-          }, 0);
-        }
       }
     };
 
+    // Pure port enumeration — no side effects on deviceIdInClock.
+    // isSelectedClockInput reflects the current runtime deviceIdInClock value.
     const listInputsAndOutputs = (): ListResult => {
       let selectedIn: string | null = null;
-      let selectedInClock: string | null = null;
       let countIn = 0;
       let countOut = 0;
 
@@ -209,59 +183,41 @@ class MIDI {
       ): number => {
         const aUpper = ('' + a[1].name).toUpperCase();
         const bUpper = ('' + b[1].name).toUpperCase();
-        if (aUpper < bUpper) {
-          return -1;
-        }
-        if (bUpper < aUpper) {
-          return 1;
-        }
+        if (aUpper < bUpper) return -1;
+        if (bUpper < aUpper) return 1;
         return 0;
       };
 
-      const sortedInputs = Array.from(this.midiAccess.inputs).sort(
-        sortPortsComparator
-      );
+      const sortedInputs = Array.from(this.midiAccess.inputs).sort(sortPortsComparator);
       const savedMidiInId = localStorage.getItem('midiInId');
-      const savedMidiInClockId = localStorage.getItem('midiInClockId');
       sortedInputs.forEach((entry) => {
         const input = entry[1];
         this.knownPorts[input.id] = input;
-        if (input.id == savedMidiInId) {
-          selectedIn = input.id;
-        }
-        if (input.id == savedMidiInClockId) {
-          selectedInClock = input.id;
-        }
+        if (input.id == savedMidiInId) selectedIn = input.id;
         countIn++;
       });
 
-      const sortedOutputs = Array.from(this.midiAccess.outputs).sort(
-        sortPortsComparator
-      );
+      const sortedOutputs = Array.from(this.midiAccess.outputs).sort(sortPortsComparator);
       sortedOutputs.forEach((entry) => {
-        const output = entry[1];
-        this.knownPorts[output.id] = output;
+        this.knownPorts[entry[1].id] = entry[1];
         countOut++;
       });
       console.log('MIDI: ', countIn, 'inputs,', countOut, 'outputs');
-      this.deviceIdInClock = savedMidiInClockId === MIDI.INTERNAL_PORT_ID
-        ? MIDI.INTERNAL_PORT_ID
-        : selectedInClock;
 
       const mapDescriptor = (port: [string, MIDIPort]): PortDescriptor => {
         let sName = port[1].name;
         if (sName.length > 20) {
           sName =
-            sName.substr(0, 20 / 2).trim() +
+            sName.substr(0, 10).trim() +
             '…' +
-            sName.substr(sName.length - 20 / 2, 20 / 2).trim();
+            sName.substr(sName.length - 10, 10).trim();
         }
         return {
           id: port[1].id,
           name: sName,
           fullName: port[1].name,
           isSelectedInput: port[1].id == selectedIn,
-          isSelectedClockInput: port[1].id == selectedInClock
+          isSelectedClockInput: port[1].id === this.deviceIdInClock
         };
       };
 
@@ -269,27 +225,13 @@ class MIDI {
       const outputDescriptors = sortedOutputs.map(mapDescriptor);
 
       if (countIn == 0 || countOut == 0) {
-        let message: string;
-        if (countIn > 0 && countOut == 0) {
-          message = 'No MIDI output devices';
-        } else if (countIn == 0 && countOut > 0) {
-          message = 'No MIDI input devices';
-        } else {
-          message = 'No MIDI devices';
-        }
-        return {
-          success: true,
-          message,
-          inputs: inputDescriptors,
-          outputs: outputDescriptors
-        };
-      } else {
-        return {
-          success: true,
-          inputs: inputDescriptors,
-          outputs: outputDescriptors
-        };
+        const message =
+          countIn > 0 ? 'No MIDI output devices' :
+          countOut > 0 ? 'No MIDI input devices' :
+          'No MIDI devices';
+        return { success: true, message, inputs: inputDescriptors, outputs: outputDescriptors };
       }
+      return { success: true, inputs: inputDescriptors, outputs: outputDescriptors };
     };
 
     // go ahead, start midi
@@ -415,7 +357,6 @@ class MIDI {
   }
 
   selectDevices(deviceIdInClock: string | null): void {
-    // console.log('MIDI: selectDevices(), inClock', deviceIdInClock);
     if (deviceIdInClock !== this.deviceIdInClock) {
       this._bpmTimestamps = [];
       this._bpmTicksSinceUpdate = 0;
@@ -582,19 +523,10 @@ class MIDI {
    */
   updateUsedPorts(set: Set<string>): void {
     this.usedPorts = set;
-    // console.log(
-    //   'MIDI: Used ports updated. Used:',
-    //   JSON.stringify(this.usedPorts),
-    //   ', clock:',
-    //   JSON.stringify(this.clockOutputPorts)
-    // );
   }
 
   updateClockOutputReceiver(portid: string, enabled: boolean): void {
     this.clockOutputPorts[portid] = enabled;
-    if (this.updateClockReceiverHandler) {
-      this.updateClockReceiverHandler(this.outputPortsRegistered);
-    }
     console.log(
       `MIDI: Update clock output receiver ${portid}, ${enabled}`,
       this.clockOutputPorts
@@ -606,15 +538,5 @@ const clockMSG = Uint8Array.from([MIDI.MESSAGE.CLOCK]);
 const startMSG = Uint8Array.from([MIDI.MESSAGE.START]);
 const stopMSG = Uint8Array.from([MIDI.MESSAGE.STOP]);
 const songPosStart = Uint8Array.from([MIDI.MESSAGE.SONG_POS, 0, 0]);
-
-function toHex(d: number, pad?: number): string {
-  return ('0000' + Number(d).toString(16)).slice(pad ? -pad : -2).toUpperCase();
-}
-
-function toBinary(d: number, pad?: number): string {
-  return ('0000000000000000' + Number(d).toString(2))
-    .slice(pad ? -pad : -2)
-    .toUpperCase();
-}
 
 export default MIDI;

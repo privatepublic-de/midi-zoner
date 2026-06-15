@@ -458,6 +458,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   let activeUpdateTimer: ReturnType<typeof setTimeout> | null = null;
   let portsFirstUpdateDone = false;
+  let initialized = false;
   const midi = new MIDI({
     eventHandler: (event: MIDIMessageEvent) => {
       if (midi.deviceIdInClock == MIDI.INTERNAL_PORT_ID) {
@@ -598,24 +599,16 @@ document.addEventListener('DOMContentLoaded', function () {
         );
       }, 1);
     },
-    completeHandler: (midiavailable: boolean, message: string) => {
-      // availability handler
-      if (midiavailable) {
-        console.log('app: MIDI available');
-        DOM.get('#midiPanic')!.addEventListener('click', () => {
-          midi.panic();
-        });
-        loadZones(midi);
-        midi.selectDevices(midi.deviceIdInClock);
-        const updateClockInterface = function (): void {
-          console.log('app: Clock input device changed');
-        };
-        DOM.get('#midiClockInDeviceId')!.addEventListener(
-          'change',
-          updateClockInterface
-        );
-        updateClockInterface();
-        view.renderZones();
+    portsChangedHandler: (available: boolean, inputs: PortDescriptor[], outputs: PortDescriptor[], msg?: string) => {
+      if (!initialized) {
+        initialized = true;
+        if (available) {
+          console.log('app: MIDI available');
+          DOM.get('#midiPanic')!.addEventListener('click', () => {
+            midi.panic();
+          });
+          loadZones(midi);
+          view.renderZones();
         function updateUndoRedoButtons(): void {
           const undoBtn = DOM.get('#undoBtn') as HTMLButtonElement | null;
           const redoBtn = DOM.get('#redoBtn') as HTMLButtonElement | null;
@@ -820,30 +813,16 @@ document.addEventListener('DOMContentLoaded', function () {
               }
             });
         });
-      } else {
-        console.log('app:', message);
+        } else {
+          console.log('app:', msg);
+        }
       }
-    },
-    updatePortsHandler: (
-      inputs: PortDescriptor[],
-      outputs: PortDescriptor[],
-      msg: string
-    ) => {
-      if (activeUpdateTimer) {
-        clearTimeout(activeUpdateTimer);
-        activeUpdateTimer = null;
-      }
+      // port update — debounced to coalesce rapid statechange events
+      if (activeUpdateTimer) clearTimeout(activeUpdateTimer);
       activeUpdateTimer = setTimeout(() => {
+        if (!available) return;
         console.log('app: MIDI port update');
-        console.log(
-          'app: MIDI inputs ----------',
-          JSON.stringify(inputs, null, 2)
-        );
-        console.log(
-          'app: MIDI outputs ----------',
-          JSON.stringify(outputs, null, 2)
-        );
-        // midi settings
+        // rebuild clock source selector
         DOM.empty(select_in_clock);
         DOM.addHTML(
           select_in_clock,
@@ -867,7 +846,7 @@ document.addEventListener('DOMContentLoaded', function () {
         outputs.forEach((p) => { zones.knownPortNames[p.id] = p.name; });
         inputs.forEach((p) => { zones.knownPortNames[p.id] = p.name; });
         saveZones();
-        // zones
+        // update zone port selectors and send program changes for reconnected ports
         const prevPortIds = zones.list.map((z) => z.outputPortId);
         midi.updateUsedPorts(view.updateOutputPortsForAllZone(outputs));
         view.updateInputPortsForAllZones(inputs);
@@ -883,12 +862,9 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         portsFirstUpdateDone = true;
         if (midi.deviceIdInClock !== MIDI.INTERNAL_PORT_ID && midi.knownPorts[midi.deviceIdInClock] == null) {
-          console.log(
-            'app: Clock in port',
-            midi.deviceIdInClock,
-            'not available. Switching to internal clock.'
-          );
+          console.log('app: Clock in port', midi.deviceIdInClock, 'not available. Switching to internal clock.');
           midi.selectDevices(MIDI.INTERNAL_PORT_ID);
+          localStorage.setItem('midiInClockId', MIDI.INTERNAL_PORT_ID);
         }
         updateBpmInput();
         updateClockReceivers(outputs);
@@ -897,23 +873,17 @@ document.addEventListener('DOMContentLoaded', function () {
         setTimeout(() => {
           DOM.removeClass(document.body, 'updated');
         }, 1000);
-        view.toast(`MIDI devices updated! <br/>${msg ? msg : ''}`, {
-          longer: true
-        });
+        view.toast(`MIDI devices updated! <br/>${msg ? msg : ''}`, { longer: true });
       }, 100);
-    },
-    updateClockReceiverHandler: updateClockReceivers
+    }
   });
-  const list = [select_in_clock];
-  list.forEach((el) => {
-    el.addEventListener('change', () => {
-      const inClockId = (
-        DOM.find(select_in_clock, 'option:checked')[0] as HTMLOptionElement
-      ).value;
-      midi.selectDevices(inClockId);
-      updateBpmInput();
-      localStorage.setItem('midiInClockId', inClockId);
-    });
+  select_in_clock.addEventListener('change', () => {
+    const inClockId = (
+      DOM.find(select_in_clock, 'option:checked')[0] as HTMLOptionElement
+    ).value;
+    midi.selectDevices(inClockId);
+    updateBpmInput();
+    localStorage.setItem('midiInClockId', inClockId);
   });
   DOM.get('#clockSendButton')!.addEventListener('click', (e) => {
     const clockoutcontainer = DOM.get('#clockOutPortWindow') as HTMLElement;
