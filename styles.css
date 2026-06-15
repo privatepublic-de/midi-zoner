@@ -2101,12 +2101,12 @@ input[type='range'] {
   position: absolute;
   top: 1px;
   bottom: 1px;
-  /* 1px right gap between steps */
   box-sizing: border-box;
-  border-right: 1px solid transparent;
+  border-right: 1px solid var(--darker-2);
 }
 .seqprogress .step-block.has-notes {
   background-color: var(--brighter-1);
+  border-right-color: var(--zone-color);
   opacity: 0.2;
 }
 .show-seq .seqprogress .step-block.has-notes {
