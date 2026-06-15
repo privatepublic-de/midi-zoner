@@ -197,6 +197,7 @@ function applyStoredZones(
       // overwrite existing zones with stored zones
       zones.list.forEach((z) => z.dismiss());
       Object.assign(zones, storedZones);
+      if (!zones.tempo || !isFinite(zones.tempo)) zones.tempo = 120;
       // Ensure knownPortNames values are strings (old data may have stored objects)
       if (zones.knownPortNames) {
         for (const key of Object.keys(zones.knownPortNames)) {
@@ -715,10 +716,9 @@ document.addEventListener('DOMContentLoaded', function () {
           undoHistory.startGesture(JSON.stringify(zones));
         });
         bpmInput.addEventListener('input', (e) => {
-          const bpm = Math.min(
-            Math.max(parseInt((e.target as HTMLInputElement).value), 30),
-            240
-          );
+          const parsed = parseInt((e.target as HTMLInputElement).value);
+          if (isNaN(parsed)) return;
+          const bpm = Math.min(Math.max(parsed, 30), 240);
           zones.tempo = bpm;
           midi.setInternalBPM(bpm);
           saveZones();

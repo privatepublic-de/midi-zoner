@@ -21,6 +21,8 @@ const scheduleClock = (): void => {
   }
   const currentTime = audioContext.currentTime - startTime;
 
+  if (!isFinite(nextClockTime)) nextClockTime = currentTime;
+
   while (nextClockTime < currentTime + scheduleAheadTime) {
     // Calculate precise future timestamp (ms) for Web MIDI scheduling
     const offsetMs = (nextClockTime - currentTime) * 1000;
@@ -42,7 +44,9 @@ function setHandler(clockHandler: ClockHandler | null): void {
 }
 
 function setBPM(bpm: number): void {
-  tempo = 60 / bpm / 24;
+  if (bpm > 0 && isFinite(bpm)) {
+    tempo = 60 / bpm / 24;
+  }
 }
 
 startTime = audioContext.currentTime + 0.005;
