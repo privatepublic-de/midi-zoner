@@ -8,7 +8,7 @@ export class NoteDisplay {
   static readonly fillArpPlayed = 'rgba(255,255,196,1)';
   static readonly fillBlack = 'rgba(0,0,0,1)';
   static readonly fillSustain = 'rgba(0,0,0,.33)';
-  static readonly top = 2;
+  static readonly top = 0;
   static readonly height = 16;
   static readonly heightBlack = 13;
 }

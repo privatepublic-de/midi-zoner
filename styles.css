@@ -1433,15 +1433,14 @@ input[type='range'] {
   color: var(--brighter-2);
   width: 1px;
   bottom: 0;
-  z-index: 1;
   font-size: 8px;
   text-indent: 4px;
-  text-shadow: 0 0 3px var(--darker-2), 0 0 6px var(--darker-2);
 }
 
 .zone.disabled .oct {
   background-color: var(--brighter-0);
   color: transparent;
+  -webkit-text-stroke: unset;
 }
 
 .toggle {
