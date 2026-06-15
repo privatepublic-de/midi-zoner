@@ -444,12 +444,10 @@ export class Sequence {
           this.isFirstCycle = false;
         }
       }
-      if (this.active) {
-        if (this.isDrumSequence) {
-          this.processDrumSequenceStep(tickIntervalMs);
-        } else {
-          this.processRegularSequenceStep(tickIntervalMs);
-        }
+      if (this.isDrumSequence) {
+        this.processDrumSequenceStep(tickIntervalMs);
+      } else if (this.active) {
+        this.processRegularSequenceStep(tickIntervalMs);
       }
       requestAnimationFrame(this.zone._renderSequenceBound);
     }
@@ -461,6 +459,7 @@ export class Sequence {
       const lane = this.getDrumLane(ln);
       lane.previousStep = lane.currentStep;
       lane.currentStep = (lane.currentStep + 1) % lane.length;
+      if (!this.active) continue;
       if (lane.currentStep === 0) {
         lane.cycleCount++;
         if (lane.cycleCount === 1) lane.isFirstCycle = false;
