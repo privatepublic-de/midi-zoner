@@ -244,7 +244,9 @@ class MIDI {
         countOut++;
       });
       console.log('MIDI: ', countIn, 'inputs,', countOut, 'outputs');
-      this.deviceIdInClock = selectedInClock;
+      this.deviceIdInClock = savedMidiInClockId === MIDI.INTERNAL_PORT_ID
+        ? MIDI.INTERNAL_PORT_ID
+        : selectedInClock;
 
       const mapDescriptor = (port: [string, MIDIPort]): PortDescriptor => {
         let sName = port[1].name;

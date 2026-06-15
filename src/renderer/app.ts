@@ -279,7 +279,7 @@ document.addEventListener('DOMContentLoaded', function () {
       DOM.addClass('.clocksettings', 'isInternal');
       DOM.removeClass('.clocksettings', 'isExternal');
       bpmInput.setAttribute('type', 'number');
-      bpmInput.value = String(zones.tempo);
+      if (document.activeElement !== bpmInput) bpmInput.value = String(zones.tempo);
       bpmInput.disabled = false;
     } else {
       DOM.removeClass('.clocksettings', 'isInternal');
@@ -882,7 +882,7 @@ document.addEventListener('DOMContentLoaded', function () {
           }
         });
         portsFirstUpdateDone = true;
-        if (midi.knownPorts[midi.deviceIdInClock] == null) {
+        if (midi.deviceIdInClock !== MIDI.INTERNAL_PORT_ID && midi.knownPorts[midi.deviceIdInClock] == null) {
           console.log(
             'app: Clock in port',
             midi.deviceIdInClock,
