@@ -748,7 +748,7 @@ function rebuildSeqProgress(zone: ZoneType, sequence: SequenceType): void {
   if (sequence.isDrumSequence) {
     progressEl.classList.add('drum');
     const ROW_H = 4;
-    progressEl.style.height = `${sequence.drumLanes * ROW_H}px`;
+    progressEl.style.height = `${sequence.drumLanes * ROW_H + 2}px`;
     let hasAnyNotes = false;
     for (let ln = 0; ln < sequence.drumLanes; ln++) {
       const lane = sequence.drum_lanes[ln];
@@ -773,7 +773,8 @@ function rebuildSeqProgress(zone: ZoneType, sequence: SequenceType): void {
       zone.elements.sequencerDrumLaneCursors.push(cursor);
       progressEl.appendChild(row);
     }
-    if (hasAnyNotes) DOM.show(progressEl); else DOM.hide(progressEl);
+    if (hasAnyNotes && !zone.enabled) DOM.show(progressEl);
+    else DOM.hide(progressEl);
   } else {
     progressEl.classList.remove('drum');
     progressEl.style.height = '';
@@ -794,7 +795,8 @@ function rebuildSeqProgress(zone: ZoneType, sequence: SequenceType): void {
       row.appendChild(block);
     }
     progressEl.appendChild(row);
-    if (hasAnyNotes) DOM.show(progressEl); else DOM.hide(progressEl);
+    if (hasAnyNotes && !zone.enabled) DOM.show(progressEl);
+    else DOM.hide(progressEl);
   }
 }
 
@@ -940,7 +942,10 @@ function updateValuesForZone(index: number): void {
               DOM.removeClass(stepElement, 'selected');
             }
             const stepData = sequence.steps[i];
-            if ((stepData && stepData.length > 0) || sequence.liveTargetStepNumber == i) {
+            if (
+              (stepData && stepData.length > 0) ||
+              sequence.liveTargetStepNumber == i
+            ) {
               DOM.addClass(stepElement, 'active');
               const rc = stepData?.ratchetCount ?? 1;
               if (rc > 1) {
@@ -996,7 +1001,9 @@ function updateValuesForZone(index: number): void {
           if (ratchetCountEl) {
             const countVal = step.ratchetCount ?? 1;
             ratchetCountEl.value = String(countVal);
-            const stepControls = ratchetCountEl.closest('.step-controls') as HTMLElement | null;
+            const stepControls = ratchetCountEl.closest(
+              '.step-controls'
+            ) as HTMLElement | null;
             if (stepControls) {
               stepControls.classList.toggle('ratchet-off', countVal <= 1);
             }
@@ -1023,10 +1030,14 @@ function updateValuesForZone(index: number): void {
             zone.elements.setSelectedIndex('.seq_step_condition', 0);
             zone.elements.setPercentage('.seq_step_probability', 100, index);
             zone.elements.setPercentage('.seq_gatelength', 100, index);
-            const ratchetCountEl2 = zone._$('.seq_step_ratchet_count') as HTMLSelectElement | null;
+            const ratchetCountEl2 = zone._$(
+              '.seq_step_ratchet_count'
+            ) as HTMLSelectElement | null;
             if (ratchetCountEl2) {
               ratchetCountEl2.value = '1';
-              (ratchetCountEl2.closest('.step-controls') as HTMLElement | null)?.classList.add('ratchet-off');
+              (
+                ratchetCountEl2.closest('.step-controls') as HTMLElement | null
+              )?.classList.add('ratchet-off');
             }
           }
         }
@@ -1084,10 +1095,21 @@ function updateValuesForZone(index: number): void {
     ].forEach((p) => {
       zone.elements.addSelectedStyle('.' + p, (zone as any)[p]);
     });
-    ['channel', 'arp_direction', 'arp_division', 'arp_octaves', 'arp_ratchet_count'].forEach((p) => {
+    [
+      'channel',
+      'arp_direction',
+      'arp_division',
+      'arp_octaves',
+      'arp_ratchet_count'
+    ].forEach((p) => {
       zone.elements.setSelectedIndex('.' + p, (zone as any)[p]);
     });
-    ['arp_gatelength', 'arp_probability', 'arp_strum_taper', 'arp_ratchet_probability'].forEach((p) => {
+    [
+      'arp_gatelength',
+      'arp_probability',
+      'arp_strum_taper',
+      'arp_ratchet_probability'
+    ].forEach((p) => {
       zone.elements.setPercentage(
         '.' + p,
         parseInt(String((zone as any)[p] * 100)),

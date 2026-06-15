@@ -129,7 +129,9 @@
       </div>
     </div>
   </div>
-  <div class="seqprogress"><div class="inner"></div></div>
+  <div class="seqprogress" title="Sequencer data and progress">
+    <div class="inner"></div>
+  </div>
   <div
     class="seq shadowed-zone-block"
     data-contextmenu="${index}:seq_copy,${index}:seq_paste,-,${index}:seq_clear_all"
@@ -534,7 +536,10 @@
         <output for="arp_strum_taper${index}">---</output>
       </div>
       <div class="ratchet-holder label">Ratchet</div>
-      <div class="ratchet-holder percent-holder" title="Probability a step is ratcheted">
+      <div
+        class="ratchet-holder percent-holder"
+        title="Probability a step is ratcheted"
+      >
         <input
           type="range"
           class="percent arp_ratchet_probability"
@@ -604,7 +609,9 @@
             <div class="action" data-action="${index}:zone_arp_euclid">OK</div>
           </div>
           <div>
-            <span class="action" data-action="${index}:zone_arp_pattern_shift:-1"
+            <span
+              class="action"
+              data-action="${index}:zone_arp_pattern_shift:-1"
               >&lt;</span
             >
             <span>Shift pattern</span>

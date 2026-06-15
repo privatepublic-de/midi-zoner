@@ -2080,11 +2080,18 @@ input[type='range'] {
   position: relative;
   display: none;
   overflow: hidden;
-  height: 5px;
-  margin: 0 8px;
-  border-radius: 2px;
-  background-color: rgba(0, 0, 0, 0.2);
+  height: 7px;
+  border-radius: 4px;
+  background-color: var(--zone-color);
+  border: 1px solid var(--zone-color);
+  border-right-width: 2px;
+  border-left-width: 2px;
 }
+.disabled:not(.show-seq) .seqprogress {
+  background-color: var(--darker-0);
+  border: 1px solid transparent;
+}
+
 .seqprogress .step-row {
   position: absolute;
   left: 0;
@@ -2099,34 +2106,30 @@ input[type='range'] {
   border-right: 1px solid transparent;
 }
 .seqprogress .step-block.has-notes {
-  background-color: var(--brighter-2);
-  opacity: 0.3;
+  background-color: var(--brighter-1);
+  opacity: 0.2;
 }
 .show-seq .seqprogress .step-block.has-notes {
-  background-color: var(--zone-color);
-  opacity: 0.4;
+  background-color: var(--darker-4);
+  opacity: 1;
 }
 .seqprogress .inner,
 .seqprogress .lane-cursor {
   position: absolute;
   top: 0;
   bottom: 0;
-  background-color: transparent;
-  border: 1px solid var(--zone-color);
+  background-color: var(--brighter-2);
   box-sizing: border-box;
-  z-index: 1;
+  z-index: 2;
   display: none;
 }
 .seqprogress .inner {
   width: 2px;
 }
-.disabled .seqprogress .inner,
-.disabled .seqprogress .lane-cursor {
-  border-color: var(--brighter-1);
-}
+
 .disabled:not(.show-seq) .seqprogress .inner,
 .disabled:not(.show-seq) .seqprogress .lane-cursor {
-  border-color: var(--brighter-0);
+  background-color: var(--brighter-0);
 }
 body.running .seqprogress .inner {
   display: block;
