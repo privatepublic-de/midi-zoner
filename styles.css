@@ -2113,6 +2113,12 @@ input[type='range'] {
   background-color: var(--darker-4);
   opacity: 1;
 }
+
+.disabled:not(.show-seq) .seqprogress .step-block.has-notes {
+  border-right-color: var(--darker-4);
+  opacity: 1;
+}
+
 .seqprogress .inner,
 .seqprogress .lane-cursor {
   position: absolute;
