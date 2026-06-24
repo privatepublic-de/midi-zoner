@@ -438,6 +438,22 @@ export class Sequence {
     if (this.tickn === 0) {
       this.previousStepNumber = this.currentStepNumber;
       this.currentStepNumber = (this.currentStepNumber + 1) % this.length;
+      // Commit a held live-recording step as soon as the playhead exits it so
+      // it plays back on subsequent passes and length tracking continues.
+      if (this.isLiveRecoding && this.liveTargetStep !== null &&
+          this.currentStepNumber === (this.liveTargetStepNumber + 1) % this.length) {
+        this.steps[this.liveTargetStepNumber] = this.liveTargetStep;
+        for (const n of this.liveTargetStep.notesArray) {
+          this.liveNoteSteps.set(n.number, {
+            stepIndex: this.liveTargetStepNumber,
+            startPos: this.liveTargetStepStartPos,
+          });
+        }
+        this.liveTargetStep = null;
+        this.liveTargetLength = 0;
+        this.liveTargetStepNumber = -1;
+        this.updateZoneView();
+      }
       if (this.currentStepNumber === 0) {
         this.cycleCount++;
         if (this.cycleCount === 1) {
