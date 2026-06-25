@@ -630,6 +630,11 @@ input:focus-visible {
   opacity: 0.8;
 }
 
+.zone.mackie-selected {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
 .zone.initialising {
   text-align: center;
   padding: 30px;

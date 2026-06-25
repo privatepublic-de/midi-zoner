@@ -80,6 +80,8 @@ class MIDI {
   clockOutputPorts: Record<string, boolean> = {};
   selectedInputPorts: Record<string, InputPortDef> = {};
   zoneInputPorts: Set<string> = new Set();
+  deviceIdMackieControl: string | null = null;
+  deviceIdMackieOutput: string | null = null;
   outputPortsRegistered: PortDescriptor[] = [];
   songposition = 0;
   isClockRunning = false;
@@ -353,6 +355,8 @@ class MIDI {
       (portDef.allChannels || portDef.ch === channel)
     ) {
       this.eventHandler(event);
+    } else if (this.deviceIdMackieControl === portId) {
+      this.eventHandler(event);
     }
   }
 
@@ -380,6 +384,9 @@ class MIDI {
       if (inputDef.isSelected) activePorts.add(inputDef.id);
     });
     this.zoneInputPorts.forEach((portId) => activePorts.add(portId));
+    if (this.deviceIdMackieControl) {
+      activePorts.add(this.deviceIdMackieControl);
+    }
 
     const handler = this.onMIDIMessage.bind(this);
     this.midiAccess?.inputs.forEach((entry: MIDIInput) => {
@@ -457,6 +464,15 @@ class MIDI {
         }
       }
     }
+  }
+
+  sendMackie(note: number, velocity: number): void {
+    if (!this.deviceIdMackieOutput) return;
+    const msg = new Uint8Array(3);
+    msg[0] = 0x90; // Note On ch 1
+    msg[1] = note;
+    msg[2] = velocity;
+    this.send(msg, this.deviceIdMackieOutput);
   }
 
   /**

@@ -271,6 +271,8 @@ document.addEventListener('DOMContentLoaded', function () {
   const contextMenuElement = DOM.get('#contextmenu') as HTMLElement;
   DOM.on(document, 'click', bodyClickHandler);
   const select_in_clock = DOM.get('#midiClockInDeviceId') as HTMLSelectElement;
+  const select_mackie = DOM.get('#mackieControlDeviceId') as HTMLSelectElement;
+  const select_mackie_out = DOM.get('#mackieControlOutputDeviceId') as HTMLSelectElement;
   const startClockButton = DOM.get('#startClockButton') as HTMLElement;
   const bpmInput = DOM.get('#bpm') as HTMLInputElement;
   const optionNoDevice = '<option value="">(No devices available)</option>';
@@ -459,6 +461,9 @@ document.addEventListener('DOMContentLoaded', function () {
   let activeUpdateTimer: ReturnType<typeof setTimeout> | null = null;
   let portsFirstUpdateDone = false;
   let initialized = false;
+  let clockRunning = false;
+  let mackieSelectedZone: number | null = null;
+  let sendMackieLeds: () => void = () => {};
   const midi = new MIDI({
     eventHandler: (event: MIDIMessageEvent) => {
       if (midi.deviceIdInClock == MIDI.INTERNAL_PORT_ID) {
@@ -492,7 +497,12 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       let msgtype = event.data[0] & 0xf0;
+      const sourcePortId = event.target
+        ? (event.target as MIDIInput).id
+        : MIDI.INTERNAL_PORT_ID;
+      const isMackiePort = !!(midi.deviceIdMackieControl && sourcePortId === midi.deviceIdMackieControl);
       if (
+        !isMackiePort &&
         zones.keySwitchEnabled &&
         msgtype === MIDI.MESSAGE.NOTE_ON &&
         event.data[1] < 20 &&
@@ -515,10 +525,55 @@ document.addEventListener('DOMContentLoaded', function () {
       if (msgtype === MIDI.MESSAGE.NOTE_ON && event.data[2] === 0) {
         msgtype = MIDI.MESSAGE.NOTE_OFF;
       }
-      const sourcePortId = event.target
-        ? (event.target as MIDIInput).id
-        : MIDI.INTERNAL_PORT_ID;
       const sourceChannel = event.data[0] & 0x0f;
+      if (isMackiePort) {
+        if (
+          (event.data[0] & 0xf0) === MIDI.MESSAGE.NOTE_ON &&
+          (event.data[0] & 0x0f) === 0 &&
+          event.data[2] > 0
+        ) {
+          const note = event.data[1];
+          // Transport (internal clock only)
+          if (midi.deviceIdInClock === MIDI.INTERNAL_PORT_ID) {
+            if (note === 94 && !midi.isClockRunning) {
+              clockRunning = true;
+              midi.startClock();
+            } else if (note === 93 && midi.isClockRunning) {
+              clockRunning = false;
+              midi.stopClock();
+            }
+          }
+          // Channel strip (first 8 zones)
+          const zoneIndex = note % 8;
+          if (note < 32 && zoneIndex < zones.list.length) {
+            const zone = zones.list[zoneIndex];
+            if (note < 8) {
+              view.toggleSequencerOnZone(zoneIndex); // Rec arm → seq enable
+            } else if (note < 16) {
+              zone.solo = !zone.solo;
+              if (zone.solo) zone.enabled = true;
+              view.updateValuesForAllZones();
+              saveZones();
+            } else if (note < 24) {
+              zone.enabled = !zone.enabled;
+              view.updateValuesForAllZones();
+              saveZones();
+            } else {
+              mackieSelectedZone = zoneIndex;
+              zones.list.forEach((_, i) => {
+                const el = DOM.get(`#zone${i}`);
+                if (el) DOM.switchClass(el, i === mackieSelectedZone, 'mackie-selected');
+              });
+            }
+          }
+          // F1–F4 → arrangements A–D
+          if (note >= 54 && note <= 57) {
+            zones.nextArrangementIndex = note - 54;
+          }
+          sendMackieLeds();
+        }
+        return;
+      }
       zones.list.forEach((zone, index) => {
         if (zone.inputPortId !== null) {
           if (zone.inputPortId !== sourcePortId) return;
@@ -567,6 +622,7 @@ document.addEventListener('DOMContentLoaded', function () {
           });
           zones.arrangementIndex = newIndex;
           view.selectArrangement(newIndex);
+          sendMackieLeds();
           saveZones();
         }
       }
@@ -587,6 +643,9 @@ document.addEventListener('DOMContentLoaded', function () {
         zones.list.forEach((z) => {
           z.stopped();
         });
+      }
+      if (midi.deviceIdInClock !== MIDI.INTERNAL_PORT_ID) {
+        sendMackieLeds();
       }
     },
     panicHandler: () => {
@@ -681,7 +740,6 @@ document.addEventListener('DOMContentLoaded', function () {
           view.updateValuesForAllZones();
           saveZones();
         });
-        let clockRunning = false;
         startClockButton.addEventListener('click', () => {
           if (midi.deviceIdInClock === MIDI.INTERNAL_PORT_ID) {
             clockRunning = !clockRunning;
@@ -695,6 +753,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 z.stopped();
               });
             }
+            sendMackieLeds();
           }
         });
         let bpmDebounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -813,6 +872,22 @@ document.addEventListener('DOMContentLoaded', function () {
               }
             });
         });
+        sendMackieLeds = (): void => {
+          for (let i = 0; i < 8; i++) {
+            const zone = zones.list[i];
+            const active = i < zones.list.length;
+            midi.sendMackie(i,      active && zone.sequence.active ? 127 : 0);
+            midi.sendMackie(i + 8,  active && zone.solo ? 127 : 0);
+            midi.sendMackie(i + 16, active && !zone.enabled ? 127 : 0);
+            midi.sendMackie(i + 24, i === mackieSelectedZone ? 127 : 0);
+          }
+          for (let a = 0; a < 4; a++) {
+            midi.sendMackie(54 + a, zones.arrangementIndex === a ? 127 : 0);
+          }
+          midi.sendMackie(94, midi.isClockRunning ? 127 : 0);
+          midi.sendMackie(93, midi.isClockRunning ? 0 : 127);
+        };
+        view.setStateChangeCallback(sendMackieLeds);
         } else {
           console.log('app:', msg);
         }
@@ -842,6 +917,37 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
           DOM.addHTML(select_in_clock, 'beforeend', optionNoDevice);
         }
+        // rebuild Mackie Control selector
+        const savedMackieId = localStorage.getItem('mackieControlPortId') ?? '';
+        DOM.empty(select_mackie);
+        DOM.addHTML(select_mackie, 'beforeend', '<option value="">(None)</option>');
+        inputs.forEach((input) => {
+          DOM.addHTML(
+            select_mackie,
+            'beforeend',
+            `<option value="${input.id}" ${input.id === savedMackieId ? 'selected' : ''}>${input.name}</option>`
+          );
+        });
+        midi.deviceIdMackieControl = savedMackieId || null;
+        // rebuild Mackie Output selector
+        const savedMackieOutId = localStorage.getItem('mackieControlOutputPortId') ?? '';
+        DOM.empty(select_mackie_out);
+        DOM.addHTML(select_mackie_out, 'beforeend', '<option value="">(None)</option>');
+        outputs.forEach((output) => {
+          DOM.addHTML(
+            select_mackie_out,
+            'beforeend',
+            `<option value="${output.id}" ${output.id === savedMackieOutId ? 'selected' : ''}>${output.name}</option>`
+          );
+        });
+        midi.deviceIdMackieOutput = savedMackieOutId || null;
+        midi.selectDevices(midi.deviceIdInClock);
+        if (!portsFirstUpdateDone && midi.deviceIdMackieControl && zones.list.length > 0) {
+          mackieSelectedZone = 0;
+          const el = DOM.get('#zone0');
+          if (el) el.classList.add('mackie-selected');
+        }
+        sendMackieLeds();
         // remember port names so missing devices can be labelled
         outputs.forEach((p) => { zones.knownPortNames[p.id] = p.name; });
         inputs.forEach((p) => { zones.knownPortNames[p.id] = p.name; });
@@ -884,6 +990,26 @@ document.addEventListener('DOMContentLoaded', function () {
     midi.selectDevices(inClockId);
     updateBpmInput();
     localStorage.setItem('midiInClockId', inClockId);
+  });
+  select_mackie.addEventListener('change', () => {
+    const portId = (select_mackie.querySelector('option:checked') as HTMLOptionElement).value;
+    midi.deviceIdMackieControl = portId || null;
+    midi.selectDevices(midi.deviceIdInClock);
+    localStorage.setItem('mackieControlPortId', portId);
+    if (!portId) {
+      mackieSelectedZone = null;
+      zones.list.forEach((_, i) => {
+        const el = DOM.get(`#zone${i}`);
+        if (el) el.classList.remove('mackie-selected');
+      });
+    }
+    sendMackieLeds();
+  });
+  select_mackie_out.addEventListener('change', () => {
+    const portId = (select_mackie_out.querySelector('option:checked') as HTMLOptionElement).value;
+    midi.deviceIdMackieOutput = portId || null;
+    localStorage.setItem('mackieControlOutputPortId', portId);
+    sendMackieLeds();
   });
   DOM.get('#clockSendButton')!.addEventListener('click', (e) => {
     const clockoutcontainer = DOM.get('#clockOutPortWindow') as HTMLElement;

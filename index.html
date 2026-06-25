@@ -116,6 +116,18 @@
     </div>
     <div id="inputPortWindow">
       <div id="inputPortList"></div>
+      <div style="margin-top: 1rem; border-top: 1px solid var(--brighter-1);padding:.5rem">
+        <p>Mackie Control</p>
+        <p>For basic external control, select MIDI ports that provide MCP (Mackie Control Protocol).</p>
+        <label>In:</label>
+        <select id="mackieControlDeviceId" tabindex="-1">
+          <option value="">(None)</option>
+        </select>
+        <label>Out:</label>
+        <select id="mackieControlOutputDeviceId" tabindex="-1">
+          <option value="">(None)</option>
+        </select>
+      </div>
     </div>
     <div id="clockOutPortWindow">
       <div id="clockOutPortList"></div>

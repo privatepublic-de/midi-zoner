@@ -37,6 +37,12 @@ import {
   ActionHelpers
 } from './types';
 
+let onStateChange: (() => void) | null = null;
+
+function setStateChangeCallback(fn: (() => void) | null): void {
+  onStateChange = fn;
+}
+
 const contextMenuActionLabel: Record<string, string> = {
   seq_copy_step: '<i class="material-icons">content_copy</i> Copy ',
   seq_paste_step: '<i class="material-icons">content_paste</i> Paste steps',
@@ -723,6 +729,7 @@ function updateValuesForAllZones(): void {
   for (let i = 0; i < zones.list.length; i++) {
     updateValuesForZone(i);
   }
+  onStateChange?.();
 }
 
 function updateGeneralButtons(): void {
@@ -1363,5 +1370,6 @@ export {
   selectArrangement,
   toggleSequencerOnZone,
   toast,
-  deleteAllZones
+  deleteAllZones,
+  setStateChangeCallback
 };
