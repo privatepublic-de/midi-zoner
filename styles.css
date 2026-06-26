@@ -2235,6 +2235,28 @@ body.running .seqprogress.drum .lane-cursor {
   flex-grow: 1;
 }
 
+.clockSuppressBtn {
+  font-size: 14px;
+  opacity: 0;
+  pointer-events: none;
+  cursor: pointer;
+  color: var(--brighter-2);
+}
+
+.clockOutOption.selected .clockSuppressBtn {
+  opacity: 0.35;
+  pointer-events: all;
+}
+
+.clockOutOption.selected .clockSuppressBtn:hover {
+  opacity: 0.7;
+}
+
+.clockOutOption.selected .clockSuppressBtn.active {
+  opacity: 1;
+  color: var(--brighter-4);
+}
+
 .sendCancel {
   position: absolute;
   top: 3px;

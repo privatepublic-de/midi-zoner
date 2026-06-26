@@ -78,6 +78,7 @@ class MIDI {
   knownPorts: Record<string, MIDIInput | MIDIOutput> = {};
   usedPorts: Set<string> = new Set();
   clockOutputPorts: Record<string, boolean> = {};
+  suppressTransportPorts: Record<string, boolean> = {};
   selectedInputPorts: Record<string, InputPortDef> = {};
   zoneInputPorts: Set<string> = new Set();
   deviceIdMackieControl: string | null = null;
@@ -320,15 +321,21 @@ class MIDI {
         }
       }
 
-      const propagate =
-        midiMessage === MIDI.MESSAGE.STOP ||
-        !this.sendClockIfPlaying ||
-        (this.sendClockIfPlaying && this.isClockRunning);
-      if (propagate) {
-        // Use timestamp from internal clock for precise scheduling
-        const timestamp = (event as { timestamp?: number }).timestamp;
-        for (const [portid, enabled] of Object.entries(this.clockOutputPorts)) {
-          if (enabled) {
+      // Use timestamp from internal clock for precise scheduling
+      const timestamp = (event as { timestamp?: number }).timestamp;
+      for (const [portid, enabled] of Object.entries(this.clockOutputPorts)) {
+        if (!enabled) continue;
+        if (this.suppressTransportPorts[portid]) {
+          // Free-running: always forward clock ticks, suppress transport messages
+          if (midiMessage === MIDI.MESSAGE.CLOCK) {
+            this.send(event.data, portid, timestamp);
+          }
+        } else {
+          const propagate =
+            midiMessage === MIDI.MESSAGE.STOP ||
+            !this.sendClockIfPlaying ||
+            (this.sendClockIfPlaying && this.isClockRunning);
+          if (propagate) {
             this.send(event.data, portid, timestamp);
           }
         }
@@ -456,14 +463,23 @@ class MIDI {
   }
 
   sendToAllClockReceiverPorts(msg: Uint8Array): void {
+    const isTransport =
+      msg[0] === MIDI.MESSAGE.START ||
+      msg[0] === MIDI.MESSAGE.STOP ||
+      msg[0] === MIDI.MESSAGE.CONTINUE ||
+      msg[0] === MIDI.MESSAGE.SONG_POS;
     for (const [portid, enabled] of Object.entries(this.clockOutputPorts)) {
-      if (enabled) {
-        const deviceOut = this.knownPorts[portid] as MIDIOutput | undefined;
-        if (deviceOut) {
-          deviceOut.send(msg);
-        }
+      if (!enabled) continue;
+      if (isTransport && this.suppressTransportPorts[portid]) continue;
+      const deviceOut = this.knownPorts[portid] as MIDIOutput | undefined;
+      if (deviceOut) {
+        deviceOut.send(msg);
       }
     }
+  }
+
+  updateClockSuppressTransport(portid: string, suppress: boolean): void {
+    this.suppressTransportPorts[portid] = suppress;
   }
 
   sendMackie(note: number, velocity: number): void {

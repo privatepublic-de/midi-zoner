@@ -22,6 +22,7 @@ interface ZonesData {
   list: ZoneType[];
   inChannel: number;
   clockOutputPorts: Record<string, boolean>;
+  clockSuppressTransportPorts: Record<string, boolean>;
   selectedInputPorts: Record<string, InputPortDef>;
   tempo: number;
   sendInternalClockIfPlaying: boolean;
@@ -44,6 +45,7 @@ const zones: ZonesData = {
   list: [],
   inChannel: 0,
   clockOutputPorts: {},
+  clockSuppressTransportPorts: {},
   selectedInputPorts: {},
   tempo: 120,
   sendInternalClockIfPlaying: false, // TODO misnamed; means send everything
@@ -213,6 +215,7 @@ function applyStoredZones(
       Sequence.setQuantDiv(zones.arrangementQuantIndex ?? 2);
     }
     midi.clockOutputPorts = zones.clockOutputPorts;
+    midi.suppressTransportPorts = zones.clockSuppressTransportPorts ?? {};
     midi.selectedInputPorts = zones.selectedInputPorts;
   }
 }
@@ -413,6 +416,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     outputs.forEach((outport) => {
       const isSelected = midi.clockOutputPorts[outport.id] === true;
+      const isSuppressed = midi.suppressTransportPorts[outport.id] === true;
       DOM.addHTML(
         clockOutListContainer,
         'beforeend',
@@ -422,7 +426,8 @@ document.addEventListener('DOMContentLoaded', function () {
           outport.id
         }"><span class="material-icons sel">check_circle</span
         ><span class="material-icons unsel">radio_button_unchecked</span>
-        <span class="outname">${outport.fullName}</span>
+        <span class="outname">${outport.fullName}</span
+        ><span class="clockSuppressBtn material-icons${isSuppressed ? ' active' : ''}" data-portid="${outport.id}" title="Free-running clock: send only ticks, no start/stop (keeps delay/reverb synced while transport is stopped)">sync_lock</span>
         </div>`
       );
     });
@@ -437,6 +442,20 @@ document.addEventListener('DOMContentLoaded', function () {
           zones.clockOutputPorts = midi.clockOutputPorts;
           saveZones();
           updateClockOutputCount();
+        });
+      }
+    );
+    DOM.all('#clockOutPortWindow #clockOutPortList .clockSuppressBtn').forEach(
+      (btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const portid = btn.getAttribute('data-portid')!;
+          if (!(midi.clockOutputPorts[portid] === true)) return;
+          const state = !(midi.suppressTransportPorts[portid] === true);
+          midi.updateClockSuppressTransport(portid, state);
+          DOM.switchClass(btn, state, 'active');
+          zones.clockSuppressTransportPorts = midi.suppressTransportPorts;
+          saveZones();
         });
       }
     );
@@ -568,7 +587,14 @@ document.addEventListener('DOMContentLoaded', function () {
           }
           // F1–F4 → arrangements A–D
           if (note >= 54 && note <= 57) {
-            zones.nextArrangementIndex = note - 54;
+            view.selectArrangement(note - 54);
+          }
+          // Rewind/FastForward → prev/next arrangement
+          if (note === 91) {
+            view.selectArrangement((zones.nextArrangementIndex + 3) % 4);
+          }
+          if (note === 92) {
+            view.selectArrangement((zones.nextArrangementIndex + 1) % 4);
           }
           sendMackieLeds();
         }
@@ -886,6 +912,8 @@ document.addEventListener('DOMContentLoaded', function () {
           }
           midi.sendMackie(94, midi.isClockRunning ? 127 : 0);
           midi.sendMackie(93, midi.isClockRunning ? 0 : 127);
+          midi.sendMackie(91, (zones.arrangementIndex & 1) ? 127 : 0);
+          midi.sendMackie(92, (zones.arrangementIndex >> 1 & 1) ? 127 : 0);
         };
         view.setStateChangeCallback(sendMackieLeds);
         } else {
