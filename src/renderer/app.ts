@@ -598,6 +598,21 @@ document.addEventListener('DOMContentLoaded', function () {
           }
           sendMackieLeds();
         }
+        // Jog encoder → BPM (internal clock only)
+        if (
+          (event.data[0] & 0xf0) === MIDI.MESSAGE.CONTROLLER &&
+          event.data[1] === 60 &&
+          midi.deviceIdInClock === MIDI.INTERNAL_PORT_ID
+        ) {
+          const raw = event.data[2];
+          const cw = raw < 64;
+          const speed = cw ? raw : raw - 64;
+          const step = speed <= 3 ? 1 : speed <= 10 ? 2 : 5;
+          zones.tempo = Math.min(240, Math.max(30, zones.tempo + (cw ? step : -step)));
+          midi.setInternalBPM(zones.tempo);
+          bpmInput.value = String(zones.tempo);
+          saveZones();
+        }
         return;
       }
       zones.list.forEach((zone, index) => {
