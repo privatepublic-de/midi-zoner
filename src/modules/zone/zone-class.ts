@@ -239,7 +239,7 @@ export class Zone {
     this.octave = data.octave ?? 0;
     this.fixedvel = data.fixedvel ?? false;
     this.fixedvel_value = data.fixedvel_value ?? 127;
-    this.velocity_scaling = data.velocity_scaling ?? 1;
+    this.velocity_scaling = typeof data.velocity_scaling === 'number' ? data.velocity_scaling : 1;
     this.mod = data.mod ?? true;
     this.sustain = data.sustain ?? true;
     this.cc = data.cc ?? false;
