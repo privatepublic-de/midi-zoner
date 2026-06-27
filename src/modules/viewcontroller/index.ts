@@ -199,6 +199,21 @@ function actionHandler(ev: MouseEvent, overrideaction?: string): void {
   const actionProperty = action.substring(action.indexOf('_') + 1);
   const actionParam1 = params[2];
   const actionParam2 = params[3];
+
+  if (action === 'global_arr_copy_to') {
+    const sourceIndex = parseInt(actionParam1);
+    const targetIndex = parseInt(actionParam2);
+    if (!isNaN(sourceIndex) && !isNaN(targetIndex) && sourceIndex !== targetIndex) {
+      undoHistory.push(JSON.stringify(zones));
+      zones.list.forEach(z => z.copyArrangementFromTo(sourceIndex, targetIndex));
+      triggerSave();
+      const labels = ['A', 'B', 'C', 'D'];
+      toast(`Arrangement ${labels[sourceIndex]} → ${labels[targetIndex]} copied for all zones`);
+    }
+    window.dispatchEvent(new CustomEvent('closeContextMenu'));
+    return;
+  }
+
   const zone: ZoneType = zones.list[zoneindex];
   const sequence: SequenceType = zone.sequence;
 
@@ -287,6 +302,7 @@ function contextHandler(ev: MouseEvent): void {
   DOM.empty(contextMenuElement);
 
   function isEnabled(parts: string[]): boolean {
+    if (parseInt(parts[0]) < 0) return true;
     const zoneindex = parseInt(parts[0]);
     const zone: ZoneType = zones.list[zoneindex];
     switch (parts[1]) {
@@ -303,6 +319,14 @@ function contextHandler(ev: MouseEvent): void {
   }
 
   function labelString(parts: string[]): string {
+    if (parts[1] === 'zone_arr_copy_to') {
+      const label = ['A', 'B', 'C', 'D'][parseInt(parts[2])];
+      return `<i class="material-icons">content_copy</i> Copy to arrangement ${label}`;
+    }
+    if (parts[1] === 'global_arr_copy_to') {
+      const target = ['A', 'B', 'C', 'D'][parseInt(parts[3])];
+      return `<i class="material-icons">content_copy</i> Copy all zones → ${target}`;
+    }
     const zoneindex = parseInt(parts[0]);
     const zone: ZoneType = zones.list[zoneindex];
     if (parts[1] == 'seq_copy_step') {
@@ -440,6 +464,7 @@ function renderZones(): void {
     appendZone(zone, index);
   });
   addPlaceholder();
+  updateZoneHeaderContextMenus(zones.arrangementIndex);
 }
 
 function addPlaceholder(): void {
@@ -467,6 +492,7 @@ function renderLastZone(): void {
   const zone = zones.list[index];
   appendZone(zone, index);
   addPlaceholder();
+  updateZoneHeaderContextMenus(zones.arrangementIndex);
 }
 
 function renderControllersForZone(zone: ZoneType, index: number): void {
@@ -1292,6 +1318,16 @@ function toggleSequencerOnZone(index: number): void {
   }
 }
 
+function updateZoneHeaderContextMenus(currentArrIndex: number): void {
+  const others = [0, 1, 2, 3].filter(i => i !== currentArrIndex);
+  zones.list.forEach((z, i) => {
+    const el = z.elements.zoneElement?.querySelector('.channels') as HTMLElement | null;
+    if (!el) return;
+    const copyItems = others.map(t => `${i}:zone_arr_copy_to:${t}`).join(',');
+    el.dataset.contextmenu = `${i}:zone_export,-,${copyItems}`;
+  });
+}
+
 function selectArrangement(arrIndex: number): void {
   const clockRunning = midiController.isClockRunning;
   DOM.removeClass('#tools *[data-select-arrangement]', 'selected', 'pending');
@@ -1312,6 +1348,7 @@ function selectArrangement(arrIndex: number): void {
     zones.arrangementIndex = arrIndex;
     triggerSave();
   }
+  updateZoneHeaderContextMenus(zones.arrangementIndex);
   DOM.addClass(
     DOM.all('#tools *[data-select-arrangement]')[zones.arrangementIndex],
     'selected'
@@ -1327,6 +1364,10 @@ function selectArrangement(arrIndex: number): void {
     }
   }
   updateValuesForAllZones();
+}
+
+function showContextMenuFor(ev: MouseEvent): void {
+  contextHandler(ev);
 }
 
 function deleteAllZones(): void {
@@ -1357,6 +1398,7 @@ function updateInputPortsForAllZones(inputs: PortDescriptor[]): void {
 export {
   initController,
   renderZones,
+  showContextMenuFor,
   renderLastZone,
   renderMarkersForAllZones,
   updateOutputPortsForAllZones as updateOutputPortsForAllZone,

@@ -302,6 +302,18 @@ export class Zone {
     this.applyArrangement(this.arrangements[index]);
   }
 
+  copyArrangementFromTo(sourceIndex: number, targetIndex: number): void {
+    if (sourceIndex === targetIndex) return;
+    const data = sourceIndex === this.currentArrangementIndex
+      ? this.captureArrangement()
+      : this.arrangements[sourceIndex];
+    this.arrangements[targetIndex] = JSON.parse(JSON.stringify(data));
+  }
+
+  copyArrangementTo(targetIndex: number): void {
+    this.copyArrangementFromTo(this.currentArrangementIndex, targetIndex);
+  }
+
   _$(selector: string): Element | null {
     return this.elements.get(selector);
   }

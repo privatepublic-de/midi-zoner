@@ -1092,6 +1092,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const selectedArr = parseInt(el.dataset.selectArrangement!);
     view.selectArrangement(selectedArr);
   });
+  DOM.on('#tools *[data-select-arrangement][data-contextmenu]', 'contextmenu', (ev) => {
+    view.showContextMenuFor(ev as MouseEvent);
+  });
   DOM.on('#tools #seqquant', 'change', (ev) => {
     const quantDiv = parseInt((ev.target as HTMLSelectElement).value);
     Sequence.setQuantDiv(quantDiv);

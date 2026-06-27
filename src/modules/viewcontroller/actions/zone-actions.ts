@@ -153,5 +153,12 @@ export function createZoneActions(
           }
         });
     },
+    zone_arr_copy_to: () => {
+      const targetIndex = parseInt(actionParam1);
+      if (isNaN(targetIndex) || targetIndex < 0 || targetIndex > 3) return;
+      zone.copyArrangementTo(targetIndex);
+      const labels = ['A', 'B', 'C', 'D'];
+      toast(`Arrangement ${labels[zones.arrangementIndex]} → ${labels[targetIndex]} copied`);
+    },
   };
 }
