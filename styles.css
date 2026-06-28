@@ -2294,9 +2294,6 @@ body.running .seqprogress.drum .lane-cursor {
     top 200ms;
 }
 
-#toast:hover {
-  opacity: 0.5 !important;
-}
 
 #toast.fade {
   opacity: 1;
