@@ -278,6 +278,15 @@ document.addEventListener('DOMContentLoaded', function () {
   const select_mackie_out = DOM.get('#mackieControlOutputDeviceId') as HTMLSelectElement;
   const startClockButton = DOM.get('#startClockButton') as HTMLElement;
   const bpmInput = DOM.get('#bpm') as HTMLInputElement;
+  document.getElementById('zones')!.addEventListener('mousedown', (e) => {
+    if (!midi.deviceIdMackieControl && !midi.deviceIdMackieOutput) return;
+    const zoneEl = (e.target as Element).closest('#zones > .zone[id^="zone"]') as HTMLElement | null;
+    if (!zoneEl) return;
+    const zoneIndex = parseInt(zoneEl.id.replace('zone', ''));
+    if (isNaN(zoneIndex) || zoneIndex === mackieSelectedZone) return;
+    mackieSelectedZone = zoneIndex;
+    sendMackieLeds();
+  });
   const optionNoDevice = '<option value="">(No devices available)</option>';
   function updateBpmInput(): void {
     if (midi.deviceIdInClock == MIDI.INTERNAL_PORT_ID) {
@@ -564,7 +573,7 @@ document.addEventListener('DOMContentLoaded', function () {
               midi.stopClock();
             }
           }
-          // Channel strip (first 8 zones)
+          // Channel strip (zones 0–7)
           const zoneIndex = note % 8;
           if (note < 32 && zoneIndex < zones.list.length) {
             const zone = zones.list[zoneIndex];
@@ -581,10 +590,6 @@ document.addEventListener('DOMContentLoaded', function () {
               saveZones();
             } else {
               mackieSelectedZone = zoneIndex;
-              zones.list.forEach((_, i) => {
-                const el = DOM.get(`#zone${i}`);
-                if (el) DOM.switchClass(el, i === mackieSelectedZone, 'mackie-selected');
-              });
               syncMackieFader();
             }
           }
@@ -768,6 +773,7 @@ document.addEventListener('DOMContentLoaded', function () {
           midi.setInternalBPM(zones.tempo);
           saveZones();
           updateUndoRedoButtons();
+          sendMackieLeds();
         }
 
         DOM.get('#undoBtn')!.addEventListener('click', () => {
@@ -951,6 +957,10 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
         sendMackieLeds = (): void => {
+          zones.list.forEach((_, i) => {
+            const el = DOM.get(`#zone${i}`);
+            if (el) DOM.switchClass(el, i === mackieSelectedZone, 'mackie-selected');
+          });
           for (let i = 0; i < 8; i++) {
             const zone = zones.list[i];
             const active = i < zones.list.length;
@@ -1041,8 +1051,6 @@ document.addEventListener('DOMContentLoaded', function () {
         midi.selectDevices(midi.deviceIdInClock);
         if (!portsFirstUpdateDone && midi.deviceIdMackieControl && zones.list.length > 0) {
           mackieSelectedZone = 0;
-          const el = DOM.get('#zone0');
-          if (el) el.classList.add('mackie-selected');
         }
         sendMackieLeds();
         syncMackieFader();
@@ -1096,10 +1104,6 @@ document.addEventListener('DOMContentLoaded', function () {
     localStorage.setItem('mackieControlPortId', portId);
     if (!portId) {
       mackieSelectedZone = null;
-      zones.list.forEach((_, i) => {
-        const el = DOM.get(`#zone${i}`);
-        if (el) el.classList.remove('mackie-selected');
-      });
     }
     sendMackieLeds();
   });
