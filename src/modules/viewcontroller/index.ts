@@ -581,7 +581,7 @@ function appendZone(zone: ZoneType, index: number): void {
   DOM.on(`#zone${index} .step-info`, 'mouseup', (ev) => {
     ev.stopPropagation();
   });
-  DOM.on(`#zone${index} .seq_transpose`, 'mouseup', (ev) => {
+  DOM.on(`#zone${index} .seqtools`, 'mouseup', (ev) => {
     ev.stopPropagation();
   });
   DOM.on(zone.elements.sequencerElement!, 'mouseup', (ev) => {

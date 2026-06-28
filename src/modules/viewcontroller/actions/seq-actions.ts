@@ -354,8 +354,10 @@ export function createSeqActions(
                 const positions = euclidPositions(hitSteps.length, span);
                 for (let i = firstPos; i <= lastPos; i++) seq.steps[i] = null;
                 hitSteps.forEach((step, h) => { seq.steps[firstPos + positions[h]] = step; });
-                updateValuesForZone(zoneindex);
+                seq.selectedStepNumbers.clear();
+                positions.forEach(p => seq.selectedStepNumbers.add(firstPos + p));
                 toast('Selected steps euclidean distributed');
+                updateValuesForZone(zoneindex);
               }
             } else {
               const hitSteps: SeqStep[] = [];
@@ -368,8 +370,8 @@ export function createSeqActions(
                 const positions = euclidPositions(hitSteps.length, srcLength);
                 for (let i = 0; i < srcLength; i++) seq.steps[i] = null;
                 hitSteps.forEach((step, h) => { seq.steps[positions[h]] = step; });
-                updateValuesForZone(zoneindex);
                 toast('Sequence euclidean distributed');
+                updateValuesForZone(zoneindex);
               }
             }
             break;
