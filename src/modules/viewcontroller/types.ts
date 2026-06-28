@@ -16,7 +16,6 @@ export interface ZonesData {
 }
 
 export interface ToastProperties {
-  longer?: boolean;
   warning?: boolean;
 }
 

@@ -738,8 +738,7 @@ document.addEventListener('DOMContentLoaded', function () {
       console.log('app: distributed panic to all zones');
       setTimeout(() => {
         view.toast(
-          'Sent "notes off" and CC 120, 122, 123 to all channels and used ports!',
-          { longer: true }
+          'Sent "notes off" and CC 120, 122, 123 to all channels and used ports!'
         );
       }, 1);
     },
@@ -923,10 +922,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 warning?: boolean;
               }) => {
                 if (!result.canceled) {
-                  view.toast(result.message, {
-                    longer: true,
-                    warning: result.warning
-                  });
+                  view.toast(result.message, { warning: result.warning });
                 }
               }
             );
@@ -948,10 +944,7 @@ document.addEventListener('DOMContentLoaded', function () {
                   console.log('app: Error loading file', ex);
                   view.toast(
                     'Error loading file! The selected file is possibly no midi-zoner scene...',
-                    {
-                      longer: true,
-                      warning: true
-                    }
+                    { warning: true }
                   );
                 }
               }
@@ -1084,7 +1077,7 @@ document.addEventListener('DOMContentLoaded', function () {
         setTimeout(() => {
           DOM.removeClass(document.body, 'updated');
         }, 1000);
-        view.toast(`MIDI devices updated! <br/>${msg ? msg : ''}`, { longer: true });
+        view.toast(`MIDI devices updated! <br/>${msg ? msg : ''}`);
       }, 100);
     }
   });

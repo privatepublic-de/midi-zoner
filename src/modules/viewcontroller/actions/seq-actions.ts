@@ -387,13 +387,17 @@ export function createSeqActions(
           const [laneIndex, stepIndex] =
             Sequence.getLaneAndStepIndexForDrumStepId(stepno);
           sequence.getDrumLane(laneIndex).steps[stepIndex] = null;
+          toast('Step cleared');
         } else {
           if (sequence.selectedStepNumbers.has(stepno)) {
+            const count = sequence.selectedStepNumbers.size;
             sequence.selectedStepNumbers.forEach((n) => {
               sequence.steps[n] = null;
             });
+            toast(count === 1 ? 'Step cleared' : `${count} steps cleared`);
           } else {
             sequence.steps[stepno] = null;
+            toast('Step cleared');
           }
         }
         sequence.clearSelection();
@@ -402,6 +406,7 @@ export function createSeqActions(
     },
     seq_clear_selected_step: () => {
       if (sequence.selectedStepNumbers.size > 0) {
+        const count = sequence.selectedStepNumbers.size;
         sequence.selectedStepNumbers.forEach((n) => {
           if (sequence.isDrumSequence) {
             const [laneIndex, stepIndex] =
@@ -411,6 +416,7 @@ export function createSeqActions(
             sequence.steps[n] = null;
           }
         });
+        toast(count === 1 ? 'Step cleared' : `${count} steps cleared`);
         updateValuesForZone(zoneindex);
       }
     },
@@ -543,12 +549,16 @@ export function createSeqActions(
           }
         }
         Zone.seqClipboardStep = stepsMap;
+        if (stepsMap.size > 0) {
+          toast(stepsMap.size === 1 ? 'Step copied' : `${stepsMap.size} steps copied`);
+        }
       }
     },
     seq_paste_step: () => {
       if (actionParam1 != 'undefined' && Zone.seqClipboardStep) {
         sequence.clearSelection();
         const targetStep = parseInt(actionParam1);
+        const count = Zone.seqClipboardStep.size;
         if (sequence.isDrumSequence) {
           const [targetLaneIndex, targetStepIndex] = Sequence.getLaneAndStepIndexForDrumStepId(targetStep);
           const targetLane = sequence.getDrumLane(targetLaneIndex);
@@ -568,6 +578,7 @@ export function createSeqActions(
           );
         }
         updateValuesForZone(zoneindex);
+        toast(count === 1 ? 'Step pasted' : `${count} steps pasted`);
       } else {
         toast('Nothing to paste, clipboard is empty.');
       }
@@ -648,6 +659,7 @@ export function createSeqActions(
         }
         sequence.steps = newSeq;
       }
+      toast('Sequence shifted');
       updateValuesForZone(zoneindex);
     },
     seq_copy: () => {
@@ -748,6 +760,7 @@ export function createSeqActions(
       
       lane.steps = newSteps;
       sequence.clearSelection();
+      toast('Lane shifted');
       updateValuesForZone(zoneindex);
     }
   };

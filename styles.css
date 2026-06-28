@@ -2279,29 +2279,40 @@ body.running .seqprogress.drum .lane-cursor {
 
 #toast {
   position: fixed;
-  width: 300px;
-  left: 50%;
-  top: -100px;
-  margin-left: -150px;
+  width: 240px;
+  bottom: 36px;
+  right: 16px;
+  left: auto;
+  margin-left: 0;
   color: var(--text-toast-color);
   background-color: var(--bg-toast);
   font-size: 12px;
   box-shadow: 1px 1px 4px var(--shadow-toast);
   z-index: 2;
   opacity: 0;
+  transform: translateX(120%);
   transition:
     opacity 200ms,
-    top 200ms;
+    transform 200ms;
 }
-
 
 #toast.fade {
   opacity: 1;
-  top: 50px;
+  transform: translateX(0);
 }
 
 #toast.warning {
   background-color: var(--bg-toast-warning);
+}
+
+@keyframes toast-bump {
+  0%   { transform: translateX(0) scale(1); }
+  40%  { transform: translateX(0) scale(1.06); }
+  100% { transform: translateX(0) scale(1); }
+}
+
+#toast.bump {
+  animation: toast-bump 220ms ease-out;
 }
 
 #toast .toastinner {

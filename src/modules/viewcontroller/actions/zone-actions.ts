@@ -149,7 +149,7 @@ export function createZoneActions(
         .invoke('open-save', payload)
         .then((result: { canceled: boolean; message: string; warning?: boolean }) => {
           if (!result.canceled) {
-            toast(result.message, { longer: true, warning: result.warning });
+            toast(result.message, { warning: result.warning });
           }
         });
     },

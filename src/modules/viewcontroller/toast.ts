@@ -9,42 +9,41 @@ export function initToast(): void {
   toastElement.addEventListener('click', () => {
     toastHide();
   });
+  toastElement.addEventListener('animationend', () => {
+    toastElement.classList.remove('bump');
+  });
 }
 
 export function toast(message: string, properties?: ToastProperties): void {
-  const longer = properties ? properties.longer : false;
+  const isUpdate = toastTimer !== null;
   if (toastTimer) {
     clearTimeout(toastTimer);
   }
-  const warning = properties ? properties.warning : false;
-  let timeoutMS = 2000;
+  const warning = properties?.warning ?? false;
+  const timeoutMS = warning ? 6000 : 4000;
   if (warning) {
     DOM.addClass('#toast', 'warning');
-    timeoutMS += 5000;
   } else {
     DOM.removeClass('#toast', 'warning');
   }
-  if (longer) {
-    timeoutMS += 5000;
-  }
   (DOM.get('#toast .toastinner') as HTMLElement).innerHTML = message;
-  toastElement.style.top = toastElement.style.left = '';
-  toastShow(longer);
-  toastTimer = setTimeout(
-    () => {
-      toastHide();
-      toastTimer = null;
-    },
-    longer ? 5000 : 2000
-  );
+  toastElement.style.bottom = toastElement.style.right = '';
+  if (isUpdate) {
+    toastElement.classList.remove('bump');
+    void toastElement.offsetWidth; // force reflow to restart animation
+    toastElement.classList.add('bump');
+  }
+  toastShow();
+  toastTimer = setTimeout(() => {
+    toastHide();
+    toastTimer = null;
+  }, timeoutMS);
 }
 
 export function toastHide(): void {
   toastElement.classList.remove('fade');
-  // DOM.hide(toastElement);
 }
 
-export function toastShow(longer?: boolean): void {
-  // DOM.show(toastElement);
+export function toastShow(): void {
   toastElement.classList.add('fade');
 }

@@ -5,7 +5,7 @@ export function createArpActions(
   ctx: ActionContext,
   helpers: ActionHelpers
 ): ActionMap {
-  const { zone, zoneindex, element, actionParam1, ev, updateValuesForZone } = ctx;
+  const { zone, zoneindex, element, actionParam1, ev, updateValuesForZone, toast } = ctx;
   const { applyParamToggle, applySelectedIndex, applyPercentage } = helpers;
 
   return {
@@ -55,6 +55,7 @@ export function createArpActions(
         hits = Math.min(32, Math.max(1, hits));
         len = Math.min(32, Math.max(2, len));
         zone.createEuclidianPattern(len, hits);
+        toast(`Arp pattern: ${hits} hits / ${len} steps`);
       }
     },
     zone_arp_pattern_shift: () => {

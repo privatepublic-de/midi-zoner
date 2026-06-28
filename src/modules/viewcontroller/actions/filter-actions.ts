@@ -5,7 +5,7 @@ export function createFilterActions(
   ctx: ActionContext,
   helpers: ActionHelpers
 ): ActionMap {
-  const { zone, zoneindex, element } = ctx;
+  const { zone, zoneindex, element, toast } = ctx;
   const { applyParamToggle, applyPercentage } = helpers;
 
   return {
@@ -47,6 +47,7 @@ export function createFilterActions(
       if (v > 0 && v < 129) {
         zone.pgm_no = v;
         zone.sendProgramChange();
+        toast(`Program change ${v} sent`);
       } else if (isNaN(v)) {
         zone.pgm_no = null;
       }
