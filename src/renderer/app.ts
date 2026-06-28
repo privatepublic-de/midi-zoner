@@ -482,6 +482,7 @@ document.addEventListener('DOMContentLoaded', function () {
   let initialized = false;
   let clockRunning = false;
   let mackieSelectedZone: number | null = null;
+  let mackieVPotAccum = 0;
   let sendMackieLeds: () => void = () => {};
   let syncMackieFader: () => void = () => {};
   const midi = new MIDI({
@@ -598,9 +599,10 @@ document.addEventListener('DOMContentLoaded', function () {
           if (note === 92) {
             view.selectArrangement((zones.nextArrangementIndex + 1) % 4);
           }
-          // V-Pot press → reset octave of selected zone
+          // V-Pot press → toggle fixed velocity on selected zone
           if (note === 37 && mackieSelectedZone !== null && mackieSelectedZone < zones.list.length) {
-            zones.list[mackieSelectedZone].octave = 0;
+            const zone = zones.list[mackieSelectedZone];
+            zone.fixedvel = !zone.fixedvel;
             view.updateValuesForZone(mackieSelectedZone);
             saveZones();
           }
@@ -613,11 +615,16 @@ document.addEventListener('DOMContentLoaded', function () {
           mackieSelectedZone !== null &&
           mackieSelectedZone < zones.list.length
         ) {
-          const zone = zones.list[mackieSelectedZone];
           const cw = event.data[2] < 64;
-          zone.octave = Math.max(-3, Math.min(3, zone.octave + (cw ? 1 : -1)));
-          view.updateValuesForZone(mackieSelectedZone);
-          saveZones();
+          const delta = cw ? 1 : -1;
+          mackieVPotAccum = Math.sign(delta) === Math.sign(mackieVPotAccum) ? mackieVPotAccum + delta : delta;
+          if (Math.abs(mackieVPotAccum) >= 2) {
+            const zone = zones.list[mackieSelectedZone];
+            zone.octave = Math.max(-3, Math.min(3, zone.octave + Math.sign(mackieVPotAccum)));
+            view.updateValuesForZone(mackieSelectedZone);
+            saveZones();
+            mackieVPotAccum = 0;
+          }
         }
         // Jog encoder → BPM (internal clock only)
         if (
@@ -641,7 +648,12 @@ document.addEventListener('DOMContentLoaded', function () {
           mackieSelectedZone < zones.list.length
         ) {
           const value = event.data[1] | (event.data[2] << 7);
-          zones.list[mackieSelectedZone].velocity_scaling = Math.min(2, value / 8192);
+          const faderZone = zones.list[mackieSelectedZone];
+          if (faderZone.fixedvel) {
+            faderZone.fixedvel_value = Math.round(value * 127 / 16383);
+          } else {
+            faderZone.velocity_scaling = Math.min(2, value / 8192);
+          }
           view.updateValuesForZone(mackieSelectedZone);
           saveZones();
         }
@@ -965,9 +977,14 @@ document.addEventListener('DOMContentLoaded', function () {
         };
         syncMackieFader = (): void => {
           if (!midi.deviceIdMackieOutput || mackieSelectedZone === null || mackieSelectedZone >= zones.list.length) return;
-          const vsRaw = zones.list[mackieSelectedZone].velocity_scaling;
-          const vs = typeof vsRaw === 'number' ? vsRaw : 1;
-          const value = Math.min(16383, Math.round(vs * 8192));
+          const sz = zones.list[mackieSelectedZone];
+          let value: number;
+          if (sz.fixedvel) {
+            value = Math.round((typeof sz.fixedvel_value === 'number' ? sz.fixedvel_value : 127) * 16383 / 127);
+          } else {
+            const vs = typeof sz.velocity_scaling === 'number' ? sz.velocity_scaling : 1;
+            value = Math.min(16383, Math.round(vs * 8192));
+          }
           const msg = new Uint8Array(3);
           msg[0] = 0xe0; // Pitch Bend ch 1
           msg[1] = value & 0x7f;

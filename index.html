@@ -117,16 +117,20 @@
     <div id="inputPortWindow">
       <div id="inputPortList"></div>
       <div style="margin-top: 1rem; border-top: 1px solid var(--brighter-1);padding:.5rem">
-        <p>Mackie Control</p>
-        <p>For basic external control, select MIDI ports that provide MCP (Mackie Control Protocol).</p>
-        <label>In:</label>
-        <select id="mackieControlDeviceId" tabindex="-1">
-          <option value="">(None)</option>
-        </select>
-        <label>Out:</label>
-        <select id="mackieControlOutputDeviceId" tabindex="-1">
-          <option value="">(None)</option>
-        </select>
+        <p>Mackie Control <button id="mackieHelpBtn" class="ks-help-btn" tabindex="-1" title="Mackie Control mapping reference">?</button></p>
+        <p><small>For basic external control, select the MIDI ports that are connected to a MCP (Mackie Control Protocol) device.</small></p>
+        <p>
+          <label>In:</label>
+          <select id="mackieControlDeviceId" tabindex="-1">
+            <option value="">(None)</option>
+          </select>
+        </p>
+        <p>
+          <label>Out:</label>
+          <select id="mackieControlOutputDeviceId" tabindex="-1">
+            <option value="">(None)</option>
+          </select>
+        </p>
       </div>
     </div>
     <div id="clockOutPortWindow">
@@ -205,12 +209,61 @@
         <polygon points="2,11 8,6 8,16" style="fill: #ffffff" />
       </svg>
     </a>
+    <div id="mackieHelpOverlay" role="dialog" aria-modal="true" aria-label="Mackie Control mapping reference">
+      <div class="kshelp-header">
+        <span class="kshelp-title">Mackie Control Mapping</span>
+        <button class="kshelp-close" id="mackieHelpClose"><i class="material-icons">close</i></button>
+      </div>
+      <div class="mckhelp-body">
+        <div class="mckhelp-section">
+          <div class="mckhelp-heading">Transport</div>
+          <div class="mckhelp-row"><span class="mckhelp-ctrl">Play</span><span class="mckhelp-action">Start internal clock</span></div>
+          <div class="mckhelp-row"><span class="mckhelp-ctrl">Stop</span><span class="mckhelp-action">Stop internal clock</span></div>
+          <div class="mckhelp-row"><span class="mckhelp-ctrl">Rewind</span><span class="mckhelp-action">Previous arrangement (wraps)</span></div>
+          <div class="mckhelp-row"><span class="mckhelp-ctrl">Fast Fwd</span><span class="mckhelp-action">Next arrangement (wraps)</span></div>
+          <div class="mckhelp-row"><span class="mckhelp-ctrl">Jog</span><span class="mckhelp-action">BPM ±1 / ±2 / ±5 — internal clock only</span></div>
+        </div>
+        <div class="mckhelp-section">
+          <div class="mckhelp-heading">Zone Controls</div>
+          <div class="mckhelp-row"><span class="mckhelp-ctrl">Select</span><span class="mckhelp-action">Choose active zone — target for all controls below</span></div>
+          <div class="mckhelp-row"><span class="mckhelp-ctrl">Rec arm</span><span class="mckhelp-action">Toggle sequencer on / off</span></div>
+          <div class="mckhelp-row"><span class="mckhelp-ctrl">Solo</span><span class="mckhelp-action">Toggle zone solo</span></div>
+          <div class="mckhelp-row"><span class="mckhelp-ctrl">Mute</span><span class="mckhelp-action">Toggle zone mute</span></div>
+          <div class="mckhelp-row"><span class="mckhelp-ctrl">Fader</span><span class="mckhelp-action">Velocity scaling (0–200%) or fixed velocity (0–127) when fixed vel is on</span></div>
+          <div class="mckhelp-row"><span class="mckhelp-ctrl">V-Pot</span><span class="mckhelp-action">Octave transpose –3 to +3 (2 ticks per step)</span></div>
+          <div class="mckhelp-row"><span class="mckhelp-ctrl">V-Pot press</span><span class="mckhelp-action">Toggle fixed velocity mode — fader switches target</span></div>
+        </div>
+        <div class="mckhelp-section">
+          <div class="mckhelp-heading">Arrangement LEDs (Rewind · Fast Fwd)</div>
+          <div class="mckhelp-row"><span class="mckhelp-ctrl">○ ○</span><span class="mckhelp-action">Arrangement A</span></div>
+          <div class="mckhelp-row"><span class="mckhelp-ctrl">● ○</span><span class="mckhelp-action">Arrangement B</span></div>
+          <div class="mckhelp-row"><span class="mckhelp-ctrl">○ ●</span><span class="mckhelp-action">Arrangement C</span></div>
+          <div class="mckhelp-row"><span class="mckhelp-ctrl">● ●</span><span class="mckhelp-action">Arrangement D</span></div>
+        </div>
+        <div class="mckhelp-section">
+          <div class="mckhelp-heading">F-Buttons (if available)</div>
+          <div class="mckhelp-row"><span class="mckhelp-ctrl">F1 – F4</span><span class="mckhelp-action">Select arrangement A / B / C / D directly</span></div>
+        </div>
+      </div>
+    </div>
     <script>
       (function () {
         var overlay = document.getElementById('keySwitchHelpOverlay');
         var btn = document.getElementById('keySwitchHelp');
         var closeBtn = document.getElementById('keySwitchHelpClose');
         function open() { overlay.classList.add('open'); }
+        function close() { overlay.classList.remove('open'); }
+        btn.addEventListener('click', function (e) { e.stopPropagation(); overlay.classList.toggle('open'); });
+        closeBtn.addEventListener('click', close);
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+        document.addEventListener('click', function (e) {
+          if (overlay.classList.contains('open') && !overlay.contains(e.target) && e.target !== btn) close();
+        });
+      })();
+      (function () {
+        var overlay = document.getElementById('mackieHelpOverlay');
+        var btn = document.getElementById('mackieHelpBtn');
+        var closeBtn = document.getElementById('mackieHelpClose');
         function close() { overlay.classList.remove('open'); }
         btn.addEventListener('click', function (e) { e.stopPropagation(); overlay.classList.toggle('open'); });
         closeBtn.addEventListener('click', close);
