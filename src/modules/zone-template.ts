@@ -61,7 +61,7 @@ const noteLengthOptions = (function (): string {
   return s;
 })();
 
-const octavemarkers = '<span class="oct"></span>'.repeat(10);
+const octavemarkers = '';
 
 const checkboxIcons =
   '<span class="material-icons sel">check_box</span><span class="material-icons unsel">check_box_outline_blank</span>';

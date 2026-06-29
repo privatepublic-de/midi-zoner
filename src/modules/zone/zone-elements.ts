@@ -13,7 +13,6 @@ export class ZoneElements {
   sequencerProgressElementInner: HTMLElement | null = null;
   sequencerDrumLaneCursors: HTMLElement[] = [];
   rangeContainer: HTMLElement | null = null;
-  rangeOctaveElements: NodeListOf<HTMLElement> | null = null;
   rangeMarkerLow: HTMLElement | null = null;
   rangeMarkerHigh: HTMLElement | null = null;
   rangeJoin: HTMLElement | null = null;
@@ -41,7 +40,6 @@ export class ZoneElements {
       this.sequencerDrumLanes.push(dl.querySelectorAll('.step'));
     });
     this.rangeContainer = this.zoneElement.querySelector('.range');
-    this.rangeOctaveElements = this.zoneElement.querySelectorAll('.range .oct');
     this.rangeMarkerLow = this.zoneElement.querySelector('.marker.low');
     this.rangeMarkerHigh = this.zoneElement.querySelector('.marker.high');
     this.rangeJoin = this.zoneElement.querySelector('.join');

@@ -711,6 +711,20 @@ function renderMarkersForAllZones(): void {
   }
 }
 
+// Returns the left and right canvas x-coordinates of a MIDI note key,
+// matching the piano geometry used in Zone.renderNotes() (75 white-key slots).
+function noteKeyEdges(note: number, width: number): { left: number; right: number } {
+  const notewidth = width / 75;
+  const wkIndex = Note.nearestWhiteKeyIndex(note);
+  if (Note.isBlackKey(note)) {
+    const left = notewidth * (wkIndex + 0.75);
+    return { left, right: left + notewidth * 0.5 };
+  } else {
+    const left = notewidth * (wkIndex + 0.125);
+    return { left, right: left + notewidth * 0.75 };
+  }
+}
+
 function renderMarkersForZone(
   index: number,
   tempLo?: number,
@@ -719,30 +733,21 @@ function renderMarkersForZone(
   const zone: ZoneType = zones.list[index];
   const low = tempLo != undefined ? tempLo : zone.low;
   const high = tempHigh != undefined ? tempHigh : zone.high;
-  const xlow = low / 127.0;
-  const xhi = high / 127.0;
-  const xclow = zone.low / 127.0;
-  const xchi = zone.high / 127.0;
   const width = zone.elements.rangeContainer!.offsetWidth;
-  const xpad = (0.75 / 127.0) * width;
-  zone.elements.rangeMarkerLow!.style.left = `${xlow * width}px`;
-  zone.elements.rangeMarkerHigh!.style.right = `${
-    width - xhi * width - xpad
-  }px`;
+  const lo = noteKeyEdges(low, width);
+  const hi = noteKeyEdges(high, width);
+  const xclo = noteKeyEdges(zone.low, width);
+  const xchi = noteKeyEdges(zone.high, width);
+  zone.elements.rangeMarkerLow!.style.left = `${lo.left}px`;
+  zone.elements.rangeMarkerHigh!.style.right = `${width - hi.right}px`;
   zone.elements.rangeMarkerLow!.innerHTML =
     MIDI.NOTENAMES[low % 12] + (parseInt(String(low / 12)) - 1);
   zone.elements.rangeMarkerHigh!.innerHTML =
     MIDI.NOTENAMES[high % 12] + (parseInt(String(high / 12)) - 1);
-  zone.elements.rangeJoin!.style.left = `${xlow * width}px`;
-  zone.elements.rangeJoin!.style.right = `${width - xhi * width - xpad}px`;
-  zone.elements.rangeCurrent!.style.left = `${xclow * width}px`;
-  zone.elements.rangeCurrent!.style.right = `${width - xchi * width - xpad}px`;
-  let ocount = 0;
-  zone.elements.rangeOctaveElements!.forEach((e) => {
-    ocount++;
-    (e as HTMLElement).style.left = `${((ocount * 12.0) / 127.0) * width}px`;
-    e.innerHTML = String(ocount - 1);
-  });
+  zone.elements.rangeJoin!.style.left = `${lo.left}px`;
+  zone.elements.rangeJoin!.style.right = `${width - hi.right}px`;
+  zone.elements.rangeCurrent!.style.left = `${xclo.left}px`;
+  zone.elements.rangeCurrent!.style.right = `${width - xchi.right}px`;
   DOM.switchClass(zone.elements.rangeMarkerLow!, tempLo != undefined, 'hover');
   DOM.switchClass(
     zone.elements.rangeMarkerHigh!,

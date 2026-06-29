@@ -1362,7 +1362,6 @@ input[type='range'] {
   height: 16px;
   cursor: pointer;
   width: 100%;
-  overflow: hidden;
 }
 
 .dragvalue {
@@ -1404,8 +1403,8 @@ input[type='range'] {
   top: 0;
 }
 
-.rangeholder {
-  background-color: var(--darker-2);
+.disabled .rangeholder {
+  background-color: var(--darker-3);
 }
 
 .rangeholder:hover .marker {
@@ -1429,23 +1428,6 @@ input[type='range'] {
 
 .range:hover .current {
   display: block;
-}
-
-.oct {
-  position: absolute;
-  top: 0;
-  background-color: var(--brighter-1);
-  color: var(--brighter-2);
-  width: 1px;
-  bottom: 0;
-  font-size: 8px;
-  text-indent: 4px;
-}
-
-.zone.disabled .oct {
-  background-color: var(--brighter-0);
-  color: transparent;
-  -webkit-text-stroke: unset;
 }
 
 .toggle {
@@ -2306,9 +2288,15 @@ body.running .seqprogress.drum .lane-cursor {
 }
 
 @keyframes toast-bump {
-  0%   { transform: translateX(0) scale(1); }
-  40%  { transform: translateX(0) scale(1.06); }
-  100% { transform: translateX(0) scale(1); }
+  0% {
+    transform: translateX(0) scale(1);
+  }
+  40% {
+    transform: translateX(0) scale(1.06);
+  }
+  100% {
+    transform: translateX(0) scale(1);
+  }
 }
 
 #toast.bump {

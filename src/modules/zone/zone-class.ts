@@ -4,15 +4,34 @@ import { Note } from './note';
 import { ZoneElements } from './zone-elements';
 import { Sequence } from './sequence';
 import { SeqStep } from './seq-step';
-import { CCController, ArpState, ZoneJSON, ZoneArrangementJSON, SeqStepJSON, UPDATE_ZONE_VIEW_EVENT } from './interfaces';
+import {
+  CCController,
+  ArpState,
+  ZoneJSON,
+  ZoneArrangementJSON,
+  SeqStepJSON,
+  UPDATE_ZONE_VIEW_EVENT
+} from './interfaces';
 import { NoteDisplay } from './note-display';
 import { DIV_TICKS, DivTick } from './seq-layer';
+
+// All MIDI notes 0-127 sorted white-first so black keys are drawn on top
+const ALL_NOTES_WHITE_FIRST = Array.from({ length: 128 }, (_, i) => i).sort(
+  (a, b) => {
+    const ba = Note.isBlackKey(a),
+      bb = Note.isBlackKey(b);
+    return ba === bb ? 0 : ba ? 1 : -1;
+  }
+);
 
 export class Zone {
   static solocount = 0;
   static seqClipboardStep: Map<number, SeqStep> | null = null;
   static seqClipboardSequence: string | null = null;
-  static seqClipboardDrumLane: { steps: (SeqStepJSON | null)[], length: number } | null = null;
+  static seqClipboardDrumLane: {
+    steps: (SeqStepJSON | null)[];
+    length: number;
+  } | null = null;
   static updateZoneViewEventName = UPDATE_ZONE_VIEW_EVENT;
 
   private static _canvasSizeCache = new WeakMap<HTMLCanvasElement, DOMRect>();
@@ -98,7 +117,9 @@ export class Zone {
   midiLearnDrumLaneIndex: number | null = null;
   swingAmount: number = 0; // 0 to 1 (0% to 100%)
   private _arp_enabled = false;
-  get arp_enabled(): boolean { return this._arp_enabled; }
+  get arp_enabled(): boolean {
+    return this._arp_enabled;
+  }
   set arp_enabled(v: boolean) {
     this._arp_enabled = v;
     if (v) this.notesChanged();
@@ -139,9 +160,10 @@ export class Zone {
     probable: boolean;
   }[] = [];
   // Strum pending note-ons and per-note note-offs for equal gate lengths
-  private arpStrumPending: { note: Note; fireAtMs: number; gateMs: number }[] = [];
+  private arpStrumPending: { note: Note; fireAtMs: number; gateMs: number }[] =
+    [];
   private arpStrumOffPending: { note: Note; fireAtMs: number }[] = [];
-  private _lastTickIntervalMs = 60 / 120 / 24 * 1000;
+  private _lastTickIntervalMs = (60 / 120 / 24) * 1000;
   private _strumGraceTimer: ReturnType<typeof setTimeout> | null = null;
   activeNotes: Note[] = [];
   midiActiveNotes: (Note | null)[] = [];
@@ -173,7 +195,9 @@ export class Zone {
     this.colorIndex = colorIndex || 0;
     this.sequence = new Sequence(this);
     const defaultArr = this.captureArrangement();
-    this.arrangements = [0, 1, 2, 3].map(() => JSON.parse(JSON.stringify(defaultArr)));
+    this.arrangements = [0, 1, 2, 3].map(() =>
+      JSON.parse(JSON.stringify(defaultArr))
+    );
   }
 
   toJSON(): ZoneJSON {
@@ -239,7 +263,8 @@ export class Zone {
     this.octave = data.octave ?? 0;
     this.fixedvel = data.fixedvel ?? false;
     this.fixedvel_value = data.fixedvel_value ?? 127;
-    this.velocity_scaling = typeof data.velocity_scaling === 'number' ? data.velocity_scaling : 1;
+    this.velocity_scaling =
+      typeof data.velocity_scaling === 'number' ? data.velocity_scaling : 1;
     this.mod = data.mod ?? true;
     this.sustain = data.sustain ?? true;
     this.cc = data.cc ?? false;
@@ -256,7 +281,16 @@ export class Zone {
     this.arp_probability = data.arp_probability ?? 1;
     this.arp_transpose = data.arp_transpose ?? false;
     this.arp_transpose_amount = data.arp_transpose_amount ?? 0;
-    this.arp_pattern = data.arp_pattern ?? [true, true, true, true, true, true, true, true];
+    this.arp_pattern = data.arp_pattern ?? [
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ];
     this.arp_holdlist = data.arp_holdlist ?? [];
     this.arp_sortedHoldList = data.arp_sortedHoldList ?? [];
     this.arp_strum_taper = data.arp_strum_taper ?? 0;
@@ -275,10 +309,14 @@ export class Zone {
     seq.isDrumSequence = (sd as any).isDrumSequence ?? false;
     seq.drumLanes = (sd as any).drumLanes ?? 4;
     seq.active = (sd as any).active ?? false;
-    seq._steps.forEach((st: any) => { if (st) st.lastPlayedArray = []; });
+    seq._steps.forEach((st: any) => {
+      if (st) st.lastPlayedArray = [];
+    });
     seq.drum_lanes.forEach((lane: any, i: number) => {
       if (lane?.steps) {
-        lane.steps.forEach((st: any) => { if (st) st.lastPlayedArray = []; });
+        lane.steps.forEach((st: any) => {
+          if (st) st.lastPlayedArray = [];
+        });
       }
       if (lane) {
         lane.length = lane.length ?? seq._length;
@@ -304,9 +342,10 @@ export class Zone {
 
   copyArrangementFromTo(sourceIndex: number, targetIndex: number): void {
     if (sourceIndex === targetIndex) return;
-    const data = sourceIndex === this.currentArrangementIndex
-      ? this.captureArrangement()
-      : this.arrangements[sourceIndex];
+    const data =
+      sourceIndex === this.currentArrangementIndex
+        ? this.captureArrangement()
+        : this.arrangements[sourceIndex];
     this.arrangements[targetIndex] = JSON.parse(JSON.stringify(data));
   }
 
@@ -427,7 +466,10 @@ export class Zone {
   ): string | void {
     // Pass note-off through for actively sounding keyboard notes even when zone is disabled,
     // so held notes are not stuck when the arrangement switches and disables this zone.
-    if (message === MIDI.MESSAGE.NOTE_OFF && !this.shouldHandleMidi(message, fromSequencer)) {
+    if (
+      message === MIDI.MESSAGE.NOTE_OFF &&
+      !this.shouldHandleMidi(message, fromSequencer)
+    ) {
       const srcNote = this.midiActiveNotes[data[1]];
       if (srcNote?.fromInput) {
         this.midiActiveNotes[data[1]] = null;
@@ -447,9 +489,12 @@ export class Zone {
         case MIDI.MESSAGE.NOTE_OFF:
         case MIDI.MESSAGE.NOTE_ON:
           // Handle drum lane MIDI learn - capture note number when input has focus
-          if (message === MIDI.MESSAGE.NOTE_ON && data[2] > 0 && 
-              this.midiLearnDrumLaneIndex !== null && 
-              this.sequence.isDrumSequence) {
+          if (
+            message === MIDI.MESSAGE.NOTE_ON &&
+            data[2] > 0 &&
+            this.midiLearnDrumLaneIndex !== null &&
+            this.sequence.isDrumSequence
+          ) {
             const lane = this.sequence.getDrumLane(this.midiLearnDrumLaneIndex);
             if (lane) {
               lane.note = data[1];
@@ -516,7 +561,10 @@ export class Zone {
                   this.removeNote(key);
                 }
                 if (!fromSequencer) {
-                  this.sequence.noteReleased(srcNote ? srcNote.number : key, this.activeNotes.length);
+                  this.sequence.noteReleased(
+                    srcNote ? srcNote.number : key,
+                    this.activeNotes.length
+                  );
                 }
               }
             }
@@ -534,7 +582,9 @@ export class Zone {
             const ctrl = this.cc_controllers[i];
             if (ctrl.type != 2 && ctrl.number_in == data[1]) {
               const is14bit = ctrl.type == 5 || ctrl.type == 6;
-              ctrl.val = is14bit ? Math.round(data[2] * 16383 / 127) : data[2];
+              ctrl.val = is14bit
+                ? Math.round((data[2] * 16383) / 127)
+                : data[2];
               this.sendCC(i);
               if (firstMatchedCC === -1) firstMatchedCC = i;
               matchCount++;
@@ -613,8 +663,12 @@ export class Zone {
       this.arp.orderlist = Array.from(this.activeNotes);
       this.arp_holdlist = Array.from(this.holdList);
       if (this.arp_enabled) {
-        this.arp.sortedlist = this.arp.orderlist.slice().sort((a, b) => a.number - b.number);
-        this.arp_sortedHoldList = this.arp_holdlist.slice().sort((a, b) => a.number - b.number);
+        this.arp.sortedlist = this.arp.orderlist
+          .slice()
+          .sort((a, b) => a.number - b.number);
+        this.arp_sortedHoldList = this.arp_holdlist
+          .slice()
+          .sort((a, b) => a.number - b.number);
       }
     }
     // Grace period on key release: defer strum cancellation by one arp step so a
@@ -647,11 +701,11 @@ export class Zone {
         this.elements.canvasElement
       );
       const cwidth = rect.width;
-      const numberWhiteKeys = 10 * 7 + 4;
+      const numberWhiteKeys = 10 * 7 + 5;
       const notewidth = cwidth / numberWhiteKeys;
       const whitekeywidth = notewidth * 0.75;
-      const blackkeywidth = notewidth * 0.67;
-      const blackkeyoffset = notewidth * 0.67;
+      const blackkeywidth = notewidth * 0.5;
+      const blackkeyoffset = notewidth * 0.75;
       const whitekeyoffset = (notewidth - whitekeywidth) * 0.5;
 
       context.clearRect(0, 0, cwidth, rect.height);
@@ -659,6 +713,50 @@ export class Zone {
       if (this.sustain_state) {
         context.fillStyle = NoteDisplay.fillSustain;
         context.fillRect(0, rect.height - 2, cwidth, 2);
+      }
+
+      // Draw faint outlines for all 128 keys as a background reference
+      ALL_NOTES_WHITE_FIRST.forEach((n) => {
+        const isBlack = Note.isBlackKey(n);
+        const wkIndex = Note.nearestWhiteKeyIndex(n);
+        context.fillStyle = isBlack
+          ? NoteDisplay.fillHintBlack
+          : NoteDisplay.fillHintWhite;
+        context.beginPath();
+        if (isBlack) {
+          context.roundRect(
+            notewidth * wkIndex + blackkeyoffset,
+            NoteDisplay.top,
+            blackkeywidth,
+            NoteDisplay.heightBlack,
+            [0, 0, 1, 1]
+          );
+        } else {
+          context.roundRect(
+            whitekeyoffset + notewidth * wkIndex,
+            NoteDisplay.top,
+            whitekeywidth,
+            NoteDisplay.height,
+            [0, 0, 2, 2]
+          );
+        }
+        context.fill();
+      });
+
+      // Octave number labels at the bottom of each C note
+      if (this.enabled) {
+        context.save();
+        context.font = '6px sans-serif';
+        context.textBaseline = 'bottom';
+        context.textAlign = 'center';
+        context.fillStyle = NoteDisplay.fillOctaveLabel;
+        for (let oct = -1; oct <= 9; oct++) {
+          const note = (oct + 1) * 12;
+          const wkIndex = Note.nearestWhiteKeyIndex(note);
+          const x = whitekeyoffset + notewidth * wkIndex + whitekeywidth / 2;
+          context.fillText(String(oct), x, NoteDisplay.height);
+        }
+        context.restore();
       }
 
       const drawNote = (
@@ -739,7 +837,11 @@ export class Zone {
           );
         if (this.arp.lastStrumNotes.length > 0) {
           const n = this.arp.lastStrumNotes[this.arp.lastStrumNotes.length - 1];
-          drawNote(n.number, NoteDisplay.fillArpPlayed, NoteDisplay.fillArpPlayed);
+          drawNote(
+            n.number,
+            NoteDisplay.fillArpPlayed,
+            NoteDisplay.fillArpPlayed
+          );
         }
       }
     }
@@ -790,7 +892,10 @@ export class Zone {
       // Playhead: zone-color tinted vertical bar with glow
       const playX = cellW * this.arp.patternPos + cellW / 2;
       if (!this._cachedZoneColor) {
-        this._cachedZoneColor = getComputedStyle(this.elements.patternCanvas).getPropertyValue('--zone-color').trim() || '#e9c46a';
+        this._cachedZoneColor =
+          getComputedStyle(this.elements.patternCanvas)
+            .getPropertyValue('--zone-color')
+            .trim() || '#e9c46a';
       }
       const zoneColor = this._cachedZoneColor;
       context.filter = 'brightness(2.4) saturate(2)';
@@ -806,7 +911,10 @@ export class Zone {
   renderSequence(): void {
     if (this.sequence.active && this.elements.isReady) {
       if (this.sequence.isDrumSequence) {
-        if (this.sequence.previousStepNumber == -1 && this.sequence.currentStepNumber == -1) {
+        if (
+          this.sequence.previousStepNumber == -1 &&
+          this.sequence.currentStepNumber == -1
+        ) {
           this.elements.sequencerDrumStepElements.forEach((e) => {
             (e as HTMLElement).classList.remove('playhead');
           });
@@ -829,7 +937,9 @@ export class Zone {
             const lane = this.sequence.drum_lanes[laneIndex];
             if (!lane) return;
             if (lane.previousStep > -1) {
-              (dl[lane.previousStep] as HTMLElement)?.classList.remove('playhead');
+              (dl[lane.previousStep] as HTMLElement)?.classList.remove(
+                'playhead'
+              );
             }
             if (lane.currentStep > -1) {
               (dl[lane.currentStep] as HTMLElement)?.classList.add('playhead');
@@ -865,9 +975,10 @@ export class Zone {
         const lane = this.sequence.drum_lanes[ln];
         if (!lane) return;
         const pos = lane.currentStep;
-        cursor.style.left = pos > -1 && lane.length > 0
-          ? `${(pos / lane.length) * 100}%`
-          : '-100%';
+        cursor.style.left =
+          pos > -1 && lane.length > 0
+            ? `${(pos / lane.length) * 100}%`
+            : '-100%';
       });
     } else if (this.elements.sequencerProgressElementInner) {
       const pos = this.sequence.currentStepNumber;
@@ -897,8 +1008,15 @@ export class Zone {
       this.arp.patternPos = (this.arp.patternPos + 1) % this.arp_pattern.length;
 
       // Check if this arp pattern position should swing
-      if (this.swingAmount > 0 && this.arp_enabled && this.arp_pattern[this.arp.patternPos]) {
-        const swingOffsetMs = this.calculateArpSwingOffsetMs(this.arp.patternPos, tickIntervalMs);
+      if (
+        this.swingAmount > 0 &&
+        this.arp_enabled &&
+        this.arp_pattern[this.arp.patternPos]
+      ) {
+        const swingOffsetMs = this.calculateArpSwingOffsetMs(
+          this.arp.patternPos,
+          tickIntervalMs
+        );
         if (swingOffsetMs > 0) {
           this.arpSwingPending.push({
             patternPos: this.arp.patternPos,
@@ -918,7 +1036,11 @@ export class Zone {
     } else if (tickn >= offtick) {
       this.arp.beat = false;
       // Strum modes and active ratchet use per-note timers; off-tick only silences plain arp
-      if (this.arp_direction < 5 && this.arpStrumPending.length === 0 && this.arpStrumOffPending.length === 0) {
+      if (
+        this.arp_direction < 5 &&
+        this.arpStrumPending.length === 0 &&
+        this.arpStrumOffPending.length === 0
+      ) {
         this.arpNoteOff();
       }
     }
@@ -928,7 +1050,10 @@ export class Zone {
    * Calculate swing delay in milliseconds for an arpeggiator pattern position.
    * Off-beat positions (1, 3, 5...) are delayed; on-beat positions return 0.
    */
-  private calculateArpSwingOffsetMs(patternPos: number, tickIntervalMs: number): number {
+  private calculateArpSwingOffsetMs(
+    patternPos: number,
+    tickIntervalMs: number
+  ): number {
     if (patternPos % 2 === 0) return 0;
     return this.swingAmount * this.arp_ticks * 0.5 * tickIntervalMs;
   }
@@ -975,7 +1100,9 @@ export class Zone {
         this._midiMsgBuf[1] = n.number;
         this._midiMsgBuf[2] = n.velo;
         this.midi.send(this._midiMsgBuf, n.portId);
-        this.arp.lastStrumNotes = this.arp.lastStrumNotes.filter(s => s !== n);
+        this.arp.lastStrumNotes = this.arp.lastStrumNotes.filter(
+          (s) => s !== n
+        );
         this.arpStrumOffPending.splice(i, 1);
         requestAnimationFrame(this._renderNotesBound);
       }
@@ -989,41 +1116,67 @@ export class Zone {
   private triggerArpAtPatternPos(probable: boolean, timestamp?: number): void {
     this.arp.beat = true;
     const notes: Note[] = this.arp_hold
-      ? (this.arp_direction > 2 ? this.arp_holdlist : this.arp_sortedHoldList)
-      : (this.arp_direction > 2 ? this.arp.orderlist : this.arp.sortedlist);
+      ? this.arp_direction > 2
+        ? this.arp_holdlist
+        : this.arp_sortedHoldList
+      : this.arp_direction > 2
+        ? this.arp.orderlist
+        : this.arp.sortedlist;
     if (notes.length > 0) {
       // Strum modes: play entire chord (across all octaves) staggered across the gate window
-      if (this.arp_direction === 5 || this.arp_direction === 6 || this.arp_direction === 7) {
+      if (
+        this.arp_direction === 5 ||
+        this.arp_direction === 6 ||
+        this.arp_direction === 7
+      ) {
         if (probable) {
           const base = notes.slice().sort((a, b) => a.number - b.number);
           const chord: Note[] = [];
           for (let oct = 0; oct <= this.arp_octaves; oct++) {
             for (const n of base) {
-              let number = n.number + (this.octave + oct) * 12 +
+              let number =
+                n.number +
+                (this.octave + oct) * 12 +
                 (this.arp_transpose ? this.arp_transpose_amount : 0);
               while (number > 127) number -= 12;
               while (number < 0) number += 12;
-              chord.push(new Note(number, n.velo, this.channel, this.outputPortId));
+              chord.push(
+                new Note(number, n.velo, this.channel, this.outputPortId)
+              );
             }
           }
-          const strumUp = this.arp_direction === 6 || (this.arp_direction === 7 && this.arp.inc < 0);
+          const strumUp =
+            this.arp_direction === 6 ||
+            (this.arp_direction === 7 && this.arp.inc < 0);
           if (strumUp) chord.reverse();
           if (this.arp_direction === 7) this.arp.inc = -this.arp.inc;
-          const gateMs = this.arp_ticks * this._lastTickIntervalMs * this.arp_gatelength;
+          const gateMs =
+            this.arp_ticks * this._lastTickIntervalMs * this.arp_gatelength;
           const gap = chord.length > 1 ? gateMs / chord.length : 0;
           this.arp.lastStrumNotes = [];
           this.arpStrumPending.length = 0;
           this.arpStrumOffPending.length = 0;
           const now = performance.now();
           chord.forEach((note, i) => {
-            const taperFactor = chord.length > 1
-              ? 1 - this.arp_strum_taper * (i / (chord.length - 1)) * 0.9
-              : 1;
-            const baseVelo = this.fixedvel ? this.fixedvel_value || 127 : note.velo;
+            const taperFactor =
+              chord.length > 1
+                ? 1 - this.arp_strum_taper * (i / (chord.length - 1)) * 0.9
+                : 1;
+            const baseVelo = this.fixedvel
+              ? this.fixedvel_value || 127
+              : note.velo;
             const velo = Math.max(1, Math.round(baseVelo * taperFactor));
             const fireAtMs = now + i * gap;
-            const taperedNote = new Note(note.number, velo, note.channel, note.portId);
-            this.arpStrumOffPending.push({ note: taperedNote, fireAtMs: fireAtMs + gateMs });
+            const taperedNote = new Note(
+              note.number,
+              velo,
+              note.channel,
+              note.portId
+            );
+            this.arpStrumOffPending.push({
+              note: taperedNote,
+              fireAtMs: fireAtMs + gateMs
+            });
             if (i === 0) {
               this.convertNote2CC(note.number, velo);
               this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + this.channel;
@@ -1032,7 +1185,11 @@ export class Zone {
               this.midi.send(this._midiMsgBuf, this.outputPortId, timestamp);
               this.arp.lastStrumNotes.push(taperedNote);
             } else {
-              this.arpStrumPending.push({ note: taperedNote, fireAtMs, gateMs });
+              this.arpStrumPending.push({
+                note: taperedNote,
+                fireAtMs,
+                gateMs
+              });
             }
           });
         }
@@ -1116,18 +1273,25 @@ export class Zone {
           this.outputPortId
         );
         const baseVelo = this.fixedvel ? this.fixedvel_value || 127 : note.velo;
-        const ratchetCount = this.arp_ratchet_probability > 0 &&
+        const ratchetCount =
+          this.arp_ratchet_probability > 0 &&
           this.rngProb() < this.arp_ratchet_probability
-          ? [2, 3, 4][this.arp_ratchet_count]
-          : 1;
+            ? [2, 3, 4][this.arp_ratchet_count]
+            : 1;
         if (ratchetCount > 1) {
-          const subIntervalMs = this.arp_ticks * this._lastTickIntervalMs / ratchetCount;
+          const subIntervalMs =
+            (this.arp_ticks * this._lastTickIntervalMs) / ratchetCount;
           const hitGateMs = subIntervalMs * this.arp_gatelength;
           const now = performance.now();
           for (let i = 0; i < ratchetCount; i++) {
             const fireAtMs = now + i * subIntervalMs;
             const velo = Math.max(1, Math.round(baseVelo * Math.pow(0.8, i)));
-            const ratchetNote = new Note(note.number, velo, note.channel, note.portId);
+            const ratchetNote = new Note(
+              note.number,
+              velo,
+              note.channel,
+              note.portId
+            );
             if (i === 0) {
               this.convertNote2CC(ratchetNote.number, ratchetNote.velo);
               this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + this.channel;
@@ -1135,9 +1299,16 @@ export class Zone {
               this._midiMsgBuf[2] = ratchetNote.velo;
               this.midi.send(this._midiMsgBuf, this.outputPortId, timestamp);
             } else {
-              this.arpStrumPending.push({ note: ratchetNote, fireAtMs, gateMs: hitGateMs });
+              this.arpStrumPending.push({
+                note: ratchetNote,
+                fireAtMs,
+                gateMs: hitGateMs
+              });
             }
-            this.arpStrumOffPending.push({ note: ratchetNote, fireAtMs: fireAtMs + hitGateMs });
+            this.arpStrumOffPending.push({
+              note: ratchetNote,
+              fireAtMs: fireAtMs + hitGateMs
+            });
           }
         } else {
           this.arp.lastnote = note;
@@ -1185,7 +1356,10 @@ export class Zone {
     this.arp.octave = 0;
     this.arpSwingPending.length = 0;
     this.arpStrumOffPending.length = 0;
-    if (this._strumGraceTimer !== null) { clearTimeout(this._strumGraceTimer); this._strumGraceTimer = null; }
+    if (this._strumGraceTimer !== null) {
+      clearTimeout(this._strumGraceTimer);
+      this._strumGraceTimer = null;
+    }
     this.arpNoteOff();
     this.sequence.stopped();
     requestAnimationFrame(this._renderPatternBound);
@@ -1196,7 +1370,10 @@ export class Zone {
     this.solo = false;
     this.arp_enabled = false;
     this.enabled = false;
-    if (this._strumGraceTimer !== null) { clearTimeout(this._strumGraceTimer); this._strumGraceTimer = null; }
+    if (this._strumGraceTimer !== null) {
+      clearTimeout(this._strumGraceTimer);
+      this._strumGraceTimer = null;
+    }
     this.arpNoteOff();
     const outevent = new Uint8Array([0, 0, 0]);
     this.activeNotes.forEach((n) => {
@@ -1266,17 +1443,29 @@ export class Zone {
     if (!this.pgm_no) return;
     if (this.bank_msb != null) {
       this.midi.send(
-        Uint8Array.from([MIDI.MESSAGE.CONTROLLER + this.channel, 0, this.bank_msb]),
+        Uint8Array.from([
+          MIDI.MESSAGE.CONTROLLER + this.channel,
+          0,
+          this.bank_msb
+        ]),
         this.outputPortId
       );
     }
     if (this.bank_lsb != null) {
       this.midi.send(
-        Uint8Array.from([MIDI.MESSAGE.CONTROLLER + this.channel, 32, this.bank_lsb]),
+        Uint8Array.from([
+          MIDI.MESSAGE.CONTROLLER + this.channel,
+          32,
+          this.bank_lsb
+        ]),
         this.outputPortId
       );
     }
-    this.midi.sendProgramChange(this.outputPortId, this.channel, this.pgm_no - 1);
+    this.midi.sendProgramChange(
+      this.outputPortId,
+      this.channel,
+      this.pgm_no - 1
+    );
   }
 
   sendAllCC(): void {
