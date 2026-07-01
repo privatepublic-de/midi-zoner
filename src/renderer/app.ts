@@ -491,9 +491,7 @@ document.addEventListener('DOMContentLoaded', function () {
   let initialized = false;
   let clockRunning = false;
   let mackieSelectedZone: number | null = null;
-  let mackieVPotAccum = 0;
   let sendMackieLeds: () => void = () => {};
-  let syncMackieFader: () => void = () => {};
   const midi = new MIDI({
     eventHandler: (event: MIDIMessageEvent) => {
       if (midi.deviceIdInClock == MIDI.INTERNAL_PORT_ID) {
@@ -590,46 +588,13 @@ document.addEventListener('DOMContentLoaded', function () {
               saveZones();
             } else {
               mackieSelectedZone = zoneIndex;
-              syncMackieFader();
             }
           }
           // F1–F4 → arrangements A–D
           if (note >= 54 && note <= 57) {
             view.selectArrangement(note - 54);
           }
-          // Rewind/FastForward → prev/next arrangement
-          if (note === 91) {
-            view.selectArrangement((zones.nextArrangementIndex + 3) % 4);
-          }
-          if (note === 92) {
-            view.selectArrangement((zones.nextArrangementIndex + 1) % 4);
-          }
-          // V-Pot press → toggle fixed velocity on selected zone
-          if (note === 37 && mackieSelectedZone !== null && mackieSelectedZone < zones.list.length) {
-            const zone = zones.list[mackieSelectedZone];
-            zone.fixedvel = !zone.fixedvel;
-            view.updateValuesForZone(mackieSelectedZone);
-            saveZones();
-          }
           sendMackieLeds();
-        }
-        // V-Pot rotation → octave of selected zone
-        if (
-          (event.data[0] & 0xf0) === MIDI.MESSAGE.CONTROLLER &&
-          event.data[1] === 21 &&
-          mackieSelectedZone !== null &&
-          mackieSelectedZone < zones.list.length
-        ) {
-          const cw = event.data[2] < 64;
-          const delta = cw ? 1 : -1;
-          mackieVPotAccum = Math.sign(delta) === Math.sign(mackieVPotAccum) ? mackieVPotAccum + delta : delta;
-          if (Math.abs(mackieVPotAccum) >= 2) {
-            const zone = zones.list[mackieSelectedZone];
-            zone.octave = Math.max(-3, Math.min(3, zone.octave + Math.sign(mackieVPotAccum)));
-            view.updateValuesForZone(mackieSelectedZone);
-            saveZones();
-            mackieVPotAccum = 0;
-          }
         }
         // Jog encoder → BPM (internal clock only)
         if (
@@ -644,22 +609,6 @@ document.addEventListener('DOMContentLoaded', function () {
           zones.tempo = Math.min(240, Math.max(30, zones.tempo + (cw ? step : -step)));
           midi.setInternalBPM(zones.tempo);
           bpmInput.value = String(zones.tempo);
-          saveZones();
-        }
-        // Fader → velocity scaling or fixed velocity of selected zone
-        if (
-          (event.data[0] & 0xf0) === MIDI.MESSAGE.PITCH_BEND &&
-          mackieSelectedZone !== null &&
-          mackieSelectedZone < zones.list.length
-        ) {
-          const value = event.data[1] | (event.data[2] << 7);
-          const faderZone = zones.list[mackieSelectedZone];
-          if (faderZone.fixedvel) {
-            faderZone.fixedvel_value = Math.round(value * 127 / 16383);
-          } else {
-            faderZone.velocity_scaling = Math.min(2, value / 8192);
-          }
-          view.updateValuesForZone(mackieSelectedZone);
           saveZones();
         }
         return;
@@ -974,25 +923,6 @@ document.addEventListener('DOMContentLoaded', function () {
           }
           midi.sendMackie(94, midi.isClockRunning ? 127 : 0);
           midi.sendMackie(93, midi.isClockRunning ? 0 : 127);
-          midi.sendMackie(91, (zones.arrangementIndex & 1) ? 127 : 0);
-          midi.sendMackie(92, (zones.arrangementIndex >> 1 & 1) ? 127 : 0);
-          syncMackieFader();
-        };
-        syncMackieFader = (): void => {
-          if (!midi.deviceIdMackieOutput || mackieSelectedZone === null || mackieSelectedZone >= zones.list.length) return;
-          const sz = zones.list[mackieSelectedZone];
-          let value: number;
-          if (sz.fixedvel) {
-            value = Math.round((typeof sz.fixedvel_value === 'number' ? sz.fixedvel_value : 127) * 16383 / 127);
-          } else {
-            const vs = typeof sz.velocity_scaling === 'number' ? sz.velocity_scaling : 1;
-            value = Math.min(16383, Math.round(vs * 8192));
-          }
-          const msg = new Uint8Array(3);
-          msg[0] = 0xe0; // Pitch Bend ch 1
-          msg[1] = value & 0x7f;
-          msg[2] = (value >> 7) & 0x7f;
-          midi.send(msg, midi.deviceIdMackieOutput);
         };
         view.setStateChangeCallback(sendMackieLeds);
         } else {
@@ -1053,7 +983,6 @@ document.addEventListener('DOMContentLoaded', function () {
           mackieSelectedZone = 0;
         }
         sendMackieLeds();
-        syncMackieFader();
         // remember port names so missing devices can be labelled
         outputs.forEach((p) => { zones.knownPortNames[p.id] = p.name; });
         inputs.forEach((p) => { zones.knownPortNames[p.id] = p.name; });
