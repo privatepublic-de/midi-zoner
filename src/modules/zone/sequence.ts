@@ -61,16 +61,8 @@ export class Sequence {
   private readonly _midiMsgBuf = new Uint8Array(3);
   private rngProb = mulberry32();
   currentPos = 0; // Track current clock position for swing timing
-  // Swing pending steps (fireAtMs is a performance.now() timestamp)
-  private swingPendingDrumSteps: {
-    laneIndex: number;
-    stepIndex: number;
-    fireAtMs: number;
-  }[] = [];
-  private swingPendingRegularSteps: {
-    stepIndex: number;
-    fireAtMs: number;
-  }[] = [];
+  // Outstanding setTimeout handles for swung note-on dispatch; cancelled on stopped().
+  private swingTimers: Set<ReturnType<typeof setTimeout>> = new Set();
   cycleCount = -1;
   previousStepPlayed = false;
   isFirstCycle = true;
@@ -383,13 +375,6 @@ export class Sequence {
     this.currentPos = pos;
     this.tickn = pos % this.ticks;
 
-    // Process pending swung steps first (before ratchet processing)
-    if (this.isDrumSequence) {
-      this.processPendingSwingDrumSteps();
-    } else {
-      this.processPendingSwingRegularSteps();
-    }
-    
     if (this.ratchetQueue.length > 0) {
       // note-offs first so same-tick transitions are clean
       for (let i = this.ratchetQueue.length - 1; i >= 0; i--) {
@@ -501,11 +486,16 @@ export class Sequence {
       if (this.zone.swingAmount > 0 && !this.zone.arp_enabled) {
         const swingOffsetMs = this.calculateSwingOffsetMs(lane.currentStep, tickIntervalMs);
         if (swingOffsetMs > 0) {
-          this.swingPendingDrumSteps.push({
-            laneIndex: ln,
-            stepIndex: lane.currentStep,
-            fireAtMs: performance.now() + swingOffsetMs
-          });
+          const laneIndex = ln;
+          const stepIndex = lane.currentStep;
+          // Timer provides the real delay; dispatch always sends immediately when it
+          // fires (no MIDI-level timestamp) since Web MIDI scheduled sends aren't
+          // reliably honored by all output drivers.
+          const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
+            this.swingTimers.delete(timer);
+            this.playDrumStep(laneIndex, stepIndex);
+          }, swingOffsetMs);
+          this.swingTimers.add(timer);
           continue;
         }
       }
@@ -529,10 +519,12 @@ export class Sequence {
     if (this.zone.swingAmount > 0 && !this.zone.arp_enabled) {
       const swingOffsetMs = this.calculateSwingOffsetMs(this.currentStepNumber, tickIntervalMs);
       if (swingOffsetMs > 0) {
-        this.swingPendingRegularSteps.push({
-          stepIndex: this.currentStepNumber,
-          fireAtMs: performance.now() + swingOffsetMs
-        });
+        const stepIndex = this.currentStepNumber;
+        const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
+          this.swingTimers.delete(timer);
+          this.playRegularStep(stepIndex);
+        }, swingOffsetMs);
+        this.swingTimers.add(timer);
         return;
       }
     }
@@ -560,8 +552,8 @@ export class Sequence {
       }
     }
     this.ratchetQueue.length = 0;
-    this.swingPendingDrumSteps.length = 0;
-    this.swingPendingRegularSteps.length = 0;
+    this.swingTimers.forEach((t) => clearTimeout(t));
+    this.swingTimers.clear();
     this.currentStepNumber = this.previousStepNumber = -1;
     this.drum_lanes.forEach((lane) => {
       if (lane) {
@@ -700,34 +692,6 @@ export class Sequence {
   private calculateSwingOffsetMs(stepIndex: number, tickIntervalMs: number): number {
     if (stepIndex % 2 === 0) return 0;
     return this.zone.swingAmount * this.ticks * 0.5 * tickIntervalMs;
-  }
-
-  /**
-   * Fire any pending drum steps whose scheduled wall-clock time has arrived.
-   */
-  private processPendingSwingDrumSteps(): void {
-    const now = performance.now();
-    for (let i = this.swingPendingDrumSteps.length - 1; i >= 0; i--) {
-      const pending = this.swingPendingDrumSteps[i];
-      if (now >= pending.fireAtMs) {
-        this.playDrumStep(pending.laneIndex, pending.stepIndex, pending.fireAtMs);
-        this.swingPendingDrumSteps.splice(i, 1);
-      }
-    }
-  }
-
-  /**
-   * Fire any pending regular steps whose scheduled wall-clock time has arrived.
-   */
-  private processPendingSwingRegularSteps(): void {
-    const now = performance.now();
-    for (let i = this.swingPendingRegularSteps.length - 1; i >= 0; i--) {
-      const pending = this.swingPendingRegularSteps[i];
-      if (now >= pending.fireAtMs) {
-        this.playRegularStep(pending.stepIndex, pending.fireAtMs);
-        this.swingPendingRegularSteps.splice(i, 1);
-      }
-    }
   }
 
   /**

@@ -154,15 +154,25 @@ export class Zone {
     lastStrumNotes: []
   };
   // Arpeggiator swing pending pattern positions (fireAtMs is a performance.now() timestamp)
+  // scheduled via setTimeout; `timer` allows cancellation on stop/dismiss.
   private arpSwingPending: {
     patternPos: number;
     fireAtMs: number;
     probable: boolean;
+    timer: ReturnType<typeof setTimeout>;
   }[] = [];
-  // Strum pending note-ons and per-note note-offs for equal gate lengths
-  private arpStrumPending: { note: Note; fireAtMs: number; gateMs: number }[] =
-    [];
-  private arpStrumOffPending: { note: Note; fireAtMs: number }[] = [];
+  // Strum pending note-ons and per-note note-offs for equal gate lengths, scheduled via setTimeout
+  private arpStrumPending: {
+    note: Note;
+    fireAtMs: number;
+    gateMs: number;
+    timer: ReturnType<typeof setTimeout>;
+  }[] = [];
+  private arpStrumOffPending: {
+    note: Note;
+    fireAtMs: number;
+    timer: ReturnType<typeof setTimeout>;
+  }[] = [];
   private _lastTickIntervalMs = (60 / 120 / 24) * 1000;
   private _strumGraceTimer: ReturnType<typeof setTimeout> | null = null;
   activeNotes: Note[] = [];
@@ -993,11 +1003,6 @@ export class Zone {
     this.sequence.clock(pos, tickIntervalMs);
     if (tickIntervalMs > 0) this._lastTickIntervalMs = tickIntervalMs;
 
-    // Drain pending swung and strummed arpeggiator notes
-    this.processArpSwingPending();
-    this.processArpStrumPending();
-    this.processArpStrumOffPending();
-
     const tickn = pos % this.arp_ticks;
     const offtick = Math.min(
       this.arp_ticks * this.arp_gatelength,
@@ -1018,11 +1023,24 @@ export class Zone {
           tickIntervalMs
         );
         if (swingOffsetMs > 0) {
-          this.arpSwingPending.push({
-            patternPos: this.arp.patternPos,
-            fireAtMs: performance.now() + swingOffsetMs,
-            probable
-          });
+          const patternPos = this.arp.patternPos;
+          const fireAtMs = performance.now() + swingOffsetMs;
+          const pending = { patternPos, fireAtMs, probable } as {
+            patternPos: number;
+            fireAtMs: number;
+            probable: boolean;
+            timer: ReturnType<typeof setTimeout>;
+          };
+          // Timer provides the real delay; dispatch always sends immediately when it
+          // fires (no MIDI-level timestamp) since Web MIDI scheduled sends aren't
+          // reliably honored by all output drivers.
+          pending.timer = setTimeout(() => {
+            this.arpSwingPending = this.arpSwingPending.filter(
+              (p) => p !== pending
+            );
+            this.triggerArpAtPatternPos(pending.probable);
+          }, swingOffsetMs);
+          this.arpSwingPending.push(pending);
           requestAnimationFrame(this._renderPatternBound);
           return;
         }
@@ -1059,61 +1077,64 @@ export class Zone {
   }
 
   /**
-   * Fire any pending swung arpeggiator notes whose scheduled wall-clock time has arrived.
+   * Schedule a strum/ratchet sub-hit note-on via setTimeout. Dispatch always sends
+   * immediately when the timer fires (no MIDI-level timestamp) since Web MIDI
+   * scheduled sends aren't reliably honored by all output drivers.
    */
-  private processArpSwingPending(): void {
-    const now = performance.now();
-    for (let i = this.arpSwingPending.length - 1; i >= 0; i--) {
-      const pending = this.arpSwingPending[i];
-      if (now >= pending.fireAtMs) {
-        this.triggerArpAtPatternPos(pending.probable, pending.fireAtMs);
-        this.arpSwingPending.splice(i, 1);
-      }
-    }
+  private scheduleArpNoteOn(
+    note: Note,
+    delayMs: number,
+    fireAtMs: number,
+    gateMs: number
+  ): void {
+    const pending = { note, fireAtMs, gateMs } as {
+      note: Note;
+      fireAtMs: number;
+      gateMs: number;
+      timer: ReturnType<typeof setTimeout>;
+    };
+    pending.timer = setTimeout(() => {
+      this.arpStrumPending = this.arpStrumPending.filter((p) => p !== pending);
+      this.convertNote2CC(note.number, note.velo);
+      this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + note.channel;
+      this._midiMsgBuf[1] = note.number;
+      this._midiMsgBuf[2] = note.velo;
+      this.midi.send(this._midiMsgBuf, note.portId);
+      this.arp.lastStrumNotes.push(note);
+      requestAnimationFrame(this._renderNotesBound);
+    }, delayMs);
+    this.arpStrumPending.push(pending);
   }
 
-  private processArpStrumPending(): void {
-    const now = performance.now();
-    for (let i = this.arpStrumPending.length - 1; i >= 0; i--) {
-      const pending = this.arpStrumPending[i];
-      if (now >= pending.fireAtMs) {
-        const n = pending.note;
-        this.convertNote2CC(n.number, n.velo);
-        this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + n.channel;
-        this._midiMsgBuf[1] = n.number;
-        this._midiMsgBuf[2] = n.velo;
-        this.midi.send(this._midiMsgBuf, n.portId);
-        this.arp.lastStrumNotes.push(n);
-        this.arpStrumPending.splice(i, 1);
-        requestAnimationFrame(this._renderNotesBound);
-      }
-    }
-  }
-
-  private processArpStrumOffPending(): void {
-    const now = performance.now();
-    for (let i = this.arpStrumOffPending.length - 1; i >= 0; i--) {
-      const pending = this.arpStrumOffPending[i];
-      if (now >= pending.fireAtMs) {
-        const n = pending.note;
-        this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_OFF + n.channel;
-        this._midiMsgBuf[1] = n.number;
-        this._midiMsgBuf[2] = n.velo;
-        this.midi.send(this._midiMsgBuf, n.portId);
-        this.arp.lastStrumNotes = this.arp.lastStrumNotes.filter(
-          (s) => s !== n
-        );
-        this.arpStrumOffPending.splice(i, 1);
-        requestAnimationFrame(this._renderNotesBound);
-      }
-    }
+  /**
+   * Schedule a strum/ratchet sub-hit note-off via setTimeout (see scheduleArpNoteOn).
+   */
+  private scheduleArpNoteOff(note: Note, delayMs: number, fireAtMs: number): void {
+    const pending = { note, fireAtMs } as {
+      note: Note;
+      fireAtMs: number;
+      timer: ReturnType<typeof setTimeout>;
+    };
+    pending.timer = setTimeout(() => {
+      this.arpStrumOffPending = this.arpStrumOffPending.filter(
+        (p) => p !== pending
+      );
+      this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_OFF + note.channel;
+      this._midiMsgBuf[1] = note.number;
+      this._midiMsgBuf[2] = note.velo;
+      this.midi.send(this._midiMsgBuf, note.portId);
+      this.arp.lastStrumNotes = this.arp.lastStrumNotes.filter(
+        (s) => s !== note
+      );
+      requestAnimationFrame(this._renderNotesBound);
+    }, delayMs);
+    this.arpStrumOffPending.push(pending);
   }
 
   /**
    * Trigger arpeggiator note at a specific pattern position.
-   * timestamp, when provided, is forwarded to Web MIDI for hardware-precise scheduling.
    */
-  private triggerArpAtPatternPos(probable: boolean, timestamp?: number): void {
+  private triggerArpAtPatternPos(probable: boolean): void {
     this.arp.beat = true;
     const notes: Note[] = this.arp_hold
       ? this.arp_direction > 2
@@ -1154,7 +1175,9 @@ export class Zone {
             this.arp_ticks * this._lastTickIntervalMs * this.arp_gatelength;
           const gap = chord.length > 1 ? gateMs / chord.length : 0;
           this.arp.lastStrumNotes = [];
+          this.arpStrumPending.forEach((p) => clearTimeout(p.timer));
           this.arpStrumPending.length = 0;
+          this.arpStrumOffPending.forEach((p) => clearTimeout(p.timer));
           this.arpStrumOffPending.length = 0;
           const now = performance.now();
           chord.forEach((note, i) => {
@@ -1173,23 +1196,21 @@ export class Zone {
               note.channel,
               note.portId
             );
-            this.arpStrumOffPending.push({
-              note: taperedNote,
-              fireAtMs: fireAtMs + gateMs
-            });
             if (i === 0) {
               this.convertNote2CC(note.number, velo);
               this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + this.channel;
               this._midiMsgBuf[1] = note.number;
               this._midiMsgBuf[2] = velo;
-              this.midi.send(this._midiMsgBuf, this.outputPortId, timestamp);
+              this.midi.send(this._midiMsgBuf, this.outputPortId);
               this.arp.lastStrumNotes.push(taperedNote);
+              this.scheduleArpNoteOff(taperedNote, gateMs, fireAtMs + gateMs);
             } else {
-              this.arpStrumPending.push({
-                note: taperedNote,
-                fireAtMs,
-                gateMs
-              });
+              this.scheduleArpNoteOn(taperedNote, i * gap, fireAtMs, gateMs);
+              this.scheduleArpNoteOff(
+                taperedNote,
+                i * gap + gateMs,
+                fireAtMs + gateMs
+              );
             }
           });
         }
@@ -1297,18 +1318,20 @@ export class Zone {
               this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + this.channel;
               this._midiMsgBuf[1] = ratchetNote.number;
               this._midiMsgBuf[2] = ratchetNote.velo;
-              this.midi.send(this._midiMsgBuf, this.outputPortId, timestamp);
+              this.midi.send(this._midiMsgBuf, this.outputPortId);
             } else {
-              this.arpStrumPending.push({
-                note: ratchetNote,
+              this.scheduleArpNoteOn(
+                ratchetNote,
+                i * subIntervalMs,
                 fireAtMs,
-                gateMs: hitGateMs
-              });
+                hitGateMs
+              );
             }
-            this.arpStrumOffPending.push({
-              note: ratchetNote,
-              fireAtMs: fireAtMs + hitGateMs
-            });
+            this.scheduleArpNoteOff(
+              ratchetNote,
+              i * subIntervalMs + hitGateMs,
+              fireAtMs + hitGateMs
+            );
           }
         } else {
           this.arp.lastnote = note;
@@ -1316,7 +1339,7 @@ export class Zone {
           this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + this.channel;
           this._midiMsgBuf[1] = note.number;
           this._midiMsgBuf[2] = baseVelo;
-          this.midi.send(this._midiMsgBuf, this.outputPortId, timestamp);
+          this.midi.send(this._midiMsgBuf, this.outputPortId);
         }
       }
     }
@@ -1336,8 +1359,10 @@ export class Zone {
       requestAnimationFrame(this._renderNotesBound);
     }
     if (this.arpStrumPending.length > 0 || this.arpStrumOffPending.length > 0) {
+      this.arpStrumPending.forEach((p) => clearTimeout(p.timer));
       this.arpStrumPending.length = 0;
-      this.arpStrumOffPending.forEach(({ note: n }) => {
+      this.arpStrumOffPending.forEach(({ note: n, timer }) => {
+        clearTimeout(timer);
         this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_OFF + n.channel;
         this._midiMsgBuf[1] = n.number;
         this._midiMsgBuf[2] = n.velo;
@@ -1354,8 +1379,8 @@ export class Zone {
     this.arp.repeattrig = false;
     this.arp.inc = 1;
     this.arp.octave = 0;
+    this.arpSwingPending.forEach((p) => clearTimeout(p.timer));
     this.arpSwingPending.length = 0;
-    this.arpStrumOffPending.length = 0;
     if (this._strumGraceTimer !== null) {
       clearTimeout(this._strumGraceTimer);
       this._strumGraceTimer = null;
