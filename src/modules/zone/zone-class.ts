@@ -558,6 +558,11 @@ export class Zone {
                 }
               } else {
                 const srcNote = this.midiActiveNotes[srcKey];
+                // A user still holding this note on the keyboard owns it now;
+                // let their own key release cut it instead of this sequencer step.
+                if (fromSequencer && srcNote?.fromInput) {
+                  break;
+                }
                 if (srcNote) {
                   this.midiActiveNotes[srcKey] = null;
                   this.removeNote(srcNote.number);
