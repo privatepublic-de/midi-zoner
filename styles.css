@@ -2093,8 +2093,6 @@ input[type='range'] {
 }
 .seqprogress .step-block.has-notes {
   background-color: var(--brighter-1);
-  border-right-color: var(--zone-color);
-  opacity: 0.2;
 }
 .show-seq .seqprogress .step-block.has-notes {
   background-color: var(--darker-4);
