@@ -177,6 +177,7 @@ export class Zone {
   private _strumGraceTimer: ReturnType<typeof setTimeout> | null = null;
   activeNotes: Note[] = [];
   midiActiveNotes: (Note | null)[] = [];
+  seqActiveNotes: (Note | null)[] = [];
   holdList: Note[] = [];
   midi: MIDI;
   elements = new ZoneElements();
@@ -456,8 +457,13 @@ export class Zone {
     }
   }
 
-  removeNote(number: number): void {
-    this.activeNotes = this.activeNotes.filter((n) => n.number !== number);
+  removeNote(note: Note | number): void {
+    if (typeof note === 'number') {
+      this.activeNotes = this.activeNotes.filter((n) => n.number !== note);
+    } else {
+      const idx = this.activeNotes.indexOf(note);
+      if (idx !== -1) this.activeNotes.splice(idx, 1);
+    }
   }
 
   shouldHandleMidi(message: number, fromSequencer?: boolean): boolean {
@@ -483,11 +489,13 @@ export class Zone {
       const srcNote = this.midiActiveNotes[data[1]];
       if (srcNote?.fromInput) {
         this.midiActiveNotes[data[1]] = null;
-        this.removeNote(srcNote.number);
-        const outevent = new Uint8Array(3);
-        outevent[0] = MIDI.MESSAGE.NOTE_OFF + srcNote.channel;
-        outevent[1] = srcNote.number;
-        this.midi.send(outevent, srcNote.portId);
+        this.removeNote(srcNote);
+        if (this.seqActiveNotes[data[1]] == null) {
+          const outevent = new Uint8Array(3);
+          outevent[0] = MIDI.MESSAGE.NOTE_OFF + srcNote.channel;
+          outevent[1] = srcNote.number;
+          this.midi.send(outevent, srcNote.portId);
+        }
         this.notesChanged();
       }
       return;
@@ -529,7 +537,11 @@ export class Zone {
               const outevent = new Uint8Array(data);
               if (message == MIDI.MESSAGE.NOTE_ON) {
                 this.convertNote2CC(key, velo);
-                if (!isArpActive) {
+                // Don't let the sequencer retrigger a note the user is already
+                // holding live; their held note keeps sounding uninterrupted.
+                const heldByLiveInput =
+                  fromSequencer && this.midiActiveNotes[srcKey] != null;
+                if (!isArpActive && !heldByLiveInput) {
                   outevent[0] = message + this.channel;
                   outevent[1] = key;
                   outevent[2] = velo;
@@ -542,7 +554,17 @@ export class Zone {
                   this.outputPortId
                 );
                 playNote.fromInput = fromMidiInput;
-                this.midiActiveNotes[srcKey] = playNote;
+                const activeNoteSlots = fromSequencer
+                  ? this.seqActiveNotes
+                  : this.midiActiveNotes;
+                // A still-open previous note in this slot (e.g. an overlapping
+                // sequencer step retriggering the same pitch) would otherwise be
+                // orphaned in activeNotes and drawn forever as a stuck ghost note.
+                const previousNote = activeNoteSlots[srcKey];
+                if (previousNote) {
+                  this.removeNote(previousNote);
+                }
+                activeNoteSlots[srcKey] = playNote;
                 this.addNote(playNote);
                 if (fromMidiInput) {
                   let filteredActiveNotes = [...this.activeNotes];
@@ -557,16 +579,21 @@ export class Zone {
                   );
                 }
               } else {
-                const srcNote = this.midiActiveNotes[srcKey];
-                // A user still holding this note on the keyboard owns it now;
-                // let their own key release cut it instead of this sequencer step.
-                if (fromSequencer && srcNote?.fromInput) {
-                  break;
-                }
+                const sourceActiveNotes = fromSequencer
+                  ? this.seqActiveNotes
+                  : this.midiActiveNotes;
+                const otherActiveNotes = fromSequencer
+                  ? this.midiActiveNotes
+                  : this.seqActiveNotes;
+                const srcNote = sourceActiveNotes[srcKey];
+                // The live keyboard and the sequencer track their own holds on a
+                // note number separately, so one source ending its hold doesn't
+                // physically cut the note while the other source still wants it.
+                const heldByOtherSource = otherActiveNotes[srcKey] != null;
                 if (srcNote) {
-                  this.midiActiveNotes[srcKey] = null;
-                  this.removeNote(srcNote.number);
-                  if (!isArpActive) {
+                  sourceActiveNotes[srcKey] = null;
+                  this.removeNote(srcNote);
+                  if (!isArpActive && !heldByOtherSource) {
                     outevent[0] = message + srcNote.channel;
                     outevent[1] = srcNote.number;
                     outevent[2] = velo;
@@ -1417,6 +1444,7 @@ export class Zone {
   panic(): void {
     this.activeNotes = [];
     this.midiActiveNotes = [];
+    this.seqActiveNotes = [];
     this.holdList = [];
     this.notesChanged();
   }
