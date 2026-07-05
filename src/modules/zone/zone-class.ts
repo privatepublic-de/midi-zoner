@@ -847,9 +847,9 @@ export class Zone {
         this.arp_hold && this.arp_enabled
           ? this.arp_holdlist
           : this.activeNotes;
-      const drawNumbers: number[] = [];
-      for (let i = 0; i < noteList.length; i++) {
-        if (this.arp_enabled) {
+      if (this.arp_enabled) {
+        const drawNumbers: number[] = [];
+        for (let i = 0; i < noteList.length; i++) {
           for (let ao = 0; ao < this.arp_octaves + 1; ao++) {
             const number =
               noteList[i].number +
@@ -857,15 +857,20 @@ export class Zone {
               (this.octave + ao) * 12;
             drawNumbers.push(number);
           }
-        } else {
-          drawNumbers.push(noteList[i].number);
         }
+        drawNoteList(drawNumbers, NoteDisplay.fillArp, NoteDisplay.fillArpBlack);
+      } else {
+        // Dim sequencer-triggered notes so notes the user is actually
+        // holding on the keyboard stand out from ones the sequencer is playing.
+        const seqNumbers = noteList
+          .filter((n) => !n.fromInput)
+          .map((n) => n.number);
+        const liveNumbers = noteList
+          .filter((n) => n.fromInput)
+          .map((n) => n.number);
+        drawNoteList(seqNumbers, NoteDisplay.fillSeq, NoteDisplay.fillSeqBlack);
+        drawNoteList(liveNumbers, NoteDisplay.fill, NoteDisplay.fillBlack);
       }
-      drawNoteList(
-        drawNumbers,
-        this.arp_enabled ? NoteDisplay.fillArp : NoteDisplay.fill,
-        this.arp_enabled ? NoteDisplay.fillArpBlack : NoteDisplay.fillBlack
-      );
       if (this.arp_enabled) {
         const note = this.arp.lastnote;
         if (note)

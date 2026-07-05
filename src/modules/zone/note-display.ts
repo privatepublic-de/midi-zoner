@@ -3,6 +3,8 @@
  */
 export class NoteDisplay {
   static readonly fill = 'rgba(255,255,255,1)';
+  static readonly fillSeq = 'rgba(255,255,255,.45)';
+  static readonly fillSeqBlack = 'rgba(0,0,0,.45)';
   static readonly fillArp = 'rgba(0,0,0,.2)';
   static readonly fillArpBlack = 'rgba(0,0,0,.2)';
   static readonly fillArpPlayed = 'rgba(255,255,196,1)';
