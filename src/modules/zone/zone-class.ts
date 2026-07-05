@@ -490,12 +490,10 @@ export class Zone {
       if (srcNote?.fromInput) {
         this.midiActiveNotes[data[1]] = null;
         this.removeNote(srcNote);
-        if (this.seqActiveNotes[data[1]] == null) {
-          const outevent = new Uint8Array(3);
-          outevent[0] = MIDI.MESSAGE.NOTE_OFF + srcNote.channel;
-          outevent[1] = srcNote.number;
-          this.midi.send(outevent, srcNote.portId);
-        }
+        const outevent = new Uint8Array(3);
+        outevent[0] = MIDI.MESSAGE.NOTE_OFF + srcNote.channel;
+        outevent[1] = srcNote.number;
+        this.midi.send(outevent, srcNote.portId);
         this.notesChanged();
       }
       return;
@@ -582,18 +580,17 @@ export class Zone {
                 const sourceActiveNotes = fromSequencer
                   ? this.seqActiveNotes
                   : this.midiActiveNotes;
-                const otherActiveNotes = fromSequencer
-                  ? this.midiActiveNotes
-                  : this.seqActiveNotes;
                 const srcNote = sourceActiveNotes[srcKey];
-                // The live keyboard and the sequencer track their own holds on a
-                // note number separately, so one source ending its hold doesn't
-                // physically cut the note while the other source still wants it.
-                const heldByOtherSource = otherActiveNotes[srcKey] != null;
+                // The sequencer defers to a note the user is holding live: it
+                // retires its own bookkeeping but never physically cuts it. A
+                // live key release always cuts the note regardless of what the
+                // sequencer is doing, since that's the user's direct action.
+                const heldByLiveInput =
+                  fromSequencer && this.midiActiveNotes[srcKey] != null;
                 if (srcNote) {
                   sourceActiveNotes[srcKey] = null;
                   this.removeNote(srcNote);
-                  if (!isArpActive && !heldByOtherSource) {
+                  if (!isArpActive && !heldByLiveInput) {
                     outevent[0] = message + srcNote.channel;
                     outevent[1] = srcNote.number;
                     outevent[2] = velo;
