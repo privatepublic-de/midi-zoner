@@ -811,7 +811,7 @@ function rebuildSeqProgress(zone: ZoneType, sequence: SequenceType): void {
       zone.elements.sequencerDrumLaneCursors.push(cursor);
       progressEl.appendChild(row);
     }
-    if (hasAnyNotes && !zone.enabled) DOM.show(progressEl);
+    if (hasAnyNotes && !(zone.enabled && sequence.active)) DOM.show(progressEl);
     else DOM.hide(progressEl);
   } else {
     progressEl.classList.remove('drum');
@@ -833,7 +833,7 @@ function rebuildSeqProgress(zone: ZoneType, sequence: SequenceType): void {
       row.appendChild(block);
     }
     progressEl.appendChild(row);
-    if (hasAnyNotes && !zone.enabled) DOM.show(progressEl);
+    if (hasAnyNotes && !(zone.enabled && sequence.active)) DOM.show(progressEl);
     else DOM.hide(progressEl);
   }
 }
