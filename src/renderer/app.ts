@@ -31,6 +31,7 @@ interface ZonesData {
   nextArrangementIndex: number;
   arrangementQuantIndex: number;
   keySwitchEnabled: boolean;
+  mackieOutlineEnabled: boolean;
   knownPortNames: Record<string, string>;
 }
 
@@ -54,6 +55,7 @@ const zones: ZonesData = {
   nextArrangementIndex: 0,
   arrangementQuantIndex: 2,
   keySwitchEnabled: true,
+  mackieOutlineEnabled: true,
   knownPortNames: {}
 };
 
@@ -835,6 +837,8 @@ document.addEventListener('DOMContentLoaded', function () {
         );
         (DOM.get('#keySwitchEnabled') as HTMLInputElement).checked =
           zones.keySwitchEnabled !== false;
+        (DOM.get('#mackieOutlineEnabled') as HTMLInputElement).checked =
+          zones.mackieOutlineEnabled !== false;
         document.body.addEventListener('keydown', (ev) => {
           if ((document.activeElement as HTMLElement).tagName != 'INPUT') {
             if (ev.key == ' ') {
@@ -908,7 +912,7 @@ document.addEventListener('DOMContentLoaded', function () {
         sendMackieLeds = (): void => {
           zones.list.forEach((_, i) => {
             const el = DOM.get(`#zone${i}`);
-            if (el) DOM.switchClass(el, i === mackieSelectedZone, 'mackie-selected');
+            if (el) DOM.switchClass(el, zones.mackieOutlineEnabled !== false && i === mackieSelectedZone, 'mackie-selected');
           });
           for (let i = 0; i < 8; i++) {
             const zone = zones.list[i];
@@ -1093,6 +1097,11 @@ document.addEventListener('DOMContentLoaded', function () {
   DOM.on('#keySwitchEnabled', 'change', (ev) => {
     zones.keySwitchEnabled = (ev.target as HTMLInputElement).checked;
     saveZones();
+  });
+  DOM.on('#mackieOutlineEnabled', 'change', (ev) => {
+    zones.mackieOutlineEnabled = (ev.target as HTMLInputElement).checked;
+    saveZones();
+    sendMackieLeds();
   });
   view.initController({ saveData: saveZones, data: zones as any, midi, history: undoHistory });
 
