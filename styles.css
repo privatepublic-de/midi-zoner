@@ -1018,7 +1018,7 @@ input:focus-visible {
   min-width: 0;
   height: 20px;
   background-color: transparent;
-  color: var(--text-base-color);
+  color: var(--zone-color);
   font-size: 11px;
   text-align: left;
   padding: 0 4px;
@@ -1027,8 +1027,13 @@ input:focus-visible {
 }
 
 .zone input.zone-label::placeholder {
-  color: var(--brighter-2);
+  color: var(--zone-color);
   font-style: italic;
+}
+
+.zone:not(.disabled) input.zone-label,
+.zone:not(.disabled) input.zone-label::placeholder {
+  color: var(--text-base-color);
 }
 
 .iorouting-popup input.output-config-name {
