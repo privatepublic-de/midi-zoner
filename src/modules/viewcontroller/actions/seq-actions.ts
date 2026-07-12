@@ -2,6 +2,7 @@ import { Zone } from '../../zone/zone-class';
 import { Sequence } from '../../zone/sequence';
 import { SeqStep } from '../../zone/seq-step';
 import { ActionContext, ActionHelpers, ActionMap } from '../types';
+import { openPianoRoll } from '../piano-roll';
 
 const RATCHET_RES_LABELS: Record<number, string> = {
   48: '1/2', 36: '1/4.', 32: '1/2T', 24: '1/4', 18: '1/8.',
@@ -739,6 +740,9 @@ export function createSeqActions(
           ? 'Live recording enabled!'
           : 'Stopped live recording'
       );
+    },
+    seq_open_piano_roll: () => {
+      openPianoRoll(ctx);
     },
     seq_drum_tracks: () => {
       sequence.clearSelection();

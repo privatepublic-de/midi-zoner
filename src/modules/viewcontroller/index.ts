@@ -11,6 +11,7 @@ import { initToast, toast } from './toast';
 import { NumberInputController } from './number-input-controller';
 import { UndoHistory } from '../undo-history';
 import { createActionHandlers, ratchetResToLabel } from './actions';
+import { initPianoRoll } from './piano-roll';
 import {
   updateControllerValues,
   renderControllersForZone as renderControllersForZoneInternal
@@ -111,6 +112,7 @@ function initController({
       updateValuesForAllZones();
     }
   }) as EventListener);
+  initPianoRoll();
   numberInputController = new NumberInputController();
   numberInputController.onAttach = () =>
     undoHistory.startGesture(JSON.stringify(zones));
@@ -275,7 +277,10 @@ function actionHandler(ev: MouseEvent, overrideaction?: string): void {
       updateInputPortsForZoneInternal(zones, index, inputs),
     findTouchedNote,
     updateControllerValues,
-    selectArrangement
+    selectArrangement,
+    beforeAction: () => undoHistory.beforeAction(JSON.stringify(zones)),
+    startGesture: () => undoHistory.startGesture(JSON.stringify(zones)),
+    endGesture: () => undoHistory.endGesture(JSON.stringify(zones))
   };
 
   const helpers: ActionHelpers = {

@@ -1818,7 +1818,7 @@ input[type='range'] {
 
 .seqtools {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
   padding: 6px 0 6px 8px;
   width: 100%;
@@ -2709,7 +2709,7 @@ body.running .seqprogress.drum .lane-cursor {
    ============================================================= */
 
 .seq_drum_tracks::after {
-  content: 'Notes';
+  content: '♫'; /* Notes */
 }
 
 .drumSequencer {
@@ -2718,7 +2718,7 @@ body.running .seqprogress.drum .lane-cursor {
     color: var(--text-base-color);
   }
   .seq_drum_tracks::after {
-    content: 'Drums';
+    content: '☵'; /* Drum Lanes */
   }
   .step-container {
     display: none;
@@ -2998,4 +2998,213 @@ body.running .drumSequencer .lane-expand-toggle {
   min-width: 16px;
   text-align: right;
   opacity: 0.7;
+}
+
+/* Piano roll editor */
+#pianoRollOverlay {
+  --zone-color: #e9c46a;
+  position: fixed;
+  top: 24px;
+  left: 24px;
+  right: 24px;
+  bottom: 24px;
+  z-index: 210;
+  display: none;
+  flex-direction: column;
+  background-color: var(--bg-topbar);
+  border: 1px solid var(--zone-color);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.7);
+  border-radius: 6px;
+  overflow: hidden;
+  color: var(--text-base-color);
+}
+
+#pianoRollOverlay.open {
+  display: flex;
+}
+
+.pr-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--darker-3);
+  background-color: var(--zone-color);
+  flex-shrink: 0;
+}
+
+.pr-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text-base-color);
+}
+
+.pr-close {
+  background: none;
+  border: none;
+  color: var(--brighter-2);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.pr-close:hover {
+  color: var(--brighter-4);
+}
+
+.pr-main-scroll {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+}
+.pr-main-scroll::-webkit-scrollbar-corner {
+  background-color: var(--darker-3);
+}
+
+.pr-rows {
+  display: flex;
+  align-items: flex-start;
+}
+
+.pr-keys {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  width: 56px;
+  flex-shrink: 0;
+  background-color: var(--bg-topbar);
+  border-right: 1px solid var(--darker-4);
+}
+
+.pr-key {
+  position: absolute;
+  left: 0;
+  right: 0;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--darker-1);
+  background-color: var(--brighter-1);
+  font-size: 9px;
+  color: var(--darker-4);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 4px;
+  cursor: pointer;
+}
+
+.pr-key.black {
+  background-color: var(--darker-4);
+}
+
+.pr-key.labeled {
+  color: var(--brighter-3);
+  font-weight: 600;
+}
+
+.pr-key:hover {
+  background-color: var(--zone-color);
+  color: var(--darker-4);
+}
+
+.pr-grid {
+  position: relative;
+  flex-shrink: 0;
+  background-color: var(--darker-3);
+  background-image:
+    repeating-linear-gradient(
+      to right,
+      var(--brighter-1) 0 1px,
+      transparent 1px calc(4 * 24px)
+    ),
+    repeating-linear-gradient(
+      to right,
+      var(--darker-1) 0 1px,
+      transparent 1px 24px
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      var(--brighter-0) 0 1px,
+      transparent 1px calc(12 * 14px)
+    );
+  cursor: copy;
+}
+
+.pr-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background-color: var(--zone-color);
+  opacity: 0.18;
+  pointer-events: none;
+  display: none;
+}
+
+.pr-notes {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.pr-note {
+  position: absolute;
+  height: 12px;
+  border-radius: 2px;
+  background-color: var(--zone-color);
+  border: 1px solid var(--darker-4);
+  cursor: move;
+  box-sizing: border-box;
+}
+
+.pr-note.black {
+  filter: brightness(0.75);
+}
+
+.pr-note.selected {
+  outline: 2px solid var(--multiselect-highlight);
+}
+
+.pr-note-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: ew-resize;
+}
+
+.pr-velocity-scroll {
+  display: flex;
+  height: 80px;
+  flex-shrink: 0;
+  border-top: 1px solid var(--brighter-0);
+  background-color: var(--darker-3);
+}
+
+.pr-velocity-gutter {
+  width: 56px;
+  flex-shrink: 0;
+  background-color: var(--bg-topbar);
+  border-right: 1px solid var(--darker-4);
+}
+
+.pr-velocity-scroll-inner {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.pr-velocity-lane {
+  position: relative;
+  height: 100%;
+}
+
+.pr-vbar {
+  position: absolute;
+  bottom: 0;
+  background-color: var(--zone-color);
+  border-radius: 1px 1px 0 0;
+  cursor: ns-resize;
 }

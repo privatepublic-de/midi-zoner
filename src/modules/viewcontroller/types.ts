@@ -56,6 +56,9 @@ export interface ActionContext {
   findTouchedNote: (ev: MouseEvent, e: HTMLElement, zone: ZoneType) => TouchedNoteResult;
   updateControllerValues: (zone: ZoneType, index: number, onlyIndex?: number) => void;
   selectArrangement: (index: number) => void;
+  beforeAction: () => void;
+  startGesture: () => void;
+  endGesture: () => void;
 }
 
 export interface ActionHelpers {
