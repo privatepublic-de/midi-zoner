@@ -10,7 +10,13 @@ import { Note } from '../zone/note';
 import { initToast, toast } from './toast';
 import { NumberInputController } from './number-input-controller';
 import { UndoHistory } from '../undo-history';
-import { createActionHandlers, ratchetResToLabel } from './actions';
+import {
+  createActionHandlers,
+  ratchetResToLabel,
+  ratchetIndexToTicks,
+  ticksToRatchetIndex,
+  velocityDeltaToPercent
+} from './actions';
 import { initPianoRoll } from './piano-roll';
 import {
   updateControllerValues,
@@ -1054,18 +1060,25 @@ function updateValuesForZone(index: number): void {
           const ratchetDeltaEl = zone._$(
             '.seq_step_ratchet_delta'
           ) as HTMLInputElement | null;
-          if (ratchetDeltaEl)
-            ratchetDeltaEl.value = String(step.ratchetVelocityDelta ?? 0);
+          if (ratchetDeltaEl) {
+            const pct = velocityDeltaToPercent(step.ratchetVelocityDelta ?? 0);
+            ratchetDeltaEl.value = String(pct);
+            const deltaOut = ratchetDeltaEl.parentElement?.querySelector(
+              `output[for="${ratchetDeltaEl.id}"]`
+            ) as HTMLOutputElement | null;
+            if (deltaOut) deltaOut.value = (pct > 0 ? '+' : '') + pct + '%';
+          }
           const ratchetResEl = zone._$(
             '.seq_step_ratchet_res'
           ) as HTMLInputElement | null;
           if (ratchetResEl) {
             const resVal = step.ratchetResolution ?? 6;
-            ratchetResEl.value = String(resVal);
+            const resIdx = ticksToRatchetIndex(resVal);
+            ratchetResEl.value = String(resIdx);
             const resOut = ratchetResEl.parentElement?.querySelector(
               `output[for="${ratchetResEl.id}"]`
             ) as HTMLOutputElement | null;
-            if (resOut) resOut.value = ratchetResToLabel(resVal);
+            if (resOut) resOut.value = ratchetResToLabel(ratchetIndexToTicks(resIdx));
           }
         } else {
           if (sequence.selectedStepNumbers.size == 1) {

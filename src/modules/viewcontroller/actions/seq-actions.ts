@@ -5,13 +5,42 @@ import { ActionContext, ActionHelpers, ActionMap } from '../types';
 import { openPianoRoll } from '../piano-roll';
 
 const RATCHET_RES_LABELS: Record<number, string> = {
-  48: '1/2', 36: '1/4.', 32: '1/2T', 24: '1/4', 18: '1/8.',
-  16: '1/4T', 12: '1/8', 9: '1/16.', 8: '1/8T', 6: '1/16',
+  12: '1/8', 9: '1/16.', 8: '1/8T', 6: '1/16',
   4: '1/16T', 3: '1/32', 2: '1/32T', 1: '1tk'
 };
 
+// Ascending ticks (24ppq), fastest first. Rates slower than 1/8 are omitted:
+// they rarely fit inside a step's gate window as an audible ratchet.
+export const RATCHET_RES_STEPS = [1, 2, 3, 4, 6, 8, 9, 12];
+
 export function ratchetResToLabel(ticks: number): string {
   return RATCHET_RES_LABELS[ticks] ?? `${ticks}tk`;
+}
+
+export function ratchetIndexToTicks(index: number): number {
+  const i = Math.max(0, Math.min(RATCHET_RES_STEPS.length - 1, index));
+  return RATCHET_RES_STEPS[i];
+}
+
+export function ticksToRatchetIndex(ticks: number): number {
+  let closest = 0;
+  let closestDiff = Infinity;
+  RATCHET_RES_STEPS.forEach((t, i) => {
+    const diff = Math.abs(t - ticks);
+    if (diff < closestDiff) {
+      closestDiff = diff;
+      closest = i;
+    }
+  });
+  return closest;
+}
+
+export function percentToVelocityDelta(percent: number): number {
+  return Math.round((percent * 127) / 100);
+}
+
+export function velocityDeltaToPercent(delta: number): number {
+  return Math.round((delta * 100) / 127);
 }
 
 export function createSeqActions(
@@ -544,20 +573,26 @@ export function createSeqActions(
       updateValuesForZone(zoneindex);
     },
     seq_step_ratchet_res: () => {
-      const v = parseInt((element as HTMLInputElement).value);
+      const idx = parseInt((element as HTMLInputElement).value);
+      const ticks = ratchetIndexToTicks(idx);
       const out = (element as HTMLInputElement).parentElement?.querySelector(
         `output[for="${(element as HTMLInputElement).id}"]`
       ) as HTMLOutputElement | null;
-      if (out) out.value = ratchetResToLabel(v);
+      if (out) out.value = ratchetResToLabel(ticks);
       sequence.selectedSteps.forEach((step) => {
-        if (step) step.ratchetResolution = v;
+        if (step) step.ratchetResolution = ticks;
       });
       updateValuesForZone(zoneindex);
     },
     seq_step_ratchet_delta: () => {
-      const v = parseInt((element as HTMLInputElement).value) || 0;
+      const pct = parseInt((element as HTMLInputElement).value) || 0;
+      const delta = percentToVelocityDelta(pct);
+      const out = (element as HTMLInputElement).parentElement?.querySelector(
+        `output[for="${(element as HTMLInputElement).id}"]`
+      ) as HTMLOutputElement | null;
+      if (out) out.value = (pct > 0 ? '+' : '') + pct + '%';
       sequence.selectedSteps.forEach((step) => {
-        if (step) step.ratchetVelocityDelta = v;
+        if (step) step.ratchetVelocityDelta = delta;
       });
       updateValuesForZone(zoneindex);
     },

@@ -372,9 +372,9 @@
           <input
             class="percent seq_step_ratchet_res"
             type="range"
-            min="1"
-            max="48"
-            value="6"
+            min="0"
+            max="7"
+            value="4"
             data-change="${index}:seq_step_ratchet_res"
             id="seq_step_ratchet_res${index}"
             title="Ratchet rate (subdivision between repeats)"
@@ -383,16 +383,20 @@
           <output for="seq_step_ratchet_res${index}">1/16</output>
         </div>
         <div class="label ratchet-param">Δ Vel</div>
-        <input
-          class="seq_step_ratchet_delta ratchet-param"
-          type="number"
-          min="-127"
-          max="127"
-          value="0"
-          data-change="${index}:seq_step_ratchet_delta"
-          title="Velocity change per repeat"
-          tabindex="-1"
-        />
+        <div class="percent-holder ratchet-param">
+          <input
+            class="percent seq_step_ratchet_delta"
+            type="range"
+            min="-100"
+            max="100"
+            value="0"
+            data-change="${index}:seq_step_ratchet_delta"
+            id="seq_step_ratchet_delta${index}"
+            title="Velocity change per repeat"
+            tabindex="-1"
+          />
+          <output for="seq_step_ratchet_delta${index}">0%</output>
+        </div>
       </div>
       <div class="step-controls">
         <div
