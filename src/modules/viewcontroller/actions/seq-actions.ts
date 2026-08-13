@@ -331,6 +331,48 @@ export function createSeqActions(
             updateValuesForZone(zoneindex);
             break;
           }
+          case 'seq_legato': {
+            const activeIndices: number[] = [];
+            for (let i = 0; i < srcLength; i++) {
+              if (seq.steps[i]?.notesArray.length) activeIndices.push(i);
+            }
+            const targetIndices = seq.hasSelection
+              ? Array.from(seq.selectedStepNumbers)
+              : activeIndices;
+            targetIndices.forEach((idx) => {
+              const step = seq.steps[idx];
+              if (step?.notesArray.length) {
+                const pos = activeIndices.indexOf(idx);
+                if (pos > -1) {
+                  const nextIdx = activeIndices[(pos + 1) % activeIndices.length];
+                  step.length =
+                    nextIdx > idx ? nextIdx - idx : srcLength - idx + nextIdx;
+                }
+                step.gateLength = 1;
+              }
+            });
+            toast(
+              (seq.hasSelection ? 'Selected steps' : 'Sequence') + ' set to legato'
+            );
+            updateValuesForZone(zoneindex);
+            break;
+          }
+          case 'seq_staccato': {
+            const steplist = seq.hasSelection
+              ? Array.from(seq.selectedStepNumbers).map((n) => seq.steps[n])
+              : seq.steps;
+            steplist.forEach((step) => {
+              if (step) {
+                step.length = 1;
+                step.gateLength = 0.5;
+              }
+            });
+            toast(
+              (seq.hasSelection ? 'Selected steps' : 'Sequence') + ' set to staccato'
+            );
+            updateValuesForZone(zoneindex);
+            break;
+          }
           case 'euclid-distrib': {
             const euclidPositions = (hits: number, length: number): number[] => {
               const positions: number[] = [];
