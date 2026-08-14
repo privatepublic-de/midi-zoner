@@ -1005,6 +1005,10 @@ input:focus-visible {
   align-items: center;
 }
 
+.zone.disabled.arp-enabled .arp-settings-block .arp-settings:nth-of-type(n + 2) {
+  display: none;
+}
+
 .zonetools {
   display: flex;
   justify-content: flex-end;
