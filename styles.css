@@ -2084,6 +2084,11 @@ input[type='range'] {
   border: 1px solid transparent;
 }
 
+.zone.disabled.show-seq .seqprogress {
+  background-color: var(--darker-0);
+  border: 1px solid transparent;
+}
+
 .seqprogress .step-row {
   position: absolute;
   left: 0;
@@ -2101,6 +2106,12 @@ input[type='range'] {
 }
 .show-seq .seqprogress .step-block.has-notes {
   background-color: var(--darker-4);
+  opacity: 1;
+}
+
+.zone.disabled.show-seq .seqprogress .step-block.has-notes {
+  background-color: var(--zone-color);
+  border-left: 1px solid var(--darker-4);
   opacity: 1;
 }
 
