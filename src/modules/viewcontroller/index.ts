@@ -18,6 +18,7 @@ import {
   velocityDeltaToPercent
 } from './actions';
 import { initPianoRoll } from './piano-roll';
+import { describeAction, labelForZone, ARRANGEMENT_LETTERS } from './action-labels';
 import {
   updateControllerValues,
   renderControllersForZone as renderControllersForZoneInternal
@@ -121,7 +122,10 @@ function initController({
   initPianoRoll();
   numberInputController = new NumberInputController();
   numberInputController.onAttach = () =>
-    undoHistory.startGesture(JSON.stringify(zones));
+    undoHistory.startGesture(
+      JSON.stringify(zones),
+      describeElementAction(numberInputController.elValueBtnAttachedInput)
+    );
   numberInputController.onDetach = () => {
     // Don't end gesture if the input still has keyboard focus — the focus/blur pair
     // will handle that boundary instead (avoids premature commit mid-typing).
@@ -139,8 +143,9 @@ function initController({
   // The one-shot mouseup is added only when a range slider actually starts,
   // so it never fires on unrelated clicks (e.g. focusing a text input).
   document.addEventListener('mousedown', (ev) => {
-    if ((ev.target as HTMLElement).matches('input[type="range"]')) {
-      undoHistory.startGesture(JSON.stringify(zones));
+    const target = ev.target as HTMLElement;
+    if (target.matches('input[type="range"]')) {
+      undoHistory.startGesture(JSON.stringify(zones), describeElementAction(target));
       window.addEventListener(
         'mouseup',
         () => {
@@ -150,6 +155,16 @@ function initController({
       );
     }
   });
+}
+
+// Reads the data-action/data-change/data-focus-change attribute off an input
+// element to build the same kind of undo/redo label the click dispatcher uses.
+function describeElementAction(element: HTMLElement | null): string {
+  const actionString =
+    element?.getAttribute('data-change') ||
+    element?.getAttribute('data-action') ||
+    element?.getAttribute('data-focus-change');
+  return actionString ? describeAction(actionString, zones) : 'Value';
 }
 
 function findTouchedNote(
@@ -188,7 +203,6 @@ function findTouchedNote(
 
 function actionHandler(ev: MouseEvent, overrideaction?: string): void {
   ev.stopPropagation();
-  undoHistory.beforeAction(JSON.stringify(zones));
   const element = ev.currentTarget as HTMLElement;
   let actionString =
     overrideaction ||
@@ -201,6 +215,7 @@ function actionHandler(ev: MouseEvent, overrideaction?: string): void {
     actionString = element.getAttribute('data-focus-change');
     actionString += ':' + (ev.type == 'focus' ? 1 : 0);
   }
+  undoHistory.beforeAction(JSON.stringify(zones), describeAction(actionString!, zones));
   const params = actionString!.split(':');
   const zoneindex = parseInt(params[0]);
   const action = params[1];
@@ -212,11 +227,9 @@ function actionHandler(ev: MouseEvent, overrideaction?: string): void {
     const sourceIndex = parseInt(actionParam1);
     const targetIndex = parseInt(actionParam2);
     if (!isNaN(sourceIndex) && !isNaN(targetIndex) && sourceIndex !== targetIndex) {
-      undoHistory.push(JSON.stringify(zones));
       zones.list.forEach(z => z.copyArrangementFromTo(sourceIndex, targetIndex));
       triggerSave();
-      const labels = ['A', 'B', 'C', 'D'];
-      toast(`Arrangement ${labels[sourceIndex]} → ${labels[targetIndex]} copied for all zones`);
+      toast(`Arrangement ${ARRANGEMENT_LETTERS[sourceIndex]} → ${ARRANGEMENT_LETTERS[targetIndex]} copied for all zones`);
     }
     window.dispatchEvent(new CustomEvent('closeContextMenu'));
     return;
@@ -262,7 +275,7 @@ function actionHandler(ev: MouseEvent, overrideaction?: string): void {
     actionParam1,
     actionParam2,
     triggerSave,
-    pushHistory: (snapshot: string) => undoHistory.push(snapshot),
+    pushHistory: (snapshot: string, label: string) => undoHistory.push(snapshot, label),
     updateValuesForZone,
     updateValuesForAllZones,
     renderControllersForZone,
@@ -284,8 +297,8 @@ function actionHandler(ev: MouseEvent, overrideaction?: string): void {
     findTouchedNote,
     updateControllerValues,
     selectArrangement,
-    beforeAction: () => undoHistory.beforeAction(JSON.stringify(zones)),
-    startGesture: () => undoHistory.startGesture(JSON.stringify(zones)),
+    beforeAction: (label: string) => undoHistory.beforeAction(JSON.stringify(zones), label),
+    startGesture: (label: string) => undoHistory.startGesture(JSON.stringify(zones), label),
     endGesture: () => undoHistory.endGesture(JSON.stringify(zones))
   };
 
@@ -331,11 +344,11 @@ function contextHandler(ev: MouseEvent): void {
 
   function labelString(parts: string[]): string {
     if (parts[1] === 'zone_arr_copy_to') {
-      const label = ['A', 'B', 'C', 'D'][parseInt(parts[2])];
+      const label = ARRANGEMENT_LETTERS[parseInt(parts[2])];
       return `<i class="material-icons">content_copy</i> Copy to arrangement ${label}`;
     }
     if (parts[1] === 'global_arr_copy_to') {
-      const target = ['A', 'B', 'C', 'D'][parseInt(parts[3])];
+      const target = ARRANGEMENT_LETTERS[parseInt(parts[3])];
       return `<i class="material-icons">content_copy</i> Copy all zones → ${target}`;
     }
     const zoneindex = parseInt(parts[0]);
@@ -432,10 +445,10 @@ function hoverOutHandler(ev: MouseEvent): void {
 }
 
 function dblClickHandler(ev: MouseEvent): void {
-  undoHistory.beforeAction(JSON.stringify(zones));
   const e = ev.currentTarget as HTMLElement;
   const action =
     e.getAttribute('data-dblclickaction') || e.getAttribute('data-action');
+  undoHistory.beforeAction(JSON.stringify(zones), describeAction(action!, zones));
   const params = action!.split(':');
   const zoneindex = parseInt(params[0]);
   const zone = zones.list[zoneindex];
@@ -512,7 +525,7 @@ function renderControllersForZone(zone: ZoneType, index: number): void {
     index,
     actionHandler,
     triggerSave,
-    () => undoHistory.startGesture(JSON.stringify(zones)),
+    (label: string) => undoHistory.startGesture(JSON.stringify(zones), label),
     () => undoHistory.endGesture(JSON.stringify(zones))
   );
   updateValuesForZone(index);
@@ -531,7 +544,7 @@ function appendZone(zone: ZoneType, index: number): void {
   const dragHandler = zone._$('.dragzone') as HTMLElement;
   dragHandler.addEventListener('mousedown', (ev) => {
     if (zones.list.length > 1) {
-      undoHistory.beforeAction(JSON.stringify(zones));
+      undoHistory.beforeAction(JSON.stringify(zones), labelForZone(zone, index, 'Reorder'));
       new DragZone(zones, index, ev, () => {
         triggerSave();
         renderZones();
@@ -656,7 +669,7 @@ function appendZone(zone: ZoneType, index: number): void {
       const currentJSON = JSON.stringify(zones);
       undoHistory.endGesture(currentJSON);
       if (document.activeElement === e) {
-        undoHistory.startGesture(currentJSON);
+        undoHistory.startGesture(currentJSON, describeElementAction(e as HTMLElement));
       }
     };
 
@@ -669,7 +682,7 @@ function appendZone(zone: ZoneType, index: number): void {
     });
     e.addEventListener('focus', () => {
       (e as HTMLInputElement).select();
-      undoHistory.startGesture(JSON.stringify(zones));
+      undoHistory.startGesture(JSON.stringify(zones), describeElementAction(e as HTMLElement));
     });
     e.addEventListener('input', () => {
       if (inputDebounceTimer) clearTimeout(inputDebounceTimer);
@@ -1275,7 +1288,7 @@ function updateValuesForZone(index: number): void {
 }
 
 function allMuteOff(): void {
-  undoHistory.beforeAction(JSON.stringify(zones));
+  undoHistory.beforeAction(JSON.stringify(zones), 'Enable All Zones');
   for (var i = 0; i < zones.list.length; i++) {
     zones.list[i].enabled = true;
   }
@@ -1284,7 +1297,7 @@ function allMuteOff(): void {
 }
 
 function allSoloOff(): void {
-  undoHistory.beforeAction(JSON.stringify(zones));
+  undoHistory.beforeAction(JSON.stringify(zones), 'Un-solo All Zones');
   for (var i = 0; i < zones.list.length; i++) {
     zones.list[i].solo = false;
   }
@@ -1293,7 +1306,7 @@ function allSoloOff(): void {
 }
 
 function allHoldOff(): void {
-  undoHistory.beforeAction(JSON.stringify(zones));
+  undoHistory.beforeAction(JSON.stringify(zones), 'Arp Hold Off (All Zones)');
   for (var i = 0; i < zones.list.length; i++) {
     zones.list[i].arp_hold = false;
   }
@@ -1304,7 +1317,7 @@ function allHoldOff(): void {
 function soloZone(index: number): void {
   const zone = zones.list[index];
   if (zone) {
-    undoHistory.beforeAction(JSON.stringify(zones));
+    undoHistory.beforeAction(JSON.stringify(zones), labelForZone(zone, index, 'Solo'));
     if (!zone.solo) {
       if (index < zones.list.length) {
         for (var i = 0; i < zones.list.length; i++) {
@@ -1324,7 +1337,7 @@ function soloZone(index: number): void {
 function toggleZoneMute(index: number): void {
   const zone = zones.list[index];
   if (zone) {
-    undoHistory.beforeAction(JSON.stringify(zones));
+    undoHistory.beforeAction(JSON.stringify(zones), labelForZone(zone, index, 'Enabled'));
     zone.enabled = !zone.enabled;
     updateValuesForAllZones();
     triggerSave();
@@ -1334,7 +1347,7 @@ function toggleZoneMute(index: number): void {
 function toggleSequencerOnZone(index: number): void {
   const zone = zones.list[index];
   if (zone) {
-    undoHistory.beforeAction(JSON.stringify(zones));
+    undoHistory.beforeAction(JSON.stringify(zones), labelForZone(zone, index, 'Sequencer On/Off'));
     zone.sequence.active = !zone.sequence.active;
     updateValuesForAllZones();
     triggerSave();
@@ -1394,7 +1407,7 @@ function showContextMenuFor(ev: MouseEvent): void {
 }
 
 function deleteAllZones(): void {
-  undoHistory.beforeAction(JSON.stringify(zones));
+  undoHistory.beforeAction(JSON.stringify(zones), 'Delete All Zones');
   zones.list.forEach((zone) => {
     zone.dismiss();
   });

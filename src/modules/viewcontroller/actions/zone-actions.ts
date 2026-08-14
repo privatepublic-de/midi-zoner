@@ -1,6 +1,7 @@
 import MIDI from '../../midi';
 import { ActionContext, ActionHelpers, ActionMap } from '../types';
 import { ipcRenderer } from 'electron';
+import { ARRANGEMENT_LETTERS, labelForZone } from '../action-labels';
 
 export function createZoneActions(
   ctx: ActionContext,
@@ -50,7 +51,7 @@ export function createZoneActions(
         )
         .then((result: boolean) => {
           if (result == true) {
-            pushHistory(snapshotBeforeDelete);
+            pushHistory(snapshotBeforeDelete, labelForZone(zone, zoneindex, 'Delete'));
             const scrollPos = window.scrollY;
             zone.dismiss();
             zones.list.splice(zoneindex, 1);
@@ -157,8 +158,7 @@ export function createZoneActions(
       const targetIndex = parseInt(actionParam1);
       if (isNaN(targetIndex) || targetIndex < 0 || targetIndex > 3) return;
       zone.copyArrangementTo(targetIndex);
-      const labels = ['A', 'B', 'C', 'D'];
-      toast(`Arrangement ${labels[zones.arrangementIndex]} → ${labels[targetIndex]} copied`);
+      toast(`Arrangement ${ARRANGEMENT_LETTERS[zones.arrangementIndex]} → ${ARRANGEMENT_LETTERS[targetIndex]} copied`);
     },
   };
 }

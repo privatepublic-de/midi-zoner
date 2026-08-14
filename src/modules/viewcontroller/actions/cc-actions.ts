@@ -1,5 +1,6 @@
 import { ActionContext, ActionHelpers, ActionMap } from '../types';
 import { ipcRenderer } from 'electron';
+import { labelForZone } from '../action-labels';
 
 export function createCCActions(
   ctx: ActionContext,
@@ -166,7 +167,6 @@ export function createCCActions(
       triggerSave();
     },
     cc_add: () => {
-      pushHistory(JSON.stringify(zones));
       zone.cc_controllers.splice(zone.selectedCCIndex + 1, 0, {
         number: 1,
         number_in: null,
@@ -201,7 +201,7 @@ export function createCCActions(
         )
         .then((result: boolean) => {
           if (result == true) {
-            pushHistory(snapshotBeforeRemove);
+            pushHistory(snapshotBeforeRemove, labelForZone(zone, zoneindex, `Remove CC ${description}`));
             zone.cc_controllers.splice(zone.selectedCCIndex, 1);
             zone.selectedCCIndex--;
             renderControllersForZone(zone, zoneindex);
@@ -210,13 +210,11 @@ export function createCCActions(
         });
     },
     cc_change_type: () => {
-      pushHistory(JSON.stringify(zones));
       zone.cc_controllers[zone.selectedCCIndex].type = parseInt((element as HTMLSelectElement).value);
       renderControllersForZone(zone, zoneindex);
       triggerSave();
     },
     cc_change_group: () => {
-      pushHistory(JSON.stringify(zones));
       zone.cc_controllers[zone.selectedCCIndex].group = (element as HTMLSelectElement).selectedIndex;
       renderControllersForZone(zone, zoneindex);
       triggerSave();
@@ -241,7 +239,6 @@ export function createCCActions(
         }
       }
       if (pos != targetPos) {
-        pushHistory(JSON.stringify(zones));
         const v2 = zone.cc_controllers[targetPos];
         zone.cc_controllers[targetPos] = zone.cc_controllers[pos];
         zone.cc_controllers[pos] = v2;

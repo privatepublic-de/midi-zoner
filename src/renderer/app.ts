@@ -711,8 +711,14 @@ document.addEventListener('DOMContentLoaded', function () {
         function updateUndoRedoButtons(): void {
           const undoBtn = DOM.get('#undoBtn') as HTMLButtonElement | null;
           const redoBtn = DOM.get('#redoBtn') as HTMLButtonElement | null;
-          if (undoBtn) undoBtn.disabled = !undoHistory.canUndo;
-          if (redoBtn) redoBtn.disabled = !undoHistory.canRedo;
+          if (undoBtn) {
+            undoBtn.disabled = !undoHistory.canUndo;
+            undoBtn.title = undoHistory.undoLabel ? `Undo: ${undoHistory.undoLabel}` : 'Undo';
+          }
+          if (redoBtn) {
+            redoBtn.disabled = !undoHistory.canRedo;
+            redoBtn.title = undoHistory.redoLabel ? `Redo: ${undoHistory.redoLabel}` : 'Redo';
+          }
         }
 
         function applyUndoRedoSnapshot(snapshot: string): void {
@@ -740,7 +746,7 @@ document.addEventListener('DOMContentLoaded', function () {
         updateUndoRedoButtons();
 
         function createNewZone(): void {
-          undoHistory.push(JSON.stringify(zones));
+          undoHistory.push(JSON.stringify(zones), 'Add Zone');
           let colorIndex = 0;
           if (zones.list.length > 0) {
             colorIndex = zones.list[zones.list.length - 1].colorIndex + 1;
@@ -802,11 +808,11 @@ document.addEventListener('DOMContentLoaded', function () {
           if (bpmDebounceTimer) { clearTimeout(bpmDebounceTimer); bpmDebounceTimer = null; }
           const currentJSON = JSON.stringify(zones);
           undoHistory.endGesture(currentJSON);
-          if (document.activeElement === bpmInput) undoHistory.startGesture(currentJSON);
+          if (document.activeElement === bpmInput) undoHistory.startGesture(currentJSON, 'Tempo (BPM)');
         };
         bpmInput.addEventListener('focus', () => {
           bpmInput.select();
-          undoHistory.startGesture(JSON.stringify(zones));
+          undoHistory.startGesture(JSON.stringify(zones), 'Tempo (BPM)');
         });
         bpmInput.addEventListener('input', (e) => {
           const parsed = parseInt((e.target as HTMLInputElement).value);
@@ -892,7 +898,7 @@ document.addEventListener('DOMContentLoaded', function () {
             .then((result: string | null) => {
               if (result) {
                 try {
-                  undoHistory.push(JSON.stringify(zones));
+                  undoHistory.push(JSON.stringify(zones), 'Load Scene File');
                   applyStoredZones(JSON.parse(result), midi, true);
                   syncZoneInputPorts(midi);
                   view.renderZones();

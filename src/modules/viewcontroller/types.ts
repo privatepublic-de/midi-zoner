@@ -41,7 +41,7 @@ export interface ActionContext {
   actionParam1: string;
   actionParam2: string;
   triggerSave: () => void;
-  pushHistory: (snapshot: string) => void;
+  pushHistory: (snapshot: string, label: string) => void;
   updateValuesForZone: (index: number) => void;
   updateValuesForAllZones: () => void;
   renderControllersForZone: (zone: ZoneType, index: number) => void;
@@ -56,8 +56,8 @@ export interface ActionContext {
   findTouchedNote: (ev: MouseEvent, e: HTMLElement, zone: ZoneType) => TouchedNoteResult;
   updateControllerValues: (zone: ZoneType, index: number, onlyIndex?: number) => void;
   selectArrangement: (index: number) => void;
-  beforeAction: () => void;
-  startGesture: () => void;
+  beforeAction: (label: string) => void;
+  startGesture: (label: string) => void;
   endGesture: () => void;
 }
 

@@ -4,6 +4,7 @@ import { Note } from '../zone/note';
 import { SeqStep } from '../zone/seq-step';
 import potDragHandler from '../potdraghandler';
 import { ActionContext, ZoneType, SequenceType } from './types';
+import { labelForZone } from './action-labels';
 
 // Fixed cell size — no zoom in v1 (per spec), so these can be baked into styles.css too.
 const CELL_W = 24; // px per step
@@ -207,7 +208,7 @@ function commitEdit(ctx: ActionContext): void {
 
 function deleteSelected(zone: ZoneType): void {
   if (selectedNotes.size === 0 || !activeCtx) return;
-  activeCtx.beforeAction();
+  activeCtx.beforeAction(labelForZone(zone, activeCtx.zoneindex, 'Delete Note'));
   const sequence = zone.sequence;
   for (let i = 0; i < sequence.length; i++) {
     const step = sequence.steps[i];
@@ -248,7 +249,7 @@ function wireNoteInteraction(
       if (loc !== null) items.push({ note: n, startStep: loc, startPitch: n.number });
     });
     if (items.length === 0) return;
-    activeCtx?.startGesture();
+    if (activeCtx) activeCtx.startGesture(labelForZone(zone, activeCtx.zoneindex, 'Note Position'));
     dragState = {
       mode: 'move',
       anchorX: mev.clientX,
@@ -274,7 +275,7 @@ function wireNoteInteraction(
     const loc = findNoteLocation(sequence, note);
     if (loc === null) return;
     const step = sequence.steps[loc]!;
-    activeCtx?.startGesture();
+    if (activeCtx) activeCtx.startGesture(labelForZone(zone, activeCtx.zoneindex, 'Note Length'));
     dragState = {
       mode: 'resize',
       anchorX: mev.clientX,
@@ -288,11 +289,11 @@ function wireNoteInteraction(
   });
 }
 
-function wireVelocityDrag(vbar: HTMLElement, note: Note): void {
+function wireVelocityDrag(vbar: HTMLElement, note: Note, zone: ZoneType): void {
   vbar.addEventListener('mousedown', (ev) => {
     if ((ev as MouseEvent).button !== 0) return;
     ev.stopPropagation();
-    activeCtx?.startGesture();
+    if (activeCtx) activeCtx.startGesture(labelForZone(zone, activeCtx.zoneindex, 'Note Velocity'));
     potDragHandler.startDrag(
       ev as MouseEvent,
       note.velo << 7,
@@ -345,7 +346,7 @@ function renderNotesAndVelocity(zone: ZoneType): void {
       vbar.style.width = `${Math.max(1, CELL_W - 2)}px`;
       vbar.style.height = `${(note.velo / 127) * VELOCITY_LANE_H}px`;
       vbar.title = `vel ${note.velo}`;
-      wireVelocityDrag(vbar, note);
+      wireVelocityDrag(vbar, note, zone);
       velocityLaneEl.appendChild(vbar);
     }
   }
@@ -396,7 +397,7 @@ function handleGridMouseDown(ev: MouseEvent): void {
   const stepIndex = xToStep(ev.clientX - rect.left, sequence.length);
   const pitch = yToPitch(ev.clientY - rect.top);
 
-  activeCtx.beforeAction();
+  activeCtx.beforeAction(labelForZone(zone, activeCtx.zoneindex, 'Add Note'));
   let step = sequence.steps[stepIndex];
   if (!step) {
     step = new SeqStep();

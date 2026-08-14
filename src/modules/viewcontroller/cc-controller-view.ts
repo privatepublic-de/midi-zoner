@@ -2,6 +2,7 @@ import DOM from '../domutils';
 import * as zoneTemplate from '../zone-template';
 import potDragHandler from '../potdraghandler';
 import { ZoneType, ZonesData } from './types';
+import { describeActionForZone, labelForZone } from './action-labels';
 
 function polarToCartesian(
   centerX: number,
@@ -176,7 +177,7 @@ export function renderControllersForZone(
   index: number,
   actionHandler: (ev: MouseEvent, overrideaction?: string) => void,
   triggerSave: () => void,
-  onGestureStart: () => void,
+  onGestureStart: (label: string) => void,
   onGestureEnd: () => void
 ): void {
   DOM.all(`#zone${index} .ccpots .ccpot`).forEach((e) => e.remove());
@@ -193,7 +194,12 @@ export function renderControllersForZone(
   DOM.on(`#zone${index} .ccpots input`, 'keyup', suckEvent);
   DOM.on(`#zone${index} .ccpots input`, 'focus', (e) => {
     (e.target as HTMLInputElement).select();
-    onGestureStart();
+    const actionString =
+      (e.target as HTMLElement).getAttribute('data-change') ||
+      (e.target as HTMLElement).getAttribute('data-action');
+    onGestureStart(
+      actionString ? describeActionForZone(actionString, zone, index) : labelForZone(zone, index, 'CC Value')
+    );
   });
   DOM.on(`#zone${index} .ccpots input`, 'blur', () => {
     onGestureEnd();
@@ -224,7 +230,7 @@ export function renderControllersForZone(
       ) {
         return;
       }
-      onGestureStart();
+      onGestureStart(labelForZone(zone, index, zone.cc_controllers[ix].label || `CC ${ix + 1}`));
       const currentValue14 = is14bit
         ? zone.cc_controllers[ix].val
         : zone.cc_controllers[ix].val << 7;
