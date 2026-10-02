@@ -255,6 +255,11 @@ function closeContextMenu(): void {
   DOM.removeClass('*', 'contextMenuTrigger');
 }
 
+const MINI_STORAGE_KEY = 'miniView';
+const MINI_WIDTH = 420; // CSS px: two zone columns
+let miniView = false;
+let lastMiniSize = '';
+
 const ZOOM_STEP = 0.1;
 const ZOOM_MIN = 0.5;
 const ZOOM_MAX = 2.0;
@@ -265,14 +270,57 @@ function applyZoom(factor: number): void {
   currentZoomFactor = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, Math.round(factor * 10) / 10));
   webFrame.setZoomFactor(currentZoomFactor);
   localStorage.setItem(ZOOM_STORAGE_KEY, String(currentZoomFactor));
+  applyMiniSize();
 }
 
 applyZoom(currentZoomFactor);
+
+
+/** Tells the main process to shrink/grow the window to fit the mini grid. */
+function applyMiniSize(): void {
+  if (!miniView) return;
+  const zonesBottom = DOM.get('#zones')!.getBoundingClientRect().bottom;
+  const toolsHeight = (DOM.get('#tools') as HTMLElement).offsetHeight;
+  const width = MINI_WIDTH * currentZoomFactor;
+  const height = (zonesBottom + toolsHeight + 8) * currentZoomFactor;
+  const size = `${width}x${height}`;
+  if (size === lastMiniSize) return;
+  lastMiniSize = size;
+  ipcRenderer.invoke('set-view-mode', true, width, height);
+}
+
+function setMiniView(on: boolean): void {
+  miniView = on;
+  lastMiniSize = '';
+  localStorage.setItem(MINI_STORAGE_KEY, on ? '1' : '0');
+  document.body.classList.toggle('minimized', on);
+  DOM.get('#miniViewBtn')!.classList.toggle('active', on);
+  view.updateValuesForAllZones();
+  if (on) {
+    applyMiniSize();
+  } else {
+    ipcRenderer.invoke('set-view-mode', false, 0, 0);
+    // canvases of hidden elements had no size while minimized
+    zones.list.forEach((z) => {
+      z.renderNotes();
+      z.renderPattern();
+    });
+  }
+}
 
 document.addEventListener('DOMContentLoaded', function () {
   DOM.get('#zoomIn')!.addEventListener('click', () => applyZoom(currentZoomFactor + ZOOM_STEP));
   DOM.get('#zoomOut')!.addEventListener('click', () => applyZoom(currentZoomFactor - ZOOM_STEP));
   DOM.get('#zoomReset')!.addEventListener('click', () => applyZoom(1.0));
+  DOM.get('#miniViewBtn')!.addEventListener('click', () => setMiniView(!miniView));
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'KeyM' && e.shiftKey && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      setMiniView(!miniView);
+    }
+  });
+  new ResizeObserver(applyMiniSize).observe(DOM.get('#zones')!);
+  if (localStorage.getItem(MINI_STORAGE_KEY) === '1') setMiniView(true);
   const contextMenuElement = DOM.get('#contextmenu') as HTMLElement;
   DOM.on(document, 'click', bodyClickHandler);
   const select_in_clock = DOM.get('#midiClockInDeviceId') as HTMLSelectElement;

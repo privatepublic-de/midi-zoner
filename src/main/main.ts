@@ -84,6 +84,8 @@ const projectRoot = path.join(__dirname, '../..');
 const iconPath = path.join(projectRoot, 'res/zoner.png');
 
 let win: BrowserWindow | null;
+// full-size bounds to restore when leaving mini view; non-null while in mini view
+let fullBounds: electron.Rectangle | null = null;
 
 function createWindow(): void {
   const rect = storedWindowPos();
@@ -186,6 +188,26 @@ function createWindow(): void {
       });
     return content;
   });
+  ipcMain.handle('set-view-mode', (event, mini: boolean, width: number, height: number) => {
+    if (!win) return;
+    if (mini) {
+      if (!fullBounds) {
+        fullBounds = win.getBounds();
+        const miniPos = settings.get('miniWindowPos') as { x: number; y: number } | undefined;
+        win.setMinimumSize(1, 1);
+        if (miniPos) win.setPosition(miniPos.x, miniPos.y);
+        win.setAlwaysOnTop(true, 'floating');
+      }
+      win.setContentSize(Math.round(width), Math.round(height));
+    } else if (fullBounds) {
+      saveMiniPos(win);
+      const restore = fullBounds;
+      fullBounds = null;
+      win.setAlwaysOnTop(false);
+      win.setMinimumSize(defaultWidth, 200);
+      win.setBounds(restore);
+    }
+  });
   ipcMain.handle('open-about', () => openAboutWindow());
   ipcMain.handle('open-confirm', async (event, ...args): Promise<boolean> => {
     let confirmed = false;
@@ -213,9 +235,14 @@ app.on('window-all-closed', () => {
 
 function saveWindowPos(win: BrowserWindow): void {
   if (!win.isMinimized()) {
-    let rect = win.getBounds();
-    settings.set('windowPos', rect);
+    if (fullBounds) saveMiniPos(win);
+    settings.set('windowPos', fullBounds ?? win.getBounds());
   }
+}
+
+function saveMiniPos(win: BrowserWindow): void {
+  const { x, y } = win.getBounds();
+  settings.set('miniWindowPos', { x, y });
 }
 
 function storedWindowPos(): WindowRect | undefined {

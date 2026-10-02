@@ -3223,3 +3223,59 @@ body.running .drumSequencer .lane-expand-toggle {
   border-radius: 1px 1px 0 0;
   cursor: ns-resize;
 }
+
+/* =============================================================
+   MINIMIZED VIEW  (body.minimized)
+   2-column grid of compact blocks: mute/solo/seq/arp toggles + label
+   ============================================================= */
+
+body.minimized #midisettings > :not(.right),
+body.minimized #midisettings .right > :not(.toolbar),
+body.minimized #midisettings .toolbar > :not(#miniViewBtn),
+body.minimized #tools > :not(.selectSeq),
+body.minimized .zone > :not(.channels),
+body.minimized .zone .channels > :not(.state):not(.solo):not(.showseq):not(.showarp):not(.zone-label),
+body.minimized .zone.placeholder,
+body.minimized .zone.addnewzone {
+  display: none !important;
+}
+
+body.minimized #midisettings {
+  position: static;
+  justify-content: flex-end;
+}
+
+body.minimized .padded {
+  padding: 4px;
+}
+
+body.minimized #zones {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  min-height: 0;
+  margin-bottom: 40px;
+}
+
+body.minimized .zone {
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 4px;
+  gap: 0;
+}
+
+body.minimized .channels {
+  margin-bottom: 0;
+  gap: 4px;
+}
+
+body.minimized #tools .selectSeq {
+  width: 40px;
+}
+
+body.minimized {
+  min-width: 0;
+  margin: 0;
+}

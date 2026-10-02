@@ -1248,6 +1248,15 @@ function updateValuesForZone(index: number): void {
     if (labelField && document.activeElement !== labelField) {
       labelField.value = zone.label || '';
     }
+    if (labelField) {
+      // minimized view: unnamed zones show their output port / preset instead of "Zone N"
+      labelField.dataset.defaultPlaceholder ??= labelField.placeholder;
+      const portName = nameField.value || nameField.placeholder;
+      labelField.placeholder =
+        document.body.classList.contains('minimized') && portName
+          ? portName
+          : labelField.dataset.defaultPlaceholder;
+    }
     zone.elements.addSelectedStyle(
       '.sendClock',
       midiController.clockOutputPorts[zone.outputPortId] === true
