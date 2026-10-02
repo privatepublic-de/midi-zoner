@@ -289,13 +289,13 @@ function applyMiniSize(): void {
   ipcRenderer.invoke('set-view-mode', true, width, height);
 }
 
-function setMiniView(on: boolean): void {
+function setMiniView(on: boolean, refresh = true): void {
   miniView = on;
   lastMiniSize = '';
   localStorage.setItem(MINI_STORAGE_KEY, on ? '1' : '0');
   document.body.classList.toggle('minimized', on);
   DOM.get('#miniViewBtn')!.classList.toggle('active', on);
-  view.updateValuesForAllZones();
+  if (refresh) view.updateValuesForAllZones();
   if (on) {
     applyMiniSize();
   } else {
@@ -320,7 +320,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
   new ResizeObserver(applyMiniSize).observe(DOM.get('#zones')!);
-  if (localStorage.getItem(MINI_STORAGE_KEY) === '1') setMiniView(true);
+  if (localStorage.getItem(MINI_STORAGE_KEY) === '1') setMiniView(true, false); // zones aren't loaded yet
   const contextMenuElement = DOM.get('#contextmenu') as HTMLElement;
   DOM.on(document, 'click', bodyClickHandler);
   const select_in_clock = DOM.get('#midiClockInDeviceId') as HTMLSelectElement;

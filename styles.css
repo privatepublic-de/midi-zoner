@@ -3229,7 +3229,9 @@ body.running .drumSequencer .lane-expand-toggle {
    2-column grid of compact blocks: mute/solo/seq/arp toggles + label
    ============================================================= */
 
-body.minimized #midisettings > :not(.right),
+body.minimized #midisettings > :not(.right):not(.controls),
+body.minimized #midisettings .controls > :not(.clocksettings),
+body.minimized #midisettings .clocksettings > :not(.internal),
 body.minimized #midisettings .right > :not(.toolbar),
 body.minimized #midisettings .toolbar > :not(#miniViewBtn),
 body.minimized #tools > :not(.selectSeq),
@@ -3242,7 +3244,11 @@ body.minimized .zone.addnewzone {
 
 body.minimized #midisettings {
   position: static;
-  justify-content: flex-end;
+  justify-content: space-between;
+}
+
+body.minimized #midisettings .controls {
+  margin: 0;
 }
 
 body.minimized .padded {

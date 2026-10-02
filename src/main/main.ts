@@ -89,14 +89,29 @@ let fullBounds: electron.Rectangle | null = null;
 
 function createWindow(): void {
   const rect = storedWindowPos();
+  const miniSize = settings.get('miniWindowSize') as { width: number; height: number } | undefined;
+  const miniPos = onScreenPos(settings.get('miniWindowPos') as WindowRect | undefined);
+  const startMini = settings.get('miniMode') === true && !!miniSize;
+  if (startMini) {
+    // full-size bounds are kept aside and restored when leaving mini view
+    const wa = electron.screen.getPrimaryDisplay().workArea;
+    fullBounds = rect ?? {
+      x: Math.round(wa.x + (wa.width - defaultWidth) / 2),
+      y: Math.round(wa.y + (wa.height - defaultHeight) / 2),
+      width: defaultWidth,
+      height: defaultHeight
+    };
+  }
   win = new BrowserWindow({
-    x: rect ? rect.x : undefined,
-    y: rect ? rect.y : undefined,
+    x: startMini ? miniPos?.x : rect ? rect.x : undefined,
+    y: startMini ? miniPos?.y : rect ? rect.y : undefined,
     title: 'midi-zoner',
-    width: rect ? rect.width : defaultWidth,
-    height: rect ? rect.height : defaultHeight,
-    minWidth: defaultWidth,
-    minHeight: 200,
+    useContentSize: startMini,
+    width: startMini ? miniSize!.width : rect ? rect.width : defaultWidth,
+    height: startMini ? miniSize!.height : rect ? rect.height : defaultHeight,
+    minWidth: startMini ? 1 : defaultWidth,
+    minHeight: startMini ? 1 : 200,
+    alwaysOnTop: startMini,
     autoHideMenuBar: true,
     backgroundColor: '#000000',
     icon: iconPath,
@@ -193,13 +208,16 @@ function createWindow(): void {
     if (mini) {
       if (!fullBounds) {
         fullBounds = win.getBounds();
-        const miniPos = settings.get('miniWindowPos') as { x: number; y: number } | undefined;
+        const miniPos = onScreenPos(settings.get('miniWindowPos') as WindowRect | undefined);
         win.setMinimumSize(1, 1);
         if (miniPos) win.setPosition(miniPos.x, miniPos.y);
-        win.setAlwaysOnTop(true, 'floating');
       }
+      win.setAlwaysOnTop(true, 'floating');
       win.setContentSize(Math.round(width), Math.round(height));
+      settings.set('miniMode', true);
+      settings.set('miniWindowSize', { width: Math.round(width), height: Math.round(height) });
     } else if (fullBounds) {
+      settings.set('miniMode', false);
       saveMiniPos(win);
       const restore = fullBounds;
       fullBounds = null;
@@ -246,32 +264,28 @@ function saveMiniPos(win: BrowserWindow): void {
 }
 
 function storedWindowPos(): WindowRect | undefined {
-  let rect = settings.get('windowPos') as WindowRect | undefined;
+  const rect = settings.get('windowPos') as WindowRect | undefined;
   if (rect) {
-    // check if stored window pos is within screen
     if (rect.width < defaultWidth) rect.width = defaultWidth;
     if (rect.height < defaultHeight) rect.height = defaultHeight;
-    let displays = electron.screen.getAllDisplays();
-    let isVisible = false;
-    const max_thresh = 100;
-    displays.forEach((display) => {
-      let bounds = display.bounds;
-      if (
-        rect!.x >= bounds.x &&
-        rect!.x < bounds.x + bounds.width - max_thresh &&
-        rect!.y >= bounds.y &&
-        rect!.y < bounds.y + bounds.height - max_thresh
-      ) {
-        isVisible = true;
-      }
-    });
-    if (isVisible) {
-      return rect;
-    } else {
-      return undefined;
-    }
   }
-  return rect;
+  return onScreenPos(rect);
+}
+
+/** Returns the rect only if its top-left corner is within some display. */
+function onScreenPos<T extends { x: number; y: number }>(rect: T | undefined): T | undefined {
+  if (!rect) return rect;
+  const max_thresh = 100;
+  const isVisible = electron.screen.getAllDisplays().some((display) => {
+    const bounds = display.bounds;
+    return (
+      rect.x >= bounds.x &&
+      rect.x < bounds.x + bounds.width - max_thresh &&
+      rect.y >= bounds.y &&
+      rect.y < bounds.y + bounds.height - max_thresh
+    );
+  });
+  return isVisible ? rect : undefined;
 }
 
 function openAboutWindow(): void {
