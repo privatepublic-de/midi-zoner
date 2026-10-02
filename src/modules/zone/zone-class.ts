@@ -425,6 +425,21 @@ export class Zone {
     }
   }
 
+  private ledTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /** Sends a MIDI message and flashes the activity LED (visible in minimized view only). */
+  private sendOut(msg: Uint8Array, portId: string, timestamp?: number): void {
+    this.midi.send(msg, portId, timestamp);
+    if (this.ledTimer !== null || !document.body.classList.contains('minimized')) return;
+    const led = this.elements.zoneElement?.querySelector('.midi-led');
+    if (!led) return;
+    led.classList.add('on');
+    this.ledTimer = setTimeout(() => {
+      led.classList.remove('on');
+      this.ledTimer = null;
+    }, 70);
+  }
+
   get sustain_on(): boolean {
     return this._sustain_on;
   }
@@ -432,7 +447,7 @@ export class Zone {
   set sustain_on(v: boolean) {
     this._sustain_on = v;
     this.sustain_state = v;
-    this.midi.send(
+    this.sendOut(
       Uint8Array.from([
         MIDI.MESSAGE.CONTROLLER + this.channel,
         64,
@@ -493,7 +508,7 @@ export class Zone {
         const outevent = new Uint8Array(3);
         outevent[0] = MIDI.MESSAGE.NOTE_OFF + srcNote.channel;
         outevent[1] = srcNote.number;
-        this.midi.send(outevent, srcNote.portId);
+        this.sendOut(outevent, srcNote.portId);
         this.notesChanged();
       }
       return;
@@ -543,7 +558,7 @@ export class Zone {
                   outevent[0] = message + this.channel;
                   outevent[1] = key;
                   outevent[2] = velo;
-                  this.midi.send(outevent, this.outputPortId, timestamp);
+                  this.sendOut(outevent, this.outputPortId, timestamp);
                 }
                 const playNote = new Note(
                   key,
@@ -594,7 +609,7 @@ export class Zone {
                     outevent[0] = message + srcNote.channel;
                     outevent[1] = srcNote.number;
                     outevent[2] = velo;
-                    this.midi.send(outevent, this.outputPortId);
+                    this.sendOut(outevent, this.outputPortId);
                   }
                 } else {
                   this.removeNote(key);
@@ -641,20 +656,20 @@ export class Zone {
           if (!this.cc && data[1] != 0x40 && data[1] != 0x01) return;
           const ccOutevent = new Uint8Array(data);
           ccOutevent[0] = message + this.channel;
-          this.midi.send(ccOutevent, this.outputPortId);
+          this.sendOut(ccOutevent, this.outputPortId);
           break;
         case MIDI.MESSAGE.PITCH_BEND:
           if (this.pitchbend) {
             const pbOutevent = new Uint8Array(data);
             pbOutevent[0] = message + this.channel;
-            this.midi.send(pbOutevent, this.outputPortId);
+            this.sendOut(pbOutevent, this.outputPortId);
           }
           break;
         case MIDI.MESSAGE.PGM_CHANGE:
           if (this.programchange) {
             const pgmOutevent = new Uint8Array(data);
             pgmOutevent[0] = message + this.channel;
-            this.midi.send(pgmOutevent, this.outputPortId);
+            this.sendOut(pgmOutevent, this.outputPortId);
           }
           break;
         case MIDI.MESSAGE.CHANNEL_PRESSURE:
@@ -663,14 +678,14 @@ export class Zone {
             atOutevent[0] = MIDI.MESSAGE.CONTROLLER + this.channel;
             atOutevent[1] = 1;
             atOutevent[2] = data[1];
-            this.midi.send(atOutevent, this.outputPortId);
+            this.sendOut(atOutevent, this.outputPortId);
             break;
           }
         // fallthrough
         default: {
           const defaultOutevent = new Uint8Array(data);
           defaultOutevent[0] = message + this.channel;
-          this.midi.send(defaultOutevent, this.outputPortId);
+          this.sendOut(defaultOutevent, this.outputPortId);
         }
       }
     }
@@ -686,12 +701,12 @@ export class Zone {
         if (ctrl.note_cc != null) {
           outevent[1] = ctrl.note_cc;
           outevent[2] = key;
-          this.midi.send(outevent, this.outputPortId);
+          this.sendOut(outevent, this.outputPortId);
         }
         if (ctrl.velocity_cc != null) {
           outevent[1] = ctrl.velocity_cc;
           outevent[2] = velo;
-          this.midi.send(outevent, this.outputPortId);
+          this.sendOut(outevent, this.outputPortId);
         }
       }
     });
@@ -1133,7 +1148,7 @@ export class Zone {
       this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + note.channel;
       this._midiMsgBuf[1] = note.number;
       this._midiMsgBuf[2] = note.velo;
-      this.midi.send(this._midiMsgBuf, note.portId);
+      this.sendOut(this._midiMsgBuf, note.portId);
       this.arp.lastStrumNotes.push(note);
       requestAnimationFrame(this._renderNotesBound);
     }, delayMs);
@@ -1156,7 +1171,7 @@ export class Zone {
       this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_OFF + note.channel;
       this._midiMsgBuf[1] = note.number;
       this._midiMsgBuf[2] = note.velo;
-      this.midi.send(this._midiMsgBuf, note.portId);
+      this.sendOut(this._midiMsgBuf, note.portId);
       this.arp.lastStrumNotes = this.arp.lastStrumNotes.filter(
         (s) => s !== note
       );
@@ -1235,7 +1250,7 @@ export class Zone {
               this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + this.channel;
               this._midiMsgBuf[1] = note.number;
               this._midiMsgBuf[2] = velo;
-              this.midi.send(this._midiMsgBuf, this.outputPortId);
+              this.sendOut(this._midiMsgBuf, this.outputPortId);
               this.arp.lastStrumNotes.push(taperedNote);
               this.scheduleArpNoteOff(taperedNote, gateMs, fireAtMs + gateMs);
             } else {
@@ -1352,7 +1367,7 @@ export class Zone {
               this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + this.channel;
               this._midiMsgBuf[1] = ratchetNote.number;
               this._midiMsgBuf[2] = ratchetNote.velo;
-              this.midi.send(this._midiMsgBuf, this.outputPortId);
+              this.sendOut(this._midiMsgBuf, this.outputPortId);
             } else {
               this.scheduleArpNoteOn(
                 ratchetNote,
@@ -1373,7 +1388,7 @@ export class Zone {
           this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + this.channel;
           this._midiMsgBuf[1] = note.number;
           this._midiMsgBuf[2] = baseVelo;
-          this.midi.send(this._midiMsgBuf, this.outputPortId);
+          this.sendOut(this._midiMsgBuf, this.outputPortId);
         }
       }
     }
@@ -1387,7 +1402,7 @@ export class Zone {
       this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_OFF + note.channel;
       this._midiMsgBuf[1] = note.number;
       this._midiMsgBuf[2] = note.velo;
-      this.midi.send(this._midiMsgBuf, note.portId);
+      this.sendOut(this._midiMsgBuf, note.portId);
       this.arp.lastnote = null;
       this.arp.repeatnote = note;
       requestAnimationFrame(this._renderNotesBound);
@@ -1400,7 +1415,7 @@ export class Zone {
         this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_OFF + n.channel;
         this._midiMsgBuf[1] = n.number;
         this._midiMsgBuf[2] = n.velo;
-        this.midi.send(this._midiMsgBuf, n.portId);
+        this.sendOut(this._midiMsgBuf, n.portId);
       });
       this.arpStrumOffPending.length = 0;
       this.arp.lastStrumNotes = [];
@@ -1438,7 +1453,7 @@ export class Zone {
     this.activeNotes.forEach((n) => {
       outevent[0] = MIDI.MESSAGE.NOTE_OFF + n.channel;
       outevent[1] = n.number;
-      this.midi.send(outevent, this.outputPortId);
+      this.sendOut(outevent, this.outputPortId);
     });
     this.sequence.stopped();
   }
@@ -1471,7 +1486,7 @@ export class Zone {
       this.cc_controllers[index].type == 5 ||
       this.cc_controllers[index].type == 6;
     if (is14bit) {
-      this.midi.send(
+      this.sendOut(
         Uint8Array.from([
           MIDI.MESSAGE.CONTROLLER + this.channel,
           this.cc_controllers[index].number_lsb || 0,
@@ -1479,7 +1494,7 @@ export class Zone {
         ]),
         this.outputPortId
       );
-      this.midi.send(
+      this.sendOut(
         Uint8Array.from([
           MIDI.MESSAGE.CONTROLLER + this.channel,
           this.cc_controllers[index].number,
@@ -1488,7 +1503,7 @@ export class Zone {
         this.outputPortId
       );
     } else {
-      this.midi.send(
+      this.sendOut(
         Uint8Array.from([
           MIDI.MESSAGE.CONTROLLER + this.channel,
           this.cc_controllers[index].number,
@@ -1502,7 +1517,7 @@ export class Zone {
   sendProgramChange(): void {
     if (!this.pgm_no) return;
     if (this.bank_msb != null) {
-      this.midi.send(
+      this.sendOut(
         Uint8Array.from([
           MIDI.MESSAGE.CONTROLLER + this.channel,
           0,
@@ -1512,7 +1527,7 @@ export class Zone {
       );
     }
     if (this.bank_lsb != null) {
-      this.midi.send(
+      this.sendOut(
         Uint8Array.from([
           MIDI.MESSAGE.CONTROLLER + this.channel,
           32,

@@ -3234,7 +3234,7 @@ body.minimized #midisettings .right > :not(.toolbar),
 body.minimized #midisettings .toolbar > :not(#miniViewBtn),
 body.minimized #tools > :not(.selectSeq),
 body.minimized .zone > :not(.channels),
-body.minimized .zone .channels > :not(.state):not(.solo):not(.showseq):not(.showarp):not(.zone-label),
+body.minimized .zone .channels > :not(.state):not(.solo):not(.showseq):not(.showarp):not(.zone-label):not(.midi-led),
 body.minimized .zone.placeholder,
 body.minimized .zone.addnewzone {
   display: none !important;
@@ -3278,4 +3278,24 @@ body.minimized #tools .selectSeq {
 body.minimized {
   min-width: 0;
   margin: 0;
+}
+
+.midi-led {
+  display: none;
+}
+
+body.minimized .midi-led {
+  display: block;
+  flex: 0 0 8px;
+  align-self: center;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #0a2a14;
+  box-shadow: inset 0 0 2px #00000080;
+}
+
+body.minimized .midi-led.on {
+  background-color: #3dff6e;
+  box-shadow: 0 0 6px 1px #3dff6e;
 }
