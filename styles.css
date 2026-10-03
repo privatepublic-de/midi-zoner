@@ -3286,6 +3286,30 @@ body.minimized {
   margin: 0;
 }
 
+body.minimized #toast {
+  left: calc(50% - 120px);
+  right: auto;
+  transform: translateY(150%);
+}
+
+body.minimized #toast.fade {
+  transform: translateY(0);
+}
+
+body.minimized #toast.bump {
+  animation-name: toast-bump-centered;
+}
+
+@keyframes toast-bump-centered {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  40% {
+    transform: translateY(0) scale(1.06);
+  }
+}
+
 .midi-led {
   display: none;
 }
