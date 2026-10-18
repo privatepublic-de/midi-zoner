@@ -21,6 +21,15 @@
         <i class="material-icons chevron">expand_more</i>
         <span id="setupSummary">Setup</span>
       </button>
+      <div class="global-resets">
+        <a id="allMuteOff" class="lightButton" title="Enable all zones"
+          ><span class="material-icons"> check </span></a
+        >
+        <a id="allSoloOff" class="lightButton" title="Clear solo on all zones">S</a>
+        <a id="allHoldOff" class="lightButton" title="Turn Hold off on all arpeggiators"
+          >H</a
+        >
+      </div>
       <div id="arrangementSelector" role="group" aria-label="Arrangement">
         <div class="selectSeq sqlA selected" data-select-arrangement="0" data-contextmenu="-1:global_arr_copy_to:0:1,-1:global_arr_copy_to:0:2,-1:global_arr_copy_to:0:3">A</div>
         <div class="selectSeq sqlB" data-select-arrangement="1" data-contextmenu="-1:global_arr_copy_to:1:0,-1:global_arr_copy_to:1:2,-1:global_arr_copy_to:1:3">B</div>
@@ -44,15 +53,6 @@
             tabindex="-1"
           />
         </div>
-      </div>
-      <div class="global-resets">
-        <a id="allMuteOff" class="lightButton" title="Enable all zones"
-          ><span class="material-icons"> check </span></a
-        >
-        <a id="allSoloOff" class="lightButton" title="Clear solo on all zones">S</a>
-        <a id="allHoldOff" class="lightButton" title="Release hold on all arpeggiators"
-          >H</a
-        >
       </div>
       <div class="strip-end">
         <a id="miniViewBtn" class="lightButton" title="Minimized view (Cmd/Ctrl+Shift+M)"
