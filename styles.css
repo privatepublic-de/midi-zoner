@@ -2195,6 +2195,25 @@ body.running .seqprogress.drum .lane-cursor {
   }
 }
 
+#portVisibilityList .portGroupTitle {
+  margin: 6px 0 2px;
+  color: var(--brighter-3);
+}
+
+#portVisibilityList .portVis {
+  cursor: pointer;
+  .material-icons {
+    font-size: 16px;
+  }
+  &.hiddenPort {
+    opacity: 0.5;
+  }
+  &.locked {
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+}
+
 #clockOutPortList,
 #inputPortList {
   padding-top: 5px;

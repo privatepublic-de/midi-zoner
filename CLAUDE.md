@@ -150,6 +150,8 @@ Global state is stored in the `zones` object in app.ts:
 - `zones.nextArrangementIndex`: Pending arrangement for quantized switching
 - `zones.arrangementQuantIndex`: Quantization mode for arrangement switching
 
+Hidden MIDI ports: `midi.hiddenPorts` (id → name, localStorage key `hiddenPorts`, per machine, not in scenes). `app.ts` filters port lists through `visiblePorts()` before building any selector; ports referenced by zones, clock, Mackie or selected inputs (`portsInUse()`) always stay visible. Managed via "Manage MIDI ports" in the input port window.
+
 Solo mode is tracked via `Zone.solocount` static counter.
 
 Undo/redo state is tracked in a standalone `UndoHistory` instance in app.ts (not part of `zones`). Every discrete mutation calls `undoHistory.push()`; continuous gestures (e.g. dragging a CC knob) use `startGesture()` / `endGesture()` to collapse into a single entry.
@@ -286,6 +288,7 @@ The application has no automated tests. Manual testing should cover:
 - Scene save/load; backward compat with legacy 4-layer scenes
 - Solo/mute interactions (note: these are per-arrangement)
 - MIDI device connect/disconnect
+- Hiding/unhiding ports (persists across restart; in-use ports can't be hidden)
 
 ## Known Bugs and Minor Issues
 

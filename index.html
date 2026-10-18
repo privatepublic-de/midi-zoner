@@ -120,6 +120,11 @@
     </div>
     <div id="inputPortWindow">
       <div id="inputPortList"></div>
+      <details style="margin-top: 1rem; border-top: 1px solid var(--brighter-1);padding:.5rem">
+        <summary>Manage MIDI ports</summary>
+        <p><small>Hide ports you never use. Hidden ports disappear from all selectors; ports currently in use can't be hidden.</small></p>
+        <div id="portVisibilityList"></div>
+      </details>
       <div style="margin-top: 1rem; border-top: 1px solid var(--brighter-1);padding:.5rem">
         <p>Mackie Control <button id="mackieHelpBtn" class="ks-help-btn" tabindex="-1" title="Mackie Control mapping reference">?</button></p>
         <p><small>For basic external control, select the MIDI ports that are connected to a MCP (Mackie Control Protocol) device.</small></p>

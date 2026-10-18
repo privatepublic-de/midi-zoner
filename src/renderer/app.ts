@@ -536,6 +536,130 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     midi.sendClockIfPlaying = zones.sendInternalClockIfPlaying;
   }
+  let allPorts: { inputs: PortDescriptor[]; outputs: PortDescriptor[] } = { inputs: [], outputs: [] };
+
+  /** Port ids that must stay selectable because something references them */
+  function portsInUse(): { in: Set<string>; out: Set<string> } {
+    const inUse = { in: new Set<string>(), out: new Set<string>() };
+    zones.list.forEach((z) => {
+      inUse.out.add(z.outputPortId);
+      inUse.out.add(z.preferredOutputPortId);
+      if (z.inputPortId) inUse.in.add(z.inputPortId);
+    });
+    Object.values(midi.selectedInputPorts).forEach((d) => {
+      if (d.isSelected) inUse.in.add(d.id);
+    });
+    for (const [id, on] of Object.entries(midi.clockOutputPorts)) {
+      if (on) inUse.out.add(id);
+    }
+    if (midi.deviceIdInClock) inUse.in.add(midi.deviceIdInClock);
+    if (midi.deviceIdMackieControl) inUse.in.add(midi.deviceIdMackieControl);
+    if (midi.deviceIdMackieOutput) inUse.out.add(midi.deviceIdMackieOutput);
+    return inUse;
+  }
+
+  function visiblePorts(ports: PortDescriptor[], dir: 'in' | 'out'): PortDescriptor[] {
+    const used = portsInUse()[dir];
+    return ports.filter((p) => !midi.isPortHidden(p) || used.has(p.id));
+  }
+
+  /** Rebuild every port list after a visibility change (no toast, no program changes) */
+  function refreshPortLists(): void {
+    const inputs = visiblePorts(allPorts.inputs, 'in');
+    const outputs = visiblePorts(allPorts.outputs, 'out');
+    rebuildPortSelectors(inputs, outputs);
+    midi.selectDevices(midi.deviceIdInClock);
+    midi.updateUsedPorts(view.updateOutputPortsForAllZone(outputs));
+    view.updateInputPortsForAllZones(inputs);
+    updateClockReceivers(outputs);
+    updateInputSelection(inputs);
+    renderPortVisibilityList();
+  }
+
+  function renderPortVisibilityList(): void {
+    const container = DOM.get('#portVisibilityList') as HTMLElement;
+    DOM.empty(container);
+    const used = portsInUse();
+    const groups: [string, PortDescriptor[], 'in' | 'out'][] = [
+      ['Inputs', allPorts.inputs, 'in'],
+      ['Outputs', allPorts.outputs, 'out']
+    ];
+    groups.forEach(([title, ports, dir]) => {
+      DOM.addHTML(container, 'beforeend', `<p class="portGroupTitle">${title}</p>`);
+      ports.forEach((port) => {
+        const hidden = midi.isPortHidden(port);
+        const locked = used[dir].has(port.id);
+        DOM.addHTML(
+          container,
+          'beforeend',
+          `<div class="clockOutOption portVis${hidden ? ' hiddenPort' : ''}${locked ? ' locked' : ''}" data-portid="${port.id}" data-dir="${dir}"
+            title="${locked ? 'In use – cannot be hidden' : hidden ? 'Show this port' : 'Hide this port'}">
+            <span>${port.fullName}</span>
+            <span class="material-icons">${hidden ? 'visibility_off' : 'visibility'}</span>
+          </div>`
+        );
+      });
+    });
+    DOM.all('#portVisibilityList .portVis').forEach((row) => {
+      row.addEventListener('click', () => {
+        const id = row.getAttribute('data-portid')!;
+        const dir = row.getAttribute('data-dir') as 'in' | 'out';
+        if (portsInUse()[dir].has(id)) return;
+        const port = (dir === 'in' ? allPorts.inputs : allPorts.outputs).find((p) => p.id === id);
+        if (!port) return;
+        midi.setPortHidden(port, !midi.isPortHidden(port));
+        refreshPortLists();
+      });
+    });
+  }
+
+  function rebuildPortSelectors(inputs: PortDescriptor[], outputs: PortDescriptor[]): void {
+    // rebuild clock source selector
+    DOM.empty(select_in_clock);
+    DOM.addHTML(
+      select_in_clock,
+      'beforeend',
+      /*html*/ `<option value="*">midi-zoner internal</option>`
+    );
+    if (inputs.length > 0) {
+      inputs.forEach((input) => {
+        DOM.addHTML(
+          select_in_clock,
+          'beforeend',
+          `<option value="${input.id}" ${
+            input.isSelectedClockInput ? 'selected' : ''
+          }>${input.name}</option>`
+        );
+      });
+    } else {
+      DOM.addHTML(select_in_clock, 'beforeend', optionNoDevice);
+    }
+    // rebuild Mackie Control selector
+    const savedMackieId = localStorage.getItem('mackieControlPortId') ?? '';
+    DOM.empty(select_mackie);
+    DOM.addHTML(select_mackie, 'beforeend', '<option value="">(None)</option>');
+    inputs.forEach((input) => {
+      DOM.addHTML(
+        select_mackie,
+        'beforeend',
+        `<option value="${input.id}" ${input.id === savedMackieId ? 'selected' : ''}>${input.name}</option>`
+      );
+    });
+    midi.deviceIdMackieControl = savedMackieId || null;
+    // rebuild Mackie Output selector
+    const savedMackieOutId = localStorage.getItem('mackieControlOutputPortId') ?? '';
+    DOM.empty(select_mackie_out);
+    DOM.addHTML(select_mackie_out, 'beforeend', '<option value="">(None)</option>');
+    outputs.forEach((output) => {
+      DOM.addHTML(
+        select_mackie_out,
+        'beforeend',
+        `<option value="${output.id}" ${output.id === savedMackieOutId ? 'selected' : ''}>${output.name}</option>`
+      );
+    });
+    midi.deviceIdMackieOutput = savedMackieOutId || null;
+  }
+
   let activeUpdateTimer: ReturnType<typeof setTimeout> | null = null;
   let portsFirstUpdateDone = false;
   let initialized = false;
@@ -746,7 +870,7 @@ document.addEventListener('DOMContentLoaded', function () {
         );
       }, 1);
     },
-    portsChangedHandler: (available: boolean, inputs: PortDescriptor[], outputs: PortDescriptor[], msg?: string) => {
+    portsChangedHandler: (available: boolean, allInputs: PortDescriptor[], allOutputs: PortDescriptor[], msg?: string) => {
       if (!initialized) {
         initialized = true;
         if (available) {
@@ -992,50 +1116,10 @@ document.addEventListener('DOMContentLoaded', function () {
       activeUpdateTimer = setTimeout(() => {
         if (!available) return;
         console.log('app: MIDI port update');
-        // rebuild clock source selector
-        DOM.empty(select_in_clock);
-        DOM.addHTML(
-          select_in_clock,
-          'beforeend',
-          /*html*/ `<option value="*">midi-zoner internal</option>`
-        );
-        if (inputs.length > 0) {
-          inputs.forEach((input) => {
-            DOM.addHTML(
-              select_in_clock,
-              'beforeend',
-              `<option value="${input.id}" ${
-                input.isSelectedClockInput ? 'selected' : ''
-              }>${input.name}</option>`
-            );
-          });
-        } else {
-          DOM.addHTML(select_in_clock, 'beforeend', optionNoDevice);
-        }
-        // rebuild Mackie Control selector
-        const savedMackieId = localStorage.getItem('mackieControlPortId') ?? '';
-        DOM.empty(select_mackie);
-        DOM.addHTML(select_mackie, 'beforeend', '<option value="">(None)</option>');
-        inputs.forEach((input) => {
-          DOM.addHTML(
-            select_mackie,
-            'beforeend',
-            `<option value="${input.id}" ${input.id === savedMackieId ? 'selected' : ''}>${input.name}</option>`
-          );
-        });
-        midi.deviceIdMackieControl = savedMackieId || null;
-        // rebuild Mackie Output selector
-        const savedMackieOutId = localStorage.getItem('mackieControlOutputPortId') ?? '';
-        DOM.empty(select_mackie_out);
-        DOM.addHTML(select_mackie_out, 'beforeend', '<option value="">(None)</option>');
-        outputs.forEach((output) => {
-          DOM.addHTML(
-            select_mackie_out,
-            'beforeend',
-            `<option value="${output.id}" ${output.id === savedMackieOutId ? 'selected' : ''}>${output.name}</option>`
-          );
-        });
-        midi.deviceIdMackieOutput = savedMackieOutId || null;
+        allPorts = { inputs: allInputs, outputs: allOutputs };
+        const inputs = visiblePorts(allInputs, 'in');
+        const outputs = visiblePorts(allOutputs, 'out');
+        rebuildPortSelectors(inputs, outputs);
         midi.selectDevices(midi.deviceIdInClock);
         if (!portsFirstUpdateDone && midi.deviceIdMackieControl && zones.list.length > 0) {
           mackieSelectedZone = 0;
@@ -1068,6 +1152,7 @@ document.addEventListener('DOMContentLoaded', function () {
         updateBpmInput();
         updateClockReceivers(outputs);
         updateInputSelection(inputs);
+        renderPortVisibilityList();
         DOM.addClass(document.body, 'updated');
         setTimeout(() => {
           DOM.removeClass(document.body, 'updated');

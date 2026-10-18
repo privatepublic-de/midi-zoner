@@ -84,6 +84,10 @@ class MIDI {
   deviceIdMackieControl: string | null = null;
   deviceIdMackieOutput: string | null = null;
   outputPortsRegistered: PortDescriptor[] = [];
+  /** Ports hidden from all selectors (id -> name); per machine, not part of scenes */
+  hiddenPorts: Record<string, string> = JSON.parse(
+    localStorage.getItem('hiddenPorts') || '{}'
+  );
   songposition = 0;
   isClockRunning = false;
   hasClock = false;
@@ -402,6 +406,22 @@ class MIDI {
 
     this.deviceInClock =
       this.midiAccess?.inputs.get(this.deviceIdInClock!) ?? null;
+  }
+
+  isPortHidden(port: { id: string; fullName: string }): boolean {
+    return (
+      port.id in this.hiddenPorts ||
+      Object.values(this.hiddenPorts).includes(port.fullName)
+    );
+  }
+
+  setPortHidden(port: { id: string; fullName: string }, hidden: boolean): void {
+    // drop entries matching by id or by name, so name-matched entries can be unhidden too
+    for (const [id, name] of Object.entries(this.hiddenPorts)) {
+      if (id === port.id || name === port.fullName) delete this.hiddenPorts[id];
+    }
+    if (hidden) this.hiddenPorts[port.id] = port.fullName;
+    localStorage.setItem('hiddenPorts', JSON.stringify(this.hiddenPorts));
   }
 
   selectInputPort(portId: string, channel: number, isSelected: boolean): void {
