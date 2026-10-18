@@ -231,7 +231,12 @@ function createWindow(): void {
   ipcMain.handle('set-min-width', (event, width: number) => {
     normalMinWidth = Math.max(320, Math.round(width));
     // in mini view the window may be tiny; the new minimum applies when leaving it
-    if (win && !fullBounds) win.setMinimumSize(normalMinWidth, 200);
+    if (win && !fullBounds) {
+      win.setMinimumSize(normalMinWidth, 200);
+      // the OS does not grow an existing window to a new minimum (e.g. after zooming in), so do it here
+      const [currentWidth, currentHeight] = win.getSize();
+      if (currentWidth < normalMinWidth) win.setSize(normalMinWidth, currentHeight);
+    }
     return win ? win.getMinimumSize() : [normalMinWidth, 200];
   });
   ipcMain.handle('open-about', () => openAboutWindow());
