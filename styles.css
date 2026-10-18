@@ -59,6 +59,7 @@
   --icon-md: 16px;
   --icon-lg: 24px;
   --radius: 4px;
+  --strip-h: 44px;
 
   --red-highlight: var(--danger-soft);
   --light-red-highlight: var(--danger);
@@ -246,6 +247,8 @@ input::-webkit-inner-spin-button {
 #midisettings {
   display: flex;
   align-items: center;
+  gap: 10px;
+  height: var(--strip-h);
   position: fixed;
   z-index: 2;
   top: 0;
@@ -534,7 +537,7 @@ input:focus-visible {
    ============================================================= */
 
 .padded {
-  padding: 30px 5px 0 5px;
+  padding: calc(var(--strip-h) - 24px) 5px 0 5px;
 }
 
 #zones {
@@ -3240,13 +3243,10 @@ body.running .drumSequencer .lane-expand-toggle {
    2-column grid of compact blocks: mute/solo/seq/arp toggles + label
    ============================================================= */
 
-body.minimized #midisettings > :not(.right):not(.controls):not(#miniLogo):not(#arrangementSelector),
-body.minimized #midisettings .controls > :not(.clocksettings),
-body.minimized #midisettings .clocksettings > :not(.internal),
-body.minimized #midisettings .right > :not(.toolbar),
-body.minimized #midisettings .toolbar > :not(#miniViewBtn),
-body.minimized #tools,
+body.minimized #midisettings > :is(#setupToggle, #arrangementIndicator, .global-resets, #setupDrawer),
+body.minimized #midisettings .strip-end > #midiPanic,
 body.minimized #arrangementSelector .arr-quant,
+body.minimized #tools,
 body.minimized .zone > :not(.channels),
 body.minimized .zone .channels > :not(.state):not(.solo):not(.showseq):not(.showarp):not(.zone-label):not(.midi-led),
 body.minimized .zone.placeholder,
@@ -3268,12 +3268,10 @@ body.minimized #miniLogo {
 
 body.minimized #midisettings {
   position: static;
+  height: auto;
   justify-content: space-between;
 }
 
-body.minimized #midisettings .controls {
-  margin: 0;
-}
 
 body.minimized .padded {
   padding: 4px;
@@ -3458,4 +3456,142 @@ body.minimized .midi-led.on {
 .show-cc .channels .ch.showccs {
   background-color: var(--brighter-2);
   box-shadow: none;
+}
+
+/* =============================================================
+   TOP BAR: PERFORMANCE STRIP + SETUP DRAWER
+   The strip holds what you touch while playing. Everything you set
+   once (input, clock, files, view) lives in the drawer below it.
+   ============================================================= */
+
+#midisettings .lightButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 24px;
+  min-width: 28px;
+  margin: 0;
+}
+
+.setup-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 300px;
+  height: 28px;
+  padding: 0 8px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--bg-topbar-button);
+  color: var(--fg-topbar-button);
+  font: inherit;
+  cursor: pointer;
+}
+
+.setup-toggle:hover {
+  background: var(--brighter-1);
+}
+
+.setup-toggle #setupSummary {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.setup-toggle .chevron {
+  transition: transform 150ms ease;
+}
+
+body.setup-open .setup-toggle .chevron {
+  transform: rotate(180deg);
+}
+
+.transport {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.global-resets,
+.strip-end {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.strip-end {
+  margin-left: auto;
+  gap: 12px;
+}
+
+#setupDrawer {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  padding: 10px 16px 12px;
+  background-color: var(--bg-topbar);
+  border-bottom: 1px solid var(--border-topbar);
+  box-shadow: 0 6px 10px var(--shadow-topbar);
+}
+
+body.setup-open #setupDrawer {
+  display: flex;
+}
+
+.drawer-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.drawer-group .group-label {
+  font-size: var(--fs-sm);
+  color: var(--brighter-2);
+}
+
+.drawer-group .group-body {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+}
+
+.drawer-group .group-body .tb-label {
+  margin-left: 0;
+}
+
+#setupDrawer .arr-quant {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 8px;
+  font-size: var(--fs-md);
+}
+
+/* The arrangement buttons now live directly in the strip. */
+#arrangementSelector {
+  flex-direction: row;
+  margin: 0;
+}
+
+#setupDrawer .tb-label {
+  display: flex;
+  min-width: 0;
+}
+
+#setupDrawer #midiInputSelector {
+  width: 190px;
+}
+
+#setupDrawer #midiClockInDeviceId {
+  width: 140px;
+}
+
+#setupDrawer .arr-quant select {
+  width: 64px;
 }

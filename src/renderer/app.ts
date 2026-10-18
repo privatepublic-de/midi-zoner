@@ -276,6 +276,14 @@ function applyZoom(factor: number): void {
 applyZoom(currentZoomFactor);
 
 
+/** Places a fixed popup just below the control that opened it, kept inside the window. */
+function anchorBelow(popup: HTMLElement, anchor: HTMLElement): void {
+  const rect = anchor.getBoundingClientRect();
+  popup.style.top = `${Math.round(rect.bottom + 4)}px`;
+  popup.style.right = 'auto';
+  popup.style.left = `${Math.max(4, Math.min(Math.round(rect.left), window.innerWidth - popup.offsetWidth - 4))}px`;
+}
+
 /** Tells the main process to shrink/grow the window to fit the mini grid. */
 function applyMiniSize(): void {
   if (!miniView) return;
@@ -338,7 +346,18 @@ document.addEventListener('DOMContentLoaded', function () {
     sendMackieLeds();
   });
   const optionNoDevice = '<option value="">(No devices available)</option>';
+  /** One-line summary of input and clock on the setup toggle, so a closed drawer still shows what is set. */
+  let inputSummary = '';
+  function updateSetupSummary(): void {
+    const clock =
+      midi.deviceIdInClock == MIDI.INTERNAL_PORT_ID
+        ? 'Internal clock'
+        : select_in_clock.selectedOptions[0]?.text || 'External clock';
+    const el = document.getElementById('setupSummary');
+    if (el) el.textContent = `${inputSummary || 'No input'} · ${clock}`;
+  }
   function updateBpmInput(): void {
+    updateSetupSummary();
     if (midi.deviceIdInClock == MIDI.INTERNAL_PORT_ID) {
       DOM.addClass('.clocksettings', 'isInternal');
       DOM.removeClass('.clocksettings', 'isExternal');
@@ -399,8 +418,10 @@ document.addEventListener('DOMContentLoaded', function () {
     if (count == 0) {
       displayString = '(no input device selected)';
     }
+    inputSummary = displayString;
     displayString = count + ': ' + displayString;
     (DOM.get('#midiInputSelector') as HTMLElement).innerHTML = displayString;
+    updateSetupSummary();
   }
 
   function updateInputSelection(inputs: PortDescriptor[]): void {
@@ -1189,6 +1210,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const clockoutcontainer = DOM.get('#clockOutPortWindow') as HTMLElement;
     const isVisible = clockoutcontainer.style.display == 'block';
     clockoutcontainer.style.display = isVisible ? 'none' : 'block';
+    if (!isVisible) anchorBelow(clockoutcontainer, e.currentTarget as HTMLElement);
     if (!isVisible) {
       setTimeout(() => {
         onBackgroundClick(() => {
@@ -1197,10 +1219,11 @@ document.addEventListener('DOMContentLoaded', function () {
       }, 0);
     }
   });
-  DOM.get('#midiInputSelector')!.addEventListener('click', () => {
+  DOM.get('#midiInputSelector')!.addEventListener('click', (ev) => {
     const container = DOM.get('#inputPortWindow') as HTMLElement;
     const isVisible = container.style.display == 'block';
     container.style.display = isVisible ? 'none' : 'block';
+    if (!isVisible) anchorBelow(container, ev.currentTarget as HTMLElement);
     if (!isVisible) {
       setTimeout(() => {
         onBackgroundClick(() => {
@@ -1233,6 +1256,16 @@ document.addEventListener('DOMContentLoaded', function () {
     saveZones();
   });
   DOM.on('#aboutBtn', 'click', () => ipcRenderer.invoke('open-about'));
+  const SETUP_OPEN_KEY = 'setupDrawerOpen';
+  function setSetupOpen(open: boolean): void {
+    document.body.classList.toggle('setup-open', open);
+    DOM.get('#setupToggle')!.setAttribute('aria-expanded', String(open));
+    localStorage.setItem(SETUP_OPEN_KEY, open ? '1' : '0');
+  }
+  setSetupOpen(localStorage.getItem(SETUP_OPEN_KEY) === '1');
+  DOM.get('#setupToggle')!.addEventListener('click', () =>
+    setSetupOpen(!document.body.classList.contains('setup-open'))
+  );
   DOM.on('#keySwitchEnabled', 'change', (ev) => {
     zones.keySwitchEnabled = (ev.target as HTMLInputElement).checked;
     saveZones();
