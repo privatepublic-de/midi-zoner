@@ -491,7 +491,7 @@ function tick(): void {
     if (zone.sequence.isDrumSequence) {
       const toast = activeCtx.toast;
       close();
-      toast('Piano roll closed — sequence switched to drum mode');
+      toast('Piano roll closed: sequence switched to drum mode');
       return;
     }
     finishDrag();

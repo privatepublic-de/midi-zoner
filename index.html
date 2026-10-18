@@ -20,11 +20,11 @@
             ><i class="material-icons">archive</i> Save</a
           >
         </div>
-        <a id="allMuteOff" class="lightButton" title="Enable all"
+        <a id="allMuteOff" class="lightButton" title="Enable all zones"
           ><span class="material-icons"> check </span></a
         >
-        <a id="allSoloOff" class="lightButton" title="Un-solo all">S</a>
-        <a id="allHoldOff" class="lightButton" title="All arpeggiator hold off"
+        <a id="allSoloOff" class="lightButton" title="Clear solo on all zones">S</a>
+        <a id="allHoldOff" class="lightButton" title="Release hold on all arpeggiators"
           >H</a
         >
       </div>
@@ -48,11 +48,11 @@
       </div>
       <div class="controls" id="controls">
         <div class="row">
-          <label>In:</label>
+          <label>In</label>
           <span id="midiInputSelector">Choose inputs</span>
         </div>
         <div class="row clocksettings">
-          <label for="midiClockInDeviceId">Clock:</label>
+          <label for="midiClockInDeviceId">Clock</label>
           <select id="midiClockInDeviceId" tabindex="-1">
             <option>(No devices)</option>
           </select>
@@ -64,10 +64,10 @@
           <div
             id="startClockButton"
             class="toggle internal"
-            title="Start arpeggiators & sequencers"
+            title="Start arpeggiators and sequencers"
           ></div>
           <div class="internal">
-            <label for="bpm">BPM:</label>
+            <label for="bpm">BPM</label>
             <input
               type="number"
               value="120"
@@ -107,7 +107,7 @@
     </section>
     <div class="padded">
       <section id="zones">
-        <div class="zone initialising">INITIALIZING ...</div>
+        <div class="zone initialising">Starting…</div>
       </section>
     </div>
     <div id="tools">
@@ -132,13 +132,13 @@
         <p>Mackie Control <button id="mackieHelpBtn" class="ks-help-btn" tabindex="-1" title="Mackie Control mapping reference">?</button></p>
         <p><small>For basic external control, select the MIDI ports that are connected to a MCP (Mackie Control Protocol) device.</small></p>
         <p>
-          <label>In:</label>
+          <label>In</label>
           <select id="mackieControlDeviceId" tabindex="-1">
             <option value="">(None)</option>
           </select>
         </p>
         <p>
-          <label>Out:</label>
+          <label>Out</label>
           <select id="mackieControlOutputDeviceId" tabindex="-1">
             <option value="">(None)</option>
           </select>

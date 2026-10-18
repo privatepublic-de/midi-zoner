@@ -178,7 +178,7 @@ export function createSeqActions(
     },
     seq_paste_lane: () => {
       if (!Zone.seqClipboardDrumLane) {
-        toast('Clipboard is empty, nothing to paste');
+        toast('Nothing to paste: clipboard is empty');
         return;
       }
       const laneNo = parseInt(actionParam1);
@@ -331,7 +331,7 @@ export function createSeqActions(
               seq.steps[i * 2 + 1] = null;
             }
             updateValuesForZone(zoneindex);
-            toast('Sequence made half time slower');
+            toast('Sequence slowed to half time');
             break;
           case 'thirdtime':
             seq.length = seq.length * 3;
@@ -343,7 +343,7 @@ export function createSeqActions(
               seq.steps[i * 3 + 1] = seq.steps[i * 3 + 2] = null;
             }
             updateValuesForZone(zoneindex);
-            toast('Sequence made one-third time slower');
+            toast('Sequence slowed to one-third time');
             break;
           case 'veloup':
           case 'velodown': {
@@ -660,7 +660,7 @@ export function createSeqActions(
         updateValuesForZone(zoneindex);
         toast(count === 1 ? 'Step pasted' : `${count} steps pasted`);
       } else {
-        toast('Nothing to paste, clipboard is empty.');
+        toast('Nothing to paste: clipboard is empty');
       }
     },
     seq_step_move: () => {
@@ -783,13 +783,13 @@ export function createSeqActions(
         } else if (!copyData.isDrumSequence && !sequence.isDrumSequence) {
           Object.assign(sequence, copyData);
         } else {
-          toast('Cannot paste: clipboard contains a different sequence type');
+          toast('Can\'t paste: clipboard holds a different sequence type');
           return;
         }
         updateValuesForZone(zoneindex);
         toast('Sequence pasted from clipboard');
       } else {
-        toast('Clipboard is empty, nothing to paste');
+        toast('Nothing to paste: clipboard is empty');
       }
     },
     seq_step_condition: () => {

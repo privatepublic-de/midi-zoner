@@ -19,12 +19,12 @@ export function createCCActions(
       updateValuesForZone(zoneindex);
       triggerSave();
       if (zone.show_cc) {
-        toast('Right click to edit CC controllers.');
+        toast('Right-click a controller to edit it');
       }
     },
     cc_send_all: () => {
       zone.sendAllCC();
-      toast('All CC values sent!');
+      toast('All CC values sent');
     },
     cc_edit: () => {
       zone.editCC = !zone.editCC;

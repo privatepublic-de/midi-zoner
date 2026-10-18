@@ -1157,7 +1157,7 @@ document.addEventListener('DOMContentLoaded', function () {
         setTimeout(() => {
           DOM.removeClass(document.body, 'updated');
         }, 1000);
-        view.toast(`MIDI devices updated! <br/>${msg ? msg : ''}`);
+        view.toast(`MIDI devices updated<br/>${msg ? msg : ''}`);
       }, 100);
     }
   });
