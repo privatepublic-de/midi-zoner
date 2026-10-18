@@ -266,10 +266,15 @@ const ZOOM_MAX = 2.0;
 const ZOOM_STORAGE_KEY = 'zoomFactor';
 let currentZoomFactor = parseFloat(localStorage.getItem(ZOOM_STORAGE_KEY) || '1');
 
+// Narrowest page layout in CSS px (matches --floor-page in styles.css). The window's minimum width follows it
+// scaled by zoom, so a zoomed window can never be narrower than the layout needs.
+const PAGE_FLOOR_CSS_PX = 540;
+
 function applyZoom(factor: number): void {
   currentZoomFactor = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, Math.round(factor * 10) / 10));
   webFrame.setZoomFactor(currentZoomFactor);
   localStorage.setItem(ZOOM_STORAGE_KEY, String(currentZoomFactor));
+  ipcRenderer.invoke('set-min-width', Math.ceil(PAGE_FLOOR_CSS_PX * currentZoomFactor));
   applyMiniSize();
 }
 
