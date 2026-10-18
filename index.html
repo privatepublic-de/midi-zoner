@@ -18,11 +18,9 @@
         aria-controls="setupDrawer"
         title="Show setup: input, clock, files and view"
       >
-        <i class="material-icons">tune</i>
-        <span id="setupSummary">Setup</span>
         <i class="material-icons chevron">expand_more</i>
+        <span id="setupSummary">Setup</span>
       </button>
-      <div id="arrangementIndicator" data-arr="0" title="Active arrangement">A</div>
       <div id="arrangementSelector" role="group" aria-label="Arrangement">
         <div class="selectSeq sqlA selected" data-select-arrangement="0" data-contextmenu="-1:global_arr_copy_to:0:1,-1:global_arr_copy_to:0:2,-1:global_arr_copy_to:0:3">A</div>
         <div class="selectSeq sqlB" data-select-arrangement="1" data-contextmenu="-1:global_arr_copy_to:1:0,-1:global_arr_copy_to:1:2,-1:global_arr_copy_to:1:3">B</div>
@@ -100,13 +98,18 @@
               <i class="material-icons">keyboard_double_arrow_right</i>
               <span id="clockOutPortsCount">-</span>
             </div>
-            <label class="arr-quant" title="Arrangement changes wait for this boundary while the clock runs">
-              Switch on
+          </div>
+        </div>
+        <div class="drawer-group">
+          <span class="group-label">Arrangement</span>
+          <div class="group-body">
+            <label class="arr-quant" title="While the clock runs, choosing A–D waits for the next boundary you pick here. With the clock stopped, it switches immediately.">
+              Switch at next
               <select id="seqquant">
-                <option value="2">4/4</option>
-                <option value="3">3/4</option>
-                <option value="8">1/4</option>
-                <option value="14">1/16</option>
+                <option value="2">4/4 bar</option>
+                <option value="3">3/4 bar</option>
+                <option value="8">beat</option>
+                <option value="14">16th note</option>
               </select>
             </label>
           </div>

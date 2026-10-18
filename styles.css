@@ -437,82 +437,6 @@ input:focus-visible {
   text-align: right;
 }
 
-#arrangementIndicator {
-  font-size: var(--fs-display);
-  font-weight: 900;
-  -webkit-text-stroke: 2px currentColor;
-  line-height: 1;
-  letter-spacing: -0.03em;
-  padding: 0 14px;
-  align-self: stretch;
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  border-left: 1px solid var(--border-topbar);
-  border-right: 1px solid var(--border-topbar);
-  transition:
-    color 150ms ease,
-    text-shadow 150ms ease;
-  cursor: default;
-  user-select: none;
-  position: relative;
-}
-
-#arrangementIndicator[data-pending-arr]::after {
-  content: attr(data-pending-arr);
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--fs-display);
-  font-weight: 900;
-  -webkit-text-stroke: 2px currentColor;
-  line-height: 1;
-  letter-spacing: -0.03em;
-  background-color: #000;
-  animation: pendingArrFade 480ms infinite alternate ease-in-out;
-}
-
-#arrangementIndicator[data-pending-arr='A']::after {
-  color: #2a9d8f;
-}
-#arrangementIndicator[data-pending-arr='B']::after {
-  color: #e9c46a;
-}
-#arrangementIndicator[data-pending-arr='C']::after {
-  color: #f4a261;
-}
-#arrangementIndicator[data-pending-arr='D']::after {
-  color: #e76f51;
-}
-
-@keyframes pendingArrFade {
-  0% {
-    opacity: 0.3;
-  }
-  100% {
-    opacity: 1;
-  }
-}
-
-#arrangementIndicator[data-arr='0'] {
-  color: #2a9d8f;
-  text-shadow: 0 0 14px rgba(42, 157, 143, 0.5);
-}
-#arrangementIndicator[data-arr='1'] {
-  color: #e9c46a;
-  text-shadow: 0 0 14px rgba(233, 196, 106, 0.5);
-}
-#arrangementIndicator[data-arr='2'] {
-  color: #f4a261;
-  text-shadow: 0 0 14px rgba(244, 162, 97, 0.5);
-}
-#arrangementIndicator[data-arr='3'] {
-  color: #e76f51;
-  text-shadow: 0 0 14px rgba(231, 111, 81, 0.5);
-}
-
 #displayBPM {
   display: inline-block;
   text-align: center;
@@ -3243,9 +3167,8 @@ body.running .drumSequencer .lane-expand-toggle {
    2-column grid of compact blocks: mute/solo/seq/arp toggles + label
    ============================================================= */
 
-body.minimized #midisettings > :is(#setupToggle, #arrangementIndicator, .global-resets, #setupDrawer),
+body.minimized #midisettings > :is(#setupToggle, .global-resets, #setupDrawer),
 body.minimized #midisettings .strip-end > #midiPanic,
-body.minimized #arrangementSelector .arr-quant,
 body.minimized #tools,
 body.minimized .zone > :not(.channels),
 body.minimized .zone .channels > :not(.state):not(.solo):not(.showseq):not(.showarp):not(.zone-label):not(.midi-led),
@@ -3399,18 +3322,6 @@ body.minimized .midi-led.on {
   padding: 2px 0;
 }
 
-#arrangementSelector .arr-quant {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--fs-sm);
-}
-
-#arrangementSelector .arr-quant select {
-  flex: 0 0 auto;
-  width: 64px;
-}
-
 /* Destructive action: kept apart from "Add zone" and only red on hover. */
 #deleteallzones.tb-button {
   margin-right: 8px;
@@ -3532,7 +3443,7 @@ body.setup-open .setup-toggle .chevron {
   left: 0;
   right: 0;
   flex-wrap: wrap;
-  gap: 12px 24px;
+  gap: 12px 20px;
   padding: 10px 16px 12px;
   background-color: var(--bg-topbar);
   border-bottom: 1px solid var(--border-topbar);
@@ -3585,11 +3496,11 @@ body.setup-open #setupDrawer {
 }
 
 #setupDrawer #midiInputSelector {
-  width: 190px;
+  width: 180px;
 }
 
 #setupDrawer #midiClockInDeviceId {
-  width: 140px;
+  width: 130px;
 }
 
 #setupDrawer .arr-quant select {
