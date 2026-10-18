@@ -44,7 +44,7 @@
 
   /* Role tokens: new styles use these; the older names below alias them. */
   --live: #3dff6e; /* sounding / running */
-  --armed: #e9c46a; /* pending, queued */
+  --armed: #dab249; /* pending, queued */
   --danger: #e5484d; /* panic, delete, record, multi-select */
   --danger-soft: color-mix(in srgb, var(--danger) 45%, transparent);
   --danger-strong: color-mix(in srgb, var(--danger) 85%, transparent);
@@ -81,19 +81,20 @@
    ============================================================= */
 
 :root {
-  --zone-0: #2a4f5f;
-  --zone-1: #2a9d8f;
-  --zone-2: #e9c46a;
-  --zone-3: #f4a261;
-  --zone-4: #e76f51;
+  /* Accents (OKLCH L.78 C.13): CC groups, bars, highlights, A-D buttons */
+  --zone-0: #4fc5fc;
+  --zone-1: #25d2c7;
+  --zone-2: #dab249;
+  --zone-3: #f99e65;
+  --zone-4: #ff968a;
 
-  /* Card bodies: darker, same-hue versions so light text reaches 4.5:1.
-     --zone-color stays vivid for accents (bars, steps, highlights). */
-  --zone-surface-0: #2a4f5f;
-  --zone-surface-1: #217d72;
-  --zone-surface-2: #8e6b15;
-  --zone-surface-3: #b2560c;
-  --zone-surface-4: #ca3f1c;
+  /* Card bodies: same lightness and chroma (OKLCH L.50 C.10), only the hue differs,
+     so the five sit together as one family; teal is set deeper. All >= 5:1 with light text. */
+  --zone-surface-0: #076c92;
+  --zone-surface-1: #005a54;
+  --zone-surface-2: #7b5f06;
+  --zone-surface-3: #8f5128;
+  --zone-surface-4: #944b43;
 }
 
 .zone[data-colorindex='0'] {
@@ -161,11 +162,6 @@
 .zone .ccpot[data-group='2'] { --groupcolor: var(--group-2); --groupsurface: var(--group-surface-2); }
 .zone .ccpot[data-group='3'] { --groupcolor: var(--group-3); --groupsurface: var(--group-surface-3); }
 .zone .ccpot[data-group='4'] { --groupcolor: var(--group-4); --groupsurface: var(--group-surface-4); }
-
-/* deep-teal zone: lighter popup so it stands apart from the card, still 4.5:1 */
-.zone[data-colorindex='0'] .popup {
-  --bg-color: #2f7391;
-}
 
 /* =============================================================
    FONTS
@@ -534,9 +530,8 @@ input:focus-visible {
   padding: 8px;
   width: 560px;
   min-width: 480px;
-  box-shadow: 0 2px 10px var(--shadow-zone);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
   background-color: var(--zone-surface);
-  background-image: linear-gradient(#00000000 67%, #00000040 100%);
   border-radius: 6px;
   --bg-color: var(--zone-surface);
 }
@@ -2366,16 +2361,16 @@ body.running .seqprogress.drum .lane-cursor {
 }
 
 .selectSeq.sqlA.selected {
-  background-color: #2a9d8f;
+  background-color: var(--zone-1);
 }
 .selectSeq.sqlB.selected {
-  background-color: #e9c46a;
+  background-color: var(--zone-2);
 }
 .selectSeq.sqlC.selected {
-  background-color: #f4a261;
+  background-color: var(--zone-3);
 }
 .selectSeq.sqlD.selected {
-  background-color: #e76f51;
+  background-color: var(--zone-4);
 }
 
 .selectSeq.pending {
