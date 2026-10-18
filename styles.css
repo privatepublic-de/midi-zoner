@@ -60,6 +60,7 @@
   --icon-lg: 24px;
   --radius: 4px;
   --ink: #111;
+  --focus-ring: #fff; /* >= 5.7:1 on every zone color and on the top bar */
   --floor-zone: 520px; /* narrowest a zone can be with every panel open */
   --floor-page: 540px;
   --slider-fill: rgba(255, 255, 255, 0.75);
@@ -382,10 +383,6 @@ option {
   color: var(--brighter-3);
   font-size: var(--fs-md);
   padding: 0;
-}
-
-input:focus-visible {
-  outline: none;
 }
 
 #midisettings .toggle {
@@ -1247,6 +1244,7 @@ input[type='range'] {
   background: #c8cccd;
 }
 
+/* range inputs: the focus ring is drawn on the thumb (see the focus section at the end) */
 .zone input[type='range']:focus {
   outline: none;
 }
@@ -3317,9 +3315,15 @@ body.minimized .midi-led.on {
   border-radius: var(--radius);
 }
 
-:is(.lightButton, .tb-button, .ch, .rtool, .selectSeq, .ks-help-btn, select, summary):focus-visible {
-  outline: 2px solid var(--armed);
+:is(.lightButton, .tb-button, .ch, .rtool, .selectSeq, .ks-help-btn, .setup-toggle, select, summary, input:not([type='range'])):focus-visible {
+  outline: 2px solid var(--focus-ring);
   outline-offset: 1px;
+}
+
+.zone input[type='range']:focus-visible::-webkit-slider-thumb {
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.4),
+    0 0 0 3px var(--focus-ring);
 }
 
 /* Panic is rarely used: neutral like the other buttons, red only on hover. */
