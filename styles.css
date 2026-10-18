@@ -3480,7 +3480,6 @@ body.setup-open #setupDrawer {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-left: 8px;
   font-size: var(--fs-md);
 }
 
@@ -3505,4 +3504,10 @@ body.setup-open #setupDrawer {
 
 #setupDrawer .arr-quant select {
   width: 64px;
+}
+
+/* Controls start exactly under their group label; the gap handles spacing. */
+#setupDrawer .group-body > * {
+  margin-left: 0;
+  margin-right: 0;
 }
