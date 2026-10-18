@@ -42,11 +42,25 @@
   --darker-3: rgba(0, 0, 0, 0.5);
   --darker-4: rgba(0, 0, 0, 1);
 
-  --red-highlight: rgba(196, 0, 0, 0.4);
-  --light-red-highlight: #f00;
+  /* Role tokens: new styles use these; the older names below alias them. */
+  --live: #3dff6e; /* sounding / running */
+  --armed: #e9c46a; /* pending, queued */
+  --danger: #e5484d; /* panic, delete, record, multi-select */
+  --danger-soft: color-mix(in srgb, var(--danger) 45%, transparent);
+  --danger-strong: color-mix(in srgb, var(--danger) 85%, transparent);
+
+  /* Type scale (4 sizes) and shape */
+  --fs-sm: 11px;
+  --fs-md: 13px;
+  --fs-lg: 16px;
+  --fs-xl: 24px;
+  --radius: 4px;
+
+  --red-highlight: var(--danger-soft);
+  --light-red-highlight: var(--danger);
   --white-highlight: #ccc;
-  --multiselect-highlight: #f00;
-  --record-highlight: rgba(255, 0, 0, 0.8);
+  --multiselect-highlight: var(--danger);
+  --record-highlight: var(--danger-strong);
   --green-highlight: rgba(0, 196, 0, 1);
 
   --step-size-disabled: 5px;
@@ -54,84 +68,58 @@
 
 /* =============================================================
    ZONE COLOR PALETTE
+   One palette; each zone takes one color and its CC groups take
+   the remaining four, in palette order.
    ============================================================= */
 
+:root {
+  --zone-0: #2a4f5f;
+  --zone-1: #2a9d8f;
+  --zone-2: #e9c46a;
+  --zone-3: #f4a261;
+  --zone-4: #e76f51;
+}
+
 .zone[data-colorindex='0'] {
-  --zone-color: #2a4f5f;
-  .ccpot[data-group='1'] {
-    --groupcolor: #2a9d8f;
-  }
-  .ccpot[data-group='2'] {
-    --groupcolor: #e9c46a;
-  }
-  .ccpot[data-group='3'] {
-    --groupcolor: #f4a261;
-  }
-  .ccpot[data-group='4'] {
-    --groupcolor: #e76f51;
-  }
+  --zone-color: var(--zone-0);
+  --group-1: var(--zone-1);
+  --group-2: var(--zone-2);
+  --group-3: var(--zone-3);
+  --group-4: var(--zone-4);
 }
 .zone[data-colorindex='1'] {
-  --zone-color: #2a9d8f;
-  .ccpot[data-group='1'] {
-    --groupcolor: #2a4f5f;
-  }
-  .ccpot[data-group='2'] {
-    --groupcolor: #e9c46a;
-  }
-  .ccpot[data-group='3'] {
-    --groupcolor: #f4a261;
-  }
-  .ccpot[data-group='4'] {
-    --groupcolor: #e76f51;
-  }
+  --zone-color: var(--zone-1);
+  --group-1: var(--zone-0);
+  --group-2: var(--zone-2);
+  --group-3: var(--zone-3);
+  --group-4: var(--zone-4);
 }
 .zone[data-colorindex='2'] {
-  --zone-color: #e9c46a;
+  --zone-color: var(--zone-2);
   --scrollbar: #ffffff60;
-  .ccpot[data-group='1'] {
-    --groupcolor: #2a4f5f;
-  }
-  .ccpot[data-group='2'] {
-    --groupcolor: #2a9d8f;
-  }
-  .ccpot[data-group='3'] {
-    --groupcolor: #f4a261;
-  }
-  .ccpot[data-group='4'] {
-    --groupcolor: #e76f51;
-  }
+  --group-1: var(--zone-0);
+  --group-2: var(--zone-1);
+  --group-3: var(--zone-3);
+  --group-4: var(--zone-4);
 }
 .zone[data-colorindex='3'] {
-  --zone-color: #f4a261;
-  .ccpot[data-group='1'] {
-    --groupcolor: #2a4f5f;
-  }
-  .ccpot[data-group='2'] {
-    --groupcolor: #2a9d8f;
-  }
-  .ccpot[data-group='3'] {
-    --groupcolor: #e9c46a;
-  }
-  .ccpot[data-group='4'] {
-    --groupcolor: #e76f51;
-  }
+  --zone-color: var(--zone-3);
+  --group-1: var(--zone-0);
+  --group-2: var(--zone-1);
+  --group-3: var(--zone-2);
+  --group-4: var(--zone-4);
 }
 .zone[data-colorindex='4'] {
-  --zone-color: #e76f51;
-  .ccpot[data-group='1'] {
-    --groupcolor: #2a4f5f;
-  }
-  .ccpot[data-group='2'] {
-    --groupcolor: #2a9d8f;
-  }
-  .ccpot[data-group='3'] {
-    --groupcolor: #e9c46a;
-  }
-  .ccpot[data-group='4'] {
-    --groupcolor: #f4a261;
-  }
+  --zone-color: var(--zone-4);
+  --group-1: var(--zone-0);
+  --group-2: var(--zone-1);
+  --group-3: var(--zone-2);
+  --group-4: var(--zone-3);
 }
+.zone .ccpot[data-group='1'] { --groupcolor: var(--group-1); }
+.zone .ccpot[data-group='2'] { --groupcolor: var(--group-2); }
+.zone .ccpot[data-group='3'] { --groupcolor: var(--group-3); }
+.zone .ccpot[data-group='4'] { --groupcolor: var(--group-4); }
 
 .zone[data-colorindex='0'] .popup {
   --bg-color: #4f97b5;
@@ -3357,6 +3345,28 @@ body.minimized .midi-led {
 }
 
 body.minimized .midi-led.on {
-  background-color: #3dff6e;
-  box-shadow: 0 0 6px 1px #3dff6e;
+  background-color: var(--live);
+  box-shadow: 0 0 6px 1px var(--live);
+}
+
+/* =============================================================
+   SHARED BUTTON BEHAVIOUR
+   One shape and one keyboard-focus ring for every button species.
+   ============================================================= */
+
+:is(.lightButton, .tb-button, .ch, .rtool, .selectSeq, .ks-help-btn) {
+  border-radius: var(--radius);
+}
+
+:is(.lightButton, .tb-button, .ch, .rtool, .selectSeq, .ks-help-btn, select, summary):focus-visible {
+  outline: 2px solid var(--armed);
+  outline-offset: 1px;
+}
+
+#midiPanic {
+  background: var(--danger-soft);
+  color: #fff;
+}
+#midiPanic:hover {
+  background: var(--danger);
 }
