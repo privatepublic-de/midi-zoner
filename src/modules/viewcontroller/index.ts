@@ -1375,12 +1375,12 @@ function updateZoneHeaderContextMenus(currentArrIndex: number): void {
 
 function selectArrangement(arrIndex: number): void {
   const clockRunning = midiController.isClockRunning;
-  DOM.removeClass('#tools *[data-select-arrangement]', 'selected', 'pending');
+  DOM.removeClass('*[data-select-arrangement]', 'selected', 'pending');
   zones.nextArrangementIndex = arrIndex;
   if (clockRunning) {
     if (zones.arrangementIndex !== arrIndex) {
       DOM.addClass(
-        DOM.all('#tools *[data-select-arrangement]')[arrIndex],
+        DOM.all('*[data-select-arrangement]')[arrIndex],
         'pending'
       );
     }
@@ -1395,7 +1395,7 @@ function selectArrangement(arrIndex: number): void {
   }
   updateZoneHeaderContextMenus(zones.arrangementIndex);
   DOM.addClass(
-    DOM.all('#tools *[data-select-arrangement]')[zones.arrangementIndex],
+    DOM.all('*[data-select-arrangement]')[zones.arrangementIndex],
     'selected'
   );
   const indicator = document.getElementById('arrangementIndicator');

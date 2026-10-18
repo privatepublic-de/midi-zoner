@@ -1010,7 +1010,7 @@ document.addEventListener('DOMContentLoaded', function () {
         midi.setInternalBPM(zones.tempo);
         view.selectArrangement(zones.arrangementIndex || 0);
         Sequence.setQuantDiv(zones.arrangementQuantIndex ?? 2);
-        (DOM.get('#tools #seqquant') as HTMLSelectElement).value = String(
+        (DOM.get('#seqquant') as HTMLSelectElement).value = String(
           zones.arrangementQuantIndex ?? 2
         );
         (DOM.get('#keySwitchEnabled') as HTMLInputElement).checked =
@@ -1218,15 +1218,15 @@ document.addEventListener('DOMContentLoaded', function () {
       ).value == '1';
     saveZones();
   });
-  DOM.on('#tools *[data-select-arrangement]', 'click', (ev) => {
+  DOM.on('*[data-select-arrangement]', 'click', (ev) => {
     const el = ev.target as HTMLElement;
     const selectedArr = parseInt(el.dataset.selectArrangement!);
     view.selectArrangement(selectedArr);
   });
-  DOM.on('#tools *[data-select-arrangement][data-contextmenu]', 'contextmenu', (ev) => {
+  DOM.on('*[data-select-arrangement][data-contextmenu]', 'contextmenu', (ev) => {
     view.showContextMenuFor(ev as MouseEvent);
   });
-  DOM.on('#tools #seqquant', 'change', (ev) => {
+  DOM.on('#seqquant', 'change', (ev) => {
     const quantDiv = parseInt((ev.target as HTMLSelectElement).value);
     Sequence.setQuantDiv(quantDiv);
     zones.arrangementQuantIndex = quantDiv;

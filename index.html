@@ -29,6 +29,23 @@
         >
       </div>
       <div id="arrangementIndicator" data-arr="0" title="Active arrangement">A</div>
+      <div id="arrangementSelector" role="group" aria-label="Arrangement">
+        <div class="arr-buttons">
+          <div class="selectSeq sqlA selected" data-select-arrangement="0" data-contextmenu="-1:global_arr_copy_to:0:1,-1:global_arr_copy_to:0:2,-1:global_arr_copy_to:0:3">A</div>
+          <div class="selectSeq sqlB" data-select-arrangement="1" data-contextmenu="-1:global_arr_copy_to:1:0,-1:global_arr_copy_to:1:2,-1:global_arr_copy_to:1:3">B</div>
+          <div class="selectSeq sqlC" data-select-arrangement="2" data-contextmenu="-1:global_arr_copy_to:2:0,-1:global_arr_copy_to:2:1,-1:global_arr_copy_to:2:3">C</div>
+          <div class="selectSeq sqlD" data-select-arrangement="3" data-contextmenu="-1:global_arr_copy_to:3:0,-1:global_arr_copy_to:3:1,-1:global_arr_copy_to:3:2">D</div>
+        </div>
+        <label class="arr-quant" title="Arrangement changes wait for this boundary while the clock runs">
+          Switch on
+          <select id="seqquant">
+            <option value="2">4/4</option>
+            <option value="3">3/4</option>
+            <option value="8">1/4</option>
+            <option value="14">1/16</option>
+          </select>
+        </label>
+      </div>
       <div class="controls" id="controls">
         <div class="row">
           <label>In:</label>
@@ -98,20 +115,6 @@
       <a id="deleteallzones" class="tb-button" title="Delete all zones">
         Delete all
       </a>
-      <div style="margin-left: 6px">Arr:</div>
-      <div class="selectSeq sqlA selected" data-select-arrangement="0" data-contextmenu="-1:global_arr_copy_to:0:1,-1:global_arr_copy_to:0:2,-1:global_arr_copy_to:0:3">A</div>
-      <div class="selectSeq sqlB" data-select-arrangement="1" data-contextmenu="-1:global_arr_copy_to:1:0,-1:global_arr_copy_to:1:2,-1:global_arr_copy_to:1:3">B</div>
-      <div class="selectSeq sqlC" data-select-arrangement="2" data-contextmenu="-1:global_arr_copy_to:2:0,-1:global_arr_copy_to:2:1,-1:global_arr_copy_to:2:3">C</div>
-      <div class="selectSeq sqlD" data-select-arrangement="3" data-contextmenu="-1:global_arr_copy_to:3:0,-1:global_arr_copy_to:3:1,-1:global_arr_copy_to:3:2">D</div>
-      <div>Quant:</div>
-      <div>
-        <select id="seqquant">
-          <option value="2">4/4</option>
-          <option value="3">3/4</option>
-          <option value="8">1/4</option>
-          <option value="14">1/16</option>
-        </select>
-      </div>
       <label class="tb-label check" title="When enabled, notes 0–15 (C-1 to D#0) act as zone-mute and sequencer-toggle key switches, and notes 16–19 (E0 to G0) select arrangements A–D, instead of being routed to zones">
         <input type="checkbox" id="keySwitchEnabled" checked tabindex="-1" />
         <span class="material-icons sel">check_box</span><span class="material-icons unsel">check_box_outline_blank</span> Key switches

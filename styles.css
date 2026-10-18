@@ -3240,12 +3240,13 @@ body.running .drumSequencer .lane-expand-toggle {
    2-column grid of compact blocks: mute/solo/seq/arp toggles + label
    ============================================================= */
 
-body.minimized #midisettings > :not(.right):not(.controls):not(#miniLogo),
+body.minimized #midisettings > :not(.right):not(.controls):not(#miniLogo):not(#arrangementSelector),
 body.minimized #midisettings .controls > :not(.clocksettings),
 body.minimized #midisettings .clocksettings > :not(.internal),
 body.minimized #midisettings .right > :not(.toolbar),
 body.minimized #midisettings .toolbar > :not(#miniViewBtn),
-body.minimized #tools > :not(.selectSeq),
+body.minimized #tools,
+body.minimized #arrangementSelector .arr-quant,
 body.minimized .zone > :not(.channels),
 body.minimized .zone .channels > :not(.state):not(.solo):not(.showseq):not(.showarp):not(.zone-label):not(.midi-led),
 body.minimized .zone.placeholder,
@@ -3283,7 +3284,7 @@ body.minimized #zones {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 4px;
   min-height: 0;
-  margin-bottom: 40px;
+  margin-bottom: 8px;
 }
 
 body.minimized .zone {
@@ -3300,8 +3301,8 @@ body.minimized .channels {
   gap: 4px;
 }
 
-body.minimized #tools .selectSeq {
-  width: 40px;
+body.minimized #arrangementSelector .selectSeq {
+  width: 32px;
 }
 
 body.minimized {
@@ -3373,4 +3374,51 @@ body.minimized .midi-led.on {
 }
 #midiPanic:hover {
   background: var(--danger);
+}
+
+/* =============================================================
+   ARRANGEMENT SELECTOR (top bar)
+   Sits beside the big active-arrangement letter: four buttons,
+   with the quantize choice underneath.
+   ============================================================= */
+
+#arrangementSelector {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  margin: 0 12px;
+  flex-shrink: 0;
+}
+
+#arrangementSelector .arr-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+#arrangementSelector .selectSeq {
+  width: 36px;
+  padding: 2px 0;
+}
+
+#arrangementSelector .arr-quant {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-sm);
+}
+
+#arrangementSelector .arr-quant select {
+  flex: 0 0 auto;
+  width: 64px;
+}
+
+/* Destructive action: kept apart from "Add zone" and only red on hover. */
+#deleteallzones.tb-button {
+  margin-right: 8px;
+  color: var(--brighter-2);
+}
+#deleteallzones.tb-button:hover {
+  background-color: var(--danger-soft);
+  color: #fff;
 }
