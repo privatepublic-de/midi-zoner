@@ -3371,7 +3371,7 @@ body.minimized .midi-led.on {
    ZONE HEADER GROUPS
    [On][Solo] route the zone, [Seq][Arp] switch a generator on and
    show its panel, [CC] only shows a panel. A divider separates the
-   groups, and the view-only button is outlined instead of filled.
+   groups; all chips share the same on/off styling.
    ============================================================= */
 
 .channels .ch {
@@ -3392,16 +3392,6 @@ body.minimized .midi-led.on {
   bottom: 3px;
   width: 1px;
   background: var(--brighter-1);
-}
-
-.channels .ch.showccs {
-  background-color: transparent;
-  box-shadow: inset 0 0 0 1px var(--brighter-1);
-}
-
-.show-cc .channels .ch.showccs {
-  background-color: var(--brighter-2);
-  box-shadow: none;
 }
 
 /* =============================================================
@@ -3638,10 +3628,6 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
 /* =============================================================
    CONTRAST: BOUNDARIES THAT IDENTIFY A CONTROL (>= 3:1)
    ============================================================= */
-
-.channels .ch.showccs {
-  box-shadow: inset 0 0 0 1px var(--brighter-3);
-}
 
 .octselect,
 .octaves {
