@@ -79,6 +79,8 @@ async function resolveSourceLocation(
 }
 
 const defaultWidth = 1000;
+// Narrowest normal-view window, in points. The renderer keeps this at (CSS floor x zoom) so zoom never forces a horizontal scrollbar.
+let normalMinWidth = 540;
 const defaultHeight = 730;
 const projectRoot = path.join(__dirname, '../..');
 const iconPath = path.join(projectRoot, 'res/zoner.png');
@@ -109,7 +111,7 @@ function createWindow(): void {
     useContentSize: startMini,
     width: startMini ? miniSize!.width : rect ? rect.width : defaultWidth,
     height: startMini ? miniSize!.height : rect ? rect.height : defaultHeight,
-    minWidth: startMini ? 1 : defaultWidth,
+    minWidth: startMini ? 1 : normalMinWidth,
     minHeight: startMini ? 1 : 200,
     alwaysOnTop: startMini,
     autoHideMenuBar: true,
@@ -222,9 +224,20 @@ function createWindow(): void {
       const restore = fullBounds;
       fullBounds = null;
       win.setAlwaysOnTop(false);
-      win.setMinimumSize(defaultWidth, 200);
+      win.setMinimumSize(normalMinWidth, 200);
       win.setBounds(restore);
     }
+  });
+  ipcMain.handle('set-min-width', (event, width: number) => {
+    normalMinWidth = Math.max(320, Math.round(width));
+    // in mini view the window may be tiny; the new minimum applies when leaving it
+    if (win && !fullBounds) {
+      win.setMinimumSize(normalMinWidth, 200);
+      // the OS does not grow an existing window to a new minimum (e.g. after zooming in), so do it here
+      const [currentWidth, currentHeight] = win.getSize();
+      if (currentWidth < normalMinWidth) win.setSize(normalMinWidth, currentHeight);
+    }
+    return win ? win.getMinimumSize() : [normalMinWidth, 200];
   });
   ipcMain.handle('open-about', () => openAboutWindow());
   ipcMain.handle('open-confirm', async (event, ...args): Promise<boolean> => {

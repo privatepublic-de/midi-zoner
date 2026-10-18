@@ -266,15 +266,28 @@ const ZOOM_MAX = 2.0;
 const ZOOM_STORAGE_KEY = 'zoomFactor';
 let currentZoomFactor = parseFloat(localStorage.getItem(ZOOM_STORAGE_KEY) || '1');
 
+// Narrowest page layout in CSS px (matches --floor-page in styles.css). The window's minimum width follows it
+// scaled by zoom, so a zoomed window can never be narrower than the layout needs.
+const PAGE_FLOOR_CSS_PX = 540;
+
 function applyZoom(factor: number): void {
   currentZoomFactor = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, Math.round(factor * 10) / 10));
   webFrame.setZoomFactor(currentZoomFactor);
   localStorage.setItem(ZOOM_STORAGE_KEY, String(currentZoomFactor));
+  ipcRenderer.invoke('set-min-width', Math.ceil(PAGE_FLOOR_CSS_PX * currentZoomFactor));
   applyMiniSize();
 }
 
 applyZoom(currentZoomFactor);
 
+
+/** Places a fixed popup just below the control that opened it, kept inside the window. */
+function anchorBelow(popup: HTMLElement, anchor: HTMLElement): void {
+  const rect = anchor.getBoundingClientRect();
+  popup.style.top = `${Math.round(rect.bottom + 4)}px`;
+  popup.style.right = 'auto';
+  popup.style.left = `${Math.max(4, Math.min(Math.round(rect.left), window.innerWidth - popup.offsetWidth - 4))}px`;
+}
 
 /** Tells the main process to shrink/grow the window to fit the mini grid. */
 function applyMiniSize(): void {
@@ -295,6 +308,9 @@ function setMiniView(on: boolean, refresh = true): void {
   localStorage.setItem(MINI_STORAGE_KEY, on ? '1' : '0');
   document.body.classList.toggle('minimized', on);
   DOM.get('#miniViewBtn')!.classList.toggle('active', on);
+  const miniBtn = DOM.get('#miniViewBtn') as HTMLElement;
+  miniBtn.title = `${on ? 'Back to full view' : 'Switch to mini view'} (Cmd/Ctrl+Shift+M)`;
+  miniBtn.querySelector('i')!.textContent = on ? 'open_in_full' : 'close_fullscreen';
   if (refresh) view.updateValuesForAllZones();
   if (on) {
     applyMiniSize();
@@ -338,7 +354,18 @@ document.addEventListener('DOMContentLoaded', function () {
     sendMackieLeds();
   });
   const optionNoDevice = '<option value="">(No devices available)</option>';
+  /** One-line summary of input and clock on the setup toggle, so a closed drawer still shows what is set. */
+  let inputSummary = '';
+  function updateSetupSummary(): void {
+    const clock =
+      midi.deviceIdInClock == MIDI.INTERNAL_PORT_ID
+        ? 'Internal clock'
+        : select_in_clock.selectedOptions[0]?.text || 'External clock';
+    const el = document.getElementById('setupSummary');
+    if (el) el.textContent = `${inputSummary || 'No input'} · ${clock}`;
+  }
   function updateBpmInput(): void {
+    updateSetupSummary();
     if (midi.deviceIdInClock == MIDI.INTERNAL_PORT_ID) {
       DOM.addClass('.clocksettings', 'isInternal');
       DOM.removeClass('.clocksettings', 'isExternal');
@@ -399,8 +426,10 @@ document.addEventListener('DOMContentLoaded', function () {
     if (count == 0) {
       displayString = '(no input device selected)';
     }
+    inputSummary = displayString;
     displayString = count + ': ' + displayString;
     (DOM.get('#midiInputSelector') as HTMLElement).innerHTML = displayString;
+    updateSetupSummary();
   }
 
   function updateInputSelection(inputs: PortDescriptor[]): void {
@@ -1010,7 +1039,7 @@ document.addEventListener('DOMContentLoaded', function () {
         midi.setInternalBPM(zones.tempo);
         view.selectArrangement(zones.arrangementIndex || 0);
         Sequence.setQuantDiv(zones.arrangementQuantIndex ?? 2);
-        (DOM.get('#tools #seqquant') as HTMLSelectElement).value = String(
+        (DOM.get('#seqquant') as HTMLSelectElement).value = String(
           zones.arrangementQuantIndex ?? 2
         );
         (DOM.get('#keySwitchEnabled') as HTMLInputElement).checked =
@@ -1157,7 +1186,7 @@ document.addEventListener('DOMContentLoaded', function () {
         setTimeout(() => {
           DOM.removeClass(document.body, 'updated');
         }, 1000);
-        view.toast(`MIDI devices updated! <br/>${msg ? msg : ''}`);
+        view.toast(`MIDI devices updated<br/>${msg ? msg : ''}`);
       }, 100);
     }
   });
@@ -1189,6 +1218,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const clockoutcontainer = DOM.get('#clockOutPortWindow') as HTMLElement;
     const isVisible = clockoutcontainer.style.display == 'block';
     clockoutcontainer.style.display = isVisible ? 'none' : 'block';
+    if (!isVisible) anchorBelow(clockoutcontainer, e.currentTarget as HTMLElement);
     if (!isVisible) {
       setTimeout(() => {
         onBackgroundClick(() => {
@@ -1197,10 +1227,11 @@ document.addEventListener('DOMContentLoaded', function () {
       }, 0);
     }
   });
-  DOM.get('#midiInputSelector')!.addEventListener('click', () => {
+  DOM.get('#midiInputSelector')!.addEventListener('click', (ev) => {
     const container = DOM.get('#inputPortWindow') as HTMLElement;
     const isVisible = container.style.display == 'block';
     container.style.display = isVisible ? 'none' : 'block';
+    if (!isVisible) anchorBelow(container, ev.currentTarget as HTMLElement);
     if (!isVisible) {
       setTimeout(() => {
         onBackgroundClick(() => {
@@ -1218,21 +1249,45 @@ document.addEventListener('DOMContentLoaded', function () {
       ).value == '1';
     saveZones();
   });
-  DOM.on('#tools *[data-select-arrangement]', 'click', (ev) => {
+  DOM.on('*[data-select-arrangement]', 'click', (ev) => {
     const el = ev.target as HTMLElement;
     const selectedArr = parseInt(el.dataset.selectArrangement!);
     view.selectArrangement(selectedArr);
   });
-  DOM.on('#tools *[data-select-arrangement][data-contextmenu]', 'contextmenu', (ev) => {
+  DOM.on('*[data-select-arrangement][data-contextmenu]', 'contextmenu', (ev) => {
     view.showContextMenuFor(ev as MouseEvent);
   });
-  DOM.on('#tools #seqquant', 'change', (ev) => {
+  DOM.on('#seqquant', 'change', (ev) => {
     const quantDiv = parseInt((ev.target as HTMLSelectElement).value);
     Sequence.setQuantDiv(quantDiv);
     zones.arrangementQuantIndex = quantDiv;
     saveZones();
   });
   DOM.on('#aboutBtn', 'click', () => ipcRenderer.invoke('open-about'));
+  const SETUP_OPEN_KEY = 'setupDrawerOpen';
+  function setSetupOpen(open: boolean): void {
+    document.body.classList.toggle('setup-open', open);
+    DOM.get('#setupToggle')!.setAttribute('aria-expanded', String(open));
+    localStorage.setItem(SETUP_OPEN_KEY, open ? '1' : '0');
+  }
+  setSetupOpen(localStorage.getItem(SETUP_OPEN_KEY) === '1');
+  DOM.get('#setupToggle')!.addEventListener('click', () =>
+    setSetupOpen(!document.body.classList.contains('setup-open'))
+  );
+  // Keep the zones below the top bar, including the drawer when it is open (and when it wraps to two rows).
+  const topBar = DOM.get('#midisettings') as HTMLElement;
+  const setupDrawer = DOM.get('#setupDrawer') as HTMLElement;
+  const syncTopBarHeight = (): void => {
+    const drawerOpen = document.body.classList.contains('setup-open');
+    const bottom = Math.max(
+      topBar.getBoundingClientRect().bottom,
+      drawerOpen ? setupDrawer.getBoundingClientRect().bottom : 0
+    );
+    document.documentElement.style.setProperty('--topbar-h', `${Math.ceil(bottom)}px`);
+  };
+  new ResizeObserver(syncTopBarHeight).observe(topBar);
+  new ResizeObserver(syncTopBarHeight).observe(setupDrawer);
+  syncTopBarHeight();
   DOM.on('#keySwitchEnabled', 'change', (ev) => {
     zones.keySwitchEnabled = (ev.target as HTMLInputElement).checked;
     saveZones();

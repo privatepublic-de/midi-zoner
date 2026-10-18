@@ -139,6 +139,11 @@ function initController({
     DOM.all(`#midisettings input[type=number]`)
   );
 
+  document.addEventListener('input', (ev) => {
+    const target = ev.target as HTMLElement;
+    if (target.matches('input[type="range"]')) syncRangeFill(target as HTMLInputElement);
+  });
+
   // Range slider gesture: one undo entry per drag, not per pixel.
   // The one-shot mouseup is added only when a range slider actually starts,
   // so it never fires on unrelated clicks (e.g. focusing a text input).
@@ -862,6 +867,18 @@ function rebuildSeqProgress(zone: ZoneType, sequence: SequenceType): void {
   }
 }
 
+/** Range inputs have no native "filled" part in Chromium: expose the value as a percentage for the track gradient. */
+function syncRangeFill(el: HTMLInputElement): void {
+  const min = parseFloat(el.min || '0');
+  const max = parseFloat(el.max || '100');
+  const pct = max > min ? ((parseFloat(el.value) - min) / (max - min)) * 100 : 0;
+  el.style.setProperty('--fill', `${Math.max(0, Math.min(100, pct))}%`);
+}
+
+function syncRangeFills(root: ParentNode): void {
+  root.querySelectorAll<HTMLInputElement>('input[type="range"]').forEach(syncRangeFill);
+}
+
 function updateValuesForZone(index: number): void {
   const zone: ZoneType = zones.list[index];
   const sequence = zone.sequence;
@@ -1293,6 +1310,7 @@ function updateValuesForZone(index: number): void {
     }
     updateControllerValues(zone, index);
     updateGeneralButtons();
+    syncRangeFills(zoneElement as HTMLElement);
   }
 }
 
@@ -1375,12 +1393,12 @@ function updateZoneHeaderContextMenus(currentArrIndex: number): void {
 
 function selectArrangement(arrIndex: number): void {
   const clockRunning = midiController.isClockRunning;
-  DOM.removeClass('#tools *[data-select-arrangement]', 'selected', 'pending');
+  DOM.removeClass('*[data-select-arrangement]', 'selected', 'pending');
   zones.nextArrangementIndex = arrIndex;
   if (clockRunning) {
     if (zones.arrangementIndex !== arrIndex) {
       DOM.addClass(
-        DOM.all('#tools *[data-select-arrangement]')[arrIndex],
+        DOM.all('*[data-select-arrangement]')[arrIndex],
         'pending'
       );
     }
@@ -1395,19 +1413,9 @@ function selectArrangement(arrIndex: number): void {
   }
   updateZoneHeaderContextMenus(zones.arrangementIndex);
   DOM.addClass(
-    DOM.all('#tools *[data-select-arrangement]')[zones.arrangementIndex],
+    DOM.all('*[data-select-arrangement]')[zones.arrangementIndex],
     'selected'
   );
-  const indicator = document.getElementById('arrangementIndicator');
-  if (indicator) {
-    indicator.textContent = String.fromCharCode(65 + zones.arrangementIndex);
-    indicator.dataset.arr = String(zones.arrangementIndex);
-    if (clockRunning && zones.arrangementIndex !== arrIndex) {
-      indicator.dataset.pendingArr = String.fromCharCode(65 + arrIndex);
-    } else {
-      delete indicator.dataset.pendingArr;
-    }
-  }
   updateValuesForAllZones();
 }
 
