@@ -557,12 +557,13 @@ option {
   position: absolute;
   bottom: 7px;
   right: 5px;
-  color: var(--bg-color);
+  /* decorative: a quiet tint of the zone accent blended into the card */
+  --zonenumber-color: color-mix(in srgb, var(--zone-color) 45%, var(--zone-surface));
+  color: var(--zonenumber-color);
   font-size: var(--fs-lg);
   font-weight: 900;
-  -webkit-text-stroke: 1.5px var(--bg-color);
+  -webkit-text-stroke: 1.5px var(--zonenumber-color);
   pointer-events: none;
-  text-shadow: 0 0 1px var(--darker-3);
 }
 
 .disabled .zonenumber {
@@ -3678,4 +3679,34 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
   body:not(.minimized) #midisettings .transport {
     order: 3;
   }
+}
+
+/* =============================================================
+   EXTERNAL CLOCK: a status badge replaces the Start button
+   ============================================================= */
+
+.transport .ext-badge {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 10px 0 6px;
+  border: 1px solid var(--brighter-2);
+  border-radius: var(--radius);
+  color: var(--brighter-4);
+  white-space: nowrap;
+  cursor: default;
+  user-select: none;
+}
+
+.transport .ext-badge .material-icons {
+  font-size: var(--icon-md);
+}
+
+#midisettings .isExternal #startClockButton {
+  display: none;
+}
+
+#midisettings .isExternal .ext-badge {
+  display: inline-flex;
 }
