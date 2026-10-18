@@ -303,6 +303,9 @@ function setMiniView(on: boolean, refresh = true): void {
   localStorage.setItem(MINI_STORAGE_KEY, on ? '1' : '0');
   document.body.classList.toggle('minimized', on);
   DOM.get('#miniViewBtn')!.classList.toggle('active', on);
+  const miniBtn = DOM.get('#miniViewBtn') as HTMLElement;
+  miniBtn.title = `${on ? 'Back to full view' : 'Switch to mini view'} (Cmd/Ctrl+Shift+M)`;
+  miniBtn.querySelector('i')!.textContent = on ? 'open_in_full' : 'close_fullscreen';
   if (refresh) view.updateValuesForAllZones();
   if (on) {
     applyMiniSize();
