@@ -3511,3 +3511,19 @@ body.setup-open #setupDrawer {
   margin-left: 0;
   margin-right: 0;
 }
+
+/* Collapsed strip: each group of related controls gets a thin outline. */
+#midisettings > :is(.global-resets, #arrangementSelector, .transport) {
+  box-sizing: border-box;
+  height: 32px;
+  padding: 0 6px;
+  align-items: center;
+  border: 1px solid var(--brighter-1);
+  border-radius: var(--radius);
+}
+
+body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transport) {
+  height: auto;
+  padding: 0;
+  border: none;
+}
