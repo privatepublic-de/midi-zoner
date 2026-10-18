@@ -89,9 +89,9 @@
   --zone-4: #ff968a;
 
   /* Card bodies: same lightness and chroma (OKLCH L.50 C.10), only the hue differs,
-     so the five sit together as one family; teal is set deeper. All >= 5:1 with light text. */
-  --zone-surface-0: #076c92;
-  --zone-surface-1: #005a54;
+     so the five sit together as one family; the blue is set deeper. All >= 5:1 with light text. */
+  --zone-surface-0: #025473;
+  --zone-surface-1: #04736c;
   --zone-surface-2: #7b5f06;
   --zone-surface-3: #8f5128;
   --zone-surface-4: #944b43;
