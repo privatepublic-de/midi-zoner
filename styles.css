@@ -3320,12 +3320,10 @@ body.minimized .midi-led.on {
   outline-offset: 1px;
 }
 
-#midiPanic {
+/* Panic is rarely used: neutral like the other buttons, red only on hover. */
+#midiPanic:hover {
   background: var(--danger-soft);
   color: #fff;
-}
-#midiPanic:hover {
-  background: var(--danger);
 }
 
 /* =============================================================
