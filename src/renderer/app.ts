@@ -1266,6 +1266,20 @@ document.addEventListener('DOMContentLoaded', function () {
   DOM.get('#setupToggle')!.addEventListener('click', () =>
     setSetupOpen(!document.body.classList.contains('setup-open'))
   );
+  // Keep the zones below the top bar, including the drawer when it is open (and when it wraps to two rows).
+  const topBar = DOM.get('#midisettings') as HTMLElement;
+  const setupDrawer = DOM.get('#setupDrawer') as HTMLElement;
+  const syncTopBarHeight = (): void => {
+    const drawerOpen = document.body.classList.contains('setup-open');
+    const bottom = Math.max(
+      topBar.getBoundingClientRect().bottom,
+      drawerOpen ? setupDrawer.getBoundingClientRect().bottom : 0
+    );
+    document.documentElement.style.setProperty('--topbar-h', `${Math.ceil(bottom)}px`);
+  };
+  new ResizeObserver(syncTopBarHeight).observe(topBar);
+  new ResizeObserver(syncTopBarHeight).observe(setupDrawer);
+  syncTopBarHeight();
   DOM.on('#keySwitchEnabled', 'change', (ev) => {
     zones.keySwitchEnabled = (ev.target as HTMLInputElement).checked;
     saveZones();
