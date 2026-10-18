@@ -1274,8 +1274,8 @@ input[type='range'] {
 }
 
 .octselect.selected {
-  background-color: var(--brighter-2);
-  border: 1px solid var(--brighter-2);
+  background-color: var(--brighter-3);
+  border: 1px solid var(--brighter-3);
 }
 
 .octselect.selected + .octselect {
@@ -2155,11 +2155,11 @@ body.running .seqprogress.drum .lane-cursor {
     font-size: var(--icon-md);
   }
   &.hiddenPort {
-    opacity: 0.5;
+    opacity: 0.75;
   }
   &.locked {
     cursor: not-allowed;
-    opacity: 0.7;
+    opacity: 0.85;
   }
 }
 
@@ -2175,7 +2175,7 @@ body.running .seqprogress.drum .lane-cursor {
 .clockOutOption {
   display: flex;
   align-items: center;
-  color: var(--brighter-2);
+  color: var(--brighter-3);
   margin-bottom: 3px;
   font-size: var(--fs-sm);
   justify-content: space-between;
@@ -2215,16 +2215,16 @@ body.running .seqprogress.drum .lane-cursor {
   opacity: 0;
   pointer-events: none;
   cursor: pointer;
-  color: var(--brighter-2);
+  color: var(--brighter-3);
 }
 
 .clockOutOption.selected .clockSuppressBtn {
-  opacity: 0.35;
+  opacity: 0.8;
   pointer-events: all;
 }
 
 .clockOutOption.selected .clockSuppressBtn:hover {
-  opacity: 0.7;
+  opacity: 1;
 }
 
 .clockOutOption.selected .clockSuppressBtn.active {
@@ -2985,7 +2985,8 @@ body.running .drumSequencer .lane-expand-toggle {
 
 /* Piano roll editor */
 #pianoRollOverlay {
-  --zone-color: #e9c46a;
+  --zone-color: #dab249;
+  --zone-surface: #7b5f06;
   position: fixed;
   top: 24px;
   left: 24px;
@@ -3012,7 +3013,7 @@ body.running .drumSequencer .lane-expand-toggle {
   justify-content: space-between;
   padding: 8px 12px;
   border-bottom: 1px solid var(--darker-3);
-  background-color: var(--zone-color);
+  background-color: var(--zone-surface);
   flex-shrink: 0;
 }
 
@@ -3026,7 +3027,7 @@ body.running .drumSequencer .lane-expand-toggle {
 .pr-close {
   background: none;
   border: none;
-  color: var(--brighter-2);
+  color: var(--brighter-4);
   cursor: pointer;
   padding: 0;
   display: flex;
@@ -3628,4 +3629,21 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
 .zone.disabled input.zone-label,
 .zone.disabled input.zone-label::placeholder {
   color: var(--zone-label);
+}
+
+/* =============================================================
+   CONTRAST: BOUNDARIES THAT IDENTIFY A CONTROL (>= 3:1)
+   ============================================================= */
+
+.channels .ch.showccs {
+  box-shadow: inset 0 0 0 1px var(--brighter-3);
+}
+
+.octselect,
+.octaves {
+  border-color: var(--brighter-3);
+}
+
+#midisettings input#bpm {
+  border-color: var(--brighter-2);
 }

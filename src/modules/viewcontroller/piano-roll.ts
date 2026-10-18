@@ -177,14 +177,14 @@ function buildKeyboardOnce(): void {
   }
 }
 
-function getZoneColor(zone: ZoneType): string {
+function getZoneColor(zone: ZoneType, prop = '--zone-color', fallback = '#dab249'): string {
   if (zone.elements.zoneElement) {
     const c = getComputedStyle(zone.elements.zoneElement)
-      .getPropertyValue('--zone-color')
+      .getPropertyValue(prop)
       .trim();
     if (c) return c;
   }
-  return '#e9c46a';
+  return fallback;
 }
 
 function clearSelection(): void {
@@ -534,6 +534,7 @@ export function openPianoRoll(ctx: ActionContext): void {
     ? `Piano Roll — ${ctx.zone.label}`
     : `Piano Roll — Zone ${ctx.zoneindex + 1}`;
   overlayEl.style.setProperty('--zone-color', getZoneColor(ctx.zone));
+  overlayEl.style.setProperty('--zone-surface', getZoneColor(ctx.zone, '--zone-surface', '#7b5f06'));
   overlayEl.classList.add('open');
   renderAll(ctx.zone);
   centerScrollOnNotes(ctx.zone);
