@@ -1,3 +1,5 @@
+import { PPQ } from './zone/seq-layer';
+
 interface ClockMessage {
   data: Uint8Array;
   timestamp?: number;
@@ -8,7 +10,7 @@ type ClockHandler = (msg: ClockMessage) => void;
 const audioContext = new AudioContext();
 const clockMSG: ClockMessage = { data: Uint8Array.from([0xf8]) };
 const scheduleAheadTime = 0.1; // 100ms lookahead
-let tempo = 60 / 120 / 24; // defaults to 120bpm
+let tempo = 60 / 120 / PPQ; // defaults to 120bpm
 let nextClockTime = 0.0; // when the next tick is due (relative to startTime)
 let startTime = 0;
 let tickHandler: ClockHandler | null = null;
@@ -45,7 +47,7 @@ function setHandler(clockHandler: ClockHandler | null): void {
 
 function setBPM(bpm: number): void {
   if (bpm > 0 && isFinite(bpm)) {
-    tempo = 60 / bpm / 24;
+    tempo = 60 / bpm / PPQ;
   }
 }
 

@@ -90,7 +90,7 @@ Contains zone-related classes split into separate modules:
 
 - **zone-class.ts**: Main Zone class with note range, channel, output/input routing, arpeggiator, sequencer, and CC controllers. Holds `arrangements[]` array and `captureArrangement()` / `applyArrangement()` methods
 - **sequence.ts**: Flat step sequencer (no sub-layers); supports melodic and drum modes. The old 4-layer system is replaced by global arrangements
-- **seq-layer.ts**: Contains only `DIV_TICKS` and `DivTick` — the tick-to-division mapping constants (24ppq)
+- **seq-layer.ts**: Contains only `PPQ` (24), `DIV_TICKS` and `DivTick` — the clock resolution and tick-to-division mapping constants
 - **seq-step.ts**: Single sequencer step with notes, velocity, gate, length, probability, condition, and ratchet fields
 - **drum-lane.ts**: Drum sequencer lane
 - **note.ts**: MIDI note representation with velocity, channel, and portId

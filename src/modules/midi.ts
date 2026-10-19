@@ -1,6 +1,7 @@
+import { PPQ } from './zone/seq-layer';
 import * as internalClock from './internal-clock';
 
-interface PortDescriptor {
+export interface PortDescriptor {
   id: string;
   name: string;
   fullName: string;
@@ -8,7 +9,7 @@ interface PortDescriptor {
   isSelectedClockInput: boolean;
 }
 
-interface InputPortDef {
+export interface InputPortDef {
   id: string;
   ch: number;
   isSelected: boolean;
@@ -97,7 +98,7 @@ class MIDI {
   sendClockIfPlaying = false;
   detectedBpm: number | null = null;
   bpmDetectedHandler: ((bpm: number | null) => void) | null = null;
-  currentTickIntervalMs: number = 60000 / 120 / 24;
+  currentTickIntervalMs: number = 60000 / 120 / PPQ;
   private _warnedMissingPorts = new Set<string>();
   private _clockLostTimeout: ReturnType<typeof setTimeout> | null = null;
   private _clockPauseTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -338,13 +339,13 @@ class MIDI {
           }
           this._bpmTicksSinceUpdate++;
           if (
-            this._bpmTicksSinceUpdate >= 24 &&
+            this._bpmTicksSinceUpdate >= PPQ &&
             this._bpmTimestamps.length >= 2
           ) {
             this._bpmTicksSinceUpdate = 0;
             const n = this._bpmTimestamps.length - 1;
             const avgMs = (this._bpmTimestamps[n] - this._bpmTimestamps[0]) / n;
-            this.detectedBpm = 60000 / (avgMs * 24);
+            this.detectedBpm = 60000 / (avgMs * PPQ);
             this.bpmDetectedHandler(this.detectedBpm);
           }
         }
@@ -668,7 +669,6 @@ class MIDI {
   }
 }
 
-const clockMSG = Uint8Array.from([MIDI.MESSAGE.CLOCK]);
 const startMSG = Uint8Array.from([MIDI.MESSAGE.START]);
 const stopMSG = Uint8Array.from([MIDI.MESSAGE.STOP]);
 const songPosStart = Uint8Array.from([MIDI.MESSAGE.SONG_POS, 0, 0]);

@@ -2,8 +2,9 @@ import DOM from '../modules/domutils';
 import { Zone } from '../modules/zone/zone-class';
 import { Sequence } from '../modules/zone/sequence';
 import { DIV_TICKS } from '../modules/zone/seq-layer';
-import MIDI from '../modules/midi';
+import MIDI, { PortDescriptor } from '../modules/midi';
 import * as view from '../modules/viewcontroller';
+import { ZonesData } from '../modules/viewcontroller/types';
 import { ipcRenderer, webFrame } from 'electron';
 import { ZoneArrangementJSON } from '../modules/zone/interfaces';
 import { UndoHistory } from '../modules/undo-history';
@@ -11,36 +12,6 @@ import { UndoHistory } from '../modules/undo-history';
 // Type aliases for class types
 type ZoneType = Zone;
 type MIDIInstance = InstanceType<typeof MIDI>;
-
-interface InputPortDef {
-  id: string;
-  ch: number;
-  isSelected: boolean;
-}
-
-interface ZonesData {
-  list: ZoneType[];
-  inChannel: number;
-  clockOutputPorts: Record<string, boolean>;
-  clockSuppressTransportPorts: Record<string, boolean>;
-  selectedInputPorts: Record<string, InputPortDef>;
-  tempo: number;
-  sendInternalClockIfPlaying: boolean;
-  outputConfigNames: Record<string, string>;
-  arrangementIndex: number;
-  nextArrangementIndex: number;
-  arrangementQuantIndex: number;
-  keySwitchEnabled: boolean;
-  mackieOutlineEnabled: boolean;
-  knownPortNames: Record<string, string>;
-}
-
-interface PortDescriptor {
-  id: string;
-  name: string;
-  fullName: string;
-  isSelectedClockInput?: boolean;
-}
 
 const zones: ZonesData = {
   list: [],
@@ -1391,7 +1362,7 @@ document.addEventListener('DOMContentLoaded', function () {
     saveZones();
     sendMackieLeds();
   });
-  view.initController({ saveData: saveZones, data: zones as any, midi, history: undoHistory });
+  view.initController({ saveData: saveZones, data: zones, midi, history: undoHistory });
 
   contextMenuElement.addEventListener('mouseleave', function () {
     hideOnLeaveContextMenuTimeout = setTimeout(() => {

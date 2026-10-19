@@ -1,6 +1,7 @@
 import { ActionContext, ActionHelpers, ActionMap } from '../types';
 import { ipcRenderer } from 'electron';
 import { labelForZone } from '../action-labels';
+import { CCControllerType } from '../../zone/interfaces';
 
 export function createCCActions(
   ctx: ActionContext,
@@ -103,7 +104,7 @@ export function createCCActions(
         const n = parseInt(raw);
         if (n >= 2 && n <= 64) {
           const c = zone.cc_controllers[zone.selectedCCIndex];
-          const maxVal = (c.type === 5 || c.type === 6) ? 16383 : 127;
+          const maxVal = (c.type === CCControllerType.UNIPOLAR_14BIT || c.type === CCControllerType.BIPOLAR_14BIT) ? 16383 : 127;
           discreteValues = Array.from({ length: n }, (_, i) =>
             Math.round(i * maxVal / (n - 1))
           );

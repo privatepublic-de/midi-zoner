@@ -4,7 +4,7 @@ import { Note } from './note';
 import { SeqStep } from './seq-step';
 import { DrumLane } from './drum-lane';
 import { DIV_TICKS, DivTick } from './seq-layer';
-import { SequenceJSON, UPDATE_ZONE_VIEW_EVENT } from './interfaces';
+import { SequenceJSON, StepCondition, UPDATE_ZONE_VIEW_EVENT } from './interfaces';
 import type { Zone } from './zone-class';
 
 export class Sequence {
@@ -588,18 +588,18 @@ export class Sequence {
 
   checkCondition(step: SeqStep, cycleCnt = this.cycleCount, firstCycle = this.isFirstCycle, previousStepPlayed = this.previousStepPlayed): boolean {
     switch (step.condition) {
-      case 0:
+      case StepCondition.ALWAYS:
         return true;
-      case 1:
+      case StepCondition.PREVIOUS:
         return previousStepPlayed;
-      case 2:
+      case StepCondition.NOT_PREVIOUS:
         return !previousStepPlayed;
-      case 3:
+      case StepCondition.FIRST_CYCLE:
         return firstCycle;
-      case 4:
+      case StepCondition.NOT_FIRST_CYCLE:
         return !firstCycle;
     }
-    const condition = Sequence.CYCLE_CONDITIONS[step.condition - 5];
+    const condition = Sequence.CYCLE_CONDITIONS[step.condition - StepCondition.CYCLES];
     return cycleCnt % condition[0] === condition[1] - 1;
   }
 
@@ -661,10 +661,6 @@ export class Sequence {
       step.notesArray.push(new Note(drumLane.note, 96));
       drumLane.steps[stepNo] = step;
     }
-  }
-
-  hasDrumStep(lane: number, stepNo: number): boolean {
-    return this.getDrumLane(lane).steps[stepNo] != null;
   }
 
   // ========== SWING METHODS ==========

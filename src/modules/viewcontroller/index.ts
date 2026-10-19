@@ -1341,26 +1341,6 @@ function allHoldOff(): void {
   triggerSave();
 }
 
-function soloZone(index: number): void {
-  const zone = zones.list[index];
-  if (zone) {
-    undoHistory.beforeAction(JSON.stringify(zones), labelForZone(zone, index, 'Solo'));
-    if (!zone.solo) {
-      if (index < zones.list.length) {
-        for (var i = 0; i < zones.list.length; i++) {
-          zones.list[i].solo = false;
-        }
-        zone.solo = true;
-        zone.enabled = true;
-      }
-    } else {
-      zone.solo = false;
-    }
-    updateValuesForAllZones();
-    triggerSave();
-  }
-}
-
 function toggleZoneMute(index: number): void {
   const zone = zones.list[index];
   if (zone) {
@@ -1459,9 +1439,7 @@ export {
   updateControllerValues,
   updateValuesForAllZones,
   updateValuesForZone,
-  soloZone,
   toggleZoneMute,
-  allSoloOff,
   selectArrangement,
   toggleSequencerOnZone,
   toast,

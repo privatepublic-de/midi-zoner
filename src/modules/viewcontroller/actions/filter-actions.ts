@@ -1,11 +1,10 @@
-import DOM from '../../domutils';
 import { ActionContext, ActionHelpers, ActionMap } from '../types';
 
 export function createFilterActions(
   ctx: ActionContext,
   helpers: ActionHelpers
 ): ActionMap {
-  const { zone, zoneindex, element, toast } = ctx;
+  const { zone, element, toast } = ctx;
   const { applyParamToggle, applyPercentage } = helpers;
 
   return {

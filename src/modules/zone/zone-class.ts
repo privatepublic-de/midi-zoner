@@ -10,10 +10,12 @@ import {
   ZoneJSON,
   ZoneArrangementJSON,
   SeqStepJSON,
+  ArpDirection,
+  CCControllerType,
   UPDATE_ZONE_VIEW_EVENT
 } from './interfaces';
 import { NoteDisplay } from './note-display';
-import { DIV_TICKS, DivTick } from './seq-layer';
+import { DIV_TICKS, DivTick, PPQ } from './seq-layer';
 
 // All MIDI notes 0-127 sorted white-first so black keys are drawn on top
 const ALL_NOTES_WHITE_FIRST = Array.from({ length: 128 }, (_, i) => i).sort(
@@ -173,7 +175,7 @@ export class Zone {
     fireAtMs: number;
     timer: ReturnType<typeof setTimeout>;
   }[] = [];
-  private _lastTickIntervalMs = (60 / 120 / 24) * 1000;
+  private _lastTickIntervalMs = (60 / 120 / PPQ) * 1000;
   // Clock position and time of the last processed tick, used to time ring-outs on stop
   private _lastPos = 0;
   private _lastTickAt = 0;
@@ -659,8 +661,8 @@ export class Zone {
           let matchCount = 0;
           for (let i = 0; i < this.cc_controllers.length; i++) {
             const ctrl = this.cc_controllers[i];
-            if (ctrl.type != 2 && ctrl.number_in == data[1]) {
-              const is14bit = ctrl.type == 5 || ctrl.type == 6;
+            if (ctrl.type != CCControllerType.SPACER && ctrl.number_in == data[1]) {
+              const is14bit = ctrl.type == CCControllerType.UNIPOLAR_14BIT || ctrl.type == CCControllerType.BIPOLAR_14BIT;
               ctrl.val = is14bit
                 ? Math.round((data[2] * 16383) / 127)
                 : data[2];
@@ -718,9 +720,9 @@ export class Zone {
   }
 
   convertNote2CC(key: number, velo: number): void {
-    if (!this.cc_controllers.some((ctrl) => ctrl.type == 4)) return;
+    if (!this.cc_controllers.some((ctrl) => ctrl.type == CCControllerType.NOTE_TO_CC)) return;
     this.cc_controllers.forEach((ctrl) => {
-      if (ctrl.type == 4) {
+      if (ctrl.type == CCControllerType.NOTE_TO_CC) {
         const outevent = new Uint8Array(3);
         outevent[0] = MIDI.MESSAGE.CONTROLLER + this.channel;
         if (ctrl.note_cc != null) {
@@ -753,7 +755,7 @@ export class Zone {
     // Grace period on key release: defer strum cancellation by one arp step so a
     // quick chord change feels seamless (guitar-like). If new notes arrive within
     // the window the timer is cleared and the strum continues uninterrupted.
-    if (this.arp_enabled && this.arp_direction >= 5 && !this.arp_hold) {
+    if (this.arp_enabled && this.arp_direction >= ArpDirection.STRUM_DOWN && !this.arp_hold) {
       if (this.activeNotes.length === 0) {
         const graceMs = this.arp_ticks * this._lastTickIntervalMs;
         this._strumGraceTimer = setTimeout(() => {
@@ -1131,7 +1133,7 @@ export class Zone {
       this.arp.beat = false;
       // Strum modes and active ratchet use per-note timers; off-tick only silences plain arp
       if (
-        this.arp_direction < 5 &&
+        this.arp_direction < ArpDirection.STRUM_DOWN &&
         this.arpStrumPending.length === 0 &&
         this.arpStrumOffPending.length === 0
       ) {
@@ -1255,18 +1257,18 @@ export class Zone {
   private triggerArpAtPatternPos(probable: boolean): void {
     this.arp.beat = true;
     const notes: Note[] = this.arp_hold
-      ? this.arp_direction > 2
+      ? this.arp_direction > ArpDirection.UP_DOWN
         ? this.arp_holdlist
         : this.arp_sortedHoldList
-      : this.arp_direction > 2
+      : this.arp_direction > ArpDirection.UP_DOWN
         ? this.arp.orderlist
         : this.arp.sortedlist;
     if (notes.length > 0) {
       // Strum modes: play entire chord (across all octaves) staggered across the gate window
       if (
-        this.arp_direction === 5 ||
-        this.arp_direction === 6 ||
-        this.arp_direction === 7
+        this.arp_direction === ArpDirection.STRUM_DOWN ||
+        this.arp_direction === ArpDirection.STRUM_UP ||
+        this.arp_direction === ArpDirection.STRUM_ALT
       ) {
         if (probable) {
           const base = notes.slice().sort((a, b) => a.number - b.number);
@@ -1285,10 +1287,10 @@ export class Zone {
             }
           }
           const strumUp =
-            this.arp_direction === 6 ||
-            (this.arp_direction === 7 && this.arp.inc < 0);
+            this.arp_direction === ArpDirection.STRUM_UP ||
+            (this.arp_direction === ArpDirection.STRUM_ALT && this.arp.inc < 0);
           if (strumUp) chord.reverse();
-          if (this.arp_direction === 7) this.arp.inc = -this.arp.inc;
+          if (this.arp_direction === ArpDirection.STRUM_ALT) this.arp.inc = -this.arp.inc;
           const gateMs =
             this.arp_ticks * this._lastTickIntervalMs * this.arp_gatelength;
           const gap = chord.length > 1 ? gateMs / chord.length : 0;
@@ -1344,22 +1346,22 @@ export class Zone {
           this.arp.octave = noct;
         };
         switch (this.arp_direction) {
-          case 0:
-          case 4:
+          case ArpDirection.UP:
+          case ArpDirection.ORDER:
             this.arp.noteindex++;
             if (this.arp.noteindex >= notes.length) {
               this.arp.noteindex = 0;
               nextArpOctave(1);
             }
             break;
-          case 1:
+          case ArpDirection.DOWN:
             this.arp.noteindex--;
             if (this.arp.noteindex < 0) {
               this.arp.noteindex = notes.length - 1;
               nextArpOctave(-1);
             }
             break;
-          case 2:
+          case ArpDirection.UP_DOWN:
             this.arp.noteindex += this.arp.inc;
             if (this.arp.noteindex >= notes.length) {
               this.arp.noteindex = this.arp.noteindex % notes.length;
@@ -1382,7 +1384,7 @@ export class Zone {
             }
             if (notes.length == 1) this.arp.noteindex = 0;
             break;
-          case 3:
+          case ArpDirection.RANDOM:
             this.arp.noteindex = this.rngArp.next(notes.length);
             this.arp.octave = this.rngArpOct.next(this.arp_octaves + 1);
             break;
@@ -1659,8 +1661,8 @@ export class Zone {
 
   sendCC(index: number): void {
     const is14bit =
-      this.cc_controllers[index].type == 5 ||
-      this.cc_controllers[index].type == 6;
+      this.cc_controllers[index].type == CCControllerType.UNIPOLAR_14BIT ||
+      this.cc_controllers[index].type == CCControllerType.BIPOLAR_14BIT;
     if (is14bit) {
       this.sendOut(
         Uint8Array.from([
@@ -1733,7 +1735,7 @@ export class Zone {
   snap2DiscreteValue(value: number, ccIndex: number): void {
     const ctrl = this.cc_controllers[ccIndex];
     if (
-      ctrl.type == 0 &&
+      ctrl.type == CCControllerType.UNIPOLAR_ROTARY &&
       ctrl.discreteValues != null &&
       ctrl.discreteValues.length > 0
     ) {

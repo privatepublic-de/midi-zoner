@@ -1,6 +1,6 @@
 import { Zone } from '../zone/zone-class';
 import { Sequence } from '../zone/sequence';
-import MIDI from '../midi';
+import MIDI, { InputPortDef } from '../midi';
 
 export type ZoneType = Zone;
 export type SequenceType = Sequence;
@@ -8,10 +8,18 @@ export type MIDIInstance = InstanceType<typeof MIDI>;
 
 export interface ZonesData {
   list: ZoneType[];
-  outputConfigNames: Record<string, string>;
+  inChannel: number;
   clockOutputPorts: Record<string, boolean>;
+  clockSuppressTransportPorts: Record<string, boolean>;
+  selectedInputPorts: Record<string, InputPortDef>;
+  tempo: number;
+  sendInternalClockIfPlaying: boolean;
+  outputConfigNames: Record<string, string>;
   arrangementIndex: number;
   nextArrangementIndex: number;
+  arrangementQuantIndex: number;
+  keySwitchEnabled: boolean;
+  mackieOutlineEnabled: boolean;
   knownPortNames: Record<string, string>;
 }
 

@@ -17,10 +17,6 @@ const templateController = fs.readFileSync(
   'utf8'
 );
 
-function stripTooltips(s: string): string {
-  return s.replace(/title=\".+?\"/g, '');
-}
-
 const interpolateTemplate = function (
   templateString: string,
   templateVars: Record<string, any>
@@ -60,8 +56,6 @@ const noteLengthOptions = (function (): string {
   });
   return s;
 })();
-
-const octavemarkers = '';
 
 const checkboxIcons =
   '<span class="material-icons sel">check_box</span><span class="material-icons unsel">check_box_outline_blank</span>';
@@ -147,7 +141,6 @@ export function getHTML(zone: ZoneType, zoneindex: number): string {
     seqMaxSteps: Sequence.MAX_STEPS,
     cycleConditions: cycleConditions,
     checkboxIcons: checkboxIcons,
-    noteLengthOptions: noteLengthOptions,
-    octavemarkers: octavemarkers
+    noteLengthOptions: noteLengthOptions
   });
 }

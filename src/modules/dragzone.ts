@@ -47,7 +47,7 @@ class DragZone {
       offsetLeft: containerOffsets.offsetLeft
     };
     DOM.addClass(this.zoneElement, 'dragged');
-    const placeholder = DOM.addHTML(
+    DOM.addHTML(
       this.zoneElement,
       'afterend',
       `<section class="zone" style="height:${this.srcdim.height}px"></section>`

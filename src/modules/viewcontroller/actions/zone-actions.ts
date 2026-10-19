@@ -13,7 +13,7 @@ export function createZoneActions(
     updateValuesForZone, updateValuesForAllZones,
     renderMarkersForZone, renderZones, listUsedPorts,
     updateOutputPortsForZone, cachedOutputPorts,
-    updateInputPortsForZone, cachedInputPorts, findTouchedNote,
+    findTouchedNote,
     toast
   } = ctx;
   const { applySelectedIndex } = helpers;

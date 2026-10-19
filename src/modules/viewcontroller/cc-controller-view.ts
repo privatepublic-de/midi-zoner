@@ -1,7 +1,8 @@
 import DOM from '../domutils';
 import * as zoneTemplate from '../zone-template';
 import potDragHandler from '../potdraghandler';
-import { ZoneType, ZonesData } from './types';
+import { ZoneType } from './types';
+import { CCControllerType } from '../zone/interfaces';
 import { describeActionForZone, labelForZone } from './action-labels';
 
 function polarToCartesian(
@@ -68,19 +69,19 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIn
   zone.cc_controllers.forEach((c, ix) => {
     if (onlyIndex !== undefined && ix !== onlyIndex) return;
     const potselector = `#pot_${zoneindex}_${ix}`;
-    const is14bit = c.type == 5 || c.type == 6;
-    const isBiploar = c.type == 1 || c.type == 6;
+    const is14bit = c.type == CCControllerType.UNIPOLAR_14BIT || c.type == CCControllerType.BIPOLAR_14BIT;
+    const isBipolar = c.type == CCControllerType.BIPOLAR_ROTARY || c.type == CCControllerType.BIPOLAR_14BIT;
     const valDegrees = is14bit
-      ? 270 * (isBiploar ? (c.val - 8192) / 8192 : c.val / 16383)
-      : 270 * (isBiploar ? (c.val - 64) / 64 : c.val / 127);
-    const valuePath = isBiploar
+      ? 270 * (isBipolar ? (c.val - 8192) / 8192 : c.val / 16383)
+      : 270 * (isBipolar ? (c.val - 64) / 64 : c.val / 127);
+    const valuePath = isBipolar
       ? describeArc(28, 30, 18, 0, valDegrees / 2)
       : describeArc(28, 30, 18, -135, -135 + valDegrees);
     if (onlyIndex === undefined) {
       zone._$(`${potselector}_range`)?.setAttribute('d', rangePath);
     }
     zone._$(`${potselector}_value`)?.setAttribute('d', valuePath);
-    (zone._$(`${potselector}_zero`) as HTMLElement).style.display = isBiploar ? 'block' : 'none';
+    (zone._$(`${potselector}_zero`) as HTMLElement).style.display = isBipolar ? 'block' : 'none';
     zone
       ._$(`${potselector}_discrete`)
       ?.setAttribute('d', describeDiscreteValues(c.discreteValues || [], is14bit));
@@ -89,15 +90,15 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIn
     potcontainer.dataset.group = String(c.group || 0);
     potcontainer.dataset.hasInput = c.number_in != null ? '1' : '';
     (zone._$(`${potselector} div.cclabel`) as HTMLElement).textContent =
-      c.type == 4 ? 'Note to CC' : c.label;
+      c.type == CCControllerType.NOTE_TO_CC ? 'Note to CC' : c.label;
     let displayValue: number = c.val;
-    if (c.type == 0) {
+    if (c.type == CCControllerType.UNIPOLAR_ROTARY) {
       displayValue = zone.remapCCValue(c.val, ix);
-    } else if (isBiploar) {
+    } else if (isBipolar) {
       displayValue = is14bit ? displayValue - 8192 : displayValue - 64;
     }
     (zone._$(`${potselector} .value`) as HTMLElement).textContent = String(displayValue);
-    if (c.type == 4) {
+    if (c.type == CCControllerType.NOTE_TO_CC) {
       let infotext = '';
       if (c.note_cc != null) {
         infotext += '<div>Note: <br/>#' + c.note_cc + '</div>';
@@ -107,7 +108,7 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIn
       }
       (zone._$(`${potselector} .info`) as HTMLElement).innerHTML = infotext;
     }
-    if (c.type == 3) {
+    if (c.type == CCControllerType.BUTTON_BANK) {
       for (let i = 0; i < 8; i++) {
         const btn = zone._$(`${potselector} .ccbtn${i}`) as HTMLElement;
         const label = (c as any)[`buttonlabel${i}`];
@@ -207,7 +208,7 @@ export function renderControllersForZone(
 
   DOM.all(`#zone${index} .ccpots .ccpot`).forEach((pot, ix) => {
     const is14bit =
-      zone.cc_controllers[ix].type == 5 || zone.cc_controllers[ix].type == 6;
+      zone.cc_controllers[ix].type == CCControllerType.UNIPOLAR_14BIT || zone.cc_controllers[ix].type == CCControllerType.BIPOLAR_14BIT;
     (pot.querySelector('.cclabel') as HTMLElement).addEventListener('click', (e) => {
       e.stopPropagation();
       if (zone.selectedCCIndex === ix && zone.editCC) {

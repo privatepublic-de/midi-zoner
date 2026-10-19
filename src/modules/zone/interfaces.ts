@@ -28,7 +28,9 @@ export enum StepCondition {
   PREVIOUS = 1,
   NOT_PREVIOUS = 2,
   FIRST_CYCLE = 3,
-  NOT_FIRST_CYCLE = 4
+  NOT_FIRST_CYCLE = 4,
+  // Values from here on index Sequence.CYCLE_CONDITIONS (every N cycles)
+  CYCLES = 5
 }
 
 export interface CCController {
