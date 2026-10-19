@@ -1393,7 +1393,9 @@ export class Zone {
       if (
         probable &&
         this.arp.noteindex > -1 &&
-        this.arp.noteindex < notes.length
+        this.arp.noteindex < notes.length &&
+        // nothing to repeat if the previous beat was skipped or ratcheted
+        (!repetition || this.arp.repeatnote !== null)
       ) {
         const activeNote = repetition
           ? this.arp.repeatnote!
@@ -1566,6 +1568,7 @@ export class Zone {
     } else {
       this.arpNoteOff();
     }
+    this.arp.repeatnote = null;
     this.sequence.stopped(ringOut);
     // Released sequencer notes may have armed the strum grace timer, which would
     // cut the strum's ring-out early
