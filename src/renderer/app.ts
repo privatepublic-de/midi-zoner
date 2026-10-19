@@ -130,8 +130,9 @@ function createZone(midi: MIDIInstance, zoneData: any): Zone {
   const zone = new Zone(midi);
 
   zone.channel = zoneData.channel ?? 0;
-  zone.preferredOutputPortId = zoneData.preferredOutputPortId ?? MIDI.INTERNAL_PORT_ID;
-  zone.outputPortId = zoneData.preferredOutputPortId ?? MIDI.INTERNAL_PORT_ID;
+  // String(): output presets used to store the port id as a number
+  zone.preferredOutputPortId = String(zoneData.preferredOutputPortId ?? MIDI.INTERNAL_PORT_ID);
+  zone.outputPortId = zone.preferredOutputPortId;
   zone.inputPortId = zoneData.inputPortId ?? null;
   zone.inputChannel = zoneData.inputChannel ?? null;
   zone.label = zoneData.label ?? '';
@@ -367,7 +368,7 @@ document.addEventListener('DOMContentLoaded', function () {
     for (const [portid, enabled] of Object.entries(midi.clockOutputPorts)) {
       let present = false;
       midi.outputPortsRegistered.forEach((p: PortDescriptor) => {
-        if (parseInt(p.id) == parseInt(portid)) {
+        if (p.id === portid) {
           present = true;
         }
       });

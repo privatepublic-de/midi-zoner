@@ -71,7 +71,7 @@ export function createZoneActions(
       if (selectElement.value.charAt(0) == '$') {
         const parts = selectElement.value.substr(1).split(',');
         zone.channel = parseInt(parts[1]);
-        zone.preferredOutputPortId = zone.outputPortId = parseInt(parts[0]) as any;
+        zone.preferredOutputPortId = zone.outputPortId = parts[0];
         updateOutputPortsForZone(zoneindex, cachedOutputPorts);
         midiController.updateUsedPorts(listUsedPorts());
       } else {
