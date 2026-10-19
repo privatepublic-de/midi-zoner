@@ -129,7 +129,7 @@ export class Zone {
   arp_direction = 0;
   _arp_octaves = 0;
   _arp_division = 11;
-  arp_ticks: DivTick = DIV_TICKS[8];
+  arp_ticks: DivTick = DIV_TICKS[11]; // matches _arp_division (1/8)
   arp_gatelength = 0.5;
   arp_repeat = 0;
   arp_probability = 1;
