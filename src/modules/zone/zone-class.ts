@@ -1623,6 +1623,9 @@ export class Zone {
       clearTimeout(this._strumGraceTimer);
       this._strumGraceTimer = null;
     }
+    // A swung arp hit still waiting would send a note-on after the zone is gone
+    this.arpSwingPending.forEach((p) => clearTimeout(p.timer));
+    this.arpSwingPending.length = 0;
     this.flushRingOuts();
     this.arpNoteOff();
     const outevent = new Uint8Array([0, 0, 0]);
