@@ -206,8 +206,8 @@ enum StepCondition {
   PREVIOUS = 1,       // Play if previous step played
   NOT_PREVIOUS = 2,   // Play if previous step did NOT play
   FIRST_CYCLE = 3,    // Play only on first loop cycle
-  NOT_FIRST_CYCLE = 4 // Play on every cycle except the first
-  // Values 5+ encode "every N cycles" as (N - 1 + 5)
+  NOT_FIRST_CYCLE = 4, // Play on every cycle except the first
+  CYCLES = 5          // 5+ index Sequence.CYCLE_CONDITIONS ("every N cycles")
 }
 ```
 
