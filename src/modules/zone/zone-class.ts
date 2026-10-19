@@ -1144,6 +1144,7 @@ export class Zone {
     };
     pending.timer = setTimeout(() => {
       this.arpStrumPending = this.arpStrumPending.filter((p) => p !== pending);
+      this.releaseSoundingArpPitch(note);
       this.convertNote2CC(note.number, note.velo);
       this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + note.channel;
       this._midiMsgBuf[1] = note.number;
@@ -1178,6 +1179,48 @@ export class Zone {
       requestAnimationFrame(this._renderNotesBound);
     }, delayMs);
     this.arpStrumOffPending.push(pending);
+  }
+
+  /**
+   * Drop scheduled strum/ratchet note-ons that have not fired yet, together with their
+   * note-offs. Notes already sounding keep their scheduled note-off.
+   */
+  private cancelUnsoundedArpNotes(): void {
+    if (this.arpStrumPending.length === 0) return;
+    const unsounded = new Set(this.arpStrumPending.map((p) => p.note));
+    this.arpStrumPending.forEach((p) => clearTimeout(p.timer));
+    this.arpStrumPending.length = 0;
+    this.arpStrumOffPending = this.arpStrumOffPending.filter((p) => {
+      if (!unsounded.has(p.note)) return true;
+      clearTimeout(p.timer);
+      return false;
+    });
+  }
+
+  /**
+   * Release a still-sounding strum/ratchet note of the same pitch right before it is
+   * struck again, so its late note-off cannot cut the new note.
+   */
+  private releaseSoundingArpPitch(note: Note): void {
+    const sounding = this.arp.lastStrumNotes;
+    this.arpStrumOffPending = this.arpStrumOffPending.filter((p) => {
+      const n = p.note;
+      if (
+        n.number !== note.number ||
+        n.channel !== note.channel ||
+        n.portId !== note.portId ||
+        !sounding.includes(n)
+      ) {
+        return true;
+      }
+      clearTimeout(p.timer);
+      this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_OFF + n.channel;
+      this._midiMsgBuf[1] = n.number;
+      this._midiMsgBuf[2] = n.velo;
+      this.sendOut(this._midiMsgBuf, n.portId);
+      this.arp.lastStrumNotes = this.arp.lastStrumNotes.filter((s) => s !== n);
+      return false;
+    });
   }
 
   /**
@@ -1223,11 +1266,9 @@ export class Zone {
           const gateMs =
             this.arp_ticks * this._lastTickIntervalMs * this.arp_gatelength;
           const gap = chord.length > 1 ? gateMs / chord.length : 0;
-          this.arp.lastStrumNotes = [];
-          this.arpStrumPending.forEach((p) => clearTimeout(p.timer));
-          this.arpStrumPending.length = 0;
-          this.arpStrumOffPending.forEach((p) => clearTimeout(p.timer));
-          this.arpStrumOffPending.length = 0;
+          // Notes of the previous strum keep ringing until their own note-off or until
+          // this strum re-strikes the same pitch; only its unsounded notes are dropped.
+          this.cancelUnsoundedArpNotes();
           const now = performance.now();
           chord.forEach((note, i) => {
             const taperFactor =
@@ -1246,6 +1287,7 @@ export class Zone {
               note.portId
             );
             if (i === 0) {
+              this.releaseSoundingArpPitch(taperedNote);
               this.convertNote2CC(note.number, velo);
               this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + this.channel;
               this._midiMsgBuf[1] = note.number;
@@ -1363,11 +1405,13 @@ export class Zone {
               note.portId
             );
             if (i === 0) {
+              this.releaseSoundingArpPitch(ratchetNote);
               this.convertNote2CC(ratchetNote.number, ratchetNote.velo);
               this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + this.channel;
               this._midiMsgBuf[1] = ratchetNote.number;
               this._midiMsgBuf[2] = ratchetNote.velo;
               this.sendOut(this._midiMsgBuf, this.outputPortId);
+              this.arp.lastStrumNotes.push(ratchetNote);
             } else {
               this.scheduleArpNoteOn(
                 ratchetNote,
@@ -1412,6 +1456,7 @@ export class Zone {
       this.arpStrumPending.length = 0;
       this.arpStrumOffPending.forEach(({ note: n, timer }) => {
         clearTimeout(timer);
+        if (!this.arp.lastStrumNotes.includes(n)) return; // never sounded
         this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_OFF + n.channel;
         this._midiMsgBuf[1] = n.number;
         this._midiMsgBuf[2] = n.velo;
