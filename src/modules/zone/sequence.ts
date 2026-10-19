@@ -380,19 +380,13 @@ export class Sequence {
       for (let i = this.ratchetQueue.length - 1; i >= 0; i--) {
         const ev = this.ratchetQueue[i];
         if (ev.noteOnPos === -1 && pos >= ev.noteOffPos) {
-          this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_OFF + ev.note.channel;
-          this._midiMsgBuf[1] = ev.note.number;
-          this._midiMsgBuf[2] = 0;
-          this.zone.handleMidi(MIDI.MESSAGE.NOTE_OFF, this._midiMsgBuf, true);
+          this.feedNote(MIDI.MESSAGE.NOTE_OFF, ev.note.channel, ev.note.number, 0);
           this.ratchetQueue.splice(i, 1);
         }
       }
       for (const ev of this.ratchetQueue) {
         if (ev.noteOnPos !== -1 && pos >= ev.noteOnPos) {
-          this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + ev.note.channel;
-          this._midiMsgBuf[1] = ev.note.number;
-          this._midiMsgBuf[2] = ev.note.velo;
-          this.zone.handleMidi(MIDI.MESSAGE.NOTE_ON, this._midiMsgBuf, true);
+          this.feedNote(MIDI.MESSAGE.NOTE_ON, ev.note.channel, ev.note.number, ev.note.velo);
           ev.noteOnPos = -1;
         }
       }
@@ -405,10 +399,7 @@ export class Sequence {
         if (astep.length - 1 - astep.played === 0 && this.tickn >= offtick) {
           clearSteps.push(astep);
           for (const note of (astep.lastPlayedArray ?? [])) {
-            this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_OFF + note.channel;
-            this._midiMsgBuf[1] = note.number;
-            this._midiMsgBuf[2] = note.velo;
-            this.zone.handleMidi(MIDI.MESSAGE.NOTE_OFF, this._midiMsgBuf, true);
+            this.feedNote(MIDI.MESSAGE.NOTE_OFF, note.channel, note.number, note.velo);
           }
           if (astep.lastPlayedArray) astep.lastPlayedArray.length = 0;
         }
@@ -586,6 +577,14 @@ export class Sequence {
     });
   }
 
+  /** Feeds a sequencer note into the zone as if it came from an input (arp, routing). */
+  private feedNote(status: number, channel: number, number: number, velo: number, timestamp?: number): void {
+    this._midiMsgBuf[0] = status + channel;
+    this._midiMsgBuf[1] = number;
+    this._midiMsgBuf[2] = velo;
+    this.zone.handleMidi(status, this._midiMsgBuf, true, timestamp);
+  }
+
   checkCondition(step: SeqStep, cycleCnt = this.cycleCount, firstCycle = this.isFirstCycle, previousStepPlayed = this.previousStepPlayed): boolean {
     switch (step.condition) {
       case StepCondition.ALWAYS:
@@ -745,10 +744,7 @@ export class Sequence {
         hitNote.channel = this.zone.channel;
         hitNote.portId = this.zone.outputPortId;
         if (hitIdx === 0) {
-          this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + hitNote.channel;
-          this._midiMsgBuf[1] = hitNote.number;
-          this._midiMsgBuf[2] = hitNote.velo;
-          this.zone.handleMidi(MIDI.MESSAGE.NOTE_ON, this._midiMsgBuf, true, timestamp);
+          this.feedNote(MIDI.MESSAGE.NOTE_ON, hitNote.channel, hitNote.number, hitNote.velo, timestamp);
           this.ratchetQueue.push({ note: hitNote, noteOnPos: -1, noteOffPos: this.currentPos + gateLen });
         } else {
           const firePos = this.currentPos + hitIdx * ratchetRes;
@@ -762,10 +758,7 @@ export class Sequence {
       const note = new Note(lane.note, velo);
       note.channel = this.zone.channel;
       note.portId = this.zone.outputPortId;
-      this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + note.channel;
-      this._midiMsgBuf[1] = note.number;
-      this._midiMsgBuf[2] = note.velo;
-      this.zone.handleMidi(MIDI.MESSAGE.NOTE_ON, this._midiMsgBuf, true, timestamp);
+      this.feedNote(MIDI.MESSAGE.NOTE_ON, note.channel, note.number, note.velo, timestamp);
       (step.lastPlayedArray ??= []).push(note);
     }
   }
@@ -789,10 +782,7 @@ export class Sequence {
           note.portId = this.zone.outputPortId;
           note.velo = Math.max(1, Math.min(127, inote.velo + hitIdx * ratchetDelta));
           if (hitIdx === 0) {
-            this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + note.channel;
-            this._midiMsgBuf[1] = note.number;
-            this._midiMsgBuf[2] = note.velo;
-            this.zone.handleMidi(MIDI.MESSAGE.NOTE_ON, this._midiMsgBuf, true, timestamp);
+            this.feedNote(MIDI.MESSAGE.NOTE_ON, note.channel, note.number, note.velo, timestamp);
             this.ratchetQueue.push({ note, noteOnPos: -1, noteOffPos: this.currentPos + gateLen });
           } else {
             const firePos = this.currentPos + hitIdx * ratchetRes;
@@ -808,10 +798,7 @@ export class Sequence {
         const note = Note.clone(inote);
         note.channel = this.zone.channel;
         note.portId = this.zone.outputPortId;
-        this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + note.channel;
-        this._midiMsgBuf[1] = note.number;
-        this._midiMsgBuf[2] = note.velo;
-        this.zone.handleMidi(MIDI.MESSAGE.NOTE_ON, this._midiMsgBuf, true, timestamp);
+        this.feedNote(MIDI.MESSAGE.NOTE_ON, note.channel, note.number, note.velo, timestamp);
         step.lastPlayedArray.push(note);
       }
     }

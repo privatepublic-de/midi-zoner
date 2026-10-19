@@ -439,6 +439,17 @@ export class Zone {
 
   private ledTimer: ReturnType<typeof setTimeout> | null = null;
 
+  /**
+   * Note-on/off through the shared message buffer. Code that sendOut itself can reach
+   * (releaseSoundingArpPitch, ring-out callbacks) builds its own Uint8Array instead.
+   */
+  private sendNote(status: number, channel: number, number: number, velo: number, portId: string): void {
+    this._midiMsgBuf[0] = status + channel;
+    this._midiMsgBuf[1] = number;
+    this._midiMsgBuf[2] = velo;
+    this.sendOut(this._midiMsgBuf, portId);
+  }
+
   /** Sends a MIDI message and flashes the activity LED (visible in minimized view only). */
   private sendOut(msg: Uint8Array, portId: string, timestamp?: number): void {
     // A still-sounding note of the same pitch is released before it is struck again,
@@ -1171,10 +1182,7 @@ export class Zone {
     pending.timer = setTimeout(() => {
       this.arpStrumPending = this.arpStrumPending.filter((p) => p !== pending);
       this.convertNote2CC(note.number, note.velo);
-      this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + note.channel;
-      this._midiMsgBuf[1] = note.number;
-      this._midiMsgBuf[2] = note.velo;
-      this.sendOut(this._midiMsgBuf, note.portId);
+      this.sendNote(MIDI.MESSAGE.NOTE_ON, note.channel, note.number, note.velo, note.portId);
       this.arp.lastStrumNotes.push(note);
       requestAnimationFrame(this._renderNotesBound);
     }, delayMs);
@@ -1194,10 +1202,7 @@ export class Zone {
       this.arpStrumOffPending = this.arpStrumOffPending.filter(
         (p) => p !== pending
       );
-      this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_OFF + note.channel;
-      this._midiMsgBuf[1] = note.number;
-      this._midiMsgBuf[2] = note.velo;
-      this.sendOut(this._midiMsgBuf, note.portId);
+      this.sendNote(MIDI.MESSAGE.NOTE_OFF, note.channel, note.number, note.velo, note.portId);
       this.arp.lastStrumNotes = this.arp.lastStrumNotes.filter(
         (s) => s !== note
       );
@@ -1313,10 +1318,7 @@ export class Zone {
             );
             if (i === 0) {
               this.convertNote2CC(note.number, velo);
-              this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + this.channel;
-              this._midiMsgBuf[1] = note.number;
-              this._midiMsgBuf[2] = velo;
-              this.sendOut(this._midiMsgBuf, this.outputPortId);
+              this.sendNote(MIDI.MESSAGE.NOTE_ON, this.channel, note.number, velo, this.outputPortId);
               this.arp.lastStrumNotes.push(taperedNote);
               this.scheduleArpNoteOff(taperedNote, gateMs, fireAtMs + gateMs);
             } else {
@@ -1432,10 +1434,7 @@ export class Zone {
             );
             if (i === 0) {
               this.convertNote2CC(ratchetNote.number, ratchetNote.velo);
-              this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + this.channel;
-              this._midiMsgBuf[1] = ratchetNote.number;
-              this._midiMsgBuf[2] = ratchetNote.velo;
-              this.sendOut(this._midiMsgBuf, this.outputPortId);
+              this.sendNote(MIDI.MESSAGE.NOTE_ON, this.channel, ratchetNote.number, ratchetNote.velo, this.outputPortId);
               this.arp.lastStrumNotes.push(ratchetNote);
             } else {
               this.scheduleArpNoteOn(
@@ -1454,10 +1453,7 @@ export class Zone {
         } else {
           this.arp.lastnote = note;
           this.convertNote2CC(note.number, baseVelo);
-          this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + this.channel;
-          this._midiMsgBuf[1] = note.number;
-          this._midiMsgBuf[2] = baseVelo;
-          this.sendOut(this._midiMsgBuf, this.outputPortId);
+          this.sendNote(MIDI.MESSAGE.NOTE_ON, this.channel, note.number, baseVelo, this.outputPortId);
         }
       }
     }
@@ -1468,10 +1464,7 @@ export class Zone {
   arpNoteOff(): void {
     if (this.arp.lastnote) {
       const note = this.arp.lastnote;
-      this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_OFF + note.channel;
-      this._midiMsgBuf[1] = note.number;
-      this._midiMsgBuf[2] = note.velo;
-      this.sendOut(this._midiMsgBuf, note.portId);
+      this.sendNote(MIDI.MESSAGE.NOTE_OFF, note.channel, note.number, note.velo, note.portId);
       this.arp.lastnote = null;
       this.arp.repeatnote = note;
       requestAnimationFrame(this._renderNotesBound);
@@ -1482,10 +1475,7 @@ export class Zone {
       this.arpStrumOffPending.forEach(({ note: n, timer }) => {
         clearTimeout(timer);
         if (!this.arp.lastStrumNotes.includes(n)) return; // never sounded
-        this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_OFF + n.channel;
-        this._midiMsgBuf[1] = n.number;
-        this._midiMsgBuf[2] = n.velo;
-        this.sendOut(this._midiMsgBuf, n.portId);
+        this.sendNote(MIDI.MESSAGE.NOTE_OFF, n.channel, n.number, n.velo, n.portId);
       });
       this.arpStrumOffPending.length = 0;
       this.arp.lastStrumNotes = [];
