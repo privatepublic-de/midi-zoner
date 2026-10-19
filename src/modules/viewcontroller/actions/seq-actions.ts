@@ -329,10 +329,8 @@ export function createSeqActions(
           case 'halftime':
             seq.length = seq.length * 2;
             for (let i = 0; i < srcLength; i++) {
-              seq.steps[i * 2] = stepsCopy[i];
-              if (seq.steps[i * 2]) {
-                seq.steps[i * 2].length = seq.steps[i * 2].length * 2;
-              }
+              const step = (seq.steps[i * 2] = stepsCopy[i]);
+              if (step) step.length = step.length * 2;
               seq.steps[i * 2 + 1] = null;
             }
             updateValuesForZone(zoneindex);
@@ -341,10 +339,8 @@ export function createSeqActions(
           case 'thirdtime':
             seq.length = seq.length * 3;
             for (let i = 0; i < srcLength; i++) {
-              seq.steps[i * 3] = stepsCopy[i];
-              if (seq.steps[i * 3]) {
-                seq.steps[i * 3].length = seq.steps[i * 3].length * 3;
-              }
+              const step = (seq.steps[i * 3] = stepsCopy[i]);
+              if (step) step.length = step.length * 3;
               seq.steps[i * 3 + 1] = seq.steps[i * 3 + 2] = null;
             }
             updateValuesForZone(zoneindex);
@@ -650,7 +646,7 @@ export function createSeqActions(
           Array.from(Zone.seqClipboardStep.keys()).forEach(
             (stepindex: number) => {
               const newStepIndex = (targetStepIndex + stepindex) % targetLane.length;
-              targetLane.steps[newStepIndex] = Sequence.cloneStep(Zone.seqClipboardStep!.get(stepindex));
+              targetLane.steps[newStepIndex] = Sequence.cloneStep(Zone.seqClipboardStep!.get(stepindex) ?? null);
             }
           );
         } else {
@@ -658,7 +654,7 @@ export function createSeqActions(
           Array.from(Zone.seqClipboardStep.keys()).forEach(
             (stepindex: number) => {
               targetSteps[(targetStep + stepindex) % sequence.length] =
-                Sequence.cloneStep(Zone.seqClipboardStep!.get(stepindex));
+                Sequence.cloneStep(Zone.seqClipboardStep!.get(stepindex) ?? null);
             }
           );
         }

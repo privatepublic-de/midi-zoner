@@ -2,7 +2,7 @@ import DOM, { escapeHTML as esc } from '../modules/domutils';
 import { Zone } from '../modules/zone/zone-class';
 import { Sequence } from '../modules/zone/sequence';
 import { DIV_TICKS } from '../modules/zone/seq-layer';
-import MIDI, { PortDescriptor } from '../modules/midi';
+import MIDI, { PortDescriptor, MIDIMessage } from '../modules/midi';
 import * as view from '../modules/viewcontroller';
 import { ZonesData } from '../modules/viewcontroller/types';
 import { ipcRenderer, webFrame } from 'electron';
@@ -759,32 +759,34 @@ document.addEventListener('DOMContentLoaded', function () {
   let mackieSelectedZone: number | null = null;
   let sendMackieLeds: () => void = () => {};
   const midi = new MIDI({
-    eventHandler: (event: MIDIMessageEvent) => {
+    eventHandler: (event: MIDIMessage) => {
+      const data = event.data;
+      if (!data) return;
       if (midi.deviceIdInClock == MIDI.INTERNAL_PORT_ID) {
         // handle start/stop messages with internal clock active
         if (
-          event.data[0] == MIDI.MESSAGE.SYSTEM_EXCLUSIVE &&
-          event.data[1] == MIDI.MESSAGE.SYSTEM_EXCLUSIVE_REAL_TIME &&
-          event.data[3] == 6
+          data[0] == MIDI.MESSAGE.SYSTEM_EXCLUSIVE &&
+          data[1] == MIDI.MESSAGE.SYSTEM_EXCLUSIVE_REAL_TIME &&
+          data[3] == 6
         ) {
-          if (event.data[4] == 2) {
+          if (data[4] == 2) {
             // MMC PLAY
             midi.startClock();
-          } else if (event.data[4] == 1) {
+          } else if (data[4] == 1) {
             // MMC STOP
             midi.stopClock();
           }
         } else if (
-          event.data[0] == MIDI.MESSAGE.START ||
-          event.data[0] == MIDI.MESSAGE.CONTINUE
+          data[0] == MIDI.MESSAGE.START ||
+          data[0] == MIDI.MESSAGE.CONTINUE
         ) {
           midi.startClock();
-        } else if (event.data[0] == MIDI.MESSAGE.STOP) {
+        } else if (data[0] == MIDI.MESSAGE.STOP) {
           midi.stopClock();
         }
       }
 
-      let msgtype = event.data[0] & 0xf0;
+      let msgtype = data[0] & 0xf0;
       const sourcePortId = event.target
         ? (event.target as MIDIInput).id
         : MIDI.INTERNAL_PORT_ID;
@@ -793,34 +795,34 @@ document.addEventListener('DOMContentLoaded', function () {
         !isMackiePort &&
         zones.keySwitchEnabled &&
         msgtype === MIDI.MESSAGE.NOTE_ON &&
-        event.data[1] < 20 &&
-        event.data[2] > 0
+        data[1] < 20 &&
+        data[2] > 0
       ) {
         // handle key switches
-        if (event.data[1] < 8) {
+        if (data[1] < 8) {
           // toggle mute
-          view.toggleZoneMute(event.data[1]);
-        } else if (event.data[1] < 16) {
+          view.toggleZoneMute(data[1]);
+        } else if (data[1] < 16) {
           // toggle sequencer
-          view.toggleSequencerOnZone(event.data[1] - 8);
+          view.toggleSequencerOnZone(data[1] - 8);
         } else {
           // select arrangement A/B/C/D (notes 16-19)
-          view.selectArrangement(event.data[1] - 16);
+          view.selectArrangement(data[1] - 16);
         }
         // do nothing else
         return;
       }
-      if (msgtype === MIDI.MESSAGE.NOTE_ON && event.data[2] === 0) {
+      if (msgtype === MIDI.MESSAGE.NOTE_ON && data[2] === 0) {
         msgtype = MIDI.MESSAGE.NOTE_OFF;
       }
-      const sourceChannel = event.data[0] & 0x0f;
+      const sourceChannel = data[0] & 0x0f;
       if (isMackiePort) {
         if (
-          (event.data[0] & 0xf0) === MIDI.MESSAGE.NOTE_ON &&
-          (event.data[0] & 0x0f) === 0 &&
-          event.data[2] > 0
+          (data[0] & 0xf0) === MIDI.MESSAGE.NOTE_ON &&
+          (data[0] & 0x0f) === 0 &&
+          data[2] > 0
         ) {
-          const note = event.data[1];
+          const note = data[1];
           // Transport (internal clock only)
           if (midi.deviceIdInClock === MIDI.INTERNAL_PORT_ID) {
             if (note === 94 && !midi.isClockRunning) {
@@ -856,11 +858,11 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         // Jog encoder → BPM (internal clock only)
         if (
-          (event.data[0] & 0xf0) === MIDI.MESSAGE.CONTROLLER &&
-          event.data[1] === 60 &&
+          (data[0] & 0xf0) === MIDI.MESSAGE.CONTROLLER &&
+          data[1] === 60 &&
           midi.deviceIdInClock === MIDI.INTERNAL_PORT_ID
         ) {
-          const raw = event.data[2];
+          const raw = data[2];
           const cw = raw < 64;
           const speed = cw ? raw : raw - 64;
           const step = speed <= 3 ? 1 : speed <= 10 ? 2 : 5;
@@ -879,7 +881,7 @@ document.addEventListener('DOMContentLoaded', function () {
           const portDef = midi.selectedInputPorts[sourcePortId];
           if (!portDef?.isSelected || portDef.ch !== sourceChannel) return;
         }
-        const resultMessage = zone.handleMidi(msgtype, event.data);
+        const resultMessage = zone.handleMidi(msgtype, data);
         if (resultMessage && /^(updateCC|midiLearn)/.test(resultMessage)) {
           const colonPos = resultMessage.indexOf(':');
           const onlyIndex = colonPos > -1 ? parseInt(resultMessage.slice(colonPos + 1)) : undefined;
@@ -1228,7 +1230,10 @@ document.addEventListener('DOMContentLoaded', function () {
           }
         });
         portsFirstUpdateDone = true;
-        if (midi.deviceIdInClock !== MIDI.INTERNAL_PORT_ID && midi.knownPorts[midi.deviceIdInClock] == null) {
+        if (
+          midi.deviceIdInClock !== MIDI.INTERNAL_PORT_ID &&
+          (midi.deviceIdInClock === null || midi.knownPorts[midi.deviceIdInClock] == null)
+        ) {
           console.log('app: Clock in port', midi.deviceIdInClock, 'not available. Switching to internal clock.');
           midi.selectDevices(MIDI.INTERNAL_PORT_ID);
           localStorage.setItem('midiInClockId', MIDI.INTERNAL_PORT_ID);

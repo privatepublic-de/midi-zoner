@@ -141,7 +141,7 @@ export class Sequence {
   }
 
   get drumSteps(): (SeqStep | null)[] {
-    const result = [];
+    const result: (SeqStep | null)[] = [];
     this.drum_lanes.forEach((drumlane) => {
       if (drumlane.steps?.length > 0) result.push(...drumlane.steps);
     });
@@ -155,7 +155,7 @@ export class Sequence {
 
   get selectedStepNumber(): number {
     return this.selectedStepNumbers.size == 1
-      ? this.selectedStepNumbers.values().next().value
+      ? this.selectedStepNumbers.values().next().value!
       : -1;
   }
 

@@ -10,6 +10,14 @@ export interface PortDescriptor {
   isSelectedClockInput: boolean;
 }
 
+/** A Web MIDI message event, or a tick from internal-clock.ts (plain object with a timestamp). */
+export interface MIDIMessage {
+  data: Uint8Array | null;
+  target?: EventTarget | null;
+  timeStamp?: number;
+  timestamp?: number;
+}
+
 export interface InputPortDef {
   id: string;
   ch: number;
@@ -19,7 +27,7 @@ export interface InputPortDef {
 
 interface MIDIHandlers {
   portsChangedHandler?: (available: boolean, inputs: PortDescriptor[], outputs: PortDescriptor[], msg?: string) => void;
-  eventHandler: (event: MIDIMessageEvent) => void;
+  eventHandler: (event: MIDIMessage) => void;
   clockHandler?: (pos: number, tickIntervalMs: number) => void;
   transportHandler?: (started: boolean) => void;
   /** External clock ticks stopped without a Stop message while running */
@@ -73,7 +81,7 @@ class MIDI {
   } as const;
 
   panicHandler?: () => void;
-  eventHandler: (event: MIDIMessageEvent) => void;
+  eventHandler: (event: MIDIMessage) => void;
   transportHandler?: (started: boolean) => void;
   clockPausedHandler?: () => void;
   clockHandler?: (pos: number, tickIntervalMs: number) => void;
@@ -201,15 +209,16 @@ class MIDI {
 
     const onStateChange = (e: MIDIConnectionEvent): void => {
       const port = e.port;
-      console.log('MIDI: statechange', port.type, port.name, port.state, port.connection);
-
-      if (port.state === 'disconnected') {
-        if (port.id === this.deviceIdInClock) {
-          // clock port gone — portsChangedHandler will fall back to internal
-          this.deviceIdInClock = null;
+      if (port) {
+        console.log('MIDI: statechange', port.type, port.name, port.state, port.connection);
+        if (port.state === 'disconnected') {
+          if (port.id === this.deviceIdInClock) {
+            // clock port gone — portsChangedHandler will fall back to internal
+            this.deviceIdInClock = null;
+          }
+        } else {
+          this._warnedMissingPorts.clear();
         }
-      } else {
-        this._warnedMissingPorts.clear();
       }
 
       rescanPorts();
@@ -236,9 +245,11 @@ class MIDI {
         return 0;
       };
 
+      const access = this.midiAccess;
+      if (!access) return { success: false, inputs: [], outputs: [] };
       const isPresent = (entry: [string, MIDIPort]): boolean => entry[1].state !== 'disconnected';
       this.knownPorts = {};
-      const sortedInputs = Array.from(this.midiAccess.inputs).filter(isPresent).sort(sortPortsComparator);
+      const sortedInputs = Array.from(access.inputs).filter(isPresent).sort(sortPortsComparator);
       const savedMidiInId = localStorage.getItem('midiInId');
       sortedInputs.forEach((entry) => {
         const input = entry[1];
@@ -247,7 +258,7 @@ class MIDI {
         countIn++;
       });
 
-      const sortedOutputs = Array.from(this.midiAccess.outputs).filter(isPresent).sort(sortPortsComparator);
+      const sortedOutputs = Array.from(access.outputs).filter(isPresent).sort(sortPortsComparator);
       sortedOutputs.forEach((entry) => {
         this.knownPorts[entry[1].id] = entry[1];
         countOut++;
@@ -255,7 +266,8 @@ class MIDI {
       console.log('MIDI: ', countIn, 'inputs,', countOut, 'outputs');
 
       const mapDescriptor = (port: [string, MIDIPort]): PortDescriptor => {
-        let sName = port[1].name;
+        const fullName = port[1].name ?? '';
+        let sName = fullName;
         if (sName.length > 20) {
           sName =
             sName.substr(0, 10).trim() +
@@ -265,7 +277,7 @@ class MIDI {
         return {
           id: port[1].id,
           name: sName,
-          fullName: port[1].name,
+          fullName,
           isSelectedInput: port[1].id == selectedIn,
           isSelectedClockInput: port[1].id === this.deviceIdInClock
         };
@@ -296,11 +308,13 @@ class MIDI {
     }
   }
 
-  onMIDIMessage(event: MIDIMessageEvent): void {
+  onMIDIMessage(event: MIDIMessage): void {
+    const data = event.data;
+    if (!data) return;
     const portId = event.target
       ? (event.target as MIDIInput).id
       : MIDI.INTERNAL_PORT_ID;
-    const midiMessage = event.data[0];
+    const midiMessage = data[0];
 
     if (
       this.deviceIdInClock == portId &&
@@ -321,7 +335,7 @@ class MIDI {
         }, 500);
 
         // Tick timestamp in performance.now() domain for the rolling-average tick interval
-        tickTimestamp = (event as { timestamp?: number }).timestamp ?? event.timeStamp;
+        tickTimestamp = event.timestamp ?? event.timeStamp ?? performance.now();
         this._recentTickTimestamps.push(tickTimestamp);
         if (this._recentTickTimestamps.length > 4) this._recentTickTimestamps.shift();
         if (this._recentTickTimestamps.length >= 2) {
@@ -334,7 +348,7 @@ class MIDI {
           this.deviceIdInClock !== MIDI.INTERNAL_PORT_ID &&
           this.bpmDetectedHandler
         ) {
-          this._bpmTimestamps.push(event.timeStamp);
+          this._bpmTimestamps.push(event.timeStamp ?? performance.now());
           if (this._bpmTimestamps.length > 97) {
             this._bpmTimestamps.shift();
           }
@@ -385,13 +399,13 @@ class MIDI {
       }
 
       // Use timestamp from internal clock for precise scheduling
-      const timestamp = (event as { timestamp?: number }).timestamp;
+      const timestamp = event.timestamp;
       for (const [portid, enabled] of Object.entries(this.clockOutputPorts)) {
         if (!enabled) continue;
         if (this.suppressTransportPorts[portid]) {
           // Free-running: always forward clock ticks, suppress transport messages
           if (midiMessage === MIDI.MESSAGE.CLOCK) {
-            this.send(event.data, portid, timestamp);
+            this.send(data, portid, timestamp);
           }
         } else {
           const propagate =
@@ -399,7 +413,7 @@ class MIDI {
             !this.sendClockIfPlaying ||
             (this.sendClockIfPlaying && this.isClockRunning);
           if (propagate) {
-            this.send(event.data, portid, timestamp);
+            this.send(data, portid, timestamp);
           }
         }
       }
@@ -415,7 +429,7 @@ class MIDI {
       }
     }
 
-    const channel = event.data[0] & 0x0f;
+    const channel = data[0] & 0x0f;
     const portDef = this.selectedInputPorts[portId];
     if (this.zoneInputPorts.has(portId)) {
       // Port has per-zone subscribers: pass all channels, app.ts filters per-zone
