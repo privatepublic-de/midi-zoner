@@ -20,6 +20,8 @@ interface MIDIHandlers {
   eventHandler: (event: MIDIMessageEvent) => void;
   clockHandler?: (pos: number, tickIntervalMs: number) => void;
   transportHandler?: (started: boolean) => void;
+  /** External clock ticks stopped without a Stop message while running */
+  clockPausedHandler?: () => void;
   panicHandler?: () => void;
 }
 
@@ -71,6 +73,7 @@ class MIDI {
   panicHandler?: () => void;
   eventHandler: (event: MIDIMessageEvent) => void;
   transportHandler?: (started: boolean) => void;
+  clockPausedHandler?: () => void;
   clockHandler?: (pos: number, tickIntervalMs: number) => void;
   midiAccess: MIDIAccess | null = null;
   deviceIdInClock: string | null;
@@ -97,6 +100,7 @@ class MIDI {
   currentTickIntervalMs: number = 60000 / 120 / 24;
   private _warnedMissingPorts = new Set<string>();
   private _clockLostTimeout: ReturnType<typeof setTimeout> | null = null;
+  private _clockPauseTimeout: ReturnType<typeof setTimeout> | null = null;
   private _bpmTimestamps: number[] = [];
   private _bpmTicksSinceUpdate = 0;
   private _recentTickTimestamps: number[] = [];
@@ -106,12 +110,14 @@ class MIDI {
     eventHandler,
     clockHandler,
     transportHandler,
+    clockPausedHandler,
     panicHandler,
   }: MIDIHandlers) {
     console.log('MIDI: Initializing...');
     this.panicHandler = panicHandler;
     this.eventHandler = eventHandler;
     this.transportHandler = transportHandler;
+    this.clockPausedHandler = clockPausedHandler;
     this.clockHandler = clockHandler;
     this.deviceIdInClock = localStorage.getItem('midiInClockId');
 
@@ -316,10 +322,18 @@ class MIDI {
         this._bpmTimestamps = [];
         this._bpmTicksSinceUpdate = 0;
       }
+      if (midiMessage !== MIDI.MESSAGE.CLOCK) this.clearClockPauseWatchdog();
       if (
         midiMessage === MIDI.MESSAGE.START ||
         midiMessage === MIDI.MESSAGE.CONTINUE
       ) {
+        if (midiMessage === MIDI.MESSAGE.START) {
+          // Start while running (e.g. ticks halted without Stop, then Start): restart
+          if (this.isClockRunning && this.transportHandler) {
+            this.transportHandler(false);
+          }
+          this.songposition = 0;
+        }
         // start
         this.isClockRunning = true;
         if (this.transportHandler) {
@@ -360,6 +374,7 @@ class MIDI {
       ) {
         this.clockHandler(this.songposition, this.currentTickIntervalMs);
         this.songposition++;
+        if (portId !== MIDI.INTERNAL_PORT_ID) this.armClockPauseWatchdog();
       }
     }
 
@@ -379,7 +394,31 @@ class MIDI {
     }
   }
 
+  /**
+   * Some clock sources just stop sending ticks instead of sending Stop. If no tick
+   * arrives for ~4 tick intervals while running, report a pause so sounding notes
+   * can ring out; the transport stays running and resumes with the next tick.
+   */
+  private armClockPauseWatchdog(): void {
+    if (this._clockPauseTimeout !== null) clearTimeout(this._clockPauseTimeout);
+    const timeoutMs = Math.max(4 * this.currentTickIntervalMs, 100);
+    this._clockPauseTimeout = setTimeout(() => {
+      this._clockPauseTimeout = null;
+      // Fresh interval history once ticks resume, as after Start
+      this._recentTickTimestamps = [];
+      if (this.isClockRunning && this.clockPausedHandler) this.clockPausedHandler();
+    }, timeoutMs);
+  }
+
+  private clearClockPauseWatchdog(): void {
+    if (this._clockPauseTimeout !== null) {
+      clearTimeout(this._clockPauseTimeout);
+      this._clockPauseTimeout = null;
+    }
+  }
+
   selectDevices(deviceIdInClock: string | null): void {
+    this.clearClockPauseWatchdog();
     if (deviceIdInClock !== this.deviceIdInClock) {
       this._bpmTimestamps = [];
       this._bpmTicksSinceUpdate = 0;

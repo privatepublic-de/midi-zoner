@@ -537,33 +537,7 @@ export class Sequence {
    * timer; otherwise they are released immediately.
    */
   stopped(ringOut = false): void {
-    // Notes feeding the arpeggiator are not audible themselves; release them at once
-    const ringOutNotes = ringOut && !this.zone.arp_enabled;
-    this.activeSteps.forEach((astep) => {
-      const offTick = Math.ceil(Math.min(this.ticks * astep.gateLength, this.ticks - 1));
-      const remaining = (astep.length - 1 - astep.played) * this.ticks + offTick - this.tickn;
-      for (const note of (astep.lastPlayedArray ?? [])) {
-        if (ringOutNotes) {
-          this.zone.ringOutAfterTicks(note.number, remaining, () => this.releaseNote(note));
-        } else {
-          this.releaseNote(note);
-        }
-      }
-      if (astep.lastPlayedArray) astep.lastPlayedArray.length = 0;
-    });
-    this.activeSteps.length = 0;
-    for (const ev of this.ratchetQueue) {
-      if (ev.noteOnPos !== -1) continue; // not sounded yet
-      if (ringOutNotes) {
-        const note = ev.note;
-        this.zone.ringOutAfterTicks(note.number, ev.noteOffPos - this.currentPos, () => this.releaseNote(note));
-      } else {
-        this.releaseNote(ev.note);
-      }
-    }
-    this.ratchetQueue.length = 0;
-    this.swingTimers.forEach((t) => clearTimeout(t));
-    this.swingTimers.clear();
+    this.releaseSoundingNotes(ringOut);
     this.currentStepNumber = this.previousStepNumber = -1;
     this.drum_lanes.forEach((lane) => {
       if (lane) {
@@ -702,6 +676,45 @@ export class Sequence {
   private calculateSwingOffsetMs(stepIndex: number, tickIntervalMs: number): number {
     if (stepIndex % 2 === 0) return 0;
     return this.zone.swingAmount * this.ticks * 0.5 * tickIntervalMs;
+  }
+
+  /**
+   * Clock paused (ticks halted without Stop): sounding notes ring out, but the
+   * playhead is kept so playback continues when ticks resume.
+   */
+  paused(): void {
+    this.releaseSoundingNotes(true);
+  }
+
+  /** Release sounding notes (by timer with `ringOut`) and drop unsounded swung/ratchet hits. */
+  private releaseSoundingNotes(ringOut: boolean): void {
+    // Notes feeding the arpeggiator are not audible themselves; release them at once
+    const ringOutNotes = ringOut && !this.zone.arp_enabled;
+    this.activeSteps.forEach((astep) => {
+      const offTick = Math.ceil(Math.min(this.ticks * astep.gateLength, this.ticks - 1));
+      const remaining = (astep.length - 1 - astep.played) * this.ticks + offTick - this.tickn;
+      for (const note of (astep.lastPlayedArray ?? [])) {
+        if (ringOutNotes) {
+          this.zone.ringOutAfterTicks(note.number, remaining, () => this.releaseNote(note));
+        } else {
+          this.releaseNote(note);
+        }
+      }
+      if (astep.lastPlayedArray) astep.lastPlayedArray.length = 0;
+    });
+    this.activeSteps.length = 0;
+    for (const ev of this.ratchetQueue) {
+      if (ev.noteOnPos !== -1) continue; // not sounded yet
+      if (ringOutNotes) {
+        const note = ev.note;
+        this.zone.ringOutAfterTicks(note.number, ev.noteOffPos - this.currentPos, () => this.releaseNote(note));
+      } else {
+        this.releaseNote(ev.note);
+      }
+    }
+    this.ratchetQueue.length = 0;
+    this.swingTimers.forEach((t) => clearTimeout(t));
+    this.swingTimers.clear();
   }
 
   /** Send a note-off for a sequencer note through the zone (own buffer: may run inside another send). */

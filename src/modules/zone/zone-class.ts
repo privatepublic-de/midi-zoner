@@ -1552,6 +1552,22 @@ export class Zone {
     requestAnimationFrame(this._renderSequenceBound);
   }
 
+  /**
+   * External clock ticks halted without Stop: sounding notes ring out like on stop,
+   * but arp and sequencer positions are kept so playback continues with the next tick.
+   */
+  paused(): void {
+    this.arpSwingPending.forEach((p) => clearTimeout(p.timer));
+    this.arpSwingPending.length = 0;
+    this.cancelUnsoundedArpNotes();
+    this.ringOutArpNote();
+    this.sequence.paused();
+    if (this._strumGraceTimer !== null) {
+      clearTimeout(this._strumGraceTimer);
+      this._strumGraceTimer = null;
+    }
+  }
+
   /** Let the plain arp note finish its gate after a transport stop. */
   private ringOutArpNote(): void {
     const note = this.arp.lastnote;

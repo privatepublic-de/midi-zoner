@@ -232,6 +232,8 @@ Note numbers range 0-127. Display format uses `Note.display()` which produces `M
 - Arrangement switches, zone delete and `stopped()` without argument cut notes immediately (`flushRingOuts()`); panic just cancels the timers
 - `Zone.sendOut` releases a ringing-out or still-sounding strum/ratchet note of the same pitch before any note-on, so a late note-off never cuts a new note
 - Sequencer notes that only feed the arp are released at once (not audible)
+- Clock pause: some sources stop sending ticks without Stop. `midi.ts` arms a watchdog on every external tick while running (`max(4 × tick interval, 100ms)`); on timeout `clockPausedHandler` → `zone.paused()` rings out sounding notes but keeps arp/sequencer positions, and the transport stays running so ticks resuming without Start continue in place. Ticks while stopped never start playback (some devices keep ticking after Stop)
+- Start while already running is treated as stop + restart: notes ring out, song position resets to 0
 - `midi.ts` clears the tick-interval history on Start/Continue/Stop, otherwise the first interval after Start would average across the pause and stretch strum/ratchet/swing timing
 
 ### Undo/Redo

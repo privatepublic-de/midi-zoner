@@ -890,6 +890,9 @@ document.addEventListener('DOMContentLoaded', function () {
         sendMackieLeds();
       }
     },
+    clockPausedHandler: () => {
+      zones.list.forEach((z) => z.paused());
+    },
     panicHandler: () => {
       zones.list.forEach((z) => z.panic());
       console.log('app: distributed panic to all zones');
