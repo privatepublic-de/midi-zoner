@@ -958,6 +958,7 @@ document.addEventListener('DOMContentLoaded', function () {
     },
     transportHandler: (started: boolean) => {
       if (started) {
+        zones.list.forEach((z) => z.started());
         startClockButton.classList.add('selected');
         DOM.addClass(document.body, 'running');
         document.querySelectorAll('.zone.lanes-expanded').forEach((el) => {

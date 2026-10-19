@@ -186,6 +186,9 @@ export class Zone {
   static readonly MAX_RING_OUT_MS = 4000;
   private _strumGraceTimer: ReturnType<typeof setTimeout> | null = null;
   activeNotes: Note[] = [];
+  // Held notes that were sent straight to the output (arp not running). Their
+  // note-off must go out even if the arp has started meanwhile.
+  private passedThrough = new Set<Note>();
   midiActiveNotes: (Note | null)[] = [];
   seqActiveNotes: (Note | null)[] = [];
   holdList: Note[] = [];
@@ -572,7 +575,8 @@ export class Zone {
                 // holding live; their held note keeps sounding uninterrupted.
                 const heldByLiveInput =
                   fromSequencer && this.midiActiveNotes[srcKey] != null;
-                if (!isArpActive && !heldByLiveInput) {
+                const passThrough = !isArpActive && !heldByLiveInput;
+                if (passThrough) {
                   outevent[0] = message + this.channel;
                   outevent[1] = key;
                   outevent[2] = velo;
@@ -585,6 +589,7 @@ export class Zone {
                   this.outputPortId
                 );
                 playNote.fromInput = fromMidiInput;
+                if (passThrough) this.passedThrough.add(playNote);
                 const activeNoteSlots = fromSequencer
                   ? this.seqActiveNotes
                   : this.midiActiveNotes;
@@ -623,7 +628,9 @@ export class Zone {
                 if (srcNote) {
                   sourceActiveNotes[srcKey] = null;
                   this.removeNote(srcNote);
-                  if (!isArpActive && !heldByLiveInput) {
+                  // Decided by whether the note-on went out, not by the current
+                  // transport state: a key held across Start would otherwise stick
+                  if (this.passedThrough.delete(srcNote) && !heldByLiveInput) {
                     outevent[0] = message + srcNote.channel;
                     outevent[1] = srcNote.number;
                     outevent[2] = velo;
@@ -1522,6 +1529,22 @@ export class Zone {
   }
 
   /**
+   * Transport started: the arp takes over held notes, so release the ones that were
+   * passed straight through while stopped (a mono synth would otherwise hold them
+   * and play the arp legato).
+   */
+  started(): void {
+    if (!this.arp_enabled || this.passedThrough.size === 0) return;
+    this.passedThrough.forEach((n) => {
+      this.sendOut(
+        Uint8Array.from([MIDI.MESSAGE.NOTE_OFF + n.channel, n.number, 0]),
+        n.portId
+      );
+    });
+    this.passedThrough.clear();
+  }
+
+  /**
    * Stop arp and sequencer. With `ringOut` (transport stop) sounding notes finish their
    * gate on a timer; otherwise (arrangement switch, delete) they are cut immediately.
    */
@@ -1603,6 +1626,7 @@ export class Zone {
       outevent[1] = n.number;
       this.sendOut(outevent, this.outputPortId);
     });
+    this.passedThrough.clear();
     this.sequence.stopped();
   }
 
@@ -1613,6 +1637,7 @@ export class Zone {
     this.activeNotes = [];
     this.midiActiveNotes = [];
     this.seqActiveNotes = [];
+    this.passedThrough.clear();
     this.holdList = [];
     this.notesChanged();
   }
