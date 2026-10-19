@@ -18,9 +18,6 @@
   --shadow-topbar-button: #0008;
   --bg-topbar-button-active: #666;
   --fg-topbar-button-active: #fff;
-  --highlight-bpm-value: #0cc;
-  --fg-midi-update: #000;
-  --bg-midi-update: #fff;
   --bg-select-window: #111;
   --bg-toast: #ced935;
   --bg-toast-warning: #ff8888;
@@ -44,7 +41,6 @@
 
   /* Role tokens: new styles use these; the older names below alias them. */
   --live: #3dff6e; /* sounding / running */
-  --armed: #dab249; /* pending, queued */
   --danger: #e5484d; /* panic, delete, record, multi-select */
   --danger-soft: color-mix(in srgb, var(--danger) 45%, transparent);
   --danger-strong: color-mix(in srgb, var(--danger) 85%, transparent);
@@ -53,8 +49,6 @@
   --fs-sm: 11px;
   --fs-md: 13px;
   --fs-lg: 16px;
-  --fs-xl: 24px;
-  --fs-display: 34px;
   --icon-sm: 14px;
   --icon-md: 16px;
   --icon-lg: 24px;
@@ -298,17 +292,6 @@ input::-webkit-inner-spin-button {
   border-bottom: 1px solid var(--border-topbar);
 }
 
-#midisettings .controls {
-  margin: 0 auto;
-}
-
-#midisettings .row {
-  display: flex;
-  align-items: center;
-  padding: 2px 0;
-  min-height: 24px;
-}
-
 #midisettings label {
   display: inline-block;
   min-width: 38px;
@@ -451,37 +434,6 @@ option {
 
 .lightButton .material-icons {
   font-size: var(--icon-sm);
-}
-
-.lsCancel {
-  position: absolute;
-  top: 0.5em;
-  right: 2px;
-  cursor: pointer;
-  font-size: var(--fs-lg);
-}
-
-#midisettings .left {
-  margin: 0 0 0 8px;
-}
-
-#midisettings .right {
-  text-align: right;
-}
-
-#displayBPM {
-  display: inline-block;
-  text-align: center;
-  background-color: var(--darker-2);
-  border: 1px solid var(--darker-3);
-  width: 50px;
-  cursor: col-resize;
-}
-
-#displayBPM:hover,
-.dragging #displayBPM {
-  color: var(--highlight-bpm-value);
-  box-shadow: 0 0 10px var(--highlight-bpm-value);
 }
 
 #bpm {
@@ -709,11 +661,6 @@ option {
 
 .state.selected {
   box-shadow: 0 0 8px var(--darker-2);
-}
-
-.outselection {
-  position: relative;
-  margin-left: 13px;
 }
 
 .sendClock {
@@ -1035,20 +982,13 @@ option {
    REUSABLE COMPONENTS  (.action, .check, .flex-row, toggles…)
    ============================================================= */
 
-.action,
-.action-light {
+.action {
   transition: background-color ease-out 200ms;
   cursor: pointer;
 }
 
-.action:active,
-.action-light:active {
+.action:active {
   background-color: var(--brighter-4);
-}
-
-.action-light:hover {
-  background-color: var(--brighter-1);
-  color: var(--text-base-color);
 }
 
 .action.warn {
@@ -1082,10 +1022,8 @@ option {
 }
 
 .action,
-.action-light,
 .val,
 .toggle,
-.action-hover,
 .drop-down {
   height: 20px;
   display: flex;
@@ -1093,7 +1031,6 @@ option {
 }
 
 .action,
-.action-hover,
 .toggle {
   padding: 0 6px;
   background-color: var(--darker-1);
@@ -1101,19 +1038,13 @@ option {
   min-width: 55px;
 }
 
-.action,
-.action-hover {
+.action {
   min-width: 0;
 }
 
 .patgen {
   margin-left: 4px;
   position: relative;
-}
-
-.check.mini {
-  font-size: var(--fs-sm);
-  height: 14px;
 }
 
 .sel,
@@ -1357,14 +1288,6 @@ input[type='range'] {
   transition:
     400ms left,
     400ms right;
-}
-
-.marker.low {
-  top: 0;
-}
-
-.marker.high {
-  top: 0;
 }
 
 .disabled .rangeholder {
@@ -1668,11 +1591,6 @@ input[type='range'] {
   }
 }
 
-.ccpots.cc-edit .edit-cc-button {
-  background-color: var(--brighter-1);
-  color: var(--text-base-color);
-}
-
 .ccpot .info {
   flex-direction: column;
   height: 56px;
@@ -1700,7 +1618,7 @@ input[type='range'] {
   flex-direction: column;
   flex-wrap: wrap;
   max-height: 56px;
-  width: calc(var(--ccpot-width)-4px);
+  width: calc(var(--ccpot-width) - 4px);
   overflow: hidden;
   justify-content: start;
   padding: 3px 1px 3px 1px;
@@ -1778,13 +1696,6 @@ input[type='range'] {
 
 .seqtools .drop-down select {
   max-width: 7rem;
-}
-.seqtools-icon {
-  font-size: var(--icon-sm);
-  opacity: 0.7;
-  pointer-events: none;
-  flex-shrink: 0;
-  margin-right: 3px;
 }
 
 .show-seq .seq {
@@ -1990,11 +1901,6 @@ input[type='range'] {
   padding-bottom: 0;
 }
 
-.euclid .zonebg,
-.step-controls .zonebg {
-  background-color: var(--bg-color);
-}
-
 .step-notes {
   display: flex;
   flex-wrap: wrap;
@@ -2014,9 +1920,6 @@ input[type='range'] {
   display: block;
 }
 
-.seq.multi-selection .seq_step_condition_apply {
-  visibility: hidden;
-}
 .seq.multi-selection .seq-step-advance,
 .seq.multi-selection .seq-step-add-notes {
   display: none;
@@ -2231,13 +2134,6 @@ body.running .seqprogress.drum .lane-cursor {
 .clockOutOption.selected .clockSuppressBtn.active {
   opacity: 1;
   color: var(--brighter-4);
-}
-
-.sendCancel {
-  position: absolute;
-  top: 3px;
-  right: 5px;
-  cursor: pointer;
 }
 
 #clockOutPortsCount {
@@ -3035,10 +2931,6 @@ body.running .drumSequencer .lane-expand-toggle {
   line-height: 1;
 }
 
-.pr-close:hover {
-  color: var(--brighter-4);
-}
-
 .pr-main-scroll {
   flex: 1;
   overflow: auto;
@@ -3345,11 +3237,6 @@ body.minimized .midi-led.on {
   gap: 4px;
   margin: 0 12px;
   flex-shrink: 0;
-}
-
-#arrangementSelector .arr-buttons {
-  display: flex;
-  gap: 4px;
 }
 
 #arrangementSelector .selectSeq {
