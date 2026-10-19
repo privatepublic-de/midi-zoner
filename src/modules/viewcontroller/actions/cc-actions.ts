@@ -52,7 +52,7 @@ export function createCCActions(
     },
     cc_number: () => {
       const inputElement = element as HTMLInputElement;
-      inputElement.value = inputElement.value.replace(/[^0-9]/, '');
+      inputElement.value = inputElement.value.replace(/[^0-9]/g, '');
       if (inputElement.value != '') {
         zone.cc_controllers[zone.selectedCCIndex].number = parseInt(inputElement.value);
         triggerSave();
@@ -60,7 +60,7 @@ export function createCCActions(
     },
     cc_number_lsb: () => {
       const inputElement = element as HTMLInputElement;
-      inputElement.value = inputElement.value.replace(/[^0-9]/, '');
+      inputElement.value = inputElement.value.replace(/[^0-9]/g, '');
       if (inputElement.value != '') {
         zone.cc_controllers[zone.selectedCCIndex].number_lsb = parseInt(inputElement.value);
         triggerSave();
@@ -68,7 +68,7 @@ export function createCCActions(
     },
     cc_number_in: () => {
       const inputElement = element as HTMLInputElement;
-      inputElement.value = inputElement.value.replace(/[^0-9]/, '');
+      inputElement.value = inputElement.value.replace(/[^0-9]/g, '');
       if (inputElement.value != '') {
         zone.cc_controllers[zone.selectedCCIndex].number_in = parseInt(inputElement.value);
         triggerSave();
@@ -76,7 +76,7 @@ export function createCCActions(
     },
     cc_min: () => {
       const inputElement = element as HTMLInputElement;
-      inputElement.value = inputElement.value.replace(/[^0-9]/, '');
+      inputElement.value = inputElement.value.replace(/[^0-9]/g, '');
       if (inputElement.value != '') {
         zone.cc_controllers[zone.selectedCCIndex].min = parseInt(inputElement.value);
         updateControllerValues(zone, zoneindex);
@@ -85,7 +85,7 @@ export function createCCActions(
     },
     cc_max: () => {
       const inputElement = element as HTMLInputElement;
-      inputElement.value = inputElement.value.replace(/[^0-9]/, '');
+      inputElement.value = inputElement.value.replace(/[^0-9]/g, '');
       if (inputElement.value != '') {
         zone.cc_controllers[zone.selectedCCIndex].max = parseInt(inputElement.value);
         updateControllerValues(zone, zoneindex);
@@ -122,7 +122,7 @@ export function createCCActions(
     },
     cc_notenum2cc: () => {
       const inputElement = element as HTMLInputElement;
-      inputElement.value = inputElement.value.replace(/[^0-9]/, '');
+      inputElement.value = inputElement.value.replace(/[^0-9]/g, '');
       if (inputElement.value != '') {
         zone.cc_controllers[zone.selectedCCIndex].note_cc = parseInt(inputElement.value);
       } else {
@@ -133,7 +133,7 @@ export function createCCActions(
     },
     cc_notevelocity2cc: () => {
       const inputElement = element as HTMLInputElement;
-      inputElement.value = inputElement.value.replace(/[^0-9]/, '');
+      inputElement.value = inputElement.value.replace(/[^0-9]/g, '');
       if (inputElement.value != '') {
         zone.cc_controllers[zone.selectedCCIndex].velocity_cc = parseInt(inputElement.value);
       } else {
@@ -150,7 +150,7 @@ export function createCCActions(
     },
     cc_button_value: () => {
       const inputElement = element as HTMLInputElement;
-      inputElement.value = inputElement.value.replace(/[^0-9]/, '');
+      inputElement.value = inputElement.value.replace(/[^0-9]/g, '');
       if (inputElement.value != '') {
         (zone.cc_controllers[zone.selectedCCIndex] as any)[`buttonvalue${actionParam1}`] =
           parseInt(inputElement.value);
