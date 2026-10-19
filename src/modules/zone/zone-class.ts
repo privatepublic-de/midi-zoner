@@ -15,7 +15,7 @@ import {
   UPDATE_ZONE_VIEW_EVENT
 } from './interfaces';
 import { NoteDisplay } from './note-display';
-import { DIV_TICKS, DivTick, PPQ } from './seq-layer';
+import { DIV_TICKS, DivTick, PPQ, swingOffsetMs } from './seq-layer';
 
 // All MIDI notes 0-127 sorted white-first so black keys are drawn on top
 const ALL_NOTES_WHITE_FIRST = Array.from({ length: 128 }, (_, i) => i).sort(
@@ -1104,13 +1104,15 @@ export class Zone {
         this.arp_enabled &&
         this.arp_pattern[this.arp.patternPos]
       ) {
-        const swingOffsetMs = this.calculateArpSwingOffsetMs(
+        const swingOffset = swingOffsetMs(
           this.arp.patternPos,
+          this.swingAmount,
+          this.arp_ticks,
           tickIntervalMs
         );
-        if (swingOffsetMs > 0) {
+        if (swingOffset > 0) {
           const patternPos = this.arp.patternPos;
-          const fireAtMs = performance.now() + swingOffsetMs;
+          const fireAtMs = performance.now() + swingOffset;
           const pending = { patternPos, fireAtMs, probable } as {
             patternPos: number;
             fireAtMs: number;
@@ -1125,7 +1127,7 @@ export class Zone {
               (p) => p !== pending
             );
             this.triggerArpAtPatternPos(pending.probable);
-          }, swingOffsetMs);
+          }, swingOffset);
           this.arpSwingPending.push(pending);
           requestAnimationFrame(this._renderPatternBound);
           return;
@@ -1148,18 +1150,6 @@ export class Zone {
         this.arpNoteOff();
       }
     }
-  }
-
-  /**
-   * Calculate swing delay in milliseconds for an arpeggiator pattern position.
-   * Off-beat positions (1, 3, 5...) are delayed; on-beat positions return 0.
-   */
-  private calculateArpSwingOffsetMs(
-    patternPos: number,
-    tickIntervalMs: number
-  ): number {
-    if (patternPos % 2 === 0) return 0;
-    return this.swingAmount * this.arp_ticks * 0.5 * tickIntervalMs;
   }
 
   /**

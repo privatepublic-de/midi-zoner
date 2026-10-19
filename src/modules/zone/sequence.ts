@@ -3,7 +3,7 @@ import MIDI from '../midi';
 import { Note } from './note';
 import { SeqStep } from './seq-step';
 import { DrumLane } from './drum-lane';
-import { DIV_TICKS, DivTick } from './seq-layer';
+import { DIV_TICKS, DivTick, swingOffsetMs } from './seq-layer';
 import { SequenceJSON, StepCondition, UPDATE_ZONE_VIEW_EVENT } from './interfaces';
 import type { Zone } from './zone-class';
 
@@ -475,8 +475,8 @@ export class Sequence {
       if (!shouldPlay) continue;
 
       if (this.zone.swingAmount > 0 && !this.zone.arp_enabled) {
-        const swingOffsetMs = this.calculateSwingOffsetMs(lane.currentStep, tickIntervalMs);
-        if (swingOffsetMs > 0) {
+        const swingOffset = swingOffsetMs(lane.currentStep, this.zone.swingAmount, this.ticks, tickIntervalMs);
+        if (swingOffset > 0) {
           const laneIndex = ln;
           const stepIndex = lane.currentStep;
           // Timer provides the real delay; dispatch always sends immediately when it
@@ -485,7 +485,7 @@ export class Sequence {
           const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
             this.swingTimers.delete(timer);
             this.playDrumStep(laneIndex, stepIndex);
-          }, swingOffsetMs);
+          }, swingOffset);
           this.swingTimers.add(timer);
           continue;
         }
@@ -508,13 +508,13 @@ export class Sequence {
     if (!shouldPlay) return;
 
     if (this.zone.swingAmount > 0 && !this.zone.arp_enabled) {
-      const swingOffsetMs = this.calculateSwingOffsetMs(this.currentStepNumber, tickIntervalMs);
-      if (swingOffsetMs > 0) {
+      const swingOffset = swingOffsetMs(this.currentStepNumber, this.zone.swingAmount, this.ticks, tickIntervalMs);
+      if (swingOffset > 0) {
         const stepIndex = this.currentStepNumber;
         const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
           this.swingTimers.delete(timer);
           this.playRegularStep(stepIndex);
-        }, swingOffsetMs);
+        }, swingOffset);
         this.swingTimers.add(timer);
         return;
       }
@@ -663,15 +663,6 @@ export class Sequence {
   }
 
   // ========== SWING METHODS ==========
-
-  /**
-   * Calculate swing delay in milliseconds for a given step index.
-   * Off-beat steps (1, 3, 5...) are delayed; on-beat steps return 0.
-   */
-  private calculateSwingOffsetMs(stepIndex: number, tickIntervalMs: number): number {
-    if (stepIndex % 2 === 0) return 0;
-    return this.zone.swingAmount * this.ticks * 0.5 * tickIntervalMs;
-  }
 
   /**
    * Clock paused (ticks halted without Stop): sounding notes ring out, but the

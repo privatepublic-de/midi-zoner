@@ -23,3 +23,12 @@ export const DIV_TICKS: DivTick[] = [
   3, // 1/32
   2 // 1/32t
 ];
+
+/**
+ * Swing delay in ms for a step (sequencer) or pattern position (arp): off-beat
+ * positions (1, 3, 5...) are delayed by up to half a step, on-beats return 0.
+ */
+export function swingOffsetMs(index: number, swingAmount: number, stepTicks: number, tickIntervalMs: number): number {
+  if (index % 2 === 0) return 0;
+  return swingAmount * stepTicks * 0.5 * tickIntervalMs;
+}
