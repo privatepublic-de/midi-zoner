@@ -5,14 +5,14 @@
 :root {
   --text-base-color: #f0f6f8;
   --text-toast-color: #333;
-  --text-contextmenu-color: #f0f6f8;
+  --text-contextmenu-color: var(--text-base-color);
   --bg-window: #171717;
   --fg-window: #ddd;
   --scrollbar: #ffffff20;
   --bg-topbar: #202020;
   --bg-topbar-transparent: #2020209f;
-  --shadow-topbar: #000000;
-  --border-topbar: #000;
+  --shadow-topbar: var(--darker-4);
+  --border-topbar: var(--darker-4);
   --bg-topbar-button: #2f2f2f;
   --fg-topbar-button: var(--brighter-3);
   --shadow-topbar-button: #0008;
@@ -22,7 +22,7 @@
   --bg-toast: #ced935;
   --bg-toast-warning: #ff8888;
   --shadow-toast: #000000c0;
-  --bg-contextmenu: #333333;
+  --bg-contextmenu: var(--bg-color-popup);
   --shadow-zone: #111;
   --bg-color-popup: #333333;
   --bg-zone-disabled: rgba(255, 255, 255, 0.07);
@@ -52,12 +52,14 @@
   --icon-sm: 14px;
   --icon-md: 16px;
   --icon-lg: 24px;
+  --radius-sm: 2px;
   --radius: 4px;
+  --radius-lg: 6px; /* zone cards, piano roll */
   --ink: #111;
   --focus-ring: #fff; /* >= 5.7:1 on every zone color and on the top bar */
   --floor-zone: 520px; /* narrowest a zone can be with every panel open */
   --floor-page: 540px;
-  --slider-fill: rgba(255, 255, 255, 0.75);
+  --slider-fill: var(--brighter-3);
   --slider-rest: rgba(0, 0, 0, 0.28);
   --strip-h: 44px;
 
@@ -69,6 +71,14 @@
   --green-highlight: rgba(0, 196, 0, 1);
 
   --step-size-disabled: 5px;
+  --shadow-overlay: rgba(0, 0, 0, 0.7); /* floating windows and overlays */
+
+  /* Page-level stacking; values 1-10 elsewhere are local to a component */
+  --z-topbar: 2;
+  --z-window: 2; /* port windows, context menu, toast */
+  --z-zone-popup: 100; /* output/input routing popup */
+  --z-overlay: 200; /* key switch and Mackie help */
+  --z-overlay-top: 210; /* piano roll */
 }
 
 /* =============================================================
@@ -250,7 +260,7 @@ select {
 
 ::selection {
   background: var(--brighter-4);
-  color: #000;
+  color: var(--darker-4);
 }
 
 ul {
@@ -280,7 +290,7 @@ input::-webkit-inner-spin-button {
   gap: 10px;
   height: var(--strip-h);
   position: fixed;
-  z-index: 2;
+  z-index: var(--z-topbar);
   top: 0;
   left: 0;
   right: 0;
@@ -483,7 +493,7 @@ option {
   min-width: var(--floor-zone);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
   background-color: var(--zone-surface);
-  border-radius: 6px;
+  border-radius: var(--radius-lg);
   --bg-color: var(--zone-surface);
 }
 
@@ -569,7 +579,7 @@ option {
 
 .zone input[type='number'].midi-learn-active {
   background-color: var(--zone-color);
-  color: #000;
+  color: var(--darker-4);
   font-weight: bold;
 }
 
@@ -597,7 +607,7 @@ option {
 @keyframes midiLearnFlash {
   0% {
     background-color: yellow;
-    color: #000;
+    color: var(--darker-4);
   }
   100% {
     background-color: var(--zone-color);
@@ -742,7 +752,7 @@ option {
   position: absolute;
   top: 100%;
   right: 0;
-  z-index: 100;
+  z-index: var(--z-zone-popup);
   display: none;
   min-width: 280px;
   margin-top: 2px;
@@ -762,7 +772,7 @@ option {
 .ior-row-input {
   margin-top: 8px;
   padding-top: 8px;
-  border-top: 1px solid rgba(0, 0, 0, 0.15);
+  border-top: 1px solid var(--darker-1);
 }
 
 .ior-row-input:hover,
@@ -784,7 +794,7 @@ option {
   background-color: var(--darker-1);
   border: none;
   border-bottom: 1px solid rgba(0, 0, 0, 0.25);
-  border-radius: 2px 2px 0 0;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   padding: 0 4px;
   height: 22px;
   color: inherit;
@@ -1158,7 +1168,7 @@ input[type='range'] {
     var(--slider-rest) var(--fill, 0%)
   );
   border: none;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
 }
 
 .zone input[type='range']::-webkit-slider-thumb {
@@ -1167,7 +1177,7 @@ input[type='range'] {
   height: 12px;
   width: 12px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--brighter-4);
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
   margin-top: -4px;
 }
@@ -1864,7 +1874,7 @@ input[type='range'] {
   display: inline-block;
   position: relative;
   margin: 1px 0;
-  border-radius: 0 0 6px 6px;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
   overflow: hidden;
 }
 
@@ -1930,7 +1940,7 @@ input[type='range'] {
   display: none;
   overflow: hidden;
   height: 7px;
-  border-radius: 4px;
+  border-radius: var(--radius);
   background-color: var(--zone-color);
   border: 1px solid var(--zone-color);
   border-right-width: 2px;
@@ -2017,7 +2027,7 @@ body.running .seqprogress.drum .lane-cursor {
   padding: 5px;
   top: 50px;
   right: calc(50% - 210px);
-  z-index: 2;
+  z-index: var(--z-window);
   font-size: var(--fs-md);
   display: none;
   width: 250px;
@@ -2153,7 +2163,7 @@ body.running .seqprogress.drum .lane-cursor {
   background-color: var(--bg-toast);
   font-size: var(--fs-md);
   box-shadow: 1px 1px 4px var(--shadow-toast);
-  z-index: 2;
+  z-index: var(--z-window);
   opacity: 0;
   transform: translateX(120%);
   transition:
@@ -2237,7 +2247,7 @@ body.running .seqprogress.drum .lane-cursor {
   box-shadow: 0 2px 5px var(--shadow-topbar);
   border: 1px solid var(--border-topbar);
   border-bottom: none;
-  border-radius: 4px 4px 0 0;
+  border-radius: var(--radius) var(--radius) 0 0;
 }
 
 #tools > * {
@@ -2254,7 +2264,7 @@ body.running .seqprogress.drum .lane-cursor {
 
 .selectSeq.selected {
   background-color: var(--white-highlight);
-  color: #000;
+  color: var(--darker-4);
 }
 
 .selectSeq.sqlA.selected {
@@ -2289,7 +2299,7 @@ body.running .seqprogress.drum .lane-cursor {
   text-align: center;
   cursor: pointer;
   padding: 2px 4px;
-  border-radius: 4px;
+  border-radius: var(--radius);
 }
 
 .tb-button:hover,
@@ -2308,7 +2318,7 @@ body.running .seqprogress.drum .lane-cursor {
   gap: 4px;
   cursor: pointer;
   padding: 2px 4px;
-  border-radius: 4px;
+  border-radius: var(--radius);
   margin-left: 4px;
 }
 
@@ -2357,11 +2367,11 @@ body.running .seqprogress.drum .lane-cursor {
   position: fixed;
   top: 0;
   left: 0;
-  z-index: 200;
+  z-index: var(--z-overlay);
   background-color: var(--bg-topbar);
   border: 1px solid var(--border-topbar);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
-  border-radius: 4px;
+  box-shadow: 0 4px 12px var(--shadow-overlay);
+  border-radius: var(--radius);
   padding: 8px 10px 10px;
   font-size: var(--fs-sm);
   color: var(--text-base-color);
@@ -2424,7 +2434,7 @@ body.running .seqprogress.drum .lane-cursor {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   padding: 2px 4px;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   margin-bottom: 4px;
 }
 
@@ -2481,11 +2491,11 @@ body.running .seqprogress.drum .lane-cursor {
   position: fixed;
   bottom: 36px;
   left: 12px;
-  z-index: 200;
+  z-index: var(--z-overlay);
   background-color: var(--bg-topbar);
   border: 1px solid var(--border-topbar);
-  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.7);
-  border-radius: 4px;
+  box-shadow: 0 -2px 12px var(--shadow-overlay);
+  border-radius: var(--radius);
   padding: 8px 10px 10px;
   font-size: var(--fs-sm);
   color: var(--text-base-color);
@@ -2548,7 +2558,7 @@ body.running .seqprogress.drum .lane-cursor {
   color: var(--text-contextmenu-color);
   font-size: var(--fs-md);
   margin: 0;
-  z-index: 2;
+  z-index: var(--z-window);
   width: 200px;
 }
 #contextmenu li {
@@ -2770,7 +2780,7 @@ body.running .seqprogress.drum .lane-cursor {
     display: none;
   }
   .seq .step-info .note {
-    border-radius: 4px;
+    border-radius: var(--radius);
   }
   .seq .step-info .note.black {
     background-color: inherit;
@@ -2859,7 +2869,7 @@ body.running .drumSequencer .lane-expand-toggle {
   padding: 3px 8px;
   background: #1a2a2a;
   border: 1px solid #3a5a5a;
-  border-radius: 4px;
+  border-radius: var(--radius);
   z-index: 10;
   white-space: nowrap;
 }
@@ -2881,20 +2891,20 @@ body.running .drumSequencer .lane-expand-toggle {
 
 /* Piano roll editor */
 #pianoRollOverlay {
-  --zone-color: #dab249;
-  --zone-surface: #7b5f06;
+  --zone-color: var(--zone-2);
+  --zone-surface: var(--zone-surface-2);
   position: fixed;
   top: 24px;
   left: 24px;
   right: 24px;
   bottom: 24px;
-  z-index: 210;
+  z-index: var(--z-overlay-top);
   display: none;
   flex-direction: column;
   background-color: var(--bg-topbar);
   border: 1px solid var(--zone-color);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.7);
-  border-radius: 6px;
+  box-shadow: 0 4px 24px var(--shadow-overlay);
+  border-radius: var(--radius-lg);
   overflow: hidden;
   color: var(--text-base-color);
 }
@@ -3027,7 +3037,7 @@ body.running .drumSequencer .lane-expand-toggle {
 .pr-note {
   position: absolute;
   height: 12px;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   background-color: var(--zone-color);
   border: 1px solid var(--darker-4);
   cursor: move;
@@ -3221,7 +3231,7 @@ body.minimized .midi-led.on {
 /* Panic is rarely used: neutral like the other buttons, red only on hover. */
 #midiPanic:hover {
   background: var(--danger-soft);
-  color: #fff;
+  color: var(--brighter-4);
 }
 
 /* =============================================================
@@ -3251,7 +3261,7 @@ body.minimized .midi-led.on {
 }
 #deleteallzones.tb-button:hover {
   background-color: var(--danger-soft);
-  color: #fff;
+  color: var(--brighter-4);
 }
 
 /* =============================================================
@@ -3478,7 +3488,7 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
 
 #midisettings #startClockButton.selected {
   background-color: color-mix(in srgb, var(--live) 30%, var(--bg-topbar-button));
-  color: #fff;
+  color: var(--brighter-4);
 }
 
 #startClockButton.selected::before {
