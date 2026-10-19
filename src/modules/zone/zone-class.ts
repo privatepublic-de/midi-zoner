@@ -328,21 +328,18 @@ export class Zone {
 
     const seq = new Sequence(this);
     const sd = data.sequence || {};
-    seq._steps = (sd as any).steps || [];
+    // Real SeqStep instances: fields missing from older scenes (gateLength,
+    // probability, condition, ratchet*) get the class defaults
+    seq._steps = ((sd as any).steps || []).map((st: any) => (st ? SeqStep.from(st) : null));
     seq.division = (sd as any).division ?? 14;
     seq._length = (sd as any).length ?? 16;
     seq.drum_lanes = (sd as any).drum_lanes || [];
     seq.isDrumSequence = (sd as any).isDrumSequence ?? false;
     seq.drumLanes = (sd as any).drumLanes ?? 4;
     seq.active = (sd as any).active ?? false;
-    seq._steps.forEach((st: any) => {
-      if (st) st.lastPlayedArray = [];
-    });
-    seq.drum_lanes.forEach((lane: any, i: number) => {
+    seq.drum_lanes.forEach((lane: any) => {
       if (lane?.steps) {
-        lane.steps.forEach((st: any) => {
-          if (st) st.lastPlayedArray = [];
-        });
+        lane.steps = lane.steps.map((st: any) => (st ? SeqStep.from(st) : null));
       }
       if (lane) {
         lane.length = lane.length ?? seq._length;
