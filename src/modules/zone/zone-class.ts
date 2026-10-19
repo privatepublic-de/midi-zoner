@@ -174,6 +174,16 @@ export class Zone {
     timer: ReturnType<typeof setTimeout>;
   }[] = [];
   private _lastTickIntervalMs = (60 / 120 / 24) * 1000;
+  // Clock position and time of the last processed tick, used to time ring-outs on stop
+  private _lastPos = 0;
+  private _lastTickAt = 0;
+  // Note-offs scheduled by time after a transport stop so notes finish their gate,
+  // keyed by output note number. A new note-on of the same pitch releases it first.
+  private ringOuts = new Map<
+    number,
+    { timer: ReturnType<typeof setTimeout>; release: () => void }
+  >();
+  static readonly MAX_RING_OUT_MS = 4000;
   private _strumGraceTimer: ReturnType<typeof setTimeout> | null = null;
   activeNotes: Note[] = [];
   midiActiveNotes: (Note | null)[] = [];
@@ -429,6 +439,14 @@ export class Zone {
 
   /** Sends a MIDI message and flashes the activity LED (visible in minimized view only). */
   private sendOut(msg: Uint8Array, portId: string, timestamp?: number): void {
+    // A still-sounding note of the same pitch is released before it is struck again,
+    // so its late note-off cannot cut the new note
+    if ((msg[0] & 0xf0) === MIDI.MESSAGE.NOTE_ON && msg[2] > 0) {
+      if (this.ringOuts.size > 0) this.fireRingOut(msg[1]);
+      if (this.arp.lastStrumNotes.length > 0) {
+        this.releaseSoundingArpPitch(msg[1], msg[0] & 0x0f, portId);
+      }
+    }
     this.midi.send(msg, portId, timestamp);
     if (this.ledTimer !== null || !document.body.classList.contains('minimized')) return;
     const led = this.elements.zoneElement?.querySelector('.midi-led');
@@ -1049,6 +1067,8 @@ export class Zone {
   }
 
   clock(pos: number, tickIntervalMs: number): void {
+    this._lastPos = pos;
+    this._lastTickAt = performance.now();
     this.sequence.clock(pos, tickIntervalMs);
     if (tickIntervalMs > 0) this._lastTickIntervalMs = tickIntervalMs;
 
@@ -1144,7 +1164,6 @@ export class Zone {
     };
     pending.timer = setTimeout(() => {
       this.arpStrumPending = this.arpStrumPending.filter((p) => p !== pending);
-      this.releaseSoundingArpPitch(note);
       this.convertNote2CC(note.number, note.velo);
       this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + note.channel;
       this._midiMsgBuf[1] = note.number;
@@ -1198,26 +1217,26 @@ export class Zone {
   }
 
   /**
-   * Release a still-sounding strum/ratchet note of the same pitch right before it is
-   * struck again, so its late note-off cannot cut the new note.
+   * Release a still-sounding strum/ratchet note of the given pitch (called from sendOut
+   * before a note-on, hence its own message buffer).
    */
-  private releaseSoundingArpPitch(note: Note): void {
+  private releaseSoundingArpPitch(number: number, channel: number, portId: string): void {
     const sounding = this.arp.lastStrumNotes;
     this.arpStrumOffPending = this.arpStrumOffPending.filter((p) => {
       const n = p.note;
       if (
-        n.number !== note.number ||
-        n.channel !== note.channel ||
-        n.portId !== note.portId ||
+        n.number !== number ||
+        n.channel !== channel ||
+        n.portId !== portId ||
         !sounding.includes(n)
       ) {
         return true;
       }
       clearTimeout(p.timer);
-      this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_OFF + n.channel;
-      this._midiMsgBuf[1] = n.number;
-      this._midiMsgBuf[2] = n.velo;
-      this.sendOut(this._midiMsgBuf, n.portId);
+      this.sendOut(
+        Uint8Array.from([MIDI.MESSAGE.NOTE_OFF + n.channel, n.number, n.velo]),
+        n.portId
+      );
       this.arp.lastStrumNotes = this.arp.lastStrumNotes.filter((s) => s !== n);
       return false;
     });
@@ -1287,7 +1306,6 @@ export class Zone {
               note.portId
             );
             if (i === 0) {
-              this.releaseSoundingArpPitch(taperedNote);
               this.convertNote2CC(note.number, velo);
               this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + this.channel;
               this._midiMsgBuf[1] = note.number;
@@ -1405,7 +1423,6 @@ export class Zone {
               note.portId
             );
             if (i === 0) {
-              this.releaseSoundingArpPitch(ratchetNote);
               this.convertNote2CC(ratchetNote.number, ratchetNote.velo);
               this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + this.channel;
               this._midiMsgBuf[1] = ratchetNote.number;
@@ -1467,7 +1484,49 @@ export class Zone {
     }
   }
 
-  stopped(): void {
+  /**
+   * Schedule a note-off `ticks` clock ticks after the last processed tick, timed with
+   * the last measured tick interval (the clock itself is no longer running).
+   */
+  ringOutAfterTicks(noteNumber: number, ticks: number, release: () => void): void {
+    this.fireRingOut(noteNumber);
+    const elapsedMs = performance.now() - this._lastTickAt;
+    const delayMs = Math.min(
+      ticks * this._lastTickIntervalMs - elapsedMs,
+      Zone.MAX_RING_OUT_MS
+    );
+    if (delayMs <= 0) {
+      release();
+      return;
+    }
+    const timer = setTimeout(() => {
+      this.ringOuts.delete(noteNumber);
+      release();
+    }, delayMs);
+    this.ringOuts.set(noteNumber, { timer, release });
+  }
+
+  private fireRingOut(noteNumber: number): void {
+    const pending = this.ringOuts.get(noteNumber);
+    if (!pending) return;
+    this.ringOuts.delete(noteNumber);
+    clearTimeout(pending.timer);
+    pending.release();
+  }
+
+  /** Send all pending ring-out note-offs now. */
+  flushRingOuts(): void {
+    for (const noteNumber of [...this.ringOuts.keys()]) {
+      this.fireRingOut(noteNumber);
+    }
+  }
+
+  /**
+   * Stop arp and sequencer. With `ringOut` (transport stop) sounding notes finish their
+   * gate on a timer; otherwise (arrangement switch, delete) they are cut immediately.
+   */
+  stopped(ringOut = false): void {
+    if (!ringOut) this.flushRingOuts();
     this.arp.noteindex = -1;
     this.arp.patternPos = -1;
     this.arp.repeattrig = false;
@@ -1475,14 +1534,41 @@ export class Zone {
     this.arp.octave = 0;
     this.arpSwingPending.forEach((p) => clearTimeout(p.timer));
     this.arpSwingPending.length = 0;
+    if (ringOut) {
+      // Strum/ratchet note-offs already run on timers; only drop unsounded hits
+      this.cancelUnsoundedArpNotes();
+      this.ringOutArpNote();
+    } else {
+      this.arpNoteOff();
+    }
+    this.sequence.stopped(ringOut);
+    // Released sequencer notes may have armed the strum grace timer, which would
+    // cut the strum's ring-out early
     if (this._strumGraceTimer !== null) {
       clearTimeout(this._strumGraceTimer);
       this._strumGraceTimer = null;
     }
-    this.arpNoteOff();
-    this.sequence.stopped();
     requestAnimationFrame(this._renderPatternBound);
     requestAnimationFrame(this._renderSequenceBound);
+  }
+
+  /** Let the plain arp note finish its gate after a transport stop. */
+  private ringOutArpNote(): void {
+    const note = this.arp.lastnote;
+    if (!note) return;
+    this.arp.lastnote = null;
+    this.arp.repeatnote = note;
+    const offTick = Math.ceil(
+      Math.min(this.arp_ticks * this.arp_gatelength, this.arp_ticks - 1)
+    );
+    const remaining = offTick - (this._lastPos % this.arp_ticks);
+    this.ringOutAfterTicks(note.number, remaining, () => {
+      this.sendOut(
+        Uint8Array.from([MIDI.MESSAGE.NOTE_OFF + note.channel, note.number, note.velo]),
+        note.portId
+      );
+      requestAnimationFrame(this._renderNotesBound);
+    });
   }
 
   dismiss(): void {
@@ -1493,6 +1579,7 @@ export class Zone {
       clearTimeout(this._strumGraceTimer);
       this._strumGraceTimer = null;
     }
+    this.flushRingOuts();
     this.arpNoteOff();
     const outevent = new Uint8Array([0, 0, 0]);
     this.activeNotes.forEach((n) => {
@@ -1504,6 +1591,9 @@ export class Zone {
   }
 
   panic(): void {
+    // Global all-notes-off follows; just drop pending ring-outs
+    this.ringOuts.forEach((p) => clearTimeout(p.timer));
+    this.ringOuts.clear();
     this.activeNotes = [];
     this.midiActiveNotes = [];
     this.seqActiveNotes = [];

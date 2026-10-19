@@ -226,6 +226,14 @@ Note numbers range 0-127. Display format uses `Note.display()` which produces `M
 - Switching is quantized: `zones.nextArrangementIndex` is set, applied on the next `arrangementQuantIndex` boundary
 - `enabled` and `solo` are per-arrangement, so switching arrangements can change mute/solo state
 
+### Transport Stop and Note Ring-Out
+- Arp/sequencer note-offs are normally tick-driven; once the clock stops they would never fire
+- Transport stops (external Stop, Start/Stop button, MMC, Mackie) call `zone.stopped(true)`: sounding notes finish their remaining gate on timers (`Zone.ringOutAfterTicks`, last measured tick interval, capped at `Zone.MAX_RING_OUT_MS`); unsounded swing/strum/ratchet hits are dropped
+- Arrangement switches, zone delete and `stopped()` without argument cut notes immediately (`flushRingOuts()`); panic just cancels the timers
+- `Zone.sendOut` releases a ringing-out or still-sounding strum/ratchet note of the same pitch before any note-on, so a late note-off never cuts a new note
+- Sequencer notes that only feed the arp are released at once (not audible)
+- `midi.ts` clears the tick-interval history on Start/Continue/Stop, otherwise the first interval after Start would average across the pause and stretch strum/ratchet/swing timing
+
 ### Undo/Redo
 - `UndoHistory` (src/modules/undo-history.ts) — max 20 entries, JSON snapshots of the full `zones` object
 - Discrete mutations: `undoHistory.push(JSON.stringify(zones))` after the change

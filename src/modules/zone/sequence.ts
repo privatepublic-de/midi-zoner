@@ -532,23 +532,33 @@ export class Sequence {
     this.playRegularStep(this.currentStepNumber);
   }
 
-  stopped(): void {
+  /**
+   * With `ringOut` (transport stop) sounding notes finish their remaining gate on a
+   * timer; otherwise they are released immediately.
+   */
+  stopped(ringOut = false): void {
+    // Notes feeding the arpeggiator are not audible themselves; release them at once
+    const ringOutNotes = ringOut && !this.zone.arp_enabled;
     this.activeSteps.forEach((astep) => {
+      const offTick = Math.ceil(Math.min(this.ticks * astep.gateLength, this.ticks - 1));
+      const remaining = (astep.length - 1 - astep.played) * this.ticks + offTick - this.tickn;
       for (const note of (astep.lastPlayedArray ?? [])) {
-        this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_OFF + note.channel;
-        this._midiMsgBuf[1] = note.number;
-        this._midiMsgBuf[2] = 0;
-        this.zone.handleMidi(MIDI.MESSAGE.NOTE_OFF, this._midiMsgBuf, true);
+        if (ringOutNotes) {
+          this.zone.ringOutAfterTicks(note.number, remaining, () => this.releaseNote(note));
+        } else {
+          this.releaseNote(note);
+        }
       }
       if (astep.lastPlayedArray) astep.lastPlayedArray.length = 0;
     });
     this.activeSteps.length = 0;
     for (const ev of this.ratchetQueue) {
-      if (ev.noteOnPos === -1) {
-        this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_OFF + ev.note.channel;
-        this._midiMsgBuf[1] = ev.note.number;
-        this._midiMsgBuf[2] = 0;
-        this.zone.handleMidi(MIDI.MESSAGE.NOTE_OFF, this._midiMsgBuf, true);
+      if (ev.noteOnPos !== -1) continue; // not sounded yet
+      if (ringOutNotes) {
+        const note = ev.note;
+        this.zone.ringOutAfterTicks(note.number, ev.noteOffPos - this.currentPos, () => this.releaseNote(note));
+      } else {
+        this.releaseNote(ev.note);
       }
     }
     this.ratchetQueue.length = 0;
@@ -692,6 +702,12 @@ export class Sequence {
   private calculateSwingOffsetMs(stepIndex: number, tickIntervalMs: number): number {
     if (stepIndex % 2 === 0) return 0;
     return this.zone.swingAmount * this.ticks * 0.5 * tickIntervalMs;
+  }
+
+  /** Send a note-off for a sequencer note through the zone (own buffer: may run inside another send). */
+  private releaseNote(note: Note): void {
+    const msg = Uint8Array.from([MIDI.MESSAGE.NOTE_OFF + note.channel, note.number, 0]);
+    this.zone.handleMidi(MIDI.MESSAGE.NOTE_OFF, msg, true);
   }
 
   /**

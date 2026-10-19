@@ -711,7 +711,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // MMC STOP
             midi.stopClock();
             zones.list.forEach((z) => {
-              z.stopped();
+              z.stopped(true);
             });
           }
         } else if (
@@ -722,7 +722,7 @@ document.addEventListener('DOMContentLoaded', function () {
         } else if (event.data[0] == MIDI.MESSAGE.STOP) {
           midi.stopClock();
           zones.list.forEach((z) => {
-            z.stopped();
+            z.stopped(true);
           });
         }
       }
@@ -883,7 +883,7 @@ document.addEventListener('DOMContentLoaded', function () {
         startClockButton.classList.remove('selected');
         DOM.removeClass(document.body, 'running');
         zones.list.forEach((z) => {
-          z.stopped();
+          z.stopped(true);
         });
       }
       if (midi.deviceIdInClock !== MIDI.INTERNAL_PORT_ID) {
@@ -998,7 +998,7 @@ document.addEventListener('DOMContentLoaded', function () {
               startClockButton.classList.remove('selected');
               midi.stopClock();
               zones.list.forEach((z) => {
-                z.stopped();
+                z.stopped(true);
               });
             }
             sendMackieLeds();
