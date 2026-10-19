@@ -241,10 +241,6 @@ body.dragging * {
   cursor: col-resize;
 }
 
-select {
-  outline: none;
-  cursor: pointer;
-}
 
 ::-webkit-scrollbar {
   background-color: transparent;
@@ -340,6 +336,8 @@ input::-webkit-inner-spin-button {
 }
 
 select {
+  outline: none;
+  cursor: pointer;
   border: 1px solid var(--darker-3);
   background-color: var(--darker-2);
   color: var(--brighter-3);
@@ -523,9 +521,6 @@ option {
   pointer-events: none;
 }
 
-.disabled .zonenumber {
-  color: var(--zone-color);
-}
 
 .zone.droptarget {
   outline: 4px solid #eee;
@@ -2306,9 +2301,6 @@ body.running .seqprogress.drum .inner {
   color: var(--brighter-2);
 }
 
-#deleteallzones.tb-button:hover {
-  background-color: var(--red-highlight);
-}
 
 .tb-label {
   display: flex;
@@ -3241,10 +3233,10 @@ body.minimized .midi-led.on {
 
 #arrangementSelector {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   justify-content: center;
   gap: 4px;
-  margin: 0 12px;
+  margin: 0;
   flex-shrink: 0;
 }
 
@@ -3408,10 +3400,6 @@ body.setup-open #setupDrawer {
 }
 
 /* The arrangement buttons now live directly in the strip. */
-#arrangementSelector {
-  flex-direction: row;
-  margin: 0;
-}
 
 #setupDrawer .tb-label {
   display: flex;
