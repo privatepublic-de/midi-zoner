@@ -193,24 +193,32 @@ function applyStoredZones(
   }
 }
 
-const closeQueue: (() => void)[] = [];
+interface Dismissable {
+  close: () => void;
+  trigger?: string;
+}
+const dismissables: Dismissable[] = [];
 
-function bodyClickHandler(): void {
-  let callback = closeQueue.pop();
-  if (callback) {
-    callback();
-  }
-
+// Closes every registered popup on a click outside of it. Clicks inside a popup
+// stop propagating; clicks on its trigger are left to the trigger's own toggle.
+function bodyClickHandler(ev: Event): void {
+  const target = ev.target as Node;
+  dismissables.forEach((d) => {
+    if (d.trigger && DOM.get(d.trigger)?.contains(target)) return;
+    d.close();
+  });
 }
 
+// Register once per popup; close() must be safe to call when already closed.
 function onBackgroundClick(
-  callback: () => void,
-  filterElement: string | Element
+  close: () => void,
+  filterElement: string | Element,
+  trigger?: string
 ): void {
   DOM.on(filterElement, 'click', (ev) => {
     ev.stopPropagation();
   });
-  closeQueue.push(callback);
+  dismissables.push({ close, trigger });
 }
 
 let hideOnLeaveContextMenuTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -1282,27 +1290,19 @@ document.addEventListener('DOMContentLoaded', function () {
     const isVisible = clockoutcontainer.style.display == 'block';
     clockoutcontainer.style.display = isVisible ? 'none' : 'block';
     if (!isVisible) anchorBelow(clockoutcontainer, e.currentTarget as HTMLElement);
-    if (!isVisible) {
-      setTimeout(() => {
-        onBackgroundClick(() => {
-          clockoutcontainer.style.display = 'none';
-        }, '#clockOutPortWindow');
-      }, 0);
-    }
   });
   DOM.get('#midiInputSelector')!.addEventListener('click', (ev) => {
     const container = DOM.get('#inputPortWindow') as HTMLElement;
     const isVisible = container.style.display == 'block';
     container.style.display = isVisible ? 'none' : 'block';
     if (!isVisible) anchorBelow(container, ev.currentTarget as HTMLElement);
-    if (!isVisible) {
-      setTimeout(() => {
-        onBackgroundClick(() => {
-          container.style.display = 'none';
-        }, '#inputPortWindow');
-      }, 0);
-    }
   });
+  onBackgroundClick(() => {
+    (DOM.get('#clockOutPortWindow') as HTMLElement).style.display = 'none';
+  }, '#clockOutPortWindow', '#clockSendButton');
+  onBackgroundClick(() => {
+    (DOM.get('#inputPortWindow') as HTMLElement).style.display = 'none';
+  }, '#inputPortWindow', '#midiInputSelector');
   DOM.on('#clockOutPortWindow input[name="sendinternal"]', 'change', () => {
     midi.sendClockIfPlaying = zones.sendInternalClockIfPlaying =
       (
@@ -1377,5 +1377,7 @@ document.addEventListener('DOMContentLoaded', function () {
     'resetHideOnLeaveContextMenuTimeout',
     resetHideOnLeaveContextMenuTimeout
   );
-  onBackgroundClick(closeContextMenu, '#contextmenu');
+  onBackgroundClick(() => {
+    if (contextMenuElement.style.display !== 'none') closeContextMenu();
+  }, '#contextmenu');
 });
