@@ -4,6 +4,7 @@ import { Note } from './note';
 import { ZoneElements } from './zone-elements';
 import { Sequence } from './sequence';
 import { SeqStep } from './seq-step';
+import { DrumLane } from './drum-lane';
 import {
   CCController,
   ArpState,
@@ -333,24 +334,13 @@ export class Zone {
     seq._steps = ((sd as any).steps || []).map((st: any) => (st ? SeqStep.from(st) : null));
     seq.division = (sd as any).division ?? 14;
     seq._length = (sd as any).length ?? 16;
-    seq.drum_lanes = (sd as any).drum_lanes || [];
     seq.isDrumSequence = (sd as any).isDrumSequence ?? false;
     seq.drumLanes = (sd as any).drumLanes ?? 4;
     seq.active = (sd as any).active ?? false;
-    seq.drum_lanes.forEach((lane: any) => {
-      if (lane?.steps) {
-        lane.steps = lane.steps.map((st: any) => (st ? SeqStep.from(st) : null));
-      }
-      if (lane) {
-        lane.length = lane.length ?? seq._length;
-        lane.label = lane.label ?? '';
-        lane.currentStep = -1;
-        lane.previousStep = -1;
-        lane.cycleCount = -1;
-        lane.isFirstCycle = true;
-        lane.previousStepPlayed = false;
-      }
-    });
+    // map() keeps the holes of the sparse lane array
+    seq.drum_lanes = ((sd as any).drum_lanes || []).map((lane: any) =>
+      lane ? DrumLane.from(lane, seq._length) : lane
+    );
     this.sequence = seq;
   }
 

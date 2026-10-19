@@ -1,6 +1,7 @@
 import { Zone } from '../../zone/zone-class';
 import { Sequence } from '../../zone/sequence';
 import { SeqStep } from '../../zone/seq-step';
+import { DrumLane } from '../../zone/drum-lane';
 import { ActionContext, ActionHelpers, ActionMap } from '../types';
 import { openPianoRoll } from '../piano-roll';
 
@@ -771,16 +772,13 @@ export function createSeqActions(
       if (Zone.seqClipboardSequence) {
         const copyData = JSON.parse(Zone.seqClipboardSequence);
         if (copyData.isDrumSequence && sequence.isDrumSequence) {
-          sequence.drum_lanes = copyData.drum_lanes || [];
+          const playing = sequence.drum_lanes;
+          sequence.drum_lanes = (copyData.drum_lanes || []).map((lane: any, i: number) =>
+            lane ? DrumLane.from(lane, copyData.length ?? sequence.length, playing[i]) : lane
+          );
           sequence.drumLanes = copyData.drumLanes ?? sequence.drumLanes;
           sequence.length = copyData.length;
           sequence.division = copyData.division;
-          sequence.drum_lanes.forEach((lane: any) => {
-            if (lane?.steps) {
-              lane.steps.forEach((st: any) => { if (st) st.lastPlayedArray = []; });
-            }
-            lane.previousStepPlayed = false;
-          });
         } else if (!copyData.isDrumSequence && !sequence.isDrumSequence) {
           Object.assign(sequence, copyData);
         } else {
