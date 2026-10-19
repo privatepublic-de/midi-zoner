@@ -308,6 +308,14 @@ class MIDI {
           }
         }
       }
+      if (midiMessage !== MIDI.MESSAGE.CLOCK) {
+        // A transport change usually follows or precedes a pause in the ticks; without
+        // this the first interval after Start would average across the whole pause.
+        // currentTickIntervalMs keeps its last value until two new ticks arrived.
+        this._recentTickTimestamps = [];
+        this._bpmTimestamps = [];
+        this._bpmTicksSinceUpdate = 0;
+      }
       if (
         midiMessage === MIDI.MESSAGE.START ||
         midiMessage === MIDI.MESSAGE.CONTINUE
