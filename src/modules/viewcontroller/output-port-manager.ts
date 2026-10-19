@@ -1,13 +1,9 @@
-import DOM from '../domutils';
+import DOM, { escapeHTML as esc } from '../domutils';
 import MIDI from '../midi';
 import { ZonesData, PortDescriptor } from './types';
 
 let cachedOutputPorts: PortDescriptor[] = [];
 let cachedInputPorts: PortDescriptor[] = [];
-
-function esc(s: unknown): string {
-  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
 
 export function getCachedOutputPorts(): PortDescriptor[] {
   return cachedOutputPorts;
@@ -49,7 +45,7 @@ export function updateInputPortsForZone(
     DOM.addHTML(
       select,
       'beforeend',
-      `<option value="${port.id}">${port.name}</option>`
+      `<option value="${esc(port.id)}">${esc(port.name)}</option>`
     );
   });
   const inputPortId = zones.list[index].inputPortId;
@@ -126,7 +122,7 @@ export function updateOutputPortsForZone(
     DOM.addHTML(
       select,
       'beforeend',
-      `<option value="${port.id}">${port.name}</option>`
+      `<option value="${esc(port.id)}">${esc(port.name)}</option>`
     );
     if (port.id == preferredOutputPortId) {
       preferredPortAvailable = true;
@@ -141,7 +137,7 @@ export function updateOutputPortsForZone(
       .forEach((preset) => {
         const psPort = preset.split(',')[0];
         if (outputs.filter((p) => p.id == psPort).length > 0) {
-          html += `<option value="$${preset}">${zones.outputConfigNames[preset]}</option>`;
+          html += `<option value="$${esc(preset)}">${esc(zones.outputConfigNames[preset])}</option>`;
         }
       });
     DOM.addHTML(select, 'beforeend', html);

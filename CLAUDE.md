@@ -216,6 +216,9 @@ Each zone stores an array of 4 `ZoneArrangementJSON` objects (one per arrangemen
 
 ## Important Implementation Notes
 
+### HTML and untrusted strings
+The renderer runs with `nodeIntegration: true`, so HTML injected from a scene file can run Node code. Any string from a scene file or a MIDI device (CC/button labels, zone labels, preset names, port names) must go through `escapeHTML()` (domutils.ts) before it reaches `innerHTML`/`addHTML`/a template, or be set via `textContent`/`.value`. Templates get it as `esc`.
+
 ### MIDI Note Numbers
 Note numbers range 0-127. Display format uses `Note.display()` which produces `MIDI.NOTENAMES[note % 12] + (Math.floor(note / 12) - 1)`, giving a range of "C-1" (note 0) to "G9" (note 127).
 

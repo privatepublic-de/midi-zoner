@@ -2,6 +2,7 @@ import { Zone } from './zone/zone-class';
 import { Sequence } from './zone/sequence';
 
 import fs from 'fs';
+import { escapeHTML } from './domutils';
 import path from 'path';
 
 // Type alias for the Zone class type
@@ -66,7 +67,8 @@ export function getControllerHTML(zone: ZoneType, zoneindex: number): string {
     controllers += interpolateTemplate(templateController, {
       cc: cc,
       ix: ix,
-      zoneindex: zoneindex
+      zoneindex: zoneindex,
+      esc: escapeHTML
     });
   });
   return controllers;

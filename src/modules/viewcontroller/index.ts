@@ -1259,7 +1259,7 @@ function updateValuesForZone(index: number): void {
       nameField.value = '';
       nameField.placeholder = (
         zone._$('select.outport') as HTMLSelectElement
-      ).selectedOptions[0].innerHTML;
+      ).selectedOptions[0]?.textContent ?? '';
     }
     const labelField = zone._$('.zone-label') as HTMLInputElement;
     if (labelField && document.activeElement !== labelField) {

@@ -9,6 +9,18 @@ interface ClientOffsets {
 }
 
 /**
+ * Escape text for use in HTML content or quoted attribute values. Use for every
+ * string that can come from a scene file or a MIDI device (labels, port names).
+ */
+export function escapeHTML(s: unknown): string {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/**
  * Returns first matching element for selector string or selector itself if it's no string.
  */
 function get(selector: SelectorType): Element | null {
@@ -197,7 +209,8 @@ const DOM = {
   removeClass,
   switchClass,
   addHTML,
-  clientOffsets
+  clientOffsets,
+  escapeHTML
 };
 
 export default DOM;

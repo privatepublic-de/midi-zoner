@@ -1,5 +1,6 @@
 import { PPQ } from './zone/seq-layer';
 import * as internalClock from './internal-clock';
+import { escapeHTML } from './domutils';
 
 export interface PortDescriptor {
   id: string;
@@ -178,8 +179,8 @@ class MIDI {
       if (added.size === 0 && removed.size === 0) return;
       reportedPorts = result;
       const msg = [
-        ...[...added].map((n) => `${n} connected`),
-        ...[...removed].map((n) => `${n} disconnected`)
+        ...[...added].map((n) => `${escapeHTML(n)} connected`),
+        ...[...removed].map((n) => `${escapeHTML(n)} disconnected`)
       ].join('<br/>');
       reportStatus(result.success, msg, result.inputs, result.outputs);
     };

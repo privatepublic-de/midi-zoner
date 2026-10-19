@@ -1,4 +1,4 @@
-import DOM from '../modules/domutils';
+import DOM, { escapeHTML as esc } from '../modules/domutils';
 import { Zone } from '../modules/zone/zone-class';
 import { Sequence } from '../modules/zone/sequence';
 import { DIV_TICKS } from '../modules/zone/seq-layer';
@@ -393,8 +393,8 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         displayString +=
           count < 3
-            ? inp.fullName
-            : inp.name.substr(0, 10).trim() + (inp.name.length > 10 ? '…' : '');
+            ? esc(inp.fullName)
+            : esc(inp.name.substr(0, 10).trim()) + (inp.name.length > 10 ? '…' : '');
       }
     });
     if (count == 0) {
@@ -424,10 +424,10 @@ document.addEventListener('DOMContentLoaded', function () {
         `<div class="clockOutOption ${
           isSelected ? 'selected' : ''
         }" data-portid="${
-          inport.id
+          esc(inport.id)
         }"><span class="material-icons sel">check_circle</span
         ><span class="material-icons unsel">radio_button_unchecked</span>
-        <span>${inport.fullName}</span>
+        <span>${esc(inport.fullName)}</span>
         <span class="chsel"><select tabindex="-1">${channelOptions}</select></span>
         </div>`
       );
@@ -485,11 +485,11 @@ document.addEventListener('DOMContentLoaded', function () {
         `<div class="clockOutOption ${
           isSelected ? 'selected' : ''
         }" data-portid="${
-          outport.id
+          esc(outport.id)
         }"><span class="material-icons sel">check_circle</span
         ><span class="material-icons unsel">radio_button_unchecked</span>
-        <span class="outname">${outport.fullName}</span
-        ><span class="clockSuppressBtn material-icons${isSuppressed ? ' active' : ''}" data-portid="${outport.id}" title="Free-running clock: send only ticks, no start/stop (keeps delay/reverb synced while transport is stopped)">sync_lock</span>
+        <span class="outname">${esc(outport.fullName)}</span
+        ><span class="clockSuppressBtn material-icons${isSuppressed ? ' active' : ''}" data-portid="${esc(outport.id)}" title="Free-running clock: send only ticks, no start/stop (keeps delay/reverb synced while transport is stopped)">sync_lock</span>
         </div>`
       );
     });
@@ -675,9 +675,9 @@ document.addEventListener('DOMContentLoaded', function () {
         DOM.addHTML(
           container,
           'beforeend',
-          `<div class="clockOutOption portVis${hidden ? ' hiddenPort' : ''}${locked ? ' locked' : ''}" data-portid="${port.id}" data-dir="${dir}"
+          `<div class="clockOutOption portVis${hidden ? ' hiddenPort' : ''}${locked ? ' locked' : ''}" data-portid="${esc(port.id)}" data-dir="${dir}"
             title="${locked ? 'In use – cannot be hidden' : hidden ? 'Show this port' : 'Hide this port'}">
-            <span>${port.fullName}</span>
+            <span>${esc(port.fullName)}</span>
             <span class="material-icons">${hidden ? 'visibility_off' : 'visibility'}</span>
           </div>`
         );
@@ -709,9 +709,9 @@ document.addEventListener('DOMContentLoaded', function () {
         DOM.addHTML(
           select_in_clock,
           'beforeend',
-          `<option value="${input.id}" ${
+          `<option value="${esc(input.id)}" ${
             input.isSelectedClockInput ? 'selected' : ''
-          }>${input.name}</option>`
+          }>${esc(input.name)}</option>`
         );
       });
     } else {
@@ -726,7 +726,7 @@ document.addEventListener('DOMContentLoaded', function () {
       DOM.addHTML(
         select_mackie,
         'beforeend',
-        `<option value="${input.id}" ${input.id === savedMackieId ? 'selected' : ''}>${input.name}</option>`
+        `<option value="${esc(input.id)}" ${input.id === savedMackieId ? 'selected' : ''}>${esc(input.name)}</option>`
       );
     });
     midi.deviceIdMackieControl = savedMackieId || null;
@@ -738,7 +738,7 @@ document.addEventListener('DOMContentLoaded', function () {
       DOM.addHTML(
         select_mackie_out,
         'beforeend',
-        `<option value="${output.id}" ${output.id === savedMackieOutId ? 'selected' : ''}>${output.name}</option>`
+        `<option value="${esc(output.id)}" ${output.id === savedMackieOutId ? 'selected' : ''}>${esc(output.name)}</option>`
       );
     });
     midi.deviceIdMackieOutput = savedMackieOutId || null;
