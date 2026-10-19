@@ -1605,6 +1605,11 @@ input[type='range'] {
     400ms right;
 }
 
+/* Darker than the zone so .join (zone colour) shows the active range. */
+.rangeholder {
+  background-color: var(--darker-2);
+}
+
 .disabled .rangeholder {
   background-color: var(--darker-3);
 }
