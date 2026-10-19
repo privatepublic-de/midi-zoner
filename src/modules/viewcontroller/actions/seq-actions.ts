@@ -4,6 +4,12 @@ import { SeqStep } from '../../zone/seq-step';
 import { ActionContext, ActionHelpers, ActionMap } from '../types';
 import { openPianoRoll } from '../piano-roll';
 
+/** Parse a number field, clamped to [min, max]; empty or invalid input keeps `current`. */
+function clampedInput(element: HTMLElement, min: number, max: number, current: number): number {
+  const v = parseInt((element as HTMLInputElement).value);
+  return isNaN(v) ? current : Math.max(min, Math.min(max, v));
+}
+
 const RATCHET_RES_LABELS: Record<number, string> = {
   12: '1/8', 9: '1/16.', 8: '1/8T', 6: '1/16',
   4: '1/16T', 3: '1/32', 2: '1/32T', 1: '1tk'
@@ -76,12 +82,11 @@ export function createSeqActions(
       updateValuesForZone(zoneindex);
     },
     seq_steps: () => {
-      const v = parseInt((element as HTMLInputElement).value);
-      sequence.length = v;
+      sequence.length = clampedInput(element, 1, Sequence.MAX_STEPS, sequence.length);
       updateValuesForZone(zoneindex);
     },
     seq_drum_lanes: () => {
-      sequence.drumLanes = parseInt((element as HTMLInputElement).value);
+      sequence.drumLanes = clampedInput(element, 1, Sequence.MAX_LANES_DRUMS, sequence.drumLanes);
       updateValuesForZone(zoneindex);
     },
     seq_drumlane_note: () => {
@@ -100,8 +105,8 @@ export function createSeqActions(
     },
     seq_drum_lane_steps: () => {
       const laneNo = parseInt(actionParam1);
-      const v = Math.max(1, Math.min(Sequence.MAX_STEPS_DRUMS, parseInt((element as HTMLInputElement).value)));
       const lane = sequence.getDrumLane(laneNo);
+      const v = clampedInput(element, 1, Sequence.MAX_STEPS_DRUMS, lane.length);
       lane.length = v;
       lane.currentStep = -1;
       lane.previousStep = -1;
