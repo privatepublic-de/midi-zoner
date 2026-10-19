@@ -270,9 +270,9 @@ class MIDI {
         let sName = fullName;
         if (sName.length > 20) {
           sName =
-            sName.substr(0, 10).trim() +
+            sName.slice(0, 10).trim() +
             '…' +
-            sName.substr(sName.length - 10, 10).trim();
+            sName.slice(-10).trim();
         }
         return {
           id: port[1].id,
@@ -547,7 +547,7 @@ class MIDI {
       this.sendToAllUsedPorts(msg);
     }
     console.log(
-      'MIDI: Panic. Sent CC 120, 122, 123 to all channels and used ports'
+      'MIDI: Panic. Sent CC 120, 121, 123 to all channels and used ports'
     );
     if (this.panicHandler) this.panicHandler();
   }

@@ -53,7 +53,7 @@ export class Sequence {
   zone: Zone;
   _selectedStep = -1;
   isHotRecordingNotes = false;
-  isLiveRecoding = false;
+  isLiveRecording = false;
   isDrumSequence = false;
   drumLanes = 4;
   activeSteps: SeqStep[] = [];
@@ -163,7 +163,7 @@ export class Sequence {
     this.selectedStepNumbers.clear();
     if (v > -1) {
       this.selectedStepNumbers.add(v);
-      this.isLiveRecoding = false;
+      this.isLiveRecording = false;
       this.isHotRecordingNotes = true;
     } else {
       this.isHotRecordingNotes = false;
@@ -222,7 +222,7 @@ export class Sequence {
   recordNote(note: Note, inCount: number): void {
     if (
       !this.isHotRecordingNotes &&
-      this.isLiveRecoding &&
+      this.isLiveRecording &&
       this.currentStepNumber > -1
     ) {
       let isSequentialAdvance = false;
@@ -280,7 +280,7 @@ export class Sequence {
       this.liveNoteSteps.delete(noteNumber);
       this.updateZoneView();
     }
-    if (this.isLiveRecoding && this.liveTargetStep) {
+    if (this.isLiveRecording && this.liveTargetStep) {
       if (count === 0) {
         this.liveTargetStep.length = this.liveTargetLength;
         this.steps[this.liveTargetStepNumber] = this.liveTargetStep;
@@ -416,7 +416,7 @@ export class Sequence {
       this.currentStepNumber = (this.currentStepNumber + 1) % this.length;
       // Commit a held live-recording step as soon as the playhead exits it so
       // it plays back on subsequent passes and length tracking continues.
-      if (this.isLiveRecoding && this.liveTargetStep !== null &&
+      if (this.isLiveRecording && this.liveTargetStep !== null &&
           this.currentStepNumber === (this.liveTargetStepNumber + 1) % this.length) {
         this.steps[this.liveTargetStepNumber] = this.liveTargetStep;
         for (const n of this.liveTargetStep.notesArray) {
@@ -544,7 +544,7 @@ export class Sequence {
     this.isFirstCycle = true;
     this.liveTargetLength = 0;
     this.liveTargetStep = null;
-    this.isLiveRecoding = false;
+    this.isLiveRecording = false;
     this.updateRecordingState();
     requestAnimationFrame(this.zone._renderSequenceBound);
     requestAnimationFrame(this.zone._renderNotesBound);

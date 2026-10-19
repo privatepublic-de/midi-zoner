@@ -310,4 +310,4 @@ The application has no automated tests. Manual testing should cover:
 
 ### Minor Issues
 1. **Drum lane count decrease leaves stale data** — `seq_drum_lanes` action (seq-actions.ts) only updates `sequence.drumLanes` (the display count) without clearing the sparse `drum_lanes` array. Decreasing then increasing the lane count restores old step data.
-2. **Arrangement switch stops live recording without a toast** — `z.stopped()` during arrangement switching resets `isLiveRecoding = false` and calls `updateRecordingState()` (which removes the CSS indicator), but there is no toast notification to tell the user recording was interrupted.
+2. **Arrangement switch stops live recording without a toast** — `z.stopped()` during arrangement switching resets `isLiveRecording = false` and calls `updateRecordingState()` (which removes the CSS indicator), but there is no toast notification to tell the user recording was interrupted.

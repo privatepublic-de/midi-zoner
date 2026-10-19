@@ -29,7 +29,7 @@ export function createZoneActions(
       }
       if (!zone.enabled && sequence.active) {
         sequence.clearSelection();
-        sequence.isLiveRecoding = false;
+        sequence.isLiveRecording = false;
         updateValuesForZone(zoneindex);
       }
     },
@@ -69,7 +69,7 @@ export function createZoneActions(
     zone_outport: () => {
       const selectElement = element as HTMLSelectElement;
       if (selectElement.value.charAt(0) == '$') {
-        const parts = selectElement.value.substr(1).split(',');
+        const parts = selectElement.value.slice(1).split(',');
         zone.channel = parseInt(parts[1]);
         zone.preferredOutputPortId = zone.outputPortId = parts[0];
         updateOutputPortsForZone(zoneindex, cachedOutputPorts);

@@ -403,7 +403,7 @@ document.addEventListener('DOMContentLoaded', function () {
         displayString +=
           count < 3
             ? esc(inp.fullName)
-            : esc(inp.name.substr(0, 10).trim()) + (inp.name.length > 10 ? '…' : '');
+            : esc(inp.name.slice(0, 10).trim()) + (inp.name.length > 10 ? '…' : '');
       }
     });
     if (count == 0) {
@@ -954,7 +954,7 @@ document.addEventListener('DOMContentLoaded', function () {
       console.log('app: distributed panic to all zones');
       setTimeout(() => {
         view.toast(
-          'Sent "notes off" and CC 120, 122, 123 to all channels and used ports!'
+          'Sent "notes off" and CC 120, 121, 123 to all channels and used ports!'
         );
       }, 1);
     },

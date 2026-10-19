@@ -377,7 +377,7 @@ function contextHandler(ev: MouseEvent): void {
     if (act == '-') {
       DOM.addHTML(contextMenuElement, 'beforeend', `<hr/>`);
     } else if (act.startsWith('label:')) {
-      const label = act.substr(6);
+      const label = act.slice(6);
       DOM.addHTML(
         contextMenuElement,
         'beforeend',
@@ -679,7 +679,7 @@ function appendZone(zone: ZoneType, index: number): void {
     };
 
     e.addEventListener('keyup', function (this: HTMLElement, event) {
-      if ((event as KeyboardEvent).keyCode === 13) {
+      if ((event as KeyboardEvent).key === 'Enter') {
         event.preventDefault();
         this.dispatchEvent(new Event('input'));
         commitInputGesture();
@@ -1040,7 +1040,7 @@ function updateValuesForZone(index: number): void {
             DOM.addClass(stepElement, 'unused');
           }
         });
-        DOM.switchClass(zoneElement, sequence.isLiveRecoding, 'liveRecording');
+        DOM.switchClass(zoneElement, sequence.isLiveRecording, 'liveRecording');
       }
       if (sequence.hasSelection) {
         DOM.addClass(zone.elements.sequencerElement!, 'has-selection');

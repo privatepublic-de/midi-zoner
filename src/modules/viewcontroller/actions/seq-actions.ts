@@ -74,7 +74,7 @@ export function createSeqActions(
       if (sequence.active) {
         zone.renderNotes();
       } else {
-        sequence.isLiveRecoding = false;
+        sequence.isLiveRecording = false;
       }
       updateValuesForZone(zoneindex);
     },
@@ -809,10 +809,10 @@ export function createSeqActions(
     },
     seq_record_live: () => {
       sequence.clearSelection();
-      sequence.isLiveRecoding = !sequence.isLiveRecoding;
+      sequence.isLiveRecording = !sequence.isLiveRecording;
       updateValuesForZone(zoneindex);
       toast(
-        sequence.isLiveRecoding
+        sequence.isLiveRecording
           ? 'Live recording enabled!'
           : 'Stopped live recording'
       );
