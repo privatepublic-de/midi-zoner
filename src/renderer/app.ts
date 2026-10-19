@@ -354,15 +354,18 @@ document.addEventListener('DOMContentLoaded', function () {
     sendMackieLeds();
   });
   const optionNoDevice = '<option value="">(No devices available)</option>';
-  /** One-line summary of input and clock on the setup toggle, so a closed drawer still shows what is set. */
+  /**
+   * Input summary on the setup toggle, so a closed drawer still shows what is set.
+   * The clock source shows in the transport instead: BPM for internal, the port name for external.
+   */
   let inputSummary = '';
   function updateSetupSummary(): void {
-    const clock =
-      midi.deviceIdInClock == MIDI.INTERNAL_PORT_ID
-        ? 'Internal clock'
-        : select_in_clock.selectedOptions[0]?.text || 'External clock';
     const el = document.getElementById('setupSummary');
-    if (el) el.textContent = `${inputSummary || 'No input'} · ${clock}`;
+    if (el) el.textContent = inputSummary || 'No input';
+    const extBadge = document.querySelector('.transport .ext-badge');
+    if (extBadge && midi.deviceIdInClock != MIDI.INTERNAL_PORT_ID) {
+      extBadge.textContent = select_in_clock.selectedOptions[0]?.text || 'External clock';
+    }
   }
   function updateBpmInput(): void {
     updateSetupSummary();
@@ -743,6 +746,7 @@ document.addEventListener('DOMContentLoaded', function () {
     } else {
       DOM.addHTML(select_in_clock, 'beforeend', optionNoDevice);
     }
+    updateSetupSummary();
     // rebuild Mackie Control selector
     const savedMackieId = localStorage.getItem('mackieControlPortId') ?? '';
     DOM.empty(select_mackie);
@@ -1361,6 +1365,8 @@ document.addEventListener('DOMContentLoaded', function () {
   DOM.get('#setupToggle')!.addEventListener('click', () =>
     setSetupOpen(!document.body.classList.contains('setup-open'))
   );
+  // The external clock name in the transport leads to where the clock source is chosen
+  DOM.on('.transport .ext-badge', 'click', () => setSetupOpen(true));
   // Keep the zones below the top bar, including the drawer when it is open (and when it wraps to two rows).
   const topBar = DOM.get('#midisettings') as HTMLElement;
   const setupDrawer = DOM.get('#setupDrawer') as HTMLElement;
