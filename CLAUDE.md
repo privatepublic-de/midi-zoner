@@ -152,6 +152,8 @@ Global state is stored in the `zones` object in app.ts:
 
 Hidden MIDI ports: `midi.hiddenPorts` (id → name, localStorage key `hiddenPorts`, per machine, not in scenes). `app.ts` filters port lists through `visiblePorts()` before building any selector; ports referenced by zones, clock, Mackie or selected inputs (`portsInUse()`) always stay visible. Managed via "Manage MIDI ports" in the input port window.
 
+Port id changes: macOS/CoreMIDI can give a device a new port id after a reboot. On every port update `remapChangedPortIds()` (app.ts) re-links references to absent ids (zone output/input, output presets, clock outputs, selected inputs, clock input, Mackie in/out) to the single present port of the same direction whose name matches `zones.knownPortNames[oldId]` (full port names). Ambiguous names (identical devices) are left as "⚠ missing".
+
 Solo mode is tracked via `Zone.solocount` static counter.
 
 Undo/redo state is tracked in a standalone `UndoHistory` instance in app.ts (not part of `zones`). Every discrete mutation calls `undoHistory.push()`; continuous gestures (e.g. dragging a CC knob) use `startGesture()` / `endGesture()` to collapse into a single entry.

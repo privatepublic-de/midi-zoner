@@ -587,6 +587,86 @@ document.addEventListener('DOMContentLoaded', function () {
     return inUse;
   }
 
+  /**
+   * Re-link references to ports whose id changed (CoreMIDI may assign new ids
+   * after a reboot) by matching the remembered port name. Only remaps when the
+   * old id is absent and exactly one present port carries that name.
+   * Returns the names of remapped ports.
+   */
+  function remapChangedPortIds(inputs: PortDescriptor[], outputs: PortDescriptor[]): string[] {
+    const remapped = new Set<string>();
+    const cache = { in: new Map<string, string | null>(), out: new Map<string, string | null>() };
+    const resolve = (id: string | null | undefined, dir: 'in' | 'out'): string | null => {
+      if (!id || id === MIDI.INTERNAL_PORT_ID) return null;
+      const ports = dir === 'in' ? inputs : outputs;
+      if (ports.some((p) => p.id === id)) return null;
+      if (cache[dir].has(id)) return cache[dir].get(id)!;
+      const name = zones.knownPortNames[id];
+      let newId: string | null = null;
+      if (typeof name === 'string' && name) {
+        const matches = ports.filter((p) => p.fullName === name || p.name === name);
+        if (matches.length === 1) {
+          newId = matches[0].id;
+          remapped.add(name);
+          console.log(`app: port "${name}" changed id ${id} → ${newId}`);
+        }
+      }
+      cache[dir].set(id, newId);
+      return newId;
+    };
+
+    zones.list.forEach((z) => {
+      const out = resolve(z.preferredOutputPortId, 'out');
+      if (out) {
+        z.preferredOutputPortId = out;
+        if (z.outputPortId !== MIDI.INTERNAL_PORT_ID) z.outputPortId = out;
+      }
+      const inp = resolve(z.inputPortId, 'in');
+      if (inp) z.inputPortId = inp;
+    });
+
+    for (const key of Object.keys(zones.outputConfigNames || {})) {
+      const [portId, ch] = key.split(',');
+      const out = resolve(portId, 'out');
+      if (out && zones.outputConfigNames[`${out},${ch}`] == null) {
+        zones.outputConfigNames[`${out},${ch}`] = zones.outputConfigNames[key];
+        delete zones.outputConfigNames[key];
+      }
+    }
+
+    for (const id of Object.keys(midi.clockOutputPorts)) {
+      const out = resolve(id, 'out');
+      if (out) {
+        midi.clockOutputPorts[out] = midi.clockOutputPorts[out] || midi.clockOutputPorts[id];
+        delete midi.clockOutputPorts[id];
+      }
+    }
+    zones.clockOutputPorts = midi.clockOutputPorts;
+
+    for (const [id, def] of Object.entries(midi.selectedInputPorts)) {
+      const inp = resolve(id, 'in');
+      if (inp && !midi.selectedInputPorts[inp]) {
+        midi.selectedInputPorts[inp] = { ...def, id: inp };
+        delete midi.selectedInputPorts[id];
+      }
+    }
+    zones.selectedInputPorts = midi.selectedInputPorts;
+
+    const clockIn = resolve(localStorage.getItem('midiInClockId'), 'in');
+    if (clockIn) {
+      localStorage.setItem('midiInClockId', clockIn);
+      midi.selectDevices(clockIn);
+      inputs.forEach((p) => { p.isSelectedClockInput = p.id === clockIn; });
+    }
+    const mackieIn = resolve(localStorage.getItem('mackieControlPortId'), 'in');
+    if (mackieIn) localStorage.setItem('mackieControlPortId', mackieIn);
+    const mackieOut = resolve(localStorage.getItem('mackieControlOutputPortId'), 'out');
+    if (mackieOut) localStorage.setItem('mackieControlOutputPortId', mackieOut);
+
+    if (remapped.size > 0) syncZoneInputPorts(midi);
+    return [...remapped];
+  }
+
   function visiblePorts(ports: PortDescriptor[], dir: 'in' | 'out'): PortDescriptor[] {
     const used = portsInUse()[dir];
     return ports.filter((p) => !midi.isPortHidden(p) || used.has(p.id));
@@ -1149,6 +1229,10 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!available) return;
         console.log('app: MIDI port update');
         allPorts = { inputs: allInputs, outputs: allOutputs };
+        const remappedPorts = remapChangedPortIds(allInputs, allOutputs);
+        if (remappedPorts.length > 0) {
+          msg = `${msg ? msg + '<br/>' : ''}Reconnected by name: ${remappedPorts.join(', ')}`;
+        }
         const inputs = visiblePorts(allInputs, 'in');
         const outputs = visiblePorts(allOutputs, 'out');
         rebuildPortSelectors(inputs, outputs);
@@ -1158,8 +1242,8 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         sendMackieLeds();
         // remember port names so missing devices can be labelled
-        outputs.forEach((p) => { zones.knownPortNames[p.id] = p.name; });
-        inputs.forEach((p) => { zones.knownPortNames[p.id] = p.name; });
+        allOutputs.forEach((p) => { zones.knownPortNames[p.id] = p.fullName; });
+        allInputs.forEach((p) => { zones.knownPortNames[p.id] = p.fullName; });
         saveZones();
         // update zone port selectors and send program changes for reconnected ports
         const prevPortIds = zones.list.map((z) => z.outputPortId);
