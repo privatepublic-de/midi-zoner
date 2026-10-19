@@ -2432,40 +2432,39 @@ body.running .seqprogress.drum .lane-cursor {
   background-color: var(--brighter-1);
 }
 
-/* Key switch help button */
+/* Key switch help button: a quiet hint next to its checkbox */
 .ks-help-btn {
-  float: right;
-  width: 16px;
-  height: 16px;
-  background: var(--brighter-1);
-  border: 1px solid var(--brighter-2);
+  width: 14px;
+  height: 14px;
+  background: none;
+  border: 1px solid var(--brighter-1);
   border-radius: 50%;
-  color: var(--brighter-3);
+  color: var(--brighter-2);
   font-size: var(--fs-sm);
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1;
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
   transition:
-    background 80ms,
+    border-color 80ms,
     color 80ms;
 }
 
 .ks-help-btn:hover {
-  background: var(--brighter-2);
+  border-color: var(--brighter-2);
   color: var(--brighter-4);
 }
 
-/* Key switch help overlay */
+/* Key switch help overlay; the inline script in index.html places it below #keySwitchHelp. */
 #keySwitchHelpOverlay {
   position: fixed;
-  bottom: 36px;
-  right: 12px;
+  top: 0;
+  left: 0;
   z-index: 200;
   background-color: var(--bg-topbar);
   border: 1px solid var(--border-topbar);
-  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
   border-radius: 4px;
   padding: 8px 10px 10px;
   font-size: var(--fs-sm);
@@ -3486,9 +3485,12 @@ body.setup-open #setupDrawer {
   gap: 6px;
 }
 
+/* The rule under the label spans the whole group, tying it to its controls. */
 .drawer-group .group-label {
   font-size: var(--fs-sm);
   color: var(--brighter-2);
+  padding-bottom: 3px;
+  border-bottom: 1px solid var(--brighter-0);
 }
 
 .drawer-group .group-body {
@@ -3544,7 +3546,7 @@ body.setup-open #setupDrawer {
   height: 32px;
   padding: 0 6px;
   align-items: center;
-  border: 1px solid var(--brighter-1);
+  border: 1px solid var(--brighter-0);
   border-radius: var(--radius);
 }
 

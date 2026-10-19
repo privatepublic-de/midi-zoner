@@ -78,6 +78,11 @@
           <span class="group-label">Input</span>
           <div class="group-body">
             <span id="midiInputSelector">Choose inputs</span>
+            <label class="tb-label check" title="When enabled, notes 0–15 (C-1 to D#0) act as zone-mute and sequencer-toggle key switches, and notes 16–19 (E0 to G0) select arrangements A–D, instead of being routed to zones">
+              <input type="checkbox" id="keySwitchEnabled" checked tabindex="-1" />
+              <span class="material-icons sel">check_box</span><span class="material-icons unsel">check_box_outline_blank</span> Key switches
+            </label>
+            <button id="keySwitchHelp" class="ks-help-btn" tabindex="-1" title="Key switch reference">?</button>
           </div>
         </div>
         <div class="drawer-group">
@@ -129,16 +134,6 @@
             <a id="shuffleColors" class="lightButton" title="Shuffle colors"
               ><i class="material-icons">palette</i></a
             >
-          </div>
-        </div>
-        <div class="drawer-group">
-          <span class="group-label">Help</span>
-          <div class="group-body toolbar">
-            <label class="tb-label check" title="When enabled, notes 0–15 (C-1 to D#0) act as zone-mute and sequencer-toggle key switches, and notes 16–19 (E0 to G0) select arrangements A–D, instead of being routed to zones">
-              <input type="checkbox" id="keySwitchEnabled" checked tabindex="-1" />
-              <span class="material-icons sel">check_box</span><span class="material-icons unsel">check_box_outline_blank</span> Key switches
-            </label>
-            <button id="keySwitchHelp" class="ks-help-btn" tabindex="-1" title="Key switch reference">?</button>
             <a id="aboutBtn" class="lightButton" title="About midi-zoner"
               ><i class="material-icons">info_outline</i></a
             >
@@ -314,9 +309,19 @@
         var overlay = document.getElementById('keySwitchHelpOverlay');
         var btn = document.getElementById('keySwitchHelp');
         var closeBtn = document.getElementById('keySwitchHelpClose');
-        function open() { overlay.classList.add('open'); }
+        function open() {
+          overlay.classList.add('open');
+          // Drop down from the button, kept inside the window.
+          var r = btn.getBoundingClientRect();
+          var left = Math.min(r.left, window.innerWidth - overlay.offsetWidth - 8);
+          overlay.style.left = Math.max(8, left) + 'px';
+          overlay.style.top = r.bottom + 6 + 'px';
+        }
         function close() { overlay.classList.remove('open'); }
-        btn.addEventListener('click', function (e) { e.stopPropagation(); overlay.classList.toggle('open'); });
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          if (overlay.classList.contains('open')) close(); else open();
+        });
         closeBtn.addEventListener('click', close);
         document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
         document.addEventListener('click', function (e) {
