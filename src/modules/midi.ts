@@ -625,14 +625,14 @@ class MIDI {
    * if MIDI controller's sendInternalClock is set to true.
    */
   startClock(): void {
+    this.songposition = 0;
+    this.isClockRunning = true;
     if (this.deviceIdInClock == MIDI.INTERNAL_PORT_ID) {
       this.sendStart();
       if (this.transportHandler) {
         this.transportHandler(true);
       }
     }
-    this.songposition = 0;
-    this.isClockRunning = true;
   }
 
   /**
@@ -640,13 +640,13 @@ class MIDI {
    * if MIDI controller's sendInternalClock is set to true.
    */
   stopClock(): void {
+    this.isClockRunning = false;
     if (this.deviceIdInClock == MIDI.INTERNAL_PORT_ID) {
       this.sendStop();
       if (this.transportHandler) {
         this.transportHandler(false);
       }
     }
-    this.isClockRunning = false;
   }
 
   setInternalBPM(v: number): void {

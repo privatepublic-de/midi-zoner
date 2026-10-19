@@ -755,7 +755,6 @@ document.addEventListener('DOMContentLoaded', function () {
   let activeUpdateTimer: ReturnType<typeof setTimeout> | null = null;
   let portsFirstUpdateDone = false;
   let initialized = false;
-  let clockRunning = false;
   let mackieSelectedZone: number | null = null;
   let sendMackieLeds: () => void = () => {};
   const midi = new MIDI({
@@ -773,9 +772,6 @@ document.addEventListener('DOMContentLoaded', function () {
           } else if (event.data[4] == 1) {
             // MMC STOP
             midi.stopClock();
-            zones.list.forEach((z) => {
-              z.stopped(true);
-            });
           }
         } else if (
           event.data[0] == MIDI.MESSAGE.START ||
@@ -784,9 +780,6 @@ document.addEventListener('DOMContentLoaded', function () {
           midi.startClock();
         } else if (event.data[0] == MIDI.MESSAGE.STOP) {
           midi.stopClock();
-          zones.list.forEach((z) => {
-            z.stopped(true);
-          });
         }
       }
 
@@ -830,10 +823,8 @@ document.addEventListener('DOMContentLoaded', function () {
           // Transport (internal clock only)
           if (midi.deviceIdInClock === MIDI.INTERNAL_PORT_ID) {
             if (note === 94 && !midi.isClockRunning) {
-              clockRunning = true;
               midi.startClock();
             } else if (note === 93 && midi.isClockRunning) {
-              clockRunning = false;
               midi.stopClock();
             }
           }
@@ -950,9 +941,7 @@ document.addEventListener('DOMContentLoaded', function () {
           z.stopped(true);
         });
       }
-      if (midi.deviceIdInClock !== MIDI.INTERNAL_PORT_ID) {
-        sendMackieLeds();
-      }
+      sendMackieLeds();
     },
     clockPausedHandler: () => {
       zones.list.forEach((z) => z.paused());
@@ -1056,19 +1045,13 @@ document.addEventListener('DOMContentLoaded', function () {
           saveZones();
         });
         startClockButton.addEventListener('click', () => {
+          // transportHandler updates the button, zones and Mackie LEDs
           if (midi.deviceIdInClock === MIDI.INTERNAL_PORT_ID) {
-            clockRunning = !clockRunning;
-            if (clockRunning) {
-              startClockButton.classList.add('selected');
-              midi.startClock();
-            } else {
-              startClockButton.classList.remove('selected');
+            if (midi.isClockRunning) {
               midi.stopClock();
-              zones.list.forEach((z) => {
-                z.stopped(true);
-              });
+            } else {
+              midi.startClock();
             }
-            sendMackieLeds();
           }
         });
         let bpmDebounceTimer: ReturnType<typeof setTimeout> | null = null;
