@@ -348,8 +348,7 @@ select {
   margin: 0 2px;
 }
 
-#midisettings select,
-.clockOutOption select {
+#midisettings select {
   width: 170px;
 }
 
@@ -363,10 +362,6 @@ select {
 option {
   color: black;
   margin: 5px 0;
-}
-
-.clockOutOption select {
-  width: auto !important;
 }
 
 #midisettings input {
@@ -468,17 +463,6 @@ option {
   margin-bottom: 60px;
 }
 
-@media (max-width: 1130px) {
-  #zones {
-    display: block;
-  }
-  .zone {
-    width: 90% !important;
-    max-width: 800px;
-    margin: 0 auto 5px auto;
-  }
-}
-
 .zone {
   --scrollbar: #ffffff25;
   display: flex;
@@ -495,6 +479,17 @@ option {
   background-color: var(--zone-surface);
   border-radius: var(--radius-lg);
   --bg-color: var(--zone-surface);
+}
+
+@media (max-width: 1130px) {
+  #zones {
+    display: block;
+  }
+  .zone {
+    width: 90%;
+    max-width: 800px;
+    margin: 0 auto 5px auto;
+  }
 }
 
 .zone.placeholder {
@@ -1194,7 +1189,7 @@ input[type='range'] {
 
 .octaves {
   border-right: 1px solid var(--brighter-2);
-  height: 14px !important;
+  height: 14px;
 }
 
 .octselect {
@@ -1668,8 +1663,8 @@ input[type='range'] {
   vertical-align: middle;
 }
 
-#bpm.hasClock {
-  border-color: #0a0 !important;
+#midisettings input#bpm.hasClock {
+  border-color: #0a0;
 }
 
 /* =============================================================
@@ -1692,8 +1687,8 @@ input[type='range'] {
   box-shadow: 0 0 8px var(--darker-1);
 }
 
-.disabled .seq {
-  display: none !important;
+.zone.disabled .seq {
+  display: none;
 }
 
 .seqtools {
@@ -1784,6 +1779,8 @@ input[type='range'] {
   background-color: var(--zone-color);
 }
 
+/* The playhead must win over every step state (active, selected, ratchet, drum,
+   bar start, disabled), hence !important on these two. */
 .seq .grid .step.playhead {
   background-color: var(--brighter-0) !important;
 }
@@ -2011,8 +2008,9 @@ body.running .seqprogress .inner {
 body.running .seqprogress.drum .lane-cursor {
   display: block;
 }
-.seqprogress.drum .inner {
-  display: none !important;
+.seqprogress.drum .inner,
+body.running .seqprogress.drum .inner {
+  display: none;
 }
 
 /* =============================================================
@@ -3107,6 +3105,7 @@ body.minimized .zone > :not(.channels),
 body.minimized .zone .channels > :not(.state):not(.solo):not(.showseq):not(.showarp):not(.zone-label):not(.midi-led),
 body.minimized .zone.placeholder,
 body.minimized .zone.addnewzone {
+  /* !important: mini view hides these over any zone state rule (e.g. .zone.disabled.show-seq .seqprogress) */
   display: none !important;
 }
 
@@ -3134,7 +3133,7 @@ body.minimized .padded {
 }
 
 body.minimized #zones {
-  display: grid !important;
+  display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 4px;
   min-height: 0;
@@ -3142,10 +3141,10 @@ body.minimized #zones {
 }
 
 body.minimized .zone {
-  width: auto !important;
-  min-width: 0 !important;
-  max-width: none !important;
-  margin: 0 !important;
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  margin: 0;
   padding: 4px;
   gap: 0;
 }
