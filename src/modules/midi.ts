@@ -137,6 +137,7 @@ class MIDI {
       console.log('MIDI: ready');
       this.midiAccess = midiAccess;
       const initResult = listInputsAndOutputs();
+      reportedPorts = scannedPorts = initResult;
       this.selectDevices(this.deviceIdInClock);
       this.midiAccess.onstatechange = onStateChange;
       reportStatus(
@@ -152,13 +153,55 @@ class MIDI {
       reportStatus(false, 'No MIDI available');
     };
 
+    // port lists last passed to portsChangedHandler / found by the latest scan
+    let reportedPorts: ListResult = { success: true, inputs: [], outputs: [] };
+    let scannedPorts: ListResult = reportedPorts;
+    let rescanTimer: ReturnType<typeof setTimeout> | null = null;
+    let reportTimer: ReturnType<typeof setTimeout> | null = null;
+    const REPORT_DELAY_MS = 300;
+
+    const portKeys = (r: ListResult): Set<string> =>
+      new Set([...r.inputs.map((p) => 'i' + p.id), ...r.outputs.map((p) => 'o' + p.id)]);
+
+    // Report the net change since the last report as one update (one toast),
+    // so a multi-port device connecting port by port doesn't flood the UI.
+    const reportPortChanges = (): void => {
+      reportTimer = null;
+      const result = scannedPorts;
+      const before = portKeys(reportedPorts);
+      const after = portKeys(result);
+      const nameOf = (r: ListResult, key: string): string =>
+        (key[0] === 'i' ? r.inputs : r.outputs).find((p) => p.id === key.slice(1))?.fullName ?? key;
+      const added = new Set([...after].filter((k) => !before.has(k)).map((k) => nameOf(result, k)));
+      const removed = new Set([...before].filter((k) => !after.has(k)).map((k) => nameOf(reportedPorts, k)));
+      if (added.size === 0 && removed.size === 0) return;
+      reportedPorts = result;
+      const msg = [
+        ...[...added].map((n) => `${n} connected`),
+        ...[...removed].map((n) => `${n} disconnected`)
+      ].join('<br/>');
+      reportStatus(result.success, msg, result.inputs, result.outputs);
+    };
+
+    // Re-enumerate right away (knownPorts must stay current for sending) and
+    // schedule a report. Comparing port sets instead of judging by the event's
+    // own port keeps multi-port devices complete: their ports can show up in
+    // the access maps before their own statechange event fires.
+    const rescanPorts = (): void => {
+      const prevKeys = portKeys(scannedPorts);
+      scannedPorts = listInputsAndOutputs();
+      const keys = portKeys(scannedPorts);
+      if (keys.size === prevKeys.size && [...keys].every((k) => prevKeys.has(k))) return;
+      this.selectDevices(this.deviceIdInClock);
+      if (reportTimer) clearTimeout(reportTimer);
+      reportTimer = setTimeout(reportPortChanges, REPORT_DELAY_MS);
+    };
+
     const onStateChange = (e: MIDIConnectionEvent): void => {
       const port = e.port;
-      const portName = e.port.name;
-      const wasNew = !this.knownPorts[port.id];
+      console.log('MIDI: statechange', port.type, port.name, port.state, port.connection);
 
       if (port.state === 'disconnected') {
-        delete this.knownPorts[port.id];
         if (port.id === this.deviceIdInClock) {
           // clock port gone — portsChangedHandler will fall back to internal
           this.deviceIdInClock = null;
@@ -167,20 +210,10 @@ class MIDI {
         this._warnedMissingPorts.clear();
       }
 
-      const initResult = listInputsAndOutputs();
-      this.selectDevices(this.deviceIdInClock);
-
-      // only report disconnect and genuinely new ports to avoid flooding the UI
-      if (port.state === 'disconnected' || wasNew) {
-        setTimeout(() => {
-          reportStatus(
-            initResult.success,
-            `${portName} ${port.state}`,
-            initResult.inputs,
-            initResult.outputs
-          );
-        }, 0);
-      }
+      rescanPorts();
+      // catch ports that enter the access maps without a later event of their own
+      if (rescanTimer) clearTimeout(rescanTimer);
+      rescanTimer = setTimeout(rescanPorts, 1000);
     };
 
     // Pure port enumeration — no side effects on deviceIdInClock.
@@ -201,7 +234,9 @@ class MIDI {
         return 0;
       };
 
-      const sortedInputs = Array.from(this.midiAccess.inputs).sort(sortPortsComparator);
+      const isPresent = (entry: [string, MIDIPort]): boolean => entry[1].state !== 'disconnected';
+      this.knownPorts = {};
+      const sortedInputs = Array.from(this.midiAccess.inputs).filter(isPresent).sort(sortPortsComparator);
       const savedMidiInId = localStorage.getItem('midiInId');
       sortedInputs.forEach((entry) => {
         const input = entry[1];
@@ -210,7 +245,7 @@ class MIDI {
         countIn++;
       });
 
-      const sortedOutputs = Array.from(this.midiAccess.outputs).sort(sortPortsComparator);
+      const sortedOutputs = Array.from(this.midiAccess.outputs).filter(isPresent).sort(sortPortsComparator);
       sortedOutputs.forEach((entry) => {
         this.knownPorts[entry[1].id] = entry[1];
         countOut++;

@@ -82,6 +82,7 @@ Web MIDI API wrapper with typed interfaces (MIDIAccess, MIDIInput, MIDIOutput, M
 - Clock input/output routing (external and internal clock selection)
 - Transport messages (start/stop/continue)
 - Multi-input port selection support
+- Port hot-plug: every `statechange` (plus one re-scan 1s after the last event) re-enumerates ports at once (keeps `knownPorts` current) but reports to `portsChangedHandler` 300ms after the last change, as one net diff (one toast per device). Don't gate on the event's own port — multi-port devices can list ports before their own event fires
 - `midi.zoneInputPorts` — set of ports claimed by per-zone routing; these bypass the global channel gate so all channels pass through for zone-level filtering
 
 #### zone/ Directory
