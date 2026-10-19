@@ -3294,7 +3294,8 @@ body.running .drumSequencer .lane-expand-toggle {
   font-weight: 600;
 }
 
-.pr-key:hover {
+.pr-key:hover,
+.pr-key.cursor-row {
   background-color: var(--zone-color);
   color: var(--darker-4);
 }
@@ -3303,7 +3304,11 @@ body.running .drumSequencer .lane-expand-toggle {
   position: relative;
   flex-shrink: 0;
   background-color: var(--darker-3);
+  /* Row lines sit on the bottom pixel of each row, like .pr-key's border.
+     C line: 168px tiles (12 rows) offset so a tile ends at the bottom of C9
+     (row 8 from the top, 8 * 14px = 112px). */
   background-image:
+    linear-gradient(to bottom, transparent calc(12 * 14px - 1px), var(--brighter-2) 0),
     repeating-linear-gradient(
       to right,
       var(--brighter-1) 0 1px,
@@ -3314,11 +3319,17 @@ body.running .drumSequencer .lane-expand-toggle {
       var(--darker-1) 0 1px,
       transparent 1px 24px
     ),
-    repeating-linear-gradient(
-      to bottom,
-      var(--brighter-0) 0 1px,
-      transparent 1px calc(12 * 14px)
-    );
+    linear-gradient(to bottom, transparent calc(14px - 1px), var(--brighter-0) 0);
+  background-size:
+    100% calc(12 * 14px),
+    auto,
+    auto,
+    100% 14px;
+  background-position:
+    0 calc(8 * 14px),
+    0 0,
+    0 0,
+    0 0;
   cursor: copy;
 }
 

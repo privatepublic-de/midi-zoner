@@ -145,6 +145,9 @@ let rafHandle: number | null = null;
 let dragState: DragState | null = null;
 const selectedNotes = new Set<Note>();
 let keysBuilt = false;
+const keyEls: HTMLElement[] = []; // indexed by pitch
+let cursorRowPitch: number | null = null;
+let lastPointer: { x: number; y: number } | null = null;
 
 let overlayEl: HTMLElement;
 let titleEl: HTMLElement;
@@ -174,7 +177,42 @@ function buildKeyboardOnce(): void {
       if (activeCtx) previewNote(activeCtx.zone, pitch, 96);
     });
     keysEl.appendChild(row);
+    keyEls[pitch] = row;
   }
+}
+
+function setCursorRow(pitch: number | null): void {
+  if (pitch === cursorRowPitch) return;
+  if (cursorRowPitch !== null) {
+    const prev = keyEls[cursorRowPitch];
+    prev.classList.remove('cursor-row');
+    if (!prev.classList.contains('labeled')) prev.textContent = '';
+  }
+  if (pitch !== null) {
+    keyEls[pitch].classList.add('cursor-row');
+    keyEls[pitch].textContent = Note.display(pitch);
+  }
+  cursorRowPitch = pitch;
+}
+
+// Highlights the key of the row under the pointer; keeps following it during a drag
+// even when the pointer leaves the grid.
+function updateCursorRow(): void {
+  if (!activeCtx || !lastPointer) {
+    setCursorRow(null);
+    return;
+  }
+  const rect = mainScrollEl.getBoundingClientRect();
+  const inside =
+    lastPointer.x >= rect.left &&
+    lastPointer.x < rect.right &&
+    lastPointer.y >= rect.top &&
+    lastPointer.y < rect.bottom;
+  if (!inside && !dragState) {
+    setCursorRow(null);
+    return;
+  }
+  setCursorRow(yToPitch(lastPointer.y - gridEl.getBoundingClientRect().top));
 }
 
 function getZoneColor(zone: ZoneType, prop = '--zone-color', fallback = '#dab249'): string {
@@ -414,7 +452,10 @@ function handleGridMouseDown(ev: MouseEvent): void {
 }
 
 function handleWindowMouseMove(ev: MouseEvent): void {
-  if (!dragState || !activeCtx) return;
+  if (!activeCtx) return;
+  lastPointer = { x: ev.clientX, y: ev.clientY };
+  updateCursorRow();
+  if (!dragState) return;
   const zone = activeCtx.zone;
   const sequence = zone.sequence;
 
@@ -470,6 +511,7 @@ function finishDrag(): void {
 
 function handleWindowMouseUp(): void {
   finishDrag();
+  updateCursorRow();
 }
 
 function renderAll(zone: ZoneType): void {
@@ -513,6 +555,8 @@ function close(): void {
     activeCtx.triggerSave();
   }
   clearSelection();
+  setCursorRow(null);
+  lastPointer = null;
   overlayEl.classList.remove('open');
   activeCtx = null;
   lastBoundSequence = null;
@@ -559,6 +603,7 @@ export function initPianoRoll(): void {
   gridEl.addEventListener('mousedown', handleGridMouseDown);
   mainScrollEl.addEventListener('scroll', () => {
     velocityScrollEl.scrollLeft = mainScrollEl.scrollLeft;
+    updateCursorRow();
   });
 
   document.addEventListener('keydown', (ev) => {
