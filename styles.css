@@ -444,6 +444,268 @@ option {
 }
 
 /* =============================================================
+   ARRANGEMENT SELECTOR (top bar)
+   Sits beside the big active-arrangement letter: four buttons,
+   with the quantize choice underneath.
+   ============================================================= */
+
+#arrangementSelector {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+#arrangementSelector .selectSeq {
+  width: 36px;
+  padding: 2px 0;
+}
+
+/* Destructive action: kept apart from "Add zone" and only red on hover. */
+#deleteallzones.tb-button {
+  margin-right: 8px;
+  color: var(--brighter-2);
+}
+#deleteallzones.tb-button:hover {
+  background-color: var(--danger-soft);
+  color: var(--brighter-4);
+}
+
+/* =============================================================
+   TOP BAR: PERFORMANCE STRIP + SETUP DRAWER
+   The strip holds what you touch while playing. Everything you set
+   once (input, clock, files, view) lives in the drawer below it.
+   ============================================================= */
+
+#midisettings .lightButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 24px;
+  min-width: 28px;
+  margin: 0;
+}
+
+.setup-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 300px;
+  height: 28px;
+  padding: 0 8px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--bg-topbar-button);
+  color: var(--fg-topbar-button);
+  font: inherit;
+  cursor: pointer;
+}
+
+.setup-toggle:hover {
+  background: var(--brighter-1);
+}
+
+.setup-toggle #setupSummary {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.setup-toggle .chevron {
+  transition: transform 150ms ease;
+}
+
+body.setup-open .setup-toggle .chevron {
+  transform: rotate(180deg);
+}
+
+.transport {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.global-resets,
+.strip-end {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.strip-end {
+  margin-left: auto;
+  gap: 12px;
+}
+
+#setupDrawer {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  padding: 10px 16px 12px;
+  background-color: var(--bg-topbar);
+  border-bottom: 1px solid var(--border-topbar);
+  box-shadow: 0 6px 10px var(--shadow-topbar);
+}
+
+body.setup-open #setupDrawer {
+  display: flex;
+}
+
+.drawer-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* The rule under the label spans the whole group, tying it to its controls. */
+.drawer-group .group-label {
+  font-size: var(--fs-sm);
+  color: var(--brighter-2);
+  padding-bottom: 3px;
+  border-bottom: 1px solid var(--brighter-0);
+}
+
+.drawer-group .group-body {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+}
+
+.drawer-group .group-body .tb-label {
+  margin-left: 0;
+}
+
+#setupDrawer .arr-quant {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-md);
+}
+
+/* The arrangement buttons now live directly in the strip. */
+
+#setupDrawer .tb-label {
+  display: flex;
+  min-width: 0;
+}
+
+#setupDrawer #midiInputSelector {
+  width: 180px;
+}
+
+#setupDrawer #midiClockInDeviceId {
+  width: 130px;
+}
+
+#setupDrawer .arr-quant select {
+  width: 64px;
+}
+
+/* Controls start exactly under their group label; the gap handles spacing. */
+#setupDrawer .group-body > * {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* Collapsed strip: each group of related controls gets a thin outline. */
+#midisettings > :is(.global-resets, #arrangementSelector, .transport) {
+  box-sizing: border-box;
+  height: 32px;
+  padding: 0 6px;
+  align-items: center;
+  border: 1px solid var(--brighter-0);
+  border-radius: var(--radius);
+}
+
+body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transport) {
+  height: auto;
+  padding: 0;
+  border: none;
+}
+
+/* Start / Stop: a real button with a play or stop icon; green tint while the clock runs. */
+#midisettings #startClockButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 12px 0 6px;
+  margin: 0;
+  border-radius: var(--radius);
+  background-color: var(--bg-topbar-button);
+  background-image: none;
+  color: var(--fg-topbar-button);
+  box-shadow: 0 0 2px var(--shadow-topbar-button);
+  cursor: pointer;
+  user-select: none;
+}
+
+#midisettings #startClockButton:hover {
+  background-color: var(--brighter-1);
+}
+
+#startClockButton::before {
+  content: 'play_arrow';
+  font-family: 'Material Icons';
+  font-size: var(--icon-md);
+  font-feature-settings: 'liga';
+  line-height: 1;
+}
+
+#startClockButton::after {
+  content: 'Start';
+}
+
+#midisettings #startClockButton.selected {
+  background-color: color-mix(in srgb, var(--live) 30%, var(--bg-topbar-button));
+  color: var(--brighter-4);
+}
+
+#startClockButton.selected::before {
+  content: 'stop';
+}
+
+#startClockButton.selected::after {
+  content: 'Stop';
+}
+
+/* =============================================================
+   EXTERNAL CLOCK: the clock port name replaces the Start button
+   ============================================================= */
+
+.transport .ext-badge {
+  display: none;
+  line-height: 24px;
+  max-width: 160px;
+  color: var(--brighter-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  user-select: none;
+}
+
+.transport .ext-badge:hover {
+  color: var(--brighter-4);
+}
+
+#midisettings .isExternal #startClockButton {
+  display: none;
+}
+
+#midisettings .isExternal .ext-badge {
+  display: inline-block;
+}
+
+/* =============================================================
    ZONE LAYOUT & STATES
    ============================================================= */
 
@@ -979,6 +1241,33 @@ option {
 }
 
 /* =============================================================
+   ZONE HEADER GROUPS
+   [On][Solo] route the zone, [Seq][Arp] switch a generator on and
+   show its panel, [CC] only shows a panel. A divider separates the
+   groups; all chips share the same on/off styling.
+   ============================================================= */
+
+.channels .ch {
+  position: relative;
+}
+
+.channels .ch.showseq,
+.channels .ch.showccs {
+  margin-left: 8px;
+}
+
+.channels .ch.showseq::before,
+.channels .ch.showccs::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 3px;
+  bottom: 3px;
+  width: 1px;
+  background: var(--brighter-1);
+}
+
+/* =============================================================
    REUSABLE COMPONENTS  (.action, .check, .flex-row, toggles…)
    ============================================================= */
 
@@ -1246,6 +1535,32 @@ input[type='range'] {
 
 .zone select {
   height: 20px;
+}
+
+/* =============================================================
+   SHARED BUTTON BEHAVIOUR
+   One shape and one keyboard-focus ring for every button species.
+   ============================================================= */
+
+:is(.lightButton, .tb-button, .ch, .rtool, .selectSeq, .ks-help-btn) {
+  border-radius: var(--radius);
+}
+
+:is(.lightButton, .tb-button, .ch, .rtool, .selectSeq, .ks-help-btn, .setup-toggle, select, summary, input:not([type='range'])):focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.zone input[type='range']:focus-visible::-webkit-slider-thumb {
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.4),
+    0 0 0 3px var(--focus-ring);
+}
+
+/* Panic is rarely used: neutral like the other buttons, red only on hover. */
+#midiPanic:hover {
+  background: var(--danger-soft);
+  color: var(--brighter-4);
 }
 
 /* =============================================================
@@ -2334,7 +2649,6 @@ body.running .seqprogress.drum .inner {
   height: 14px;
   background: none;
   border: 1px solid var(--brighter-1);
-  border-radius: 50%;
   color: var(--brighter-2);
   font-size: var(--fs-sm);
   font-weight: 600;
@@ -3200,293 +3514,6 @@ body.minimized .midi-led.on {
 }
 
 /* =============================================================
-   SHARED BUTTON BEHAVIOUR
-   One shape and one keyboard-focus ring for every button species.
-   ============================================================= */
-
-:is(.lightButton, .tb-button, .ch, .rtool, .selectSeq, .ks-help-btn) {
-  border-radius: var(--radius);
-}
-
-:is(.lightButton, .tb-button, .ch, .rtool, .selectSeq, .ks-help-btn, .setup-toggle, select, summary, input:not([type='range'])):focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 1px;
-}
-
-.zone input[type='range']:focus-visible::-webkit-slider-thumb {
-  box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.4),
-    0 0 0 3px var(--focus-ring);
-}
-
-/* Panic is rarely used: neutral like the other buttons, red only on hover. */
-#midiPanic:hover {
-  background: var(--danger-soft);
-  color: var(--brighter-4);
-}
-
-/* =============================================================
-   ARRANGEMENT SELECTOR (top bar)
-   Sits beside the big active-arrangement letter: four buttons,
-   with the quantize choice underneath.
-   ============================================================= */
-
-#arrangementSelector {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  gap: 4px;
-  margin: 0;
-  flex-shrink: 0;
-}
-
-#arrangementSelector .selectSeq {
-  width: 36px;
-  padding: 2px 0;
-}
-
-/* Destructive action: kept apart from "Add zone" and only red on hover. */
-#deleteallzones.tb-button {
-  margin-right: 8px;
-  color: var(--brighter-2);
-}
-#deleteallzones.tb-button:hover {
-  background-color: var(--danger-soft);
-  color: var(--brighter-4);
-}
-
-/* =============================================================
-   ZONE HEADER GROUPS
-   [On][Solo] route the zone, [Seq][Arp] switch a generator on and
-   show its panel, [CC] only shows a panel. A divider separates the
-   groups; all chips share the same on/off styling.
-   ============================================================= */
-
-.channels .ch {
-  position: relative;
-}
-
-.channels .ch.showseq,
-.channels .ch.showccs {
-  margin-left: 8px;
-}
-
-.channels .ch.showseq::before,
-.channels .ch.showccs::before {
-  content: '';
-  position: absolute;
-  left: -8px;
-  top: 3px;
-  bottom: 3px;
-  width: 1px;
-  background: var(--brighter-1);
-}
-
-/* =============================================================
-   TOP BAR: PERFORMANCE STRIP + SETUP DRAWER
-   The strip holds what you touch while playing. Everything you set
-   once (input, clock, files, view) lives in the drawer below it.
-   ============================================================= */
-
-#midisettings .lightButton {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  height: 24px;
-  min-width: 28px;
-  margin: 0;
-}
-
-.setup-toggle {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  max-width: 300px;
-  height: 28px;
-  padding: 0 8px;
-  border: none;
-  border-radius: var(--radius);
-  background: var(--bg-topbar-button);
-  color: var(--fg-topbar-button);
-  font: inherit;
-  cursor: pointer;
-}
-
-.setup-toggle:hover {
-  background: var(--brighter-1);
-}
-
-.setup-toggle #setupSummary {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.setup-toggle .chevron {
-  transition: transform 150ms ease;
-}
-
-body.setup-open .setup-toggle .chevron {
-  transform: rotate(180deg);
-}
-
-.transport {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.global-resets,
-.strip-end {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.strip-end {
-  margin-left: auto;
-  gap: 12px;
-}
-
-#setupDrawer {
-  display: none;
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  flex-wrap: wrap;
-  gap: 12px 20px;
-  padding: 10px 16px 12px;
-  background-color: var(--bg-topbar);
-  border-bottom: 1px solid var(--border-topbar);
-  box-shadow: 0 6px 10px var(--shadow-topbar);
-}
-
-body.setup-open #setupDrawer {
-  display: flex;
-}
-
-.drawer-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-/* The rule under the label spans the whole group, tying it to its controls. */
-.drawer-group .group-label {
-  font-size: var(--fs-sm);
-  color: var(--brighter-2);
-  padding-bottom: 3px;
-  border-bottom: 1px solid var(--brighter-0);
-}
-
-.drawer-group .group-body {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 24px;
-}
-
-.drawer-group .group-body .tb-label {
-  margin-left: 0;
-}
-
-#setupDrawer .arr-quant {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--fs-md);
-}
-
-/* The arrangement buttons now live directly in the strip. */
-
-#setupDrawer .tb-label {
-  display: flex;
-  min-width: 0;
-}
-
-#setupDrawer #midiInputSelector {
-  width: 180px;
-}
-
-#setupDrawer #midiClockInDeviceId {
-  width: 130px;
-}
-
-#setupDrawer .arr-quant select {
-  width: 64px;
-}
-
-/* Controls start exactly under their group label; the gap handles spacing. */
-#setupDrawer .group-body > * {
-  margin-left: 0;
-  margin-right: 0;
-}
-
-/* Collapsed strip: each group of related controls gets a thin outline. */
-#midisettings > :is(.global-resets, #arrangementSelector, .transport) {
-  box-sizing: border-box;
-  height: 32px;
-  padding: 0 6px;
-  align-items: center;
-  border: 1px solid var(--brighter-0);
-  border-radius: var(--radius);
-}
-
-body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transport) {
-  height: auto;
-  padding: 0;
-  border: none;
-}
-
-/* Start / Stop: a real button with a play or stop icon; green tint while the clock runs. */
-#midisettings #startClockButton {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  height: 24px;
-  padding: 0 12px 0 6px;
-  margin: 0;
-  border-radius: var(--radius);
-  background-color: var(--bg-topbar-button);
-  background-image: none;
-  color: var(--fg-topbar-button);
-  box-shadow: 0 0 2px var(--shadow-topbar-button);
-  cursor: pointer;
-  user-select: none;
-}
-
-#midisettings #startClockButton:hover {
-  background-color: var(--brighter-1);
-}
-
-#startClockButton::before {
-  content: 'play_arrow';
-  font-family: 'Material Icons';
-  font-size: var(--icon-md);
-  font-feature-settings: 'liga';
-  line-height: 1;
-}
-
-#startClockButton::after {
-  content: 'Start';
-}
-
-#midisettings #startClockButton.selected {
-  background-color: color-mix(in srgb, var(--live) 30%, var(--bg-topbar-button));
-  color: var(--brighter-4);
-}
-
-#startClockButton.selected::before {
-  content: 'stop';
-}
-
-#startClockButton.selected::after {
-  content: 'Stop';
-}
-
-/* =============================================================
    CONTRAST: "ON" CHIPS
    An "on" chip is a light fill, so it carries a dark glyph; "off"
    chips keep a dark fill with light glyphs. Holds on every zone color.
@@ -3565,32 +3592,4 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
   body:not(.minimized) #midisettings .transport {
     order: 3;
   }
-}
-
-/* =============================================================
-   EXTERNAL CLOCK: the clock port name replaces the Start button
-   ============================================================= */
-
-.transport .ext-badge {
-  display: none;
-  line-height: 24px;
-  max-width: 160px;
-  color: var(--brighter-3);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  cursor: pointer;
-  user-select: none;
-}
-
-.transport .ext-badge:hover {
-  color: var(--brighter-4);
-}
-
-#midisettings .isExternal #startClockButton {
-  display: none;
-}
-
-#midisettings .isExternal .ext-badge {
-  display: inline-block;
 }
