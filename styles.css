@@ -2263,6 +2263,12 @@ input[type='range'] {
   border: 1px solid transparent;
 }
 
+/* enabled zone, sequencer off: muted strip, steps and cursor stay readable */
+.zone:not(.disabled):not(.show-seq) .seqprogress {
+  background-color: var(--darker-1);
+  border-color: transparent;
+}
+
 .zone.disabled.show-seq .seqprogress {
   background-color: var(--darker-0);
   border: 1px solid transparent;
