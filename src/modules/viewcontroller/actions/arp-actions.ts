@@ -46,7 +46,8 @@ export function createArpActions(
     },
     zone_arp_euclid: () => {
       const len = clampedValue('.euclen', 2, 32, zone.euclid_length);
-      const hits = clampedValue('.euchits', 1, len, zone.euclid_hits);
+      // hits are not clamped to len: typing a two-digit length passes through one digit
+      const hits = clampedValue('.euchits', 1, 32, zone.euclid_hits);
       zone.createEuclidianPattern(len, hits);
     },
     zone_arp_pattern_shift: () => {
