@@ -25,8 +25,6 @@ export { createArpActions } from './arp-actions';
 export { createCCActions } from './cc-actions';
 export {
   createSeqActions,
-  ratchetResToLabel,
-  ratchetIndexToTicks,
   ticksToRatchetIndex,
   velocityDeltaToPercent
 } from './seq-actions';

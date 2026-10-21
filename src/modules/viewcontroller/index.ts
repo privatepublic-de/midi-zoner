@@ -6,14 +6,13 @@ import * as zoneTemplate from '../zone-template';
 import { Zone } from '../zone/zone-class';
 import { Sequence } from '../zone/sequence';
 import { Note } from '../zone/note';
+import { SeqStep } from '../zone/seq-step';
 
 import { initToast, toast } from './toast';
 import { NumberInputController } from './number-input-controller';
 import { UndoHistory } from '../undo-history';
 import {
   createActionHandlers,
-  ratchetResToLabel,
-  ratchetIndexToTicks,
   ticksToRatchetIndex,
   velocityDeltaToPercent
 } from './actions';
@@ -879,6 +878,59 @@ function syncRangeFills(root: ParentNode): void {
   root.querySelectorAll<HTMLInputElement>('input[type="range"]').forEach(syncRangeFill);
 }
 
+/**
+ * Puts a step's properties on its grid cell for the CSS to draw: fill height is
+ * velocity (`--velo`), hatching is chance < 100% (`data-chance`), a corner dot is
+ * a play condition (`data-cond`), bottom ticks are the ratchet count (`--rc`).
+ */
+function showStepProperties(el: HTMLElement, step: SeqStep | null): void {
+  const notes = step?.notesArray ?? [];
+  if (!step || notes.length === 0) {
+    el.style.removeProperty('--velo');
+    el.style.removeProperty('--rc');
+    delete el.dataset.chance;
+    delete el.dataset.cond;
+    delete el.dataset.rc;
+    el.removeAttribute('title');
+    return;
+  }
+  const velo = notes.reduce((sum, n) => sum + n.velo, 0) / notes.length;
+  el.style.setProperty('--velo', (velo / 127).toFixed(3));
+  const rc = step.ratchetCount ?? 1;
+  if (rc > 1) {
+    el.dataset.rc = String(rc);
+    el.style.setProperty('--rc', String(rc));
+  } else {
+    delete el.dataset.rc;
+    el.style.removeProperty('--rc');
+  }
+  if (step.probability < 1) el.dataset.chance = '';
+  else delete el.dataset.chance;
+  if (step.condition > 0) el.dataset.cond = '';
+  else delete el.dataset.cond;
+  const info = [
+    notes.map((n) => Note.display(n.number)).join(' '),
+    `velocity ${Math.round(velo)}`
+  ];
+  if (step.probability < 1) info.push(`chance ${Math.round(step.probability * 100)}%`);
+  if (step.condition > 0) info.push('has a play condition');
+  if (rc > 1) info.push(`ratchet ×${rc}`);
+  if (step.length > 1) info.push(`length ${step.length}`);
+  el.title = info.join(', ');
+}
+
+/** Steps covered by the tail of a longer step (length > 1), wrapping at the end. */
+function tiedStepIndexes(sequence: SequenceType): Set<number> {
+  const tied = new Set<number>();
+  sequence.steps.forEach((step, i) => {
+    if (!step || step.notesArray.length === 0 || i >= sequence.length) return;
+    for (let k = 1; k < Math.min(step.length, sequence.length); k++) {
+      tied.add((i + k) % sequence.length);
+    }
+  });
+  return tied;
+}
+
 function updateValuesForZone(index: number): void {
   const zone: ZoneType = zones.list[index];
   const sequence = zone.sequence;
@@ -977,20 +1029,10 @@ function updateValuesForZone(index: number): void {
               const step = lane.steps[stepIndex];
               if (step != null) {
                 DOM.addClass(stepElement, 'active');
-                (stepElement as HTMLElement).style.setProperty(
-                  '--velo',
-                  String((step.notesArray[0]?.velo ?? 96) / 127)
-                );
-                const rc = step.ratchetCount ?? 1;
-                if (rc > 1) {
-                  (stepElement as HTMLElement).dataset.rc = String(rc);
-                } else {
-                  delete (stepElement as HTMLElement).dataset.rc;
-                }
+                showStepProperties(stepElement as HTMLElement, step);
               } else {
                 DOM.removeClass(stepElement, 'active');
-                (stepElement as HTMLElement).style.removeProperty('--velo');
-                delete (stepElement as HTMLElement).dataset.rc;
+                showStepProperties(stepElement as HTMLElement, null);
               }
               if (
                 sequence.selectedStepNumbers.has(
@@ -1012,7 +1054,9 @@ function updateValuesForZone(index: number): void {
           'selected-step',
           'activelength'
         );
+        const tiedSteps = tiedStepIndexes(sequence);
         zone.elements.sequencerGridStepElements!.forEach((stepElement, i) => {
+          DOM.switchClass(stepElement, tiedSteps.has(i), 'tied');
           if (i < sequence.length) {
             DOM.removeClass(stepElement, 'unused');
             if (sequence.selectedStepNumbers.has(i)) {
@@ -1026,15 +1070,10 @@ function updateValuesForZone(index: number): void {
               sequence.liveTargetStepNumber == i
             ) {
               DOM.addClass(stepElement, 'active');
-              const rc = stepData?.ratchetCount ?? 1;
-              if (rc > 1) {
-                (stepElement as HTMLElement).dataset.rc = String(rc);
-              } else {
-                delete (stepElement as HTMLElement).dataset.rc;
-              }
+              showStepProperties(stepElement as HTMLElement, stepData ?? null);
             } else {
               DOM.removeClass(stepElement, 'active');
-              delete (stepElement as HTMLElement).dataset.rc;
+              showStepProperties(stepElement as HTMLElement, null);
             }
           } else {
             DOM.addClass(stepElement, 'unused');
@@ -1100,15 +1139,9 @@ function updateValuesForZone(index: number): void {
           }
           const ratchetResEl = zone._$(
             '.seq_step_ratchet_res'
-          ) as HTMLInputElement | null;
+          ) as HTMLSelectElement | null;
           if (ratchetResEl) {
-            const resVal = step.ratchetResolution ?? 6;
-            const resIdx = ticksToRatchetIndex(resVal);
-            ratchetResEl.value = String(resIdx);
-            const resOut = ratchetResEl.parentElement?.querySelector(
-              `output[for="${ratchetResEl.id}"]`
-            ) as HTMLOutputElement | null;
-            if (resOut) resOut.value = ratchetResToLabel(ratchetIndexToTicks(resIdx));
+            ratchetResEl.value = String(ticksToRatchetIndex(step.ratchetResolution ?? 6));
           }
         } else {
           if (sequence.selectedStepNumbers.size == 1) {

@@ -352,7 +352,7 @@
         </div>
       </div>
       <div class="step-controls">
-        <div class="label">Note Repeat</div>
+        <div class="label">Ratchet</div>
         <select
           class="seq_step_ratchet_count"
           data-change="${index}:seq_step_ratchet_count"
@@ -369,19 +369,22 @@
           <option value="8">×8</option>
         </select>
         <div class="label ratchet-param">Rate</div>
-        <div class="percent-holder ratchet-param">
-          <input
-            class="percent seq_step_ratchet_res"
-            type="range"
-            min="0"
-            max="7"
-            value="4"
+        <div class="drop-down ratchet-param">
+          <select
+            class="seq_step_ratchet_res"
             data-change="${index}:seq_step_ratchet_res"
-            id="seq_step_ratchet_res${index}"
-            title="Ratchet rate (subdivision between repeats)"
+            title="Time between repeats"
             tabindex="-1"
-          />
-          <output for="seq_step_ratchet_res${index}">1/16</output>
+          >
+            <option value="7">1/8</option>
+            <option value="6">1/16.</option>
+            <option value="5">1/8T</option>
+            <option value="4">1/16</option>
+            <option value="3">1/16T</option>
+            <option value="2">1/32</option>
+            <option value="1">1/32T</option>
+            <option value="0">1 tick</option>
+          </select>
         </div>
         <div class="label ratchet-param">Δ Vel</div>
         <div class="percent-holder ratchet-param">
@@ -423,12 +426,12 @@
         </div>
         <div style="flex-grow: 1"></div>
         <div
-          class="check"
-          title="Apply step properties to all active steps in sequence"
+          class="action apply-all"
+          title="Copy a property of this step to all active steps"
           data-contextclick
           data-contextmenu="label:Apply to all steps:,-,${index}:step_copy_length,${index}:step_copy_gate,${index}:step_copy_condition,${index}:step_copy_chance"
         >
-          Apply to all…
+          Apply to all<i class="material-icons">expand_more</i>
         </div>
         <div
           class="check seq-step-add-notes hide-for-drumsequence"
@@ -467,9 +470,11 @@
           <option>Strum ↕</option>
         </select>
       </div>
+      <div class="label">Rate</div>
       <div class="drop-down">
         <select
           class="arp_division"
+          title="Arp step length"
           data-change="${index}:zone_arp_division"
           tabindex="-1"
         >
@@ -489,7 +494,11 @@
           <option>4</option>
         </select>
       </div>
-      <div class="check arp_repeat" data-action="${index}:zone_arp_repeat">
+      <div
+        class="check arp_repeat"
+        data-action="${index}:zone_arp_repeat"
+        title="Play every arp note twice"
+      >
         ${checkboxIcons}Repeat
       </div>
       <div
@@ -508,7 +517,7 @@
       </div>
     </div>
     <div class="arp-settings">
-      <div class="label">Len</div>
+      <div class="label">Gate</div>
       <div class="percent-holder">
         <input
           type="range"

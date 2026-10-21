@@ -11,18 +11,9 @@ function clampedInput(element: HTMLElement, min: number, max: number, current: n
   return isNaN(v) ? current : Math.max(min, Math.min(max, v));
 }
 
-const RATCHET_RES_LABELS: Record<number, string> = {
-  12: '1/8', 9: '1/16.', 8: '1/8T', 6: '1/16',
-  4: '1/16T', 3: '1/32', 2: '1/32T', 1: '1tk'
-};
-
 // Ascending ticks (24ppq), fastest first. Rates slower than 1/8 are omitted:
 // they rarely fit inside a step's gate window as an audible ratchet.
 export const RATCHET_RES_STEPS = [1, 2, 3, 4, 6, 8, 9, 12];
-
-export function ratchetResToLabel(ticks: number): string {
-  return RATCHET_RES_LABELS[ticks] ?? `${ticks}tk`;
-}
 
 export function ratchetIndexToTicks(index: number): number {
   const i = Math.max(0, Math.min(RATCHET_RES_STEPS.length - 1, index));
@@ -575,12 +566,7 @@ export function createSeqActions(
       updateValuesForZone(zoneindex);
     },
     seq_step_ratchet_res: () => {
-      const idx = parseInt((element as HTMLInputElement).value);
-      const ticks = ratchetIndexToTicks(idx);
-      const out = (element as HTMLInputElement).parentElement?.querySelector(
-        `output[for="${(element as HTMLInputElement).id}"]`
-      ) as HTMLOutputElement | null;
-      if (out) out.value = ratchetResToLabel(ticks);
+      const ticks = ratchetIndexToTicks(parseInt((element as HTMLSelectElement).value));
       sequence.selectedSteps.forEach((step) => {
         if (step) step.ratchetResolution = ticks;
       });

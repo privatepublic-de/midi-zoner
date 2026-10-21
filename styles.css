@@ -1412,24 +1412,22 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
 }
 
 .zone input.percent {
-  width: 80px;
+  width: 64px;
   background: var(--darker-2);
 }
 
+/* the value sits next to its slider, so a setting reads without hovering */
 .percent-holder {
   position: relative;
-}
-.percent-holder:hover output {
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
 }
 .percent-holder output {
-  display: none;
-  position: absolute;
-  width: 100%;
-  left: 0;
-  top: -6px;
+  min-width: 4ch;
   font-size: var(--fs-sm);
-  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: var(--brighter-3);
   pointer-events: none;
 }
 
@@ -2091,18 +2089,23 @@ input[type='range'] {
 }
 
 .zone.disabled .seq .grid .step.active {
-  background-color: var(--zone-color);
+  background: var(--zone-color);
 }
 
-/* The playhead must win over every step state (active, selected, ratchet, drum,
-   bar start, disabled), hence !important on these two. */
+.zone.disabled .seq .grid .step::before,
+.zone.disabled .seq .grid .step::after {
+  display: none;
+}
+
+/* The playhead is a bar on top of the column; the step keeps showing its own state. */
 .seq .grid .step.playhead {
-  background-color: var(--brighter-0) !important;
+  box-shadow: inset 0 3px 0 var(--live);
 }
 
-.seq .grid .step.playhead.active,
-.disabled .seq .grid .step.playhead.active {
-  background-color: var(--brighter-3) !important;
+/* muted zone: no "sounding" green, the steps are too flat for a bar */
+.zone.disabled .seq .grid .step.playhead {
+  box-shadow: none;
+  background: var(--brighter-2);
 }
 
 .seq .grid .step.unused,
@@ -2110,14 +2113,69 @@ input[type='range'] {
   display: none;
 }
 
+/* Step properties at a glance (set by showStepProperties): fill height is
+   velocity, hatching is chance < 100%, a corner dot is a play condition, bottom
+   ticks are the ratchet count, a bar through the following cells is length. */
 .seq .grid .step.active {
-  background-color: var(--brighter-2);
+  --step-fill: linear-gradient(
+    to top,
+    var(--brighter-3) calc(var(--velo, 0.78) * 100%),
+    var(--brighter-1) 0
+  );
+  background-image: var(--step-fill);
   color: var(--ink);
 }
 
+.seq .grid .step.active[data-chance] {
+  background-image:
+    repeating-linear-gradient(
+      135deg,
+      var(--darker-3) 0 1.5px,
+      transparent 1.5px 4px
+    ),
+    var(--step-fill);
+}
+
+.seq .grid .step.active[data-cond]::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--ink);
+}
+
+.seq .grid .step.active[data-rc]::before {
+  --rc-pitch: min(3px, calc(15px / var(--rc)));
+  content: '';
+  position: absolute;
+  left: 2px;
+  bottom: 2px;
+  width: calc(var(--rc) * var(--rc-pitch));
+  height: 3px;
+  background: repeating-linear-gradient(
+    to right,
+    var(--ink) 0 calc(var(--rc-pitch) - 1px),
+    transparent 0 var(--rc-pitch)
+  );
+}
+
+.seq .grid .step.tied:not(.active)::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  right: 2px;
+  top: calc(50% - 2px);
+  height: 4px;
+  background: var(--brighter-2);
+}
+
 .seq .grid .step.selected {
-  box-shadow: 0 0 8px var(--brighter-4);
-  outline: 4px solid var(--multiselect-highlight);
+  outline: 2px solid var(--multiselect-highlight);
+  outline-offset: 1px;
+  z-index: 1;
 }
 
 .seq .grid .step {
@@ -2133,6 +2191,7 @@ input[type='range'] {
 
 .seq .grid .step.activelength {
   background-color: var(--multiselect-highlight);
+  background-image: none;
 }
 
 .liveRecording .seq_record_live {
@@ -2151,6 +2210,10 @@ input[type='range'] {
   100% {
     outline-color: var(--record-highlight);
   }
+}
+
+.seq .grid .step:not(.active) {
+  color: var(--brighter-2);
 }
 
 .seq .grid .step-container .step:nth-child(4n + 1) {
@@ -2213,7 +2276,7 @@ input[type='range'] {
   margin-bottom: 4px;
   padding-bottom: 4px;
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
   justify-content: start;
 }
@@ -3134,25 +3197,6 @@ body.running .seqprogress.drum .inner {
   display: none;
 }
 
-.drumSequencer .seq .grid .step.active {
-  position: relative;
-  overflow: hidden;
-}
-.drumSequencer .seq .grid .step.active::before {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: calc(var(--velo, 0.75) * 100%);
-  background: rgba(255, 255, 255, 0.22);
-  pointer-events: none;
-}
-
-.seq .grid .step.active[data-rc] {
-  outline: 1.5px dashed var(--brighter-3);
-  outline-offset: -1.5px;
-}
 
 .step-controls.ratchet-off .ratchet-param {
   opacity: 0.3;
@@ -3614,4 +3658,14 @@ body.minimized .midi-led.on {
   body:not(.minimized) #midisettings .transport {
     order: 3;
   }
+}
+
+.step-info .apply-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 2px 0 6px;
+}
+.step-info .apply-all .material-icons {
+  font-size: var(--icon-md);
 }
