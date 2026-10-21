@@ -41,6 +41,7 @@ export function createArpActions(
       if (cell) {
         const index = Array.prototype.indexOf.call(element.children, cell);
         zone.arp_pattern[index] = !zone.arp_pattern[index];
+        zone.syncEuclidToPattern();
         zone.renderPattern();
       }
     },

@@ -324,6 +324,12 @@ export class Zone {
     this.arp_ratchet_count = data.arp_ratchet_count ?? 0;
     this.euclid_hits = data.euclid_hits ?? 5;
     this.euclid_length = data.euclid_length ?? 8;
+    const euclid = Zone.euclidianPattern(this.euclid_length, this.euclid_hits);
+    if (euclid.some((hit, i) => hit !== !!this.arp_pattern[i]) || euclid.length !== this.arp_pattern.length) {
+      // pattern was edited by hand: show its real hits/length, not the last euclid values
+      this.euclid_hits = this.arp_pattern.filter(Boolean).length;
+      this.euclid_length = this.arp_pattern.length;
+    }
     this.swingAmount = data.swingAmount ?? 0;
 
     const seq = new Sequence(this);
@@ -1568,9 +1574,7 @@ export class Zone {
     this.notesChanged();
   }
 
-  createEuclidianPattern(length: number, hits: number): void {
-    this.euclid_length = length;
-    this.euclid_hits = hits;
+  static euclidianPattern(length: number, hits: number): boolean[] {
     const s = hits / length;
     const result: boolean[] = [];
     let previous = -1;
@@ -1579,8 +1583,24 @@ export class Zone {
       result.push(current != previous);
       previous = current;
     }
-    this.arp_pattern = result;
+    return result;
+  }
+
+  createEuclidianPattern(length: number, hits: number): void {
+    this.euclid_length = length;
+    this.euclid_hits = hits;
+    this.arp_pattern = Zone.euclidianPattern(length, hits);
     this.renderPattern();
+  }
+
+  /** After a hand edit the euclid fields show the pattern's actual hits and length. */
+  syncEuclidToPattern(): void {
+    this.euclid_hits = this.arp_pattern.filter(Boolean).length;
+    this.euclid_length = this.arp_pattern.length;
+    const hitsEl = this._$('.euchits') as HTMLInputElement | null;
+    const lenEl = this._$('.euclen') as HTMLInputElement | null;
+    if (hitsEl) hitsEl.value = String(this.euclid_hits);
+    if (lenEl) lenEl.value = String(this.euclid_length);
   }
 
   sendCC(index: number): void {

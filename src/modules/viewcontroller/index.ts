@@ -467,6 +467,7 @@ function dblClickHandler(ev: MouseEvent): void {
       for (let i = 0; i < zone.arp_pattern.length; i++) {
         zone.arp_pattern[i] = true;
       }
+      zone.syncEuclidToPattern();
       zone.renderPattern();
       break;
     case 'zone_solo':
@@ -910,7 +911,7 @@ function showStepProperties(el: HTMLElement, step: SeqStep | null): void {
   else delete el.dataset.cond;
   const info = [
     notes.map((n) => Note.display(n.number)).join(' '),
-    `velocity ${Math.round(velo)}`
+    `velocity ${Math.trunc((velo / 127) * 100)}%`
   ];
   if (step.probability < 1) info.push(`chance ${Math.round(step.probability * 100)}%`);
   if (step.condition > 0) info.push('has a play condition');
