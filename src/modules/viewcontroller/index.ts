@@ -547,6 +547,8 @@ function appendZone(zone: ZoneType, index: number): void {
   initInputPortsForZoneInternal(zones, index);
   updateValuesForZone(index);
   zone.renderPattern();
+  // the range strip's keys are drawn by renderNotes; next frame, once the canvas has its size
+  requestAnimationFrame(zone._renderNotesBound);
   const dragHandler = zone._$('.dragzone') as HTMLElement;
   dragHandler.addEventListener('mousedown', (ev) => {
     if (zones.list.length > 1) {
