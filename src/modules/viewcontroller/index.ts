@@ -428,13 +428,23 @@ function contextHandler(ev: MouseEvent): void {
 
   let top = ev.clientY;
   let left = ev.clientX;
-  if (left + menuRect.width > window.innerWidth) {
-    left = window.innerWidth - menuRect.width;
-  }
-  if (top + menuRect.height > window.innerHeight) {
-    top = window.innerHeight - menuRect.height;
-    if (top < srcRect.top && srcRect.width < menuRect.width) {
-      left += srcRect.width;
+  if (element.hasAttribute('data-contextclick')) {
+    // menu button: drop down from the button, pushed up only as far as needed
+    left = srcRect.left;
+    top = srcRect.bottom;
+    if (top + menuRect.height > window.innerHeight) {
+      top = Math.max(0, window.innerHeight - menuRect.height);
+    }
+    left = Math.min(left, window.innerWidth - menuRect.width);
+  } else {
+    if (left + menuRect.width > window.innerWidth) {
+      left = window.innerWidth - menuRect.width;
+    }
+    if (top + menuRect.height > window.innerHeight) {
+      top = window.innerHeight - menuRect.height;
+      if (top < srcRect.top && srcRect.width < menuRect.width) {
+        left += srcRect.width;
+      }
     }
   }
   contextMenuElement.style.top = top + 'px';
