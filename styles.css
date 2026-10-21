@@ -2269,14 +2269,18 @@ input[type='range'] {
   height: var(--step-size-disabled);
 }
 
-/* The step editor opens below the grid inside the panel (pushing the arp down)
-   instead of covering it. .seq is column-reverse, so order -1 puts it last. */
+/* The step editor floats below the grid over the panels beneath it, so
+   selecting a step never moves the layout. */
 .seq .step-info {
-  order: -1;
-  align-self: stretch;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  z-index: 1;
   padding: 6px 8px 4px;
-  box-shadow: none;
   border-top: 1px solid var(--brighter-1);
+  border-radius: 0 0 var(--radius) var(--radius);
+  box-shadow: 0 6px 16px var(--shadow-overlay);
   display: none;
 }
 
