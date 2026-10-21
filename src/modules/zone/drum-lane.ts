@@ -14,6 +14,7 @@ export class DrumLane {
   cycleCount = -1;
   isFirstCycle = true;
   previousStepPlayed = false;
+  conditionResults: [number, boolean][] = [];
 
   toJSON(): DrumLaneJSON {
     return {

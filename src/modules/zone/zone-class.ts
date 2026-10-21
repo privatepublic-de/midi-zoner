@@ -1028,6 +1028,28 @@ export class Zone {
           ? `${(pos / this.sequence.length) * 100}%`
           : '-100%';
     }
+    this.renderConditionOutcomes();
+  }
+
+  /** Marks conditional steps that play (`cond-plays`) or skip (`cond-skips`) this cycle. */
+  private renderConditionOutcomes(): void {
+    if (!this.elements.isReady || !this.sequence.active) return;
+    const mark = (el: Element | undefined, outcome: boolean | null): void => {
+      el?.classList.toggle('cond-plays', outcome === true);
+      el?.classList.toggle('cond-skips', outcome === false);
+    };
+    if (this.sequence.isDrumSequence) {
+      this.elements.sequencerDrumLanes?.forEach((cells, ln) => {
+        const lane = this.sequence.drum_lanes[ln];
+        for (let i = 0; i < cells.length; i++) {
+          mark(cells[i], lane && i < lane.length ? this.sequence.conditionOutcome(i, lane) : null);
+        }
+      });
+    } else {
+      this.elements.sequencerGridStepElements?.forEach((el, i) => {
+        mark(el, i < this.sequence.length ? this.sequence.conditionOutcome(i) : null);
+      });
+    }
   }
 
   clock(pos: number, tickIntervalMs: number): void {

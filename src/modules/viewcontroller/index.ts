@@ -889,6 +889,7 @@ function showStepProperties(el: HTMLElement, step: SeqStep | null): void {
   if (!step || notes.length === 0) {
     el.style.removeProperty('--velo');
     el.style.removeProperty('--rc');
+    el.style.removeProperty('--rc-pitch');
     delete el.dataset.chance;
     delete el.dataset.cond;
     delete el.dataset.rc;
@@ -901,9 +902,12 @@ function showStepProperties(el: HTMLElement, step: SeqStep | null): void {
   if (rc > 1) {
     el.dataset.rc = String(rc);
     el.style.setProperty('--rc', String(rc));
+    // whole-pixel tick pitch keeps ticks crisp: 2px tick + gap up to 5, 1px + gap above
+    el.style.setProperty('--rc-pitch', rc <= 5 ? '3px' : '2px');
   } else {
     delete el.dataset.rc;
     el.style.removeProperty('--rc');
+    el.style.removeProperty('--rc-pitch');
   }
   if (step.probability < 1) el.dataset.chance = '';
   else delete el.dataset.chance;

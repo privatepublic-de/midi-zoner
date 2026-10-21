@@ -263,6 +263,7 @@ When enabled (toggle in toolbar), MIDI notes 0–19 from any input are intercept
 - Melodic mode: Up to 256 steps (`Sequence.MAX_STEPS`), multi-note polyphonic, with velocity, gate, length, chance, and conditions
 - Drum mode: Up to 64 steps (`Sequence.MAX_STEPS_DRUMS`), up to 12 lanes of monophonic triggers; per-lane enable, solo, note, euclidean fill
 - Step conditions: Always, Previous, Not Previous, 1st cycle, Not 1st cycle, Every N cycles
+- While running, conditional steps show whether their condition is met this cycle (`Sequence.conditionOutcome()`, results recorded per cycle in `conditionResults` on the sequence / drum lane): dimmed = skips, green corner mark = plays. Passed steps show the actual result; later ones only a certain prediction
 - Per-step ratchet: count (1–8), rate (subdivision), velocity delta per repeat
 - Copy/paste steps and entire sequences
 - Transpose, double, half-time, velocity scaling operations

@@ -66,6 +66,8 @@ export class Sequence {
   cycleCount = -1;
   previousStepPlayed = false;
   isFirstCycle = true;
+  // Condition result per step as [cycleCount, met], for the live display; not saved
+  conditionResults: [number, boolean][] = [];
   stepAdvance = false;
   stepAddNotes = false;
   liveTargetStep: SeqStep | null = null;
@@ -467,9 +469,9 @@ export class Sequence {
       }
 
       // Evaluate condition and probability exactly once at step boundary
-      const shouldPlay =
-        this.checkCondition(step, lane.cycleCount, lane.isFirstCycle, lane.previousStepPlayed) &&
-        this.rngProb() < step.probability;
+      const conditionMet = this.checkCondition(step, lane.cycleCount, lane.isFirstCycle, lane.previousStepPlayed);
+      lane.conditionResults[lane.currentStep] = [lane.cycleCount, conditionMet];
+      const shouldPlay = conditionMet && this.rngProb() < step.probability;
       lane.previousStepPlayed = shouldPlay;
 
       if (!shouldPlay) continue;
@@ -502,7 +504,9 @@ export class Sequence {
     if (!currentStep) return;
 
     // Evaluate condition and probability exactly once at step boundary
-    const shouldPlay = this.checkCondition(currentStep) && this.rngProb() < currentStep.probability;
+    const conditionMet = this.checkCondition(currentStep);
+    this.conditionResults[this.currentStepNumber] = [this.cycleCount, conditionMet];
+    const shouldPlay = conditionMet && this.rngProb() < currentStep.probability;
     this.previousStepPlayed = shouldPlay;
 
     if (!shouldPlay) return;
@@ -600,6 +604,36 @@ export class Sequence {
     }
     const condition = Sequence.CYCLE_CONDITIONS[step.condition - StepCondition.CYCLES];
     return cycleCnt % condition[0] === condition[1] - 1;
+  }
+
+  /**
+   * Whether a step's play condition is met in the current cycle (chance aside), for
+   * the live display: the evaluated result for steps the playhead has passed, a
+   * prediction for later ones when it is certain (cycle conditions always, "previous"
+   * ones only with no step in between), otherwise null. Null while stopped and for
+   * steps without a condition. Pass `lane` for a drum lane.
+   */
+  conditionOutcome(stepIndex: number, lane?: DrumLane): boolean | null {
+    const steps = lane ? lane.steps : this.steps;
+    const step = steps[stepIndex];
+    if (!step || step.notesArray.length === 0 || step.condition === StepCondition.ALWAYS) return null;
+    const current = lane ? lane.currentStep : this.currentStepNumber;
+    const cycle = lane ? lane.cycleCount : this.cycleCount;
+    if (current < 0 || cycle < 0) return null;
+    if (stepIndex <= current) {
+      const result = (lane ? lane.conditionResults : this.conditionResults)[stepIndex];
+      return result && result[0] === cycle ? result[1] : null;
+    }
+    if (step.condition === StepCondition.PREVIOUS || step.condition === StepCondition.NOT_PREVIOUS) {
+      // empty drum steps leave "previous" alone, melodic ones only when absent
+      const counts = (st: SeqStep | null): boolean => (lane ? !!st && st.notesArray.length > 0 : !!st);
+      for (let k = current + 1; k < stepIndex; k++) {
+        if (counts(steps[k])) return null;
+      }
+    }
+    return lane
+      ? this.checkCondition(step, cycle, lane.isFirstCycle, lane.previousStepPlayed)
+      : this.checkCondition(step);
   }
 
   velocityMediumSelectedStep(): number {

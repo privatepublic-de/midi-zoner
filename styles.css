@@ -2117,8 +2117,15 @@ input[type='range'] {
 }
 
 /* Step properties at a glance (set by showStepProperties): fill height is
-   velocity, hatching is chance < 100%, a corner dot is a play condition, bottom
-   ticks are the ratchet count, a bar through the following cells is length. */
+   velocity, hatching is chance < 100%, a corner triangle is a play condition,
+   bottom ticks are the ratchet count, a bar through the following cells is
+   length. Each mark owns an edge; the beat number sits small at the left. */
+.seq .grid .step {
+  justify-content: flex-start;
+  padding-left: 2px;
+  font-size: 9px;
+  line-height: 1;
+}
 .seq .grid .step.active {
   --step-fill: linear-gradient(
     to top,
@@ -2142,21 +2149,29 @@ input[type='range'] {
 .seq .grid .step.active[data-cond]::after {
   content: '';
   position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
   background: var(--ink);
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+}
+
+/* While running: a conditional step that skips this cycle fades back, one that
+   plays gets a green condition mark (see Sequence.conditionOutcome). */
+.seq .grid .step.active.cond-skips {
+  opacity: 0.35;
+}
+.seq .grid .step.active[data-cond].cond-plays::after {
+  background: var(--live);
 }
 
 .seq .grid .step.active[data-rc]::before {
-  --rc-pitch: min(3px, calc(15px / var(--rc)));
   content: '';
   position: absolute;
   left: 2px;
   bottom: 2px;
-  width: calc(var(--rc) * var(--rc-pitch));
+  width: calc(var(--rc) * var(--rc-pitch, 3px) - 1px);
   height: 3px;
   background: repeating-linear-gradient(
     to right,
@@ -2170,7 +2185,7 @@ input[type='range'] {
   position: absolute;
   left: -6px;
   right: 2px;
-  top: calc(50% - 2px);
+  bottom: 2px;
   height: 4px;
   background: var(--brighter-2);
 }
