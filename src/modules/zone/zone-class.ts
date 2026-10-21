@@ -199,7 +199,6 @@ export class Zone {
   elements = new ZoneElements();
   private readonly _midiMsgBuf = new Uint8Array(3);
   _colorIndex: number | null = null;
-  private _cachedZoneColor: string | null = null;
   pgm_no: number | null = null;
   bank_msb: number | null = null;
   bank_lsb: number | null = null;
@@ -383,7 +382,6 @@ export class Zone {
   set colorIndex(i: number) {
     i = i % 5;
     this._colorIndex = i;
-    this._cachedZoneColor = null;
   }
 
   get colorIndex(): number {
@@ -932,63 +930,16 @@ export class Zone {
   }
 
   renderPattern(): void {
-    if (this.elements.isReady && this.elements.patternCanvas) {
-      const { context, rect } = Zone.scaledCanvasContext(
-        this.elements.patternCanvas
-      );
-      const plen = this.arp_pattern.length;
-      const cellW = rect.width / plen;
-      const h = rect.height;
-
-      context.clearRect(0, 0, rect.width, rect.height);
-
-      // Subtle group separators every 8 steps for long patterns
-      if (plen > 8) {
-        context.fillStyle = 'rgba(255, 255, 255, 0.07)';
-        for (let g = 8; g < plen; g += 8) {
-          context.fillRect(Math.round(cellW * g) - 1, 0, 1, h);
-        }
-      }
-
-      const gap = cellW > 3 ? Math.min(1.5, cellW * 0.12) : 0;
-      const barW = Math.max(1, cellW - gap * 2);
-      const barH = h * 0.6;
-      const barY = (h - barH) / 2;
-      const radius = cellW >= 6 ? Math.min(2, barW / 2, barH / 2) : 0;
-
-      for (let i = 0; i < plen; i++) {
-        const x = cellW * i + gap;
-        if (this.arp_pattern[i]) {
-          context.fillStyle = 'rgba(255, 255, 255, 0.65)';
-          if (radius > 0 && typeof context.roundRect === 'function') {
-            context.beginPath();
-            context.roundRect(x, barY, barW, barH, radius);
-            context.fill();
-          } else {
-            context.fillRect(x, barY, barW, barH);
-          }
-        } else {
-          context.fillStyle = 'rgba(255, 255, 255, 0.13)';
-          context.fillRect(x, h / 2 - 0.5, barW, 1);
-        }
-      }
-
-      // Playhead: zone-color tinted vertical bar with glow
-      const playX = cellW * this.arp.patternPos + cellW / 2;
-      if (!this._cachedZoneColor) {
-        this._cachedZoneColor =
-          getComputedStyle(this.elements.patternCanvas)
-            .getPropertyValue('--zone-color')
-            .trim() || '#e9c46a';
-      }
-      const zoneColor = this._cachedZoneColor;
-      context.filter = 'brightness(2.4) saturate(2)';
-      context.shadowColor = zoneColor;
-      context.shadowBlur = 6;
-      context.fillStyle = zoneColor;
-      context.fillRect(Math.round(playX) - 1, 0, 3, h);
-      context.shadowBlur = 0;
-      context.filter = 'none';
+    const el = this.elements.patternElement;
+    if (!this.elements.isReady || !el) return;
+    const plen = this.arp_pattern.length;
+    if (el.childElementCount !== plen) {
+      el.innerHTML = '<i></i>'.repeat(plen);
+    }
+    for (let i = 0; i < plen; i++) {
+      const cell = el.children[i];
+      cell.classList.toggle('on', !!this.arp_pattern[i]);
+      cell.classList.toggle('playhead', i === this.arp.patternPos);
     }
   }
 

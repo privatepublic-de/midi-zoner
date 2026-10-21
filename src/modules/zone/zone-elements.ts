@@ -3,7 +3,7 @@ export class ZoneElements {
   zoneElement: HTMLElement | null = null;
   actionElements: NodeListOf<HTMLElement> | null = null;
   canvasElement: HTMLCanvasElement | null = null;
-  patternCanvas: HTMLCanvasElement | null = null;
+  patternElement: HTMLElement | null = null;
   sequencerElement: HTMLElement | null = null;
   sequencerGridElement: HTMLElement | null = null;
   sequencerGridStepElements: NodeListOf<HTMLElement> | HTMLElement[] = [];
@@ -28,7 +28,7 @@ export class ZoneElements {
 
     this.actionElements = this.zoneElement.querySelectorAll('*[data-action]');
     this.canvasElement = this.zoneElement.querySelector(`#canvas${index}`);
-    this.patternCanvas = this.zoneElement.querySelector(`#canvasPattern${index}`);
+    this.patternElement = this.zoneElement.querySelector('.pattern');
     this.sequencerElement = this.zoneElement.querySelector('.seq');
     this.sequencerGridElement = this.zoneElement.querySelector('.grid');
     this.sequencerProgressElement = this.zoneElement.querySelector('.seqprogress');

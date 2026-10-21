@@ -44,7 +44,6 @@ const ACTION_LABEL_OVERRIDES: Record<string, string | OverrideFn> = {
   zone_outport: 'Output Port',
   zone_arp_euclid: 'Euclidean Rhythm',
   zone_arp_gatelength: 'Arp Gate Length',
-  zone_arp_showeuclid: 'Show Euclidean Editor',
   zone_arr_copy_to: (p1) => `Copy to Arrangement ${ARRANGEMENT_LETTERS[parseInt(p1)] ?? ''}`.trim(),
   global_arr_copy_to: (p1, p2) =>
     `Copy Arrangement ${ARRANGEMENT_LETTERS[parseInt(p1)] ?? ''} → ${ARRANGEMENT_LETTERS[parseInt(p2)] ?? ''} (All Zones)`,

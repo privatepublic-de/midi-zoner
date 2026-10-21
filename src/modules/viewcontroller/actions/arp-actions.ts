@@ -1,12 +1,17 @@
-import DOM from '../../domutils';
 import { ActionContext, ActionHelpers, ActionMap } from '../types';
 
 export function createArpActions(
   ctx: ActionContext,
   helpers: ActionHelpers
 ): ActionMap {
-  const { zone, zoneindex, element, actionParam1, ev, updateValuesForZone, toast } = ctx;
+  const { zone, zoneindex, element, actionParam1, ev, updateValuesForZone } = ctx;
   const { applyParamToggle, applySelectedIndex, applyPercentage } = helpers;
+
+  /** A number field of this zone, clamped to [min, max]; empty or invalid keeps `current`. */
+  const clampedValue = (selector: string, min: number, max: number, current: number): number => {
+    const v = parseInt((zone._$(selector) as HTMLInputElement).value);
+    return isNaN(v) ? current : Math.max(min, Math.min(max, v));
+  };
 
   return {
     zone_arp_enabled: () => {
@@ -32,31 +37,17 @@ export function createArpActions(
     zone_arp_ratchet_probability: applyPercentage,
     zone_arp_ratchet_count: applySelectedIndex,
     zone_arp_pattern: () => {
-      if ((ev.target as HTMLElement).tagName == 'CANVAS') {
-        const index = parseInt(
-          String((ev.offsetX / element.offsetWidth) * zone.arp_pattern.length)
-        );
+      const cell = (ev.target as HTMLElement).closest('.pattern > i');
+      if (cell) {
+        const index = Array.prototype.indexOf.call(element.children, cell);
         zone.arp_pattern[index] = !zone.arp_pattern[index];
         zone.renderPattern();
       }
     },
-    zone_arp_showeuclid: () => {
-      const dialog = zone._$('.euclid') as HTMLElement;
-      if (dialog.style.display == 'block') {
-        DOM.hide(dialog);
-      } else {
-        DOM.show(dialog);
-      }
-    },
     zone_arp_euclid: () => {
-      let hits = parseInt((zone._$('.euchits') as HTMLInputElement).value);
-      let len = parseInt((zone._$('.euclen') as HTMLInputElement).value);
-      if (!isNaN(hits) && !isNaN(len)) {
-        hits = Math.min(32, Math.max(1, hits));
-        len = Math.min(32, Math.max(2, len));
-        zone.createEuclidianPattern(len, hits);
-        toast(`Arp pattern: ${hits} hits / ${len} steps`);
-      }
+      const len = clampedValue('.euclen', 2, 32, zone.euclid_length);
+      const hits = clampedValue('.euchits', 1, len, zone.euclid_hits);
+      zone.createEuclidianPattern(len, hits);
     },
     zone_arp_pattern_shift: () => {
       if (actionParam1 == '-1') {

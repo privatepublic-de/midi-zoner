@@ -878,15 +878,11 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
   display: flex;
 }
 
-.strum-taper-holder {
+.zone:not(.strum-mode) .strum-taper-holder {
   display: none;
 }
 
-.strum-mode .strum-taper-holder {
-  display: flex;
-}
-
-.strum-mode .ratchet-holder {
+.zone.strum-mode .ratchet-holder {
   display: none;
 }
 
@@ -1331,11 +1327,6 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
   min-width: 0;
 }
 
-.patgen {
-  margin-left: 4px;
-  position: relative;
-}
-
 .sel,
 .selected .unsel {
   display: none;
@@ -1366,30 +1357,6 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
 .flex-row.border-top {
   border-top: 1px solid var(--brighter-1);
   padding-top: 5px;
-}
-
-.innertoggle {
-  font-size: var(--fs-sm);
-  border: 1px solid var(--brighter-2);
-  color: var(--brighter-2);
-  padding: 0 3px;
-  float: right;
-  margin-left: 5px;
-}
-
-.innertoggle.selected {
-  color: var(--ink);
-  background-color: var(--brighter-3);
-}
-
-.arp-settings .innertoggle {
-  border-color: var(--brighter-2);
-  color: var(--brighter-4);
-}
-
-.arp-settings .innertoggle.selected {
-  color: var(--ink);
-  background-color: var(--brighter-3);
 }
 
 .valuebtn {
@@ -1646,38 +1613,61 @@ input[type='range'] {
 }
 
 
-.pattern {
-  position: relative;
-  cursor: pointer;
-  background-color: var(--brighter-0);
-  padding: 0 1px;
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.pattern canvas {
-  vertical-align: middle;
-}
-
-.zone .euclid {
-  position: absolute;
-  cursor: default;
-  display: none;
-  top: 100%;
-  right: 0;
-  text-align: center;
-  line-height: 1.2em;
-  z-index: 1;
-}
-
-.euclid > div {
-  display: flex;
-  gap: 8px;
-  justify-content: space-between;
-  align-items: center;
-  flex-direction: row;
+/* Arp pattern: one cell per step, a hit is a filled bar. Cells share the free
+   row width, so 32 steps stay clickable. */
+.arp-pattern-row {
   flex-wrap: nowrap;
-  margin-bottom: 8px;
+}
+
+.pattern {
+  display: flex;
+  flex: 1;
+  gap: 2px;
+  height: 20px;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.pattern > i {
+  flex: 1;
+  position: relative;
+  min-width: 4px;
+  border-radius: var(--radius-sm);
+  background: var(--darker-1);
+}
+
+/* group start every 4 steps */
+.pattern > i:nth-child(4n + 1) {
+  box-shadow: inset 0 -2px 0 var(--darker-3);
+}
+
+.pattern > i:hover {
+  background: var(--brighter-0);
+}
+
+.pattern > i.on {
+  background: var(--brighter-3);
+}
+
+.pattern > i.playhead {
+  box-shadow: inset 0 3px 0 var(--live);
+}
+
+.euclid {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 4px;
+}
+
+.zone .euclid input {
+  width: 30px;
+  text-align: center;
+}
+
+.arp_transpose_value {
+  margin-left: 3px;
+  font-variant-numeric: tabular-nums;
 }
 
 /* =============================================================
@@ -3668,4 +3658,17 @@ body.minimized .midi-led.on {
 }
 .step-info .apply-all .material-icons {
   font-size: var(--icon-md);
+}
+
+/* arp rows stay on one line: the sliders give up width before anything wraps */
+.arp-settings:has(.percent-holder) {
+  flex-wrap: nowrap;
+}
+.arp-settings .percent-holder {
+  flex: 0 1 96px;
+  min-width: 64px;
+}
+.arp-settings .percent-holder input.percent {
+  width: 100%;
+  min-width: 0;
 }

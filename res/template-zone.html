@@ -452,7 +452,7 @@
   </div>
   <div class="arp-settings-block shadowed-zone-block">
     <div class="arp-settings">
-      <div class="label">Arpeggiator</div>
+      <div class="label">Arp</div>
       <div class="drop-down">
         <select
           class="arp_direction"
@@ -507,13 +507,13 @@
         title="Hold notes after key release"
       >
         ${checkboxIcons}Hold
-        <span
-          class="arp_transpose innertoggle"
-          title="Use keyboard to transpose held arpeggio"
-          data-action="${index}:zone_arp_transpose"
-          onclick="event.stopPropagation()"
-          >t<span class="arp_transpose_value"></span
-        ></span>
+      </div>
+      <div
+        class="check arp_transpose"
+        data-action="${index}:zone_arp_transpose"
+        title="While holding, the next key you play transposes the arp"
+      >
+        ${checkboxIcons}Transpose<span class="arp_transpose_value"></span>
       </div>
     </div>
     <div class="arp-settings">
@@ -588,62 +588,49 @@
         </select>
       </div>
     </div>
-    <div class="arp-settings">
+    <div class="arp-settings arp-pattern-row">
       <div class="label">Pattern</div>
       <div
         class="pattern"
         data-action="${index}:zone_arp_pattern"
-        title="Arpeggiator pattern"
-      >
-        <canvas
-          id="canvasPattern${index}"
-          style="width: 100px; height: 18px"
-        ></canvas>
+        title="Click a step to switch it on or off. Double-click to reset."
+      ></div>
+      <div class="euclid" title="Spread hits evenly over the pattern length">
+        <input
+          class="euchits"
+          type="number"
+          min="1"
+          max="32"
+          value="5"
+          data-change="${index}:zone_arp_euclid"
+          title="Hits"
+          tabindex="-1"
+        />
+        <div class="label">in</div>
+        <input
+          class="euclen"
+          type="number"
+          min="2"
+          max="32"
+          value="8"
+          data-change="${index}:zone_arp_euclid"
+          title="Pattern length"
+          tabindex="-1"
+        />
       </div>
       <div
-        class="patgen action"
-        title="Create or shift pattern"
-        data-action="${index}:zone_arp_showeuclid"
+        class="action"
+        title="Shift pattern left"
+        data-action="${index}:zone_arp_pattern_shift:-1"
       >
-        <i class="material-icons">edit</i>
-        <div class="euclid hideonleave popup" onclick="event.stopPropagation()">
-          <p>Create euclidian pattern</p>
-          <div>
-            <input
-              class="euchits"
-              type="number"
-              min="1"
-              max="32"
-              value="8"
-              size="3"
-              title="Steps"
-              tabindex="-1"
-            />
-            <div>in</div>
-            <input
-              type="number"
-              class="euclen"
-              min="1"
-              max="32"
-              value="8"
-              size="3"
-              title="Length"
-              tabindex="-1"
-            />
-            <div class="action" data-action="${index}:zone_arp_euclid">OK</div>
-          </div>
-          <div>
-            <span
-              class="action"
-              data-action="${index}:zone_arp_pattern_shift:-1"
-              >&lt;</span
-            >
-            <span>Shift pattern</span>
-            <span class="action" data-action="${index}:zone_arp_pattern_shift:1"
-              >&gt;</span
-            >
-          </div>
-        </div>
+        <i class="material-icons">chevron_left</i>
+      </div>
+      <div
+        class="action"
+        title="Shift pattern right"
+        data-action="${index}:zone_arp_pattern_shift:1"
+      >
+        <i class="material-icons">chevron_right</i>
       </div>
     </div>
   </div>
