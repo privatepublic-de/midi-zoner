@@ -1,4 +1,4 @@
-import DOM from '../domutils';
+import DOM, { escapeHTML } from '../domutils';
 import MIDI from '../midi';
 
 import DragZone from '../dragzone';
@@ -17,7 +17,7 @@ import {
   velocityDeltaToPercent
 } from './actions';
 import { initPianoRoll } from './piano-roll';
-import { describeAction, labelForZone, ARRANGEMENT_LETTERS } from './action-labels';
+import { describeAction, labelForZone, zonePrefix, ARRANGEMENT_LETTERS } from './action-labels';
 import {
   updateControllerValues,
   renderControllersForZone as renderControllersForZoneInternal
@@ -654,6 +654,38 @@ function appendZone(zone: ZoneType, index: number): void {
       }
     });
   });
+  // Arp pattern: press on a cell sets or clears it, dragging paints the same value
+  // over further cells; one stroke is one undo step.
+  const patternEl = zone.elements.patternElement;
+  if (patternEl) {
+    let paintValue: boolean | null = null;
+    const paint = (target: EventTarget | null): void => {
+      const cell = (target as HTMLElement | null)?.closest('.pattern > i');
+      if (!cell || paintValue === null) return;
+      const i = Array.prototype.indexOf.call(patternEl.children, cell);
+      if (zone.arp_pattern[i] === paintValue) return;
+      zone.arp_pattern[i] = paintValue;
+      zone.syncEuclidToPattern();
+      zone.renderPattern();
+    };
+    const endStroke = (): void => {
+      if (paintValue === null) return;
+      paintValue = null;
+      undoHistory.endGesture(JSON.stringify(zones));
+      triggerSave();
+    };
+    patternEl.addEventListener('mousedown', (ev) => {
+      if (ev.button !== 0) return;
+      const cell = (ev.target as HTMLElement).closest('.pattern > i');
+      if (!cell) return;
+      undoHistory.startGesture(JSON.stringify(zones), describeAction(`${index}:zone_arp_pattern`, zones));
+      paintValue = !zone.arp_pattern[Array.prototype.indexOf.call(patternEl.children, cell)];
+      paint(cell);
+    });
+    patternEl.addEventListener('mouseover', (ev) => paint(ev.target));
+    patternEl.addEventListener('mouseup', endStroke);
+    patternEl.addEventListener('mouseleave', endStroke);
+  }
   DOM.all(`#zone${index} *[data-hover]`).forEach((e) => {
     e.addEventListener('mousemove', hoverHandler as EventListener);
     e.addEventListener('mouseleave', hoverOutHandler as EventListener);
@@ -1409,6 +1441,28 @@ function updateZoneHeaderContextMenus(currentArrIndex: number): void {
   });
 }
 
+/**
+ * Saves the current arrangement of every zone, stops and loads `arrIndex`.
+ * Live recording ends with the switch, so say so when it was on.
+ */
+function switchZonesToArrangement(arrIndex: number): void {
+  const recordingZones: string[] = [];
+  zones.list.forEach((z, i) => {
+    // the toast renders HTML; zone labels come from scene files
+    if (z.sequence.isLiveRecording) recordingZones.push(escapeHTML(zonePrefix(z, i)));
+    z.saveArrangement(zones.arrangementIndex);
+    z.stopped();
+    z.loadArrangement(arrIndex);
+  });
+  zones.arrangementIndex = arrIndex;
+  if (recordingZones.length > 0) {
+    toast(
+      `Stopped live recording on ${recordingZones.join(', ')}: switched to arrangement ${ARRANGEMENT_LETTERS[arrIndex]}`,
+      { warning: true }
+    );
+  }
+}
+
 function selectArrangement(arrIndex: number): void {
   const clockRunning = midiController.isClockRunning;
   DOM.removeClass('*[data-select-arrangement]', 'selected', 'pending');
@@ -1421,12 +1475,7 @@ function selectArrangement(arrIndex: number): void {
       );
     }
   } else {
-    zones.list.forEach((z) => {
-      z.saveArrangement(zones.arrangementIndex);
-      z.stopped();
-      z.loadArrangement(arrIndex);
-    });
-    zones.arrangementIndex = arrIndex;
+    switchZonesToArrangement(arrIndex);
     triggerSave();
   }
   updateZoneHeaderContextMenus(zones.arrangementIndex);
@@ -1479,6 +1528,7 @@ export {
   updateValuesForZone,
   toggleZoneMute,
   selectArrangement,
+  switchZonesToArrangement,
   toggleSequencerOnZone,
   toast,
   deleteAllZones,

@@ -11,6 +11,8 @@ function clampedInput(element: HTMLElement, min: number, max: number, current: n
   return isNaN(v) ? current : Math.max(min, Math.min(max, v));
 }
 
+const laneTrimTimers = new WeakMap<Sequence, ReturnType<typeof setTimeout>>();
+
 // Ascending ticks (24ppq), fastest first. Rates slower than 1/8 are omitted:
 // they rarely fit inside a step's gate window as an audible ratchet.
 export const RATCHET_RES_STEPS = [1, 2, 3, 4, 6, 8, 9, 12];
@@ -54,7 +56,8 @@ export function createSeqActions(
     actionParam2,
     ev,
     updateValuesForZone,
-    toast
+    toast,
+    triggerSave
   } = ctx;
   const { calcAndDisplayPercentage } = helpers;
 
@@ -80,6 +83,19 @@ export function createSeqActions(
     seq_drum_lanes: () => {
       sequence.drumLanes = clampedInput(element, 1, Sequence.MAX_LANES_DRUMS, sequence.drumLanes);
       updateValuesForZone(zoneindex);
+      // Hidden lanes are cleared once the count settles, so typing "10" can pass
+      // through "1" without losing lanes; before the field's 1s undo commit.
+      clearTimeout(laneTrimTimers.get(sequence));
+      laneTrimTimers.set(
+        sequence,
+        setTimeout(() => {
+          laneTrimTimers.delete(sequence);
+          if (sequence.drum_lanes.length > sequence.drumLanes) {
+            sequence.drum_lanes.length = sequence.drumLanes;
+            triggerSave();
+          }
+        }, 900)
+      );
     },
     seq_drumlane_note: () => {
       const laneNo = parseInt(actionParam1);

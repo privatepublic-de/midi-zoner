@@ -4,7 +4,7 @@ export function createArpActions(
   ctx: ActionContext,
   helpers: ActionHelpers
 ): ActionMap {
-  const { zone, zoneindex, element, actionParam1, ev, updateValuesForZone } = ctx;
+  const { zone, zoneindex, element, actionParam1, updateValuesForZone } = ctx;
   const { applyParamToggle, applySelectedIndex, applyPercentage } = helpers;
 
   /** A number field of this zone, clamped to [min, max]; empty or invalid keeps `current`. */
@@ -36,15 +36,6 @@ export function createArpActions(
     zone_arp_strum_taper: applyPercentage,
     zone_arp_ratchet_probability: applyPercentage,
     zone_arp_ratchet_count: applySelectedIndex,
-    zone_arp_pattern: () => {
-      const cell = (ev.target as HTMLElement).closest('.pattern > i');
-      if (cell) {
-        const index = Array.prototype.indexOf.call(element.children, cell);
-        zone.arp_pattern[index] = !zone.arp_pattern[index];
-        zone.syncEuclidToPattern();
-        zone.renderPattern();
-      }
-    },
     zone_arp_euclid: () => {
       const len = clampedValue('.euclen', 2, 32, zone.euclid_length);
       // hits are not clamped to len: typing a two-digit length passes through one digit

@@ -914,12 +914,7 @@ document.addEventListener('DOMContentLoaded', function () {
         Sequence.QUANT_TICK_N = pos % Sequence.QUANT_TICKS;
         if (Sequence.QUANT_TICK_N === 0) {
           const newIndex = zones.nextArrangementIndex;
-          zones.list.forEach((z) => {
-            z.saveArrangement(zones.arrangementIndex);
-            z.stopped();
-            z.loadArrangement(newIndex);
-          });
-          zones.arrangementIndex = newIndex;
+          view.switchZonesToArrangement(newIndex);
           view.selectArrangement(newIndex);
           sendMackieLeds();
           saveZones();
