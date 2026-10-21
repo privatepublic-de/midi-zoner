@@ -266,6 +266,7 @@ When enabled (toggle in toolbar), MIDI notes 0–19 from any input are intercept
 - While running, conditional steps show whether their condition is met this cycle (`Sequence.conditionOutcome()`, results recorded per cycle in `conditionResults` on the sequence / drum lane): dimmed = skips, green corner mark = plays. Passed steps show the actual result; later ones only a certain prediction
 - Per-step ratchet: count (1–8), rate (subdivision), velocity delta per repeat
 - Copy/paste steps and entire sequences
+- Step selection lasts while working in that zone's sequencer panel; a press anywhere else or Escape clears it (`initStepDeselection()` in viewcontroller/index.ts). Presses in `#contextmenu` and the piano roll keep it, since those act on the selection
 - Transpose, double, half-time, velocity scaling operations
 - Live recording while sequence plays
 

@@ -132,6 +132,7 @@ function initController({
     }
   }) as EventListener);
   initPianoRoll();
+  initStepDeselection();
   numberInputController = new NumberInputController();
   numberInputController.onAttach = () =>
     undoHistory.startGesture(
@@ -1458,6 +1459,42 @@ function updateZoneHeaderContextMenus(currentArrIndex: number): void {
     if (!el) return;
     const copyItems = others.map(t => `${i}:zone_arr_copy_to:${t}`).join(',');
     el.dataset.contextmenu = `${i}:zone_export,-,${copyItems}`;
+  });
+}
+
+/**
+ * A step selection lasts while you work in that zone's sequencer panel (grid,
+ * toolbar, step editor). A press anywhere else, or Escape, ends it. The context
+ * menu and the piano roll act on the selection, so presses there keep it.
+ */
+function initStepDeselection(): void {
+  const clearSelections = (keepInside: Element | null): void => {
+    zones.list.forEach((zone, i) => {
+      if (!zone.sequence.hasSelection) return;
+      if (keepInside && zone.elements.sequencerElement?.contains(keepInside)) return;
+      zone.sequence.clearSelection();
+      updateValuesForZone(i);
+    });
+  };
+  // capture phase: controls that stop propagation (pots, velocity bars) still count
+  document.addEventListener(
+    'mousedown',
+    (ev) => {
+      const target = ev.target as Element;
+      if (target.closest('#contextmenu, #pianoRollOverlay')) return;
+      clearSelections(target);
+    },
+    true
+  );
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Escape') return;
+    if (DOM.get('#pianoRollOverlay')?.classList.contains('open')) return; // closes itself
+    const menu = DOM.get('#contextmenu') as HTMLElement | null;
+    if (menu && menu.style.display === 'block') {
+      window.dispatchEvent(new CustomEvent('closeContextMenu'));
+      return;
+    }
+    clearSelections(null);
   });
 }
 
