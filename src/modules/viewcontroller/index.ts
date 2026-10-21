@@ -2,6 +2,7 @@ import DOM, { escapeHTML } from '../domutils';
 import MIDI from '../midi';
 
 import DragZone from '../dragzone';
+import potDragHandler from '../potdraghandler';
 import * as zoneTemplate from '../zone-template';
 import { Zone } from '../zone/zone-class';
 import { Sequence } from '../zone/sequence';
@@ -686,6 +687,40 @@ function appendZone(zone: ZoneType, index: number): void {
     patternEl.addEventListener('mouseup', endStroke);
     patternEl.addEventListener('mouseleave', endStroke);
   }
+  // Arp transpose amount: drag up/down or scroll for -12..+12 semitones, double-click for 0
+  const transposeEl = zone._$('.arp_transpose_value') as HTMLElement | null;
+  if (transposeEl) {
+    const STEP14 = 16383 / 24; // pot drag range 0..16383 mapped to 25 semitone values
+    const setAmount = (amount: number): void => {
+      zone.arp_transpose_amount = Math.max(-12, Math.min(12, amount));
+      zone.renderNotes();
+    };
+    const commitAmount = (label: string, change: () => void): void => {
+      undoHistory.beforeAction(JSON.stringify(zones), labelForZone(zone, index, label));
+      change();
+      triggerSave();
+    };
+    transposeEl.addEventListener('mousedown', (ev) => {
+      if (ev.button !== 0) return;
+      ev.stopPropagation();
+      undoHistory.startGesture(JSON.stringify(zones), labelForZone(zone, index, 'Arp Transpose'));
+      potDragHandler.startDrag(
+        ev,
+        (zone.arp_transpose_amount + 12) * STEP14,
+        (v14) => setAmount(Math.round(v14 / STEP14) - 12),
+        () => {
+          undoHistory.endGesture(JSON.stringify(zones));
+          triggerSave();
+        }
+      );
+    });
+    transposeEl.addEventListener('wheel', (ev) => {
+      ev.preventDefault();
+      if (ev.deltaY === 0) return;
+      commitAmount('Arp Transpose', () => setAmount(zone.arp_transpose_amount - Math.sign(ev.deltaY)));
+    });
+    transposeEl.addEventListener('dblclick', () => commitAmount('Arp Transpose', () => setAmount(0)));
+  }
   DOM.all(`#zone${index} *[data-hover]`).forEach((e) => {
     e.addEventListener('mousemove', hoverHandler as EventListener);
     e.addEventListener('mouseleave', hoverOutHandler as EventListener);
@@ -1229,12 +1264,7 @@ function updateValuesForZone(index: number): void {
     });
     DOM.switchClass(zoneElement, zone.arp_enabled, 'arp-enabled');
     DOM.switchClass(zoneElement, zone.arp_direction >= 5, 'strum-mode');
-    const transposeEl = zone._$('.arp_transpose_value') as HTMLElement | null;
-    if (transposeEl) {
-      transposeEl.textContent = zone.arp_transpose
-        ? (zone.arp_transpose_amount > 0 ? '+' : '') + zone.arp_transpose_amount
-        : '';
-    }
+    zone.renderTransposeAmount();
 
     const swingSliders = zone.elements.get(
       '.swing-amount'

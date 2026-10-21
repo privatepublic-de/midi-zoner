@@ -772,13 +772,16 @@ export class Zone {
     requestAnimationFrame(this._renderNotesBound);
   }
 
-  renderNotes(): void {
+  renderTransposeAmount(): void {
     const transposeEl = this._$('.arp_transpose_value') as HTMLElement | null;
     if (transposeEl) {
-      transposeEl.textContent = this.arp_transpose
-        ? (this.arp_transpose_amount > 0 ? '+' : '') + this.arp_transpose_amount
-        : '';
+      transposeEl.textContent =
+        (this.arp_transpose_amount > 0 ? '+' : '') + this.arp_transpose_amount;
     }
+  }
+
+  renderNotes(): void {
+    this.renderTransposeAmount();
     if (this.elements.isReady && this.elements.canvasElement) {
       const { context, rect } = Zone.scaledCanvasContext(
         this.elements.canvasElement

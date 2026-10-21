@@ -1660,9 +1660,20 @@ input[type='range'] {
   margin-left: 4px;
 }
 
+/* transpose amount: a value you drag or scroll, shown while Transpose is on */
 .arp_transpose_value {
-  margin-left: 3px;
+  min-width: 3ch;
+  padding: 0 4px;
+  height: 20px;
+  line-height: 20px;
+  text-align: center;
   font-variant-numeric: tabular-nums;
+  background-color: var(--darker-1);
+  border-radius: var(--radius-sm);
+  cursor: ns-resize;
+}
+.arp_transpose:not(.selected) + .arp_transpose_value {
+  display: none;
 }
 
 /* =============================================================
