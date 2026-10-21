@@ -2278,7 +2278,9 @@ input[type='range'] {
   top: 100%;
   z-index: 1;
   padding: 6px 8px 4px;
-  border-top: 1px solid var(--brighter-1);
+  /* selection red, as on the selected steps and the step badge: it edits those */
+  border: 1px solid var(--multiselect-highlight);
+  border-top-width: 2px;
   border-radius: 0 0 var(--radius) var(--radius);
   box-shadow: 0 6px 16px var(--shadow-overlay);
   display: none;
