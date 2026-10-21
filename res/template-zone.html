@@ -145,8 +145,10 @@
       <div
         class="action seq_drum_tracks"
         data-action="${index}:seq_drum_tracks"
-        title="Toggle sequencer mode"
-      ></div>
+        title="Switch between a melodic sequence and drum lanes"
+      >
+        <span class="mode-notes">Notes</span><span class="mode-drums">Drums</span>
+      </div>
       <div class="label dismiss-for-drumsequence">Steps</div>
       <div class="val dismiss-for-drumsequence">
         <input
@@ -237,8 +239,8 @@
         </select>
       </div>
       <div class="drop-down" title="Adjust whole sequence">
-        <select data-change="${index}:seq_adjust" tabindex="-1">
-          <option>Adjust sequence</option>
+        <select class="seq_adjust" data-change="${index}:seq_adjust" tabindex="-1">
+          <option>Adjust</option>
           <hr />
           <option value="double">Double</option>
           <hr />
@@ -263,17 +265,17 @@
       </div>
       <div
         class="action seq_record_live dismiss-for-drumsequence"
-        title="Live recording while sequence is playing"
+        title="Record notes you play into the running sequence"
         data-action="${index}:seq_record_live"
       >
-        <i class="material-icons">piano</i>
+        <i class="material-icons">fiber_manual_record</i>
       </div>
       <div
         class="action dismiss-for-drumsequence"
         title="Open piano roll editor"
         data-action="${index}:seq_open_piano_roll"
       >
-        <i class="material-icons">edit_note</i>
+        <i class="material-icons">piano</i>
       </div>
       <div style="flex-grow: 1"></div>
     </div>

@@ -1660,11 +1660,6 @@ input[type='range'] {
   margin-left: 4px;
 }
 
-.zone .euclid input {
-  width: 30px;
-  text-align: center;
-}
-
 .arp_transpose_value {
   margin-left: 3px;
   font-variant-numeric: tabular-nums;
@@ -1996,7 +1991,7 @@ input[type='range'] {
 
 .seqtools {
   display: flex;
-  gap: 6px;
+  gap: 5px;
   align-items: center;
   padding: 6px 0 6px 8px;
   width: 100%;
@@ -2004,6 +1999,24 @@ input[type='range'] {
 
 .seqtools .drop-down select {
   max-width: 7rem;
+}
+/* a native select is as wide as its longest option; the closed menu only shows its name */
+.seqtools .seq_adjust {
+  width: 70px;
+}
+.seqtools .seq_transpose {
+  width: 80px;
+}
+
+/* nothing in the toolbar shrinks: squeezed items overlapped their neighbours */
+.seqtools > * {
+  flex-shrink: 0;
+}
+.seqtools input.seq_steps,
+.seqtools input.seq_lanes,
+.zone .euclid input {
+  min-width: 0;
+  width: 36px;
 }
 
 .show-seq .seq {
@@ -2221,13 +2234,14 @@ input[type='range'] {
   height: var(--step-size-disabled);
 }
 
+/* The step editor opens below the grid inside the panel (pushing the arp down)
+   instead of covering it. .seq is column-reverse, so order -1 puts it last. */
 .seq .step-info {
-  padding: 4px 8px;
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 100%;
-  z-index: 1;
+  order: -1;
+  align-self: stretch;
+  padding: 6px 8px 4px;
+  box-shadow: none;
+  border-top: 1px solid var(--brighter-1);
   display: none;
 }
 
@@ -2965,18 +2979,23 @@ body.running .seqprogress.drum .inner {
    DRUM SEQUENCER
    ============================================================= */
 
-.seq_drum_tracks::after {
-  content: '♫'; /* Notes */
+/* mode switch: both modes are named, the current one is highlighted */
+.seq_drum_tracks {
+  display: inline-flex;
+  padding: 0;
+  font-size: var(--fs-sm);
+}
+.seq_drum_tracks span {
+  padding: 2px 5px;
+  color: var(--brighter-2);
+}
+.zone:not(.drumSequencer) .seq_drum_tracks .mode-notes,
+.drumSequencer .seq_drum_tracks .mode-drums {
+  background-color: var(--brighter-1);
+  color: var(--text-base-color);
 }
 
 .drumSequencer {
-  .seq_drum_tracks {
-    background-color: var(--brighter-1);
-    color: var(--text-base-color);
-  }
-  .seq_drum_tracks::after {
-    content: '☵'; /* Drum Lanes */
-  }
   .step-container {
     display: none;
   }
@@ -3671,4 +3690,11 @@ body.minimized .midi-led.on {
 .arp-settings .percent-holder input.percent {
   width: 100%;
   min-width: 0;
+}
+
+.seq_record_live .material-icons {
+  color: var(--danger);
+}
+.liveRecording .seq_record_live .material-icons {
+  color: var(--brighter-4);
 }
