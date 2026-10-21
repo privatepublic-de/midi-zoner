@@ -1636,9 +1636,9 @@ input[type='range'] {
   background: var(--darker-1);
 }
 
-/* group start every 4 steps */
-.pattern > i:nth-child(4n + 1) {
-  box-shadow: inset 0 -2px 0 var(--darker-3);
+/* groups of 4 steps: a wider gap before each group, cells keep one shape */
+.pattern > i:nth-child(4n + 1):not(:first-child) {
+  margin-left: 4px;
 }
 
 .pattern > i:hover {
