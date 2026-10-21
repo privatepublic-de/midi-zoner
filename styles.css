@@ -1649,8 +1649,14 @@ input[type='range'] {
   background: var(--brighter-3);
 }
 
+/* Playhead: cells are narrow, so it fills the cell instead of a top bar; a hit
+   that plays turns green, an empty step gets a green outline. */
 .pattern > i.playhead {
-  box-shadow: inset 0 3px 0 var(--live);
+  box-shadow: inset 0 0 0 2px var(--live);
+}
+.pattern > i.on.playhead {
+  background: var(--live);
+  box-shadow: none;
 }
 
 .euclid {
