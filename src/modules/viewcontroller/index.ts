@@ -51,6 +51,18 @@ function setStateChangeCallback(fn: (() => void) | null): void {
   onStateChange = fn;
 }
 
+const SEQ_ADJUST_LABELS: Record<string, string> = {
+  double: 'Repeat (double length)',
+  halftime: 'Half speed',
+  thirdtime: 'Third speed',
+  veloup: 'Velocity 133%',
+  velodown: 'Velocity 75%',
+  seq_legato: 'Legato',
+  seq_staccato: 'Staccato',
+  'euclid-distrib': 'Euclidean distribution'
+};
+const DRUM_UNSUPPORTED_ADJUSTMENTS = ['seq_legato', 'seq_staccato', 'euclid-distrib'];
+
 const contextMenuActionLabel: Record<string, string> = {
   seq_copy_step: '<i class="material-icons">content_copy</i> Copy ',
   seq_paste_step: '<i class="material-icons">content_paste</i> Paste steps',
@@ -343,6 +355,9 @@ function contextHandler(ev: MouseEvent): void {
         return Zone.seqClipboardSequence != null;
       case 'seq_paste_lane':
         return Zone.seqClipboardDrumLane != null;
+      case 'seq_adjust':
+        // drum lanes only support length and velocity changes
+        return !zone.sequence.isDrumSequence || !DRUM_UNSUPPORTED_ADJUSTMENTS.includes(parts[2]);
     }
     return true;
   }
@@ -358,6 +373,14 @@ function contextHandler(ev: MouseEvent): void {
     }
     const zoneindex = parseInt(parts[0]);
     const zone: ZoneType = zones.list[zoneindex];
+    if (parts[1] === 'seq_transpose') {
+      const n = parseInt(parts[2]);
+      const interval = Math.abs(n) === 12 ? ' (octave)' : Math.abs(n) === 7 ? ' (fifth)' : '';
+      return `${n > 0 ? '+' : ''}${n}${interval}`;
+    }
+    if (parts[1] === 'seq_adjust') {
+      return SEQ_ADJUST_LABELS[parts[2]] ?? parts[2];
+    }
     if (parts[1] == 'seq_copy_step') {
       let subs;
       if (

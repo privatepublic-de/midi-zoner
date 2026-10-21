@@ -199,62 +199,20 @@
         <i class="material-icons">chevron_right</i>
       </div>
       <div
-        class="drop-down dismiss-for-drumsequence"
-        title="Transpose whole sequence or selected steps"
+        class="action menu-button dismiss-for-drumsequence"
+        title="Transpose the whole sequence or the selected steps"
+        data-contextclick
+        data-contextmenu="${transposeMenu}"
       >
-        <select
-          class="seq_transpose"
-          data-change="${index}:seq_transpose"
-          tabindex="-1"
-        >
-          <option>Transpose</option>
-          <hr />
-          <option value="12">+12</option>
-          <option value="-12">-12</option>
-          <hr />
-          >
-          <option value="1">+1</option>
-          <option value="2">+2</option>
-          <option value="3">+3</option>
-          <option value="4">+4</option>
-          <option value="5">+5</option>
-          <option value="6">+6</option>
-          <option value="7">+7 (5th)</option>
-          <option value="8">+8</option>
-          <option value="9">+9</option>
-          <option value="10">+10</option>
-          <option value="11">+11</option>
-          <hr />
-          <option value="-1">-1</option>
-          <option value="-2">-2</option>
-          <option value="-3">-3</option>
-          <option value="-4">-4</option>
-          <option value="-5">-5</option>
-          <option value="-6">-6</option>
-          <option value="-7">-7 (5th)</option>
-          <option value="-8">-8</option>
-          <option value="-9">-9</option>
-          <option value="-10">-10</option>
-          <option value="-11">-11</option>
-        </select>
+        Transpose<i class="material-icons">expand_more</i>
       </div>
-      <div class="drop-down" title="Adjust whole sequence">
-        <select class="seq_adjust" data-change="${index}:seq_adjust" tabindex="-1">
-          <option>Adjust</option>
-          <hr />
-          <option value="double">Double</option>
-          <hr />
-          <option value="halftime">1/2 slower</option>
-          <option value="thirdtime">1/3 slower</option>
-          <hr />
-          <option value="veloup">Velocity 133%</option>
-          <option value="velodown">Velocity 75%</option>
-          <hr />
-          <option value="seq_legato">Legato</option>
-          <option value="seq_staccato">Staccato</option>
-          <hr />
-          <option value="euclid-distrib">Euclidean Distribution</option>
-        </select>
+      <div
+        class="action menu-button"
+        title="Change the whole sequence"
+        data-contextclick
+        data-contextmenu="${adjustMenu}"
+      >
+        Adjust<i class="material-icons">expand_more</i>
       </div>
       <div
         class="action"
@@ -428,7 +386,7 @@
         </div>
         <div style="flex-grow: 1"></div>
         <div
-          class="action apply-all"
+          class="action menu-button"
           title="Copy a property of this step to all active steps"
           data-contextclick
           data-contextmenu="label:Apply to all steps:,-,${index}:step_copy_length,${index}:step_copy_gate,${index}:step_copy_condition,${index}:step_copy_chance"

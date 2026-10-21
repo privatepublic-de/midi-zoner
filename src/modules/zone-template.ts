@@ -130,6 +130,32 @@ export function getHTML(zone: ZoneType, zoneindex: number): string {
     drumLanes += '</div>';
   }
 
+  const transposeMenu = [
+    'label:Transpose by semitones',
+    '-',
+    ...[12, -12].map((n) => `${index}:seq_transpose:${n}`),
+    '-',
+    ...[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((n) => `${index}:seq_transpose:${n}`),
+    '-',
+    ...[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((n) => `${index}:seq_transpose:${-n}`)
+  ].join(',');
+  const adjustMenu = [
+    'label:Adjust sequence',
+    '-',
+    `${index}:seq_adjust:double`,
+    '-',
+    `${index}:seq_adjust:halftime`,
+    `${index}:seq_adjust:thirdtime`,
+    '-',
+    `${index}:seq_adjust:veloup`,
+    `${index}:seq_adjust:velodown`,
+    '-',
+    `${index}:seq_adjust:seq_legato`,
+    `${index}:seq_adjust:seq_staccato`,
+    '-',
+    `${index}:seq_adjust:euclid-distrib`
+  ].join(',');
+
   const zoneMuteKeyboardHint =
     index < 10 ? `('${(index + 1) % 10}' on computer keyboard)` : '';
 
@@ -143,6 +169,8 @@ export function getHTML(zone: ZoneType, zoneindex: number): string {
     seqMaxSteps: Sequence.MAX_STEPS,
     cycleConditions: cycleConditions,
     checkboxIcons: checkboxIcons,
-    noteLengthOptions: noteLengthOptions
+    noteLengthOptions: noteLengthOptions,
+    transposeMenu: transposeMenu,
+    adjustMenu: adjustMenu
   });
 }

@@ -243,10 +243,7 @@ export function createSeqActions(
       }
     },
     seq_transpose: () => {
-      const selectElement = element as HTMLSelectElement;
-      const semitones = parseInt(
-        selectElement.options[selectElement.selectedIndex].value
-      );
+      const semitones = parseInt(actionParam1);
       sequence.transpose(semitones);
       toast(
         (sequence.hasSelection ? 'Selected steps' : 'Sequence') +
@@ -254,13 +251,10 @@ export function createSeqActions(
           semitones +
           ' semitones'
       );
-      selectElement.selectedIndex = 0;
       updateValuesForZone(zoneindex);
     },
     seq_adjust: () => {
-      const selectElement = element as HTMLSelectElement;
-      const adjustment =
-        selectElement.options[selectElement.selectedIndex].value;
+      const adjustment = actionParam1;
       const seq = sequence;
       const srcLength = seq.length;
       if (seq.isDrumSequence) {
@@ -459,9 +453,6 @@ export function createSeqActions(
           }
         }
       }
-      setTimeout(() => {
-        selectElement.selectedIndex = 0;
-      }, 100);
     },
     seq_clear_step: () => {
       if (actionParam1 != 'undefined') {

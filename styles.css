@@ -2025,13 +2025,7 @@ input[type='range'] {
 .seqtools .drop-down select {
   max-width: 7rem;
 }
-/* a native select is as wide as its longest option; the closed menu only shows its name */
-.seqtools .seq_adjust {
-  width: 70px;
-}
-.seqtools .seq_transpose {
-  width: 80px;
-}
+
 
 /* nothing in the toolbar shrinks: squeezed items overlapped their neighbours */
 .seqtools > * {
@@ -2983,6 +2977,9 @@ body.running .seqprogress.drum .inner {
   margin: 0;
   z-index: var(--z-window);
   width: 200px;
+  /* long menus (Transpose) scroll instead of running off a short window */
+  max-height: calc(100vh - 8px);
+  overflow-y: auto;
 }
 #contextmenu li {
   margin: 2px 0;
@@ -3805,13 +3802,14 @@ body.minimized .midi-led.on {
   }
 }
 
-.step-info .apply-all {
+/* a button that opens a menu of actions (Transpose, Adjust, Apply to all) */
+.menu-button {
   display: inline-flex;
   align-items: center;
   gap: 2px;
   padding: 0 2px 0 6px;
 }
-.step-info .apply-all .material-icons {
+.menu-button .material-icons {
   font-size: var(--icon-md);
 }
 
