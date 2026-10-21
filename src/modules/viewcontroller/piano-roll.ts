@@ -5,22 +5,27 @@ import { SeqStep } from '../zone/seq-step';
 import potDragHandler from '../potdraghandler';
 import { ActionContext, ZoneType, SequenceType } from './types';
 import { labelForZone } from './action-labels';
+import { showStepProperties, stepDetails, velocityLabel } from './step-marks';
 
-// Fixed cell size — no zoom in v1 (per spec), so these can be baked into styles.css too.
-const CELL_W = 24; // px per step
+// Steps share the visible width (between these bounds, scrolling beyond); the
+// width is set as --pr-cell-w for the grid lines in styles.css.
+const MIN_CELL_W = 24; // px per step
+const MAX_CELL_W = 96;
+const KEYS_W = 56; // .pr-keys width
 const ROW_H = 14; // px per pitch row
 const VELOCITY_LANE_H = 80; // px
+let cellW = MIN_CELL_W;
 
 function clamp(v: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, v));
 }
 
 function stepToX(stepIndex: number): number {
-  return stepIndex * CELL_W;
+  return stepIndex * cellW;
 }
 
 function xToStep(x: number, sequenceLength: number): number {
-  return clamp(Math.floor(x / CELL_W), 0, sequenceLength - 1);
+  return clamp(Math.floor(x / cellW), 0, sequenceLength - 1);
 }
 
 function pitchToY(pitch: number): number {
@@ -157,6 +162,11 @@ let keysEl: HTMLElement;
 let gridEl: HTMLElement;
 let notesEl: HTMLElement;
 let playheadEl: HTMLElement;
+let stepHeaderEl: HTMLElement;
+let stepHeaderKey = '';
+// note elements per step, for the live condition marks
+let stepNoteEls: HTMLElement[][] = [];
+let lastLiveStep: number | null = null;
 let velocityScrollEl: HTMLElement;
 let velocityLaneEl: HTMLElement;
 
@@ -338,7 +348,7 @@ function wireVelocityDrag(vbar: HTMLElement, note: Note, zone: ZoneType): void {
       (v14) => {
         note.velo = clamp(v14 >> 7, 1, 127);
         vbar.style.height = `${(note.velo / 127) * VELOCITY_LANE_H}px`;
-        vbar.title = `vel ${note.velo}`;
+        vbar.title = velocityLabel(note.velo);
       },
       () => {
         if (activeCtx) {
@@ -350,11 +360,35 @@ function wireVelocityDrag(vbar: HTMLElement, note: Note, zone: ZoneType): void {
   });
 }
 
+function fitCellWidth(sequence: SequenceType): void {
+  const available = mainScrollEl.clientWidth - KEYS_W;
+  cellW = clamp(Math.floor(available / Math.max(1, sequence.length)), MIN_CELL_W, MAX_CELL_W);
+  overlayEl.style.setProperty('--pr-cell-w', `${cellW}px`);
+}
+
+// Step numbers above the grid: every step, beat starts emphasised.
+function renderStepHeader(sequence: SequenceType): void {
+  const key = `${sequence.length}:${cellW}`;
+  if (key === stepHeaderKey) return;
+  stepHeaderKey = key;
+  DOM.empty(stepHeaderEl);
+  stepHeaderEl.style.width = `${sequence.length * cellW}px`;
+  for (let i = 0; i < sequence.length; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'pr-step' + (i % 4 === 0 ? ' beat' : '');
+    cell.textContent = String(i + 1);
+    stepHeaderEl.appendChild(cell);
+  }
+}
+
 function renderNotesAndVelocity(zone: ZoneType): void {
   const sequence = zone.sequence;
   DOM.empty(notesEl);
   DOM.empty(velocityLaneEl);
-  const gridWidth = sequence.length * CELL_W;
+  fitCellWidth(sequence);
+  renderStepHeader(sequence);
+  stepNoteEls = [];
+  const gridWidth = sequence.length * cellW;
   notesEl.style.width = `${gridWidth}px`;
   notesEl.style.height = `${128 * ROW_H}px`;
   gridEl.style.width = `${gridWidth}px`;
@@ -364,14 +398,19 @@ function renderNotesAndVelocity(zone: ZoneType): void {
   for (let stepIndex = 0; stepIndex < sequence.length; stepIndex++) {
     const step = sequence.steps[stepIndex];
     if (!step) continue;
+    stepNoteEls[stepIndex] = [];
     for (const note of step.notesArray) {
       const noteEl = document.createElement('div');
       noteEl.className = 'pr-note' + (note.isBlackKey ? ' black' : '');
       if (selectedNotes.has(note)) noteEl.classList.add('selected');
       noteEl.style.left = `${stepToX(stepIndex)}px`;
       noteEl.style.top = `${pitchToY(note.number)}px`;
-      noteEl.style.width = `${Math.max(1, step.length * CELL_W - 2)}px`;
-      noteEl.title = `${Note.display(note.number)} · vel ${note.velo} · len ${step.length}`;
+      noteEl.style.width = `${Math.max(1, step.length * cellW - 2)}px`;
+      // step marks (chance, condition, ratchet) as on the grid; fill shade is this note's velocity
+      showStepProperties(noteEl, step);
+      noteEl.style.setProperty('--velo', (note.velo / 127).toFixed(3));
+      noteEl.title = [Note.display(note.number), velocityLabel(note.velo), ...stepDetails(step)].join(', ');
+      stepNoteEls[stepIndex].push(noteEl);
       const handle = document.createElement('div');
       handle.className = 'pr-note-handle';
       noteEl.appendChild(handle);
@@ -381,25 +420,39 @@ function renderNotesAndVelocity(zone: ZoneType): void {
       const vbar = document.createElement('div');
       vbar.className = 'pr-vbar';
       vbar.style.left = `${stepToX(stepIndex)}px`;
-      vbar.style.width = `${Math.max(1, CELL_W - 2)}px`;
+      vbar.style.width = `${Math.max(1, cellW - 2)}px`;
       vbar.style.height = `${(note.velo / 127) * VELOCITY_LANE_H}px`;
-      vbar.title = `vel ${note.velo}`;
+      vbar.title = velocityLabel(note.velo);
       wireVelocityDrag(vbar, note, zone);
       velocityLaneEl.appendChild(vbar);
     }
   }
+  lastLiveStep = null;
   updatePlayhead(zone);
 }
 
+// Playhead column and header bar; on each new step also the live condition marks
+// (see Sequence.conditionOutcome), as in the zone's step grid.
 function updatePlayhead(zone: ZoneType): void {
   const sequence = zone.sequence;
-  if (sequence.active && sequence.currentStepNumber > -1) {
+  const current = sequence.active ? sequence.currentStepNumber : -1;
+  if (current > -1) {
     playheadEl.style.display = 'block';
-    playheadEl.style.left = `${stepToX(sequence.currentStepNumber)}px`;
-    playheadEl.style.width = `${CELL_W}px`;
+    playheadEl.style.left = `${stepToX(current)}px`;
+    playheadEl.style.width = `${cellW}px`;
   } else {
     playheadEl.style.display = 'none';
   }
+  if (current === lastLiveStep) return;
+  lastLiveStep = current;
+  Array.from(stepHeaderEl.children).forEach((cell, i) => cell.classList.toggle('playhead', i === current));
+  stepNoteEls.forEach((els, i) => {
+    const outcome = current > -1 ? sequence.conditionOutcome(i) : null;
+    els?.forEach((el) => {
+      el.classList.toggle('cond-plays', outcome === true);
+      el.classList.toggle('cond-skips', outcome === false);
+    });
+  });
 }
 
 function centerScrollOnNotes(zone: ZoneType): void {
@@ -462,7 +515,7 @@ function handleWindowMouseMove(ev: MouseEvent): void {
   if (dragState.mode === 'move') {
     const dx = ev.clientX - dragState.anchorX;
     const dy = ev.clientY - dragState.anchorY;
-    const deltaSteps = Math.round(dx / CELL_W);
+    const deltaSteps = Math.round(dx / cellW);
     const deltaPitch = -Math.round(dy / ROW_H);
     if (deltaSteps === dragState.lastDeltaSteps && deltaPitch === dragState.lastDeltaPitch) return;
     dragState.lastDeltaSteps = deltaSteps;
@@ -485,7 +538,7 @@ function handleWindowMouseMove(ev: MouseEvent): void {
     }
   } else {
     const dx = ev.clientX - dragState.anchorX;
-    const deltaSteps = Math.round(dx / CELL_W);
+    const deltaSteps = Math.round(dx / cellW);
     if (deltaSteps === dragState.lastDeltaSteps) return;
     dragState.lastDeltaSteps = deltaSteps;
     const step = sequence.steps[dragState.resizeStepIndex!];
@@ -594,6 +647,7 @@ export function initPianoRoll(): void {
   gridEl = overlayEl.querySelector('.pr-grid') as HTMLElement;
   notesEl = overlayEl.querySelector('.pr-notes') as HTMLElement;
   playheadEl = overlayEl.querySelector('.pr-playhead') as HTMLElement;
+  stepHeaderEl = overlayEl.querySelector('.pr-step-numbers') as HTMLElement;
   velocityScrollEl = overlayEl.querySelector('.pr-velocity-scroll-inner') as HTMLElement;
   velocityLaneEl = overlayEl.querySelector('.pr-velocity-lane') as HTMLElement;
 
@@ -624,6 +678,9 @@ export function initPianoRoll(): void {
     if (!overlayEl.contains(ev.target as Node)) close();
   });
 
+  window.addEventListener('resize', () => {
+    if (activeCtx && !dragState) renderAll(activeCtx.zone);
+  });
   window.addEventListener('mousemove', handleWindowMouseMove);
   window.addEventListener('mouseup', handleWindowMouseUp);
 }

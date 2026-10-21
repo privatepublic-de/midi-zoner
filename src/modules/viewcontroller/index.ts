@@ -6,7 +6,7 @@ import * as zoneTemplate from '../zone-template';
 import { Zone } from '../zone/zone-class';
 import { Sequence } from '../zone/sequence';
 import { Note } from '../zone/note';
-import { SeqStep } from '../zone/seq-step';
+import { showStepProperties } from './step-marks';
 
 import { initToast, toast } from './toast';
 import { NumberInputController } from './number-input-controller';
@@ -909,51 +909,6 @@ function syncRangeFill(el: HTMLInputElement): void {
 
 function syncRangeFills(root: ParentNode): void {
   root.querySelectorAll<HTMLInputElement>('input[type="range"]').forEach(syncRangeFill);
-}
-
-/**
- * Puts a step's properties on its grid cell for the CSS to draw: fill height is
- * velocity (`--velo`), hatching is chance < 100% (`data-chance`), a corner dot is
- * a play condition (`data-cond`), bottom ticks are the ratchet count (`--rc`).
- */
-function showStepProperties(el: HTMLElement, step: SeqStep | null): void {
-  const notes = step?.notesArray ?? [];
-  if (!step || notes.length === 0) {
-    el.style.removeProperty('--velo');
-    el.style.removeProperty('--rc');
-    el.style.removeProperty('--rc-pitch');
-    delete el.dataset.chance;
-    delete el.dataset.cond;
-    delete el.dataset.rc;
-    el.removeAttribute('title');
-    return;
-  }
-  const velo = notes.reduce((sum, n) => sum + n.velo, 0) / notes.length;
-  el.style.setProperty('--velo', (velo / 127).toFixed(3));
-  const rc = step.ratchetCount ?? 1;
-  if (rc > 1) {
-    el.dataset.rc = String(rc);
-    el.style.setProperty('--rc', String(rc));
-    // whole-pixel tick pitch keeps ticks crisp: 2px tick + gap up to 5, 1px + gap above
-    el.style.setProperty('--rc-pitch', rc <= 5 ? '3px' : '2px');
-  } else {
-    delete el.dataset.rc;
-    el.style.removeProperty('--rc');
-    el.style.removeProperty('--rc-pitch');
-  }
-  if (step.probability < 1) el.dataset.chance = '';
-  else delete el.dataset.chance;
-  if (step.condition > 0) el.dataset.cond = '';
-  else delete el.dataset.cond;
-  const info = [
-    notes.map((n) => Note.display(n.number)).join(' '),
-    `velocity ${Math.trunc((velo / 127) * 100)}%`
-  ];
-  if (step.probability < 1) info.push(`chance ${Math.round(step.probability * 100)}%`);
-  if (step.condition > 0) info.push('has a play condition');
-  if (rc > 1) info.push(`ratchet ×${rc}`);
-  if (step.length > 1) info.push(`length ${step.length}`);
-  el.title = info.join(', ');
 }
 
 /** Steps covered by the tail of a longer step (length > 1), wrapping at the end. */

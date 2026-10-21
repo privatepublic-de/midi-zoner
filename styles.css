@@ -3391,12 +3391,12 @@ body.running .drumSequencer .lane-expand-toggle {
     repeating-linear-gradient(
       to right,
       var(--brighter-1) 0 1px,
-      transparent 1px calc(4 * 24px)
+      transparent 1px calc(4 * var(--pr-cell-w, 24px))
     ),
     repeating-linear-gradient(
       to right,
       var(--darker-1) 0 1px,
-      transparent 1px 24px
+      transparent 1px var(--pr-cell-w, 24px)
     ),
     linear-gradient(to bottom, transparent calc(14px - 1px), var(--brighter-0) 0);
   background-size:
@@ -3428,18 +3428,109 @@ body.running .drumSequencer .lane-expand-toggle {
   left: 0;
 }
 
+/* Notes are shaded by velocity and carry the step grid's marks: hatching for
+   chance < 100%, a corner triangle for a play condition, ticks for ratchet. */
 .pr-note {
   position: absolute;
   height: 12px;
   border-radius: var(--radius-sm);
-  background-color: var(--zone-color);
+  background-color: color-mix(
+    in srgb,
+    var(--zone-color) calc(30% + var(--velo, 0.78) * 70%),
+    var(--bg-topbar)
+  );
   border: 1px solid var(--darker-4);
   cursor: move;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
-.pr-note.black {
-  filter: brightness(0.75);
+.pr-note[data-chance] {
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--darker-3) 0 1.5px,
+    transparent 1.5px 4px
+  );
+}
+
+.pr-note[data-cond]::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 7px;
+  height: 7px;
+  background: var(--ink);
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+  pointer-events: none;
+}
+
+.pr-note[data-rc]::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  bottom: 1px;
+  width: calc(var(--rc) * var(--rc-pitch, 3px) - 1px);
+  height: 2px;
+  background: repeating-linear-gradient(
+    to right,
+    var(--ink) 0 calc(var(--rc-pitch) - 1px),
+    transparent 0 var(--rc-pitch)
+  );
+  pointer-events: none;
+}
+
+.pr-note.cond-skips {
+  opacity: 0.45;
+}
+.pr-note[data-cond].cond-plays::after {
+  background: var(--live);
+}
+
+/* step numbers above the grid, sticky while scrolling vertically */
+.pr-step-header {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  width: max-content;
+  min-width: 100%;
+  height: 18px;
+  background-color: var(--bg-topbar);
+  border-bottom: 1px solid var(--darker-4);
+}
+
+.pr-corner {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  width: 56px;
+  flex-shrink: 0;
+  background-color: var(--bg-topbar);
+  border-right: 1px solid var(--darker-4);
+}
+
+.pr-step-numbers {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.pr-step {
+  position: relative;
+  width: var(--pr-cell-w, 24px);
+  padding-left: 3px;
+  font-size: 9px;
+  line-height: 18px;
+  color: var(--brighter-1);
+}
+
+.pr-step.beat {
+  color: var(--brighter-3);
+  border-left: 1px solid var(--brighter-1);
+}
+
+.pr-step.playhead {
+  box-shadow: inset 0 3px 0 var(--live);
 }
 
 .pr-note.selected {
@@ -3466,6 +3557,10 @@ body.running .drumSequencer .lane-expand-toggle {
 .pr-velocity-gutter {
   width: 56px;
   flex-shrink: 0;
+  padding: 4px 4px 0 0;
+  text-align: right;
+  font-size: var(--fs-sm);
+  color: var(--brighter-2);
   background-color: var(--bg-topbar);
   border-right: 1px solid var(--darker-4);
 }
