@@ -9,7 +9,17 @@ export enum CCControllerType {
   BUTTON_BANK = 3,
   NOTE_TO_CC = 4,
   UNIPOLAR_14BIT = 5,
-  BIPOLAR_14BIT = 6
+  BIPOLAR_14BIT = 6,
+  NRPN = 7
+}
+
+/** Types whose value runs 0–16383 instead of 0–127 */
+export function isHiResCC(type: number): boolean {
+  return (
+    type == CCControllerType.UNIPOLAR_14BIT ||
+    type == CCControllerType.BIPOLAR_14BIT ||
+    type == CCControllerType.NRPN
+  );
 }
 
 export enum ArpDirection {
@@ -37,6 +47,12 @@ export interface CCController {
   number: number;
   number_in: number | null;
   number_lsb?: number;
+  // NRPN: parameter number, and how the value is split into Data Entry MSB (CC6) and a
+  // low-bits CC: CC38 with 7 bits (standard), CC63 with 3 bits (Korg logue), or none (CC6 only)
+  nrpn_msb?: number;
+  nrpn_lsb?: number;
+  nrpn_data_lsb_cc?: number | null;
+  nrpn_data_lsb_bits?: number;
   label: string;
   val: number;
   type: number;

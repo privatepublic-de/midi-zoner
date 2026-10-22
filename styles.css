@@ -1832,7 +1832,8 @@ input[type='range'] {
   .show-type-3,
   .show-type-4,
   .show-type-5,
-  .show-type-6 {
+  .show-type-6,
+  .show-type-7 {
     display: none;
   }
 }
@@ -1918,6 +1919,17 @@ input[type='range'] {
     display: none;
   }
 }
+.cc-editor[data-type='7'] {
+  .show-type-7 {
+    display: block;
+  }
+  .flex-row.show-type-7 {
+    display: flex;
+  }
+  .hide-type-7 {
+    display: none;
+  }
+}
 
 .ccpot .info {
   flex-direction: column;
@@ -1938,7 +1950,8 @@ input[type='range'] {
 .ccpot[data-type='0'] .rotary,
 .ccpot[data-type='1'] .rotary,
 .ccpot[data-type='5'] .rotary,
-.ccpot[data-type='6'] .rotary {
+.ccpot[data-type='6'] .rotary,
+.ccpot[data-type='7'] .rotary {
   display: block;
 }
 .ccpot[data-type='3'] .buttons {

@@ -2,7 +2,7 @@ import DOM from '../domutils';
 import * as zoneTemplate from '../zone-template';
 import potDragHandler from '../potdraghandler';
 import { ZoneType } from './types';
-import { CCControllerType } from '../zone/interfaces';
+import { CCControllerType, isHiResCC } from '../zone/interfaces';
 import { describeActionForZone, labelForZone } from './action-labels';
 
 function polarToCartesian(
@@ -69,7 +69,7 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIn
   zone.cc_controllers.forEach((c, ix) => {
     if (onlyIndex !== undefined && ix !== onlyIndex) return;
     const potselector = `#pot_${zoneindex}_${ix}`;
-    const is14bit = c.type == CCControllerType.UNIPOLAR_14BIT || c.type == CCControllerType.BIPOLAR_14BIT;
+    const is14bit = isHiResCC(c.type);
     const isBipolar = c.type == CCControllerType.BIPOLAR_ROTARY || c.type == CCControllerType.BIPOLAR_14BIT;
     const valDegrees = is14bit
       ? 270 * (isBipolar ? (c.val - 8192) / 8192 : c.val / 16383)
@@ -94,6 +94,8 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIn
     let displayValue: number = c.val;
     if (c.type == CCControllerType.UNIPOLAR_ROTARY) {
       displayValue = zone.remapCCValue(c.val, ix);
+    } else if (c.type == CCControllerType.NRPN) {
+      displayValue = zone.nrpnValue(c);
     } else if (isBipolar) {
       displayValue = is14bit ? displayValue - 8192 : displayValue - 64;
     }
@@ -152,7 +154,11 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIn
         ccInEl.classList.add('midi-learn-active');
         (zone._$('.cc-editor .cc-out') as HTMLInputElement).value = String(c.number);
         (zone._$('.cc-editor .cc-min') as HTMLInputElement).value = String(c.min || 0);
-        (zone._$('.cc-editor .cc-max') as HTMLInputElement).value = String(c.max || 127);
+        (zone._$('.cc-editor .cc-max') as HTMLInputElement).value = String(c.max ?? 127);
+        (zone._$('.cc-editor .cc-nrpn-msb') as HTMLInputElement).value = String(c.nrpn_msb || 0);
+        (zone._$('.cc-editor .cc-nrpn-lsb') as HTMLInputElement).value = String(c.nrpn_lsb || 0);
+        (zone._$('.cc-editor .cc-nrpn-data-lsb') as HTMLSelectElement).value =
+          c.nrpn_data_lsb_cc != null ? `${c.nrpn_data_lsb_cc}:${c.nrpn_data_lsb_bits ?? 7}` : 'none';
         (zone._$('.cc-editor .cc_change_type') as HTMLSelectElement).value = String(c.type);
         (zone._$('.cc-editor .cc_change_group') as HTMLSelectElement).selectedIndex = c.group || 0;
         (zone._$('.cc-editor .cc_notenum2cc') as HTMLInputElement).value = c.note_cc != null ? String(c.note_cc) : '';
@@ -207,8 +213,7 @@ export function renderControllersForZone(
   });
 
   DOM.all(`#zone${index} .ccpots .ccpot`).forEach((pot, ix) => {
-    const is14bit =
-      zone.cc_controllers[ix].type == CCControllerType.UNIPOLAR_14BIT || zone.cc_controllers[ix].type == CCControllerType.BIPOLAR_14BIT;
+    const is14bit = isHiResCC(zone.cc_controllers[ix].type);
     (pot.querySelector('.cclabel') as HTMLElement).addEventListener('click', (e) => {
       e.stopPropagation();
       if (zone.selectedCCIndex === ix && zone.editCC) {

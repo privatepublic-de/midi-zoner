@@ -1,7 +1,7 @@
 import { ActionContext, ActionHelpers, ActionMap } from '../types';
 import { ipcRenderer } from 'electron';
 import { labelForZone } from '../action-labels';
-import { CCControllerType } from '../../zone/interfaces';
+import { CCControllerType, isHiResCC } from '../../zone/interfaces';
 
 export function createCCActions(
   ctx: ActionContext,
@@ -66,6 +66,29 @@ export function createCCActions(
         triggerSave();
       }
     },
+    cc_nrpn_msb: () => {
+      const inputElement = element as HTMLInputElement;
+      inputElement.value = inputElement.value.replace(/[^0-9]/g, '');
+      if (inputElement.value != '') {
+        zone.cc_controllers[zone.selectedCCIndex].nrpn_msb = Math.min(127, parseInt(inputElement.value));
+        triggerSave();
+      }
+    },
+    cc_nrpn_lsb: () => {
+      const inputElement = element as HTMLInputElement;
+      inputElement.value = inputElement.value.replace(/[^0-9]/g, '');
+      if (inputElement.value != '') {
+        zone.cc_controllers[zone.selectedCCIndex].nrpn_lsb = Math.min(127, parseInt(inputElement.value));
+        triggerSave();
+      }
+    },
+    cc_nrpn_data_lsb: () => {
+      const c = zone.cc_controllers[zone.selectedCCIndex];
+      const [cc, bits] = (element as HTMLSelectElement).value.split(':');
+      c.nrpn_data_lsb_cc = bits ? parseInt(cc) : null;
+      c.nrpn_data_lsb_bits = bits ? parseInt(bits) : 0;
+      triggerSave();
+    },
     cc_number_in: () => {
       const inputElement = element as HTMLInputElement;
       inputElement.value = inputElement.value.replace(/[^0-9]/g, '');
@@ -104,7 +127,7 @@ export function createCCActions(
         const n = parseInt(raw);
         if (n >= 2 && n <= 64) {
           const c = zone.cc_controllers[zone.selectedCCIndex];
-          const maxVal = (c.type === CCControllerType.UNIPOLAR_14BIT || c.type === CCControllerType.BIPOLAR_14BIT) ? 16383 : 127;
+          const maxVal = isHiResCC(c.type) ? 16383 : 127;
           discreteValues = Array.from({ length: n }, (_, i) =>
             Math.round(i * maxVal / (n - 1))
           );
@@ -211,7 +234,25 @@ export function createCCActions(
         });
     },
     cc_change_type: () => {
-      zone.cc_controllers[zone.selectedCCIndex].type = parseInt((element as HTMLSelectElement).value);
+      const c = zone.cc_controllers[zone.selectedCCIndex];
+      const newType = parseInt((element as HTMLSelectElement).value);
+      // Keep the knob position when the value range changes between 0–127 and 0–16383
+      if (isHiResCC(newType) && !isHiResCC(c.type)) {
+        c.val = c.val << 7;
+      } else if (!isHiResCC(newType) && isHiResCC(c.type)) {
+        c.val = c.val >> 7;
+      }
+      if (newType == CCControllerType.NRPN && c.type != CCControllerType.NRPN) {
+        if ((c.max ?? 127) <= 127) c.max = 16383;
+        if (c.nrpn_data_lsb_cc === undefined) {
+          c.nrpn_data_lsb_cc = 38;
+          c.nrpn_data_lsb_bits = 7;
+        }
+      } else if (newType != CCControllerType.NRPN && c.type == CCControllerType.NRPN) {
+        c.min = Math.min(c.min || 0, 127);
+        c.max = Math.min(c.max ?? 127, 127);
+      }
+      c.type = newType;
       renderControllersForZone(zone, zoneindex);
       triggerSave();
     },

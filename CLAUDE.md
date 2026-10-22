@@ -181,9 +181,11 @@ enum CCControllerType {
   BUTTON_BANK = 3,      // 8 buttons with custom values
   NOTE_TO_CC = 4,       // Converts note number/velocity to CC
   UNIPOLAR_14BIT = 5,   // MSB + LSB
-  BIPOLAR_14BIT = 6
+  BIPOLAR_14BIT = 6,
+  NRPN = 7              // CC99/98 param number + Data Entry (see below)
 }
 ```
+`isHiResCC(type)` is true for types 5–7 (value 0–16383). NRPN controllers map the knob onto `min`–`max` in device units (`Zone.nrpnValue()`) and send CC99, CC98, the low bits on `nrpn_data_lsb_cc` (`nrpn_data_lsb_bits` wide: 7 on CC38 standard, 3 on CC63 for Korg logue devices, none = CC6 only), then CC6 with the remaining high bits.
 
 ### ArpDirection (interfaces.ts)
 ```typescript

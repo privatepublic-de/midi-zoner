@@ -13,6 +13,7 @@ import {
   SeqStepJSON,
   ArpDirection,
   CCControllerType,
+  isHiResCC,
   UPDATE_ZONE_VIEW_EVENT
 } from './interfaces';
 import { NoteDisplay } from './note-display';
@@ -664,8 +665,7 @@ export class Zone {
           for (let i = 0; i < this.cc_controllers.length; i++) {
             const ctrl = this.cc_controllers[i];
             if (ctrl.type != CCControllerType.SPACER && ctrl.number_in == data[1]) {
-              const is14bit = ctrl.type == CCControllerType.UNIPOLAR_14BIT || ctrl.type == CCControllerType.BIPOLAR_14BIT;
-              ctrl.val = is14bit
+              ctrl.val = isHiResCC(ctrl.type)
                 ? Math.round((data[2] * 16383) / 127)
                 : data[2];
               this.sendCC(i);
@@ -1629,23 +1629,25 @@ export class Zone {
   }
 
   sendCC(index: number): void {
-    const is14bit =
-      this.cc_controllers[index].type == CCControllerType.UNIPOLAR_14BIT ||
-      this.cc_controllers[index].type == CCControllerType.BIPOLAR_14BIT;
-    if (is14bit) {
+    const ctrl = this.cc_controllers[index];
+    if (ctrl.type == CCControllerType.NRPN) {
+      this.sendNRPN(ctrl);
+      return;
+    }
+    if (isHiResCC(ctrl.type)) {
       this.sendOut(
         Uint8Array.from([
           MIDI.MESSAGE.CONTROLLER + this.channel,
-          this.cc_controllers[index].number_lsb || 0,
-          this.cc_controllers[index].val & 0x7f
+          ctrl.number_lsb || 0,
+          ctrl.val & 0x7f
         ]),
         this.outputPortId
       );
       this.sendOut(
         Uint8Array.from([
           MIDI.MESSAGE.CONTROLLER + this.channel,
-          this.cc_controllers[index].number,
-          this.cc_controllers[index].val >> 7
+          ctrl.number,
+          ctrl.val >> 7
         ]),
         this.outputPortId
       );
@@ -1653,12 +1655,33 @@ export class Zone {
       this.sendOut(
         Uint8Array.from([
           MIDI.MESSAGE.CONTROLLER + this.channel,
-          this.cc_controllers[index].number,
-          this.remapCCValue(this.cc_controllers[index].val, index)
+          ctrl.number,
+          this.remapCCValue(ctrl.val, index)
         ]),
         this.outputPortId
       );
     }
+  }
+
+  /** NRPN value in device units: the knob's 0–16383 mapped onto min–max */
+  nrpnValue(ctrl: CCController): number {
+    const min = ctrl.min || 0;
+    const max = ctrl.max ?? 16383;
+    return Math.round(min + (max - min) * (ctrl.val / 16383));
+  }
+
+  private sendNRPN(ctrl: CCController): void {
+    const status = MIDI.MESSAGE.CONTROLLER + this.channel;
+    const value = this.nrpnValue(ctrl);
+    const lsbCC = ctrl.nrpn_data_lsb_cc;
+    const lsbBits = lsbCC != null ? ctrl.nrpn_data_lsb_bits ?? 7 : 0;
+    const send = (cc: number, v: number): void =>
+      this.sendOut(Uint8Array.from([status, cc, v & 0x7f]), this.outputPortId);
+    send(99, ctrl.nrpn_msb || 0);
+    send(98, ctrl.nrpn_lsb || 0);
+    // Low bits first: receivers latch the value on Data Entry MSB
+    if (lsbCC != null && lsbBits > 0) send(lsbCC, value & ((1 << lsbBits) - 1));
+    send(6, value >> lsbBits);
   }
 
   sendProgramChange(): void {

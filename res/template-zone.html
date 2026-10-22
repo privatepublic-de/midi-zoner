@@ -625,6 +625,7 @@
           <hr />
           <option value="5">Rotary 14Bit</option>
           <option value="6">Rotary 14Bit bipolar</option>
+          <option value="7">Rotary NRPN</option>
           <hr />
           <option value="3">Buttons</option>
           <option value="4">Note to CC</option>
@@ -657,11 +658,11 @@
         </div>
       </div>
       <div class="flex-row hide-type-2 hide-type-4 border-top">
-        <label>Out CC#</label>
+        <label class="hide-type-7">Out CC#</label>
         <label class="show-type-5 show-type-6">MSB</label>
         <input
           type="number"
-          class="cc-out"
+          class="cc-out hide-type-7"
           min="0"
           max="127"
           data-change="${index}:cc_number"
@@ -677,6 +678,34 @@
           title="LSB CC#"
           tabindex="-1"
         />
+        <label class="show-type-7" title="NRPN parameter number (CC99 / CC98)">NRPN MSB</label>
+        <input
+          type="number"
+          class="cc-nrpn-msb show-type-7"
+          min="0"
+          max="127"
+          data-change="${index}:cc_nrpn_msb"
+          tabindex="-1"
+        />
+        <label class="show-type-7">LSB</label>
+        <input
+          type="number"
+          class="cc-nrpn-lsb show-type-7"
+          min="0"
+          max="127"
+          data-change="${index}:cc_nrpn_lsb"
+          tabindex="-1"
+        />
+        <label class="show-type-7" title="How the value is split into Data Entry MSB (CC6) and its low bits">Data</label>
+        <select
+          class="cc-nrpn-data-lsb show-type-7"
+          data-change="${index}:cc_nrpn_data_lsb"
+          tabindex="-1"
+        >
+          <option value="38:7">CC6 + CC38 (14 bit)</option>
+          <option value="63:3">CC6 + CC63 (3 bit, Korg logue)</option>
+          <option value="none">CC6 only (7 bit)</option>
+        </select>
         <div style="flex-grow: 1"></div>
         <label
           title="Move a hardware control while in edit mode to auto-learn its CC number"
@@ -692,13 +721,13 @@
           placeholder="—"
         />
       </div>
-      <div class="flex-row show-type-0 show-type-1 border-top">
+      <div class="flex-row show-type-0 show-type-1 show-type-7 border-top">
         <label>Min</label>
         <input
           type="number"
           class="cc-min"
           min="0"
-          max="127"
+          max="16383"
           data-change="${index}:cc_min"
           tabindex="-1"
         />
@@ -707,15 +736,15 @@
           type="number"
           class="cc-max"
           min="0"
-          max="127"
+          max="16383"
           data-change="${index}:cc_max"
           tabindex="-1"
         />
         <div style="flex-grow: 1"></div>
-        <label>Steps / Snap</label>
+        <label class="hide-type-7">Steps / Snap</label>
         <input
           type="text"
-          class="cc_discrete_values"
+          class="cc_discrete_values hide-type-7"
           data-change="${index}:cc_discrete_values"
           tabindex="-1"
           style="width: 8rem"
