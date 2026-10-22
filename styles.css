@@ -1956,7 +1956,6 @@ input[type='range'] {
   text-align: center;
   cursor: pointer;
   color: var(--brighter-2);
-  border-radius: 2px;
 }
 
 /* the chosen entry: bright, underlined in the section colour */
