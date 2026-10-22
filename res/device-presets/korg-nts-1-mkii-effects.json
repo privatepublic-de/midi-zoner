@@ -4,7 +4,7 @@
   "name": "Effects",
   "device": "KORG NTS-1 mkII",
   "portMatch": "NTS-1",
-  "notes": "Needs GLOBAL > MIDI Short Message = On. Knobs send the MSB CC first, then the LSB CC; if they move in coarse steps, switch Format to LSB first. Type knobs step through Off and the built-in effects.",
+  "notes": "Needs GLOBAL > MIDI Short Message = On. Knobs send the MSB CC first, then the LSB CC; if they move in coarse steps, switch Format to LSB first. Type knobs step through Off, the built-in effects and the user slots in steps of 8 (measured on the device; the MIDI chart values are wrong). Reverb is confirmed; mod and delay follow the same rule.",
   "controllers": [
     {
       "type": 0,
@@ -18,14 +18,21 @@
       "group": 1,
       "discreteValues": [
         0,
-        14,
-        28,
-        42,
+        8,
+        16,
+        24,
+        32,
+        40,
+        48,
         56,
-        70,
-        84,
-        98,
-        127
+        64,
+        72,
+        80,
+        88,
+        96,
+        104,
+        112,
+        120
       ],
       "valueNames": [
         "Off",
@@ -36,7 +43,14 @@
         "Soft clip",
         "Hard clip",
         "Sine fold",
-        "Fuzz"
+        "Fuzz",
+        "User 1",
+        "User 2",
+        "User 3",
+        "User 4",
+        "User 5",
+        "User 6",
+        "User 7"
       ]
     },
     {
@@ -79,18 +93,21 @@
       "group": 2,
       "discreteValues": [
         0,
-        9,
-        18,
-        27,
-        36,
-        45,
-        54,
-        63,
+        8,
+        16,
+        24,
+        32,
+        40,
+        48,
+        56,
+        64,
         72,
-        81,
-        90,
-        99,
-        127
+        80,
+        88,
+        96,
+        104,
+        112,
+        120
       ],
       "valueNames": [
         "Off",
@@ -105,7 +122,10 @@
         "Ping BPM",
         "High BPM",
         "Tape BPM",
-        "Doubling"
+        "Doubling",
+        "User 1",
+        "User 2",
+        "User 3"
       ]
     },
     {
@@ -162,16 +182,21 @@
       "group": 3,
       "discreteValues": [
         0,
-        11,
-        22,
-        33,
-        44,
-        55,
-        66,
-        77,
+        8,
+        16,
+        24,
+        32,
+        40,
+        48,
+        56,
+        64,
+        72,
+        80,
         88,
-        99,
-        127
+        96,
+        104,
+        112,
+        120
       ],
       "valueNames": [
         "Off",
@@ -184,7 +209,12 @@
         "Space",
         "Riser",
         "Submarine",
-        "Horror"
+        "Horror",
+        "User 1",
+        "User 2",
+        "User 3",
+        "User 4",
+        "User 5"
       ]
     },
     {
