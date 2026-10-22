@@ -18,6 +18,7 @@ import {
   ticksToRatchetIndex,
   velocityDeltaToPercent
 } from './actions';
+import { initCCEditor } from './cc-editor';
 import { initPianoRoll } from './piano-roll';
 import { describeAction, labelForZone, zonePrefix, ARRANGEMENT_LETTERS } from './action-labels';
 import {
@@ -133,6 +134,14 @@ function initController({
     }
   }) as EventListener);
   initPianoRoll();
+  initCCEditor({
+    zone: (index) => zones.list[index],
+    actionHandler: actionHandler as (ev: Event, overrideaction?: string) => void,
+    contextHandler,
+    gestureStart: (label) => undoHistory.startGesture(JSON.stringify(zones), label),
+    gestureEnd: () => undoHistory.endGesture(JSON.stringify(zones)),
+    triggerSave: () => triggerSave()
+  });
   initStepDeselection();
   numberInputController = new NumberInputController();
   numberInputController.onAttach = () =>
@@ -1523,7 +1532,7 @@ function initStepDeselection(): void {
     'mousedown',
     (ev) => {
       const target = ev.target as Element;
-      if (target.closest('#contextmenu, #pianoRollOverlay')) return;
+      if (target.closest('#contextmenu, #pianoRollOverlay, #ccEditor')) return;
       clearSelections(target);
     },
     true
@@ -1531,6 +1540,7 @@ function initStepDeselection(): void {
   document.addEventListener('keydown', (ev) => {
     if (ev.key !== 'Escape') return;
     if (DOM.get('#pianoRollOverlay')?.classList.contains('open')) return; // closes itself
+    if (DOM.get('#ccEditor')?.classList.contains('open')) return;
     const menu = DOM.get('#contextmenu') as HTMLElement | null;
     if (menu && menu.style.display === 'block') {
       window.dispatchEvent(new CustomEvent('closeContextMenu'));

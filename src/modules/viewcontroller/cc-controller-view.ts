@@ -2,8 +2,8 @@ import DOM from '../domutils';
 import * as zoneTemplate from '../zone-template';
 import potDragHandler from '../potdraghandler';
 import { ZoneType } from './types';
-import { CCControllerType, isHiResCC } from '../zone/interfaces';
-import { describeActionForZone, labelForZone } from './action-labels';
+import { CCController, CCControllerType, isHiResCC } from '../zone/interfaces';
+import { labelForZone } from './action-labels';
 import { differsFromPreset, findDevicePreset } from '../device-presets';
 
 function polarToCartesian(
@@ -64,58 +64,146 @@ function describeDiscreteValues(values: number[], is14bit: boolean): string {
   return path;
 }
 
-const rangePath = describeArc(28, 30, 18, -135, 135);
+/** Background arc of every knob (viewBox 0 0 56 56) */
+export const knobRangePath = describeArc(28, 30, 18, -135, 135);
+
+// NRPN controllers with at most this many steps get tick marks like snap steps
+const MAX_NRPN_TICKS = 24;
+
+export function isBipolarController(c: CCController): boolean {
+  return (
+    c.type == CCControllerType.BIPOLAR_ROTARY ||
+    c.type == CCControllerType.BIPOLAR_14BIT ||
+    (c.type == CCControllerType.NRPN && !!c.bipolar)
+  );
+}
+
+/** Value arc and tick marks of a knob (viewBox 0 0 56 56) */
+export function knobPaths(c: CCController): { value: string; discrete: string; bipolar: boolean } {
+  const is14bit = isHiResCC(c.type);
+  const bipolar = isBipolarController(c);
+  const valDegrees = is14bit
+    ? 270 * (bipolar ? (c.val - 8192) / 8192 : c.val / 16383)
+    : 270 * (bipolar ? (c.val - 64) / 64 : c.val / 127);
+  let ticks = c.discreteValues || [];
+  if (c.type == CCControllerType.NRPN) {
+    const steps = (c.max ?? 16383) - (c.min || 0);
+    ticks = steps > 0 && steps <= MAX_NRPN_TICKS
+      ? Array.from({ length: steps + 1 }, (_, i) => Math.round((i * 16383) / steps))
+      : [];
+  }
+  return {
+    value: bipolar ? describeArc(28, 30, 18, 0, valDegrees / 2) : describeArc(28, 30, 18, -135, -135 + valDegrees),
+    discrete: describeDiscreteValues(ticks, is14bit),
+    bipolar
+  };
+}
+
+/** The number shown on a knob and its value name, if any */
+export function controllerDisplay(zone: ZoneType, c: CCController, ix: number): { value: string; name: string } {
+  const is14bit = isHiResCC(c.type);
+  let displayValue: number = c.val;
+  // Index into valueNames: the snap step, or the value counted from min
+  let nameIndex = -1;
+  if (c.type == CCControllerType.UNIPOLAR_ROTARY) {
+    displayValue = zone.remapCCValue(c.val, ix);
+    nameIndex = c.discreteValues?.length ? c.discreteValues.indexOf(c.val) : displayValue - (c.min || 0);
+  } else if (c.type == CCControllerType.NRPN) {
+    displayValue = zone.nrpnValue(c);
+    nameIndex = displayValue - (c.min || 0);
+    if (c.bipolar) displayValue -= Math.round(((c.min || 0) + (c.max ?? 16383)) / 2);
+  } else if (is14bit) {
+    const bits = 7 + (c.lsb_bits ?? 7);
+    displayValue = zone.hiResValue(c) - (isBipolarController(c) ? 1 << (bits - 1) : 0);
+  } else if (isBipolarController(c)) {
+    displayValue -= 64;
+  }
+  return { value: String(displayValue), name: c.valueNames?.[nameIndex] ?? '' };
+}
+
+/** Name of the linked device preset, "•" when the controllers were changed since */
+export function devicePresetLabel(zone: ZoneType): string {
+  if (!zone.devicePreset) return 'Presets';
+  const linked = findDevicePreset(zone.devicePreset.id);
+  return zone.devicePreset.name + (!linked || differsFromPreset(zone.cc_controllers, linked) ? ' •' : '');
+}
+
+/** Rotary types; buttons, note to CC and spacers have no knob to drag */
+export function isRotary(c: CCController): boolean {
+  return c.type < CCControllerType.SPACER || isHiResCC(c.type);
+}
+
+type ControllersChangedListener = (zone: ZoneType, zoneindex: number, onlyIndex?: number) => void;
+let controllersChanged: ControllersChangedListener | null = null;
+
+/** Called after every update of a zone's controllers (the controller editor follows it) */
+export function onControllersChanged(listener: ControllersChangedListener): void {
+  controllersChanged = listener;
+}
+
+/**
+ * Drags a controller's value with the mouse: sends when the transmitted value changes,
+ * one undo entry per drag.
+ */
+export function startControllerDrag(
+  zone: ZoneType,
+  zoneindex: number,
+  ix: number,
+  e: MouseEvent,
+  onGestureStart: (label: string) => void,
+  onGestureEnd: () => void,
+  triggerSave: () => void
+): void {
+  const ctrl = zone.cc_controllers[ix];
+  const is14bit = isHiResCC(ctrl.type);
+  onGestureStart(labelForZone(zone, zoneindex, ctrl.label || `CC ${ix + 1}`));
+  potDragHandler.startDrag(
+    e,
+    is14bit ? ctrl.val : ctrl.val << 7,
+    (v) => {
+      const oldVal = ctrl.val;
+      const oldOutput = zone.ccOutputValue(ix);
+      if (is14bit) {
+        ctrl.val = v;
+      } else {
+        zone.snap2DiscreteValue(v >> 7, ix);
+      }
+      if (ctrl.val !== oldVal) {
+        // Narrow ranges map many knob positions onto one value: send only real changes
+        if (zone.ccOutputValue(ix) !== oldOutput) zone.sendCC(ix);
+        updateControllerValues(zone, zoneindex, ix);
+      }
+    },
+    () => {
+      onGestureEnd();
+      triggerSave();
+    }
+  );
+}
 
 export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIndex?: number): void {
   zone.cc_controllers.forEach((c, ix) => {
     if (onlyIndex !== undefined && ix !== onlyIndex) return;
     const potselector = `#pot_${zoneindex}_${ix}`;
-    const is14bit = isHiResCC(c.type);
-    const isBipolar =
-      c.type == CCControllerType.BIPOLAR_ROTARY ||
-      c.type == CCControllerType.BIPOLAR_14BIT ||
-      (c.type == CCControllerType.NRPN && !!c.bipolar);
-    const valDegrees = is14bit
-      ? 270 * (isBipolar ? (c.val - 8192) / 8192 : c.val / 16383)
-      : 270 * (isBipolar ? (c.val - 64) / 64 : c.val / 127);
-    const valuePath = isBipolar
-      ? describeArc(28, 30, 18, 0, valDegrees / 2)
-      : describeArc(28, 30, 18, -135, -135 + valDegrees);
+    const knob = knobPaths(c);
     if (onlyIndex === undefined) {
-      zone._$(`${potselector}_range`)?.setAttribute('d', rangePath);
+      zone._$(`${potselector}_range`)?.setAttribute('d', knobRangePath);
     }
-    zone._$(`${potselector}_value`)?.setAttribute('d', valuePath);
-    (zone._$(`${potselector}_zero`) as HTMLElement).style.display = isBipolar ? 'block' : 'none';
-    zone
-      ._$(`${potselector}_discrete`)
-      ?.setAttribute('d', describeDiscreteValues(c.discreteValues || [], is14bit));
+    zone._$(`${potselector}_value`)?.setAttribute('d', knob.value);
+    (zone._$(`${potselector}_zero`) as HTMLElement).style.display = knob.bipolar ? 'block' : 'none';
+    zone._$(`${potselector}_discrete`)?.setAttribute('d', knob.discrete);
     const potcontainer = zone._$(potselector) as HTMLElement;
     potcontainer.dataset.type = String(c.type);
     potcontainer.dataset.group = String(c.group || 0);
     potcontainer.dataset.hasInput = c.number_in != null ? '1' : '';
     (zone._$(`${potselector} div.cclabel`) as HTMLElement).textContent =
       c.type == CCControllerType.NOTE_TO_CC ? 'Note to CC' : c.label;
-    let displayValue: number = c.val;
-    // Index into valueNames: the snap step, or the value counted from min
-    let nameIndex = -1;
-    if (c.type == CCControllerType.UNIPOLAR_ROTARY) {
-      displayValue = zone.remapCCValue(c.val, ix);
-      nameIndex = c.discreteValues?.length ? c.discreteValues.indexOf(c.val) : displayValue - (c.min || 0);
-    } else if (c.type == CCControllerType.NRPN) {
-      displayValue = zone.nrpnValue(c);
-      nameIndex = displayValue - (c.min || 0);
-      if (c.bipolar) displayValue -= Math.round(((c.min || 0) + (c.max ?? 16383)) / 2);
-    } else if (is14bit) {
-      const bits = 7 + (c.lsb_bits ?? 7);
-      displayValue = zone.hiResValue(c) - (isBipolar ? 1 << (bits - 1) : 0);
-    } else if (isBipolar) {
-      displayValue -= 64;
-    }
-    (zone._$(`${potselector} .value`) as HTMLElement).textContent = String(displayValue);
+    const display = controllerDisplay(zone, c, ix);
+    (zone._$(`${potselector} .value`) as HTMLElement).textContent = display.value;
     const valueName = zone._$(`${potselector} .valuename`) as HTMLElement | null;
     if (valueName) {
-      valueName.textContent = c.valueNames?.[nameIndex] ?? '';
-      valueName.title = valueName.textContent;
+      valueName.textContent = display.name;
+      valueName.title = display.name;
     }
     if (c.type == CCControllerType.NOTE_TO_CC) {
       let infotext = '';
@@ -149,67 +237,16 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIn
         } else {
           btn.style.display = 'none';
         }
-        if (ix == zone.selectedCCIndex) {
-          const labelin = zone._$(
-            `input[data-change="${zoneindex}:cc_button_label:${i}"]`
-          ) as HTMLInputElement;
-          const valuein = zone._$(
-            `input[data-change="${zoneindex}:cc_button_value:${i}"]`
-          ) as HTMLInputElement;
-          labelin.value = label || '';
-          valuein.value = typeof value == 'undefined' ? '' : value;
-        }
       }
       // One column up to 3 buttons, then two columns of up to 4 rows
       const rows = visibleButtons <= 3 ? Math.max(visibleButtons, 1) : Math.ceil(visibleButtons / 2);
       (zone._$(`${potselector} .buttons`) as HTMLElement).style.setProperty('--button-rows', String(rows));
     }
-    if (ix == zone.selectedCCIndex) {
-      DOM.addClass(potselector, 'selected');
-      if (zone.editCC) {
-        (zone._$('.cc-editor') as HTMLElement).dataset.type = String(c.type);
-        (zone._$('.cc-editor .cclabel') as HTMLInputElement).value = c.label;
-        (zone._$('.cc-editor .cc-out-lsb') as HTMLInputElement).value =
-          typeof c.number_lsb == 'undefined' ? '' : String(c.number_lsb);
-        (zone._$('.cc-editor .cc-in') as HTMLInputElement).value = c.number_in != null ? String(c.number_in) : '';
-        (zone._$('.cc-editor .cc-out') as HTMLInputElement).value = String(c.number);
-        (zone._$('.cc-editor .cc-min') as HTMLInputElement).value = String(c.min || 0);
-        (zone._$('.cc-editor .cc-max') as HTMLInputElement).value = String(c.max ?? 127);
-        (zone._$('.cc-editor .cc-14bit-format') as HTMLSelectElement).value =
-          `${c.lsb_bits ?? 7}:${c.msb_first ? 'msb' : 'lsb'}`;
-        zone.elements.addSelectedStyle('.cc-editor .cc-nrpn-bipolar', !!c.bipolar);
-        (zone._$('.cc-editor .cc_value_names') as HTMLInputElement).value = c.valueNames?.join(', ') || '';
-        (zone._$('.cc-editor .cc-nrpn-msb') as HTMLInputElement).value = String(c.nrpn_msb || 0);
-        (zone._$('.cc-editor .cc-nrpn-lsb') as HTMLInputElement).value = String(c.nrpn_lsb || 0);
-        (zone._$('.cc-editor .cc-nrpn-data-lsb') as HTMLSelectElement).value =
-          c.nrpn_data_lsb_cc != null ? `${c.nrpn_data_lsb_cc}:${c.nrpn_data_lsb_bits ?? 7}` : 'none';
-        (zone._$('.cc-editor .cc_change_type') as HTMLSelectElement).value = String(c.type);
-        (zone._$('.cc-editor .cc_change_group') as HTMLSelectElement).selectedIndex = c.group || 0;
-        (zone._$('.cc-editor .cc_notenum2cc') as HTMLInputElement).value = c.note_cc != null ? String(c.note_cc) : '';
-        (zone._$('.cc-editor .cc_notevelocity2cc') as HTMLInputElement).value = c.velocity_cc != null ? String(c.velocity_cc) : '';
-        (zone._$('.cc-editor .cc_discrete_values') as HTMLInputElement).value =
-          c.discreteValues?.join(',') || '';
-      }
-    } else {
-      DOM.removeClass(potselector, 'selected');
-    }
   });
   if (onlyIndex === undefined) {
-    zone.elements.addSelectedStyle('.cc-edit-toggle', zone.editCC);
-    // Linked device preset, "•" when the controllers were changed since
-    const presetName = zone._$('.cctools .cc-preset-name') as HTMLElement;
-    const linked = findDevicePreset(zone.devicePreset?.id);
-    presetName.textContent = zone.devicePreset
-      ? zone.devicePreset.name + (!linked || differsFromPreset(zone.cc_controllers, linked) ? ' •' : '')
-      : 'Presets';
+    (zone._$('.cctools .cc-preset-name') as HTMLElement).textContent = devicePresetLabel(zone);
   }
-  const wasEditing = zone.elements.ccPots![0]?.classList.contains('cc-edit') ?? false;
-  DOM.switchClass(zone.elements.ccPots!, zone.editCC, 'cc-edit');
-  if (zone.editCC && !wasEditing) {
-    requestAnimationFrame(() => {
-      (zone._$('.cc-editor') as HTMLElement)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    });
-  }
+  controllersChanged?.(zone, zoneindex, onlyIndex);
 }
 
 export function renderControllersForZone(
@@ -227,89 +264,17 @@ export function renderControllersForZone(
     zoneTemplate.getControllerHTML(zone, index)
   );
   zone.elements.emptyCache();
-  const panel = document.querySelector(`#zone${index} .ccpots`) as HTMLElement;
-  // The editor and toolbar are not re-rendered: bind their listeners once
-  if (!panel.dataset.bound) {
-    panel.dataset.bound = '1';
-    const suckEvent = (e: Event): void => {
-      e.stopPropagation();
-    };
-    DOM.on(`#zone${index} .ccpots .cc-editor`, 'click', suckEvent);
-    DOM.on(`#zone${index} .ccpots input`, 'keyup', suckEvent);
-    DOM.on(`#zone${index} .ccpots input`, 'focus', (e) => {
-      (e.target as HTMLInputElement).select();
-      const actionString =
-        (e.target as HTMLElement).getAttribute('data-change') ||
-        (e.target as HTMLElement).getAttribute('data-action');
-      onGestureStart(
-        actionString ? describeActionForZone(actionString, zone, index) : labelForZone(zone, index, 'CC Value')
-      );
-    });
-    DOM.on(`#zone${index} .ccpots input`, 'blur', () => {
-      onGestureEnd();
-    });
-    // MIDI learn only while "In CC#" has focus, so pedals and wheels don't rebind controllers
-    const ccIn = panel.querySelector('.cc-editor .cc-in') as HTMLInputElement;
-    ccIn.addEventListener('focus', () => {
-      zone.midiLearnCC = true;
-      ccIn.classList.add('midi-learn-active');
-    });
-    ccIn.addEventListener('blur', () => {
-      zone.midiLearnCC = false;
-      ccIn.classList.remove('midi-learn-active');
-    });
-  }
 
   DOM.all(`#zone${index} .ccpots .ccpot`).forEach((pot, ix) => {
-    const is14bit = isHiResCC(zone.cc_controllers[ix].type);
-    (pot.querySelector('.cclabel') as HTMLElement).addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (zone.selectedCCIndex === ix && zone.editCC) {
-        zone.editCC = false;
-      } else {
-        zone.selectedCCIndex = ix;
-        zone.editCC = true;
-      }
-      updateControllerValues(zone, index);
+    // The zone is for playing; double-click opens the controller editor
+    pot.addEventListener('dblclick', (e) => {
+      if ((e.target as HTMLElement).closest('.ccbtn')) return;
+      actionHandler(e as MouseEvent, `${index}:cc_edit:${ix}`);
     });
-
     pot.addEventListener('mousedown', (e) => {
       const mouseEvent = e as MouseEvent;
-      if (
-        (e.target as HTMLElement).closest('.cclabel') ||
-        (zone.cc_controllers[ix].type > 1 &&
-          zone.cc_controllers[ix].type < 5) ||
-        zone.editCC ||
-        mouseEvent.button !== 0
-      ) {
-        return;
-      }
-      onGestureStart(labelForZone(zone, index, zone.cc_controllers[ix].label || `CC ${ix + 1}`));
-      const currentValue14 = is14bit
-        ? zone.cc_controllers[ix].val
-        : zone.cc_controllers[ix].val << 7;
-      potDragHandler.startDrag(
-        mouseEvent,
-        currentValue14,
-        (v) => {
-          const oldVal = zone.cc_controllers[ix].val;
-          const oldOutput = zone.ccOutputValue(ix);
-          if (is14bit) {
-            zone.cc_controllers[ix].val = v;
-          } else {
-            zone.snap2DiscreteValue(v >> 7, ix);
-          }
-          if (zone.cc_controllers[ix].val !== oldVal) {
-            // Narrow ranges map many knob positions onto one value: send only real changes
-            if (zone.ccOutputValue(ix) !== oldOutput) zone.sendCC(ix);
-            updateControllerValues(zone, index, ix);
-          }
-        },
-        () => {
-          onGestureEnd();
-          triggerSave();
-        }
-      );
+      if (!isRotary(zone.cc_controllers[ix]) || mouseEvent.button !== 0) return;
+      startControllerDrag(zone, index, ix, mouseEvent, onGestureStart, onGestureEnd, triggerSave);
     });
   });
   if (zone.cc_controllers.length === 0) {
@@ -324,8 +289,5 @@ export function renderControllersForZone(
 
   DOM.all(`#zone${index} .ccpots *[data-action]`).forEach((e) => {
     e.addEventListener('click', actionHandler as EventListener);
-  });
-  DOM.all(`#zone${index} .ccpots *[data-change]`).forEach((e) => {
-    e.addEventListener('input', actionHandler as EventListener);
   });
 }

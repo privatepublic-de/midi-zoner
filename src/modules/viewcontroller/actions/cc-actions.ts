@@ -1,6 +1,5 @@
 import { ActionContext, ActionHelpers, ActionMap } from '../types';
 import { ipcRenderer } from 'electron';
-import { labelForZone } from '../action-labels';
 import { CCController, CCControllerType, isHiResCC } from '../../zone/interfaces';
 import { escapeHTML } from '../../domutils';
 import {
@@ -11,6 +10,7 @@ import {
 } from '../../device-presets';
 import { askDevicePresetMeta } from '../device-preset-dialog';
 import { openDevicePresetManager } from '../device-preset-manager';
+import { openCCEditor } from '../cc-editor';
 
 export function createCCActions(
   ctx: ActionContext,
@@ -19,7 +19,7 @@ export function createCCActions(
 ): ActionMap {
   const {
     zone, zoneindex, element, actionParam1, actionParam2, ev,
-    zones, pushHistory, triggerSave,
+    zones, triggerSave,
     updateValuesForZone, updateControllerValues, toast
   } = ctx;
 
@@ -36,13 +36,16 @@ export function createCCActions(
   // Min/Max are device units for NRPN, CC values otherwise
   const rangeMax = (): number => (selected().type == CCControllerType.NRPN ? 16383 : 127);
 
+  // Knob positions of n evenly spread snap steps
+  const evenSteps = (n: number): number[] => Array.from({ length: n }, (_, i) => Math.round((i * 127) / (n - 1)));
+
   const actions: ActionMap = {
     cc_toggle: () => {
       zone.show_cc = !zone.show_cc;
       updateValuesForZone(zoneindex);
       triggerSave();
       if (zone.show_cc) {
-        toast("Click a controller's name to edit it");
+        toast('Double-click a controller to edit it');
       }
     },
     cc_send_all: () => {
@@ -50,24 +53,11 @@ export function createCCActions(
       toast('All CC values sent');
     },
     cc_edit: () => {
-      if (zone.cc_controllers.length === 0) return;
-      zone.editCC = !zone.editCC;
-      if (zone.selectedCCIndex < 0) zone.selectedCCIndex = 0;
-      if (actionParam1 != null) {
-        zone.selectedCCIndex = parseInt(actionParam1);
-      }
-      updateControllerValues(zone, zoneindex);
+      openCCEditor(zoneindex, actionParam1 != null ? parseInt(actionParam1) : undefined);
     },
     cc_select: () => {
-      if (actionParam1 == '-1' || zone.selectedCCIndex == parseInt(actionParam1)) {
-        zone.editCC = false;
-        updateControllerValues(zone, zoneindex);
-      } else {
-        zone.selectedCCIndex = parseInt(actionParam1);
-        if (zone.editCC) {
-          updateControllerValues(zone, zoneindex);
-        }
-      }
+      zone.selectedCCIndex = parseInt(actionParam1);
+      updateControllerValues(zone, zoneindex);
     },
     cc_label: () => {
       zone.cc_controllers[zone.selectedCCIndex].label = (element as HTMLInputElement).value;
@@ -139,40 +129,76 @@ export function createCCActions(
         triggerSave();
       }
     },
-    cc_discrete_values: () => {
-      const inputElement = element as HTMLInputElement;
-      inputElement.value = inputElement.value.replace(/[^0-9,]/g, '');
-      const raw = inputElement.value.trim();
-      let discreteValues: number[];
-      if (raw === '') {
-        discreteValues = [];
-      } else if (/^\d+$/.test(raw)) {
-        // Single integer 2–64: auto-expand to N equal steps
-        const n = parseInt(raw);
-        if (n >= 2 && n <= 64) {
-          const c = zone.cc_controllers[zone.selectedCCIndex];
-          const maxVal = isHiResCC(c.type) ? 16383 : 127;
-          discreteValues = Array.from({ length: n }, (_, i) =>
-            Math.round(i * maxVal / (n - 1))
-          );
-        } else {
-          discreteValues = [n].filter(v => !isNaN(v) && v >= 0);
-        }
-      } else {
-        discreteValues = raw.split(',')
-          .map(v => parseInt(v))
-          .filter(v => !isNaN(v) && v >= 0);
-      }
-      zone.cc_controllers[zone.selectedCCIndex].discreteValues = discreteValues;
+    cc_snap: () => {
+      // On: even steps (as many as there are names, or 8); off: a continuous knob
+      const c = selected();
+      if (c.discreteValues?.length) delete c.discreteValues;
+      else c.discreteValues = evenSteps(Math.max(2, Math.min(64, c.valueNames?.length || 8)));
       updateControllerValues(zone, zoneindex);
       triggerSave();
     },
-    cc_value_names: () => {
-      const c = zone.cc_controllers[zone.selectedCCIndex];
-      const names = (element as HTMLInputElement).value.split(',').map((n) => n.trim().slice(0, 24));
-      while (names.length > 0 && names[names.length - 1] === '') names.pop();
-      if (names.length > 0) c.valueNames = names.slice(0, 128);
+    cc_step_spread: () => {
+      const n = parseInt(actionParam1);
+      if (isNaN(n)) return;
+      selected().discreteValues = evenSteps(Math.max(2, Math.min(64, n)));
+      updateControllerValues(zone, zoneindex);
+      triggerSave();
+    },
+    cc_step_value: () => {
+      const value = numberField(127);
+      const steps = selected().discreteValues;
+      if (value == null || !steps) return;
+      steps[parseInt(actionParam1)] = value;
+      updateControllerValues(zone, zoneindex);
+      triggerSave();
+    },
+    cc_step_remove: () => {
+      const c = selected();
+      const i = parseInt(actionParam1);
+      c.discreteValues?.splice(i, 1);
+      c.valueNames?.splice(i, 1);
+      if (!c.discreteValues?.length) delete c.discreteValues;
+      if (!c.valueNames?.length) delete c.valueNames;
+      updateControllerValues(zone, zoneindex);
+      triggerSave();
+    },
+    cc_value_add: () => {
+      // A step after the last one (snapping knobs), or the name of the next value
+      const c = selected();
+      const steps = c.discreteValues;
+      if (c.type == CCControllerType.UNIPOLAR_ROTARY && steps?.length) {
+        const last = steps[steps.length - 1];
+        const gap = steps.length > 1 ? last - steps[steps.length - 2] : 16;
+        steps.push(Math.max(0, Math.min(127, last + Math.max(1, gap))));
+        c.valueNames = c.valueNames ?? [];
+        while (c.valueNames.length < steps.length - 1) c.valueNames.push('');
+        c.valueNames.push('');
+      } else {
+        c.valueNames = [...(c.valueNames ?? []), ''];
+      }
+      updateControllerValues(zone, zoneindex);
+      triggerSave();
+    },
+    cc_value_name: () => {
+      const c = selected();
+      const i = parseInt(actionParam1);
+      const names = c.valueNames ?? [];
+      while (names.length <= i) names.push('');
+      names[i] = (element as HTMLInputElement).value.slice(0, 24);
+      // Clearing the last name removes it (and other empty ones before it)
+      if (i == names.length - 1) while (names.length > 0 && names[names.length - 1].trim() === '') names.pop();
+      if (names.length > 0) c.valueNames = names;
       else delete c.valueNames;
+      updateControllerValues(zone, zoneindex);
+      triggerSave();
+    },
+    cc_learn: () => {
+      zone.midiLearnCC = !zone.midiLearnCC;
+      updateControllerValues(zone, zoneindex);
+    },
+    cc_clear_input: () => {
+      selected().number_in = null;
+      zone.midiLearnCC = false;
       updateControllerValues(zone, zoneindex);
       triggerSave();
     },
@@ -294,7 +320,7 @@ export function createCCActions(
           zones.list.forEach((z, i) => {
             const preset = findDevicePreset(z.devicePreset?.id);
             if (preset && z.devicePreset) z.devicePreset.name = preset.name;
-            if (z.editCC) updateControllerValues(z, i);
+            updateControllerValues(z, i);
           });
           triggerSave();
         }
@@ -302,51 +328,54 @@ export function createCCActions(
     },
     cc_add: () => {
       // After the selected controller, or at the end when none is selected
-      const selected = zone.cc_controllers[zone.selectedCCIndex];
-      const insertAt = selected ? zone.selectedCCIndex + 1 : zone.cc_controllers.length;
-      const type = selected?.type ?? CCControllerType.UNIPOLAR_ROTARY;
-      zone.cc_controllers.splice(insertAt, 0, {
+      const current = zone.cc_controllers[zone.selectedCCIndex];
+      const insertAt = current ? zone.selectedCCIndex + 1 : zone.cc_controllers.length;
+      const type = current?.type ?? CCControllerType.UNIPOLAR_ROTARY;
+      const labels = new Set(zone.cc_controllers.map((c) => c.label));
+      let n = zone.cc_controllers.length + 1;
+      while (labels.has(`Ctrl #${n}`)) n++;
+      const controller: any = {
         number: 1,
         number_in: null,
         min: 0,
         max: type == CCControllerType.NRPN ? 16383 : 127,
         type,
-        label: `Ctrl #${insertAt + 1}`,
+        label: `Ctrl #${n}`,
         val: 0,
         note_cc: null,
-        velocity_cc: null
-      } as any);
+        velocity_cc: null,
+        group: current?.group ?? 0
+      };
+      if (type == CCControllerType.NRPN) {
+        controller.nrpn_data_lsb_cc = 38;
+        controller.nrpn_data_lsb_bits = 7;
+      }
+      zone.cc_controllers.splice(insertAt, 0, controller);
       zone.selectedCCIndex = insertAt;
-      // The first controller of an empty panel opens in the editor
-      if (zone.cc_controllers.length === 1) zone.editCC = true;
+      renderControllersForZone(zone, zoneindex);
+      triggerSave();
+      openCCEditor(zoneindex, insertAt);
+    },
+    cc_duplicate: () => {
+      const current = zone.cc_controllers[zone.selectedCCIndex];
+      if (!current) return;
+      // A copy is not played by the same hardware control
+      const copy = { ...JSON.parse(JSON.stringify(current)), number_in: null };
+      zone.cc_controllers.splice(zone.selectedCCIndex + 1, 0, copy);
+      zone.selectedCCIndex++;
       renderControllersForZone(zone, zoneindex);
       triggerSave();
     },
-    cc_remove: async () => {
-      const snapshotBeforeRemove = JSON.stringify(zones);
-      let description =
-        '#' +
-        (zone.selectedCCIndex + 1) +
-        ' "' +
-        zone.cc_controllers[zone.selectedCCIndex].label +
-        '"';
-      await ipcRenderer
-        .invoke(
-          'open-confirm',
-          'CC' + description,
-          'Do you really want to delete controller ' + description + '?'
-        )
-        .then((result: boolean) => {
-          if (result == true) {
-            pushHistory(snapshotBeforeRemove, labelForZone(zone, zoneindex, `Remove CC ${description}`));
-            zone.cc_controllers.splice(zone.selectedCCIndex, 1);
-            // The next controller moves into place; nothing left to edit when it was the last one
-            zone.selectedCCIndex = Math.min(zone.selectedCCIndex, zone.cc_controllers.length - 1);
-            if (zone.cc_controllers.length === 0) zone.editCC = false;
-            renderControllersForZone(zone, zoneindex);
-            triggerSave();
-          }
-        });
+    cc_remove: () => {
+      const current = zone.cc_controllers[zone.selectedCCIndex];
+      if (!current) return;
+      zone.cc_controllers.splice(zone.selectedCCIndex, 1);
+      // The next controller moves into place
+      zone.selectedCCIndex = Math.min(zone.selectedCCIndex, zone.cc_controllers.length - 1);
+      zone.midiLearnCC = false;
+      renderControllersForZone(zone, zoneindex);
+      triggerSave();
+      toast(`Deleted "${escapeHTML(current.label || 'controller')}" (undo brings it back)`);
     },
     cc_change_type: () => {
       const c = zone.cc_controllers[zone.selectedCCIndex];
@@ -371,8 +400,18 @@ export function createCCActions(
       renderControllersForZone(zone, zoneindex);
       triggerSave();
     },
-    cc_change_group: () => {
-      zone.cc_controllers[zone.selectedCCIndex].group = (element as HTMLSelectElement).selectedIndex;
+    cc_group_set: () => {
+      selected().group = parseInt(actionParam1);
+      renderControllersForZone(zone, zoneindex);
+      triggerSave();
+    },
+    cc_move_to: () => {
+      const from = parseInt(actionParam1);
+      const to = parseInt(actionParam2);
+      if (!zone.cc_controllers[from] || to < 0 || to >= zone.cc_controllers.length || from == to) return;
+      const [moved] = zone.cc_controllers.splice(from, 1);
+      zone.cc_controllers.splice(to, 0, moved);
+      zone.selectedCCIndex = to;
       renderControllersForZone(zone, zoneindex);
       triggerSave();
     },

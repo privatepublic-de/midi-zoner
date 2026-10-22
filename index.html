@@ -273,6 +273,190 @@
         </div>
       </div>
     </div>
+    <div id="ccEditor" role="dialog" aria-modal="true" aria-label="Controller editor" tabindex="-1">
+      <div class="cce-header">
+        <span class="cce-title">Controllers</span>
+        <div
+          class="action menu-button cce-preset-button"
+          title="Device presets: apply one (⇧-click appends), save these controllers as a preset, manage presets"
+          data-contextclick
+        >
+          <i class="material-icons">tune</i><span class="cc-preset-name">Presets</span><i class="material-icons">expand_more</i>
+        </div>
+        <div class="cce-spacer"></div>
+        <button class="cce-icon-button" data-cce-action="cc_send_all" title="Send the values of all controllers">
+          <i class="material-icons">double_arrow</i>Send all
+        </button>
+        <button class="cce-icon-button cce-undo" title="Undo (⌘Z)"><i class="material-icons">undo</i></button>
+        <button class="cce-icon-button cce-redo" title="Redo (⇧⌘Z)"><i class="material-icons">redo</i></button>
+        <button class="cce-icon-button cce-close" title="Close (Esc)"><i class="material-icons">close</i></button>
+      </div>
+      <div class="cce-body">
+        <div class="cce-list-pane">
+          <div class="cce-table" role="listbox" aria-label="Controllers">
+            <div class="cce-row cce-head" aria-hidden="true">
+              <span></span><span>Name</span><span>Type</span><span>Sends</span><span>Range</span><span>Played by</span>
+            </div>
+            <div class="cce-rows"></div>
+            <p class="cce-empty">No controllers yet. Add one, or apply a device preset.</p>
+          </div>
+          <div class="cce-list-tools">
+            <button class="cce-tool" data-cce-action="cc_add" title="Add a controller after the selected one">
+              <i class="material-icons">add</i>Add
+            </button>
+            <button class="cce-tool" data-cce-action="cc_duplicate" data-needs-selection title="Duplicate the selected controller">
+              <i class="material-icons">content_copy</i>Duplicate
+            </button>
+            <button class="cce-tool" data-cce-action="cc_left" data-needs-selection title="Move up (⌥↑, with ⇧ by 4)">
+              <i class="material-icons">arrow_upward</i>
+            </button>
+            <button class="cce-tool" data-cce-action="cc_right" data-needs-selection title="Move down (⌥↓, with ⇧ by 4)">
+              <i class="material-icons">arrow_downward</i>
+            </button>
+            <div class="cce-spacer"></div>
+            <button class="cce-tool warn" data-cce-action="cc_remove" data-needs-selection title="Delete the selected controller (⌫)">
+              <i class="material-icons">delete</i>Delete
+            </button>
+          </div>
+          <div class="cce-layout" title="How the controllers are laid out in the zone"></div>
+        </div>
+
+        <div class="cce-inspector">
+          <p class="cce-none">Select a controller to edit it.</p>
+          <div class="cce-detail">
+            <div class="cce-hero">
+              <div class="cce-knob" data-types="0 1 5 6 7" title="Drag to try it out: this knob sends to the device (⇧ for fine steps)">
+                <svg width="112" height="112" viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg">
+                  <path class="cce-knob-range" d="" stroke="var(--darker-2)" stroke-width="6" fill="none" />
+                  <path class="cce-knob-value" d="" stroke="var(--cce-accent)" stroke-width="6" fill="none" />
+                  <path class="cce-knob-discrete" d="" stroke="var(--bg-topbar)" stroke-width="1" fill="none" />
+                  <rect class="cce-knob-zero" x="27" y="8" width="2" height="8" fill="var(--brighter-2)" />
+                </svg>
+                <span class="cce-knob-value-text"></span>
+                <span class="cce-knob-name"></span>
+              </div>
+              <div class="cce-button-preview" data-types="3" title="Click a button to send its value"></div>
+              <div class="cce-hero-fields">
+                <label class="cce-field" data-types="0 1 3 5 6 7">
+                  <span>Name</span>
+                  <input type="text" class="cce-name" maxlength="64" data-cce-change="cc_label" />
+                </label>
+                <label class="cce-field">
+                  <span>Type</span>
+                  <select class="cce-type" data-cce-change="cc_change_type">
+                    <option value="0">Knob</option>
+                    <option value="1">Knob, bipolar</option>
+                    <option value="5">Knob, 14 bit</option>
+                    <option value="6">Knob, 14 bit bipolar</option>
+                    <option value="7">Knob, NRPN</option>
+                    <hr />
+                    <option value="3">Buttons</option>
+                    <option value="4">Note to CC</option>
+                    <option value="2">Spacer</option>
+                  </select>
+                </label>
+                <div class="cce-field" data-types="0 1 3 4 5 6 7">
+                  <span>Colour</span>
+                  <div class="cce-colours">
+                    <button class="cce-colour" data-group="0" data-cce-action="cc_group_set:0" title="Standard"></button>
+                    <button class="cce-colour" data-group="1" data-cce-action="cc_group_set:1" title="Colour A"></button>
+                    <button class="cce-colour" data-group="2" data-cce-action="cc_group_set:2" title="Colour B"></button>
+                    <button class="cce-colour" data-group="3" data-cce-action="cc_group_set:3" title="Colour C"></button>
+                    <button class="cce-colour" data-group="4" data-cce-action="cc_group_set:4" title="Colour D"></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <section class="cce-section" data-types="0 1 3 5 6 7">
+              <h3>Sends</h3>
+              <div class="cce-grid">
+                <label class="cce-field" data-types="0 1 3"><span>CC</span>
+                  <input type="number" class="cce-cc" min="0" max="127" data-cce-change="cc_number" /></label>
+                <label class="cce-field" data-types="5 6"><span>MSB CC</span>
+                  <input type="number" class="cce-cc-msb" min="0" max="127" data-cce-change="cc_number" /></label>
+                <label class="cce-field" data-types="5 6"><span>LSB CC</span>
+                  <input type="number" class="cce-cc-lsb" min="0" max="127" data-cce-change="cc_number_lsb" /></label>
+                <label class="cce-field cce-wide" data-types="5 6" title="Resolution and order of the MSB / LSB messages"><span>Format</span>
+                  <select class="cce-14bit-format" data-cce-change="cc_14bit_format">
+                    <option value="7:lsb">14 bit, LSB first</option>
+                    <option value="7:msb">14 bit, MSB first</option>
+                    <option value="3:lsb">10 bit, LSB on CC 63 first (Korg logue)</option>
+                  </select></label>
+                <label class="cce-field" data-types="7" title="NRPN parameter number, sent as CC 99"><span>NRPN MSB</span>
+                  <input type="number" class="cce-nrpn-msb" min="0" max="127" data-cce-change="cc_nrpn_msb" /></label>
+                <label class="cce-field" data-types="7" title="NRPN parameter number, sent as CC 98"><span>NRPN LSB</span>
+                  <input type="number" class="cce-nrpn-lsb" min="0" max="127" data-cce-change="cc_nrpn_lsb" /></label>
+                <label class="cce-field cce-wide" data-types="7" title="How the value is split into Data Entry (CC 6) and its low bits"><span>Data</span>
+                  <select class="cce-nrpn-data" data-cce-change="cc_nrpn_data_lsb">
+                    <option value="38:7">CC 6 + CC 38 (14 bit)</option>
+                    <option value="63:3">CC 6 + CC 63 (3 bit, Korg logue)</option>
+                    <option value="none">CC 6 only (7 bit)</option>
+                  </select></label>
+              </div>
+            </section>
+
+            <section class="cce-section" data-types="4">
+              <h3>Sends</h3>
+              <div class="cce-grid">
+                <label class="cce-field cce-wide"><span>Note number as CC</span>
+                  <input type="number" class="cce-note-cc" min="0" max="127" placeholder="off" data-cce-change="cc_notenum2cc" /></label>
+                <label class="cce-field cce-wide"><span>Velocity as CC</span>
+                  <input type="number" class="cce-velocity-cc" min="0" max="127" placeholder="off" data-cce-change="cc_notevelocity2cc" /></label>
+              </div>
+            </section>
+
+            <section class="cce-section" data-types="0 1 7">
+              <h3>Range</h3>
+              <div class="cce-grid">
+                <label class="cce-field"><span>Min</span>
+                  <input type="number" class="cce-min" min="0" max="16383" data-cce-change="cc_min" /></label>
+                <label class="cce-field"><span>Max</span>
+                  <input type="number" class="cce-max" min="0" max="16383" data-cce-change="cc_max" /></label>
+                <button class="cce-check" data-types="7" data-cce-action="cc_nrpn_bipolar" title="Draw the knob from the centre and show values relative to the middle of Min–Max">
+                  <i class="material-icons"></i>Bipolar
+                </button>
+              </div>
+              <p class="cce-hint cce-range-hint"></p>
+            </section>
+
+            <section class="cce-section" data-types="0 1 3 5 6 7">
+              <h3>Played by</h3>
+              <div class="cce-grid">
+                <label class="cce-field"><span>Input CC</span>
+                  <input type="number" class="cce-in" min="0" max="127" placeholder="none" data-cce-change="cc_number_in" /></label>
+                <button class="cce-learn" data-cce-action="cc_learn" title="Then move a control on your keyboard or controller">
+                  <i class="material-icons">sensors</i><span>Learn</span>
+                </button>
+                <button class="cce-tool cce-clear-in" data-cce-action="cc_clear_input" title="Remove the hardware mapping">Clear</button>
+              </div>
+            </section>
+
+            <section class="cce-section" data-types="0 7">
+              <h3>Values</h3>
+              <div class="cce-values-head">
+                <button class="cce-check cce-snap" data-types="0" data-cce-action="cc_snap" title="The knob only stops at the listed values">
+                  <i class="material-icons"></i>Snap to steps
+                </button>
+                <span class="cce-spread" data-types="0">
+                  <input type="number" class="cce-spread-count" min="2" max="64" value="8" title="Number of steps" />
+                  <button class="cce-tool cce-spread-button" title="Spread this many steps evenly over the knob">Spread evenly</button>
+                </span>
+              </div>
+              <p class="cce-hint cce-values-hint"></p>
+              <div class="cce-values"></div>
+              <button class="cce-tool cce-value-add" data-cce-action="cc_value_add"><i class="material-icons">add</i><span></span></button>
+            </section>
+
+            <section class="cce-section" data-types="3">
+              <h3>Buttons</h3>
+              <p class="cce-hint">Buttons without a label are hidden. Up to 3 show in one column, more in two.</p>
+              <div class="cce-buttons-edit"></div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
     <a id="valueUp" class="valuebtn preventLeave">
       <svg height="20" width="8" xmlns="http://www.w3.org/2000/svg">
         <polygon points="6,11 0,6 0,16" style="fill: #ffffff" />

@@ -888,12 +888,13 @@ document.addEventListener('DOMContentLoaded', function () {
         const resultMessage = zone.handleMidi(msgtype, data);
         if (resultMessage && /^(updateCC|midiLearn)/.test(resultMessage)) {
           const colonPos = resultMessage.indexOf(':');
-          const onlyIndex = colonPos > -1 ? parseInt(resultMessage.slice(colonPos + 1)) : undefined;
           const isLearn = resultMessage.startsWith('midiLearn');
+          // A learned mapping changes the editor's list too, not just one knob
+          const onlyIndex = colonPos > -1 && !isLearn ? parseInt(resultMessage.slice(colonPos + 1)) : undefined;
           requestAnimationFrame(() => {
             view.updateControllerValues(zone, index, onlyIndex);
             if (isLearn) {
-              const ccInInput = document.querySelector(`#zone${index} .cc-editor .cc-in`) as HTMLInputElement;
+              const ccInInput = document.querySelector('#ccEditor .cce-in') as HTMLInputElement;
               if (ccInInput) {
                 ccInInput.classList.add('midi-learn-flash');
                 setTimeout(() => ccInInput.classList.remove('midi-learn-flash'), 300);

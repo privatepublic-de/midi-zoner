@@ -112,7 +112,6 @@ export class Zone {
     }
   ];
   show_cc = false;
-  editCC = false;
   devicePreset: { id: string; name: string } | null = null;
   selectedCCIndex = 0;
   at2mod = false;
@@ -120,7 +119,7 @@ export class Zone {
   euclid_hits = 5;
   euclid_length = 8;
   midiLearnDrumLaneIndex: number | null = null;
-  /** True while the CC editor's "In CC#" field has focus: the next CC is learned */
+  /** Armed by the controller editor's Learn button: the next incoming CC is learned */
   midiLearnCC = false;
   swingAmount: number = 0; // 0 to 1 (0% to 100%)
   private _arp_enabled = false;
@@ -660,8 +659,9 @@ export class Zone {
           }
           break;
         case MIDI.MESSAGE.CONTROLLER:
-          if (this.midiLearnCC && this.editCC && this.cc_controllers[this.selectedCCIndex]) {
+          if (this.midiLearnCC && this.cc_controllers[this.selectedCCIndex]) {
             this.cc_controllers[this.selectedCCIndex].number_in = data[1];
+            this.midiLearnCC = false;
             return `midiLearn:${this.selectedCCIndex}`;
           }
           let firstMatchedCC = -1;
