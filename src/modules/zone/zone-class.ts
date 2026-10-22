@@ -1635,22 +1635,18 @@ export class Zone {
       return;
     }
     if (isHiResCC(ctrl.type)) {
-      this.sendOut(
-        Uint8Array.from([
-          MIDI.MESSAGE.CONTROLLER + this.channel,
-          ctrl.number_lsb || 0,
-          ctrl.val & 0x7f
-        ]),
-        this.outputPortId
-      );
-      this.sendOut(
-        Uint8Array.from([
-          MIDI.MESSAGE.CONTROLLER + this.channel,
-          ctrl.number,
-          ctrl.val >> 7
-        ]),
-        this.outputPortId
-      );
+      const status = MIDI.MESSAGE.CONTROLLER + this.channel;
+      const lsbBits = ctrl.lsb_bits ?? 7;
+      const value = this.hiResValue(ctrl);
+      const lsb = Uint8Array.from([status, ctrl.number_lsb || 0, value & ((1 << lsbBits) - 1)]);
+      const msb = Uint8Array.from([status, ctrl.number, (value >> lsbBits) & 0x7f]);
+      if (ctrl.msb_first) {
+        this.sendOut(msb, this.outputPortId);
+        this.sendOut(lsb, this.outputPortId);
+      } else {
+        this.sendOut(lsb, this.outputPortId);
+        this.sendOut(msb, this.outputPortId);
+      }
     } else {
       this.sendOut(
         Uint8Array.from([
@@ -1661,6 +1657,11 @@ export class Zone {
         this.outputPortId
       );
     }
+  }
+
+  /** 14-bit type value at its resolution: 0–16383, or 0–1023 at 10 bit */
+  hiResValue(ctrl: CCController): number {
+    return ctrl.val >> (7 - (ctrl.lsb_bits ?? 7));
   }
 
   /** NRPN value in device units: the knob's 0–16383 mapped onto min–max */

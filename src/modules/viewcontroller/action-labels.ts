@@ -74,6 +74,7 @@ const ACTION_LABEL_OVERRIDES: Record<string, string | OverrideFn> = {
   cc_notevelocity2cc: 'Note Velocity → CC',
   cc_number_in: 'CC Input Number',
   cc_number_lsb: 'CC Number (LSB)',
+  cc_14bit_format: 'CC 14Bit Format',
   cc_nrpn_msb: 'NRPN Number (MSB)',
   cc_nrpn_lsb: 'NRPN Number (LSB)',
   cc_nrpn_data_lsb: 'NRPN Data Format',

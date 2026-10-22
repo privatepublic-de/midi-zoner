@@ -66,6 +66,14 @@ export function createCCActions(
         triggerSave();
       }
     },
+    cc_14bit_format: () => {
+      const c = zone.cc_controllers[zone.selectedCCIndex];
+      const [bits, order] = (element as HTMLSelectElement).value.split(':');
+      c.lsb_bits = parseInt(bits);
+      c.msb_first = order == 'msb';
+      updateControllerValues(zone, zoneindex);
+      triggerSave();
+    },
     cc_nrpn_msb: () => {
       const inputElement = element as HTMLInputElement;
       inputElement.value = inputElement.value.replace(/[^0-9]/g, '');

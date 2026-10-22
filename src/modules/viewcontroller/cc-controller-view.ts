@@ -96,8 +96,11 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIn
       displayValue = zone.remapCCValue(c.val, ix);
     } else if (c.type == CCControllerType.NRPN) {
       displayValue = zone.nrpnValue(c);
+    } else if (is14bit) {
+      const bits = 7 + (c.lsb_bits ?? 7);
+      displayValue = zone.hiResValue(c) - (isBipolar ? 1 << (bits - 1) : 0);
     } else if (isBipolar) {
-      displayValue = is14bit ? displayValue - 8192 : displayValue - 64;
+      displayValue -= 64;
     }
     (zone._$(`${potselector} .value`) as HTMLElement).textContent = String(displayValue);
     if (c.type == CCControllerType.NOTE_TO_CC) {
@@ -155,6 +158,8 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIn
         (zone._$('.cc-editor .cc-out') as HTMLInputElement).value = String(c.number);
         (zone._$('.cc-editor .cc-min') as HTMLInputElement).value = String(c.min || 0);
         (zone._$('.cc-editor .cc-max') as HTMLInputElement).value = String(c.max ?? 127);
+        (zone._$('.cc-editor .cc-14bit-format') as HTMLSelectElement).value =
+          `${c.lsb_bits ?? 7}:${c.msb_first ? 'msb' : 'lsb'}`;
         (zone._$('.cc-editor .cc-nrpn-msb') as HTMLInputElement).value = String(c.nrpn_msb || 0);
         (zone._$('.cc-editor .cc-nrpn-lsb') as HTMLInputElement).value = String(c.nrpn_lsb || 0);
         (zone._$('.cc-editor .cc-nrpn-data-lsb') as HTMLSelectElement).value =

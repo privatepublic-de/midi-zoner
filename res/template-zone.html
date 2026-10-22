@@ -678,6 +678,16 @@
           title="LSB CC#"
           tabindex="-1"
         />
+        <label class="show-type-5 show-type-6" title="Resolution and order of the MSB / LSB messages">Format</label>
+        <select
+          class="cc-14bit-format show-type-5 show-type-6"
+          data-change="${index}:cc_14bit_format"
+          tabindex="-1"
+        >
+          <option value="7:lsb">14 bit, LSB first</option>
+          <option value="7:msb">14 bit, MSB first</option>
+          <option value="3:lsb">10 bit, LSB first (Korg logue, LSB CC#63)</option>
+        </select>
         <label class="show-type-7" title="NRPN parameter number (CC99 / CC98)">NRPN MSB</label>
         <input
           type="number"

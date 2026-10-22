@@ -47,6 +47,10 @@ export interface CCController {
   number: number;
   number_in: number | null;
   number_lsb?: number;
+  // 14-bit types: bits carried by the LSB CC (7 = 14 bit, 3 = 10 bit as on Korg logue
+  // devices, where CC63 holds the low 3 bits) and whether the MSB CC is sent first
+  lsb_bits?: number;
+  msb_first?: boolean;
   // NRPN: parameter number, and how the value is split into Data Entry MSB (CC6) and a
   // low-bits CC: CC38 with 7 bits (standard), CC63 with 3 bits (Korg logue), or none (CC6 only)
   nrpn_msb?: number;
