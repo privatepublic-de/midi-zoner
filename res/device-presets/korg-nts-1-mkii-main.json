@@ -4,7 +4,7 @@
   "name": "Oscillator, filter & EG",
   "device": "KORG NTS-1 mkII",
   "portMatch": "NTS-1",
-  "notes": "Needs GLOBAL > MIDI Short Message = On. Knobs send the MSB CC first, then the LSB CC; if they move in coarse steps, switch Format to LSB first. Osc type uses values measured on the device (CC53: Saw 16, then steps of 8; the MIDI chart values are wrong). Filter has no Off/Thru button (CC42 = 127).",
+  "notes": "Needs GLOBAL > MIDI Short Message = On. Knobs send the MSB CC first, then the LSB CC; if they move in coarse steps, switch Format to LSB first. Osc type uses values measured on the device (CC53: Saw 16, Tri, Sqr, VPM, Noise, then User 1, 2, … in steps of 8; the MIDI chart values are wrong). User osc reaches User 9 (CC53 = 120). Filter has no Off/Thru button (CC42 = 127).",
   "controllers": [
     {
       "type": 3,
@@ -23,7 +23,42 @@
       "buttonlabel2": "Sqr",
       "buttonvalue2": 32,
       "buttonlabel3": "VPM",
-      "buttonvalue3": 40
+      "buttonvalue3": 40,
+      "buttonlabel4": "Noise",
+      "buttonvalue4": 48
+    },
+    {
+      "type": 0,
+      "label": "User osc",
+      "number": 53,
+      "val": 56,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 1,
+      "discreteValues": [
+        56,
+        64,
+        72,
+        80,
+        88,
+        96,
+        104,
+        112,
+        120
+      ],
+      "valueNames": [
+        "User 1",
+        "User 2",
+        "User 3",
+        "User 4",
+        "User 5",
+        "User 6",
+        "User 7",
+        "User 8",
+        "User 9"
+      ]
     },
     {
       "type": 5,
