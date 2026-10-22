@@ -1994,6 +1994,9 @@ input[type='range'] {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  /* wider than the name by half an arrow on each side: the arrows centre on the
+     underline's ends, the position in the middle */
+  margin: 0 -6px;
   height: 15px;
   color: var(--brighter-2);
 }
