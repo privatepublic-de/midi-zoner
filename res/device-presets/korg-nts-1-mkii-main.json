@@ -4,7 +4,7 @@
   "name": "Oscillator, filter & EG",
   "device": "KORG NTS-1 mkII",
   "portMatch": "NTS-1",
-  "notes": "Needs GLOBAL > MIDI Short Message = On. Knobs send the MSB CC first, then the LSB CC; if they move in coarse steps, switch Format to LSB first. Osc type uses values measured on the device (CC53: Saw 16, Tri, Sqr, VPM, Noise, then User 1, 2, … in steps of 8; the MIDI chart values are wrong). User osc reaches User 9 (CC53 = 120); choosing an empty slot keeps the last occupied one.",
+  "notes": "Needs GLOBAL > MIDI Short Message = On. Knobs send the MSB CC first, then the LSB CC; if they move in coarse steps, switch Format to LSB first. Osc type uses values measured on the device (CC53: Saw 16, Tri, Sqr, VPM, Noise, then User 1, 2, … in steps of 8; the MIDI chart values are wrong). User osc reaches User 9 (CC53 = 120); choosing an empty slot keeps the last occupied one. LFO depth: negative = pitch, positive = shape modulation. Sweep depth: negative = up, positive = down.",
   "controllers": [
     {
       "type": 3,
@@ -103,10 +103,10 @@
       "msb_first": true
     },
     {
-      "type": 5,
+      "type": 6,
       "label": "LFO depth",
       "number": 26,
-      "val": 0,
+      "val": 8192,
       "min": 0,
       "max": 127,
       "note_cc": null,
@@ -170,10 +170,10 @@
       "msb_first": true
     },
     {
-      "type": 5,
+      "type": 6,
       "label": "Sweep depth",
       "number": 45,
-      "val": 0,
+      "val": 8192,
       "min": 0,
       "max": 127,
       "note_cc": null,
