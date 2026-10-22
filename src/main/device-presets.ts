@@ -1,4 +1,4 @@
-import { app, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import path from 'path';
 import fs from 'fs';
 
@@ -71,6 +71,62 @@ export function registerDevicePresetHandlers(): void {
     }
     fs.writeFileSync(path.join(dir, `${fileId}.json`), json, 'utf-8');
     return `user/${fileId}`;
+  });
+
+  ipcMain.handle('presets-delete', (event, id: string): void => {
+    if (!USER_ID.test(id)) throw new Error(`Not a user preset: ${id}`);
+    fs.rmSync(path.join(userDir(), `${id.slice(5)}.json`), { force: true });
+  });
+
+  // Picks preset files to import; the renderer validates and saves them as new user presets
+  ipcMain.handle('presets-import', async (event): Promise<{ name: string; json: string }[]> => {
+    const win = BrowserWindow.fromWebContents(event.sender)!;
+    const result = await dialog.showOpenDialog(win, {
+      title: 'Import device presets',
+      buttonLabel: 'Import',
+      filters: [{ name: 'midi-zoner Device Preset', extensions: ['json'] }],
+      properties: ['openFile', 'multiSelections']
+    });
+    if (result.canceled) return [];
+    return result.filePaths.flatMap((f) => {
+      try {
+        return [{ name: path.basename(f), json: fs.readFileSync(f, 'utf-8') }];
+      } catch (e) {
+        console.log(e);
+        return [];
+      }
+    });
+  });
+
+  // One preset: save dialog. Several: pick a folder, files named after the presets.
+  // Returns the number of files written.
+  ipcMain.handle('presets-export', async (event, files: { name: string; json: string }[]): Promise<number> => {
+    const win = BrowserWindow.fromWebContents(event.sender)!;
+    if (files.length === 1) {
+      const result = await dialog.showSaveDialog(win, {
+        title: 'Export device preset',
+        defaultPath: `${slug(files[0].name)}.json`,
+        filters: [{ name: 'midi-zoner Device Preset', extensions: ['json'] }],
+        properties: ['createDirectory']
+      });
+      if (result.canceled || !result.filePath) return 0;
+      fs.writeFileSync(result.filePath, files[0].json, 'utf-8');
+      return 1;
+    }
+    const result = await dialog.showOpenDialog(win, {
+      title: 'Export device presets to folder',
+      buttonLabel: 'Export',
+      properties: ['openDirectory', 'createDirectory']
+    });
+    if (result.canceled) return 0;
+    const dir = result.filePaths[0];
+    for (const f of files) {
+      const base = slug(f.name);
+      let fileName = base;
+      for (let n = 2; fs.existsSync(path.join(dir, `${fileName}.json`)); n++) fileName = `${base}-${n}`;
+      fs.writeFileSync(path.join(dir, `${fileName}.json`), f.json, 'utf-8');
+    }
+    return files.length;
   });
 
   ipcMain.handle('presets-reveal', async (): Promise<void> => {

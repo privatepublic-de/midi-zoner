@@ -80,7 +80,7 @@ const contextMenuActionLabel: Record<string, string> = {
   cc_edit: '<i class="material-icons">edit</i> Edit CC controllers',
   cc_send_all: '<i class="material-icons">double_arrow</i> Send all CC values',
   cc_preset_save: '<i class="material-icons">save</i> Save as new preset…',
-  cc_presets_folder: '<i class="material-icons">folder_open</i> Show presets folder',
+  cc_presets_manage: '<i class="material-icons">library_books</i> Manage presets…',
   step_copy_length: 'Step length',
   step_copy_gate: 'Gate length',
   step_copy_condition: 'Condition',
@@ -352,7 +352,7 @@ function devicePresetMenu(zoneindex: number): string[] {
     }
     entries.push(`${zoneindex}:cc_preset_apply:${preset.id}`);
   }
-  entries.push('-', `${zoneindex}:cc_preset_update`, `${zoneindex}:cc_preset_save`, `${zoneindex}:cc_presets_folder`);
+  entries.push('-', `${zoneindex}:cc_preset_update`, `${zoneindex}:cc_preset_save`, `${zoneindex}:cc_presets_manage`);
   return entries;
 }
 

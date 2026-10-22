@@ -78,7 +78,7 @@ const ACTION_LABEL_OVERRIDES: Record<string, string | OverrideFn> = {
   cc_preset_apply: 'Apply Device Preset',
   cc_preset_save: 'Save Device Preset',
   cc_preset_update: 'Update Device Preset',
-  cc_presets_folder: 'Show Presets Folder',
+  cc_presets_manage: 'Manage Device Presets',
   cc_nrpn_msb: 'NRPN Number (MSB)',
   cc_nrpn_lsb: 'NRPN Number (LSB)',
   cc_nrpn_data_lsb: 'NRPN Data Format',

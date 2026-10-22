@@ -2923,7 +2923,8 @@ body.running .seqprogress.drum .inner {
   font-size: var(--fs-sm);
 }
 
-#presetSaveDialog {
+#presetSaveDialog,
+#presetManageDialog {
   background-color: var(--bg-topbar);
   border: 1px solid var(--border-topbar);
   border-radius: var(--radius);
@@ -2933,7 +2934,11 @@ body.running .seqprogress.drum .inner {
   padding: 8px 10px 10px;
   width: min(360px, calc(100vw - 32px));
 }
-#presetSaveDialog::backdrop {
+#presetManageDialog {
+  width: min(480px, calc(100vw - 32px));
+}
+#presetSaveDialog::backdrop,
+#presetManageDialog::backdrop {
   background: var(--darker-3);
 }
 #presetSaveDialog form {
@@ -2962,6 +2967,71 @@ body.running .seqprogress.drum .inner {
 }
 #presetSaveDialog textarea {
   resize: vertical;
+}
+.preset-manager-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: min(60vh, 480px);
+  overflow-y: auto;
+  margin: 8px 0;
+}
+.preset-manager-list .mckhelp-heading {
+  margin-top: 8px;
+}
+.preset-manager-list .mckhelp-heading:first-child {
+  margin-top: 0;
+}
+.preset-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 0 1px 4px;
+  border-radius: var(--radius);
+}
+.preset-row:hover {
+  background-color: var(--brighter-0);
+}
+.preset-row-name {
+  flex-grow: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.preset-row-badge {
+  font-size: var(--fs-sm);
+  color: var(--brighter-2);
+  border: 1px solid var(--brighter-1);
+  border-radius: var(--radius);
+  padding: 0 4px;
+}
+.preset-row-info {
+  font-size: var(--fs-sm);
+  color: var(--brighter-2);
+  white-space: nowrap;
+}
+.preset-row-action {
+  display: inline-flex;
+  color: var(--brighter-3);
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  padding: 2px;
+  cursor: pointer;
+}
+.preset-row-action:hover {
+  color: var(--brighter-4);
+  background-color: var(--brighter-1);
+}
+.preset-row-action.warn:hover {
+  background-color: var(--bg-toast-warning);
+  color: var(--text-toast-color);
+}
+.preset-row-action .material-icons {
+  font-size: var(--icon-md);
+}
+.preset-dialog-buttons button:disabled {
+  opacity: 0.4;
 }
 .preset-dialog-buttons {
   display: flex;

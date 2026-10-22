@@ -7,10 +7,10 @@ import {
   controllersFromPreset,
   findDevicePreset,
   getDevicePresets,
-  revealDevicePresetFolder,
   saveDevicePreset
 } from '../../device-presets';
 import { askDevicePresetMeta } from '../device-preset-dialog';
+import { openDevicePresetManager } from '../device-preset-manager';
 
 export function createCCActions(
   ctx: ActionContext,
@@ -266,8 +266,19 @@ export function createCCActions(
         toast(`Could not save the preset: ${escapeHTML(String(e))}`, { warning: true });
       }
     },
-    cc_presets_folder: () => {
-      revealDevicePresetFolder();
+    cc_presets_manage: () => {
+      openDevicePresetManager({
+        usage: (id) => zones.list.filter((z) => z.devicePreset?.id === id).length,
+        changed: () => {
+          // Linked zones show the preset's current name (deleted presets keep the last one)
+          zones.list.forEach((z, i) => {
+            const preset = findDevicePreset(z.devicePreset?.id);
+            if (preset && z.devicePreset) z.devicePreset.name = preset.name;
+            if (z.editCC) updateControllerValues(z, i);
+          });
+          triggerSave();
+        }
+      });
     },
     cc_add: () => {
       zone.cc_controllers.splice(zone.selectedCCIndex + 1, 0, {

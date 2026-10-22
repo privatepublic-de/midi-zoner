@@ -199,6 +199,29 @@ export function controllersFromPreset(
   return append ? [...current, ...copies] : copies;
 }
 
+function presetJSON(meta: DevicePresetMeta, controllers: CCController[]): string {
+  const cleanMeta = sanitizeMeta(meta);
+  if (!cleanMeta) throw new Error('A preset needs a name');
+  return JSON.stringify(
+    {
+      format: PRESET_FORMAT,
+      version: 1,
+      ...cleanMeta,
+      // MIDI learn belongs to the zone, not to the device
+      controllers: controllers
+        .map(sanitizeController)
+        .filter((c) => c != null)
+        .map(({ number_in, ...c }: any) => c)
+    },
+    null,
+    2
+  );
+}
+
+function writePreset(meta: DevicePresetMeta, controllers: CCController[], overwriteId: string | null): Promise<string> {
+  return ipcRenderer.invoke('presets-save', presetJSON(meta, controllers), overwriteId, `${meta.device} ${meta.name}`);
+}
+
 /**
  * Writes the controllers as a preset: a new user preset, or overwriting `overwriteId`.
  * Returns the saved preset after reloading the list.
@@ -208,26 +231,45 @@ export async function saveDevicePreset(
   controllers: CCController[],
   overwriteId: string | null
 ): Promise<DevicePreset | undefined> {
-  const cleanMeta = sanitizeMeta(meta);
-  if (!cleanMeta) throw new Error('A preset needs a name');
-  const json = JSON.stringify(
-    {
-      format: PRESET_FORMAT,
-      version: 1,
-      ...cleanMeta,
-      controllers: controllers.map(sanitizeController).filter((c) => c != null)
-    },
-    null,
-    2
-  );
-  const id: string = await ipcRenderer.invoke(
-    'presets-save',
-    json,
-    overwriteId,
-    `${cleanMeta.device} ${cleanMeta.name}`
-  );
+  const id = await writePreset(meta, controllers, overwriteId);
   await loadDevicePresets();
   return findDevicePreset(id);
+}
+
+export async function deleteDevicePreset(id: string): Promise<void> {
+  await ipcRenderer.invoke('presets-delete', id);
+  await loadDevicePresets();
+}
+
+/** Lets the user pick preset files; valid ones become new user presets */
+export async function importDevicePresets(): Promise<{ imported: number; skipped: string[] }> {
+  const files: { name: string; json: string }[] = await ipcRenderer.invoke('presets-import');
+  const skipped: string[] = [];
+  let imported = 0;
+  for (const f of files) {
+    let preset: DevicePreset | null = null;
+    try {
+      preset = sanitizePreset(JSON.parse(f.json), '', 'user');
+    } catch {
+      // reported below
+    }
+    if (preset) {
+      await writePreset(preset, preset.controllers, null);
+      imported++;
+    } else {
+      skipped.push(f.name);
+    }
+  }
+  if (files.length > 0) await loadDevicePresets();
+  return { imported, skipped };
+}
+
+/** Exports presets as files (one: save dialog, several: into a folder); returns the count written */
+export function exportDevicePresets(list: DevicePreset[]): Promise<number> {
+  return ipcRenderer.invoke(
+    'presets-export',
+    list.map((p) => ({ name: `${p.device} ${p.name}`, json: presetJSON(p, p.controllers) }))
+  );
 }
 
 export function revealDevicePresetFolder(): Promise<void> {

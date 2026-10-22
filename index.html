@@ -299,6 +299,20 @@
         </div>
       </form>
     </dialog>
+    <dialog id="presetManageDialog" aria-label="Device presets" onkeydown="event.stopPropagation();" onkeyup="event.stopPropagation();">
+      <div class="kshelp-header">
+        <span class="kshelp-title">Device presets</span>
+        <button class="kshelp-close preset-close" tabindex="-1"><i class="material-icons">close</i></button>
+      </div>
+      <div class="preset-manager-list"></div>
+      <div class="preset-dialog-buttons">
+        <button type="button" class="preset-import" tabindex="0">Import…</button>
+        <button type="button" class="preset-export-all" tabindex="0">Export all…</button>
+        <button type="button" class="preset-reveal" tabindex="0">Show folder</button>
+        <div style="flex-grow: 1"></div>
+        <button type="button" class="preset-close primary" tabindex="0" autofocus>Done</button>
+      </div>
+    </dialog>
     <div id="mackieHelpOverlay" role="dialog" aria-modal="true" aria-label="Mackie Control mapping reference">
       <div class="kshelp-header">
         <span class="kshelp-title">Mackie Control Mapping</span>

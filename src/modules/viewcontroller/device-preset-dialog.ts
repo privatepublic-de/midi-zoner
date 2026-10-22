@@ -1,11 +1,15 @@
 import { DevicePresetMeta } from '../device-presets';
 
-/** Asks for name, device, port match and notes of a new device preset; null when cancelled */
+/** Asks for name, device, port match and notes of a device preset; null when cancelled */
 export function askDevicePresetMeta(
   defaults: Partial<DevicePresetMeta>,
-  knownDevices: string[]
+  knownDevices: string[],
+  title = 'Save device preset',
+  confirmLabel = 'Save'
 ): Promise<DevicePresetMeta | null> {
   const dialog = document.getElementById('presetSaveDialog') as HTMLDialogElement;
+  (dialog.querySelector('.kshelp-title') as HTMLElement).textContent = title;
+  (dialog.querySelector('button[value=save]') as HTMLElement).textContent = confirmLabel;
   const form = dialog.querySelector('form') as HTMLFormElement;
   const field = (name: string): HTMLInputElement | HTMLTextAreaElement =>
     form.elements.namedItem(name) as HTMLInputElement | HTMLTextAreaElement;
