@@ -1757,14 +1757,21 @@ input[type='range'] {
   align-items: center;
   gap: 6px;
   height: 12px;
-  /* the name starts on the knobs' arc edge; closer to its controls than to the row above */
-  margin: 2px 2px 4px 14.5px;
+  /* starts at the cell edge; closer to its controls than to the row above */
+  margin: 2px 2px 4px 2px;
   font-size: var(--fs-sm);
   line-height: 12px;
   color: var(--groupcolor, var(--brighter-3));
   white-space: nowrap;
 }
-/* the ruler shows how far the section reaches */
+/* the ruler shows how far the section reaches; the name is set into it, a quarter cell in */
+.ccsection-head::before {
+  content: '';
+  flex: 0 0 calc(var(--ccpot-width) / 4);
+  height: 1px;
+  background-color: currentColor;
+  opacity: 0.45;
+}
 .ccsection-head::after {
   content: '';
   flex: 1;
