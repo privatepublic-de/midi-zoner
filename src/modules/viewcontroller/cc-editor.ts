@@ -20,7 +20,6 @@ import {
   knobPaths,
   knobRangePath,
   onControllersChanged,
-  showControllerPage,
   startControllerDrag
 } from './cc-controller-view';
 
@@ -38,6 +37,7 @@ export interface CCEditorHooks {
   gestureStart: (label: string) => void;
   gestureEnd: () => void;
   triggerSave: () => void;
+  showPage: (index: number, page: number) => void;
 }
 
 let hooks: CCEditorHooks;
@@ -524,7 +524,7 @@ function refresh(onlyIndex?: number): void {
   if (zone.cc_controllers[zone.selectedCCIndex]) {
     const page = pageNumberOf(zone.cc_controllers, zone.selectedCCIndex);
     if (page != zone.ccPage) {
-      showControllerPage(zone, zoneIndex, page); // redraws the panel through onControllersChanged
+      hooks.showPage(zoneIndex, page); // redraws the panel through onControllersChanged
       return;
     }
   }

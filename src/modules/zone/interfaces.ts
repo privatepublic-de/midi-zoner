@@ -16,6 +16,11 @@ export enum CCControllerType {
   PAGE = 10 // named page: the zone shows one page of controllers at a time
 }
 
+/** Layout entries: no value, no MIDI output, no MIDI learn */
+export function isLayoutEntry(type: number): boolean {
+  return type == CCControllerType.SPACER || type == CCControllerType.SECTION || type == CCControllerType.PAGE;
+}
+
 /** Types that send one 7-bit CC: controllers on the same CC number stay in sync */
 export function isSevenBitCC(type: number): boolean {
   return (

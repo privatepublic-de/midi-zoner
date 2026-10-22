@@ -1,5 +1,5 @@
 import { ipcRenderer } from 'electron';
-import { CCController, CCControllerType, isHiResCC } from './zone/interfaces';
+import { CCController, CCControllerType, isHiResCC, isLayoutEntry } from './zone/interfaces';
 import { migrateSpacers } from './zone/cc-layout';
 
 /**
@@ -197,7 +197,7 @@ export function controllersFromPreset(
   const learned = new Map<string, number>();
   if (!append) {
     for (const c of current) {
-      if (c.number_in != null && ![CCControllerType.SPACER, CCControllerType.SECTION, CCControllerType.PAGE].includes(c.type)) {
+      if (c.number_in != null && !isLayoutEntry(c.type)) {
         learned.set(address(c), c.number_in);
       }
     }

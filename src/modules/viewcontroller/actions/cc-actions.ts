@@ -1,6 +1,6 @@
 import { ActionContext, ActionHelpers, ActionMap } from '../types';
 import { ipcRenderer } from 'electron';
-import { CCController, CCControllerType, isHiResCC } from '../../zone/interfaces';
+import { CCController, CCControllerType, isHiResCC, isLayoutEntry } from '../../zone/interfaces';
 import { escapeHTML } from '../../domutils';
 import {
   controllersFromPreset,
@@ -429,8 +429,7 @@ export function createCCActions(
       const insertAt = current ? zone.selectedCCIndex + 1 : zone.cc_controllers.length;
       // Same type as the selected controller; after a section, page or gap a knob
       const type =
-        current && ![CCControllerType.SECTION, CCControllerType.PAGE, CCControllerType.SPACER].includes(current.type)
-          ? current.type
+        current && !isLayoutEntry(current.type) ? current.type
           : CCControllerType.UNIPOLAR_ROTARY;
       const labels = new Set(zone.cc_controllers.map((c) => c.label));
       let n = zone.cc_controllers.length + 1;
@@ -470,6 +469,8 @@ export function createCCActions(
     cc_remove: () => {
       const current = zone.cc_controllers[zone.selectedCCIndex];
       if (!current) return;
+      // Where a deleted page's controllers go: the page before, or "Main" for the first page
+      const joins = zone.cc_controllers.slice(0, zone.selectedCCIndex).some(isPage) ? 'the page before' : 'Main';
       zone.cc_controllers.splice(zone.selectedCCIndex, 1);
       // The next controller moves into place
       zone.selectedCCIndex = Math.min(zone.selectedCCIndex, zone.cc_controllers.length - 1);
@@ -478,7 +479,7 @@ export function createCCActions(
       triggerSave();
       toast(
         isPage(current)
-          ? `Deleted page "${escapeHTML(current.label || 'page')}": its controllers joined the page before (undo brings it back)`
+          ? `Deleted page "${escapeHTML(current.label || 'page')}": its controllers joined ${joins} (undo brings it back)`
           : isSection(current)
           ? `Deleted section "${escapeHTML(current.label || 'row break')}": its controllers joined the one before (undo brings it back)`
           : `Deleted "${escapeHTML(current.label || 'controller')}" (undo brings it back)`

@@ -54,7 +54,7 @@ export function pageName(controllers: CCController[], pages: PageBlock[], n: num
 /** The number of the page an entry is on (a page entry is on its own page) */
 export function pageNumberOf(controllers: CCController[], ix: number): number {
   const pages = pageBlocks(controllers);
-  const n = pages.findIndex((p) => ix < p.end || (p.page == ix));
+  const n = pages.findIndex((p) => ix < p.end);
   return n < 0 ? pages.length - 1 : n;
 }
 
@@ -81,8 +81,8 @@ export interface SectionBlock {
 export function sectionBlocks(controllers: CCController[], start = 0, end = controllers.length): SectionBlock[] {
   const blocks: SectionBlock[] = [];
   let current: SectionBlock | null = null;
-  controllers.forEach((c, ix) => {
-    if (ix < start || ix >= end) return;
+  for (let ix = start; ix < end; ix++) {
+    const c = controllers[ix];
     if (isPage(c)) {
       current = null;
     } else if (isSection(c)) {
@@ -95,7 +95,7 @@ export function sectionBlocks(controllers: CCController[], start = 0, end = cont
       }
       current.items.push(ix);
     }
-  });
+  }
   return blocks;
 }
 
@@ -110,7 +110,8 @@ const OLD_SPACER_WIDTH = 32;
  * trailing ones are dropped. Lists that already have sections are left alone.
  */
 export function migrateSpacers(controllers: CCController[]): CCController[] {
-  if (controllers.some(isSection) || !controllers.some((c) => c.type == CCControllerType.SPACER)) {
+  // Sections and pages only exist in the new format
+  if (controllers.some((c) => isSection(c) || isPage(c)) || !controllers.some((c) => c.type == CCControllerType.SPACER)) {
     return controllers;
   }
   const result: CCController[] = [];

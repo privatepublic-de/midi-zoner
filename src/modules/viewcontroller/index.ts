@@ -142,7 +142,8 @@ function initController({
     contextHandler,
     gestureStart: (label) => undoHistory.startGesture(JSON.stringify(zones), label),
     gestureEnd: () => undoHistory.endGesture(JSON.stringify(zones)),
-    triggerSave: () => triggerSave()
+    triggerSave: () => triggerSave(),
+    showPage: showControllerPage
   });
   initStepDeselection();
   numberInputController = new NumberInputController();
@@ -637,10 +638,20 @@ function renderControllersForZone(zone: ZoneType, index: number): void {
     actionHandler,
     triggerSave,
     (label: string) => undoHistory.startGesture(JSON.stringify(zones), label),
-    () => undoHistory.endGesture(JSON.stringify(zones))
+    () => undoHistory.endGesture(JSON.stringify(zones)),
+    (page: number) => showControllerPage(index, page)
   );
   updateValuesForZone(index);
   updateControllerValues(zone, index);
+}
+
+/** Shows another controller page of a zone: saved, but not an undo step */
+function showControllerPage(index: number, page: number): void {
+  const zone = zones.list[index];
+  if (!zone || zone.ccPage == page) return;
+  zone.ccPage = page;
+  renderControllersForZone(zone, index);
+  triggerSave();
 }
 
 function appendZone(zone: ZoneType, index: number): void {

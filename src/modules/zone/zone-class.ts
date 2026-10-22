@@ -15,6 +15,7 @@ import {
   CCControllerType,
   isHiResCC,
   isSevenBitCC,
+  isLayoutEntry,
   UPDATE_ZONE_VIEW_EVENT
 } from './interfaces';
 import { NoteDisplay } from './note-display';
@@ -672,7 +673,7 @@ export class Zone {
           let matchCount = 0;
           for (let i = 0; i < this.cc_controllers.length; i++) {
             const ctrl = this.cc_controllers[i];
-            if (ctrl.number_in == data[1] && ![CCControllerType.SPACER, CCControllerType.SECTION, CCControllerType.PAGE].includes(ctrl.type)) {
+            if (ctrl.number_in == data[1] && !isLayoutEntry(ctrl.type)) {
               if (isHiResCC(ctrl.type)) {
                 ctrl.val = Math.round((data[2] * 16383) / 127);
               } else if (ctrl.type == CCControllerType.SELECTOR) {
@@ -1789,14 +1790,7 @@ export class Zone {
     for (let i = 0; i < this.cc_controllers.length; i++) {
       // Gaps, sections and note-to-CC have no value of their own
       const type = this.cc_controllers[i].type;
-      if (
-        type == CCControllerType.SPACER ||
-        type == CCControllerType.SECTION ||
-        type == CCControllerType.PAGE ||
-        type == CCControllerType.NOTE_TO_CC
-      ) {
-        continue;
-      }
+      if (isLayoutEntry(type) || type == CCControllerType.NOTE_TO_CC) continue;
       this.sendCC(i);
     }
   }

@@ -219,9 +219,9 @@ export function startControllerDrag(
 export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIndex?: number): void {
   zone.cc_controllers.forEach((c, ix) => {
     if (onlyIndex !== undefined && ix !== onlyIndex) return;
-    if (c.type == CCControllerType.SECTION || c.type == CCControllerType.PAGE) return;
     const potselector = `#pot_${zoneindex}_${ix}`;
-    // Controllers on other pages aren't drawn; they show their value when their page is
+    // Sections, pages and controllers on other pages have no pot (the latter show their
+    // value when their page is drawn)
     if (!zone._$(potselector)) return;
     const knob = knobPaths(c);
     if (onlyIndex === undefined) {
@@ -293,30 +293,14 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIn
   controllersChanged?.(zone, zoneindex, onlyIndex);
 }
 
-let pageSwitch: {
-  actionHandler: (ev: MouseEvent, overrideaction?: string) => void;
-  triggerSave: () => void;
-  onGestureStart: (label: string) => void;
-  onGestureEnd: () => void;
-} | null = null;
-
-/** Shows another controller page of the zone (saved, not an undo step) */
-export function showControllerPage(zone: ZoneType, zoneindex: number, page: number): void {
-  if (!pageSwitch || zone.ccPage == page) return;
-  zone.ccPage = page;
-  const { actionHandler, triggerSave, onGestureStart, onGestureEnd } = pageSwitch;
-  renderControllersForZone(zone, zoneindex, actionHandler, triggerSave, onGestureStart, onGestureEnd);
-  updateControllerValues(zone, zoneindex);
-  triggerSave();
-}
-
 export function renderControllersForZone(
   zone: ZoneType,
   index: number,
   actionHandler: (ev: MouseEvent, overrideaction?: string) => void,
   triggerSave: () => void,
   onGestureStart: (label: string) => void,
-  onGestureEnd: () => void
+  onGestureEnd: () => void,
+  showPage: (page: number) => void
 ): void {
   DOM.all(`#zone${index} .ccpots .container > *`).forEach((e) => e.remove());
   DOM.addHTML(
@@ -341,13 +325,11 @@ export function renderControllersForZone(
       tab.textContent = pageName(zone.cc_controllers, pages, n);
       tab.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (n == zone.ccPage) return;
-        showControllerPage(zone, index, n);
+        showPage(n);
       });
       tabs.append(tab);
     });
   }
-  pageSwitch = { actionHandler, triggerSave, onGestureStart, onGestureEnd };
 
   DOM.all(`#zone${index} .ccpots .ccpot`).forEach((pot) => {
     const ix = parseInt(pot.id.split('_')[2]);
