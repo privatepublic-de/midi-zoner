@@ -117,7 +117,7 @@
       "msb_first": true
     },
     {
-      "type": 0,
+      "type": 3,
       "label": "Filter",
       "number": 42,
       "val": 0,
@@ -126,24 +126,20 @@
       "note_cc": null,
       "velocity_cc": null,
       "group": 2,
-      "discreteValues": [
-        0,
-        18,
-        36,
-        54,
-        72,
-        90,
-        127
-      ],
-      "valueNames": [
-        "LP2",
-        "LP4",
-        "BP2",
-        "BP4",
-        "HP2",
-        "HP4",
-        "Thru"
-      ]
+      "buttonlabel0": "LP2",
+      "buttonvalue0": 0,
+      "buttonlabel1": "LP4",
+      "buttonvalue1": 18,
+      "buttonlabel2": "BP2",
+      "buttonvalue2": 36,
+      "buttonlabel3": "BP4",
+      "buttonvalue3": 54,
+      "buttonlabel4": "HP2",
+      "buttonvalue4": 72,
+      "buttonlabel5": "HP4",
+      "buttonvalue5": 90,
+      "buttonlabel6": "Thru",
+      "buttonvalue6": 127
     },
     {
       "type": 5,

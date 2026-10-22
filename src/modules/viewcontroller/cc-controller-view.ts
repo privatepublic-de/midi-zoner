@@ -128,6 +128,7 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIn
       (zone._$(`${potselector} .info`) as HTMLElement).innerHTML = infotext;
     }
     if (c.type == CCControllerType.BUTTON_BANK) {
+      let visibleButtons = 0;
       for (let i = 0; i < 8; i++) {
         const btn = zone._$(`${potselector} .ccbtn${i}`) as HTMLElement;
         const label = (c as any)[`buttonlabel${i}`];
@@ -137,8 +138,9 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIn
           typeof value != 'undefined' &&
           label.trim() != ''
         ) {
-          btn.style.display = 'block';
+          btn.style.display = '';
           btn.textContent = label;
+          visibleButtons++;
           if (value == c.val) {
             btn.classList.add('selected');
           } else {
@@ -158,6 +160,9 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIn
           valuein.value = typeof value == 'undefined' ? '' : value;
         }
       }
+      // One column up to 3 buttons, then two columns of up to 4 rows
+      const rows = visibleButtons <= 3 ? Math.max(visibleButtons, 1) : Math.ceil(visibleButtons / 2);
+      (zone._$(`${potselector} .buttons`) as HTMLElement).style.setProperty('--button-rows', String(rows));
     }
     if (ix == zone.selectedCCIndex) {
       DOM.addClass(potselector, 'selected');

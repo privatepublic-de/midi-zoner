@@ -1997,15 +1997,16 @@ input[type='range'] {
   display: block;
 }
 .ccpot[data-type='3'] .buttons {
-  display: flex;
-  flex-direction: column;
-  flex-wrap: wrap;
-  max-height: 56px;
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(var(--button-rows, 3), 1fr);
+  grid-auto-columns: 1fr;
+  /* the space under the label: up to 4 rows of 8 buttons */
+  height: 52px;
   width: calc(var(--ccpot-width) - 4px);
   overflow: hidden;
-  justify-content: start;
-  padding: 3px 1px 3px 1px;
-  gap: 2px;
+  padding: 2px 1px;
+  gap: 1px;
 }
 
 .cc-edit .buttons {
@@ -2013,6 +2014,11 @@ input[type='range'] {
 }
 
 .ccbtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  line-height: 1;
   font-size: var(--fs-sm);
   overflow: hidden;
   text-overflow: ellipsis;
