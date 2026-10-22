@@ -4,7 +4,7 @@
   "name": "Effects",
   "device": "KORG NTS-1 mkII",
   "portMatch": "NTS-1",
-  "notes": "Needs GLOBAL > MIDI Short Message = On. Knobs send the MSB CC first, then the LSB CC; if they move in coarse steps, switch Format to LSB first. Type knobs step through Off, the built-in effects and the user slots in steps of 8 (measured on the device; the MIDI chart values are wrong). Reverb is confirmed; mod and delay follow the same rule.",
+  "notes": "Needs GLOBAL > MIDI Short Message = On. Knobs send the MSB CC first, then the LSB CC; if they move in coarse steps, switch Format to LSB first. Type knobs step through Off, the built-in effects and the user slots in steps of 8 (measured on the device; the MIDI chart values are wrong). Choosing an empty user slot keeps the last occupied one.",
   "controllers": [
     {
       "type": 0,

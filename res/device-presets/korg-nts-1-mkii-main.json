@@ -4,7 +4,7 @@
   "name": "Oscillator, filter & EG",
   "device": "KORG NTS-1 mkII",
   "portMatch": "NTS-1",
-  "notes": "Needs GLOBAL > MIDI Short Message = On. Knobs send the MSB CC first, then the LSB CC; if they move in coarse steps, switch Format to LSB first. Osc type uses values measured on the device (CC53: Saw 16, Tri, Sqr, VPM, Noise, then User 1, 2, … in steps of 8; the MIDI chart values are wrong). User osc reaches User 9 (CC53 = 120).",
+  "notes": "Needs GLOBAL > MIDI Short Message = On. Knobs send the MSB CC first, then the LSB CC; if they move in coarse steps, switch Format to LSB first. Osc type uses values measured on the device (CC53: Saw 16, Tri, Sqr, VPM, Noise, then User 1, 2, … in steps of 8; the MIDI chart values are wrong). User osc reaches User 9 (CC53 = 120); choosing an empty slot keeps the last occupied one.",
   "controllers": [
     {
       "type": 3,
