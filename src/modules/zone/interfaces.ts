@@ -5,12 +5,13 @@ export const UPDATE_ZONE_VIEW_EVENT = 'update-zone-view';
 export enum CCControllerType {
   UNIPOLAR_ROTARY = 0,
   BIPOLAR_ROTARY = 1,
-  SPACER = 2,
+  SPACER = 2, // shown as "Gap": half a knob of space inside a row
   BUTTON_BANK = 3,
   NOTE_TO_CC = 4,
   UNIPOLAR_14BIT = 5,
   BIPOLAR_14BIT = 6,
-  NRPN = 7
+  NRPN = 7,
+  SECTION = 8 // named, coloured group of the controllers after it; starts a new row
 }
 
 /** Types whose value runs 0–16383 instead of 0–127 */
@@ -69,7 +70,10 @@ export interface CCController {
   note_cc: number | null;
   velocity_cc: number | null;
   discreteValues?: number[];
+  // Colour: on a section the colour of its controllers, on a controller an override (0 = the section's)
   group?: number;
+  // Sections: false continues the current row (behind a divider) instead of starting a new one
+  new_row?: boolean;
 }
 
 export interface ArpState {

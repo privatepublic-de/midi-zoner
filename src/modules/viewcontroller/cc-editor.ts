@@ -2,6 +2,7 @@ import DOM from '../domutils';
 import { ZoneType } from './types';
 import { CCController, CCControllerType } from '../zone/interfaces';
 import { describeActionForZone } from './action-labels';
+import { effectiveGroup, isSection, sectionBlocks, sectionIndexOf } from '../zone/cc-layout';
 import {
   controllerDisplay,
   devicePresetLabel,
@@ -40,12 +41,13 @@ let valueRowsKey = '';
 const TYPE_NAMES: Record<number, string> = {
   [CCControllerType.UNIPOLAR_ROTARY]: 'Knob',
   [CCControllerType.BIPOLAR_ROTARY]: 'Bipolar',
-  [CCControllerType.SPACER]: 'Spacer',
+  [CCControllerType.SPACER]: 'Gap',
   [CCControllerType.BUTTON_BANK]: 'Buttons',
   [CCControllerType.NOTE_TO_CC]: 'Note to CC',
   [CCControllerType.UNIPOLAR_14BIT]: '14 bit',
   [CCControllerType.BIPOLAR_14BIT]: '14 bit ±',
-  [CCControllerType.NRPN]: 'NRPN'
+  [CCControllerType.NRPN]: 'NRPN',
+  [CCControllerType.SECTION]: 'Section'
 };
 
 function $<T extends HTMLElement = HTMLElement>(selector: string): T {
@@ -80,6 +82,7 @@ function typeName(c: CCController): string {
 function sendsText(c: CCController): string {
   switch (c.type) {
     case CCControllerType.SPACER:
+    case CCControllerType.SECTION:
       return '';
     case CCControllerType.NOTE_TO_CC:
       return [c.note_cc != null ? `note → CC ${c.note_cc}` : '', c.velocity_cc != null ? `vel. → CC ${c.velocity_cc}` : '']
@@ -157,25 +160,34 @@ function dropsAfter(row: HTMLElement, e: DragEvent): boolean {
 function renderRows(zone: ZoneType): void {
   const rows = $('.cce-rows');
   rows.replaceChildren();
+  const sectionSizes = new Map(sectionBlocks(zone.cc_controllers).map((b) => [b.section, b.items.length]));
   zone.cc_controllers.forEach((c, ix) => {
+    const section = isSection(c);
+    const gap = c.type == CCControllerType.SPACER;
     const row = document.createElement('div');
     row.className = 'cce-row';
     row.setAttribute('role', 'option');
     row.setAttribute('aria-selected', String(ix == zone.selectedCCIndex));
     row.classList.toggle('selected', ix == zone.selectedCCIndex);
-    row.classList.toggle('spacer', c.type == CCControllerType.SPACER);
-    row.dataset.group = String(c.group || 0);
+    row.classList.toggle('spacer', gap);
+    row.classList.toggle('cce-section-row', section);
+    row.classList.toggle('in-section', !section && sectionIndexOf(zone.cc_controllers, ix) >= 0);
+    row.dataset.group = String(effectiveGroup(zone.cc_controllers, ix));
     row.draggable = true;
     const swatch = cell('', 'cce-swatch');
-    const name = cell(c.type == CCControllerType.SPACER ? 'Spacer' : c.label || '(no name)', 'cce-row-name');
+    const name = cell(
+      section ? c.label.trim() || 'Row break' : gap ? 'Gap' : c.label || '(no name)',
+      'cce-row-name'
+    );
     name.title = name.textContent!;
+    const size = sectionSizes.get(ix) ?? 0;
     row.append(
       swatch,
       name,
-      cell(c.type == CCControllerType.SPACER ? '' : typeName(c), 'cce-row-type'),
+      cell(gap ? '' : typeName(c), 'cce-row-type'),
       cell(sendsText(c), 'cce-row-sends'),
-      cell(rangeText(c), 'cce-row-range'),
-      cell(c.number_in != null && c.type != CCControllerType.SPACER ? `CC ${c.number_in}` : '', 'cce-row-in')
+      cell(section ? `${size} control${size == 1 ? '' : 's'}` : rangeText(c), 'cce-row-range'),
+      cell(c.number_in != null && !gap && !section ? `CC ${c.number_in}` : '', 'cce-row-in')
     );
     row.addEventListener('click', () => {
       select(ix);
@@ -215,21 +227,45 @@ function renderRows(zone: ZoneType): void {
   });
 }
 
-/** The controllers as they are laid out in the zone, 8 per row */
+function div(className: string): HTMLElement {
+  const el = document.createElement('div');
+  el.className = className;
+  return el;
+}
+
+/** The controllers as they are laid out in the zone: sections, 8 knobs per row */
 function renderLayout(zone: ZoneType): void {
   const layout = $('.cce-layout');
   layout.replaceChildren();
-  zone.cc_controllers.forEach((c, ix) => {
-    const block = document.createElement('div');
-    block.className = 'cce-mini';
-    block.dataset.group = String(c.group || 0);
-    block.dataset.type = String(c.type);
-    block.classList.toggle('selected', ix == zone.selectedCCIndex);
-    block.title = c.type == CCControllerType.SPACER ? 'Spacer' : c.label;
-    block.addEventListener('click', () => select(ix));
-    layout.append(block);
+  const cs = zone.cc_controllers;
+  sectionBlocks(cs).forEach((block, n) => {
+    const section = block.section >= 0 ? cs[block.section] : null;
+    const inline = section?.new_row === false && n > 0;
+    if (n > 0 && !inline) layout.append(div('cce-mini-break'));
+    const sectionEl = div(`cce-mini-section${inline ? ' inline' : ''}`);
+    if (section) {
+      const head = div('cce-mini-head');
+      head.dataset.group = String(section.group || 0);
+      head.classList.toggle('unnamed', !section.label.trim());
+      head.classList.toggle('selected', block.section == zone.selectedCCIndex);
+      head.title = section.label.trim() || 'Row break';
+      head.addEventListener('click', () => select(block.section));
+      sectionEl.append(head);
+    }
+    const pots = div('cce-mini-pots');
+    for (const ix of block.items) {
+      const mini = div('cce-mini');
+      mini.dataset.group = String(effectiveGroup(cs, ix));
+      mini.dataset.type = String(cs[ix].type);
+      mini.classList.toggle('selected', ix == zone.selectedCCIndex);
+      mini.title = cs[ix].type == CCControllerType.SPACER ? 'Gap' : cs[ix].label;
+      mini.addEventListener('click', () => select(ix));
+      pots.append(mini);
+    }
+    sectionEl.append(pots);
+    layout.append(sectionEl);
   });
-  layout.hidden = zone.cc_controllers.length == 0;
+  layout.hidden = cs.length == 0;
 }
 
 // ---------- inspector ----------
@@ -367,6 +403,15 @@ function renderInspector(zone: ZoneType): void {
   overlay.querySelectorAll<HTMLElement>('.cce-colour').forEach((b) => {
     b.classList.toggle('selected', b.dataset.group == String(c.group || 0));
   });
+  // The first swatch: the section's colour for its controllers, standard otherwise
+  const sectionIx = isSection(c) ? -1 : sectionIndexOf(zone.cc_controllers, ix);
+  const sectionGroup = sectionIx >= 0 ? zone.cc_controllers[sectionIx].group || 0 : 0;
+  const defaultSwatch = $('.cce-colour-default');
+  defaultSwatch.title = sectionIx >= 0 ? 'Section colour' : 'Standard';
+  defaultSwatch.classList.toggle('inherit', sectionIx >= 0);
+  if (sectionGroup) defaultSwatch.style.setProperty('--cce-group', `var(--group-surface-${sectionGroup})`);
+  else defaultSwatch.style.removeProperty('--cce-group');
+  setCheck($('.cce-new-row'), c.new_row !== false);
   setField($<HTMLInputElement>('.cce-cc'), String(c.number));
   setField($<HTMLInputElement>('.cce-cc-msb'), String(c.number));
   setField($<HTMLInputElement>('.cce-cc-lsb'), String(c.number_lsb ?? 0));

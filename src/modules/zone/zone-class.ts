@@ -668,7 +668,7 @@ export class Zone {
           let matchCount = 0;
           for (let i = 0; i < this.cc_controllers.length; i++) {
             const ctrl = this.cc_controllers[i];
-            if (ctrl.type != CCControllerType.SPACER && ctrl.number_in == data[1]) {
+            if (ctrl.type != CCControllerType.SPACER && ctrl.type != CCControllerType.SECTION && ctrl.number_in == data[1]) {
               if (isHiResCC(ctrl.type)) {
                 ctrl.val = Math.round((data[2] * 16383) / 127);
               } else {
@@ -1722,6 +1722,9 @@ export class Zone {
 
   sendAllCC(): void {
     for (let i = 0; i < this.cc_controllers.length; i++) {
+      // Gaps, sections and note-to-CC have no value of their own
+      const type = this.cc_controllers[i].type;
+      if (type == CCControllerType.SPACER || type == CCControllerType.SECTION || type == CCControllerType.NOTE_TO_CC) continue;
       this.sendCC(i);
     }
   }

@@ -11,6 +11,7 @@ import {
 import { askDevicePresetMeta } from '../device-preset-dialog';
 import { openDevicePresetManager } from '../device-preset-manager';
 import { openCCEditor } from '../cc-editor';
+import { isSection, newSection } from '../../zone/cc-layout';
 
 export function createCCActions(
   ctx: ActionContext,
@@ -56,8 +57,27 @@ export function createCCActions(
       openCCEditor(zoneindex, actionParam1 != null ? parseInt(actionParam1) : undefined);
     },
     cc_label: () => {
-      zone.cc_controllers[zone.selectedCCIndex].label = (element as HTMLInputElement).value;
-      updateControllerValues(zone, zoneindex);
+      const c = selected();
+      c.label = (element as HTMLInputElement).value;
+      // A section's name is its heading in the zone
+      if (isSection(c)) renderControllersForZone(zone, zoneindex);
+      else updateControllerValues(zone, zoneindex);
+      triggerSave();
+    },
+    cc_add_section: () => {
+      // After the selected controller; each new section gets the next colour
+      const insertAt = zone.cc_controllers[zone.selectedCCIndex] ? zone.selectedCCIndex + 1 : zone.cc_controllers.length;
+      const sections = zone.cc_controllers.filter(isSection).length;
+      zone.cc_controllers.splice(insertAt, 0, newSection('Section', (sections % 4) + 1));
+      zone.selectedCCIndex = insertAt;
+      renderControllersForZone(zone, zoneindex);
+      triggerSave();
+    },
+    cc_section_new_row: () => {
+      const c = selected();
+      if (c.new_row === false) delete c.new_row;
+      else c.new_row = false;
+      renderControllersForZone(zone, zoneindex);
       triggerSave();
     },
     cc_number: () => {
@@ -326,7 +346,11 @@ export function createCCActions(
       // After the selected controller, or at the end when none is selected
       const current = zone.cc_controllers[zone.selectedCCIndex];
       const insertAt = current ? zone.selectedCCIndex + 1 : zone.cc_controllers.length;
-      const type = current?.type ?? CCControllerType.UNIPOLAR_ROTARY;
+      // Same type as the selected controller; after a section or gap a knob
+      const type =
+        current && current.type != CCControllerType.SECTION && current.type != CCControllerType.SPACER
+          ? current.type
+          : CCControllerType.UNIPOLAR_ROTARY;
       const labels = new Set(zone.cc_controllers.map((c) => c.label));
       let n = zone.cc_controllers.length + 1;
       while (labels.has(`Ctrl #${n}`)) n++;
@@ -340,7 +364,7 @@ export function createCCActions(
         val: 0,
         note_cc: null,
         velocity_cc: null,
-        group: current?.group ?? 0
+        group: current && !isSection(current) ? current.group ?? 0 : 0
       };
       if (type == CCControllerType.NRPN) {
         controller.nrpn_data_lsb_cc = 38;
@@ -371,7 +395,11 @@ export function createCCActions(
       zone.midiLearnCC = false;
       renderControllersForZone(zone, zoneindex);
       triggerSave();
-      toast(`Deleted "${escapeHTML(current.label || 'controller')}" (undo brings it back)`);
+      toast(
+        isSection(current)
+          ? `Deleted section "${escapeHTML(current.label || 'row break')}": its controllers joined the one before (undo brings it back)`
+          : `Deleted "${escapeHTML(current.label || 'controller')}" (undo brings it back)`
+      );
     },
     cc_change_type: () => {
       const c = zone.cc_controllers[zone.selectedCCIndex];

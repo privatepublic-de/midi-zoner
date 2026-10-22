@@ -4,6 +4,7 @@ import { Sequence } from './zone/sequence';
 import fs from 'fs';
 import { escapeHTML } from './domutils';
 import path from 'path';
+import { sectionBlocks } from './zone/cc-layout';
 
 // Type alias for the Zone class type
 type ZoneType = Zone;
@@ -62,16 +63,26 @@ const checkboxIcons =
   '<span class="material-icons sel">check_box</span><span class="material-icons unsel">check_box_outline_blank</span>';
 
 export function getControllerHTML(zone: ZoneType, zoneindex: number): string {
-  let controllers = '';
-  zone.cc_controllers.forEach((cc: any, ix: number) => {
-    controllers += interpolateTemplate(templateController, {
-      cc: cc,
+  const pot = (ix: number): string =>
+    interpolateTemplate(templateController, {
+      cc: zone.cc_controllers[ix],
       ix: ix,
       zoneindex: zoneindex,
       esc: escapeHTML
     });
-  });
-  return controllers;
+  // One block per section; a section starts a new row unless new_row is false
+  return sectionBlocks(zone.cc_controllers)
+    .map((block, n) => {
+      const section = block.section >= 0 ? zone.cc_controllers[block.section] : null;
+      const inline = section?.new_row === false && n > 0;
+      const head = section?.label.trim() ? `<div class="ccsection-head">${escapeHTML(section.label)}</div>` : '';
+      return (
+        (n > 0 && !inline ? '<div class="ccsection-break"></div>' : '') +
+        `<div class="ccsection${inline ? ' inline' : ''}" data-group="${section?.group || 0}">` +
+        `${head}<div class="ccsection-pots">${block.items.map(pot).join('')}</div></div>`
+      );
+    })
+    .join('');
 }
 
 export function getHTML(zone: ZoneType, zoneindex: number): string {

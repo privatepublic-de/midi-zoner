@@ -51,9 +51,26 @@ def nrpn(label, msb, lsb, mn, mx, group=0, data_lsb=None, bits=0, val=0, bipolar
         c["valueNames"] = names
     return c
 
-def write(file, name, device, port, notes, controllers):
+def with_sections(controllers, sections):
+    """A section entry wherever the colour group changes; its controllers take its colour.
+    sections: group -> name, or (name, new_row) to continue the row instead."""
+    out, current = [], None
+    for c in controllers:
+        group = c.pop("group", 0)
+        if group != current:
+            current = group
+            name, new_row = sections[group] if isinstance(sections[group], tuple) else (sections[group], True)
+            section = {"type": 8, "label": name, "number": 0, "val": 0, "min": 0, "max": 127,
+                       "note_cc": None, "velocity_cc": None}
+            if group: section["group"] = group
+            if not new_row: section["new_row"] = False
+            out.append(section)
+        out.append(c)
+    return out
+
+def write(file, name, device, port, notes, controllers, sections):
     p = {"format": "midi-zoner-device-preset", "version": 1, "name": name, "device": device,
-         "portMatch": port, "notes": notes, "controllers": controllers}
+         "portMatch": port, "notes": notes, "controllers": with_sections(controllers, sections)}
     with open(os.path.join(OUT, file + ".json"), "w") as f:
         json.dump(p, f, indent=2, ensure_ascii=False)
         f.write("\n")
@@ -72,7 +89,7 @@ write("korg-minilogue-xd-vcos", "VCOs & mixer", XD, XDP, XD_NOTE + " SYNC/RING: 
     xd10("VCO2 pitch", 35, 2, bipolar=True), xd10("VCO2 shape", 37, 2),
     buttons("Sync", 80, ONOFF, 3), buttons("Ring", 81, ONOFF, 3), xd10("Cross mod", 41, 3),
     xd10("VCO1 level", 39, 0, val=16383), xd10("VCO2 level", 40, 0), xd10("Multi level", 33, 0),
-])
+], {1: "VCO 1", 2: "VCO 2", 3: "Sync & ring", 0: "Mixer"})
 
 write("korg-minilogue-xd-multi", "Multi engine", XD, XDP, XD_NOTE + " Type selects, octave, VPM and USER params are NRPN (MSB 0, data on CC63 + CC6). USER PARAM ranges depend on the loaded oscillator: Max 100 fits percent and select params, set Max to 200 for bipolar ones.", [
     buttons("Multi type", 53, [("Noise", 0), ("VPM", 64), ("User", 127)], 1),
@@ -83,7 +100,7 @@ write("korg-minilogue-xd-multi", "Multi engine", XD, XDP, XD_NOTE + " Type selec
     nrpn("Feedback", 0, 0x40, 0, 200, 2, 63, 3, 8192, bipolar=True), nrpn("Noise depth", 0, 0x41, 0, 200, 2, 63, 3, 8192, bipolar=True),
     nrpn("Shape mod", 0, 0x42, 0, 200, 2, 63, 3, 8192, bipolar=True), nrpn("Mod attack", 0, 0x43, 0, 200, 2, 63, 3, 8192, bipolar=True),
     nrpn("Mod decay", 0, 0x44, 0, 200, 2, 63, 3, 8192, bipolar=True), nrpn("Mod keytrk", 0, 0x45, 0, 200, 2, 63, 3, 8192, bipolar=True),
-] + [nrpn(f"User P{i + 1}", 0, 0x48 + i, 0, 100, 3, 63, 3) for i in range(6)])
+] + [nrpn(f"User P{i + 1}", 0, 0x48 + i, 0, 100, 3, 63, 3) for i in range(6)], {1: "Multi engine", 2: "VPM", 3: "User oscillator"})
 
 write("korg-minilogue-xd-filter-eg", "Filter & envelopes", XD, XDP, XD_NOTE, [
     xd10("Cutoff", 43, 1, val=16383), xd10("Resonance", 44, 1),
@@ -91,14 +108,14 @@ write("korg-minilogue-xd-filter-eg", "Filter & envelopes", XD, XDP, XD_NOTE, [
     xd10("Amp A", 16, 2), xd10("Amp D", 17, 2, val=8192), xd10("Amp S", 18, 2, val=16383), xd10("Amp R", 19, 2, val=2048),
     xd10("EG A", 20, 3), xd10("EG D", 21, 3, val=8192), xd10("EG int", 22, 3, bipolar=True),
     buttons("EG target", 23, [("Cutoff", 0), ("Pitch 2", 64), ("Pitch", 127)], 3),
-])
+], {1: "Filter", 2: "Amp EG", 3: "Mod EG"})
 
 write("korg-minilogue-xd-lfo", "LFO & voice", XD, XDP, XD_NOTE, [
     buttons("LFO wave", 57, WAVE, 1, 64), buttons("LFO mode", 58, [("1-Shot", 0), ("Normal", 64), ("BPM", 127)], 1, 64),
     buttons("LFO target", 56, [("Cutoff", 0), ("Shape", 64), ("Pitch", 127)], 1, 127),
     xd10("LFO rate", 24, 1, val=8192), xd10("LFO int", 26, 1),
     xd10("Voice depth", 27, 2), cc7("Portamento", 5, 2),
-])
+], {1: "LFO", 2: ("Voice", False)})
 
 write("korg-minilogue-xd-effects", "Effects", XD, XDP, XD_NOTE + " Sub type knobs step through the presets of the current effect type.", [
     buttons("Mod FX", 92, ONOFF, 1),
@@ -113,7 +130,7 @@ write("korg-minilogue-xd-effects", "Effects", XD, XDP, XD_NOTE + " Sub type knob
     cc7("Reverb type", 90, 3, discrete=[0, 8, 15, 22, 29, 36, 43, 50, 57, 64, 72, 79, 86, 93, 100, 107, 117, 127],
         names=["Hall", "Smooth", "Arena", "Plate", "Room", "Early ref", "Space", "Riser", "Submarine", "Horror"] + [f"User {i + 1}" for i in range(8)]),
     xd10("Reverb time", 108, 3, val=8192), xd10("Reverb depth", 109, 3, val=8192), xd10("Reverb mix", 110, 3, val=8192),
-])
+], {1: "Mod FX", 2: "Delay", 3: "Reverb"})
 
 NTS, NTSP = "KORG NTS-1 mkII", "NTS-1"
 
@@ -133,7 +150,7 @@ write("korg-nts-1-mkii-main", "Oscillator, filter & EG", NTS, NTSP, NTS_NOTE + "
     pair("Cutoff", 43, 107, 2, 16383), pair("Resonance", 44, 108, 2), pair("Sweep depth", 45, 109, 2, bipolar=True), pair("Sweep rate", 46, 110, 2),
     buttons("EG type", 14, [("ADSR", 0), ("AHR", 25), ("AR", 50), ("Loop", 75), ("Open", 127)], 3),
     pair("Attack", 16, 48, 3), pair("Release", 19, 49, 3, 4096), pair("Trem depth", 20, 50, 3), pair("Trem rate", 21, 51, 3),
-])
+], {1: "Oscillator", 2: "Filter", 3: "Envelope"})
 
 write("korg-nts-1-mkii-effects", "Effects", NTS, NTSP, NTS_NOTE + " Type knobs step through Off, the built-in effects and the user slots in steps of 8 (measured on the device; the MIDI chart values are wrong). Choosing an empty user slot keeps the last occupied one.", [
     nts_types("Mod type", 88, 1, ["Off", "Chorus", "Ensemble", "Phaser", "Flanger", "Soft clip", "Hard clip", "Sine fold", "Fuzz"]), pair("Mod A", 28, 60, 1), pair("Mod B", 29, 61, 1),
@@ -141,17 +158,17 @@ write("korg-nts-1-mkii-effects", "Effects", NTS, NTSP, NTS_NOTE + " Type knobs s
     pair("Delay A", 30, 62, 2), pair("Delay B", 31, 63, 2), pair("Delay mix", 33, 113, 2, 8192),
     nts_types("Reverb type", 90, 3, ["Off", "Hall", "Smooth", "Arena", "Plate", "Room", "Early", "Space", "Riser", "Submarine", "Horror"]),
     pair("Reverb A", 34, 114, 3), pair("Reverb B", 35, 115, 3), pair("Reverb mix", 36, 116, 3, 8192),
-])
+], {1: "Mod", 2: "Delay", 3: "Reverb"})
 
 write("korg-nts-1-mkii-arp", "Arp & volume", NTS, NTSP, NTS_NOTE, [
     cc7("Arp pattern", 117, 1, discrete=[0, 12, 24, 36, 48, 60, 72, 84, 96, 127],
         names=["Up", "Down", "Up-Down", "Down-Up", "Converge", "Diverge", "Conv-Div", "Div-Conv", "Random", "Stochastic"]),
     buttons("Intervals", 118, [("Oct", 0), ("Maj", 21), ("Sus", 42), ("Aug", 63), ("Min", 84), ("Dim", 127)], 1),
     cc7("Arp length", 119, 1), pair("Volume", 7, 39, 0, 12800),
-])
+], {1: "Arpeggiator", 0: ("Volume", False)})
 
 write("korg-nts-1-mkii-osc-params", "Oscillator unit params", NTS, NTSP, NTS_NRPN,
-      [nrpn(f"Osc P{i + 1}", 0, i, 0, 16383, 1, 38, 7) for i in range(8)])
+      [nrpn(f"Osc P{i + 1}", 0, i, 0, 16383, 1, 38, 7) for i in range(8)], {1: "Oscillator unit"})
 
 write("korg-nts-1-mkii-fx-params", "Effect unit params", NTS, NTSP, NTS_NRPN,
-      [nrpn(f"{fx} P{i + 1}", m, i, 0, 16383, g, 38, 7) for m, fx, g in ((1, "Mod", 1), (2, "Delay", 2), (3, "Reverb", 3)) for i in range(8)])
+      [nrpn(f"{fx} P{i + 1}", m, i, 0, 16383, g, 38, 7) for m, fx, g in ((1, "Mod", 1), (2, "Delay", 2), (3, "Reverb", 3)) for i in range(8)], {1: "Mod unit", 2: "Delay unit", 3: "Reverb unit"})

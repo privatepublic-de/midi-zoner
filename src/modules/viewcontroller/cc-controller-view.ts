@@ -5,6 +5,7 @@ import { ZoneType } from './types';
 import { CCController, CCControllerType, isHiResCC } from '../zone/interfaces';
 import { labelForZone } from './action-labels';
 import { differsFromPreset, findDevicePreset } from '../device-presets';
+import { effectiveGroup } from '../zone/cc-layout';
 
 function polarToCartesian(
   centerX: number,
@@ -184,6 +185,7 @@ export function startControllerDrag(
 export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIndex?: number): void {
   zone.cc_controllers.forEach((c, ix) => {
     if (onlyIndex !== undefined && ix !== onlyIndex) return;
+    if (c.type == CCControllerType.SECTION) return;
     const potselector = `#pot_${zoneindex}_${ix}`;
     const knob = knobPaths(c);
     if (onlyIndex === undefined) {
@@ -194,7 +196,7 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIn
     zone._$(`${potselector}_discrete`)?.setAttribute('d', knob.discrete);
     const potcontainer = zone._$(potselector) as HTMLElement;
     potcontainer.dataset.type = String(c.type);
-    potcontainer.dataset.group = String(c.group || 0);
+    potcontainer.dataset.group = String(effectiveGroup(zone.cc_controllers, ix));
     potcontainer.dataset.hasInput = c.number_in != null ? '1' : '';
     (zone._$(`${potselector} div.cclabel`) as HTMLElement).textContent =
       c.type == CCControllerType.NOTE_TO_CC ? 'Note to CC' : c.label;
@@ -254,7 +256,7 @@ export function renderControllersForZone(
   onGestureStart: (label: string) => void,
   onGestureEnd: () => void
 ): void {
-  DOM.all(`#zone${index} .ccpots .ccpot, #zone${index} .ccpots .ccpots-empty`).forEach((e) => e.remove());
+  DOM.all(`#zone${index} .ccpots .container > *`).forEach((e) => e.remove());
   DOM.addHTML(
     `#zone${index} .ccpots .container`,
     'afterbegin',
@@ -262,7 +264,8 @@ export function renderControllersForZone(
   );
   zone.elements.emptyCache();
 
-  DOM.all(`#zone${index} .ccpots .ccpot`).forEach((pot, ix) => {
+  DOM.all(`#zone${index} .ccpots .ccpot`).forEach((pot) => {
+    const ix = parseInt(pot.id.split('_')[2]);
     // The zone is for playing; double-click opens the controller editor
     pot.addEventListener('dblclick', (e) => {
       if ((e.target as HTMLElement).closest('.ccbtn')) return;

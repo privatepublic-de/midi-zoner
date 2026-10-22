@@ -1,5 +1,6 @@
 import DOM, { escapeHTML as esc } from '../modules/domutils';
 import { Zone } from '../modules/zone/zone-class';
+import { migrateSpacers } from '../modules/zone/cc-layout';
 import { Sequence } from '../modules/zone/sequence';
 import { DIV_TICKS } from '../modules/zone/seq-layer';
 import MIDI, { PortDescriptor, MIDIMessage } from '../modules/midi';
@@ -143,7 +144,7 @@ function createZone(midi: MIDIInstance, zoneData: any): Zone {
   zone.pgm_no = zoneData.pgm_no ?? null;
   zone.bank_msb = zoneData.bank_msb ?? null;
   zone.bank_lsb = zoneData.bank_lsb ?? null;
-  if (zoneData.cc_controllers) zone.cc_controllers = zoneData.cc_controllers;
+  if (zoneData.cc_controllers) zone.cc_controllers = migrateSpacers(zoneData.cc_controllers);
   if (typeof zoneData.devicePreset?.id == 'string' && typeof zoneData.devicePreset?.name == 'string') {
     zone.devicePreset = { id: zoneData.devicePreset.id, name: zoneData.devicePreset.name };
   }

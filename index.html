@@ -304,6 +304,9 @@
             <button class="cce-tool" data-cce-action="cc_add" title="Add a controller after the selected one">
               <i class="material-icons">add</i>Add
             </button>
+            <button class="cce-tool" data-cce-action="cc_add_section" title="Add a section after the selected controller: the controllers after it start a new row in its colour">
+              <i class="material-icons">segment</i>Section
+            </button>
             <button class="cce-tool" data-cce-action="cc_duplicate" data-needs-selection title="Duplicate the selected controller">
               <i class="material-icons">content_copy</i>Duplicate
             </button>
@@ -337,11 +340,11 @@
               </div>
               <div class="cce-button-preview" data-types="3" title="Click a button to send its value"></div>
               <div class="cce-hero-fields">
-                <label class="cce-field" data-types="0 1 3 5 6 7">
+                <label class="cce-field" data-types="0 1 3 5 6 7 8">
                   <span>Name</span>
                   <input type="text" class="cce-name" maxlength="64" data-cce-change="cc_label" />
                 </label>
-                <label class="cce-field">
+                <label class="cce-field" data-types="0 1 2 3 4 5 6 7">
                   <span>Type</span>
                   <select class="cce-type" data-cce-change="cc_change_type">
                     <option value="0">Knob</option>
@@ -352,19 +355,24 @@
                     <hr />
                     <option value="3">Buttons</option>
                     <option value="4">Note to CC</option>
-                    <option value="2">Spacer</option>
+                    <option value="2">Gap</option>
                   </select>
                 </label>
-                <div class="cce-field" data-types="0 1 3 4 5 6 7">
+                <div class="cce-field" data-types="0 1 3 4 5 6 7 8">
                   <span>Colour</span>
                   <div class="cce-colours">
-                    <button class="cce-colour" data-group="0" data-cce-action="cc_group_set:0" title="Standard"></button>
+                    <button class="cce-colour cce-colour-default" data-group="0" data-cce-action="cc_group_set:0" title="Standard"><i class="material-icons">link</i></button>
                     <button class="cce-colour" data-group="1" data-cce-action="cc_group_set:1" title="Colour A"></button>
                     <button class="cce-colour" data-group="2" data-cce-action="cc_group_set:2" title="Colour B"></button>
                     <button class="cce-colour" data-group="3" data-cce-action="cc_group_set:3" title="Colour C"></button>
                     <button class="cce-colour" data-group="4" data-cce-action="cc_group_set:4" title="Colour D"></button>
                   </div>
                 </div>
+                <button class="cce-check cce-new-row" data-types="8" data-cce-action="cc_section_new_row" title="Off: the section continues the current row behind a divider">
+                  <i class="material-icons"></i>Start a new row
+                </button>
+                <p class="cce-hint" data-types="8">The controllers after a section belong to it and take its colour, up to the next section. Without a name it is just a row break.</p>
+                <p class="cce-hint" data-types="2">A gap leaves half a knob of space in the row.</p>
               </div>
             </div>
 

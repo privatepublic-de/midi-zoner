@@ -171,10 +171,14 @@
   --group-surface-3: var(--zone-surface-2);
   --group-surface-4: var(--zone-surface-3);
 }
-.zone .ccpot[data-group='1'] { --groupcolor: var(--group-1); --groupsurface: var(--group-surface-1); }
-.zone .ccpot[data-group='2'] { --groupcolor: var(--group-2); --groupsurface: var(--group-surface-2); }
-.zone .ccpot[data-group='3'] { --groupcolor: var(--group-3); --groupsurface: var(--group-surface-3); }
-.zone .ccpot[data-group='4'] { --groupcolor: var(--group-4); --groupsurface: var(--group-surface-4); }
+.zone .ccpot[data-group='1'],
+.zone .ccsection[data-group='1'] { --groupcolor: var(--group-1); --groupsurface: var(--group-surface-1); }
+.zone .ccpot[data-group='2'],
+.zone .ccsection[data-group='2'] { --groupcolor: var(--group-2); --groupsurface: var(--group-surface-2); }
+.zone .ccpot[data-group='3'],
+.zone .ccsection[data-group='3'] { --groupcolor: var(--group-3); --groupsurface: var(--group-surface-3); }
+.zone .ccpot[data-group='4'],
+.zone .ccsection[data-group='4'] { --groupcolor: var(--group-4); --groupsurface: var(--group-surface-4); }
 
 /* =============================================================
    FONTS
@@ -1721,8 +1725,49 @@ input[type='range'] {
 .ccpots .container {
   display: flex;
   flex-wrap: wrap;
+  /* sections sharing a row line up their knobs, with or without a heading */
+  align-items: flex-end;
   max-width: 544px;
   padding: 0 4px;
+}
+
+/* a section: optional heading line in its colour over its controllers */
+.ccsection {
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+}
+.ccsection-pots {
+  display: flex;
+  flex-wrap: wrap;
+}
+.ccsection-break {
+  flex-basis: 100%;
+  height: 0;
+}
+.ccsection.inline {
+  margin-left: 3px;
+  padding-left: 3px;
+  border-left: 1px solid var(--darker-2);
+}
+.ccsection-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 14px;
+  margin: 3px 1px 0;
+  font-size: var(--fs-sm);
+  line-height: 1;
+  color: var(--brighter-3);
+  white-space: nowrap;
+}
+.ccsection-head::after {
+  content: '';
+  flex: 1;
+  min-width: 12px;
+  height: 2px;
+  border-radius: 1px;
+  background-color: var(--groupsurface, var(--darker-2));
 }
 
 .show-cc .ccpots {
@@ -4355,4 +4400,66 @@ body.minimized .midi-led.on {
   .cce-layout {
     display: none;
   }
+}
+
+/* controller editor: sections */
+.cce-rows .cce-row.cce-section-row {
+  height: calc(var(--cce-row-h) + 6px);
+  padding-top: 6px;
+  font-weight: 600;
+  border-bottom-color: var(--darker-3);
+}
+.cce-section-row .cce-swatch {
+  height: 4px;
+  border-radius: 2px;
+}
+.cce-section-row .cce-row-range {
+  font-weight: normal;
+  color: var(--brighter-2);
+}
+.cce-row.in-section .cce-row-name {
+  padding-left: 12px;
+}
+.cce-mini-break {
+  flex-basis: 100%;
+  height: 0;
+}
+.cce-mini-section {
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+}
+.cce-mini-section.inline {
+  margin-left: 1px;
+  padding-left: 1px;
+  border-left: 1px solid var(--brighter-1);
+}
+.cce-mini-pots {
+  display: flex;
+  flex-wrap: wrap;
+}
+.cce-mini-head {
+  height: 3px;
+  margin: 4px 1px 1px;
+  border-radius: 2px;
+  background-color: var(--cce-group, var(--brighter-1));
+  cursor: pointer;
+}
+.cce-mini-head.unnamed {
+  opacity: 0.35;
+}
+.cce-mini-head.selected {
+  outline: 2px solid var(--cce-accent);
+  outline-offset: 1px;
+}
+#ccEditor .cce-colour-default {
+  justify-content: center;
+}
+.cce-colour-default .material-icons {
+  display: none;
+}
+#ccEditor .cce-colour-default.inherit .material-icons {
+  display: inline;
+  font-size: var(--icon-sm);
+  color: var(--brighter-3);
 }

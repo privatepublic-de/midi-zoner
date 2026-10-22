@@ -7,6 +7,17 @@
   "notes": "Needs GLOBAL > MIDI Short Message = On. Knobs send the MSB CC first, then the LSB CC; if they move in coarse steps, switch Format to LSB first. Osc type uses values measured on the device (CC53: Saw 16, Tri, Sqr, VPM, Noise, then User 1, 2, … in steps of 8; the MIDI chart values are wrong). User osc reaches User 9 (CC53 = 120); choosing an empty slot keeps the last occupied one. LFO depth: negative = pitch, positive = shape modulation. Sweep depth: negative = up, positive = down.",
   "controllers": [
     {
+      "type": 8,
+      "label": "Oscillator",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 1
+    },
+    {
       "type": 3,
       "label": "Osc type",
       "number": 53,
@@ -15,7 +26,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 1,
       "buttonlabel0": "Saw",
       "buttonvalue0": 16,
       "buttonlabel1": "Tri",
@@ -36,7 +46,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 1,
       "discreteValues": [
         56,
         64,
@@ -69,7 +78,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 1,
       "number_lsb": 102,
       "lsb_bits": 7,
       "msb_first": true
@@ -83,7 +91,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 1,
       "number_lsb": 103,
       "lsb_bits": 7,
       "msb_first": true
@@ -97,7 +104,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 1,
       "number_lsb": 56,
       "lsb_bits": 7,
       "msb_first": true
@@ -111,10 +117,20 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 1,
       "number_lsb": 58,
       "lsb_bits": 7,
       "msb_first": true
+    },
+    {
+      "type": 8,
+      "label": "Filter",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 2
     },
     {
       "type": 3,
@@ -125,7 +141,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 2,
       "buttonlabel0": "LP2",
       "buttonvalue0": 0,
       "buttonlabel1": "LP4",
@@ -150,7 +165,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 2,
       "number_lsb": 107,
       "lsb_bits": 7,
       "msb_first": true
@@ -164,7 +178,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 2,
       "number_lsb": 108,
       "lsb_bits": 7,
       "msb_first": true
@@ -178,7 +191,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 2,
       "number_lsb": 109,
       "lsb_bits": 7,
       "msb_first": true
@@ -192,10 +204,20 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 2,
       "number_lsb": 110,
       "lsb_bits": 7,
       "msb_first": true
+    },
+    {
+      "type": 8,
+      "label": "Envelope",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 3
     },
     {
       "type": 3,
@@ -206,7 +228,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 3,
       "buttonlabel0": "ADSR",
       "buttonvalue0": 0,
       "buttonlabel1": "AHR",
@@ -227,7 +248,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 3,
       "number_lsb": 48,
       "lsb_bits": 7,
       "msb_first": true
@@ -241,7 +261,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 3,
       "number_lsb": 49,
       "lsb_bits": 7,
       "msb_first": true
@@ -255,7 +274,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 3,
       "number_lsb": 50,
       "lsb_bits": 7,
       "msb_first": true
@@ -269,7 +287,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 3,
       "number_lsb": 51,
       "lsb_bits": 7,
       "msb_first": true

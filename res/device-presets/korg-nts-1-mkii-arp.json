@@ -7,6 +7,17 @@
   "notes": "Needs GLOBAL > MIDI Short Message = On. Knobs send the MSB CC first, then the LSB CC; if they move in coarse steps, switch Format to LSB first.",
   "controllers": [
     {
+      "type": 8,
+      "label": "Arpeggiator",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 1
+    },
+    {
       "type": 0,
       "label": "Arp pattern",
       "number": 117,
@@ -15,7 +26,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 1,
       "discreteValues": [
         0,
         12,
@@ -50,7 +60,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 1,
       "buttonlabel0": "Oct",
       "buttonvalue0": 0,
       "buttonlabel1": "Maj",
@@ -72,8 +81,18 @@
       "min": 0,
       "max": 127,
       "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 8,
+      "label": "Volume",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
       "velocity_cc": null,
-      "group": 1
+      "new_row": false
     },
     {
       "type": 5,

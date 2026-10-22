@@ -1,5 +1,6 @@
 import { ipcRenderer } from 'electron';
 import { CCController, CCControllerType, isHiResCC } from './zone/interfaces';
+import { migrateSpacers } from './zone/cc-layout';
 
 /**
  * Device presets: named CC/NRPN controller sets for a target device, stored as files by
@@ -65,7 +66,7 @@ function clampInt(v: unknown, min: number, max: number): number | undefined {
 /** A controller with known fields only, numbers clamped; number_in is never kept */
 export function sanitizeController(raw: any): CCController | null {
   if (raw == null || typeof raw != 'object') return null;
-  const type = clampInt(raw.type, 0, CCControllerType.NRPN);
+  const type = clampInt(raw.type, 0, CCControllerType.SECTION);
   if (type === undefined || type !== raw.type) return null;
   const c: any = {
     type,
@@ -89,6 +90,7 @@ export function sanitizeController(raw: any): CCController | null {
   if (!isHiResCC(type)) c.val = Math.min(c.val, 127);
   if (typeof raw.msb_first == 'boolean') c.msb_first = raw.msb_first;
   if (typeof raw.bipolar == 'boolean') c.bipolar = raw.bipolar;
+  if (typeof raw.new_row == 'boolean') c.new_row = raw.new_row;
   if (Array.isArray(raw.valueNames)) {
     c.valueNames = raw.valueNames.slice(0, 128).map((n: unknown) => text(n, 24) ?? '');
   }
@@ -122,10 +124,12 @@ export function sanitizePreset(raw: any, id: string, source: DevicePreset['sourc
   if (raw?.format !== PRESET_FORMAT || !Array.isArray(raw.controllers)) return null;
   const meta = sanitizeMeta(raw);
   if (!meta) return null;
-  const controllers = raw.controllers
-    .slice(0, MAX_CONTROLLERS)
-    .map(sanitizeController)
-    .filter((c: CCController | null): c is CCController => c != null);
+  const controllers = migrateSpacers(
+    raw.controllers
+      .slice(0, MAX_CONTROLLERS)
+      .map(sanitizeController)
+      .filter((c: CCController | null): c is CCController => c != null)
+  );
   return { ...meta, id, source, controllers };
 }
 
@@ -193,7 +197,9 @@ export function controllersFromPreset(
   const learned = new Map<string, number>();
   if (!append) {
     for (const c of current) {
-      if (c.number_in != null && c.type != CCControllerType.SPACER) learned.set(address(c), c.number_in);
+      if (c.number_in != null && c.type != CCControllerType.SPACER && c.type != CCControllerType.SECTION) {
+        learned.set(address(c), c.number_in);
+      }
     }
   }
   const copies = preset.controllers.map((c) => ({

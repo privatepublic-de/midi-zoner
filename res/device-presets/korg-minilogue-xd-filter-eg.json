@@ -7,6 +7,17 @@
   "notes": "Needs GLOBAL > MIDI Rx CC = On. 10-bit knobs send the low 3 bits on CC63, then the upper 7 bits.",
   "controllers": [
     {
+      "type": 8,
+      "label": "Filter",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 1
+    },
+    {
       "type": 5,
       "label": "Cutoff",
       "number": 43,
@@ -15,7 +26,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 1,
       "number_lsb": 63,
       "lsb_bits": 3
     },
@@ -28,7 +38,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 1,
       "number_lsb": 63,
       "lsb_bits": 3
     },
@@ -41,7 +50,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 1,
       "buttonlabel0": "0%",
       "buttonvalue0": 0,
       "buttonlabel1": "50%",
@@ -58,13 +66,23 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 1,
       "buttonlabel0": "0%",
       "buttonvalue0": 0,
       "buttonlabel1": "50%",
       "buttonvalue1": 64,
       "buttonlabel2": "100%",
       "buttonvalue2": 127
+    },
+    {
+      "type": 8,
+      "label": "Amp EG",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 2
     },
     {
       "type": 5,
@@ -75,7 +93,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 2,
       "number_lsb": 63,
       "lsb_bits": 3
     },
@@ -88,7 +105,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 2,
       "number_lsb": 63,
       "lsb_bits": 3
     },
@@ -101,7 +117,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 2,
       "number_lsb": 63,
       "lsb_bits": 3
     },
@@ -114,9 +129,19 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 2,
       "number_lsb": 63,
       "lsb_bits": 3
+    },
+    {
+      "type": 8,
+      "label": "Mod EG",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 3
     },
     {
       "type": 5,
@@ -127,7 +152,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 3,
       "number_lsb": 63,
       "lsb_bits": 3
     },
@@ -140,7 +164,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 3,
       "number_lsb": 63,
       "lsb_bits": 3
     },
@@ -153,7 +176,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 3,
       "number_lsb": 63,
       "lsb_bits": 3
     },
@@ -166,7 +188,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 3,
       "buttonlabel0": "Cutoff",
       "buttonvalue0": 0,
       "buttonlabel1": "Pitch 2",

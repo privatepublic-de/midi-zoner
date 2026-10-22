@@ -7,6 +7,17 @@
   "notes": "Needs GLOBAL > MIDI Rx CC = On. 10-bit knobs send the low 3 bits on CC63, then the upper 7 bits. Sub type knobs step through the presets of the current effect type.",
   "controllers": [
     {
+      "type": 8,
+      "label": "Mod FX",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 1
+    },
+    {
       "type": 3,
       "label": "Mod FX",
       "number": 92,
@@ -15,7 +26,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 1,
       "buttonlabel0": "Off",
       "buttonvalue0": 0,
       "buttonlabel1": "On",
@@ -30,7 +40,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 1,
       "buttonlabel0": "Chor",
       "buttonvalue0": 0,
       "buttonlabel1": "Ens",
@@ -51,7 +60,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 1,
       "discreteValues": [
         0,
         16,
@@ -72,7 +80,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 1,
       "number_lsb": 63,
       "lsb_bits": 3
     },
@@ -85,9 +92,19 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 1,
       "number_lsb": 63,
       "lsb_bits": 3
+    },
+    {
+      "type": 8,
+      "label": "Delay",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 2
     },
     {
       "type": 3,
@@ -98,7 +115,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 2,
       "buttonlabel0": "Off",
       "buttonvalue0": 0,
       "buttonlabel1": "On",
@@ -113,7 +129,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 2,
       "discreteValues": [
         0,
         7,
@@ -168,7 +183,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 2,
       "number_lsb": 63,
       "lsb_bits": 3
     },
@@ -181,7 +195,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 2,
       "number_lsb": 63,
       "lsb_bits": 3
     },
@@ -194,9 +207,19 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 2,
       "number_lsb": 63,
       "lsb_bits": 3
+    },
+    {
+      "type": 8,
+      "label": "Reverb",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 3
     },
     {
       "type": 3,
@@ -207,7 +230,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 3,
       "buttonlabel0": "Off",
       "buttonvalue0": 0,
       "buttonlabel1": "On",
@@ -222,7 +244,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 3,
       "discreteValues": [
         0,
         8,
@@ -273,7 +294,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 3,
       "number_lsb": 63,
       "lsb_bits": 3
     },
@@ -286,7 +306,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 3,
       "number_lsb": 63,
       "lsb_bits": 3
     },
@@ -299,7 +318,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 3,
       "number_lsb": 63,
       "lsb_bits": 3
     }

@@ -7,6 +7,17 @@
   "notes": "Needs GLOBAL > MIDI Rx CC = On. 10-bit knobs send the low 3 bits on CC63, then the upper 7 bits.",
   "controllers": [
     {
+      "type": 8,
+      "label": "LFO",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 1
+    },
+    {
       "type": 3,
       "label": "LFO wave",
       "number": 57,
@@ -15,7 +26,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 1,
       "buttonlabel0": "SQR",
       "buttonvalue0": 0,
       "buttonlabel1": "TRI",
@@ -32,7 +42,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 1,
       "buttonlabel0": "1-Shot",
       "buttonvalue0": 0,
       "buttonlabel1": "Normal",
@@ -49,7 +58,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 1,
       "buttonlabel0": "Cutoff",
       "buttonvalue0": 0,
       "buttonlabel1": "Shape",
@@ -66,7 +74,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 1,
       "number_lsb": 63,
       "lsb_bits": 3
     },
@@ -79,9 +86,20 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 1,
       "number_lsb": 63,
       "lsb_bits": 3
+    },
+    {
+      "type": 8,
+      "label": "Voice",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 2,
+      "new_row": false
     },
     {
       "type": 5,
@@ -92,7 +110,6 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "group": 2,
       "number_lsb": 63,
       "lsb_bits": 3
     },
@@ -104,8 +121,7 @@
       "min": 0,
       "max": 127,
       "note_cc": null,
-      "velocity_cc": null,
-      "group": 2
+      "velocity_cc": null
     }
   ]
 }
