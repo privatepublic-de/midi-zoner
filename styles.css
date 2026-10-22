@@ -1727,7 +1727,6 @@ input[type='range'] {
   flex-wrap: wrap;
   /* sections sharing a row line up their knobs, with or without a heading */
   align-items: flex-end;
-  max-width: 544px;
   padding: 0 4px;
 }
 
@@ -1740,6 +1739,11 @@ input[type='range'] {
 .ccsection-pots {
   display: flex;
   flex-wrap: wrap;
+  /* 8 knobs per row (and a half for gaps) */
+  max-width: 536px;
+}
+.ccsection.last {
+  flex-grow: 1;
 }
 .ccsection-break {
   flex-basis: 100%;

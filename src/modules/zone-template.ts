@@ -71,14 +71,19 @@ export function getControllerHTML(zone: ZoneType, zoneindex: number): string {
       esc: escapeHTML
     });
   // One block per section; a section starts a new row unless new_row is false
-  return sectionBlocks(zone.cc_controllers)
+  const blocks = sectionBlocks(zone.cc_controllers);
+  const continuesRow = (n: number): boolean =>
+    n > 0 && n < blocks.length && zone.cc_controllers[blocks[n].section]?.new_row === false;
+  return blocks
     .map((block, n) => {
       const section = block.section >= 0 ? zone.cc_controllers[block.section] : null;
-      const inline = section?.new_row === false && n > 0;
+      const inline = continuesRow(n);
+      // The last section on a row takes the rest of it, so its ruler runs to the edge
+      const last = !continuesRow(n + 1);
       const head = section?.label.trim() ? `<div class="ccsection-head">${escapeHTML(section.label)}</div>` : '';
       return (
         (n > 0 && !inline ? '<div class="ccsection-break"></div>' : '') +
-        `<div class="ccsection${inline ? ' inline' : ''}" data-group="${section?.group || 0}">` +
+        `<div class="ccsection${inline ? ' inline' : ''}${last ? ' last' : ''}" data-group="${section?.group || 0}">` +
         `${head}<div class="ccsection-pots">${block.items.map(pot).join('')}</div></div>`
       );
     })
