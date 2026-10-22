@@ -1702,6 +1702,31 @@ input[type='range'] {
   padding: 0 0 2px 0;
 }
 
+.cctools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+  padding: 6px 4px 4px 8px;
+}
+.cctools .action {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.cctools .action.cc-edit-toggle.selected {
+  background-color: var(--brighter-2);
+}
+.cctools .action .material-icons {
+  font-size: var(--icon-md);
+}
+.cctools .cc-preset-name {
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .ccpots .container {
   display: flex;
   flex-wrap: wrap;

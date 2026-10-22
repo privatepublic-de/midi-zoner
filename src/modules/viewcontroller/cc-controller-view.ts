@@ -176,9 +176,10 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIn
       DOM.removeClass(potselector, 'selected');
     }
   });
-  if (zone.editCC && onlyIndex === undefined) {
+  if (onlyIndex === undefined) {
+    zone.elements.addSelectedStyle('.cc-edit-toggle', zone.editCC);
     // Linked device preset, "•" when the controllers were changed since
-    const presetName = zone._$('.cc-editor .cc-preset-name') as HTMLElement;
+    const presetName = zone._$('.cctools .cc-preset-name') as HTMLElement;
     const linked = findDevicePreset(zone.devicePreset?.id);
     presetName.textContent = zone.devicePreset
       ? zone.devicePreset.name + (!linked || differsFromPreset(zone.cc_controllers, linked) ? ' •' : '')
@@ -201,7 +202,7 @@ export function renderControllersForZone(
   onGestureStart: (label: string) => void,
   onGestureEnd: () => void
 ): void {
-  DOM.all(`#zone${index} .ccpots .ccpot`).forEach((e) => e.remove());
+  DOM.all(`#zone${index} .ccpots .ccpot, #zone${index} .ccpots .ccpots-empty`).forEach((e) => e.remove());
   DOM.addHTML(
     `#zone${index} .ccpots .container`,
     'afterbegin',

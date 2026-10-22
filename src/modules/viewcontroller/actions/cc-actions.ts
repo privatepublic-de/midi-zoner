@@ -37,7 +37,9 @@ export function createCCActions(
       toast('All CC values sent');
     },
     cc_edit: () => {
+      if (zone.cc_controllers.length === 0) return;
       zone.editCC = !zone.editCC;
+      if (zone.selectedCCIndex < 0) zone.selectedCCIndex = 0;
       if (actionParam1 != null) {
         zone.selectedCCIndex = parseInt(actionParam1);
       }
@@ -281,21 +283,22 @@ export function createCCActions(
       });
     },
     cc_add: () => {
-      zone.cc_controllers.splice(zone.selectedCCIndex + 1, 0, {
+      // After the selected controller, or at the end when none is selected
+      const selected = zone.cc_controllers[zone.selectedCCIndex];
+      const insertAt = selected ? zone.selectedCCIndex + 1 : zone.cc_controllers.length;
+      const type = selected?.type ?? CCControllerType.UNIPOLAR_ROTARY;
+      zone.cc_controllers.splice(insertAt, 0, {
         number: 1,
         number_in: null,
         min: 0,
-        max: 127,
-        type:
-          zone.selectedCCIndex > -1
-            ? zone.cc_controllers[zone.selectedCCIndex].type
-            : 0,
-        label: `Ctrl #${zone.selectedCCIndex + 1}`,
+        max: type == CCControllerType.NRPN ? 16383 : 127,
+        type,
+        label: `Ctrl #${insertAt + 1}`,
         val: 0,
         note_cc: null,
         velocity_cc: null
       } as any);
-      zone.selectedCCIndex++;
+      zone.selectedCCIndex = insertAt;
       renderControllersForZone(zone, zoneindex);
       triggerSave();
     },
