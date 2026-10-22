@@ -246,7 +246,9 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIn
       }
       // One column up to 3 buttons, then two columns of up to 4 rows
       const rows = visibleButtons <= 3 ? Math.max(visibleButtons, 1) : Math.ceil(visibleButtons / 2);
-      (zone._$(`${potselector} .buttons`) as HTMLElement).style.setProperty('--button-rows', String(rows));
+      const buttons = zone._$(`${potselector} .buttons`) as HTMLElement;
+      buttons.style.setProperty('--button-rows', String(rows));
+      buttons.dataset.columns = visibleButtons <= 3 ? '1' : '2';
     }
   });
   controllersChanged?.(zone, zoneindex, onlyIndex);
