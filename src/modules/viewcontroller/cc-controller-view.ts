@@ -243,9 +243,6 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIn
       (zone._$(`${potselector} .buttons`) as HTMLElement).style.setProperty('--button-rows', String(rows));
     }
   });
-  if (onlyIndex === undefined) {
-    (zone._$('.cctools .cc-preset-name') as HTMLElement).textContent = devicePresetLabel(zone);
-  }
   controllersChanged?.(zone, zoneindex, onlyIndex);
 }
 
