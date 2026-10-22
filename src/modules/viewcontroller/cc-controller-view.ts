@@ -324,18 +324,26 @@ export function renderControllersForZone(
     if (c.type != CCControllerType.SELECTOR) return;
     const name = zone._$(`#pot_${index}_${ix} .selector-name`) as HTMLElement | null;
     if (!name) return;
-    // Click: the list; drag up/down: step through it (a drag that changed the value is no click)
+    // Click: the list; drag up/down: step through it. The drag starts only after a few
+    // pixels of movement, since a running drag swallows the click (.dragvalue)
     name.dataset.contextclick = '';
     name.dataset.contextmenu = `ccselect:${index}:${ix}`;
-    let valueBeforeDrag: number | null = null;
-    name.addEventListener('mousedown', (e) => {
-      if (e.button !== 0) return;
-      valueBeforeDrag = zone.cc_controllers[ix].val;
-      startControllerDrag(zone, index, ix, e, onGestureStart, onGestureEnd, triggerSave);
+    name.addEventListener('mousedown', (down) => {
+      if (down.button !== 0) return;
+      const move = (e: MouseEvent): void => {
+        if (Math.abs(e.pageY - down.pageY) < 4) return;
+        stop();
+        startControllerDrag(zone, index, ix, down, onGestureStart, onGestureEnd, triggerSave);
+      };
+      const stop = (): void => {
+        window.removeEventListener('mousemove', move);
+        window.removeEventListener('mouseup', stop);
+      };
+      window.addEventListener('mousemove', move);
+      window.addEventListener('mouseup', stop);
     });
     name.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (valueBeforeDrag !== null && zone.cc_controllers[ix].val !== valueBeforeDrag) return;
       menuHandler?.(e);
     });
     // Scrolling steps one entry per notch
