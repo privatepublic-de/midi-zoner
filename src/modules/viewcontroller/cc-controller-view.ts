@@ -5,7 +5,7 @@ import { ZoneType } from './types';
 import { CCController, CCControllerType, isHiResCC } from '../zone/interfaces';
 import { labelForZone } from './action-labels';
 import { differsFromPreset, findDevicePreset } from '../device-presets';
-import { effectiveGroup } from '../zone/cc-layout';
+import { effectiveGroup, pageBlocks, pageName } from '../zone/cc-layout';
 
 function polarToCartesian(
   centerX: number,
@@ -219,8 +219,10 @@ export function startControllerDrag(
 export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIndex?: number): void {
   zone.cc_controllers.forEach((c, ix) => {
     if (onlyIndex !== undefined && ix !== onlyIndex) return;
-    if (c.type == CCControllerType.SECTION) return;
+    if (c.type == CCControllerType.SECTION || c.type == CCControllerType.PAGE) return;
     const potselector = `#pot_${zoneindex}_${ix}`;
+    // Controllers on other pages aren't drawn; they show their value when their page is
+    if (!zone._$(potselector)) return;
     const knob = knobPaths(c);
     if (onlyIndex === undefined) {
       zone._$(`${potselector}_range`)?.setAttribute('d', knobRangePath);
@@ -291,6 +293,23 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIn
   controllersChanged?.(zone, zoneindex, onlyIndex);
 }
 
+let pageSwitch: {
+  actionHandler: (ev: MouseEvent, overrideaction?: string) => void;
+  triggerSave: () => void;
+  onGestureStart: (label: string) => void;
+  onGestureEnd: () => void;
+} | null = null;
+
+/** Shows another controller page of the zone (saved, not an undo step) */
+export function showControllerPage(zone: ZoneType, zoneindex: number, page: number): void {
+  if (!pageSwitch || zone.ccPage == page) return;
+  zone.ccPage = page;
+  const { actionHandler, triggerSave, onGestureStart, onGestureEnd } = pageSwitch;
+  renderControllersForZone(zone, zoneindex, actionHandler, triggerSave, onGestureStart, onGestureEnd);
+  updateControllerValues(zone, zoneindex);
+  triggerSave();
+}
+
 export function renderControllersForZone(
   zone: ZoneType,
   index: number,
@@ -306,6 +325,29 @@ export function renderControllersForZone(
     zoneTemplate.getControllerHTML(zone, index)
   );
   zone.elements.emptyCache();
+
+  // Page tabs (with 2 or more pages); switching is saved but no undo step
+  const pages = pageBlocks(zone.cc_controllers);
+  zone.ccPage = Math.min(zone.ccPage, pages.length - 1);
+  const tabs = zone._$('.cc-pages') as HTMLElement;
+  tabs.replaceChildren();
+  if (pages.length > 1) {
+    pages.forEach((_, n) => {
+      const tab = document.createElement('div');
+      tab.className = 'cc-page';
+      tab.setAttribute('role', 'tab');
+      tab.setAttribute('aria-selected', String(n == zone.ccPage));
+      tab.classList.toggle('selected', n == zone.ccPage);
+      tab.textContent = pageName(zone.cc_controllers, pages, n);
+      tab.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (n == zone.ccPage) return;
+        showControllerPage(zone, index, n);
+      });
+      tabs.append(tab);
+    });
+  }
+  pageSwitch = { actionHandler, triggerSave, onGestureStart, onGestureEnd };
 
   DOM.all(`#zone${index} .ccpots .ccpot`).forEach((pot) => {
     const ix = parseInt(pot.id.split('_')[2]);

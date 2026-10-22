@@ -66,7 +66,7 @@ function clampInt(v: unknown, min: number, max: number): number | undefined {
 /** A controller with known fields only, numbers clamped; number_in is never kept */
 export function sanitizeController(raw: any): CCController | null {
   if (raw == null || typeof raw != 'object') return null;
-  const type = clampInt(raw.type, 0, CCControllerType.SELECTOR);
+  const type = clampInt(raw.type, 0, CCControllerType.PAGE);
   if (type === undefined || type !== raw.type) return null;
   const c: any = {
     type,
@@ -197,7 +197,7 @@ export function controllersFromPreset(
   const learned = new Map<string, number>();
   if (!append) {
     for (const c of current) {
-      if (c.number_in != null && c.type != CCControllerType.SPACER && c.type != CCControllerType.SECTION) {
+      if (c.number_in != null && ![CCControllerType.SPACER, CCControllerType.SECTION, CCControllerType.PAGE].includes(c.type)) {
         learned.set(address(c), c.number_in);
       }
     }

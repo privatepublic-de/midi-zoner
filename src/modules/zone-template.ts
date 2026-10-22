@@ -4,7 +4,7 @@ import { Sequence } from './zone/sequence';
 import fs from 'fs';
 import { escapeHTML } from './domutils';
 import path from 'path';
-import { sectionBlocks } from './zone/cc-layout';
+import { pageBlocks, sectionBlocks } from './zone/cc-layout';
 
 // Type alias for the Zone class type
 type ZoneType = Zone;
@@ -70,8 +70,10 @@ export function getControllerHTML(zone: ZoneType, zoneindex: number): string {
       zoneindex: zoneindex,
       esc: escapeHTML
     });
-  // One block per section; a section starts a new row unless new_row is false
-  const blocks = sectionBlocks(zone.cc_controllers);
+  // Only the page shown; one block per section, a section starts a new row unless new_row is false
+  const pages = pageBlocks(zone.cc_controllers);
+  const page = pages[Math.min(zone.ccPage, pages.length - 1)];
+  const blocks = sectionBlocks(zone.cc_controllers, page.start, page.end);
   const continuesRow = (n: number): boolean =>
     n > 0 && n < blocks.length && zone.cc_controllers[blocks[n].section]?.new_row === false;
   return blocks

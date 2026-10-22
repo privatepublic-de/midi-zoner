@@ -1,20 +1,65 @@
 import { CCController, CCControllerType } from './interfaces';
 
 /**
- * Sections structure a zone's controllers: a SECTION entry starts a group (normally on a
- * new row) and gives the controllers after it their colour, up to the next section.
+ * Pages and sections structure a zone's controllers. A PAGE entry starts a page: the zone
+ * shows one page at a time. A SECTION entry starts a group (normally on a new row) and
+ * gives the controllers after it their colour, up to the next section or page.
  */
 
 export function isSection(c: CCController | undefined): boolean {
   return c?.type == CCControllerType.SECTION;
 }
 
-/** Index of the section a controller belongs to, -1 before the first section */
+export function isPage(c: CCController | undefined): boolean {
+  return c?.type == CCControllerType.PAGE;
+}
+
+/** Index of the section a controller belongs to, -1 if none (sections end at a page) */
 export function sectionIndexOf(controllers: CCController[], ix: number): number {
   for (let i = ix; i >= 0; i--) {
     if (isSection(controllers[i])) return i;
+    if (isPage(controllers[i])) return -1;
   }
   return -1;
+}
+
+export interface PageBlock {
+  /** Index of the page entry, -1 for the controllers before the first page */
+  page: number;
+  /** The page's entries: [start, end) */
+  start: number;
+  end: number;
+}
+
+/** The pages; controllers before the first PAGE entry form a page of their own */
+export function pageBlocks(controllers: CCController[]): PageBlock[] {
+  const pages: PageBlock[] = [];
+  let current: PageBlock = { page: -1, start: 0, end: controllers.length };
+  controllers.forEach((c, ix) => {
+    if (!isPage(c)) return;
+    current.end = ix;
+    if (current.page >= 0 || ix > 0) pages.push(current);
+    current = { page: ix, start: ix + 1, end: controllers.length };
+  });
+  pages.push(current);
+  return pages;
+}
+
+export function pageName(controllers: CCController[], pages: PageBlock[], n: number): string {
+  const page = pages[n];
+  if (!page || page.page < 0) return 'Main';
+  return controllers[page.page].label.trim() || `Page ${n + 1}`;
+}
+
+/** The number of the page an entry is on (a page entry is on its own page) */
+export function pageNumberOf(controllers: CCController[], ix: number): number {
+  const pages = pageBlocks(controllers);
+  const n = pages.findIndex((p) => ix < p.end || (p.page == ix));
+  return n < 0 ? pages.length - 1 : n;
+}
+
+export function newPage(label: string): CCController {
+  return { ...newSection(label, 0), type: CCControllerType.PAGE };
 }
 
 /** The controller's colour: its own override, else its section's */
@@ -32,11 +77,15 @@ export interface SectionBlock {
   items: number[];
 }
 
-export function sectionBlocks(controllers: CCController[]): SectionBlock[] {
+/** The sections of the entries [start, end) (all by default); pages are boundaries */
+export function sectionBlocks(controllers: CCController[], start = 0, end = controllers.length): SectionBlock[] {
   const blocks: SectionBlock[] = [];
   let current: SectionBlock | null = null;
   controllers.forEach((c, ix) => {
-    if (isSection(c)) {
+    if (ix < start || ix >= end) return;
+    if (isPage(c)) {
+      current = null;
+    } else if (isSection(c)) {
       current = { section: ix, items: [] };
       blocks.push(current);
     } else {

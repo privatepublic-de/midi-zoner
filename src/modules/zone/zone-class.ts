@@ -114,6 +114,8 @@ export class Zone {
   ];
   show_cc = false;
   devicePreset: { id: string; name: string } | null = null;
+  /** The controller page shown (pages: PAGE entries in cc_controllers) */
+  ccPage = 0;
   selectedCCIndex = 0;
   at2mod = false;
   pitchbend = true;
@@ -247,6 +249,7 @@ export class Zone {
       bank_lsb: this.bank_lsb,
       cc_controllers: this.cc_controllers,
       devicePreset: this.devicePreset,
+      cc_page: this.ccPage,
       arrangements: this.arrangements
     };
   }
@@ -669,7 +672,7 @@ export class Zone {
           let matchCount = 0;
           for (let i = 0; i < this.cc_controllers.length; i++) {
             const ctrl = this.cc_controllers[i];
-            if (ctrl.type != CCControllerType.SPACER && ctrl.type != CCControllerType.SECTION && ctrl.number_in == data[1]) {
+            if (ctrl.number_in == data[1] && ![CCControllerType.SPACER, CCControllerType.SECTION, CCControllerType.PAGE].includes(ctrl.type)) {
               if (isHiResCC(ctrl.type)) {
                 ctrl.val = Math.round((data[2] * 16383) / 127);
               } else if (ctrl.type == CCControllerType.SELECTOR) {
@@ -1786,7 +1789,14 @@ export class Zone {
     for (let i = 0; i < this.cc_controllers.length; i++) {
       // Gaps, sections and note-to-CC have no value of their own
       const type = this.cc_controllers[i].type;
-      if (type == CCControllerType.SPACER || type == CCControllerType.SECTION || type == CCControllerType.NOTE_TO_CC) continue;
+      if (
+        type == CCControllerType.SPACER ||
+        type == CCControllerType.SECTION ||
+        type == CCControllerType.PAGE ||
+        type == CCControllerType.NOTE_TO_CC
+      ) {
+        continue;
+      }
       this.sendCC(i);
     }
   }

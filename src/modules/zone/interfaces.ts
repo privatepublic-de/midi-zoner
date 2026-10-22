@@ -12,7 +12,8 @@ export enum CCControllerType {
   BIPOLAR_14BIT = 6,
   NRPN = 7,
   SECTION = 8, // named, coloured group of the controllers after it; starts a new row
-  SELECTOR = 9 // list of named values (discreteValues + valueNames), each sent as is
+  SELECTOR = 9, // list of named values (discreteValues + valueNames), each sent as is
+  PAGE = 10 // named page: the zone shows one page of controllers at a time
 }
 
 /** Types that send one 7-bit CC: controllers on the same CC number stay in sync */
@@ -193,5 +194,7 @@ export interface ZoneJSON {
   cc_controllers: CCController[];
   // Device preset the controllers were taken from (they are a copy)
   devicePreset?: { id: string; name: string } | null;
+  // Index of the controller page the zone shows
+  cc_page?: number;
   arrangements: ZoneArrangementJSON[];
 }

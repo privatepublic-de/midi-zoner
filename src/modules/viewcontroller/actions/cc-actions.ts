@@ -11,7 +11,7 @@ import {
 import { askDevicePresetMeta } from '../device-preset-dialog';
 import { openDevicePresetManager } from '../device-preset-manager';
 import { openCCEditor } from '../cc-editor';
-import { isSection, newSection } from '../../zone/cc-layout';
+import { isPage, isSection, newPage, newSection, pageNumberOf } from '../../zone/cc-layout';
 
 export function createCCActions(
   ctx: ActionContext,
@@ -91,8 +91,8 @@ export function createCCActions(
     cc_label: () => {
       const c = selected();
       c.label = (element as HTMLInputElement).value;
-      // A section's name is its heading in the zone
-      if (isSection(c)) renderControllersForZone(zone, zoneindex);
+      // A section's name is its heading in the zone, a page's its tab
+      if (isSection(c) || isPage(c)) renderControllersForZone(zone, zoneindex);
       else updateControllerValues(zone, zoneindex);
       triggerSave();
     },
@@ -102,6 +102,16 @@ export function createCCActions(
       const sections = zone.cc_controllers.filter(isSection).length;
       zone.cc_controllers.splice(insertAt, 0, newSection('Section', (sections % 4) + 1));
       zone.selectedCCIndex = insertAt;
+      renderControllersForZone(zone, zoneindex);
+      triggerSave();
+    },
+    cc_add_page: () => {
+      // After the selected entry; the zone shows the new page
+      const insertAt = zone.cc_controllers[zone.selectedCCIndex] ? zone.selectedCCIndex + 1 : zone.cc_controllers.length;
+      const pages = zone.cc_controllers.filter(isPage).length;
+      zone.cc_controllers.splice(insertAt, 0, newPage(`Page ${pages + 2}`));
+      zone.selectedCCIndex = insertAt;
+      zone.ccPage = pageNumberOf(zone.cc_controllers, insertAt);
       renderControllersForZone(zone, zoneindex);
       triggerSave();
     },
@@ -331,8 +341,22 @@ export function createCCActions(
       if (!preset) return;
       // Shift-click appends to the existing controllers instead of replacing them
       const append = ev.shiftKey && zone.cc_controllers.length > 0;
-      zone.cc_controllers = controllersFromPreset(preset, zone.cc_controllers, append);
-      if (!append) zone.devicePreset = { id: preset.id, name: preset.name };
+      if (append) {
+        // An appended preset becomes a page of its own; without pages so far, the
+        // existing controllers become the first page
+        const current = zone.cc_controllers.some(isPage)
+          ? zone.cc_controllers
+          : [newPage(zone.devicePreset?.name ?? 'Main'), ...zone.cc_controllers];
+        const added = controllersFromPreset(preset, [], false);
+        const firstNew = current.length;
+        zone.cc_controllers = [...current, ...(isPage(added[0]) ? [] : [newPage(preset.name)]), ...added];
+        zone.ccPage = pageNumberOf(zone.cc_controllers, firstNew);
+        zone.selectedCCIndex = firstNew;
+      } else {
+        zone.cc_controllers = controllersFromPreset(preset, zone.cc_controllers, false);
+        zone.devicePreset = { id: preset.id, name: preset.name };
+        zone.ccPage = 0;
+      }
       zone.selectedCCIndex = Math.min(zone.selectedCCIndex, zone.cc_controllers.length - 1);
       zone.show_cc = true;
       renderControllersForZone(zone, zoneindex);
@@ -340,7 +364,7 @@ export function createCCActions(
       triggerSave();
       toast(
         append
-          ? `Added ${preset.controllers.length} controllers from "${escapeHTML(preset.name)}"`
+          ? `Added "${escapeHTML(preset.name)}" as a new page`
           : `Applied preset "${escapeHTML(preset.name)}" (⇧-click appends instead)`
       );
     },
@@ -403,9 +427,9 @@ export function createCCActions(
       // After the selected controller, or at the end when none is selected
       const current = zone.cc_controllers[zone.selectedCCIndex];
       const insertAt = current ? zone.selectedCCIndex + 1 : zone.cc_controllers.length;
-      // Same type as the selected controller; after a section or gap a knob
+      // Same type as the selected controller; after a section, page or gap a knob
       const type =
-        current && current.type != CCControllerType.SECTION && current.type != CCControllerType.SPACER
+        current && ![CCControllerType.SECTION, CCControllerType.PAGE, CCControllerType.SPACER].includes(current.type)
           ? current.type
           : CCControllerType.UNIPOLAR_ROTARY;
       const labels = new Set(zone.cc_controllers.map((c) => c.label));
@@ -421,7 +445,7 @@ export function createCCActions(
         val: 0,
         note_cc: null,
         velocity_cc: null,
-        group: current && !isSection(current) ? current.group ?? 0 : 0
+        group: current && !isSection(current) && !isPage(current) ? current.group ?? 0 : 0
       };
       if (type == CCControllerType.NRPN) {
         controller.nrpn_data_lsb_cc = 38;
@@ -453,7 +477,9 @@ export function createCCActions(
       renderControllersForZone(zone, zoneindex);
       triggerSave();
       toast(
-        isSection(current)
+        isPage(current)
+          ? `Deleted page "${escapeHTML(current.label || 'page')}": its controllers joined the page before (undo brings it back)`
+          : isSection(current)
           ? `Deleted section "${escapeHTML(current.label || 'row break')}": its controllers joined the one before (undo brings it back)`
           : `Deleted "${escapeHTML(current.label || 'controller')}" (undo brings it back)`
       );

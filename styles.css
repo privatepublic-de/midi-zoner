@@ -4172,6 +4172,10 @@ body.minimized .midi-led.on {
   cursor: pointer;
   border-bottom: 1px solid var(--darker-1);
 }
+.cce-rows .cce-row {
+  /* scrolled into view below the sticky column header */
+  scroll-margin-top: 24px;
+}
 .cce-row > span {
   overflow: hidden;
   white-space: nowrap;
@@ -4622,4 +4626,53 @@ body.minimized .midi-led.on {
 #ccEditor .cce-sel-step {
   padding: 0 4px;
   background-color: transparent;
+}
+
+/* controller pages: tabs in the zone's CC toolbar, quiet like the button banks */
+.cc-pages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-left: 6px;
+}
+.cc-page {
+  display: flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 6px;
+  font-size: var(--fs-md);
+  color: var(--brighter-2);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.cc-page:hover {
+  color: var(--brighter-3);
+  background-color: var(--darker-1);
+}
+.cc-page.selected {
+  color: var(--brighter-4);
+  box-shadow: inset 0 -2px 0 var(--brighter-4);
+}
+
+/* controller editor: pages */
+.cce-rows .cce-row.cce-page-row {
+  height: calc(var(--cce-row-h) + 10px);
+  padding-top: 10px;
+  font-weight: 600;
+  font-size: var(--fs-lg);
+  border-bottom: 1px solid var(--brighter-1);
+}
+.cce-page-row .cce-swatch {
+  visibility: hidden;
+}
+.cce-page-row .cce-row-type,
+.cce-page-row .cce-row-range {
+  font-size: var(--fs-md);
+  font-weight: normal;
+}
+.cce-layout-caption {
+  flex-basis: 100%;
+  margin: 0 1px 4px;
+  font-size: var(--fs-sm);
+  color: var(--brighter-2);
 }

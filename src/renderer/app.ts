@@ -145,6 +145,7 @@ function createZone(midi: MIDIInstance, zoneData: any): Zone {
   zone.bank_msb = zoneData.bank_msb ?? null;
   zone.bank_lsb = zoneData.bank_lsb ?? null;
   if (zoneData.cc_controllers) zone.cc_controllers = migrateSpacers(zoneData.cc_controllers);
+  if (typeof zoneData.cc_page == 'number') zone.ccPage = Math.max(0, Math.floor(zoneData.cc_page));
   if (typeof zoneData.devicePreset?.id == 'string' && typeof zoneData.devicePreset?.name == 'string') {
     zone.devicePreset = { id: zoneData.devicePreset.id, name: zoneData.devicePreset.name };
   }

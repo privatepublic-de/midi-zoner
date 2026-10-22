@@ -2,7 +2,16 @@ import DOM from '../domutils';
 import { ZoneType } from './types';
 import { CCController, CCControllerType } from '../zone/interfaces';
 import { describeActionForZone } from './action-labels';
-import { effectiveGroup, isSection, sectionBlocks, sectionIndexOf } from '../zone/cc-layout';
+import {
+  effectiveGroup,
+  isPage,
+  isSection,
+  pageBlocks,
+  pageName,
+  pageNumberOf,
+  sectionBlocks,
+  sectionIndexOf
+} from '../zone/cc-layout';
 import {
   controllerDisplay,
   devicePresetLabel,
@@ -11,6 +20,7 @@ import {
   knobPaths,
   knobRangePath,
   onControllersChanged,
+  showControllerPage,
   startControllerDrag
 } from './cc-controller-view';
 
@@ -49,7 +59,8 @@ const TYPE_NAMES: Record<number, string> = {
   [CCControllerType.BIPOLAR_14BIT]: '14 bit ±',
   [CCControllerType.NRPN]: 'NRPN',
   [CCControllerType.SECTION]: 'Section',
-  [CCControllerType.SELECTOR]: 'Selector'
+  [CCControllerType.SELECTOR]: 'Selector',
+  [CCControllerType.PAGE]: 'Page'
 };
 
 function $<T extends HTMLElement = HTMLElement>(selector: string): T {
@@ -85,6 +96,7 @@ function sendsText(c: CCController): string {
   switch (c.type) {
     case CCControllerType.SPACER:
     case CCControllerType.SECTION:
+    case CCControllerType.PAGE:
       return '';
     case CCControllerType.NOTE_TO_CC:
       return [c.note_cc != null ? `note → CC ${c.note_cc}` : '', c.velocity_cc != null ? `vel. → CC ${c.velocity_cc}` : '']
@@ -167,8 +179,13 @@ function renderRows(zone: ZoneType): void {
   const rows = $('.cce-rows');
   rows.replaceChildren();
   const sectionSizes = new Map(sectionBlocks(zone.cc_controllers).map((b) => [b.section, b.items.length]));
+  for (const p of pageBlocks(zone.cc_controllers)) {
+    const controls = zone.cc_controllers.slice(p.start, p.end).filter((c) => !isSection(c)).length;
+    if (p.page >= 0) sectionSizes.set(p.page, controls);
+  }
   zone.cc_controllers.forEach((c, ix) => {
-    const section = isSection(c);
+    const page = isPage(c);
+    const section = isSection(c) || page;
     const gap = c.type == CCControllerType.SPACER;
     const row = document.createElement('div');
     row.className = 'cce-row';
@@ -177,12 +194,13 @@ function renderRows(zone: ZoneType): void {
     row.classList.toggle('selected', ix == zone.selectedCCIndex);
     row.classList.toggle('spacer', gap);
     row.classList.toggle('cce-section-row', section);
+    row.classList.toggle('cce-page-row', page);
     row.classList.toggle('in-section', !section && sectionIndexOf(zone.cc_controllers, ix) >= 0);
     row.dataset.group = String(effectiveGroup(zone.cc_controllers, ix));
     row.draggable = true;
     const swatch = cell('', 'cce-swatch');
     const name = cell(
-      section ? c.label.trim() || 'Row break' : gap ? 'Gap' : c.label || '(no name)',
+      page ? c.label.trim() || 'Page' : section ? c.label.trim() || 'Row break' : gap ? 'Gap' : c.label || '(no name)',
       'cce-row-name'
     );
     name.title = name.textContent!;
@@ -244,7 +262,16 @@ function renderLayout(zone: ZoneType): void {
   const layout = $('.cce-layout');
   layout.replaceChildren();
   const cs = zone.cc_controllers;
-  sectionBlocks(cs).forEach((block, n) => {
+  // The page of the selected controller
+  const pages = pageBlocks(cs);
+  const pageNo = Math.min(zone.ccPage, pages.length - 1);
+  const page = pages[pageNo];
+  if (pages.length > 1) {
+    const caption = div('cce-layout-caption');
+    caption.textContent = `Page ${pageNo + 1} of ${pages.length}: ${pageName(cs, pages, pageNo)}`;
+    layout.append(caption);
+  }
+  sectionBlocks(cs, page.start, page.end).forEach((block, n) => {
     const section = block.section >= 0 ? cs[block.section] : null;
     const inline = section?.new_row === false && n > 0;
     if (n > 0 && !inline) layout.append(div('cce-mini-break'));
@@ -493,6 +520,14 @@ function refresh(onlyIndex?: number): void {
   $('.cce-preset-button .cc-preset-name').textContent = devicePresetLabel(zone);
   shownZone = zone;
   shownSelection = zone.selectedCCIndex;
+  // The zone shows the page being edited
+  if (zone.cc_controllers[zone.selectedCCIndex]) {
+    const page = pageNumberOf(zone.cc_controllers, zone.selectedCCIndex);
+    if (page != zone.ccPage) {
+      showControllerPage(zone, zoneIndex, page); // redraws the panel through onControllersChanged
+      return;
+    }
+  }
   renderRows(zone);
   renderLayout(zone);
   renderInspector(zone);
