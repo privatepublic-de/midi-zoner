@@ -88,6 +88,10 @@ export function sanitizeController(raw: any): CCController | null {
   }
   if (!isHiResCC(type)) c.val = Math.min(c.val, 127);
   if (typeof raw.msb_first == 'boolean') c.msb_first = raw.msb_first;
+  if (typeof raw.bipolar == 'boolean') c.bipolar = raw.bipolar;
+  if (Array.isArray(raw.valueNames)) {
+    c.valueNames = raw.valueNames.slice(0, 128).map((n: unknown) => text(n, 24) ?? '');
+  }
   if (Array.isArray(raw.discreteValues)) {
     c.discreteValues = raw.discreteValues
       .slice(0, 128)

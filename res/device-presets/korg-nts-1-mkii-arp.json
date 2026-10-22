@@ -27,6 +27,18 @@
         84,
         96,
         127
+      ],
+      "valueNames": [
+        "Up",
+        "Down",
+        "Up-Down",
+        "Down-Up",
+        "Converge",
+        "Diverge",
+        "Conv-Div",
+        "Div-Conv",
+        "Random",
+        "Stochastic"
       ]
     },
     {

@@ -187,7 +187,7 @@ enum CCControllerType {
   NRPN = 7              // CC99/98 param number + Data Entry (see below)
 }
 ```
-`isHiResCC(type)` is true for types 5–7 (value 0–16383). NRPN controllers map the knob onto `min`–`max` in device units (`Zone.nrpnValue()`) and send CC99, CC98, the low bits on `nrpn_data_lsb_cc` (`nrpn_data_lsb_bits` wide: 7 on CC38 standard, 3 on CC63 for Korg logue devices, none = CC6 only), then CC6 with the remaining high bits.
+`isHiResCC(type)` is true for types 5–7 (value 0–16383). NRPN controllers map the knob onto `min`–`max` in device units (`Zone.nrpnValue()`) and send CC99, CC98, the low bits on `nrpn_data_lsb_cc` (`nrpn_data_lsb_bits` wide: 7 on CC38 standard, 3 on CC63 for Korg logue devices, none = CC6 only), then CC6 with the remaining high bits. `bipolar` (NRPN only) draws the knob from the centre and shows the value relative to the middle of min–max. `valueNames` (types 0 and 7) are shown under the knob: indexed by snap step when `discreteValues` is set, otherwise by value − min.
 14-bit types send `number_lsb` then `number` (or MSB first with `msb_first`); `lsb_bits` = 7 (14 bit) or 3 (10 bit, Korg logue: low 3 bits on CC63, `Zone.hiResValue()` = 0–1023).
 
 ### ArpDirection (interfaces.ts)

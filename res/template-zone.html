@@ -742,6 +742,13 @@
           <option value="63:3">CC6 + CC63 (3 bit, Korg logue)</option>
           <option value="none">CC6 only (7 bit)</option>
         </select>
+        <div
+          class="check cc-nrpn-bipolar show-type-7"
+          data-action="${index}:cc_nrpn_bipolar"
+          title="Draw the knob from the centre and show values relative to the middle of Min–Max"
+        >
+          ${checkboxIcons}Bipolar
+        </div>
         <div style="flex-grow: 1"></div>
         <label
           title="Move a hardware control while in edit mode to auto-learn its CC number"
@@ -777,6 +784,15 @@
           tabindex="-1"
         />
         <div style="flex-grow: 1"></div>
+        <label class="hide-type-1" title="Names shown under the knob, comma-separated: one per snap step, or per value from Min on">Names</label>
+        <input
+          type="text"
+          class="cc_value_names hide-type-1"
+          data-change="${index}:cc_value_names"
+          tabindex="-1"
+          style="width: 8rem"
+          placeholder="Saw, Tri, Sqr"
+        />
         <label class="hide-type-7">Steps / Snap</label>
         <input
           type="text"

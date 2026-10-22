@@ -71,7 +71,10 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIn
     if (onlyIndex !== undefined && ix !== onlyIndex) return;
     const potselector = `#pot_${zoneindex}_${ix}`;
     const is14bit = isHiResCC(c.type);
-    const isBipolar = c.type == CCControllerType.BIPOLAR_ROTARY || c.type == CCControllerType.BIPOLAR_14BIT;
+    const isBipolar =
+      c.type == CCControllerType.BIPOLAR_ROTARY ||
+      c.type == CCControllerType.BIPOLAR_14BIT ||
+      (c.type == CCControllerType.NRPN && !!c.bipolar);
     const valDegrees = is14bit
       ? 270 * (isBipolar ? (c.val - 8192) / 8192 : c.val / 16383)
       : 270 * (isBipolar ? (c.val - 64) / 64 : c.val / 127);
@@ -93,10 +96,15 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIn
     (zone._$(`${potselector} div.cclabel`) as HTMLElement).textContent =
       c.type == CCControllerType.NOTE_TO_CC ? 'Note to CC' : c.label;
     let displayValue: number = c.val;
+    // Index into valueNames: the snap step, or the value counted from min
+    let nameIndex = -1;
     if (c.type == CCControllerType.UNIPOLAR_ROTARY) {
       displayValue = zone.remapCCValue(c.val, ix);
+      nameIndex = c.discreteValues?.length ? c.discreteValues.indexOf(c.val) : displayValue - (c.min || 0);
     } else if (c.type == CCControllerType.NRPN) {
       displayValue = zone.nrpnValue(c);
+      nameIndex = displayValue - (c.min || 0);
+      if (c.bipolar) displayValue -= Math.round(((c.min || 0) + (c.max ?? 16383)) / 2);
     } else if (is14bit) {
       const bits = 7 + (c.lsb_bits ?? 7);
       displayValue = zone.hiResValue(c) - (isBipolar ? 1 << (bits - 1) : 0);
@@ -104,6 +112,11 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIn
       displayValue -= 64;
     }
     (zone._$(`${potselector} .value`) as HTMLElement).textContent = String(displayValue);
+    const valueName = zone._$(`${potselector} .valuename`) as HTMLElement | null;
+    if (valueName) {
+      valueName.textContent = c.valueNames?.[nameIndex] ?? '';
+      valueName.title = valueName.textContent;
+    }
     if (c.type == CCControllerType.NOTE_TO_CC) {
       let infotext = '';
       if (c.note_cc != null) {
@@ -161,6 +174,8 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIn
         (zone._$('.cc-editor .cc-max') as HTMLInputElement).value = String(c.max ?? 127);
         (zone._$('.cc-editor .cc-14bit-format') as HTMLSelectElement).value =
           `${c.lsb_bits ?? 7}:${c.msb_first ? 'msb' : 'lsb'}`;
+        zone.elements.addSelectedStyle('.cc-editor .cc-nrpn-bipolar', !!c.bipolar);
+        (zone._$('.cc-editor .cc_value_names') as HTMLInputElement).value = c.valueNames?.join(', ') || '';
         (zone._$('.cc-editor .cc-nrpn-msb') as HTMLInputElement).value = String(c.nrpn_msb || 0);
         (zone._$('.cc-editor .cc-nrpn-lsb') as HTMLInputElement).value = String(c.nrpn_lsb || 0);
         (zone._$('.cc-editor .cc-nrpn-data-lsb') as HTMLSelectElement).value =

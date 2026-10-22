@@ -162,6 +162,21 @@ export function createCCActions(
       updateControllerValues(zone, zoneindex);
       triggerSave();
     },
+    cc_value_names: () => {
+      const c = zone.cc_controllers[zone.selectedCCIndex];
+      const names = (element as HTMLInputElement).value.split(',').map((n) => n.trim().slice(0, 24));
+      while (names.length > 0 && names[names.length - 1] === '') names.pop();
+      if (names.length > 0) c.valueNames = names.slice(0, 128);
+      else delete c.valueNames;
+      updateControllerValues(zone, zoneindex);
+      triggerSave();
+    },
+    cc_nrpn_bipolar: () => {
+      const c = zone.cc_controllers[zone.selectedCCIndex];
+      c.bipolar = !c.bipolar;
+      updateControllerValues(zone, zoneindex);
+      triggerSave();
+    },
     cc_notenum2cc: () => {
       const inputElement = element as HTMLInputElement;
       inputElement.value = inputElement.value.replace(/[^0-9]/g, '');

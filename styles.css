@@ -1844,6 +1844,20 @@ input[type='range'] {
   color: var(--brighter-4);
 }
 
+.ccpot .valuename {
+  position: absolute;
+  bottom: 1px;
+  left: 1px;
+  right: 1px;
+  font-size: 10px;
+  text-align: center;
+  color: var(--brighter-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: default;
+}
+
 .cc-editor {
   display: none;
   position: absolute;
@@ -1947,6 +1961,9 @@ input[type='range'] {
 .cc-editor[data-type='7'] {
   .show-type-7 {
     display: block;
+  }
+  .check.show-type-7 {
+    display: flex;
   }
   .flex-row.show-type-7 {
     display: flex;

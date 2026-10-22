@@ -57,6 +57,10 @@ export interface CCController {
   nrpn_lsb?: number;
   nrpn_data_lsb_cc?: number | null;
   nrpn_data_lsb_bits?: number;
+  // NRPN: drawn from the centre and shown relative to the middle of min–max
+  bipolar?: boolean;
+  // Shown under the knob: one name per snap step, or per value from min on
+  valueNames?: string[];
   label: string;
   val: number;
   type: number;

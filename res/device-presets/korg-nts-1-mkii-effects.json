@@ -26,6 +26,17 @@
         84,
         98,
         127
+      ],
+      "valueNames": [
+        "Off",
+        "Chorus",
+        "Ensemble",
+        "Phaser",
+        "Flanger",
+        "Soft clip",
+        "Hard clip",
+        "Sine fold",
+        "Fuzz"
       ]
     },
     {
@@ -80,6 +91,21 @@
         90,
         99,
         127
+      ],
+      "valueNames": [
+        "Off",
+        "Stereo",
+        "Mono",
+        "Ping pong",
+        "Highpass",
+        "Tape",
+        "One",
+        "Stereo BPM",
+        "Mono BPM",
+        "Ping BPM",
+        "High BPM",
+        "Tape BPM",
+        "Doubling"
       ]
     },
     {
@@ -146,6 +172,19 @@
         88,
         99,
         127
+      ],
+      "valueNames": [
+        "Off",
+        "Hall",
+        "Smooth",
+        "Arena",
+        "Plate",
+        "Room",
+        "Early",
+        "Space",
+        "Riser",
+        "Submarine",
+        "Horror"
       ]
     },
     {

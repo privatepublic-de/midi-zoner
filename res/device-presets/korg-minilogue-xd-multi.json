@@ -36,7 +36,13 @@
       "nrpn_msb": 0,
       "nrpn_lsb": 17,
       "nrpn_data_lsb_cc": null,
-      "nrpn_data_lsb_bits": 0
+      "nrpn_data_lsb_bits": 0,
+      "valueNames": [
+        "High",
+        "Low",
+        "Peak",
+        "Decim"
+      ]
     },
     {
       "type": 7,
@@ -51,7 +57,25 @@
       "nrpn_msb": 0,
       "nrpn_lsb": 18,
       "nrpn_data_lsb_cc": null,
-      "nrpn_data_lsb_bits": 0
+      "nrpn_data_lsb_bits": 0,
+      "valueNames": [
+        "Sin1",
+        "Sin2",
+        "Sin3",
+        "Sin4",
+        "Saw1",
+        "Saw2",
+        "Squ1",
+        "Squ2",
+        "Fat1",
+        "Fat2",
+        "Air1",
+        "Air2",
+        "Decay1",
+        "Decay2",
+        "Creep",
+        "Throat"
+      ]
     },
     {
       "type": 7,
@@ -66,7 +90,25 @@
       "nrpn_msb": 0,
       "nrpn_lsb": 19,
       "nrpn_data_lsb_cc": null,
-      "nrpn_data_lsb_bits": 0
+      "nrpn_data_lsb_bits": 0,
+      "valueNames": [
+        "User 1",
+        "User 2",
+        "User 3",
+        "User 4",
+        "User 5",
+        "User 6",
+        "User 7",
+        "User 8",
+        "User 9",
+        "User 10",
+        "User 11",
+        "User 12",
+        "User 13",
+        "User 14",
+        "User 15",
+        "User 16"
+      ]
     },
     {
       "type": 5,
@@ -107,7 +149,13 @@
       "nrpn_msb": 0,
       "nrpn_lsb": 58,
       "nrpn_data_lsb_cc": null,
-      "nrpn_data_lsb_bits": 0
+      "nrpn_data_lsb_bits": 0,
+      "valueNames": [
+        "16'",
+        "8'",
+        "4'",
+        "2'"
+      ]
     },
     {
       "type": 7,
@@ -122,7 +170,8 @@
       "nrpn_msb": 0,
       "nrpn_lsb": 64,
       "nrpn_data_lsb_cc": 63,
-      "nrpn_data_lsb_bits": 3
+      "nrpn_data_lsb_bits": 3,
+      "bipolar": true
     },
     {
       "type": 7,
@@ -137,7 +186,8 @@
       "nrpn_msb": 0,
       "nrpn_lsb": 65,
       "nrpn_data_lsb_cc": 63,
-      "nrpn_data_lsb_bits": 3
+      "nrpn_data_lsb_bits": 3,
+      "bipolar": true
     },
     {
       "type": 7,
@@ -152,7 +202,8 @@
       "nrpn_msb": 0,
       "nrpn_lsb": 66,
       "nrpn_data_lsb_cc": 63,
-      "nrpn_data_lsb_bits": 3
+      "nrpn_data_lsb_bits": 3,
+      "bipolar": true
     },
     {
       "type": 7,
@@ -167,7 +218,8 @@
       "nrpn_msb": 0,
       "nrpn_lsb": 67,
       "nrpn_data_lsb_cc": 63,
-      "nrpn_data_lsb_bits": 3
+      "nrpn_data_lsb_bits": 3,
+      "bipolar": true
     },
     {
       "type": 7,
@@ -182,7 +234,8 @@
       "nrpn_msb": 0,
       "nrpn_lsb": 68,
       "nrpn_data_lsb_cc": 63,
-      "nrpn_data_lsb_bits": 3
+      "nrpn_data_lsb_bits": 3,
+      "bipolar": true
     },
     {
       "type": 7,
@@ -197,7 +250,8 @@
       "nrpn_msb": 0,
       "nrpn_lsb": 69,
       "nrpn_data_lsb_cc": 63,
-      "nrpn_data_lsb_bits": 3
+      "nrpn_data_lsb_bits": 3,
+      "bipolar": true
     },
     {
       "type": 7,
