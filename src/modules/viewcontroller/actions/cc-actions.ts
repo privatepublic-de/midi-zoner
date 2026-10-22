@@ -55,10 +55,6 @@ export function createCCActions(
     cc_edit: () => {
       openCCEditor(zoneindex, actionParam1 != null ? parseInt(actionParam1) : undefined);
     },
-    cc_select: () => {
-      zone.selectedCCIndex = parseInt(actionParam1);
-      updateControllerValues(zone, zoneindex);
-    },
     cc_label: () => {
       zone.cc_controllers[zone.selectedCCIndex].label = (element as HTMLInputElement).value;
       updateControllerValues(zone, zoneindex);

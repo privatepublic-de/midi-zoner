@@ -1785,7 +1785,6 @@ input[type='range'] {
   background-color: var(--groupsurface, var(--groupcolor));
   white-space: nowrap;
   text-overflow: ellipsis;
-  cursor: pointer;
 }
 
 .ccpots-empty {

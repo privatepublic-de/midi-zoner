@@ -18,7 +18,7 @@ import {
   ticksToRatchetIndex,
   velocityDeltaToPercent
 } from './actions';
-import { initCCEditor } from './cc-editor';
+import { initCCEditor, refreshCCEditor } from './cc-editor';
 import { initPianoRoll } from './piano-roll';
 import { describeAction, labelForZone, zonePrefix, ARRANGEMENT_LETTERS } from './action-labels';
 import {
@@ -580,6 +580,7 @@ function renderZones(): void {
   });
   addPlaceholder();
   updateZoneHeaderContextMenus(zones.arrangementIndex);
+  refreshCCEditor();
 }
 
 function addPlaceholder(): void {

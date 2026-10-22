@@ -177,7 +177,10 @@ function renderRows(zone: ZoneType): void {
       cell(rangeText(c), 'cce-row-range'),
       cell(c.number_in != null && c.type != CCControllerType.SPACER ? `CC ${c.number_in}` : '', 'cce-row-in')
     );
-    row.addEventListener('click', () => select(ix));
+    row.addEventListener('click', () => {
+      select(ix);
+      overlay.focus();
+    });
     row.addEventListener('dragstart', (e) => {
       dragFrom = ix;
       e.dataTransfer!.effectAllowed = 'move';
@@ -284,6 +287,7 @@ function renderValues(zone: ZoneType, c: CCController, ix: number): void {
   const snap = isSnapping(c);
   setCheck($('.cce-snap'), snap);
   $('.cce-spread').hidden = c.type != CCControllerType.UNIPOLAR_ROTARY;
+  $('.cce-values-head').hidden = c.type != CCControllerType.UNIPOLAR_ROTARY;
   $('.cce-value-add span').textContent = snap ? 'Add step' : 'Add name';
   $('.cce-values-hint').textContent = snap
     ? 'The knob stops at these values; the names show under it.'
@@ -425,6 +429,11 @@ function refresh(onlyIndex?: number): void {
 
 // ---------- open / close ----------
 
+/** Redraws the panel after zones were re-rendered (undo may have removed its zone) */
+export function refreshCCEditor(): void {
+  if (isCCEditorOpen()) refresh();
+}
+
 export function isCCEditorOpen(): boolean {
   return overlay?.classList.contains('open') ?? false;
 }
@@ -478,7 +487,8 @@ function handleKey(ev: KeyboardEvent): void {
     ev.preventDefault();
     if (ev.altKey) act(ev, ev.key == 'ArrowUp' ? 'cc_left' : 'cc_right');
     else select(Math.max(0, Math.min(zone.cc_controllers.length - 1, sel + (ev.key == 'ArrowUp' ? -1 : 1))));
-  } else if ((ev.key == 'Delete' || ev.key == 'Backspace') && zone.cc_controllers[sel]) {
+  } else if ((ev.key == 'Delete' || ev.key == 'Backspace') && ev.target === overlay && zone.cc_controllers[sel]) {
+    // Only with the list focused: a just-clicked button (Learn, a colour) keeps focus
     ev.preventDefault();
     act(ev, 'cc_remove');
   } else if (mod && ev.code == 'KeyD' && zone.cc_controllers[sel]) {
@@ -534,9 +544,21 @@ export function initCCEditor(editorHooks: CCEditorHooks): void {
     if (!isCCEditorOpen()) return;
     const target = ev.target as Element;
     // Menus and dialogs opened from the panel live outside it
-    if (overlay.contains(target) || target.closest('#contextmenu, dialog, #toast')) return;
+    if (target.closest('#contextmenu')) {
+      ev.preventDefault(); // keeps keyboard focus in the panel
+      return;
+    }
+    if (overlay.contains(target) || target.closest('dialog, #toast')) return;
     closeCCEditor();
   });
+  // Back to the panel after a preset dialog, so keys don't reach the app behind it
+  document.addEventListener(
+    'close',
+    (ev) => {
+      if (isCCEditorOpen() && ev.target instanceof HTMLDialogElement) overlay.focus();
+    },
+    true
+  );
 
   onControllersChanged((zone, index, onlyIndex) => {
     if (isCCEditorOpen() && index == zoneIndex) refresh(onlyIndex);
