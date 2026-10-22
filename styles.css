@@ -1749,14 +1749,24 @@ input[type='range'] {
   margin-left: 6px;
 }
 .ccsection-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   height: 12px;
   margin: 6px 2px -2px;
   font-size: var(--fs-sm);
   line-height: 12px;
   color: var(--groupcolor, var(--brighter-3));
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+}
+/* the ruler shows how far the section reaches */
+.ccsection-head::after {
+  content: '';
+  flex: 1;
+  min-width: 12px;
+  height: 1px;
+  background-color: currentColor;
+  opacity: 0.45;
 }
 
 .show-cc .ccpots {
