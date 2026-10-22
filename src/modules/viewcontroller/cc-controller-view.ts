@@ -158,6 +158,9 @@ export function startControllerDrag(
   const ctrl = zone.cc_controllers[ix];
   const is14bit = isHiResCC(ctrl.type);
   onGestureStart(labelForZone(zone, zoneindex, ctrl.label || `CC ${ix + 1}`));
+  // Keeps the value readout up while the mouse leaves the knob
+  const pot = zone._$(`#pot_${zoneindex}_${ix}`) as HTMLElement | null;
+  pot?.classList.add('dragging');
   potDragHandler.startDrag(
     e,
     is14bit ? ctrl.val : ctrl.val << 7,
@@ -176,6 +179,7 @@ export function startControllerDrag(
       }
     },
     () => {
+      pot?.classList.remove('dragging');
       onGestureEnd();
       triggerSave();
     }

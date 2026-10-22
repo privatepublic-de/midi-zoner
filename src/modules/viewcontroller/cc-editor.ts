@@ -272,6 +272,8 @@ function renderLayout(zone: ZoneType): void {
 
 function renderKnob(zone: ZoneType, c: CCController, ix: number): void {
   if (isRotary(c)) {
+    // Drawn like the zone's knob: the arc in the controller's colour
+    $('.cce-knob').dataset.group = String(effectiveGroup(zone.cc_controllers, ix));
     const paths = knobPaths(c);
     $('.cce-knob-value').setAttribute('d', paths.value);
     $('.cce-knob-discrete').setAttribute('d', paths.discrete);

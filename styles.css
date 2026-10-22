@@ -1746,28 +1746,17 @@ input[type='range'] {
   height: 0;
 }
 .ccsection.inline {
-  margin-left: 3px;
-  padding-left: 3px;
-  border-left: 1px solid var(--darker-2);
+  margin-left: 6px;
 }
 .ccsection-head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  height: 14px;
-  margin: 3px 1px 0;
+  height: 12px;
+  margin: 6px 2px -2px;
   font-size: var(--fs-sm);
-  line-height: 1;
-  color: var(--brighter-3);
+  line-height: 12px;
+  color: var(--groupcolor, var(--brighter-3));
   white-space: nowrap;
-}
-.ccsection-head::after {
-  content: '';
-  flex: 1;
-  min-width: 12px;
-  height: 2px;
-  border-radius: 1px;
-  background-color: var(--groupsurface, var(--darker-2));
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .show-cc .ccpots {
@@ -1787,7 +1776,9 @@ input[type='range'] {
   width: var(--ccpot-width);
   height: 72px;
   margin: 1px;
-  border: 1px solid var(--darker-2);
+  /* no box: only the value arc and the chosen button carry colour */
+  border: 1px solid transparent;
+  --arc: var(--groupcolor);
 }
 
 .zone.disabled .ccpots {
@@ -1795,7 +1786,7 @@ input[type='range'] {
 }
 
 .ccpot[data-group='0'] {
-  --groupcolor: var(--darker-1);
+  --arc: var(--brighter-4);
 }
 
 .ccpot[data-type='2'] {
@@ -1815,15 +1806,37 @@ input[type='range'] {
 }
 
 .ccpot > .cclabel {
-  padding: 2px 0;
+  padding: 3px 0 0;
   margin: 0;
   overflow: hidden;
   text-align: center;
   font-size: var(--fs-sm);
-  color: var(--brighter-4);
-  background-color: var(--groupsurface, var(--groupcolor));
+  color: var(--brighter-3);
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.ccpot .knob-track {
+  stroke: var(--darker-2);
+  stroke-width: 4;
+}
+.ccpot:hover .knob-track,
+.ccpot.dragging .knob-track {
+  stroke: var(--darker-3);
+}
+.ccpot .knob-value {
+  stroke: var(--arc);
+  stroke-width: 4;
+}
+.ccpot .knob-ticks {
+  stroke: var(--bg-color);
+  stroke-width: 1.5;
+}
+.ccpot .knob-zero {
+  fill: var(--brighter-1);
+}
+.ccpot .rotary {
+  cursor: ns-resize;
 }
 
 .ccpots-empty {
@@ -1849,27 +1862,39 @@ input[type='range'] {
 
 .ccpot .value {
   position: absolute;
-  cursor: default;
   top: 39px;
   left: 0;
   right: 0;
   text-align: center;
   font-size: var(--fs-sm);
+  color: var(--brighter-2);
+}
+.ccpot:hover .value,
+.ccpot.dragging .value {
   color: var(--brighter-4);
 }
 
+/* a named value takes the number's place; hovering or dragging shows the number */
 .ccpot .valuename {
   position: absolute;
-  bottom: 1px;
+  top: 39px;
   left: 1px;
   right: 1px;
-  font-size: 10px;
+  font-size: var(--fs-sm);
   text-align: center;
-  color: var(--brighter-3);
+  color: var(--brighter-4);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  cursor: default;
+}
+.ccpot .rotary:has(.valuename:not(:empty)) .value {
+  visibility: hidden;
+}
+.ccpot:is(:hover, .dragging) .rotary:has(.valuename:not(:empty)) .value {
+  visibility: visible;
+}
+.ccpot:is(:hover, .dragging) .valuename {
+  visibility: hidden;
 }
 
 .ccpot .info {
@@ -1921,19 +1946,18 @@ input[type='range'] {
   text-align: center;
   cursor: pointer;
   color: var(--brighter-2);
-  box-shadow: 0 0 2px var(--darker-3);
+  border-radius: 2px;
 }
 
+/* the chosen entry: bright, underlined in the section colour */
 .ccbtn.selected {
-  background-color: var(--brighter-3);
-  color: var(--darker-4);
-  box-shadow: 0 0 2px inset var(--darker-3);
+  color: var(--brighter-4);
+  box-shadow: inset 0 -2px 0 var(--arc, var(--brighter-4));
 }
 
 .ccbtn:not(.selected):hover {
-  background-color: var(--brighter-1);
-  color: var(--brighter-4);
-  box-shadow: 0 0 2px var(--darker-3);
+  background-color: var(--darker-1);
+  color: var(--brighter-3);
 }
 
 .fixedvel select {
@@ -4202,6 +4226,13 @@ body.minimized .midi-led.on {
   background-color: var(--darker-2);
   cursor: ns-resize;
 }
+#ccEditor .cce-knob {
+  --cce-accent: var(--brighter-4);
+}
+#ccEditor .cce-knob[data-group='1'] { --cce-accent: var(--group-1); }
+#ccEditor .cce-knob[data-group='2'] { --cce-accent: var(--group-2); }
+#ccEditor .cce-knob[data-group='3'] { --cce-accent: var(--group-3); }
+#ccEditor .cce-knob[data-group='4'] { --cce-accent: var(--group-4); }
 .cce-knob svg {
   position: absolute;
   left: 8px;
