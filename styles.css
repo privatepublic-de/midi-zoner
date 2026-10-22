@@ -1711,7 +1711,8 @@ input[type='range'] {
   flex-wrap: wrap;
   gap: 5px;
   align-items: center;
-  padding: 6px 4px 4px 8px;
+  /* the first tab's text starts where the controls and rulers do */
+  padding: 6px 4px 4px 0;
 }
 .cctools .action {
   display: inline-flex;
@@ -4633,7 +4634,6 @@ body.minimized .midi-led.on {
   display: flex;
   flex-wrap: wrap;
   gap: 2px;
-  margin-left: 6px;
 }
 .cc-page {
   display: flex;
