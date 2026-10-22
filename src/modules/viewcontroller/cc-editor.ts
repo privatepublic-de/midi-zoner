@@ -4,8 +4,10 @@ import { CCController, CCControllerType } from '../zone/interfaces';
 import { describeActionForZone } from './action-labels';
 import {
   effectiveGroup,
+  dropIndex,
   isPage,
   isSection,
+  moveUnit,
   pageBlocks,
   pageName,
   pageNumberOf,
@@ -170,6 +172,10 @@ function select(ix: number): void {
 
 let dragFrom = -1;
 
+function clearDropMarks(rows: HTMLElement): void {
+  rows.querySelectorAll('.drop-before, .drop-after').forEach((r) => r.classList.remove('drop-before', 'drop-after'));
+}
+
 function dropsAfter(row: HTMLElement, e: DragEvent): boolean {
   const rect = row.getBoundingClientRect();
   return e.clientY > rect.top + rect.height / 2;
@@ -218,30 +224,33 @@ function renderRows(zone: ZoneType): void {
       overlay.focus();
     });
     row.addEventListener('dragstart', (e) => {
+      // A section or page takes its controllers along
       dragFrom = ix;
       e.dataTransfer!.effectAllowed = 'move';
       e.dataTransfer!.setData('text/plain', String(ix));
-      row.classList.add('dragging');
+      const [start, end] = moveUnit(zone.cc_controllers, ix);
+      for (let k = start; k < end; k++) rows.children[k]?.classList.add('dragging');
     });
     row.addEventListener('dragend', () => {
       dragFrom = -1;
-      row.classList.remove('dragging');
-      rows.querySelectorAll('.drop-before, .drop-after').forEach((r) => r.classList.remove('drop-before', 'drop-after'));
+      clearDropMarks(rows);
+      rows.querySelectorAll('.dragging').forEach((r) => r.classList.remove('dragging'));
     });
     row.addEventListener('dragover', (e) => {
       if (dragFrom < 0) return;
       e.preventDefault();
-      const after = dropsAfter(row, e);
-      row.classList.toggle('drop-after', after);
-      row.classList.toggle('drop-before', !after);
+      // Mark where it lands: above the row at that index, or below the last one
+      const at = dropIndex(zone.cc_controllers, dragFrom, ix, dropsAfter(row, e));
+      clearDropMarks(rows);
+      if (at < rows.children.length) rows.children[at].classList.add('drop-before');
+      else rows.lastElementChild?.classList.add('drop-after');
     });
-    row.addEventListener('dragleave', () => row.classList.remove('drop-before', 'drop-after'));
     row.addEventListener('drop', (e) => {
       e.preventDefault();
       if (dragFrom < 0) return;
-      const insertAt = ix + (dropsAfter(row, e) ? 1 : 0);
-      const to = dragFrom < insertAt ? insertAt - 1 : insertAt;
-      if (to != dragFrom) act(e, `cc_move_to:${dragFrom}:${to}`);
+      const [start, end] = moveUnit(zone.cc_controllers, dragFrom);
+      const at = dropIndex(zone.cc_controllers, dragFrom, ix, dropsAfter(row, e));
+      if (at < start || at > end) act(e, `cc_move_range:${start}:${end - start}:${at}`);
     });
     rows.append(row);
   });

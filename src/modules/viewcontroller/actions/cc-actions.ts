@@ -526,13 +526,17 @@ export function createCCActions(
       renderControllersForZone(zone, zoneindex);
       triggerSave();
     },
-    cc_move_to: () => {
+    cc_move_range: () => {
+      // A section / page with its controllers, or one controller: [from, from + count) to insertAt
       const from = parseInt(actionParam1);
-      const to = parseInt(actionParam2);
-      if (!zone.cc_controllers[from] || to < 0 || to >= zone.cc_controllers.length || from == to) return;
-      const [moved] = zone.cc_controllers.splice(from, 1);
-      zone.cc_controllers.splice(to, 0, moved);
-      zone.selectedCCIndex = to;
+      const count = parseInt(actionParam2);
+      let insertAt = parseInt(ctx.actionParam3 ?? '');
+      if (isNaN(from) || isNaN(count) || isNaN(insertAt) || count < 1) return;
+      if (insertAt >= from && insertAt <= from + count) return; // inside itself: stays
+      const moved = zone.cc_controllers.splice(from, count);
+      if (insertAt > from) insertAt -= count;
+      zone.cc_controllers.splice(insertAt, 0, ...moved);
+      zone.selectedCCIndex = insertAt;
       renderControllersForZone(zone, zoneindex);
       triggerSave();
     },

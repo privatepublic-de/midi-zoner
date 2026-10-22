@@ -169,3 +169,39 @@ export function newSection(label: string, group: number): CCController {
     velocity_cc: null
   };
 }
+
+/**
+ * The entries that move together with entry `ix`: a page with its whole page, a section
+ * with its controllers (up to the next section or page), a controller alone. [start, end)
+ */
+export function moveUnit(controllers: CCController[], ix: number): [number, number] {
+  const c = controllers[ix];
+  if (!isPage(c) && !isSection(c)) return [ix, ix + 1];
+  let end = ix + 1;
+  while (end < controllers.length && !isPage(controllers[end]) && (isPage(c) || !isSection(controllers[end]))) end++;
+  return [ix, end];
+}
+
+/**
+ * Where a dragged entry lands when dropped before/after row `row`: controllers anywhere,
+ * sections and pages only at section / page boundaries, so they never split another one.
+ */
+export function dropIndex(controllers: CCController[], dragged: number, row: number, after: boolean): number {
+  const c = controllers[dragged];
+  if (!isPage(c) && !isSection(c)) return after ? row + 1 : row;
+  const target = controllers[row];
+  // Before a header of the same level (or a page): in front of it
+  if (!after && (isPage(target) || (isSection(c) && isSection(target)))) return row;
+  if (isPage(c)) {
+    const page = pageBlocks(controllers).find((p) => row < p.end || p.page == row)!;
+    return page.end;
+  }
+  // A section: after the section (or page start) the row belongs to
+  if (isPage(target)) return row + 1;
+  const owner = sectionIndexOf(controllers, row);
+  if (owner >= 0) return moveUnit(controllers, owner)[1];
+  // Controllers before any section on this page: after them
+  let end = row + 1;
+  while (end < controllers.length && !isPage(controllers[end]) && !isSection(controllers[end])) end++;
+  return end;
+}

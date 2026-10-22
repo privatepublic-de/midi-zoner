@@ -48,6 +48,7 @@ export interface ActionContext {
   ev: MouseEvent;
   actionParam1: string;
   actionParam2: string;
+  actionParam3?: string;
   triggerSave: () => void;
   pushHistory: (snapshot: string, label: string) => void;
   updateValuesForZone: (index: number) => void;

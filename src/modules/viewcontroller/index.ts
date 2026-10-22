@@ -253,6 +253,7 @@ function actionHandler(ev: MouseEvent, overrideaction?: string): void {
   const actionProperty = action.substring(action.indexOf('_') + 1);
   const actionParam1 = params[2];
   const actionParam2 = params[3];
+  const actionParam3 = params[4];
 
   if (action === 'global_arr_copy_to') {
     const sourceIndex = parseInt(actionParam1);
@@ -305,6 +306,7 @@ function actionHandler(ev: MouseEvent, overrideaction?: string): void {
     ev,
     actionParam1,
     actionParam2,
+    actionParam3,
     triggerSave,
     pushHistory: (snapshot: string, label: string) => undoHistory.push(snapshot, label),
     updateValuesForZone,
