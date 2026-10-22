@@ -835,12 +835,6 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
   font-weight: bold;
 }
 
-.cc-editor .cc-in.midi-learn-active {
-  background-color: var(--brighter-1);
-  color: var(--text-base-color);
-  font-weight: bold;
-}
-
 .zone input[type='number'].midi-learn-flash {
   animation: midiLearnFlash 0.3s ease-out;
 }

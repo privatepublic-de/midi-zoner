@@ -171,9 +171,7 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIn
         (zone._$('.cc-editor .cclabel') as HTMLInputElement).value = c.label;
         (zone._$('.cc-editor .cc-out-lsb') as HTMLInputElement).value =
           typeof c.number_lsb == 'undefined' ? '' : String(c.number_lsb);
-        const ccInEl = zone._$('.cc-editor .cc-in') as HTMLInputElement;
-        ccInEl.value = c.number_in != null ? String(c.number_in) : '';
-        ccInEl.classList.add('midi-learn-active');
+        (zone._$('.cc-editor .cc-in') as HTMLInputElement).value = c.number_in != null ? String(c.number_in) : '';
         (zone._$('.cc-editor .cc-out') as HTMLInputElement).value = String(c.number);
         (zone._$('.cc-editor .cc-min') as HTMLInputElement).value = String(c.min || 0);
         (zone._$('.cc-editor .cc-max') as HTMLInputElement).value = String(c.max ?? 127);
@@ -229,23 +227,38 @@ export function renderControllersForZone(
     zoneTemplate.getControllerHTML(zone, index)
   );
   zone.elements.emptyCache();
-  const suckEvent = (e: Event): void => {
-    e.stopPropagation();
-  };
-  DOM.on(`#zone${index} .ccpots .cc-editor`, 'click', suckEvent);
-  DOM.on(`#zone${index} .ccpots input`, 'keyup', suckEvent);
-  DOM.on(`#zone${index} .ccpots input`, 'focus', (e) => {
-    (e.target as HTMLInputElement).select();
-    const actionString =
-      (e.target as HTMLElement).getAttribute('data-change') ||
-      (e.target as HTMLElement).getAttribute('data-action');
-    onGestureStart(
-      actionString ? describeActionForZone(actionString, zone, index) : labelForZone(zone, index, 'CC Value')
-    );
-  });
-  DOM.on(`#zone${index} .ccpots input`, 'blur', () => {
-    onGestureEnd();
-  });
+  const panel = document.querySelector(`#zone${index} .ccpots`) as HTMLElement;
+  // The editor and toolbar are not re-rendered: bind their listeners once
+  if (!panel.dataset.bound) {
+    panel.dataset.bound = '1';
+    const suckEvent = (e: Event): void => {
+      e.stopPropagation();
+    };
+    DOM.on(`#zone${index} .ccpots .cc-editor`, 'click', suckEvent);
+    DOM.on(`#zone${index} .ccpots input`, 'keyup', suckEvent);
+    DOM.on(`#zone${index} .ccpots input`, 'focus', (e) => {
+      (e.target as HTMLInputElement).select();
+      const actionString =
+        (e.target as HTMLElement).getAttribute('data-change') ||
+        (e.target as HTMLElement).getAttribute('data-action');
+      onGestureStart(
+        actionString ? describeActionForZone(actionString, zone, index) : labelForZone(zone, index, 'CC Value')
+      );
+    });
+    DOM.on(`#zone${index} .ccpots input`, 'blur', () => {
+      onGestureEnd();
+    });
+    // MIDI learn only while "In CC#" has focus, so pedals and wheels don't rebind controllers
+    const ccIn = panel.querySelector('.cc-editor .cc-in') as HTMLInputElement;
+    ccIn.addEventListener('focus', () => {
+      zone.midiLearnCC = true;
+      ccIn.classList.add('midi-learn-active');
+    });
+    ccIn.addEventListener('blur', () => {
+      zone.midiLearnCC = false;
+      ccIn.classList.remove('midi-learn-active');
+    });
+  }
 
   DOM.all(`#zone${index} .ccpots .ccpot`).forEach((pot, ix) => {
     const is14bit = isHiResCC(zone.cc_controllers[ix].type);
@@ -280,13 +293,15 @@ export function renderControllersForZone(
         currentValue14,
         (v) => {
           const oldVal = zone.cc_controllers[ix].val;
+          const oldOutput = zone.ccOutputValue(ix);
           if (is14bit) {
             zone.cc_controllers[ix].val = v;
           } else {
             zone.snap2DiscreteValue(v >> 7, ix);
           }
           if (zone.cc_controllers[ix].val !== oldVal) {
-            zone.sendCC(ix);
+            // Narrow ranges map many knob positions onto one value: send only real changes
+            if (zone.ccOutputValue(ix) !== oldOutput) zone.sendCC(ix);
             updateControllerValues(zone, index, ix);
           }
         },
@@ -301,18 +316,9 @@ export function renderControllersForZone(
     const container = document.querySelector(`#zone${index} .ccpots .container`) as HTMLElement;
     const placeholder = document.createElement('div');
     placeholder.className = 'ccpots-empty';
+    placeholder.title = 'Add a controller';
+    placeholder.dataset.action = `${index}:cc_add`;
     placeholder.innerHTML = '<span class="material-icons">add</span>';
-    placeholder.addEventListener('click', (e) => {
-      e.stopPropagation();
-      zone.cc_controllers.push({
-        number: 1, number_in: null, min: 0, max: 127, type: 0,
-        label: 'Ctrl #1', val: 0, note_cc: null, velocity_cc: null
-      } as any);
-      zone.selectedCCIndex = 0;
-      zone.editCC = true;
-      renderControllersForZone(zone, index, actionHandler, triggerSave, onGestureStart, onGestureEnd);
-      triggerSave();
-    });
     container.appendChild(placeholder);
   }
 

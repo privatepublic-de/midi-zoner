@@ -1,7 +1,7 @@
 import { ActionContext, ActionHelpers, ActionMap } from '../types';
 import { ipcRenderer } from 'electron';
 import { labelForZone } from '../action-labels';
-import { CCControllerType, isHiResCC } from '../../zone/interfaces';
+import { CCController, CCControllerType, isHiResCC } from '../../zone/interfaces';
 import { escapeHTML } from '../../domutils';
 import {
   controllersFromPreset,
@@ -23,13 +23,26 @@ export function createCCActions(
     updateValuesForZone, updateControllerValues, toast
   } = ctx;
 
+  // Digits only, clamped to 0–max; null while the field is empty
+  const numberField = (max: number): number | null => {
+    const input = element as HTMLInputElement;
+    input.value = input.value.replace(/[^0-9]/g, '');
+    if (input.value == '') return null;
+    const value = Math.min(max, parseInt(input.value));
+    if (String(value) !== input.value) input.value = String(value);
+    return value;
+  };
+  const selected = (): CCController => zone.cc_controllers[zone.selectedCCIndex];
+  // Min/Max are device units for NRPN, CC values otherwise
+  const rangeMax = (): number => (selected().type == CCControllerType.NRPN ? 16383 : 127);
+
   const actions: ActionMap = {
     cc_toggle: () => {
       zone.show_cc = !zone.show_cc;
       updateValuesForZone(zoneindex);
       triggerSave();
       if (zone.show_cc) {
-        toast('Right-click a controller to edit it');
+        toast("Click a controller's name to edit it");
       }
     },
     cc_send_all: () => {
@@ -62,18 +75,16 @@ export function createCCActions(
       triggerSave();
     },
     cc_number: () => {
-      const inputElement = element as HTMLInputElement;
-      inputElement.value = inputElement.value.replace(/[^0-9]/g, '');
-      if (inputElement.value != '') {
-        zone.cc_controllers[zone.selectedCCIndex].number = parseInt(inputElement.value);
+      const value = numberField(127);
+      if (value != null) {
+        selected().number = value;
         triggerSave();
       }
     },
     cc_number_lsb: () => {
-      const inputElement = element as HTMLInputElement;
-      inputElement.value = inputElement.value.replace(/[^0-9]/g, '');
-      if (inputElement.value != '') {
-        zone.cc_controllers[zone.selectedCCIndex].number_lsb = parseInt(inputElement.value);
+      const value = numberField(127);
+      if (value != null) {
+        selected().number_lsb = value;
         triggerSave();
       }
     },
@@ -86,18 +97,16 @@ export function createCCActions(
       triggerSave();
     },
     cc_nrpn_msb: () => {
-      const inputElement = element as HTMLInputElement;
-      inputElement.value = inputElement.value.replace(/[^0-9]/g, '');
-      if (inputElement.value != '') {
-        zone.cc_controllers[zone.selectedCCIndex].nrpn_msb = Math.min(127, parseInt(inputElement.value));
+      const value = numberField(127);
+      if (value != null) {
+        selected().nrpn_msb = value;
         triggerSave();
       }
     },
     cc_nrpn_lsb: () => {
-      const inputElement = element as HTMLInputElement;
-      inputElement.value = inputElement.value.replace(/[^0-9]/g, '');
-      if (inputElement.value != '') {
-        zone.cc_controllers[zone.selectedCCIndex].nrpn_lsb = Math.min(127, parseInt(inputElement.value));
+      const value = numberField(127);
+      if (value != null) {
+        selected().nrpn_lsb = value;
         triggerSave();
       }
     },
@@ -109,27 +118,23 @@ export function createCCActions(
       triggerSave();
     },
     cc_number_in: () => {
-      const inputElement = element as HTMLInputElement;
-      inputElement.value = inputElement.value.replace(/[^0-9]/g, '');
-      if (inputElement.value != '') {
-        zone.cc_controllers[zone.selectedCCIndex].number_in = parseInt(inputElement.value);
-        triggerSave();
-      }
+      // Empty removes the hardware mapping
+      selected().number_in = numberField(127);
+      updateControllerValues(zone, zoneindex);
+      triggerSave();
     },
     cc_min: () => {
-      const inputElement = element as HTMLInputElement;
-      inputElement.value = inputElement.value.replace(/[^0-9]/g, '');
-      if (inputElement.value != '') {
-        zone.cc_controllers[zone.selectedCCIndex].min = parseInt(inputElement.value);
+      const value = numberField(rangeMax());
+      if (value != null) {
+        selected().min = value;
         updateControllerValues(zone, zoneindex);
         triggerSave();
       }
     },
     cc_max: () => {
-      const inputElement = element as HTMLInputElement;
-      inputElement.value = inputElement.value.replace(/[^0-9]/g, '');
-      if (inputElement.value != '') {
-        zone.cc_controllers[zone.selectedCCIndex].max = parseInt(inputElement.value);
+      const value = numberField(rangeMax());
+      if (value != null) {
+        selected().max = value;
         updateControllerValues(zone, zoneindex);
         triggerSave();
       }
@@ -206,11 +211,9 @@ export function createCCActions(
       triggerSave();
     },
     cc_button_value: () => {
-      const inputElement = element as HTMLInputElement;
-      inputElement.value = inputElement.value.replace(/[^0-9]/g, '');
-      if (inputElement.value != '') {
-        (zone.cc_controllers[zone.selectedCCIndex] as any)[`buttonvalue${actionParam1}`] =
-          parseInt(inputElement.value);
+      const value = numberField(127);
+      if (value != null) {
+        (selected() as any)[`buttonvalue${actionParam1}`] = value;
         updateControllerValues(zone, zoneindex);
         triggerSave();
       }
@@ -314,6 +317,8 @@ export function createCCActions(
         velocity_cc: null
       } as any);
       zone.selectedCCIndex = insertAt;
+      // The first controller of an empty panel opens in the editor
+      if (zone.cc_controllers.length === 1) zone.editCC = true;
       renderControllersForZone(zone, zoneindex);
       triggerSave();
     },
@@ -335,7 +340,9 @@ export function createCCActions(
           if (result == true) {
             pushHistory(snapshotBeforeRemove, labelForZone(zone, zoneindex, `Remove CC ${description}`));
             zone.cc_controllers.splice(zone.selectedCCIndex, 1);
-            zone.selectedCCIndex--;
+            // The next controller moves into place; nothing left to edit when it was the last one
+            zone.selectedCCIndex = Math.min(zone.selectedCCIndex, zone.cc_controllers.length - 1);
+            if (zone.cc_controllers.length === 0) zone.editCC = false;
             renderControllersForZone(zone, zoneindex);
             triggerSave();
           }
@@ -389,9 +396,8 @@ export function createCCActions(
         }
       }
       if (pos != targetPos) {
-        const v2 = zone.cc_controllers[targetPos];
-        zone.cc_controllers[targetPos] = zone.cc_controllers[pos];
-        zone.cc_controllers[pos] = v2;
+        const [moved] = zone.cc_controllers.splice(pos, 1);
+        zone.cc_controllers.splice(targetPos, 0, moved);
         zone.selectedCCIndex = targetPos;
         renderControllersForZone(zone, zoneindex);
         triggerSave();

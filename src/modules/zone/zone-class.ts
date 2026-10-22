@@ -120,6 +120,8 @@ export class Zone {
   euclid_hits = 5;
   euclid_length = 8;
   midiLearnDrumLaneIndex: number | null = null;
+  /** True while the CC editor's "In CC#" field has focus: the next CC is learned */
+  midiLearnCC = false;
   swingAmount: number = 0; // 0 to 1 (0% to 100%)
   private _arp_enabled = false;
   get arp_enabled(): boolean {
@@ -658,7 +660,7 @@ export class Zone {
           }
           break;
         case MIDI.MESSAGE.CONTROLLER:
-          if (this.editCC && this.selectedCCIndex > -1) {
+          if (this.midiLearnCC && this.editCC && this.cc_controllers[this.selectedCCIndex]) {
             this.cc_controllers[this.selectedCCIndex].number_in = data[1];
             return `midiLearn:${this.selectedCCIndex}`;
           }
@@ -667,9 +669,11 @@ export class Zone {
           for (let i = 0; i < this.cc_controllers.length; i++) {
             const ctrl = this.cc_controllers[i];
             if (ctrl.type != CCControllerType.SPACER && ctrl.number_in == data[1]) {
-              ctrl.val = isHiResCC(ctrl.type)
-                ? Math.round((data[2] * 16383) / 127)
-                : data[2];
+              if (isHiResCC(ctrl.type)) {
+                ctrl.val = Math.round((data[2] * 16383) / 127);
+              } else {
+                this.snap2DiscreteValue(data[2], i);
+              }
               this.sendCC(i);
               if (firstMatchedCC === -1) firstMatchedCC = i;
               matchCount++;
@@ -1640,8 +1644,8 @@ export class Zone {
       const status = MIDI.MESSAGE.CONTROLLER + this.channel;
       const lsbBits = ctrl.lsb_bits ?? 7;
       const value = this.hiResValue(ctrl);
-      const lsb = Uint8Array.from([status, ctrl.number_lsb || 0, value & ((1 << lsbBits) - 1)]);
-      const msb = Uint8Array.from([status, ctrl.number, (value >> lsbBits) & 0x7f]);
+      const lsb = Uint8Array.from([status, (ctrl.number_lsb || 0) & 0x7f, value & ((1 << lsbBits) - 1)]);
+      const msb = Uint8Array.from([status, ctrl.number & 0x7f, (value >> lsbBits) & 0x7f]);
       if (ctrl.msb_first) {
         this.sendOut(msb, this.outputPortId);
         this.sendOut(lsb, this.outputPortId);
@@ -1653,7 +1657,7 @@ export class Zone {
       this.sendOut(
         Uint8Array.from([
           MIDI.MESSAGE.CONTROLLER + this.channel,
-          ctrl.number,
+          ctrl.number & 0x7f,
           this.remapCCValue(ctrl.val, index)
         ]),
         this.outputPortId
@@ -1724,7 +1728,16 @@ export class Zone {
 
   remapCCValue(valueIn: number, ccIndex: number): number {
     const ctrl = this.cc_controllers[ccIndex];
-    return Math.floor(ctrl.min + (ctrl.max - ctrl.min) * (valueIn / 127.0));
+    const value = Math.floor(ctrl.min + (ctrl.max - ctrl.min) * (valueIn / 127.0));
+    return Math.max(0, Math.min(127, value));
+  }
+
+  /** The value sendCC() transmits for a controller, to skip sends that wouldn't change it */
+  ccOutputValue(index: number): number {
+    const ctrl = this.cc_controllers[index];
+    if (ctrl.type == CCControllerType.NRPN) return this.nrpnValue(ctrl);
+    if (isHiResCC(ctrl.type)) return this.hiResValue(ctrl);
+    return this.remapCCValue(ctrl.val, index);
   }
 
   snap2DiscreteValue(value: number, ccIndex: number): void {
