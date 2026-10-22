@@ -35,6 +35,11 @@ def cc7(label, cc, group=0, val=0, discrete=None, names=None):
         c["valueNames"] = names
     return c
 
+def selector(label, cc, items, group=0, val=None):
+    """A list of named values, each sent as is: [(name, value), ...]"""
+    return base(label, 9, group, number=cc, val=items[0][1] if val is None else val,
+                discreteValues=[v for _, v in items], valueNames=[n for n, _ in items])
+
 def buttons(label, cc, items, group=0, val=None):
     c = base(label, 3, group, number=cc, val=items[0][1] if val is None else val)
     for i, (l, v) in enumerate(items):
@@ -123,12 +128,12 @@ write("korg-minilogue-xd-effects", "Effects", XD, XDP, XD_NOTE + " Sub type knob
     cc7("Mod sub", 96, 1, discrete=[0, 16, 32, 48, 64, 80, 96, 127]),
     xd10("Mod time", 28, 1, val=8192), xd10("Mod depth", 29, 1, val=8192),
     buttons("Delay", 93, ONOFF, 2),
-    cc7("Delay type", 89, 2, discrete=[0, 7, 13, 20, 26, 32, 39, 45, 52, 58, 64, 71, 77, 84, 90, 96, 103, 109, 116, 127],
-        names=["Stereo", "Mono", "Ping pong", "Hipass", "Tape", "One tap", "Stereo BPM", "Mono BPM", "Ping BPM", "Hipass BPM", "Tape BPM", "Doubling"] + [f"User {i + 1}" for i in range(8)]),
+    selector("Delay type", 89, list(zip(["Stereo", "Mono", "Ping pong", "Hipass", "Tape", "One tap", "Stereo BPM", "Mono BPM", "Ping BPM", "Hipass BPM", "Tape BPM", "Doubling"] + [f"User {i + 1}" for i in range(8)],
+                                        [0, 7, 13, 20, 26, 32, 39, 45, 52, 58, 64, 71, 77, 84, 90, 96, 103, 109, 116, 127])), 2),
     xd10("Delay time", 105, 2, val=8192), xd10("Delay depth", 106, 2, val=8192), xd10("Delay mix", 107, 2, val=8192),
     buttons("Reverb", 94, ONOFF, 3),
-    cc7("Reverb type", 90, 3, discrete=[0, 8, 15, 22, 29, 36, 43, 50, 57, 64, 72, 79, 86, 93, 100, 107, 117, 127],
-        names=["Hall", "Smooth", "Arena", "Plate", "Room", "Early ref", "Space", "Riser", "Submarine", "Horror"] + [f"User {i + 1}" for i in range(8)]),
+    selector("Reverb type", 90, list(zip(["Hall", "Smooth", "Arena", "Plate", "Room", "Early ref", "Space", "Riser", "Submarine", "Horror"] + [f"User {i + 1}" for i in range(8)],
+                                         [0, 8, 15, 22, 29, 36, 43, 50, 57, 64, 72, 79, 86, 93, 100, 107, 117, 127])), 3),
     xd10("Reverb time", 108, 3, val=8192), xd10("Reverb depth", 109, 3, val=8192), xd10("Reverb mix", 110, 3, val=8192),
 ], {1: "Mod FX", 2: "Delay", 3: "Reverb"})
 
@@ -138,13 +143,12 @@ NTS, NTSP = "KORG NTS-1 mkII", "NTS-1"
 # wrong): built-in types first, then the user unit slots up to 127
 def nts_types(label, cc, group, builtins):
     names = builtins + [f"User {i + 1}" for i in range((127 - 8 * len(builtins)) // 8 + 1)]
-    return cc7(label, cc, group, discrete=[8 * i for i in range(len(names))], names=names)
+    return selector(label, cc, [(n, 8 * i) for i, n in enumerate(names)], group)
 NTS_NOTE = "Needs GLOBAL > MIDI Short Message = On. Knobs send the MSB CC first, then the LSB CC; if they move in coarse steps, switch Format to LSB first."
 NTS_NRPN = "Needs GLOBAL > MIDI NRPN Message = On. NRPN with 14-bit data (CC38, then CC6). What each param does depends on the loaded unit."
 
-write("korg-nts-1-mkii-main", "Oscillator, filter & EG", NTS, NTSP, NTS_NOTE + " Osc type uses values measured on the device (CC53: Saw 16, Tri, Sqr, VPM, Noise, then User 1, 2, … in steps of 8; the MIDI chart values are wrong). User osc reaches User 9 (CC53 = 120); choosing an empty slot keeps the last occupied one. LFO depth: negative = pitch, positive = shape modulation. Sweep depth: negative = up, positive = down.", [
-    buttons("Osc type", 53, [("Saw", 16), ("Tri", 24), ("Sqr", 32), ("VPM", 40), ("Noise", 48)], 1),
-    cc7("User osc", 53, 1, val=56, discrete=[56 + 8 * i for i in range(9)], names=[f"User {i + 1}" for i in range(9)]),
+write("korg-nts-1-mkii-main", "Oscillator, filter & EG", NTS, NTSP, NTS_NOTE + " Osc type uses values measured on the device (CC53: Saw 16, Tri, Sqr, VPM, Noise, then User 1–9 in steps of 8 up to 120; the MIDI chart values are wrong); choosing an empty user slot keeps the last occupied one. LFO depth: negative = pitch, positive = shape modulation. Sweep depth: negative = up, positive = down.", [
+    selector("Osc type", 53, [("Saw", 16), ("Tri", 24), ("Sqr", 32), ("VPM", 40), ("Noise", 48)] + [(f"User {i + 1}", 56 + 8 * i) for i in range(9)], 1),
     pair("Osc A", 54, 102, 1), pair("Osc B", 55, 103, 1), pair("LFO rate", 24, 56, 1), pair("LFO depth", 26, 58, 1, bipolar=True),
     buttons("Filter", 42, [("LP2", 0), ("LP4", 18), ("BP2", 36), ("BP4", 54), ("HP2", 72), ("HP4", 90), ("Thru", 127)], 2),
     pair("Cutoff", 43, 107, 2, 16383), pair("Resonance", 44, 108, 2), pair("Sweep depth", 45, 109, 2, bipolar=True), pair("Sweep rate", 46, 110, 2),
@@ -161,8 +165,8 @@ write("korg-nts-1-mkii-effects", "Effects", NTS, NTSP, NTS_NOTE + " Type knobs s
 ], {1: "Mod", 2: "Delay", 3: "Reverb"})
 
 write("korg-nts-1-mkii-arp", "Arp & volume", NTS, NTSP, NTS_NOTE, [
-    cc7("Arp pattern", 117, 1, discrete=[0, 12, 24, 36, 48, 60, 72, 84, 96, 127],
-        names=["Up", "Down", "Up-Down", "Down-Up", "Converge", "Diverge", "Conv-Div", "Div-Conv", "Random", "Stochastic"]),
+    selector("Arp pattern", 117, list(zip(["Up", "Down", "Up-Down", "Down-Up", "Converge", "Diverge", "Conv-Div", "Div-Conv", "Random", "Stochastic"],
+                                          [0, 12, 24, 36, 48, 60, 72, 84, 96, 127])), 1),
     buttons("Intervals", 118, [("Oct", 0), ("Maj", 21), ("Sus", 42), ("Aug", 63), ("Min", 84), ("Dim", 127)], 1),
     cc7("Arp length", 119, 1), pair("Volume", 7, 39, 0, 12800),
 ], {1: "Arpeggiator", 0: ("Volume", False)})

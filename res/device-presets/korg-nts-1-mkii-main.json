@@ -4,7 +4,7 @@
   "name": "Oscillator, filter & EG",
   "device": "KORG NTS-1 mkII",
   "portMatch": "NTS-1",
-  "notes": "Needs GLOBAL > MIDI Short Message = On. Knobs send the MSB CC first, then the LSB CC; if they move in coarse steps, switch Format to LSB first. Osc type uses values measured on the device (CC53: Saw 16, Tri, Sqr, VPM, Noise, then User 1, 2, … in steps of 8; the MIDI chart values are wrong). User osc reaches User 9 (CC53 = 120); choosing an empty slot keeps the last occupied one. LFO depth: negative = pitch, positive = shape modulation. Sweep depth: negative = up, positive = down.",
+  "notes": "Needs GLOBAL > MIDI Short Message = On. Knobs send the MSB CC first, then the LSB CC; if they move in coarse steps, switch Format to LSB first. Osc type uses values measured on the device (CC53: Saw 16, Tri, Sqr, VPM, Noise, then User 1–9 in steps of 8 up to 120; the MIDI chart values are wrong); choosing an empty user slot keeps the last occupied one. LFO depth: negative = pitch, positive = shape modulation. Sweep depth: negative = up, positive = down.",
   "controllers": [
     {
       "type": 8,
@@ -18,7 +18,7 @@
       "group": 1
     },
     {
-      "type": 3,
+      "type": 9,
       "label": "Osc type",
       "number": 53,
       "val": 16,
@@ -26,27 +26,12 @@
       "max": 127,
       "note_cc": null,
       "velocity_cc": null,
-      "buttonlabel0": "Saw",
-      "buttonvalue0": 16,
-      "buttonlabel1": "Tri",
-      "buttonvalue1": 24,
-      "buttonlabel2": "Sqr",
-      "buttonvalue2": 32,
-      "buttonlabel3": "VPM",
-      "buttonvalue3": 40,
-      "buttonlabel4": "Noise",
-      "buttonvalue4": 48
-    },
-    {
-      "type": 0,
-      "label": "User osc",
-      "number": 53,
-      "val": 56,
-      "min": 0,
-      "max": 127,
-      "note_cc": null,
-      "velocity_cc": null,
       "discreteValues": [
+        16,
+        24,
+        32,
+        40,
+        48,
         56,
         64,
         72,
@@ -58,6 +43,11 @@
         120
       ],
       "valueNames": [
+        "Saw",
+        "Tri",
+        "Sqr",
+        "VPM",
+        "Noise",
         "User 1",
         "User 2",
         "User 3",

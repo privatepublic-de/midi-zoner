@@ -1954,6 +1954,59 @@ input[type='range'] {
   padding: 2px 1px;
   gap: 1px;
 }
+/* selector: the chosen entry's name over small step arrows, as wide as a knob's arc */
+.ccpot[data-type='9'] .selector {
+  display: flex;
+  flex-direction: column;
+  height: 52px;
+  padding: 3px 9.5px 1px 10.5px;
+}
+.selector-name {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  text-align: center;
+  font-size: var(--fs-sm);
+  line-height: 1.15;
+  color: var(--brighter-4);
+  box-shadow: inset 0 -2px 0 var(--arc, var(--brighter-4));
+  cursor: pointer;
+}
+.selector-name:hover {
+  background-color: var(--darker-1);
+}
+.selector-name span {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.selector-name[data-empty='1'] {
+  color: var(--brighter-2);
+  box-shadow: none;
+}
+.selector-steps {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 15px;
+  color: var(--brighter-2);
+}
+#zones .selector-step {
+  font-size: var(--icon-sm);
+  cursor: pointer;
+}
+.selector-step:hover {
+  color: var(--brighter-4);
+}
+.selector-pos {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
 /* one column: as wide as a knob's arc, so it lines up with the knobs and headings */
 .ccpot[data-type='3'] .buttons[data-columns='1'] {
   padding: 2px 9.5px 2px 10.5px;
@@ -4518,4 +4571,49 @@ body.minimized .midi-led.on {
   display: inline;
   font-size: var(--icon-sm);
   color: var(--brighter-3);
+}
+
+/* controller editor: test selector */
+.cce-selector-preview {
+  --sel-accent: var(--brighter-4);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  width: 128px;
+  height: 128px;
+  padding: 12px 12px 6px;
+  border-radius: var(--radius-lg);
+  background-color: var(--darker-2);
+}
+#ccEditor .cce-selector-preview[data-group='1'] { --sel-accent: var(--group-1); }
+#ccEditor .cce-selector-preview[data-group='2'] { --sel-accent: var(--group-2); }
+#ccEditor .cce-selector-preview[data-group='3'] { --sel-accent: var(--group-3); }
+#ccEditor .cce-selector-preview[data-group='4'] { --sel-accent: var(--group-4); }
+.cce-sel-name {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: var(--fs-lg);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  box-shadow: inset 0 -2px 0 var(--sel-accent);
+  cursor: ns-resize;
+}
+.cce-sel-name[data-empty='1'] {
+  color: var(--brighter-2);
+  box-shadow: none;
+}
+.cce-sel-steps {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+  color: var(--brighter-2);
+  font-variant-numeric: tabular-nums;
+}
+#ccEditor .cce-sel-step {
+  padding: 0 4px;
+  background-color: transparent;
 }

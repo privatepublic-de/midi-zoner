@@ -134,6 +134,26 @@ export function isRotary(c: CCController): boolean {
   return c.type < CCControllerType.SPACER || isHiResCC(c.type);
 }
 
+/** The entry a selector shows: its index, name and position text */
+export function selectorDisplay(c: CCController): { index: number; name: string; position: string } {
+  const entries = c.discreteValues ?? [];
+  const index = entries.indexOf(c.val);
+  if (entries.length == 0) return { index: -1, name: 'No entries', position: '' };
+  return {
+    index,
+    name: index >= 0 ? c.valueNames?.[index] || String(c.val) : String(c.val),
+    position: `${index >= 0 ? index + 1 : '–'}/${entries.length}`
+  };
+}
+
+type MenuHandler = (ev: MouseEvent) => void;
+let menuHandler: MenuHandler | null = null;
+
+/** Opens a context menu for an element with data-contextmenu (set by the view controller) */
+export function setMenuHandler(handler: MenuHandler): void {
+  menuHandler = handler;
+}
+
 type ControllersChangedListener = (zone: ZoneType, zoneindex: number, onlyIndex?: number) => void;
 let controllersChanged: ControllersChangedListener | null = null;
 
@@ -157,25 +177,35 @@ export function startControllerDrag(
 ): void {
   const ctrl = zone.cc_controllers[ix];
   const is14bit = isHiResCC(ctrl.type);
+  // Selectors step through their entries: the drag runs over the list, not over values
+  const entries = ctrl.type == CCControllerType.SELECTOR ? ctrl.discreteValues ?? [] : null;
+  if (entries && entries.length < 2) return;
+  const setFromDrag = (v: number): void => {
+    if (entries) ctrl.val = entries[Math.round((v * (entries.length - 1)) / 16383)];
+    else if (is14bit) ctrl.val = v;
+    else zone.snap2DiscreteValue(v >> 7, ix);
+  };
+  const startValue = entries
+    ? Math.round((Math.max(0, entries.indexOf(ctrl.val)) * 16383) / (entries.length - 1))
+    : is14bit
+      ? ctrl.val
+      : ctrl.val << 7;
   onGestureStart(labelForZone(zone, zoneindex, ctrl.label || `CC ${ix + 1}`));
   // Keeps the value readout up while the mouse leaves the knob
   const pot = zone._$(`#pot_${zoneindex}_${ix}`) as HTMLElement | null;
   pot?.classList.add('dragging');
   potDragHandler.startDrag(
     e,
-    is14bit ? ctrl.val : ctrl.val << 7,
+    startValue,
     (v) => {
       const oldVal = ctrl.val;
       const oldOutput = zone.ccOutputValue(ix);
-      if (is14bit) {
-        ctrl.val = v;
-      } else {
-        zone.snap2DiscreteValue(v >> 7, ix);
-      }
+      setFromDrag(v);
       if (ctrl.val !== oldVal) {
         // Narrow ranges map many knob positions onto one value: send only real changes
-        if (zone.ccOutputValue(ix) !== oldOutput) zone.sendCC(ix);
+        const synced = zone.ccOutputValue(ix) !== oldOutput ? zone.sendCC(ix) : [];
         updateControllerValues(zone, zoneindex, ix);
+        synced.forEach((j) => updateControllerValues(zone, zoneindex, j));
       }
     },
     () => {
@@ -220,6 +250,13 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIn
         infotext += '<div>Velocity: <br/>#' + c.velocity_cc + '</div>';
       }
       (zone._$(`${potselector} .info`) as HTMLElement).innerHTML = infotext;
+    }
+    if (c.type == CCControllerType.SELECTOR) {
+      const display = selectorDisplay(c);
+      const name = zone._$(`${potselector} .selector-name span`) as HTMLElement;
+      name.textContent = display.name;
+      (name.parentElement as HTMLElement).dataset.empty = display.index < 0 ? '1' : '';
+      (zone._$(`${potselector} .selector-pos`) as HTMLElement).textContent = display.position;
     }
     if (c.type == CCControllerType.BUTTON_BANK) {
       let visibleButtons = 0;
@@ -282,6 +319,39 @@ export function renderControllersForZone(
       if (!isRotary(zone.cc_controllers[ix]) || mouseEvent.button !== 0) return;
       startControllerDrag(zone, index, ix, mouseEvent, onGestureStart, onGestureEnd, triggerSave);
     });
+  });
+  zone.cc_controllers.forEach((c, ix) => {
+    if (c.type != CCControllerType.SELECTOR) return;
+    const name = zone._$(`#pot_${index}_${ix} .selector-name`) as HTMLElement | null;
+    if (!name) return;
+    // Click: the list; drag up/down: step through it (a drag that changed the value is no click)
+    name.dataset.contextclick = '';
+    name.dataset.contextmenu = `ccselect:${index}:${ix}`;
+    let valueBeforeDrag: number | null = null;
+    name.addEventListener('mousedown', (e) => {
+      if (e.button !== 0) return;
+      valueBeforeDrag = zone.cc_controllers[ix].val;
+      startControllerDrag(zone, index, ix, e, onGestureStart, onGestureEnd, triggerSave);
+    });
+    name.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (valueBeforeDrag !== null && zone.cc_controllers[ix].val !== valueBeforeDrag) return;
+      menuHandler?.(e);
+    });
+    // Scrolling steps one entry per notch
+    let wheel = 0;
+    name.parentElement!.addEventListener(
+      'wheel',
+      (e) => {
+        e.preventDefault();
+        wheel += e.deltaY;
+        if (Math.abs(wheel) < 40) return;
+        const dir = wheel > 0 ? 1 : -1;
+        wheel = 0;
+        actionHandler(e as unknown as MouseEvent, `${index}:cc_step:${ix}:${dir}`);
+      },
+      { passive: false }
+    );
   });
   if (zone.cc_controllers.length === 0) {
     const container = document.querySelector(`#zone${index} .ccpots .container`) as HTMLElement;

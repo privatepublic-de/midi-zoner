@@ -11,7 +11,18 @@ export enum CCControllerType {
   UNIPOLAR_14BIT = 5,
   BIPOLAR_14BIT = 6,
   NRPN = 7,
-  SECTION = 8 // named, coloured group of the controllers after it; starts a new row
+  SECTION = 8, // named, coloured group of the controllers after it; starts a new row
+  SELECTOR = 9 // list of named values (discreteValues + valueNames), each sent as is
+}
+
+/** Types that send one 7-bit CC: controllers on the same CC number stay in sync */
+export function isSevenBitCC(type: number): boolean {
+  return (
+    type == CCControllerType.UNIPOLAR_ROTARY ||
+    type == CCControllerType.BIPOLAR_ROTARY ||
+    type == CCControllerType.BUTTON_BANK ||
+    type == CCControllerType.SELECTOR
+  );
 }
 
 /** Types whose value runs 0–16383 instead of 0–127 */

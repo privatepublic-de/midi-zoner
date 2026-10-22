@@ -40,6 +40,38 @@ export function createCCActions(
   // Knob positions of n evenly spread snap steps
   const evenSteps = (n: number): number[] => Array.from({ length: n }, (_, i) => Math.round((i * 127) / (n - 1)));
 
+  // Entries for a controller that becomes a selector: its buttons, snap steps or named values
+  const toSelector = (c: CCController): void => {
+    const sentNow = zone.ccOutputValue(zone.cc_controllers.indexOf(c));
+    let values: number[] = [];
+    let names: string[] = [];
+    if (c.type == CCControllerType.BUTTON_BANK) {
+      for (let i = 0; i < 8; i++) {
+        const label = ((c as any)[`buttonlabel${i}`] ?? '').trim();
+        const value = (c as any)[`buttonvalue${i}`];
+        if (label != '' && value !== undefined) {
+          values.push(Math.min(127, value));
+          names.push(label);
+        }
+      }
+    } else if (c.type == CCControllerType.UNIPOLAR_ROTARY && c.discreteValues?.length) {
+      const ix = zone.cc_controllers.indexOf(c);
+      values = c.discreteValues.map((v) => zone.remapCCValue(v, ix));
+      names = c.valueNames ?? [];
+    } else if (c.valueNames?.length) {
+      values = c.valueNames.map((_, i) => (c.min || 0) + i).filter((v) => v <= 127);
+      names = c.valueNames.slice(0, values.length);
+    }
+    if (values.length == 0) {
+      values = [0, 127];
+      names = ['Off', 'On'];
+    }
+    c.discreteValues = values;
+    c.valueNames = names;
+    // The entry closest to what was sent so far
+    c.val = values.reduce((a, b) => (Math.abs(b - sentNow) < Math.abs(a - sentNow) ? b : a));
+  };
+
   const actions: ActionMap = {
     cc_toggle: () => {
       zone.show_cc = !zone.show_cc;
@@ -182,7 +214,7 @@ export function createCCActions(
       // A step after the last one (snapping knobs), or the name of the next value
       const c = selected();
       const steps = c.discreteValues;
-      if (c.type == CCControllerType.UNIPOLAR_ROTARY && steps?.length) {
+      if ((c.type == CCControllerType.UNIPOLAR_ROTARY || c.type == CCControllerType.SELECTOR) && steps?.length) {
         const last = steps[steps.length - 1];
         const gap = steps.length > 1 ? last - steps[steps.length - 2] : 16;
         steps.push(Math.max(0, Math.min(127, last + Math.max(1, gap))));
@@ -265,6 +297,31 @@ export function createCCActions(
       const btnindex = actionParam2;
       zone.cc_controllers[ccindex].val =
         (zone.cc_controllers[ccindex] as any)[`buttonvalue${btnindex}`];
+      zone.sendCC(ccindex);
+      updateControllerValues(zone, zoneindex);
+      triggerSave();
+    },
+    cc_step: () => {
+      // Selector: the previous / next entry
+      const ccindex = parseInt(actionParam1);
+      const c = zone.cc_controllers[ccindex];
+      const entries = c?.discreteValues ?? [];
+      if (!c || entries.length == 0) return;
+      const current = entries.indexOf(c.val);
+      const next = Math.max(0, Math.min(entries.length - 1, current < 0 ? 0 : current + parseInt(actionParam2)));
+      if (entries[next] === c.val) return;
+      c.val = entries[next];
+      zone.sendCC(ccindex);
+      updateControllerValues(zone, zoneindex);
+      triggerSave();
+    },
+    cc_select_value: () => {
+      // Selector: an entry chosen from its list
+      const ccindex = parseInt(actionParam1);
+      const c = zone.cc_controllers[ccindex];
+      const value = c?.discreteValues?.[parseInt(actionParam2)];
+      if (!c || value === undefined) return;
+      c.val = value;
       zone.sendCC(ccindex);
       updateControllerValues(zone, zoneindex);
       triggerSave();
@@ -419,6 +476,19 @@ export function createCCActions(
       } else if (newType != CCControllerType.NRPN && c.type == CCControllerType.NRPN) {
         c.min = Math.min(c.min || 0, 127);
         c.max = Math.min(c.max ?? 127, 127);
+      }
+      if (newType == CCControllerType.SELECTOR && c.type != CCControllerType.SELECTOR) {
+        toSelector(c);
+      } else if (c.type == CCControllerType.SELECTOR && newType == CCControllerType.BUTTON_BANK) {
+        // The first 8 entries become buttons
+        (c.discreteValues ?? []).slice(0, 8).forEach((v, i) => {
+          (c as any)[`buttonvalue${i}`] = v;
+          (c as any)[`buttonlabel${i}`] = c.valueNames?.[i] || String(v);
+        });
+      } else if (c.type == CCControllerType.SELECTOR && newType == CCControllerType.UNIPOLAR_ROTARY) {
+        // Entries stay as snap steps, at the knob positions of their values
+        c.min = 0;
+        c.max = 127;
       }
       c.type = newType;
       renderControllersForZone(zone, zoneindex);

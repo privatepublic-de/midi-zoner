@@ -121,7 +121,7 @@
       "buttonvalue1": 127
     },
     {
-      "type": 0,
+      "type": 9,
       "label": "Delay type",
       "number": 89,
       "val": 0,
@@ -236,7 +236,7 @@
       "buttonvalue1": 127
     },
     {
-      "type": 0,
+      "type": 9,
       "label": "Reverb type",
       "number": 90,
       "val": 0,

@@ -66,7 +66,7 @@ function clampInt(v: unknown, min: number, max: number): number | undefined {
 /** A controller with known fields only, numbers clamped; number_in is never kept */
 export function sanitizeController(raw: any): CCController | null {
   if (raw == null || typeof raw != 'object') return null;
-  const type = clampInt(raw.type, 0, CCControllerType.SECTION);
+  const type = clampInt(raw.type, 0, CCControllerType.SELECTOR);
   if (type === undefined || type !== raw.type) return null;
   const c: any = {
     type,

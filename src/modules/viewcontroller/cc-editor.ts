@@ -6,6 +6,7 @@ import { effectiveGroup, isSection, sectionBlocks, sectionIndexOf } from '../zon
 import {
   controllerDisplay,
   devicePresetLabel,
+  selectorDisplay,
   isRotary,
   knobPaths,
   knobRangePath,
@@ -47,7 +48,8 @@ const TYPE_NAMES: Record<number, string> = {
   [CCControllerType.UNIPOLAR_14BIT]: '14 bit',
   [CCControllerType.BIPOLAR_14BIT]: '14 bit ±',
   [CCControllerType.NRPN]: 'NRPN',
-  [CCControllerType.SECTION]: 'Section'
+  [CCControllerType.SECTION]: 'Section',
+  [CCControllerType.SELECTOR]: 'Selector'
 };
 
 function $<T extends HTMLElement = HTMLElement>(selector: string): T {
@@ -105,6 +107,10 @@ function rangeText(c: CCController): string {
     const min = c.min || 0;
     const max = c.max ?? 127;
     return min == 0 && max == 127 ? '' : `${min}–${max}`;
+  }
+  if (c.type == CCControllerType.SELECTOR) {
+    const count = c.discreteValues?.length ?? 0;
+    return `${count} entr${count == 1 ? 'y' : 'ies'}`;
   }
   if (c.type == CCControllerType.BUTTON_BANK) {
     const count = [0, 1, 2, 3, 4, 5, 6, 7].filter((i) => ((c as any)[`buttonlabel${i}`] ?? '').trim() != '').length;
@@ -282,6 +288,13 @@ function renderKnob(zone: ZoneType, c: CCController, ix: number): void {
     $('.cce-knob-value-text').textContent = display.value;
     $('.cce-knob-name').textContent = display.name;
   }
+  if (c.type == CCControllerType.SELECTOR) {
+    const display = selectorDisplay(c);
+    $('.cce-sel-name').textContent = display.name;
+    $('.cce-sel-name').dataset.empty = display.index < 0 ? '1' : '';
+    $('.cce-sel-pos').textContent = display.position;
+    $('.cce-selector-preview').dataset.group = String(effectiveGroup(zone.cc_controllers, ix));
+  }
   if (c.type == CCControllerType.BUTTON_BANK) {
     $('.cce-button-preview')
       .querySelectorAll<HTMLElement>('.ccbtn')
@@ -317,24 +330,30 @@ function renderButtonFields(c: CCController): void {
   });
 }
 
+/** Values listed one row each with an editable value: snap steps, or a selector's entries */
 function isSnapping(c: CCController): boolean {
-  return c.type == CCControllerType.UNIPOLAR_ROTARY && !!c.discreteValues?.length;
+  return (
+    (c.type == CCControllerType.UNIPOLAR_ROTARY && !!c.discreteValues?.length) || c.type == CCControllerType.SELECTOR
+  );
 }
 
 function renderValues(zone: ZoneType, c: CCController, ix: number): void {
   const snap = isSnapping(c);
+  const selector = c.type == CCControllerType.SELECTOR;
   setCheck($('.cce-snap'), snap);
   $('.cce-spread').hidden = c.type != CCControllerType.UNIPOLAR_ROTARY;
   $('.cce-values-head').hidden = c.type != CCControllerType.UNIPOLAR_ROTARY;
-  $('.cce-value-add span').textContent = snap ? 'Add step' : 'Add name';
-  $('.cce-values-hint').textContent = snap
+  $('.cce-value-add span').textContent = selector ? 'Add entry' : snap ? 'Add step' : 'Add name';
+  $('.cce-values-hint').textContent = selector
+    ? 'Each entry sends its value; the selector steps through them in this order.'
+    : snap
     ? 'The knob stops at these values; the names show under it.'
     : c.type == CCControllerType.NRPN
       ? 'Names for the values from Min upwards, shown under the knob.'
       : 'Names for the sent values from Min upwards, shown under the knob. Snap to steps turns the knob into a selector.';
   const names = c.valueNames ?? [];
   const count = snap ? c.discreteValues!.length : names.length;
-  const key = `${zoneIndex}:${ix}:${snap}:${count}`;
+  const key = `${zoneIndex}:${ix}:${c.type}:${snap}:${count}`;
   const list = $('.cce-values');
   if (key != valueRowsKey) {
     valueRowsKey = key;
@@ -344,7 +363,12 @@ function renderValues(zone: ZoneType, c: CCController, ix: number): void {
       row.className = 'cce-value-row';
       if (snap) {
         row.append(
-          actionInput('number', () => `cc_step_value:${i}`, { min: '0', max: '127', class: 'cce-step-value', title: 'Knob position, 0–127' })
+          actionInput('number', () => `cc_step_value:${i}`, {
+            min: '0',
+            max: '127',
+            class: 'cce-step-value',
+            title: selector ? 'The value it sends, 0–127' : 'Knob position, 0–127'
+          })
         );
       } else {
         row.append(cell('', 'cce-value-fixed'));
@@ -354,7 +378,7 @@ function renderValues(zone: ZoneType, c: CCController, ix: number): void {
       if (snap) {
         const remove = document.createElement('button');
         remove.className = 'cce-icon-button';
-        remove.title = 'Remove this step';
+        remove.title = selector ? 'Remove this entry' : 'Remove this step';
         remove.innerHTML = '<i class="material-icons">close</i>';
         remove.addEventListener('click', (ev) => act(ev, `cc_step_remove:${i}`));
         row.append(remove);
@@ -367,7 +391,7 @@ function renderValues(zone: ZoneType, c: CCController, ix: number): void {
     if (snap) {
       const v = c.discreteValues![i];
       setField(row.querySelector('.cce-step-value') as HTMLInputElement, String(v));
-      const sent = zone.remapCCValue(v, ix);
+      const sent = selector ? v : zone.remapCCValue(v, ix);
       sends.textContent = sent != v ? `sends ${sent}` : '';
     } else {
       (row.querySelector('.cce-value-fixed') as HTMLElement).textContent = String((c.min || 0) + i);
@@ -442,7 +466,7 @@ function renderInspector(zone: ZoneType): void {
   learn.setAttribute('aria-pressed', String(zone.midiLearnCC));
   (learn.querySelector('span') as HTMLElement).textContent = zone.midiLearnCC ? 'Move a control…' : 'Learn';
   $<HTMLButtonElement>('.cce-clear-in').disabled = c.number_in == null;
-  if (c.type == CCControllerType.UNIPOLAR_ROTARY || nrpn) renderValues(zone, c, ix);
+  if (c.type == CCControllerType.UNIPOLAR_ROTARY || nrpn || c.type == CCControllerType.SELECTOR) renderValues(zone, c, ix);
   if (c.type == CCControllerType.BUTTON_BANK) {
     renderButtonPreview(c);
     renderButtonFields(c);
@@ -572,6 +596,30 @@ export function initCCEditor(editorHooks: CCEditorHooks): void {
     ev.preventDefault();
     startControllerDrag(zone, zoneIndex, zone.selectedCCIndex, ev, hooks.gestureStart, hooks.gestureEnd, hooks.triggerSave);
   });
+
+  // The test selector: arrows, drag and scroll like the zone's
+  overlay.querySelectorAll<HTMLElement>('.cce-sel-step').forEach((b) => {
+    b.addEventListener('click', (ev) => act(ev, `cc_step:${currentZone()!.selectedCCIndex}:${b.dataset.dir}`));
+  });
+  $('.cce-sel-name').addEventListener('mousedown', (ev) => {
+    const zone = currentZone();
+    if (!zone || ev.button !== 0) return;
+    ev.preventDefault();
+    startControllerDrag(zone, zoneIndex, zone.selectedCCIndex, ev, hooks.gestureStart, hooks.gestureEnd, hooks.triggerSave);
+  });
+  let wheel = 0;
+  $('.cce-selector-preview').addEventListener(
+    'wheel',
+    (ev) => {
+      ev.preventDefault();
+      wheel += ev.deltaY;
+      if (Math.abs(wheel) < 40) return;
+      const dir = wheel > 0 ? 1 : -1;
+      wheel = 0;
+      act(ev, `cc_step:${currentZone()!.selectedCCIndex}:${dir}`);
+    },
+    { passive: false }
+  );
 
   const buttons = $('.cce-buttons-edit');
   for (let i = 0; i < 8; i++) {

@@ -23,6 +23,7 @@ import { initPianoRoll } from './piano-roll';
 import { describeAction, labelForZone, zonePrefix, ARRANGEMENT_LETTERS } from './action-labels';
 import {
   updateControllerValues,
+  setMenuHandler,
   renderControllersForZone as renderControllersForZoneInternal
 } from './cc-controller-view';
 import {
@@ -134,6 +135,7 @@ function initController({
     }
   }) as EventListener);
   initPianoRoll();
+  setMenuHandler(contextHandler);
   initCCEditor({
     zone: (index) => zones.list[index],
     actionHandler: actionHandler as (ev: Event, overrideaction?: string) => void,
@@ -363,6 +365,13 @@ function devicePresetMenu(zoneindex: number): string[] {
   return entries;
 }
 
+/** The entries of a selector ("ccselect:<zone>:<controller>") */
+function selectorMenu(spec: string): string[] {
+  const [, zoneindex, ccindex] = spec.split(':');
+  const c = zones.list[parseInt(zoneindex)]?.cc_controllers[parseInt(ccindex)];
+  return (c?.discreteValues ?? []).map((_, i) => `${zoneindex}:cc_select_value:${ccindex}:${i}`);
+}
+
 function contextHandler(ev: MouseEvent): void {
   ev.preventDefault();
   ev.stopPropagation();
@@ -370,7 +379,9 @@ function contextHandler(ev: MouseEvent): void {
   const menuSpecification = element.getAttribute('data-contextmenu')!;
   const menuActions = menuSpecification
     .split(',')
-    .flatMap((act) => (act.startsWith('ccpresets:') ? devicePresetMenu(parseInt(act.slice(10))) : [act]));
+    .flatMap((act) =>
+      act.startsWith('ccpresets:') ? devicePresetMenu(parseInt(act.slice(10))) : act.startsWith('ccselect:') ? selectorMenu(act) : [act]
+    );
   const contextMenuElement = DOM.get('#contextmenu') as HTMLElement;
 
   DOM.empty(contextMenuElement);
@@ -428,6 +439,14 @@ function contextHandler(ev: MouseEvent): void {
       const modified = linked && differsFromPreset(zone.cc_controllers, preset) ? ' •' : '';
       const icon = linked ? 'check' : suggested ? 'star_outline' : 'tune';
       return `<i class="material-icons">${icon}</i> ${escapeHTML(preset.name)}${modified}`;
+    }
+    if (parts[1] === 'cc_select_value') {
+      const c = zone.cc_controllers[parseInt(parts[2])];
+      const i = parseInt(parts[3]);
+      const value = c.discreteValues![i];
+      const current = c.val === value;
+      // Names come from scene and preset files
+      return `<i class="material-icons">${current ? 'check' : ''}</i> ${escapeHTML(c.valueNames?.[i] || String(value))}`;
     }
     if (parts[1] === 'cc_preset_update') {
       const name = findDevicePreset(zone.devicePreset?.id)?.name ?? zone.devicePreset?.name;

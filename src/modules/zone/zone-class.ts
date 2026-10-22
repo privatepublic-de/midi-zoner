@@ -14,6 +14,7 @@ import {
   ArpDirection,
   CCControllerType,
   isHiResCC,
+  isSevenBitCC,
   UPDATE_ZONE_VIEW_EVENT
 } from './interfaces';
 import { NoteDisplay } from './note-display';
@@ -671,10 +672,14 @@ export class Zone {
             if (ctrl.type != CCControllerType.SPACER && ctrl.type != CCControllerType.SECTION && ctrl.number_in == data[1]) {
               if (isHiResCC(ctrl.type)) {
                 ctrl.val = Math.round((data[2] * 16383) / 127);
+              } else if (ctrl.type == CCControllerType.SELECTOR) {
+                // A hardware knob sweeps the entries evenly
+                const entries = ctrl.discreteValues ?? [];
+                if (entries.length > 0) ctrl.val = entries[Math.round((data[2] * (entries.length - 1)) / 127)];
               } else {
                 this.snap2DiscreteValue(data[2], i);
               }
-              this.sendCC(i);
+              if (this.sendCC(i).length > 0) matchCount++; // others changed too: redraw all
               if (firstMatchedCC === -1) firstMatchedCC = i;
               matchCount++;
             }
@@ -1634,11 +1639,19 @@ export class Zone {
     if (lenEl) lenEl.value = String(this.euclid_length);
   }
 
-  sendCC(index: number): void {
+  /** Sends a controller's value; returns the other controllers that followed it (same address) */
+  sendCC(index: number): number[] {
     const ctrl = this.cc_controllers[index];
+    if (ctrl.type == CCControllerType.SELECTOR) {
+      this.sendOut(
+        Uint8Array.from([MIDI.MESSAGE.CONTROLLER + this.channel, ctrl.number & 0x7f, Math.max(0, Math.min(127, ctrl.val))]),
+        this.outputPortId
+      );
+      return this.syncSameAddress(index);
+    }
     if (ctrl.type == CCControllerType.NRPN) {
       this.sendNRPN(ctrl);
-      return;
+      return this.syncSameAddress(index);
     }
     if (isHiResCC(ctrl.type)) {
       const status = MIDI.MESSAGE.CONTROLLER + this.channel;
@@ -1663,6 +1676,55 @@ export class Zone {
         this.outputPortId
       );
     }
+    return this.syncSameAddress(index);
+  }
+
+  /**
+   * Controllers that address the same parameter as `index` take over the value it just
+   * sent, so they all show what the device has. Returns the ones that changed.
+   */
+  syncSameAddress(index: number): number[] {
+    const source = this.cc_controllers[index];
+    const changed: number[] = [];
+    const sent = this.ccOutputValue(index);
+    this.cc_controllers.forEach((c, j) => {
+      if (j == index) return;
+      const before = c.val;
+      if (isSevenBitCC(source.type) && isSevenBitCC(c.type) && c.number == source.number) {
+        this.setFromSentValue(j, sent);
+      } else if (
+        source.type == CCControllerType.NRPN &&
+        c.type == CCControllerType.NRPN &&
+        (c.nrpn_msb || 0) == (source.nrpn_msb || 0) &&
+        (c.nrpn_lsb || 0) == (source.nrpn_lsb || 0)
+      ) {
+        const min = c.min || 0;
+        const max = c.max ?? 16383;
+        c.val = max > min ? Math.max(0, Math.min(16383, Math.round(((sent - min) * 16383) / (max - min)))) : 0;
+      } else if (
+        (source.type == CCControllerType.UNIPOLAR_14BIT || source.type == CCControllerType.BIPOLAR_14BIT) &&
+        (c.type == CCControllerType.UNIPOLAR_14BIT || c.type == CCControllerType.BIPOLAR_14BIT) &&
+        c.number == source.number &&
+        (c.number_lsb ?? 0) == (source.number_lsb ?? 0)
+      ) {
+        c.val = source.val;
+      }
+      if (c.val !== before) changed.push(j);
+    });
+    return changed;
+  }
+
+  /** Sets a 7-bit controller so that it sends `value` (or comes as close as it can) */
+  private setFromSentValue(index: number, value: number): void {
+    const c = this.cc_controllers[index];
+    if (c.type == CCControllerType.BUTTON_BANK || c.type == CCControllerType.SELECTOR) {
+      c.val = value;
+      return;
+    }
+    const min = c.min || 0;
+    const max = c.max ?? 127;
+    const knob = max != min ? Math.round(((value - min) * 127) / (max - min)) : 0;
+    this.snap2DiscreteValue(Math.max(0, Math.min(127, knob)), index);
   }
 
   /** 14-bit type value at its resolution: 0–16383, or 0–1023 at 10 bit */
@@ -1740,6 +1802,7 @@ export class Zone {
     const ctrl = this.cc_controllers[index];
     if (ctrl.type == CCControllerType.NRPN) return this.nrpnValue(ctrl);
     if (isHiResCC(ctrl.type)) return this.hiResValue(ctrl);
+    if (ctrl.type == CCControllerType.SELECTOR) return ctrl.val;
     return this.remapCCValue(ctrl.val, index);
   }
 
