@@ -1,4 +1,5 @@
 import DOM, { escapeHTML } from '../domutils';
+import { differsFromPreset, findDevicePreset, getDevicePresets, matchesPort } from '../device-presets';
 import MIDI from '../midi';
 
 import DragZone from '../dragzone';
@@ -78,6 +79,8 @@ const contextMenuActionLabel: Record<string, string> = {
   zone_export: '<i class="material-icons">save_alt</i> Save zone to file…',
   cc_edit: '<i class="material-icons">edit</i> Edit CC controllers',
   cc_send_all: '<i class="material-icons">double_arrow</i> Send all CC values',
+  cc_preset_save: '<i class="material-icons">save</i> Save as new preset…',
+  cc_presets_folder: '<i class="material-icons">folder_open</i> Show presets folder',
   step_copy_length: 'Step length',
   step_copy_gate: 'Gate length',
   step_copy_condition: 'Condition',
@@ -333,12 +336,34 @@ function actionHandler(ev: MouseEvent, overrideaction?: string): void {
   window.dispatchEvent(new CustomEvent('closeContextMenu'));
 }
 
+/**
+ * Menu entries for the device presets of a zone: presets grouped by device (click
+ * replaces, shift-click appends), then update / save / folder.
+ */
+function devicePresetMenu(zoneindex: number): string[] {
+  const entries = ['label:Device presets (⇧-click appends)'];
+  const presets = getDevicePresets();
+  if (presets.length === 0) entries.push('label:No presets saved yet');
+  let device: string | null = null;
+  for (const preset of presets) {
+    if (preset.device !== device) {
+      device = preset.device;
+      entries.push(`label:${escapeHTML(device)}`);
+    }
+    entries.push(`${zoneindex}:cc_preset_apply:${preset.id}`);
+  }
+  entries.push('-', `${zoneindex}:cc_preset_update`, `${zoneindex}:cc_preset_save`, `${zoneindex}:cc_presets_folder`);
+  return entries;
+}
+
 function contextHandler(ev: MouseEvent): void {
   ev.preventDefault();
   ev.stopPropagation();
   const element = ev.currentTarget as HTMLElement;
   const menuSpecification = element.getAttribute('data-contextmenu')!;
-  const menuActions = menuSpecification.split(',');
+  const menuActions = menuSpecification
+    .split(',')
+    .flatMap((act) => (act.startsWith('ccpresets:') ? devicePresetMenu(parseInt(act.slice(10))) : [act]));
   const contextMenuElement = DOM.get('#contextmenu') as HTMLElement;
 
   DOM.empty(contextMenuElement);
@@ -356,6 +381,12 @@ function contextHandler(ev: MouseEvent): void {
         return Zone.seqClipboardSequence != null;
       case 'seq_paste_lane':
         return Zone.seqClipboardDrumLane != null;
+      case 'cc_preset_update': {
+        const linked = findDevicePreset(zone.devicePreset?.id);
+        return linked?.source == 'user' && differsFromPreset(zone.cc_controllers, linked);
+      }
+      case 'cc_preset_save':
+        return zone.cc_controllers.length > 0;
       case 'seq_adjust':
         // drum lanes only support length and velocity changes
         return !zone.sequence.isDrumSequence || !DRUM_UNSUPPORTED_ADJUSTMENTS.includes(parts[2]);
@@ -381,6 +412,19 @@ function contextHandler(ev: MouseEvent): void {
     }
     if (parts[1] === 'seq_adjust') {
       return SEQ_ADJUST_LABELS[parts[2]] ?? parts[2];
+    }
+    if (parts[1] === 'cc_preset_apply') {
+      const preset = findDevicePreset(parts[2]);
+      if (!preset) return '';
+      const linked = zone.devicePreset?.id === preset.id;
+      const suggested = matchesPort(preset, zones.knownPortNames?.[zone.outputPortId]);
+      const modified = linked && differsFromPreset(zone.cc_controllers, preset) ? ' •' : '';
+      const icon = linked ? 'check' : suggested ? 'star_outline' : 'tune';
+      return `<i class="material-icons">${icon}</i> ${escapeHTML(preset.name)}${modified}`;
+    }
+    if (parts[1] === 'cc_preset_update') {
+      const name = findDevicePreset(zone.devicePreset?.id)?.name ?? zone.devicePreset?.name;
+      return `<i class="material-icons">save_as</i> Update ${name ? `"${escapeHTML(name)}"` : 'preset'}`;
     }
     if (parts[1] == 'seq_copy_step') {
       let subs;

@@ -2923,6 +2923,65 @@ body.running .seqprogress.drum .inner {
   font-size: var(--fs-sm);
 }
 
+#presetSaveDialog {
+  background-color: var(--bg-topbar);
+  border: 1px solid var(--border-topbar);
+  border-radius: var(--radius);
+  box-shadow: 0 2px 12px var(--shadow-overlay);
+  color: var(--text-base-color);
+  font-size: var(--fs-md);
+  padding: 8px 10px 10px;
+  width: min(360px, calc(100vw - 32px));
+}
+#presetSaveDialog::backdrop {
+  background: var(--darker-3);
+}
+#presetSaveDialog form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+#presetSaveDialog label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--brighter-3);
+  font-size: var(--fs-sm);
+}
+#presetSaveDialog input,
+#presetSaveDialog textarea {
+  font: inherit;
+  font-size: var(--fs-md);
+  color: var(--text-base-color);
+  background-color: var(--bg-select-window);
+  border: 1px solid var(--brighter-1);
+  border-radius: var(--radius);
+  padding: 3px 5px;
+  text-align: left;
+  width: auto;
+}
+#presetSaveDialog textarea {
+  resize: vertical;
+}
+.preset-dialog-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 4px;
+}
+.preset-dialog-buttons button {
+  font: inherit;
+  color: var(--fg-topbar-button);
+  background-color: var(--bg-topbar-button);
+  border: none;
+  border-radius: var(--radius);
+  padding: 3px 12px;
+}
+.preset-dialog-buttons button.primary {
+  color: var(--fg-topbar-button-active);
+  background-color: var(--bg-topbar-button-active);
+}
+
 #mackieHelpOverlay {
   position: fixed;
   bottom: 36px;

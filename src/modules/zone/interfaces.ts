@@ -172,5 +172,7 @@ export interface ZoneJSON {
   bank_msb?: number | null;
   bank_lsb?: number | null;
   cc_controllers: CCController[];
+  // Device preset the controllers were taken from (they are a copy)
+  devicePreset?: { id: string; name: string } | null;
   arrangements: ZoneArrangementJSON[];
 }

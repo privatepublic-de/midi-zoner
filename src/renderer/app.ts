@@ -8,6 +8,7 @@ import { ZonesData } from '../modules/viewcontroller/types';
 import { ipcRenderer, webFrame } from 'electron';
 import { ZoneArrangementJSON } from '../modules/zone/interfaces';
 import { UndoHistory } from '../modules/undo-history';
+import { loadDevicePresets } from '../modules/device-presets';
 
 // Type aliases for class types
 type ZoneType = Zone;
@@ -143,6 +144,9 @@ function createZone(midi: MIDIInstance, zoneData: any): Zone {
   zone.bank_msb = zoneData.bank_msb ?? null;
   zone.bank_lsb = zoneData.bank_lsb ?? null;
   if (zoneData.cc_controllers) zone.cc_controllers = zoneData.cc_controllers;
+  if (typeof zoneData.devicePreset?.id == 'string' && typeof zoneData.devicePreset?.name == 'string') {
+    zone.devicePreset = { id: zoneData.devicePreset.id, name: zoneData.devicePreset.name };
+  }
   if (zoneData.colorIndex != null) zone.colorIndex = zoneData.colorIndex;
 
   if (Array.isArray(zoneData.arrangements) && zoneData.arrangements.length > 0) {
@@ -1347,6 +1351,13 @@ document.addEventListener('DOMContentLoaded', function () {
     sendMackieLeds();
   });
   view.initController({ saveData: saveZones, data: zones, midi, history: undoHistory });
+  loadDevicePresets()
+    .then((broken) => {
+      if (broken.length > 0) {
+        view.toast(`Skipped unreadable device presets: ${broken.map(esc).join(', ')}`, { warning: true });
+      }
+    })
+    .catch((e) => console.log(e));
 
   contextMenuElement.addEventListener('mouseleave', function () {
     hideOnLeaveContextMenuTimeout = setTimeout(() => {

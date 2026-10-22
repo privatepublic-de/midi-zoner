@@ -2,6 +2,15 @@ import { ActionContext, ActionHelpers, ActionMap } from '../types';
 import { ipcRenderer } from 'electron';
 import { labelForZone } from '../action-labels';
 import { CCControllerType, isHiResCC } from '../../zone/interfaces';
+import { escapeHTML } from '../../domutils';
+import {
+  controllersFromPreset,
+  findDevicePreset,
+  getDevicePresets,
+  revealDevicePresetFolder,
+  saveDevicePreset
+} from '../../device-presets';
+import { askDevicePresetMeta } from '../device-preset-dialog';
 
 export function createCCActions(
   ctx: ActionContext,
@@ -197,6 +206,68 @@ export function createCCActions(
       zone.sendCC(ccindex);
       updateControllerValues(zone, zoneindex);
       triggerSave();
+    },
+    cc_preset_apply: () => {
+      const preset = findDevicePreset(actionParam1);
+      if (!preset) return;
+      // Shift-click appends to the existing controllers instead of replacing them
+      const append = ev.shiftKey && zone.cc_controllers.length > 0;
+      zone.cc_controllers = controllersFromPreset(preset, zone.cc_controllers, append);
+      if (!append) zone.devicePreset = { id: preset.id, name: preset.name };
+      zone.selectedCCIndex = Math.min(zone.selectedCCIndex, zone.cc_controllers.length - 1);
+      zone.show_cc = true;
+      renderControllersForZone(zone, zoneindex);
+      updateValuesForZone(zoneindex);
+      triggerSave();
+      toast(
+        append
+          ? `Added ${preset.controllers.length} controllers from "${escapeHTML(preset.name)}"`
+          : `Applied preset "${escapeHTML(preset.name)}" (⇧-click appends instead)`
+      );
+    },
+    cc_preset_save: async () => {
+      const linked = findDevicePreset(zone.devicePreset?.id);
+      const portName = zones.knownPortNames?.[zone.outputPortId];
+      const meta = await askDevicePresetMeta(
+        {
+          name: linked?.name ?? zone.label ?? '',
+          device: linked?.device ?? portName ?? '',
+          portMatch: linked?.portMatch ?? portName ?? '',
+          notes: linked?.notes ?? ''
+        },
+        [...new Set(getDevicePresets().map((p) => p.device))]
+      );
+      if (!meta) return;
+      try {
+        const saved = await saveDevicePreset(meta, zone.cc_controllers, null);
+        if (!saved) return;
+        zone.devicePreset = { id: saved.id, name: saved.name };
+        updateControllerValues(zone, zoneindex);
+        triggerSave();
+        toast(`Saved device preset "${escapeHTML(saved.name)}"`);
+      } catch (e) {
+        toast(`Could not save the preset: ${escapeHTML(String(e))}`, { warning: true });
+      }
+    },
+    cc_preset_update: async () => {
+      const linked = findDevicePreset(zone.devicePreset?.id);
+      if (!linked || linked.source != 'user') return;
+      const confirmed: boolean = await ipcRenderer.invoke(
+        'open-confirm',
+        'Update device preset',
+        `Overwrite preset "${linked.name}" with the controllers of this zone?`
+      );
+      if (!confirmed) return;
+      try {
+        await saveDevicePreset(linked, zone.cc_controllers, linked.id);
+        updateControllerValues(zone, zoneindex);
+        toast(`Updated device preset "${escapeHTML(linked.name)}"`);
+      } catch (e) {
+        toast(`Could not save the preset: ${escapeHTML(String(e))}`, { warning: true });
+      }
+    },
+    cc_presets_folder: () => {
+      revealDevicePresetFolder();
     },
     cc_add: () => {
       zone.cc_controllers.splice(zone.selectedCCIndex + 1, 0, {

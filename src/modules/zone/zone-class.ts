@@ -113,6 +113,7 @@ export class Zone {
   ];
   show_cc = false;
   editCC = false;
+  devicePreset: { id: string; name: string } | null = null;
   selectedCCIndex = 0;
   at2mod = false;
   pitchbend = true;
@@ -243,6 +244,7 @@ export class Zone {
       bank_msb: this.bank_msb,
       bank_lsb: this.bank_lsb,
       cc_controllers: this.cc_controllers,
+      devicePreset: this.devicePreset,
       arrangements: this.arrangements
     };
   }

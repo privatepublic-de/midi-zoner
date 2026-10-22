@@ -602,7 +602,7 @@
   <div class="ccpots shadowed-zone-block" data-action="${index}:cc_select:-1">
     <div
       class="container"
-      data-contextmenu="${index}:cc_edit,${index}:cc_send_all"
+      data-contextmenu="${index}:cc_edit,${index}:cc_send_all,-,ccpresets:${index}"
     ></div>
     <div class="cc-editor popup">
       <div class="flex-row">
@@ -644,6 +644,14 @@
           <option>D</option>
         </select>
         <div style="flex-grow: 1"></div>
+        <div
+          class="action menu-button cc-preset-button"
+          title="Device presets: apply one (⇧-click appends) or save these controllers as a preset"
+          data-contextclick
+          data-contextmenu="ccpresets:${index}"
+        >
+          <span class="cc-preset-name">Presets</span><i class="material-icons">expand_more</i>
+        </div>
         <div class="action" data-action="${index}:cc_left">
           <span class="material-icons" title="Move left">arrow_back</span>
         </div>

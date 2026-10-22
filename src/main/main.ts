@@ -3,6 +3,7 @@ import { app, BrowserWindow, Menu, powerSaveBlocker, ipcMain, dialog } from 'ele
 import settings from 'electron-settings';
 import path from 'path';
 import fs from 'fs';
+import { registerDevicePresetHandlers } from './device-presets';
 import { SourceMapConsumer, RawSourceMap, NullableMappedPosition } from 'source-map';
 
 interface WindowRect {
@@ -258,7 +259,10 @@ function createWindow(): void {
   });
 }
 
-app.on('ready', createWindow);
+app.on('ready', () => {
+  registerDevicePresetHandlers();
+  createWindow();
+});
 
 app.on('window-all-closed', () => {
   app.quit();

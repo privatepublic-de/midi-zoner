@@ -4,6 +4,7 @@ import potDragHandler from '../potdraghandler';
 import { ZoneType } from './types';
 import { CCControllerType, isHiResCC } from '../zone/interfaces';
 import { describeActionForZone, labelForZone } from './action-labels';
+import { differsFromPreset, findDevicePreset } from '../device-presets';
 
 function polarToCartesian(
   centerX: number,
@@ -175,6 +176,14 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIn
       DOM.removeClass(potselector, 'selected');
     }
   });
+  if (zone.editCC && onlyIndex === undefined) {
+    // Linked device preset, "•" when the controllers were changed since
+    const presetName = zone._$('.cc-editor .cc-preset-name') as HTMLElement;
+    const linked = findDevicePreset(zone.devicePreset?.id);
+    presetName.textContent = zone.devicePreset
+      ? zone.devicePreset.name + (!linked || differsFromPreset(zone.cc_controllers, linked) ? ' •' : '')
+      : 'Presets';
+  }
   const wasEditing = zone.elements.ccPots![0]?.classList.contains('cc-edit') ?? false;
   DOM.switchClass(zone.elements.ccPots!, zone.editCC, 'cc-edit');
   if (zone.editCC && !wasEditing) {

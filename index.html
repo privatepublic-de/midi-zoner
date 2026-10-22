@@ -283,6 +283,22 @@
         <polygon points="2,11 8,6 8,16" style="fill: #ffffff" />
       </svg>
     </a>
+    <dialog id="presetSaveDialog" aria-label="Save device preset" onkeydown="event.stopPropagation();" onkeyup="event.stopPropagation();">
+      <form method="dialog">
+        <div class="kshelp-header">
+          <span class="kshelp-title">Save device preset</span>
+        </div>
+        <label>Name <input name="name" type="text" required maxlength="64" tabindex="0" /></label>
+        <label>Device <input name="device" type="text" list="presetDeviceList" maxlength="64" placeholder="e.g. KORG minilogue xd" tabindex="0" /></label>
+        <datalist id="presetDeviceList"></datalist>
+        <label title="The preset is suggested for zones whose output port name contains this text">Port match <input name="portMatch" type="text" maxlength="64" placeholder="part of the MIDI port name" tabindex="0" /></label>
+        <label>Notes <textarea name="notes" rows="3" maxlength="2000" placeholder="e.g. needs MIDI Rx CC = On" tabindex="0"></textarea></label>
+        <div class="preset-dialog-buttons">
+          <button value="cancel" formnovalidate tabindex="0">Cancel</button>
+          <button value="save" class="primary" tabindex="0">Save</button>
+        </div>
+      </form>
+    </dialog>
     <div id="mackieHelpOverlay" role="dialog" aria-modal="true" aria-label="Mackie Control mapping reference">
       <div class="kshelp-header">
         <span class="kshelp-title">Mackie Control Mapping</span>
