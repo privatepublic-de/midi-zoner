@@ -1962,10 +1962,12 @@ input[type='range'] {
   padding: 3px 9.5px 1px 10.5px;
 }
 .selector-name {
-  flex: 1;
+  /* as tall as its text, like a button, so the underline sits right below it */
   display: flex;
   align-items: center;
   justify-content: center;
+  margin: auto 0;
+  padding: 1px 0 2px;
   min-height: 0;
   text-align: center;
   font-size: var(--fs-sm);
@@ -4590,10 +4592,11 @@ body.minimized .midi-led.on {
 #ccEditor .cce-selector-preview[data-group='3'] { --sel-accent: var(--group-3); }
 #ccEditor .cce-selector-preview[data-group='4'] { --sel-accent: var(--group-4); }
 .cce-sel-name {
-  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
+  margin: auto 0;
+  padding: 2px 0 4px;
   text-align: center;
   font-size: var(--fs-lg);
   line-height: 1.2;
