@@ -4,7 +4,7 @@
   "name": "Oscillator, filter & EG",
   "device": "KORG NTS-1 mkII",
   "portMatch": "NTS-1",
-  "notes": "Needs GLOBAL > MIDI Short Message = On. Knobs send the MSB CC first, then the LSB CC; if they move in coarse steps, switch Format to LSB first. Osc type uses values measured on the device (CC53: Saw 16, Tri, Sqr, VPM, Noise, then User 1, 2, … in steps of 8; the MIDI chart values are wrong). User osc reaches User 9 (CC53 = 120). Filter has no Off/Thru button (CC42 = 127).",
+  "notes": "Needs GLOBAL > MIDI Short Message = On. Knobs send the MSB CC first, then the LSB CC; if they move in coarse steps, switch Format to LSB first. Osc type uses values measured on the device (CC53: Saw 16, Tri, Sqr, VPM, Noise, then User 1, 2, … in steps of 8; the MIDI chart values are wrong). User osc reaches User 9 (CC53 = 120).",
   "controllers": [
     {
       "type": 3,
@@ -117,7 +117,7 @@
       "msb_first": true
     },
     {
-      "type": 3,
+      "type": 0,
       "label": "Filter",
       "number": 42,
       "val": 0,
@@ -126,18 +126,24 @@
       "note_cc": null,
       "velocity_cc": null,
       "group": 2,
-      "buttonlabel0": "LP2",
-      "buttonvalue0": 0,
-      "buttonlabel1": "LP4",
-      "buttonvalue1": 18,
-      "buttonlabel2": "BP2",
-      "buttonvalue2": 36,
-      "buttonlabel3": "BP4",
-      "buttonvalue3": 54,
-      "buttonlabel4": "HP2",
-      "buttonvalue4": 72,
-      "buttonlabel5": "HP4",
-      "buttonvalue5": 90
+      "discreteValues": [
+        0,
+        18,
+        36,
+        54,
+        72,
+        90,
+        127
+      ],
+      "valueNames": [
+        "LP2",
+        "LP4",
+        "BP2",
+        "BP4",
+        "HP2",
+        "HP4",
+        "Thru"
+      ]
     },
     {
       "type": 5,
