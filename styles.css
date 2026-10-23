@@ -4132,7 +4132,7 @@ body.minimized .midi-led.on {
   text-overflow: ellipsis;
 }
 .cce-header .cce-preset-button .cc-preset-name {
-  max-width: 16rem;
+  max-width: 24rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

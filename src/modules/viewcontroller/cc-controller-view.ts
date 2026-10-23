@@ -122,11 +122,12 @@ export function controllerDisplay(zone: ZoneType, c: CCController, ix: number): 
   return { value: String(displayValue), name: c.valueNames?.[nameIndex] ?? '' };
 }
 
-/** Name of the linked device preset, "•" when the controllers were changed since */
+/** Device and name of the linked device preset, "•" when the controllers were changed since */
 export function devicePresetLabel(zone: ZoneType): string {
   if (!zone.devicePreset) return 'Presets';
   const linked = findDevicePreset(zone.devicePreset.id);
-  return zone.devicePreset.name + (!linked || differsFromPreset(zone.cc_controllers, linked) ? ' •' : '');
+  const name = linked ? (linked.device ? `${linked.device} · ${linked.name}` : linked.name) : zone.devicePreset.name;
+  return name + (!linked || differsFromPreset(zone.cc_controllers, linked) ? ' •' : '');
 }
 
 /** Rotary types; buttons, note to CC and spacers have no knob to drag */

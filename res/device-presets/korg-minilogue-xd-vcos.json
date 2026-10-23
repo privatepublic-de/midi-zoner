@@ -1,7 +1,7 @@
 {
   "format": "midi-zoner-device-preset",
   "version": 1,
-  "name": "VCOs & mixer",
+  "name": "VCOs",
   "device": "KORG minilogue xd",
   "portMatch": "minilogue xd",
   "notes": "Needs GLOBAL > MIDI Rx CC = On. 10-bit knobs send the low 3 bits on CC63, then the upper 7 bits. SYNC/RING: the chart contradicts itself on which value is On; swap the button values if they act inverted.",
@@ -146,7 +146,7 @@
     },
     {
       "type": 8,
-      "label": "Sync & ring",
+      "label": "Sync/Ring",
       "number": 0,
       "val": 0,
       "min": 0,

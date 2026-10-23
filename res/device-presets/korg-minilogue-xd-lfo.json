@@ -1,7 +1,7 @@
 {
   "format": "midi-zoner-device-preset",
   "version": 1,
-  "name": "LFO & voice",
+  "name": "LFO",
   "device": "KORG minilogue xd",
   "portMatch": "minilogue xd",
   "notes": "Needs GLOBAL > MIDI Rx CC = On. 10-bit knobs send the low 3 bits on CC63, then the upper 7 bits.",

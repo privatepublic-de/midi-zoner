@@ -1,14 +1,14 @@
 {
   "format": "midi-zoner-device-preset",
   "version": 1,
-  "name": "Multi engine",
+  "name": "Multi",
   "device": "KORG minilogue xd",
   "portMatch": "minilogue xd",
   "notes": "Needs GLOBAL > MIDI Rx CC = On. 10-bit knobs send the low 3 bits on CC63, then the upper 7 bits. Type selects, octave, VPM and USER params are NRPN (MSB 0, data on CC63 + CC6). USER PARAM ranges depend on the loaded oscillator: Max 100 fits percent and select params, set Max to 200 for bipolar ones.",
   "controllers": [
     {
       "type": 8,
-      "label": "Multi engine",
+      "label": "Multi",
       "number": 0,
       "val": 0,
       "min": 0,
@@ -264,7 +264,7 @@
     },
     {
       "type": 8,
-      "label": "User oscillator",
+      "label": "User osc",
       "number": 0,
       "val": 0,
       "min": 0,

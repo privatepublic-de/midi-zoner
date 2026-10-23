@@ -1,14 +1,14 @@
 {
   "format": "midi-zoner-device-preset",
   "version": 1,
-  "name": "Arp & volume",
+  "name": "Arp",
   "device": "KORG NTS-1 mkII",
   "portMatch": "NTS-1",
   "notes": "Needs GLOBAL > MIDI Short Message = On. Knobs send the MSB CC first, then the LSB CC; if they move in coarse steps, switch Format to LSB first.",
   "controllers": [
     {
       "type": 8,
-      "label": "Arpeggiator",
+      "label": "Arp",
       "number": 0,
       "val": 0,
       "min": 0,

@@ -1,14 +1,14 @@
 {
   "format": "midi-zoner-device-preset",
   "version": 1,
-  "name": "Effects",
+  "name": "FX",
   "device": "KORG minilogue xd",
   "portMatch": "minilogue xd",
   "notes": "Needs GLOBAL > MIDI Rx CC = On. 10-bit knobs send the low 3 bits on CC63, then the upper 7 bits. Sub type knobs step through the presets of the current effect type.",
   "controllers": [
     {
       "type": 8,
-      "label": "Mod FX",
+      "label": "Mod",
       "number": 0,
       "val": 0,
       "min": 0,
