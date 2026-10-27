@@ -37,6 +37,29 @@ export function createCCActions(
   // Min/Max are device units for NRPN, CC values otherwise
   const rangeMax = (): number => (selected().type == CCControllerType.NRPN ? 16383 : 127);
 
+  // A preset's controllers as a page of its own, unless they start with a page
+  const asPage = (preset: { name: string }, controllers: CCController[]): CCController[] =>
+    isPage(controllers[0]) ? controllers : [newPage(preset.name), ...controllers];
+  // Appended pages follow the existing controllers; without pages so far, the existing
+  // controllers become the first page
+  const appendPages = (pages: CCController[]): void => {
+    const current = zone.cc_controllers.some(isPage)
+      ? zone.cc_controllers
+      : [newPage(zone.devicePreset?.name ?? 'Main'), ...zone.cc_controllers];
+    const firstNew = current.length;
+    zone.cc_controllers = [...current, ...pages];
+    zone.ccPage = pageNumberOf(zone.cc_controllers, firstNew);
+    zone.selectedCCIndex = firstNew;
+  };
+  const showPresetResult = (message: string): void => {
+    zone.selectedCCIndex = Math.min(zone.selectedCCIndex, zone.cc_controllers.length - 1);
+    zone.show_cc = true;
+    renderControllersForZone(zone, zoneindex);
+    updateValuesForZone(zoneindex);
+    triggerSave();
+    toast(message);
+  };
+
   // Knob positions of n evenly spread snap steps
   const evenSteps = (n: number): number[] => Array.from({ length: n }, (_, i) => Math.round((i * 127) / (n - 1)));
 
@@ -342,30 +365,35 @@ export function createCCActions(
       // Shift-click appends to the existing controllers instead of replacing them
       const append = ev.shiftKey && zone.cc_controllers.length > 0;
       if (append) {
-        // An appended preset becomes a page of its own; without pages so far, the
-        // existing controllers become the first page
-        const current = zone.cc_controllers.some(isPage)
-          ? zone.cc_controllers
-          : [newPage(zone.devicePreset?.name ?? 'Main'), ...zone.cc_controllers];
-        const added = controllersFromPreset(preset, [], false);
-        const firstNew = current.length;
-        zone.cc_controllers = [...current, ...(isPage(added[0]) ? [] : [newPage(preset.name)]), ...added];
-        zone.ccPage = pageNumberOf(zone.cc_controllers, firstNew);
-        zone.selectedCCIndex = firstNew;
+        appendPages(asPage(preset, controllersFromPreset(preset, [], false)));
       } else {
         zone.cc_controllers = controllersFromPreset(preset, zone.cc_controllers, false);
         zone.devicePreset = { id: preset.id, name: preset.name };
         zone.ccPage = 0;
       }
-      zone.selectedCCIndex = Math.min(zone.selectedCCIndex, zone.cc_controllers.length - 1);
-      zone.show_cc = true;
-      renderControllersForZone(zone, zoneindex);
-      updateValuesForZone(zoneindex);
-      triggerSave();
-      toast(
+      showPresetResult(
         append
           ? `Added "${escapeHTML(preset.name)}" as a new page`
           : `Applied preset "${escapeHTML(preset.name)}" (⇧-click appends instead)`
+      );
+    },
+    cc_preset_apply_all: () => {
+      // All presets of the preset's device, each on a page of its own
+      const first = findDevicePreset(actionParam1);
+      if (!first) return;
+      const presets = getDevicePresets().filter((p) => p.device === first.device);
+      const append = ev.shiftKey && zone.cc_controllers.length > 0;
+      const pages = presets.flatMap((p) => asPage(p, controllersFromPreset(p, append ? [] : zone.cc_controllers, false)));
+      if (append) {
+        appendPages(pages);
+      } else {
+        zone.cc_controllers = pages;
+        zone.devicePreset = null;
+        zone.ccPage = 0;
+      }
+      showPresetResult(
+        `${append ? 'Added' : 'Applied'} all ${presets.length} presets of ${escapeHTML(first.device)} as pages` +
+          (append ? '' : ' (⇧-click appends instead)')
       );
     },
     cc_preset_save: async () => {

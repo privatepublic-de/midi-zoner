@@ -162,6 +162,48 @@ export function findDevicePreset(id: string | undefined): DevicePreset | undefin
   return presets.find((p) => p.id === id);
 }
 
+export interface PresetDevice {
+  device: string;
+  /** The device name without its maker heading */
+  label: string;
+  presets: DevicePreset[];
+}
+
+/**
+ * The presets by device, under maker headings: a device name's first word is a maker when
+ * two or more devices share it ("KORG minilogue xd", "KORG NTS-1 mkII"). The other devices
+ * follow under "Other" (no heading at all when there are no makers).
+ */
+export function presetsByMaker(): { maker: string | null; devices: PresetDevice[] }[] {
+  const devices: PresetDevice[] = [];
+  for (const preset of presets) {
+    const last = devices[devices.length - 1];
+    if (last?.device === preset.device) last.presets.push(preset);
+    else devices.push({ device: preset.device, label: preset.device, presets: [preset] });
+  }
+  const firstWord = (d: PresetDevice): string | null => (/^(\S+)\s+\S/.exec(d.device) ?? [])[1] ?? null;
+  const counts = new Map<string, number>();
+  for (const d of devices) {
+    const word = firstWord(d);
+    if (word) counts.set(word, (counts.get(word) ?? 0) + 1);
+  }
+  const groups: { maker: string | null; devices: PresetDevice[] }[] = [];
+  const others: PresetDevice[] = [];
+  for (const d of devices) {
+    const word = firstWord(d);
+    if (!word || counts.get(word)! < 2) {
+      others.push(d);
+      continue;
+    }
+    d.label = d.device.slice(word.length).trim();
+    const group = groups.find((g) => g.maker === word);
+    if (group) group.devices.push(d);
+    else groups.push({ maker: word, devices: [d] });
+  }
+  if (others.length) groups.push({ maker: groups.length ? 'Other' : null, devices: others });
+  return groups;
+}
+
 /** Presets whose portMatch occurs in the given port name */
 export function matchesPort(preset: DevicePreset, portName: string | undefined): boolean {
   return !!preset.portMatch && !!portName && portName.toLowerCase().includes(preset.portMatch.toLowerCase());

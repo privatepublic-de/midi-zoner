@@ -1,5 +1,5 @@
 import DOM, { escapeHTML } from '../domutils';
-import { differsFromPreset, findDevicePreset, getDevicePresets, matchesPort } from '../device-presets';
+import { differsFromPreset, findDevicePreset, matchesPort, presetsByMaker, PresetDevice } from '../device-presets';
 import MIDI from '../midi';
 
 import DragZone from '../dragzone';
@@ -353,19 +353,37 @@ function actionHandler(ev: MouseEvent, overrideaction?: string): void {
  * replaces, shift-click appends), then update / save / folder.
  */
 function devicePresetMenu(zoneindex: number): string[] {
-  const entries = ['label:Device presets (⇧-click appends)'];
-  const presets = getDevicePresets();
-  if (presets.length === 0) entries.push('label:No presets saved yet');
-  let device: string | null = null;
-  for (const preset of presets) {
-    if (preset.device !== device) {
-      device = preset.device;
-      entries.push(`label:${escapeHTML(device)}`);
-    }
-    entries.push(`${zoneindex}:cc_preset_apply:${preset.id}`);
+  const zone: ZoneType = zones.list[zoneindex];
+  const entries = ['label:Device presets · ⇧-click appends'];
+  const groups = presetsByMaker();
+  if (groups.length === 0) entries.push('label:No presets saved yet');
+  for (const group of groups) {
+    if (group.maker) entries.push(`heading:${escapeHTML(group.maker)}`);
+    for (const device of group.devices) entries.push(`html:${presetDeviceRow(zone, zoneindex, device)}`);
   }
   entries.push('-', `${zoneindex}:cc_preset_update`, `${zoneindex}:cc_preset_save`, `${zoneindex}:cc_presets_manage`);
   return entries;
+}
+
+/** A device with its presets as chips (plus "Add all" with more than one) */
+function presetDeviceRow(zone: ZoneType, zoneindex: number, device: PresetDevice): string {
+  const portName = zones.knownPortNames?.[zone.outputPortId];
+  const chips = device.presets.map((preset) => {
+    const linked = zone.devicePreset?.id === preset.id;
+    const modified = linked && differsFromPreset(zone.cc_controllers, preset) ? ' •' : '';
+    const icon = linked ? 'check' : matchesPort(preset, portName) ? 'star_outline' : '';
+    const classes = ['cc-preset-chip', linked ? 'linked' : '', preset.source == 'user' ? 'user' : ''].join(' ');
+    const title = preset.source == 'user' ? 'Your preset' : 'Factory preset';
+    return `<span class="${classes}" title="${title}" data-action="${zoneindex}:cc_preset_apply:${preset.id}">${
+      icon ? `<i class="material-icons">${icon}</i>` : ''
+    }${escapeHTML(preset.name)}${modified}</span>`;
+  });
+  if (device.presets.length > 1) {
+    chips.push(
+      `<span class="cc-preset-chip all" title="Each preset on a page of its own" data-action="${zoneindex}:cc_preset_apply_all:${device.presets[0].id}">Add all</span>`
+    );
+  }
+  return `<li class="cc-preset-device"><span class="cc-preset-device-name">${escapeHTML(device.label)}</span><span class="cc-preset-chips">${chips.join('')}</span></li>`;
 }
 
 /** The entries of a selector ("ccselect:<zone>:<controller>") */
@@ -388,6 +406,7 @@ function contextHandler(ev: MouseEvent): void {
   const contextMenuElement = DOM.get('#contextmenu') as HTMLElement;
 
   DOM.empty(contextMenuElement);
+  contextMenuElement.classList.toggle('cc-presets-menu', menuSpecification.startsWith('ccpresets:'));
 
   function isEnabled(parts: string[]): boolean {
     if (parseInt(parts[0]) < 0) return true;
@@ -434,15 +453,6 @@ function contextHandler(ev: MouseEvent): void {
     if (parts[1] === 'seq_adjust') {
       return SEQ_ADJUST_LABELS[parts[2]] ?? parts[2];
     }
-    if (parts[1] === 'cc_preset_apply') {
-      const preset = findDevicePreset(parts[2]);
-      if (!preset) return '';
-      const linked = zone.devicePreset?.id === preset.id;
-      const suggested = matchesPort(preset, zones.knownPortNames?.[zone.outputPortId]);
-      const modified = linked && differsFromPreset(zone.cc_controllers, preset) ? ' •' : '';
-      const icon = linked ? 'check' : suggested ? 'star_outline' : 'tune';
-      return `<i class="material-icons">${icon}</i> ${escapeHTML(preset.name)}${modified}`;
-    }
     if (parts[1] === 'cc_select_value') {
       const c = zone.cc_controllers[parseInt(parts[2])];
       const i = parseInt(parts[3]);
@@ -473,6 +483,10 @@ function contextHandler(ev: MouseEvent): void {
   menuActions.forEach((act) => {
     if (act == '-') {
       DOM.addHTML(contextMenuElement, 'beforeend', `<hr/>`);
+    } else if (act.startsWith('html:')) {
+      DOM.addHTML(contextMenuElement, 'beforeend', act.slice(5));
+    } else if (act.startsWith('heading:')) {
+      DOM.addHTML(contextMenuElement, 'beforeend', `<li class="heading">${act.slice(8)}</li>`);
     } else if (act.startsWith('label:')) {
       const label = act.slice(6);
       DOM.addHTML(

@@ -90,6 +90,7 @@ const ACTION_LABEL_OVERRIDES: Record<string, string | OverrideFn> = {
   cc_number_lsb: 'CC Number (LSB)',
   cc_14bit_format: 'CC 14Bit Format',
   cc_preset_apply: 'Apply Device Preset',
+  cc_preset_apply_all: 'Apply All Device Presets',
   cc_nrpn_bipolar: 'NRPN Bipolar',
   cc_preset_save: 'Save Device Preset',
   cc_preset_update: 'Update Device Preset',

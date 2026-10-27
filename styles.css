@@ -3202,6 +3202,75 @@ body.running .seqprogress.drum .inner {
   border-top: 1px solid var(--darker-2);
 }
 
+/* device presets: maker headings, then a row per device with its presets as chips */
+#contextmenu.cc-presets-menu {
+  width: 450px;
+}
+#contextmenu.cc-presets-menu li.label {
+  font-style: normal;
+  font-size: var(--fs-sm);
+  color: var(--brighter-2);
+  padding: 4px 6px 0;
+}
+#contextmenu li.heading {
+  font-size: var(--fs-sm);
+  color: var(--brighter-2);
+  padding: 8px 6px 2px;
+  border-bottom: 1px solid var(--brighter-1);
+  pointer-events: none;
+}
+#contextmenu li.cc-preset-device {
+  display: grid;
+  grid-template-columns: 104px 1fr;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 6px;
+  pointer-events: none;
+}
+#contextmenu li.cc-preset-device:hover {
+  background: none;
+  color: inherit;
+}
+.cc-preset-device-name {
+  font-weight: 600;
+}
+.cc-preset-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+.cc-preset-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: var(--brighter-1);
+  font-size: var(--fs-sm);
+  line-height: 18px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.cc-preset-chip i.material-icons {
+  font-size: 12px;
+}
+/* your own presets: dashed edge */
+.cc-preset-chip.user {
+  border: 1px dashed var(--brighter-2);
+}
+/* "Add all": an outline, not a preset */
+.cc-preset-chip.all {
+  background: none;
+  border-color: var(--brighter-1);
+  color: var(--brighter-3);
+}
+.cc-preset-chip:hover,
+.cc-preset-chip.linked {
+  background: var(--text-contextmenu-color);
+  color: var(--bg-contextmenu);
+}
+
 .contextMenuTrigger {
   outline: 2px solid var(--brighter-2);
   outline-offset: 2px;
