@@ -3934,6 +3934,12 @@ body.running .drumSequencer .lane-expand-toggle {
   box-shadow: inset 0 3px 0 var(--live);
 }
 
+/* sounding while the sequence runs */
+.pr-note.sounding {
+  border-color: var(--live);
+  box-shadow: 0 0 6px 1px var(--live);
+}
+
 .pr-note.selected {
   outline: 2px solid var(--multiselect-highlight);
 }

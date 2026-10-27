@@ -169,6 +169,9 @@ let stepHeaderKey = '';
 // note elements per step, for the live condition marks
 let stepNoteEls: HTMLElement[][] = [];
 let lastLiveStep: number | null = null;
+// playhead step the view last followed (kept across re-renders, -1 = stopped)
+let followStep = -1;
+let soundingKey = ''; // steps whose notes have .sounding
 let velocityScrollEl: HTMLElement;
 let velocityLaneEl: HTMLElement;
 
@@ -430,6 +433,7 @@ function renderNotesAndVelocity(zone: ZoneType): void {
     }
   }
   lastLiveStep = null;
+  soundingKey = '';
   updatePlayhead(zone);
 }
 
@@ -445,6 +449,11 @@ function updatePlayhead(zone: ZoneType): void {
   } else {
     playheadEl.style.display = 'none';
   }
+  updateSounding(current > -1 ? sequence.soundingSteps() : new Set<number>());
+  if (current !== followStep) {
+    followPlayhead(followStep, current);
+    followStep = current;
+  }
   if (current === lastLiveStep) return;
   lastLiveStep = current;
   Array.from(stepHeaderEl.children).forEach((cell, i) => cell.classList.toggle('playhead', i === current));
@@ -455,6 +464,32 @@ function updatePlayhead(zone: ZoneType): void {
       el.classList.toggle('cond-skips', outcome === false);
     });
   });
+}
+
+// Notes that are sounding now light up (per frame, the DOM only changes with the set)
+function updateSounding(steps: Set<number>): void {
+  const key = [...steps].join(',');
+  if (key === soundingKey) return;
+  soundingKey = key;
+  stepNoteEls.forEach((els, i) => els?.forEach((el) => el.classList.toggle('sounding', steps.has(i))));
+}
+
+function stepVisible(step: number): boolean {
+  const left = mainScrollEl.scrollLeft;
+  const right = left + mainScrollEl.clientWidth - KEYS_W;
+  const x = stepToX(step);
+  return x >= left && x + cellW <= right;
+}
+
+// Pages the view along when the playhead leaves it (also back to the start on wrap).
+// Only while the playhead was in view (or playback just started), so scrolling away
+// to edit elsewhere isn't undone on the next step; not during a drag.
+function followPlayhead(prev: number, current: number): void {
+  if (current < 0 || dragState) return;
+  if (prev > -1 && !stepVisible(prev)) return;
+  if (stepVisible(current)) return;
+  const maxScroll = mainScrollEl.scrollWidth - mainScrollEl.clientWidth;
+  mainScrollEl.scrollLeft = clamp(stepToX(current), 0, Math.max(0, maxScroll));
 }
 
 function centerScrollOnNotes(zone: ZoneType): void {
@@ -637,6 +672,7 @@ export function openPianoRoll(ctx: ActionContext): void {
   overlayEl.classList.add('open');
   renderAll(ctx.zone);
   centerScrollOnNotes(ctx.zone);
+  followStep = -1;
   if (rafHandle === null) rafHandle = requestAnimationFrame(tick);
 }
 

@@ -563,6 +563,23 @@ export class Sequence {
     this.updateZoneView();
   }
 
+  /** Steps whose notes sound right now (over their length and gate; ratchet hits of the current step) */
+  soundingSteps(): Set<number> {
+    const result = new Set<number>();
+    for (const astep of this.activeSteps) {
+      const i = this.steps.indexOf(astep);
+      if (i > -1 && astep.lastPlayedArray?.length) result.add(i);
+    }
+    const current = this.steps[this.currentStepNumber];
+    if (current && (current.ratchetCount ?? 1) > 1) {
+      const pitches = new Set(current.notesArray.map((n) => n.number));
+      if (this.ratchetQueue.some((ev) => ev.noteOnPos === -1 && pitches.has(ev.note.number))) {
+        result.add(this.currentStepNumber);
+      }
+    }
+    return result;
+  }
+
   activeNotes(): Note[] {
     const result: Note[] = [];
     this.activeSteps.forEach((astep) => {
