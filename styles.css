@@ -1884,6 +1884,18 @@ input[type='range'] {
 .ccpot.lock-mixed .knob-value {
   stroke-dasharray: 3 2;
 }
+/* playing: following the value a parameter lock (or its slide) sent; the bottom
+   right corner has the MIDI input dot */
+.ccpot.lock-live::before {
+  content: '';
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  bottom: 3px;
+  left: 3px;
+  border-radius: 50%;
+  background: var(--live);
+}
 .ccpot .knob-ticks {
   stroke: var(--bg-color);
   stroke-width: 1.5;

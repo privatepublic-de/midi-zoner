@@ -2,6 +2,8 @@ import { Note } from './note';
 import type { ParamLock } from './param-locks';
 
 export const UPDATE_ZONE_VIEW_EVENT = 'update-zone-view';
+/** A zone's knobs show other values: parameter locks were sent or reverted (detail: the zone) */
+export const CC_LOCK_VALUES_EVENT = 'cc-lock-values';
 
 export enum CCControllerType {
   UNIPOLAR_ROTARY = 0,

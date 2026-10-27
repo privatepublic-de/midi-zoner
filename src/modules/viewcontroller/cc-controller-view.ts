@@ -255,6 +255,7 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIn
     potcontainer.dataset.hasInput = c.number_in != null ? '1' : '';
     potcontainer.classList.toggle('locked', view.locked);
     potcontainer.classList.toggle('lock-mixed', view.mixed);
+    potcontainer.classList.toggle('lock-live', view.live);
     (zone._$(`${potselector} div.cclabel`) as HTMLElement).textContent =
       c.type == CCControllerType.NOTE_TO_CC ? 'Note to CC' : c.label;
     const display = controllerDisplay(zone, c, ix);

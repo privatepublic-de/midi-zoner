@@ -16,7 +16,8 @@ import {
   isHiResCC,
   isSevenBitCC,
   isLayoutEntry,
-  UPDATE_ZONE_VIEW_EVENT
+  UPDATE_ZONE_VIEW_EVENT,
+  CC_LOCK_VALUES_EVENT
 } from './interfaces';
 import { NoteDisplay } from './note-display';
 import { DIV_TICKS, DivTick, PPQ, swingOffsetMs } from './seq-layer';
@@ -49,6 +50,7 @@ export class Zone {
     length: number;
   } | null = null;
   static updateZoneViewEventName = UPDATE_ZONE_VIEW_EVENT;
+  static lockValuesEventName = CC_LOCK_VALUES_EVENT;
 
   private static _canvasSizeCache = new WeakMap<HTMLCanvasElement, DOMRect>();
   private static _resizeObserver = new ResizeObserver((entries) => {
@@ -196,6 +198,7 @@ export class Zone {
   private _lastTickIntervalMs = (60 / 120 / PPQ) * 1000;
   // When the last ring-out note-off is due (performance.now() time)
   private _ringOutUntil = 0;
+  private _lockRedrawPending = false;
   // Clock position and time of the last processed tick, used to time ring-outs on stop
   private _lastPos = 0;
   private _lastTickAt = 0;
@@ -415,15 +418,33 @@ export class Zone {
    * A controller as its knob shows it: with steps selected, their lock on it (`mixed`
    * when they differ, the first is shown); otherwise the controller itself.
    */
-  lockedView(c: CCController): { ctrl: CCController; locked: boolean; mixed: boolean } {
+  lockedView(c: CCController): { ctrl: CCController; locked: boolean; mixed: boolean; live: boolean } {
     const address = controllerAddress(c);
-    const values = address && this.sequence.hasSelection ? this.sequence.selectedLockValues(address) : [];
-    if (values.length === 0) return { ctrl: c, locked: false, mixed: false };
+    if (!address) return { ctrl: c, locked: false, mixed: false, live: false };
+    if (!this.sequence.hasSelection) {
+      // Playing: the value a lock or slide sent last, which the device has now
+      const live = this.paramLocks.liveValue(address);
+      if (live === undefined) return { ctrl: c, locked: false, mixed: false, live: false };
+      return { ctrl: { ...c, val: knobValueFor(c, live) }, locked: false, mixed: false, live: true };
+    }
+    const values = this.sequence.selectedLockValues(address);
+    if (values.length === 0) return { ctrl: c, locked: false, mixed: false, live: false };
     return {
       ctrl: { ...c, val: knobValueFor(c, values[0]) },
       locked: true,
-      mixed: values.some((v) => v !== values[0])
+      mixed: values.some((v) => v !== values[0]),
+      live: false
     };
+  }
+
+  /** Redraws the knobs following parameter locks, at most once per frame */
+  lockValuesChanged(): void {
+    if (this._lockRedrawPending) return;
+    this._lockRedrawPending = true;
+    requestAnimationFrame(() => {
+      this._lockRedrawPending = false;
+      window.dispatchEvent(new CustomEvent(CC_LOCK_VALUES_EVENT, { detail: this }));
+    });
   }
 
   saveArrangement(index: number): void {

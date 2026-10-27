@@ -98,6 +98,8 @@ export function parseLocks(raw: unknown): ParamLock[] {
 export interface LockHost {
   readonly cc_controllers: CCController[];
   sendTransmitted(c: CCController, value: number): void;
+  /** Lock values were sent or reverted: the knobs following them redraw */
+  lockValuesChanged(): void;
 }
 
 interface Glide {
@@ -137,6 +139,11 @@ export class ParamLocks {
     this.dirty.delete(address);
   }
 
+  /** The value a lock (or a slide, or an audition) left on an address, if it was sent last */
+  liveValue(address: string): number | undefined {
+    return this.dirty.has(address) ? this.sent.get(address) : undefined;
+  }
+
   /** Lets the user hear a lock while editing it */
   audition(c: CCController, value: number): void {
     this.sendLock(c, value);
@@ -146,6 +153,7 @@ export class ParamLocks {
     this.host.sendTransmitted(c, value);
     const address = controllerAddress(c);
     if (address) this.dirty.add(address);
+    this.host.lockValuesChanged();
   }
 
   /** A step played (its condition and chance passed): send its locks, revert the lane's others */
@@ -179,8 +187,12 @@ export class ParamLocks {
       }
       this.glides.delete(address);
       if (this.sent.get(address) === target) return;
-      if (this.held.has(address)) this.sendLock(c, target);
-      else this.host.sendTransmitted(c, target); // reverted: the controller's own value
+      if (this.held.has(address)) {
+        this.sendLock(c, target);
+      } else {
+        this.host.sendTransmitted(c, target); // reverted: the controller's own value
+        this.host.lockValuesChanged();
+      }
     });
   }
 
@@ -242,6 +254,7 @@ export class ParamLocks {
       if (c) this.host.sendTransmitted(c, transmittedValue(c));
       this.dirty.delete(address);
     });
+    if (addresses.size > 0) this.host.lockValuesChanged();
   }
 
   /** The highest lane's lock on an address, otherwise the controller's own value */

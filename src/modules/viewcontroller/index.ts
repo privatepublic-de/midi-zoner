@@ -137,6 +137,10 @@ function initController({
       updateValuesForAllZones();
     }
   }) as EventListener);
+  window.addEventListener(Zone.lockValuesEventName, ((ev: CustomEvent) => {
+    const index = zones.list.indexOf(ev.detail);
+    if (index > -1) updateControllerValues(zones.list[index], index);
+  }) as EventListener);
   initPianoRoll();
   setMenuHandler(contextHandler);
   initCCEditor({
