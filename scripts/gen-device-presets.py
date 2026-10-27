@@ -62,6 +62,10 @@ def with_sections(controllers, sections):
     a "sec" key start their own section under that key (two sections sharing a colour)."""
     out, current = [], None
     for c in controllers:
+        if c["type"] == 10:
+            out.append(c)
+            current = None
+            continue
         group = c.pop("group", 0)
         key = c.pop("sec", group)
         if key != current:
@@ -75,9 +79,19 @@ def with_sections(controllers, sections):
         out.append(c)
     return out
 
+def page(label):
+    """Starts a page: the zone shows one page of controllers at a time"""
+    return {"type": 10, "label": label, "number": 0, "val": 0, "min": 0, "max": 127,
+            "note_cc": None, "velocity_cc": None}
+
+def spread(names):
+    """Evenly spread named values: the middle of each of len(names) equal ranges of 0–127"""
+    return [(n, (256 * i + 128) // (2 * len(names))) for i, n in enumerate(names)]
+
 def write(file, name, device, port, notes, controllers, sections):
-    p = {"format": "midi-zoner-device-preset", "version": 1, "name": name, "device": device,
-         "portMatch": port, "notes": notes, "controllers": with_sections(controllers, sections)}
+    p = {"format": "midi-zoner-device-preset", "version": 1, "name": name, "device": device}
+    if port: p["portMatch"] = port
+    p.update(notes=notes, controllers=with_sections(controllers, sections))
     with open(os.path.join(OUT, file + ".json"), "w") as f:
         json.dump(p, f, indent=2, ensure_ascii=False)
         f.write("\n")
@@ -295,3 +309,86 @@ write("korg-monologue-panel", "Panel", MONO, MONOP, MONO_NOTE, [
     buttons("LFO wave", 58, WAVE, 2, 64), buttons("LFO mode", 59, [("1-Shot", 0), ("Slow", 64), ("Fast", 127)], 2, 64),
     cc7("LFO rate", 24, 2, 64), base("LFO int", 1, 2, number=26, val=64), buttons("LFO target", 56, [("Cutoff", 0), ("Shape", 64), ("Pitch", 127)], 2, 127),
 ], {1: "VCO 1", "vco2": ("VCO 2", False), 0: "Mixer", 3: ("Filter", False), 4: "EG", 2: "LFO"})
+
+VOLCA_NOTE = "Needs the global parameter MIDI Rx ShortMessage = On. All knobs are 7 bit. The volcas have no USB MIDI, so connect them through a MIDI interface."
+UNTESTED = " The KORG chart has no value tables: the named steps are spread evenly over 0–127 (untested)."
+
+VB = "KORG volca bass"
+write("korg-volca-bass", "Panel", VB, None, VOLCA_NOTE + " Slide time, Expression and Gate time are MIDI only. There is no cutoff CC. Octave values guessed like the volca keys (6 even ranges).", [
+    cc7("Octave", 40, 1, 53, [v for _, v in spread(range(6))], [str(i + 1) for i in range(6)]),
+    base("VCO1 pitch", 1, 1, number=43, val=64), base("VCO2 pitch", 1, 1, number=44, val=64), base("VCO3 pitch", 1, 1, number=45, val=64),
+    cc7("LFO rate", 41, 2, 64), cc7("LFO int", 42, 2),
+    cc7("Attack", 46, 3), cc7("Decay/rel", 47, 3, 64), cc7("Cutoff EG", 48, 3, 64),
+    cc7("Slide time", 5, 4), cc7("Gate time", 49, 4, 100), cc7("Expression", 11, 4, 127),
+], {1: "VCO", 2: ("LFO", False), 3: "EG", 4: ("Play", False)})
+
+VK = "KORG volca keys"
+write("korg-volca-keys", "Panel", VK, None, VOLCA_NOTE + " Voice and Octave values from midi.guide. Expression is MIDI only.", [
+    selector("Voice", 40, [("Poly", 6), ("Unison", 25), ("Octave", 50), ("Fifth", 75), ("Unison ring", 100), ("Poly ring", 120)], 1),
+    buttons("Octave", 41, [("32'", 10), ("16'", 32), ("8'", 54), ("4'", 76), ("2'", 98), ("1'", 118)], 1, 54),
+    cc7("Detune", 42, 1), cc7("Portamento", 5, 1), cc7("VCO EG int", 43, 1),
+    cc7("Cutoff", 44, 2, 127), cc7("VCF EG int", 45, 2),
+    cc7("LFO rate", 46, 3, 64), cc7("Pitch int", 47, 3), cc7("Cutoff int", 48, 3),
+    cc7("Attack", 49, 4), cc7("Decay/rel", 50, 4, 64), cc7("Sustain", 51, 4, 127),
+    cc7("Delay time", 52, 5, 64), cc7("Feedback", 53, 5), cc7("Expression", 11, 5, 127),
+], {1: "Voice", 2: ("Filter", False), 3: "LFO", 4: ("EG", False), 5: "Delay"})
+
+FM_ALGO = [v for _, v in spread(range(32))]
+FM_ARP = spread(["Off", "Rise 1", "Rise 2", "Rise 3", "Fall 1", "Fall 2", "Fall 3", "Random 1", "Random 2", "Random 3"])
+FM_NOTE = (VOLCA_NOTE + " The envelope and LFO knobs change the voice's settings relative to the stored values (centre = as stored). "
+           "Transpose is centred." + UNTESTED + " Arp div has no names, its steps are not documented.")
+
+def volca_fm(file, device, port, extra, notes):
+    write(file, "Panel", device, port, notes, [
+        base("Transpose", 1, 1, number=40, val=64), cc7("Velocity", 41, 1, 127),
+        cc7("Algorithm", 48, 1, FM_ALGO[0], FM_ALGO, [str(i + 1) for i in range(32)]),
+        base("Mod attack", 1, 2, number=42, val=64), base("Mod decay", 1, 2, number=43, val=64),
+        base("Car attack", 1, 2, number=44, val=64), base("Car decay", 1, 2, number=45, val=64),
+        base("LFO rate", 1, 3, number=46, val=64), base("LFO depth", 1, 3, number=47, val=64),
+        selector("Arp type", 49, FM_ARP, 4), cc7("Arp div", 50, 4, 64),
+    ] + extra, {1: "Voice", 2: "Envelopes", 3: "LFO", 4: ("Arp", False), 5: "FX"})
+
+volca_fm("korg-volca-fm", "KORG volca fm", None, [], FM_NOTE)
+volca_fm("korg-volca-fm2", "KORG volca fm2", None, [cc7("Chorus", 93, 5), cc7("Reverb", 91, 5)], FM_NOTE)
+
+VD = "KORG volca drum"
+# Single channel mode, per part: Select, Level, Mod amount, Mod rate, Pitch, EG attack, EG release (both layers), Send, Pan
+VD_CCS = [[14, 15, 16, 17, 18, 19, 20, 103, 109], [23, 24, 25, 26, 27, 28, 29, 104, 110], [46, 47, 48, 49, 50, 51, 52, 105, 111],
+          [55, 56, 57, 58, 59, 60, 61, 106, 112], [80, 81, 82, 83, 84, 85, 86, 107, 113], [89, 90, 96, 97, 98, 99, 100, 108, 114]]
+
+def vd_part(i):
+    sel, lev, amt, rate, pitch, att, rel, send, pan = VD_CCS[i]
+    return [page(f"Part {i + 1}"),
+            cc7("Select", sel, 1), cc7("Pitch", pitch, 1, 64), cc7("Level", lev, 1, 127),
+            cc7("Mod amt", amt, 2), cc7("Mod rate", rate, 2),
+            cc7("Attack", att, 3), cc7("Release", rel, 3, 64),
+            cc7("Send", send, 4), base("Pan", 1, 4, number=pan, val=64)]
+
+write("korg-volca-drum", "Single ch", VD, None, VOLCA_NOTE + " For the single channel mode (set a MIDI channel in the global parameters; the default is one channel per part). "
+      "Each part's knobs act on both layers. The Mix page repeats every part's level, pan and send; both copies stay in sync.", [
+    page("Mix")] + [dict(cc7(f"Level {i + 1}", VD_CCS[i][1], 1, 127), sec="lev") for i in range(6)]
+    + [dict(base(f"Pan {i + 1}", 1, 4, number=VD_CCS[i][8], val=64), sec="pan") for i in range(6)]
+    + [dict(cc7(f"Send {i + 1}", VD_CCS[i][7], 3), sec="send") for i in range(6)]
+    + [cc7("Model", 116, 5), cc7("Decay", 117, 5, 64), cc7("Body", 118, 5, 64), cc7("Tune", 119, 5, 64)]
+    + [c for i in range(6) for c in vd_part(i)],
+    {"lev": "Level", "pan": "Pan", "send": "Send", 5: "Waveguide", 1: "Osc", 2: ("Mod", False), 3: "EG", 4: ("Out", False)})
+
+VS = "KORG volca sample2"
+# Single channel mode, per part: Level, Pan, Speed, Amp attack, Amp decay, Hi cut. The chart lists only five CCs for
+# part 1 (7, 10, 43, 63, 42); 63 is taken as the amp attack and part 1 has no decay control here
+VS_PARTS = [[7, 10, 43, 63, None, 42]] + [list(range(b, b + 6)) for b in (14, 20, 26, 50, 56, 76, 82, 102, 108)]
+
+def vs_part(i):
+    lev, pan, speed, att, dec, cut = VS_PARTS[i]
+    sec = f"p{i + 1}"
+    return [dict(c, sec=sec) for c in [
+        cc7("Level", lev, 1, 127), base("Pan", 1, 1, number=pan, val=64), base("Speed", 1, 1, number=speed, val=64),
+        cc7("Attack", att, 1)] + ([cc7("Decay", dec, 1, 127)] if dec else []) + [cc7("Hi cut", cut, 1, 127)]]
+
+write("korg-volca-sample2", "Single ch", VS, None, "For the single channel mode (set a MIDI channel in the global parameters; the default is one channel per part). "
+      "CC numbers from the KORG chart, untested. The chart lists only five CCs for part 1 (7, 10, 43, 63, 42): 63 is taken as Attack and part 1 has no Decay. "
+      "Speed and Pan are centred.",
+    [page("Parts 1–4")] + [c for i in range(4) for c in vs_part(i)]
+    + [page("Parts 5–8")] + [c for i in range(4, 8) for c in vs_part(i)]
+    + [page("Parts 9–10")] + [c for i in range(8, 10) for c in vs_part(i)] + [cc7("Reverb mix", 91, 2)],
+    {**{f"p{i + 1}": f"Part {i + 1}" for i in range(10)}, 2: "Reverb"})
