@@ -303,6 +303,10 @@ export function renderControllersForZone(
   onGestureEnd: () => void,
   showPage: (page: number) => void
 ): void {
+  // The toolbar may sit in a section heading: back to its place before the controllers go
+  const ccpots = document.querySelector(`#zone${index} .ccpots`) as HTMLElement;
+  const tools = ccpots.querySelector('.cctools') as HTMLElement;
+  ccpots.prepend(tools);
   DOM.all(`#zone${index} .ccpots .container > *`).forEach((e) => e.remove());
   DOM.addHTML(
     `#zone${index} .ccpots .container`,
@@ -331,6 +335,12 @@ export function renderControllersForZone(
       tabs.append(tab);
     });
   }
+  // Without tabs, Edit and Send all sit on the ruler of the first row's last section (when
+  // it has a name), so the panel starts with its controls like the arp and sequencer
+  const firstRowEnd = ccpots.querySelector('.ccsection.last');
+  const head = pages.length < 2 ? firstRowEnd?.querySelector('.ccsection-head') : null;
+  head?.append(tools);
+  DOM.switchClass(ccpots, !!head, 'tools-on-ruler');
 
   DOM.all(`#zone${index} .ccpots .ccpot`).forEach((pot) => {
     const ix = parseInt(pot.id.split('_')[2]);
