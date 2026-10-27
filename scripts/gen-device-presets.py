@@ -392,3 +392,89 @@ write("korg-volca-sample2", "Single ch", VS, None, "For the single channel mode 
     + [page("Parts 5–8")] + [c for i in range(4, 8) for c in vs_part(i)]
     + [page("Parts 9–10")] + [c for i in range(8, 10) for c in vs_part(i)] + [cc7("Reverb mix", 91, 2)],
     {**{f"p{i + 1}": f"Part {i + 1}" for i in range(10)}, 2: "Reverb"})
+
+MKXL, MKXLP = "KORG microKORG XL", "microKORG XL"
+MKXL_NOTE = ("Needs MIDI FLT > CTRL CHG = ENABLE. CC numbers are the factory CC MAP (GLOBAL > CC MAP can change them). "
+             "CCs act on the timbre of their channel: timbre 1 on the global channel, timbre 2 on T2MIDI.CH in MULTI mode. "
+             "NRPNs (arp, voice mode, vocoder, virtual patch) go to the global channel and use only the Data Entry MSB. "
+             "Values from the German manual's MIDI chapter, untested.")
+
+def ranges(items):
+    """128 value names from (name, highest value) pairs, for range-coded NRPNs"""
+    names = []
+    for n, hi in items:
+        names += [n] * (hi + 1 - len(names))
+    assert len(names) == 128, items
+    return names
+
+def bi(label, cc, group=0):
+    return base(label, 1, group, number=cc, val=64)
+
+def xl_nrpn(label, msb, lsb, items, group=0):
+    return nrpn(label, msb, lsb, 0, 127, group, names=ranges(items))
+
+# OSC2 semitone −24…+24: highest CC value of each step (manual p. 92)
+XL_SEMI_HI = [2, 5, 7, 10, 13, 15, 18, 20, 23, 26, 28, 31, 33, 36, 39, 41, 44, 47, 49, 52, 54, 57, 60, 62, 65,
+              67, 70, 73, 75, 78, 80, 83, 86, 88, 91, 94, 96, 99, 101, 104, 107, 109, 112, 114, 117, 120, 122, 125, 127]
+XL_SEMI = [mid(([-1] + XL_SEMI_HI)[i] + 1, hi) for i, hi in enumerate(XL_SEMI_HI)]
+XL_LFO1 = spread(["Saw", "Square", "Triangle", "S&H", "Random"])
+XL_LFO2 = spread(["Saw", "Square+", "Sine", "S&H", "Random"])
+XL_SOURCES = [("EG1", 10), ("EG2", 20), ("EG3", 31), ("LFO1", 42), ("LFO2", 52), ("Velocity", 63), ("Pitch bend", 74),
+              ("Mod wheel", 84), ("Key track", 95), ("MIDI1", 106), ("MIDI2", 116), ("MIDI3", 127)]
+XL_DESTS = [("Pitch", 2), ("OSC2 tune", 5), ("OSC1 C1", 9), ("OSC1 level", 12), ("OSC2 level", 15), ("Noise level", 18),
+            ("F1 type bal", 21), ("Cutoff 1", 25), ("Reso 1", 28), ("Cutoff 2", 31), ("WS depth", 34), ("Amp level", 37),
+            ("Pan", 41), ("LFO1 freq", 44), ("LFO2 freq", 47), ("Portamento", 50), ("OSC1 C2", 53), ("F1 EG1 int", 57),
+            ("F1 key track", 60), ("Reso 2", 63), ("F2 EG1 int", 66), ("F2 key track", 69), ("EG1 attack", 73),
+            ("EG1 decay", 76), ("EG1 sustain", 79), ("EG1 release", 82), ("EG2 attack", 85), ("EG2 decay", 89),
+            ("EG2 sustain", 92), ("EG2 release", 95), ("EG3 attack", 98), ("EG3 decay", 101), ("EG3 sustain", 105),
+            ("EG3 release", 108), ("Patch 1 int", 111), ("Patch 2 int", 114), ("Patch 3 int", 117), ("Patch 4 int", 121),
+            ("Patch 5 int", 124), ("Patch 6 int", 127)]
+
+write("korg-microkorg-xl-osc", "Osc/Mixer", MKXL, MKXLP, MKXL_NOTE + " OSC1 C1/C2 act on the parameters the WAVE / OSC MOD combination selects (manual p. 37).", [
+    selector("OSC1 wave", 8, spread(["Saw", "Pulse", "Triangle", "Sine", "Formant", "Noise", "PCM/DWGS", "Audio in"]), 1),
+    buttons("OSC1 mod", 9, spread(["Wave", "Cros", "Unis", "VPM"]), 1), cc7("OSC1 C1", 15, 1), cc7("OSC1 C2", 17, 1),
+    buttons("Unison", 3, spread(["Off", "2", "3", "4"]), 1),
+    buttons("OSC2 wave", 18, spread(["Saw", "Puls", "Tri", "Sine"]), 2), buttons("OSC2 mod", 19, spread(["Off", "Ring", "Sync", "R+S"]), 2),
+    cc7("Semitone", 20, 2, 64, XL_SEMI, [f"{i - 24:+d}" if i != 24 else "0" for i in range(49)]),
+    bi("Tune", 21, 2),
+    cc7("OSC1 level", 23, 3, 127), cc7("OSC2 level", 24, 3), cc7("Noise level", 25, 3), cc7("Portamento", 5, 3),
+], {1: "Oscillator 1", 2: "Oscillator 2", 3: "Mixer"})
+
+write("korg-microkorg-xl-filter", "Filter/Amp", MKXL, MKXLP, MKXL_NOTE + " Filter 1 type morphs: 0 LPF24, 32 LPF12, 64 HPF, 96 BPF, 127 Thru. "
+      "Key track is centred (0–127 = −2…+2). Filter 2 has no effect with routing Single.", [
+    cc7("Cutoff", 74, 1, 127), cc7("Resonance", 71, 1), cc7("Type bal", 27, 1),
+    buttons("Routing", 26, spread(["Sngl", "Ser", "Par", "Indv"]), 1), bi("EG1 int", 79, 1), bi("Key track", 28, 1),
+    cc7("Cutoff", 30, 2, 127), cc7("Resonance", 68, 2), buttons("Type", 29, [("LPF", 21), ("HPF", 63), ("BPF", 106)], 2),
+    bi("EG1 int", 69, 2), bi("Key track", 82, 2),
+    cc7("Level", 7, 3, 127), bi("Pan", 10, 3), cc7("WS depth", 83, 3),
+], {1: "Filter 1", 2: "Filter 2", 3: "Amp"})
+
+write("korg-microkorg-xl-eg-lfo", "EG/LFO", MKXL, MKXLP, MKXL_NOTE + " With BPM SYNC on, LFO freq selects a note value (8/1 … 1/64). EG3 has no CC.", [
+    cc7("Attack", 85, 1), cc7("Decay", 86, 1, 64), cc7("Sustain", 87, 1, 64), cc7("Release", 88, 1),
+    cc7("Attack", 73, 2), cc7("Decay", 75, 2, 64), cc7("Sustain", 70, 2, 127), cc7("Release", 72, 2),
+    selector("LFO1 wave", 89, XL_LFO1, 3, XL_LFO1[2][1]), cc7("LFO1 freq", 90, 3, 64),
+    selector("LFO2 wave", 102, XL_LFO2, 4, XL_LFO2[2][1]), cc7("LFO2 freq", 76, 4, 64),
+], {1: "EG1 (filter)", 2: ("EG2 (amp)", False), 3: "LFO 1", 4: ("LFO 2", False)})
+
+write("korg-microkorg-xl-patch", "Virtual patch", MKXL, MKXLP, MKXL_NOTE + " Source and destination are NRPN (MSB 4, LSB 0–5 and 8–13), intensity is a centred CC.",
+    [dict(c, sec=i) for i in range(6) for c in [
+        xl_nrpn("Source", 4, i, XL_SOURCES, i % 2 + 1), xl_nrpn("Dest", 4, 8 + i, XL_DESTS, i % 2 + 1), bi("Intensity", 103 + i, i % 2 + 1)]],
+    {i: (f"Patch {i + 1}", i % 2 == 0) for i in range(6)})
+
+write("korg-microkorg-xl-fx-arp", "FX/Arp", MKXL, MKXLP, MKXL_NOTE + " FX CTRL-1/2 control the parameters assigned on the MST FX pages. "
+      "EQ gain is centred (±15 dB). The arp gate maps 0–127 to 0–100 %. Vocoder switch: the chart prints LSB 04(00), 4 is used here.", [
+    bi("Lo EQ", 110, 1), bi("Hi EQ", 109, 1),
+    cc7("FX1 dry/wet", 115, 2), cc7("FX1 ctrl 1", 12, 2), cc7("FX1 ctrl 2", 112, 2),
+    cc7("FX2 dry/wet", 116, 3), cc7("FX2 ctrl 1", 13, 3), cc7("FX2 ctrl 2", 113, 3),
+    xl_nrpn("Arp", 0, 2, [("Off", 63), ("On", 127)], 4), xl_nrpn("Latch", 0, 4, [("Off", 63), ("On", 127)], 4),
+    xl_nrpn("Arp type", 0, 7, [("Up", 21), ("Down", 42), ("Alt1", 63), ("Alt2", 85), ("Random", 106), ("Trigger", 127)], 4),
+    nrpn("Arp gate", 0, 10, 0, 127, 4), xl_nrpn("Arp timbre", 0, 11, [("Timbre 1", 42), ("Timbre 2", 85), ("Timbre 1+2", 127)], 4),
+    xl_nrpn("Voice mode", 5, 0, [("Single", 31), ("Layer", 63), ("Split", 95), ("Multi", 127)], 5),
+    xl_nrpn("Vocoder", 5, 4, [("Off", 63), ("On", 127)], 5),
+], {1: "EQ", 2: ("FX 1", False), 3: "FX 2", 4: "Arpeggiator", 5: "Program"})
+
+write("korg-microkorg-xl-vocoder", "Vocoder bands", MKXL, MKXLP, MKXL_NOTE + " Level and pan of the 16 vocoder bands, NRPN MSB 4, LSB 64–79 and 80–95 (pan centred). "
+      "The other vocoder parameters have no CC until one is assigned in CC MAP.",
+    [nrpn(f"Level {i + 1}", 4, 64 + i, 0, 127, 1, val=16383) for i in range(16)]
+    + [nrpn(f"Pan {i + 1}", 4, 80 + i, 0, 127, 2, val=8192, bipolar=True) for i in range(16)],
+    {1: "Band level", 2: "Band pan"})
