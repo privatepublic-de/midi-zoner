@@ -225,6 +225,15 @@ html {
   scroll-behavior: smooth;
 }
 
+/* room for the scrollbar is always kept, so content doesn't jump when it appears */
+html,
+#inputPortWindow,
+.preset-manager-list,
+.cce-table,
+.cce-inspector {
+  scrollbar-gutter: stable;
+}
+
 body {
   font-family: 'Pontano Sans', Verdana, sans-serif;
   background: var(--bg-window);
