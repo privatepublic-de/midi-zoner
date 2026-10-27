@@ -1600,7 +1600,9 @@ function initStepDeselection(): void {
     (ev) => {
       const target = ev.target as Element;
       if (target.closest('#contextmenu, #pianoRollOverlay, #ccEditor')) return;
-      clearSelections(target);
+      // The +/− buttons of number fields float outside the zone: count them as their field
+      const field = target.closest('.valuebtn') ? numberInputController.elValueBtnAttachedInput : null;
+      clearSelections(field ?? target);
     },
     true
   );
