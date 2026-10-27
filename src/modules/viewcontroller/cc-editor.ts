@@ -258,6 +258,9 @@ function renderRows(zone: ZoneType): void {
   overlay.querySelectorAll<HTMLButtonElement>('[data-needs-selection]').forEach((b) => {
     b.disabled = !zone.cc_controllers[zone.selectedCCIndex];
   });
+  overlay.querySelectorAll<HTMLButtonElement>('[data-needs-controllers]').forEach((b) => {
+    b.disabled = zone.cc_controllers.length === 0;
+  });
 }
 
 function div(className: string): HTMLElement {

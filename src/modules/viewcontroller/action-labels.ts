@@ -65,6 +65,7 @@ const ACTION_LABEL_OVERRIDES: Record<string, string | OverrideFn> = {
 
   cc_add: 'Add CC Controller',
   cc_remove: 'Remove CC Controller',
+  cc_remove_all: 'Delete All CC Controllers',
   cc_button_trig: 'Trigger CC Button',
   cc_group_set: 'CC Colour',
   cc_step: 'CC Selector Step',

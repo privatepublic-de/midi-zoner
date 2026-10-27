@@ -2,6 +2,7 @@ import { ActionContext, ActionHelpers, ActionMap } from '../types';
 import { ipcRenderer } from 'electron';
 import { CCController, CCControllerType, isHiResCC, isLayoutEntry } from '../../zone/interfaces';
 import { escapeHTML } from '../../domutils';
+import { labelForZone } from '../action-labels';
 import {
   controllersFromPreset,
   findDevicePreset,
@@ -20,7 +21,7 @@ export function createCCActions(
 ): ActionMap {
   const {
     zone, zoneindex, element, actionParam1, actionParam2, ev,
-    zones, triggerSave,
+    zones, triggerSave, pushHistory,
     updateValuesForZone, updateControllerValues, toast
   } = ctx;
 
@@ -512,6 +513,27 @@ export function createCCActions(
           ? `Deleted section "${escapeHTML(current.label || 'row break')}": its controllers joined the one before (undo brings it back)`
           : `Deleted "${escapeHTML(current.label || 'controller')}" (undo brings it back)`
       );
+    },
+    cc_remove_all: async () => {
+      // Start anew: no controllers, no linked preset
+      if (zone.cc_controllers.length === 0) return;
+      const snapshot = JSON.stringify(zones);
+      const confirmed: boolean = await ipcRenderer.invoke(
+        'open-confirm',
+        'Delete all controllers',
+        `Do you really want to delete all ${zone.cc_controllers.length} controllers of zone #${zoneindex + 1}?`
+      );
+      if (!confirmed) return;
+      pushHistory(snapshot, labelForZone(zone, zoneindex, 'Delete All CC Controllers'));
+      zone.cc_controllers = [];
+      zone.devicePreset = null;
+      zone.ccPage = 0;
+      zone.selectedCCIndex = -1;
+      zone.midiLearnCC = false;
+      renderControllersForZone(zone, zoneindex);
+      updateControllerValues(zone, zoneindex);
+      triggerSave();
+      toast('Deleted all controllers (undo brings them back)');
     },
     cc_change_type: () => {
       const c = zone.cc_controllers[zone.selectedCCIndex];
