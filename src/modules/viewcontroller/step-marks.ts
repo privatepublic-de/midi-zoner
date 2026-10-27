@@ -4,10 +4,14 @@ import { SeqStep } from '../zone/seq-step';
 /**
  * Puts a step's properties on a step cell or piano roll note for the CSS to draw:
  * `--velo` velocity, `data-chance` chance < 100%, `data-cond` a play condition,
- * `--rc` / `--rc-pitch` ratchet ticks. Sets a tooltip listing them.
+ * `--rc` / `--rc-pitch` ratchet ticks, `data-locks` parameter locks (`only` without
+ * notes). Sets a tooltip listing them.
  */
 export function showStepProperties(el: HTMLElement, step: SeqStep | null): void {
   const notes = step?.notesArray ?? [];
+  const locks = step?.locks.length ?? 0;
+  if (locks > 0) el.dataset.locks = notes.length === 0 ? 'only' : '';
+  else delete el.dataset.locks;
   if (!step || notes.length === 0) {
     el.style.removeProperty('--velo');
     el.style.removeProperty('--rc');
@@ -15,7 +19,8 @@ export function showStepProperties(el: HTMLElement, step: SeqStep | null): void 
     delete el.dataset.chance;
     delete el.dataset.cond;
     delete el.dataset.rc;
-    el.removeAttribute('title');
+    if (locks > 0) el.title = lockDetail(step!);
+    else el.removeAttribute('title');
     return;
   }
   const velo = notes.reduce((sum, n) => sum + n.velo, 0) / notes.length;
@@ -53,5 +58,11 @@ export function stepDetails(step: SeqStep): string[] {
   if (step.condition > 0) details.push('has a play condition');
   if ((step.ratchetCount ?? 1) > 1) details.push(`ratchet ×${step.ratchetCount}`);
   if (step.length > 1) details.push(`length ${step.length}`);
+  if (step.locks.length > 0) details.push(lockDetail(step));
   return details;
+}
+
+function lockDetail(step: SeqStep): string {
+  const n = step.locks.length;
+  return `${n} parameter lock${n > 1 ? 's' : ''}${step.slide ? ' (slide)' : ''}`;
 }

@@ -362,6 +362,17 @@
           <output for="seq_step_ratchet_delta${index}">0%</output>
         </div>
       </div>
+      <div class="step-controls step-locks">
+        <div class="label">Locks</div>
+        <div class="lock-list"></div>
+        <div
+          class="check seq-step-slide"
+          data-action="${index}:seq_step_slide"
+          title="Locked values glide there over the step instead of jumping"
+        >
+          ${checkboxIcons}Slide
+        </div>
+      </div>
       <div class="step-controls">
         <div
           class="action"

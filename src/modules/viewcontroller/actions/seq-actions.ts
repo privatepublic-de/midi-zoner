@@ -2,6 +2,7 @@ import { Zone } from '../../zone/zone-class';
 import { Sequence } from '../../zone/sequence';
 import { SeqStep } from '../../zone/seq-step';
 import { DrumLane } from '../../zone/drum-lane';
+import { SeqStepJSON } from '../../zone/interfaces';
 import { ActionContext, ActionHelpers, ActionMap } from '../types';
 import { openPianoRoll } from '../piano-roll';
 
@@ -124,7 +125,8 @@ export function createSeqActions(
     seq_drumstep_select: () => {
       if (ev.shiftKey) {
         actions.seq_clear_step();
-      } else {
+      } else if (!ev.altKey) {
+        // ⌥-click only selects: for parameter locks on a step without a hit
         sequence.turnOnDrumStep(
           ...Sequence.getLaneAndStepIndexForDrumStepId(parseInt(actionParam1))
         );
@@ -200,9 +202,7 @@ export function createSeqActions(
       for (let i = 0; i < lane.length; i++) {
         const srcStep = src.steps[i % src.length];
         if (srcStep) {
-          const copied = JSON.parse(JSON.stringify(srcStep));
-          copied.lastPlayedArray = [];
-          lane.steps[i] = copied;
+          lane.steps[i] = SeqStep.from(JSON.parse(JSON.stringify(srcStep)));
         } else {
           lane.steps[i] = null;
         }
@@ -269,7 +269,7 @@ export function createSeqActions(
               const newLen = Math.min(Sequence.MAX_STEPS_DRUMS, laneLen * multiplier);
               const copy: (SeqStep | null)[] = [];
               for (let i = 0; i < laneLen; i++) {
-                copy[i] = lane.steps[i] ? JSON.parse(JSON.stringify(lane.steps[i])) : null;
+                copy[i] = lane.steps[i] ? SeqStep.from(JSON.parse(JSON.stringify(lane.steps[i]))) : null;
               }
               if (adjustment === 'double') {
                 for (let i = 0; i < laneLen && laneLen + i < newLen; i++) {
@@ -318,7 +318,9 @@ export function createSeqActions(
         for (let i = 0; i < srcLength; i++) {
           steps[i] = seq.steps[i];
         }
-        const stepsCopy = JSON.parse(JSON.stringify(steps));
+        const stepsCopy = (JSON.parse(JSON.stringify(steps)) as (SeqStepJSON | null)[]).map((st) =>
+          st ? SeqStep.from(st) : null
+        );
         switch (adjustment) {
           case 'double':
             seq.length = seq.length * 2;
@@ -424,7 +426,7 @@ export function createSeqActions(
               const span = lastPos - firstPos + 1;
               const hitSteps = sortedSelected
                 .map(i => seq.steps[i])
-                .filter((s): s is SeqStep => s != null && s.notesArray.length > 0);
+                .filter((s): s is SeqStep => s != null && !s.isBlank());
               if (hitSteps.length > 0) {
                 const positions = euclidPositions(hitSteps.length, span);
                 for (let i = firstPos; i <= lastPos; i++) seq.steps[i] = null;
@@ -437,7 +439,7 @@ export function createSeqActions(
             } else {
               const hitSteps: SeqStep[] = [];
               for (let i = 0; i < srcLength; i++) {
-                if (seq.steps[i] != null && seq.steps[i]!.notesArray.length > 0) {
+                if (seq.steps[i] != null && !seq.steps[i]!.isBlank()) {
                   hitSteps.push(seq.steps[i]!);
                 }
               }
@@ -477,6 +479,23 @@ export function createSeqActions(
         sequence.clearSelection();
         updateValuesForZone(zoneindex);
       }
+    },
+    seq_clear_locks: () => {
+      // The step pressed, or the whole selection when it is part of it
+      const stepno = parseInt(actionParam1);
+      sequence.clearLocks(sequence.selectedStepNumbers.has(stepno) ? [...sequence.selectedStepNumbers] : [stepno]);
+      updateValuesForZone(zoneindex);
+      toast('Parameter locks cleared');
+    },
+    seq_lock_remove: () => {
+      // The address comes with dots: colons separate the action's parameters
+      sequence.removeLockFromSelected(actionParam1.replace(/\./g, ':'));
+      updateValuesForZone(zoneindex);
+    },
+    seq_step_slide: () => {
+      const slide = !sequence.selectedSteps.some((st) => st?.slide);
+      sequence.setSlideOnSelected(slide);
+      updateValuesForZone(zoneindex);
     },
     seq_clear_selected_step: () => {
       if (sequence.selectedStepNumbers.size > 0) {
@@ -774,6 +793,7 @@ export function createSeqActions(
           sequence.division = copyData.division;
         } else if (!copyData.isDrumSequence && !sequence.isDrumSequence) {
           Object.assign(sequence, copyData);
+          sequence.steps = (copyData.steps || []).map((st: SeqStepJSON | null) => (st ? SeqStep.from(st) : null));
         } else {
           toast('Can\'t paste: clipboard holds a different sequence type');
           return;

@@ -20,10 +20,12 @@ import {
 } from './actions';
 import { initCCEditor, refreshCCEditor } from './cc-editor';
 import { initPianoRoll } from './piano-roll';
+import { renderStepLocks } from './step-locks';
 import { describeAction, labelForZone, zonePrefix, ARRANGEMENT_LETTERS } from './action-labels';
 import {
   updateControllerValues,
   setMenuHandler,
+  onLockEdited,
   renderControllersForZone as renderControllersForZoneInternal
 } from './cc-controller-view';
 import {
@@ -70,6 +72,7 @@ const contextMenuActionLabel: Record<string, string> = {
   seq_copy_step: '<i class="material-icons">content_copy</i> Copy ',
   seq_paste_step: '<i class="material-icons">content_paste</i> Paste steps',
   seq_clear_step: '<i class="material-icons">clear</i> Clear step',
+  seq_clear_locks: '<i class="material-icons">lock_open</i> Clear parameter locks',
   seq_clear_all:
     '<i class="material-icons">playlist_remove</i> Clear complete sequence',
   seq_copy: '<i class="material-icons">content_copy</i> Copy sequence',
@@ -146,6 +149,16 @@ function initController({
     showPage: showControllerPage
   });
   initStepDeselection();
+  // A knob writing parameter locks: the steps' marks and the step editor follow, once per frame
+  let lockRedrawPending = false;
+  onLockEdited((_zone, zoneindex) => {
+    if (lockRedrawPending) return;
+    lockRedrawPending = true;
+    requestAnimationFrame(() => {
+      lockRedrawPending = false;
+      updateValuesForZone(zoneindex);
+    });
+  });
   numberInputController = new NumberInputController();
   numberInputController.onAttach = () =>
     undoHistory.startGesture(
@@ -415,6 +428,11 @@ function contextHandler(ev: MouseEvent): void {
     switch (parts[1]) {
       case 'seq_copy_step':
         return zone.sequence.isStepUsed(parseInt(parts[2]));
+      case 'seq_clear_locks': {
+        const stepno = parseInt(parts[2]);
+        const steps = zone.sequence.selectedStepNumbers.has(stepno) ? [...zone.sequence.selectedStepNumbers] : [stepno];
+        return steps.some((n) => zone.sequence.stepAt(n)?.hasLocks());
+      }
       case 'seq_paste_step':
         return Zone.seqClipboardStep != null;
       case 'seq_paste':
@@ -1188,13 +1206,9 @@ function updateValuesForZone(index: number): void {
             ) {
               DOM.removeClass(stepElement, 'unused');
               const step = lane.steps[stepIndex];
-              if (step != null) {
-                DOM.addClass(stepElement, 'active');
-                showStepProperties(stepElement as HTMLElement, step);
-              } else {
-                DOM.removeClass(stepElement, 'active');
-                showStepProperties(stepElement as HTMLElement, null);
-              }
+              // A step with locks only is no hit: it shows its lock mark
+              DOM.switchClass(stepElement, step != null && step.notesArray.length > 0, 'active');
+              showStepProperties(stepElement as HTMLElement, step ?? null);
               if (
                 sequence.selectedStepNumbers.has(
                   Sequence.getIdForDrumStep(laneIndex, stepIndex)
@@ -1227,15 +1241,14 @@ function updateValuesForZone(index: number): void {
             }
             const stepData = sequence.steps[i];
             if (
-              (stepData && stepData.length > 0) ||
+              (stepData && stepData.length > 0 && stepData.notesArray.length > 0) ||
               sequence.liveTargetStepNumber == i
             ) {
               DOM.addClass(stepElement, 'active');
-              showStepProperties(stepElement as HTMLElement, stepData ?? null);
             } else {
               DOM.removeClass(stepElement, 'active');
-              showStepProperties(stepElement as HTMLElement, null);
             }
+            showStepProperties(stepElement as HTMLElement, stepData ?? null);
           } else {
             DOM.addClass(stepElement, 'unused');
           }
@@ -1341,6 +1354,7 @@ function updateValuesForZone(index: number): void {
           }
         });
         sequence.updateRecordingState();
+        renderStepLocks(zone, index, actionHandler as (ev: Event, overrideaction?: string) => void);
       } else {
         DOM.removeClass(
           zone.elements.sequencerElement!,
@@ -1562,14 +1576,16 @@ function updateZoneHeaderContextMenus(currentArrIndex: number): void {
 
 /**
  * A step selection lasts while you work in that zone's sequencer panel (grid,
- * toolbar, step editor). A press anywhere else, or Escape, ends it. The context
- * menu and the piano roll act on the selection, so presses there keep it.
+ * toolbar, step editor) or its controllers (they set the steps' parameter locks).
+ * A press anywhere else, or Escape, ends it. The context menu and the piano roll
+ * act on the selection, so presses there keep it.
  */
 function initStepDeselection(): void {
   const clearSelections = (keepInside: Element | null): void => {
     zones.list.forEach((zone, i) => {
       if (!zone.sequence.hasSelection) return;
       if (keepInside && zone.elements.sequencerElement?.contains(keepInside)) return;
+      if (keepInside?.closest('.ccpots') && zone.elements.zoneElement?.contains(keepInside)) return;
       zone.sequence.clearSelection();
       updateValuesForZone(i);
     });

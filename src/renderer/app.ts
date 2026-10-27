@@ -7,8 +7,9 @@ import MIDI, { PortDescriptor, MIDIMessage } from '../modules/midi';
 import * as view from '../modules/viewcontroller';
 import { ZonesData } from '../modules/viewcontroller/types';
 import { ipcRenderer, webFrame } from 'electron';
-import { ZoneArrangementJSON } from '../modules/zone/interfaces';
+import { ZoneArrangementJSON, isLayoutEntry } from '../modules/zone/interfaces';
 import { UndoHistory } from '../modules/undo-history';
+import { labelForZone } from '../modules/viewcontroller/action-labels';
 import { loadDevicePresets } from '../modules/device-presets';
 
 // Type aliases for class types
@@ -50,6 +51,7 @@ const saveZones = debounce(() => {
 }, 500);
 
 const undoHistory = new UndoHistory();
+let hardwareLockTimer: ReturnType<typeof setTimeout> | null = null;
 
 const channelOptions = (function (): string {
   var result = '';
@@ -887,8 +889,27 @@ document.addEventListener('DOMContentLoaded', function () {
           const portDef = midi.selectedInputPorts[sourcePortId];
           if (!portDef?.isSelected || portDef.ch !== sourceChannel) return;
         }
+        if (
+          msgtype === MIDI.MESSAGE.CONTROLLER &&
+          zone.sequence.hasSelection &&
+          zone.cc_controllers.some((c) => c.number_in == data[1] && !isLayoutEntry(c.type))
+        ) {
+          // Hardware knobs may write parameter locks: one undo entry per burst of turning
+          if (hardwareLockTimer === null) {
+            undoHistory.startGesture(JSON.stringify(zones), labelForZone(zone, index, 'Parameter Lock'));
+          } else {
+            clearTimeout(hardwareLockTimer);
+          }
+          hardwareLockTimer = setTimeout(() => {
+            hardwareLockTimer = null;
+            undoHistory.endGesture(JSON.stringify(zones));
+          }, 700);
+        }
         const resultMessage = zone.handleMidi(msgtype, data);
-        if (resultMessage && /^(updateCC|midiLearn)/.test(resultMessage)) {
+        if (resultMessage == 'lockCC') {
+          requestAnimationFrame(() => view.updateValuesForZone(index));
+          saveZones();
+        } else if (resultMessage && /^(updateCC|midiLearn)/.test(resultMessage)) {
           const colonPos = resultMessage.indexOf(':');
           const isLearn = resultMessage.startsWith('midiLearn');
           // A learned mapping changes the editor's list too, not just one knob

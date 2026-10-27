@@ -20,6 +20,16 @@ import {
 } from './interfaces';
 import { NoteDisplay } from './note-display';
 import { DIV_TICKS, DivTick, PPQ, swingOffsetMs } from './seq-layer';
+import {
+  ParamLocks,
+  controllerAddress,
+  hiResValue,
+  knobValueFor,
+  nrpnValue,
+  remapCCValue,
+  snappedKnobValue,
+  transmittedValue
+} from './param-locks';
 
 // All MIDI notes 0-127 sorted white-first so black keys are drawn on top
 const ALL_NOTES_WHITE_FIRST = Array.from({ length: 128 }, (_, i) => i).sort(
@@ -184,6 +194,8 @@ export class Zone {
     timer: ReturnType<typeof setTimeout>;
   }[] = [];
   private _lastTickIntervalMs = (60 / 120 / PPQ) * 1000;
+  // When the last ring-out note-off is due (performance.now() time)
+  private _ringOutUntil = 0;
   // Clock position and time of the last processed tick, used to time ring-outs on stop
   private _lastPos = 0;
   private _lastTickAt = 0;
@@ -213,6 +225,8 @@ export class Zone {
   rngArpOct: BagShuffle;
   rngProb: () => number;
   sequence: Sequence;
+  /** Plays the sequencer's parameter locks; kept across arrangement switches */
+  readonly paramLocks = new ParamLocks(this);
   arrangements: ZoneArrangementJSON[] = [];
   currentArrangementIndex = 0;
   lastTouchedRangePoint = 0;
@@ -356,6 +370,60 @@ export class Zone {
       lane ? DrumLane.from(lane, seq._length) : lane
     );
     this.sequence = seq;
+    // Switched while playing: the new arrangement's locks start from the controllers' values
+    if (this.midi.isClockRunning && seq.active) this.paramLocks.start(seq.lockedAddresses());
+  }
+
+  /** The sequencer was switched on or off */
+  sequenceActiveChanged(seq: Sequence, active: boolean): void {
+    // Ignores sequences being built (arrangement load) and changes while stopped
+    if (seq !== this.sequence || !this.midi.isClockRunning) return;
+    if (active) this.paramLocks.start(seq.lockedAddresses());
+    else this.paramLocks.stop(seq.lockedAddresses());
+  }
+
+  /** The step selection ended: while stopped, auditioned locks give way to the controllers' values */
+  lockEditEnded(): void {
+    if (!this.midi.isClockRunning) this.paramLocks.stop(this.sequence.lockedAddresses());
+  }
+
+  /**
+   * Starts editing a controller. With sequencer steps selected, `ctrl` is a copy showing
+   * their lock and `commit()` writes its value as a lock on them (and auditions it);
+   * otherwise `ctrl` is the controller itself and `commit()` sends it. Returns the
+   * controllers that followed (same address).
+   */
+  beginControllerEdit(ix: number): { ctrl: CCController; commit: () => number[] } {
+    const real = this.cc_controllers[ix];
+    const address = controllerAddress(real);
+    if (!this.sequence.hasSelection || !address) return { ctrl: real, commit: () => this.sendCC(ix) };
+    const view = this.lockedView(real);
+    // Unlocked: start from the controller's own value
+    const copy = view.locked ? view.ctrl : { ...real };
+    return {
+      ctrl: copy,
+      commit: () => {
+        const value = transmittedValue(copy);
+        this.sequence.setLockOnSelected(address, value);
+        this.paramLocks.audition(real, value);
+        return [];
+      }
+    };
+  }
+
+  /**
+   * A controller as its knob shows it: with steps selected, their lock on it (`mixed`
+   * when they differ, the first is shown); otherwise the controller itself.
+   */
+  lockedView(c: CCController): { ctrl: CCController; locked: boolean; mixed: boolean } {
+    const address = controllerAddress(c);
+    const values = address && this.sequence.hasSelection ? this.sequence.selectedLockValues(address) : [];
+    if (values.length === 0) return { ctrl: c, locked: false, mixed: false };
+    return {
+      ctrl: { ...c, val: knobValueFor(c, values[0]) },
+      locked: true,
+      mixed: values.some((v) => v !== values[0])
+    };
   }
 
   saveArrangement(index: number): void {
@@ -671,23 +739,28 @@ export class Zone {
           }
           let firstMatchedCC = -1;
           let matchCount = 0;
+          let lockEdited = false;
           for (let i = 0; i < this.cc_controllers.length; i++) {
             const ctrl = this.cc_controllers[i];
             if (ctrl.number_in == data[1] && !isLayoutEntry(ctrl.type)) {
+              // With sequencer steps selected the knob sets their lock instead
+              const edit = this.beginControllerEdit(i);
+              if (edit.ctrl !== ctrl) lockEdited = true;
               if (isHiResCC(ctrl.type)) {
-                ctrl.val = Math.round((data[2] * 16383) / 127);
+                edit.ctrl.val = Math.round((data[2] * 16383) / 127);
               } else if (ctrl.type == CCControllerType.SELECTOR) {
                 // A hardware knob sweeps the entries evenly
                 const entries = ctrl.discreteValues ?? [];
-                if (entries.length > 0) ctrl.val = entries[Math.round((data[2] * (entries.length - 1)) / 127)];
+                if (entries.length > 0) edit.ctrl.val = entries[Math.round((data[2] * (entries.length - 1)) / 127)];
               } else {
-                this.snap2DiscreteValue(data[2], i);
+                this.snap2DiscreteValue(data[2], i, edit.ctrl);
               }
-              if (this.sendCC(i).length > 0) matchCount++; // others changed too: redraw all
+              if (edit.commit().length > 0) matchCount++; // others changed too: redraw all
               if (firstMatchedCC === -1) firstMatchedCC = i;
               matchCount++;
             }
           }
+          if (lockEdited) return 'lockCC'; // the steps' marks and inspector change too
           if (matchCount > 0) {
             return matchCount === 1 ? `updateCC:${firstMatchedCC}` : 'updateCC';
           }
@@ -1073,6 +1146,8 @@ export class Zone {
   clock(pos: number, tickIntervalMs: number): void {
     this._lastPos = pos;
     this._lastTickAt = performance.now();
+    // Slides first: one ending on this tick reaches its value before a new step starts
+    this.paramLocks.tick(pos);
     this.sequence.clock(pos, tickIntervalMs);
     if (tickIntervalMs > 0) this._lastTickIntervalMs = tickIntervalMs;
 
@@ -1474,6 +1549,7 @@ export class Zone {
       release();
       return;
     }
+    this._ringOutUntil = Math.max(this._ringOutUntil, performance.now() + delayMs);
     const timer = setTimeout(() => {
       this.ringOuts.delete(noteNumber);
       release();
@@ -1502,6 +1578,10 @@ export class Zone {
    * and play the arp legato).
    */
   started(): void {
+    // A Continue after a clock dropout keeps the playhead and the locks it holds
+    if (this.sequence.active && this.sequence.currentStepNumber < 0) {
+      this.paramLocks.start(this.sequence.lockedAddresses());
+    }
     if (!this.arp_enabled || this.passedThrough.size === 0) return;
     this.passedThrough.forEach((n) => {
       this.sendOut(
@@ -1534,6 +1614,10 @@ export class Zone {
     }
     this.arp.repeatnote = null;
     this.sequence.stopped(ringOut);
+    // Controllers go back to their own values once ringing notes have ended (a little
+    // after the last note-off, whose timer is due at the same moment)
+    const ringingMs = ringOut && this.ringOuts.size > 0 ? Math.max(0, this._ringOutUntil - performance.now()) + 20 : 0;
+    this.paramLocks.stop(this.sequence.lockedAddresses(), ringingMs);
     // Released sequencer notes may have armed the strum grace timer, which would
     // cut the strum's ring-out early
     if (this._strumGraceTimer !== null) {
@@ -1600,10 +1684,12 @@ export class Zone {
     });
     this.passedThrough.clear();
     this.sequence.stopped();
+    this.paramLocks.stop(this.sequence.lockedAddresses());
   }
 
   panic(): void {
     // Global all-notes-off follows; just drop pending ring-outs
+    this.paramLocks.cancelPending();
     this.ringOuts.forEach((p) => clearTimeout(p.timer));
     this.ringOuts.clear();
     this.activeNotes = [];
@@ -1646,21 +1732,21 @@ export class Zone {
   /** Sends a controller's value; returns the other controllers that followed it (same address) */
   sendCC(index: number): number[] {
     const ctrl = this.cc_controllers[index];
-    if (ctrl.type == CCControllerType.SELECTOR) {
-      this.sendOut(
-        Uint8Array.from([MIDI.MESSAGE.CONTROLLER + this.channel, ctrl.number & 0x7f, Math.max(0, Math.min(127, ctrl.val))]),
-        this.outputPortId
-      );
-      return this.syncSameAddress(index);
-    }
+    this.sendTransmitted(ctrl, transmittedValue(ctrl));
+    return this.syncSameAddress(index);
+  }
+
+  /**
+   * Sends `value` (as transmittedValue() returns it) for a controller without changing
+   * the controller: its own value, a parameter lock or a step of a lock's slide.
+   */
+  sendTransmitted(ctrl: CCController, value: number): void {
+    const status = MIDI.MESSAGE.CONTROLLER + this.channel;
     if (ctrl.type == CCControllerType.NRPN) {
-      this.sendNRPN(ctrl);
-      return this.syncSameAddress(index);
-    }
-    if (isHiResCC(ctrl.type)) {
-      const status = MIDI.MESSAGE.CONTROLLER + this.channel;
+      this.sendNRPN(ctrl, Math.max(0, Math.min(16383, value)));
+    } else if (isHiResCC(ctrl.type)) {
       const lsbBits = ctrl.lsb_bits ?? 7;
-      const value = this.hiResValue(ctrl);
+      value = Math.max(0, Math.min((1 << (7 + lsbBits)) - 1, value));
       const lsb = Uint8Array.from([status, (ctrl.number_lsb || 0) & 0x7f, value & ((1 << lsbBits) - 1)]);
       const msb = Uint8Array.from([status, ctrl.number & 0x7f, (value >> lsbBits) & 0x7f]);
       if (ctrl.msb_first) {
@@ -1671,16 +1757,11 @@ export class Zone {
         this.sendOut(msb, this.outputPortId);
       }
     } else {
-      this.sendOut(
-        Uint8Array.from([
-          MIDI.MESSAGE.CONTROLLER + this.channel,
-          ctrl.number & 0x7f,
-          this.remapCCValue(ctrl.val, index)
-        ]),
-        this.outputPortId
-      );
+      value = Math.max(0, Math.min(127, value));
+      this.sendOut(Uint8Array.from([status, ctrl.number & 0x7f, value]), this.outputPortId);
     }
-    return this.syncSameAddress(index);
+    const address = controllerAddress(ctrl);
+    if (address) this.paramLocks.noteTransmitted(address, value);
   }
 
   /**
@@ -1695,16 +1776,14 @@ export class Zone {
       if (j == index) return;
       const before = c.val;
       if (isSevenBitCC(source.type) && isSevenBitCC(c.type) && c.number == source.number) {
-        this.setFromSentValue(j, sent);
+        c.val = knobValueFor(c, sent);
       } else if (
         source.type == CCControllerType.NRPN &&
         c.type == CCControllerType.NRPN &&
         (c.nrpn_msb || 0) == (source.nrpn_msb || 0) &&
         (c.nrpn_lsb || 0) == (source.nrpn_lsb || 0)
       ) {
-        const min = c.min || 0;
-        const max = c.max ?? 16383;
-        c.val = max > min ? Math.max(0, Math.min(16383, Math.round(((sent - min) * 16383) / (max - min)))) : 0;
+        c.val = knobValueFor(c, sent);
       } else if (
         (source.type == CCControllerType.UNIPOLAR_14BIT || source.type == CCControllerType.BIPOLAR_14BIT) &&
         (c.type == CCControllerType.UNIPOLAR_14BIT || c.type == CCControllerType.BIPOLAR_14BIT) &&
@@ -1718,34 +1797,18 @@ export class Zone {
     return changed;
   }
 
-  /** Sets a 7-bit controller so that it sends `value` (or comes as close as it can) */
-  private setFromSentValue(index: number, value: number): void {
-    const c = this.cc_controllers[index];
-    if (c.type == CCControllerType.BUTTON_BANK || c.type == CCControllerType.SELECTOR) {
-      c.val = value;
-      return;
-    }
-    const min = c.min || 0;
-    const max = c.max ?? 127;
-    const knob = max != min ? Math.round(((value - min) * 127) / (max - min)) : 0;
-    this.snap2DiscreteValue(Math.max(0, Math.min(127, knob)), index);
-  }
-
   /** 14-bit type value at its resolution: 0–16383, or 0–1023 at 10 bit */
   hiResValue(ctrl: CCController): number {
-    return ctrl.val >> (7 - (ctrl.lsb_bits ?? 7));
+    return hiResValue(ctrl);
   }
 
   /** NRPN value in device units: the knob's 0–16383 mapped onto min–max */
   nrpnValue(ctrl: CCController): number {
-    const min = ctrl.min || 0;
-    const max = ctrl.max ?? 16383;
-    return Math.round(min + (max - min) * (ctrl.val / 16383));
+    return nrpnValue(ctrl);
   }
 
-  private sendNRPN(ctrl: CCController): void {
+  private sendNRPN(ctrl: CCController, value: number): void {
     const status = MIDI.MESSAGE.CONTROLLER + this.channel;
-    const value = this.nrpnValue(ctrl);
     const lsbCC = ctrl.nrpn_data_lsb_cc;
     const lsbBits = lsbCC != null ? ctrl.nrpn_data_lsb_bits ?? 7 : 0;
     const send = (cc: number, v: number): void =>
@@ -1796,33 +1859,16 @@ export class Zone {
   }
 
   remapCCValue(valueIn: number, ccIndex: number): number {
-    const ctrl = this.cc_controllers[ccIndex];
-    const value = Math.floor(ctrl.min + (ctrl.max - ctrl.min) * (valueIn / 127.0));
-    return Math.max(0, Math.min(127, value));
+    return remapCCValue(this.cc_controllers[ccIndex], valueIn);
   }
 
   /** The value sendCC() transmits for a controller, to skip sends that wouldn't change it */
   ccOutputValue(index: number): number {
-    const ctrl = this.cc_controllers[index];
-    if (ctrl.type == CCControllerType.NRPN) return this.nrpnValue(ctrl);
-    if (isHiResCC(ctrl.type)) return this.hiResValue(ctrl);
-    if (ctrl.type == CCControllerType.SELECTOR) return ctrl.val;
-    return this.remapCCValue(ctrl.val, index);
+    return transmittedValue(this.cc_controllers[index]);
   }
 
-  snap2DiscreteValue(value: number, ccIndex: number): void {
-    const ctrl = this.cc_controllers[ccIndex];
-    if (
-      ctrl.type == CCControllerType.UNIPOLAR_ROTARY &&
-      ctrl.discreteValues != null &&
-      ctrl.discreteValues.length > 0
-    ) {
-      const closest = ctrl.discreteValues.reduce((prev, curr) => {
-        return Math.abs(curr - value) < Math.abs(prev - value) ? curr : prev;
-      });
-      ctrl.val = closest;
-    } else {
-      ctrl.val = value;
-    }
+  /** Sets a controller's value, snapped to its discreteValues; `target` edits a copy of it instead */
+  snap2DiscreteValue(value: number, ccIndex: number, target = this.cc_controllers[ccIndex]): void {
+    target.val = snappedKnobValue(target, value);
   }
 }

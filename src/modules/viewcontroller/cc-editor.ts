@@ -563,6 +563,11 @@ export function openCCEditor(index: number, ccIndex?: number): void {
   shownZone = undefined;
   valueRowsKey = '';
   if (ccIndex !== undefined && ccIndex >= 0 && ccIndex < zone.cc_controllers.length) zone.selectedCCIndex = ccIndex;
+  // The editor sets up the controllers themselves: selected steps would turn its knob into a lock
+  if (zone.sequence.hasSelection) {
+    zone.sequence.clearSelection();
+    zone.sequence.updateZoneView();
+  }
   overlay.dataset.colorindex = zone.elements.zoneElement?.dataset.colorindex ?? '0';
   $('.cce-preset-button').dataset.contextmenu = `ccpresets:${index}`;
   overlay.classList.add('open');

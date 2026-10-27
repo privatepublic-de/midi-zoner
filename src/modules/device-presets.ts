@@ -1,6 +1,7 @@
 import { ipcRenderer } from 'electron';
 import { CCController, CCControllerType, isHiResCC, isLayoutEntry } from './zone/interfaces';
 import { migrateSpacers } from './zone/cc-layout';
+import { controllerAddress } from './zone/param-locks';
 
 /**
  * Device presets: named CC/NRPN controller sets for a target device, stored as files by
@@ -223,10 +224,6 @@ export function differsFromPreset(controllers: CCController[], preset: DevicePre
   return definitions(controllers) !== definitions(preset.controllers);
 }
 
-function address(c: CCController): string {
-  return c.type == CCControllerType.NRPN ? `nrpn:${c.nrpn_msb || 0}:${c.nrpn_lsb || 0}` : `cc:${c.number}`;
-}
-
 /**
  * Controllers for a zone from a preset. Replacing keeps the zone's MIDI learn
  * (number_in) on controllers that address the same CC / NRPN.
@@ -239,14 +236,15 @@ export function controllersFromPreset(
   const learned = new Map<string, number>();
   if (!append) {
     for (const c of current) {
-      if (c.number_in != null && !isLayoutEntry(c.type)) {
-        learned.set(address(c), c.number_in);
+      const address = controllerAddress(c);
+      if (c.number_in != null && address) {
+        learned.set(address, c.number_in);
       }
     }
   }
   const copies = preset.controllers.map((c) => ({
     ...JSON.parse(JSON.stringify(c)),
-    number_in: learned.get(address(c)) ?? null
+    number_in: learned.get(controllerAddress(c) ?? '') ?? null
   }));
   return append ? [...current, ...copies] : copies;
 }

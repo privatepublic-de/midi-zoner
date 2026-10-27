@@ -3,6 +3,7 @@ import * as zoneTemplate from '../zone-template';
 import potDragHandler from '../potdraghandler';
 import { ZoneType } from './types';
 import { CCController, CCControllerType, isHiResCC } from '../zone/interfaces';
+import { transmittedValue } from '../zone/param-locks';
 import { labelForZone } from './action-labels';
 import { differsFromPreset, findDevicePreset } from '../device-presets';
 import { effectiveGroup, pageBlocks, pageName } from '../zone/cc-layout';
@@ -163,9 +164,18 @@ export function onControllersChanged(listener: ControllersChangedListener): void
   controllersChanged = listener;
 }
 
+type LockEditedListener = (zone: ZoneType, zoneindex: number) => void;
+let lockEdited: LockEditedListener | null = null;
+
+/** Called while a knob writes parameter locks on the selected steps (they redraw) */
+export function onLockEdited(listener: LockEditedListener): void {
+  lockEdited = listener;
+}
+
+
 /**
  * Drags a controller's value with the mouse: sends when the transmitted value changes,
- * one undo entry per drag.
+ * one undo entry per drag. With sequencer steps selected it drags their lock instead.
  */
 export function startControllerDrag(
   zone: ZoneType,
@@ -176,7 +186,9 @@ export function startControllerDrag(
   onGestureEnd: () => void,
   triggerSave: () => void
 ): void {
-  const ctrl = zone.cc_controllers[ix];
+  const edit = zone.beginControllerEdit(ix);
+  const ctrl = edit.ctrl;
+  const isLock = ctrl !== zone.cc_controllers[ix];
   const is14bit = isHiResCC(ctrl.type);
   // Selectors step through their entries: the drag runs over the list, not over values
   const entries = ctrl.type == CCControllerType.SELECTOR ? ctrl.discreteValues ?? [] : null;
@@ -184,14 +196,15 @@ export function startControllerDrag(
   const setFromDrag = (v: number): void => {
     if (entries) ctrl.val = entries[Math.round((v * (entries.length - 1)) / 16383)];
     else if (is14bit) ctrl.val = v;
-    else zone.snap2DiscreteValue(v >> 7, ix);
+    else zone.snap2DiscreteValue(v >> 7, ix, ctrl);
   };
   const startValue = entries
     ? Math.round((Math.max(0, entries.indexOf(ctrl.val)) * 16383) / (entries.length - 1))
     : is14bit
       ? ctrl.val
       : ctrl.val << 7;
-  onGestureStart(labelForZone(zone, zoneindex, ctrl.label || `CC ${ix + 1}`));
+  const label = ctrl.label || `CC ${ix + 1}`;
+  onGestureStart(labelForZone(zone, zoneindex, isLock ? `Lock ${label}` : label));
   // Keeps the value readout up while the mouse leaves the knob
   const pot = zone._$(`#pot_${zoneindex}_${ix}`) as HTMLElement | null;
   pot?.classList.add('dragging');
@@ -200,11 +213,13 @@ export function startControllerDrag(
     startValue,
     (v) => {
       const oldVal = ctrl.val;
-      const oldOutput = zone.ccOutputValue(ix);
+      const oldOutput = transmittedValue(ctrl);
       setFromDrag(v);
       if (ctrl.val !== oldVal) {
         // Narrow ranges map many knob positions onto one value: send only real changes
-        const synced = zone.ccOutputValue(ix) !== oldOutput ? zone.sendCC(ix) : [];
+        const synced = transmittedValue(ctrl) !== oldOutput ? edit.commit() : [];
+        // A new lock can turn an empty step into one with locks only
+        if (isLock) lockEdited?.(zone, zoneindex);
         updateControllerValues(zone, zoneindex, ix);
         synced.forEach((j) => updateControllerValues(zone, zoneindex, j));
       }
@@ -224,6 +239,9 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIn
     // Sections, pages and controllers on other pages have no pot (the latter show their
     // value when their page is drawn)
     if (!zone._$(potselector)) return;
+    // With sequencer steps selected the knob shows their lock
+    const view = zone.lockedView(c);
+    c = view.ctrl;
     const knob = knobPaths(c);
     if (onlyIndex === undefined) {
       zone._$(`${potselector}_range`)?.setAttribute('d', knobRangePath);
@@ -235,6 +253,8 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIn
     potcontainer.dataset.type = String(c.type);
     potcontainer.dataset.group = String(effectiveGroup(zone.cc_controllers, ix));
     potcontainer.dataset.hasInput = c.number_in != null ? '1' : '';
+    potcontainer.classList.toggle('locked', view.locked);
+    potcontainer.classList.toggle('lock-mixed', view.mixed);
     (zone._$(`${potselector} div.cclabel`) as HTMLElement).textContent =
       c.type == CCControllerType.NOTE_TO_CC ? 'Note to CC' : c.label;
     const display = controllerDisplay(zone, c, ix);

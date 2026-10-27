@@ -95,7 +95,9 @@ export class Sequence {
   }
 
   set active(v: boolean) {
+    const changed = v !== this._active;
     this._active = v;
+    if (changed) this.zone.sequenceActiveChanged(this, v);
     if (v && this.zone.elements) {
       requestAnimationFrame(() => {
         this.zone.elements.sequencerGridStepElements.forEach((e: Element) => {
@@ -153,6 +155,7 @@ export class Sequence {
   clearSelection(): void {
     this.selectedStepNumbers.clear();
     this.isHotRecordingNotes = false;
+    this.zone.lockEditEnded();
   }
 
   get selectedStepNumber(): number {
@@ -202,6 +205,13 @@ export class Sequence {
     return result;
   }
 
+  /** A step by its number in the grid (a drum step id in drum mode) */
+  stepAt(n: number): SeqStep | null {
+    if (!this.isDrumSequence) return this.steps[n] ?? null;
+    const [laneIndex, stepIndex] = Sequence.getLaneAndStepIndexForDrumStepId(n);
+    return this.getDrumLane(laneIndex).steps[stepIndex] ?? null;
+  }
+
   get hasSelection(): boolean {
     return this.selectedStepNumbers.size > 0;
   }
@@ -211,9 +221,7 @@ export class Sequence {
       const [lindex, sindex] = Sequence.getLaneAndStepIndexForDrumStepId(index);
       return this.getDrumLane(lindex)?.steps[sindex] == null;
     } else {
-      return (
-        this.steps[index] == null || this.steps[index]?.notesArray.length === 0
-      );
+      return this.steps[index] == null || this.steps[index]!.isBlank();
     }
   }
 
@@ -463,7 +471,7 @@ export class Sequence {
         continue;
       }
       const step = lane.steps[lane.currentStep];
-      if (step == null || step.notesArray.length === 0) {
+      if (step == null || step.isBlank()) {
         // Don't update previousStepPlayed for empty steps
         continue;
       }
@@ -616,7 +624,7 @@ export class Sequence {
   conditionOutcome(stepIndex: number, lane?: DrumLane): boolean | null {
     const steps = lane ? lane.steps : this.steps;
     const step = steps[stepIndex];
-    if (!step || step.notesArray.length === 0 || step.condition === StepCondition.ALWAYS) return null;
+    if (!step || step.isBlank() || step.condition === StepCondition.ALWAYS) return null;
     const current = lane ? lane.currentStep : this.currentStepNumber;
     const cycle = lane ? lane.cycleCount : this.cycleCount;
     if (current < 0 || cycle < 0) return null;
@@ -626,7 +634,7 @@ export class Sequence {
     }
     if (step.condition === StepCondition.PREVIOUS || step.condition === StepCondition.NOT_PREVIOUS) {
       // empty drum steps leave "previous" alone, melodic ones only when absent
-      const counts = (st: SeqStep | null): boolean => (lane ? !!st && st.notesArray.length > 0 : !!st);
+      const counts = (st: SeqStep | null): boolean => (lane ? !!st && !st.isBlank() : !!st);
       for (let k = current + 1; k < stepIndex; k++) {
         if (counts(steps[k])) return null;
       }
@@ -673,7 +681,10 @@ export class Sequence {
     hits = Math.max(0, Math.min(hits, length));
     offset = ((offset % length) + length) % length;
     for (let i = 0; i < length; i++) {
-      lane.steps[i] = null;
+      // Locks stay where they are; only the hits move
+      const step = lane.steps[i];
+      if (step?.hasLocks()) step.notesArray = [];
+      else lane.steps[i] = null;
     }
     if (hits === 0) return;
     const s = hits / length;
@@ -689,11 +700,10 @@ export class Sequence {
 
   turnOnDrumStep(lane: number, stepNo: number): void {
     const drumLane = this.getDrumLane(lane);
-    if (drumLane.steps[stepNo] == null) {
-      const step = new SeqStep();
-      step.notesArray.push(new Note(drumLane.note, 96));
-      drumLane.steps[stepNo] = step;
-    }
+    const step = drumLane.steps[stepNo] ?? new SeqStep();
+    // A step with locks only gets its note
+    if (step.notesArray.length === 0) step.notesArray.push(new Note(drumLane.note, 96));
+    drumLane.steps[stepNo] = step;
   }
 
   // ========== SWING METHODS ==========
@@ -743,6 +753,71 @@ export class Sequence {
     this.zone.handleMidi(MIDI.MESSAGE.NOTE_OFF, msg, true);
   }
 
+  /** Sends a played step's locks (once per step, with its swing; lane -1 = melodic) */
+  private playLocks(step: SeqStep, lane: number): void {
+    this.zone.paramLocks.stepPlayed(lane, step.locks, step.slide, this.currentPos, step.length * this.ticks);
+  }
+
+  /** Every address locked on a step of this sequence (all drum lanes included) */
+  lockedAddresses(): Set<string> {
+    const addresses = new Set<string>();
+    const collect = (steps: (SeqStep | null)[]): void =>
+      steps.forEach((st) => st?.locks.forEach((l) => addresses.add(l.a)));
+    collect(this.steps);
+    this.drum_lanes.forEach((lane) => lane && collect(lane.steps));
+    return addresses;
+  }
+
+  /**
+   * Runs `edit` on the given steps (default: the selected ones; drum step ids in drum
+   * mode). With `create`, empty slots get a new step (a step with locks only); steps
+   * left with neither notes nor locks are removed.
+   */
+  private editSteps(edit: (step: SeqStep) => void, create = false, stepNumbers: Iterable<number> = this.selectedStepNumbers): void {
+    for (const n of stepNumbers) {
+      let steps = this.steps;
+      let index = n;
+      if (this.isDrumSequence) {
+        const [laneIndex, stepIndex] = Sequence.getLaneAndStepIndexForDrumStepId(n);
+        steps = this.getDrumLane(laneIndex).steps;
+        index = stepIndex;
+      }
+      const step = steps[index] ?? (create ? new SeqStep() : null);
+      if (!step) continue;
+      edit(step);
+      steps[index] = step.isBlank() ? null : step;
+    }
+  }
+
+  /** The selected steps' locks on an address */
+  selectedLockValues(address: string): number[] {
+    const values: number[] = [];
+    this.selectedSteps.forEach((st) => {
+      const v = st?.lockValue(address);
+      if (v !== undefined) values.push(v);
+    });
+    return values;
+  }
+
+  setLockOnSelected(address: string, value: number): void {
+    this.editSteps((st) => st.setLock(address, value), true);
+  }
+
+  removeLockFromSelected(address: string): void {
+    this.editSteps((st) => st.removeLock(address));
+  }
+
+  clearLocks(stepNumbers: Iterable<number>): void {
+    this.editSteps((st) => {
+      st.locks = [];
+      st.slide = false;
+    }, false, stepNumbers);
+  }
+
+  setSlideOnSelected(slide: boolean): void {
+    this.editSteps((st) => (st.slide = slide));
+  }
+
   /**
    * Play a drum step unconditionally (condition/probability already evaluated at boundary).
    * timestamp, when provided, is forwarded to Web MIDI for hardware-precise scheduling.
@@ -755,7 +830,9 @@ export class Sequence {
     if (soloCount > 0 && !lane.solo) return;
 
     const step = lane.steps[stepIndex];
-    if (step == null || step.notesArray.length === 0) return;
+    if (step == null || step.isBlank()) return;
+    this.playLocks(step, laneIndex);
+    if (step.notesArray.length === 0) return;
 
     const ratchetCount = step.ratchetCount ?? 1;
     if (ratchetCount > 1) {
@@ -794,7 +871,9 @@ export class Sequence {
    */
   private playRegularStep(stepIndex: number, timestamp?: number): void {
     const step = this.steps[stepIndex];
-    if (!step) return;
+    if (!step || step.isBlank()) return;
+    this.playLocks(step, -1);
+    if (step.notesArray.length === 0) return;
     const ratchetCount = step.ratchetCount ?? 1;
     if (ratchetCount > 1) {
       const ratchetRes = step.ratchetResolution ?? 6;

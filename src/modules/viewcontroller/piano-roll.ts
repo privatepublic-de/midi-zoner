@@ -80,6 +80,8 @@ function moveNote(
   if (!targetStep) {
     targetStep = SeqStep.from(srcStep);
     targetStep.notesArray = []; // SeqStep.from shallow-clones — must reset, or it aliases srcStep's array
+    targetStep.locks = []; // the note moves, the source step's locks stay
+    targetStep.slide = false;
     sequence.steps[toStepIndex] = targetStep;
   }
   if (!SeqStep.addNote(targetStep.notesArray, note)) {
@@ -89,7 +91,7 @@ function moveNote(
     return;
   }
 
-  if (srcStep.notesArray.length === 0) {
+  if (srcStep.isBlank()) {
     sequence.steps[fromStepIndex] = null;
   }
 }
@@ -263,7 +265,7 @@ function deleteSelected(zone: ZoneType): void {
     if (!step) continue;
     if (step.notesArray.some((n) => selectedNotes.has(n))) {
       step.notesArray = step.notesArray.filter((n) => !selectedNotes.has(n));
-      if (step.notesArray.length === 0) sequence.steps[i] = null;
+      if (step.isBlank()) sequence.steps[i] = null;
     }
   }
   selectedNotes.clear();

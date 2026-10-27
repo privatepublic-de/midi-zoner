@@ -328,36 +328,37 @@ export function createCCActions(
     },
     cc_button_trig: () => {
       const ccindex = parseInt(actionParam1);
-      const btnindex = actionParam2;
-      zone.cc_controllers[ccindex].val =
-        (zone.cc_controllers[ccindex] as any)[`buttonvalue${btnindex}`];
-      zone.sendCC(ccindex);
-      updateControllerValues(zone, zoneindex);
+      const edit = zone.beginControllerEdit(ccindex);
+      edit.ctrl.val = (edit.ctrl as any)[`buttonvalue${actionParam2}`];
+      edit.commit();
+      updateValuesForZone(zoneindex);
       triggerSave();
     },
     cc_step: () => {
       // Selector: the previous / next entry
       const ccindex = parseInt(actionParam1);
-      const c = zone.cc_controllers[ccindex];
-      const entries = c?.discreteValues ?? [];
-      if (!c || entries.length == 0) return;
+      if (!zone.cc_controllers[ccindex]) return;
+      const edit = zone.beginControllerEdit(ccindex);
+      const c = edit.ctrl;
+      const entries = c.discreteValues ?? [];
+      if (entries.length == 0) return;
       const current = entries.indexOf(c.val);
       const next = Math.max(0, Math.min(entries.length - 1, current < 0 ? 0 : current + parseInt(actionParam2)));
       if (entries[next] === c.val) return;
       c.val = entries[next];
-      zone.sendCC(ccindex);
-      updateControllerValues(zone, zoneindex);
+      edit.commit();
+      updateValuesForZone(zoneindex);
       triggerSave();
     },
     cc_select_value: () => {
       // Selector: an entry chosen from its list
       const ccindex = parseInt(actionParam1);
-      const c = zone.cc_controllers[ccindex];
-      const value = c?.discreteValues?.[parseInt(actionParam2)];
-      if (!c || value === undefined) return;
-      c.val = value;
-      zone.sendCC(ccindex);
-      updateControllerValues(zone, zoneindex);
+      const value = zone.cc_controllers[ccindex]?.discreteValues?.[parseInt(actionParam2)];
+      if (value === undefined) return;
+      const edit = zone.beginControllerEdit(ccindex);
+      edit.ctrl.val = value;
+      edit.commit();
+      updateValuesForZone(zoneindex);
       triggerSave();
     },
     cc_preset_apply: () => {

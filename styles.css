@@ -1877,6 +1877,13 @@ input[type='range'] {
   stroke: var(--arc);
   stroke-width: 4;
 }
+/* showing the selected steps' parameter lock: selection red, dashed when they differ */
+.ccpot.locked {
+  --arc: var(--multiselect-highlight);
+}
+.ccpot.lock-mixed .knob-value {
+  stroke-dasharray: 3 2;
+}
 .ccpot .knob-ticks {
   stroke: var(--bg-color);
   stroke-width: 1.5;
@@ -2290,6 +2297,28 @@ input[type='range'] {
   );
 }
 
+/* Parameter locks: a dot in the bottom right corner; a step with locks only is an
+   outlined empty cell */
+.seq .grid .step .lock-dot {
+  display: none;
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ink);
+}
+.seq .grid .step[data-locks] .lock-dot {
+  display: block;
+}
+.seq .grid .step[data-locks='only']:not(.active) {
+  box-shadow: inset 0 0 0 1px var(--brighter-2);
+}
+.seq .grid .step[data-locks='only']:not(.active) .lock-dot {
+  background: var(--brighter-3);
+}
+
 .seq .grid .step.tied:not(.active)::before {
   content: '';
   position: absolute;
@@ -2362,17 +2391,16 @@ input[type='range'] {
 /* The step editor floats below the grid over the panels beneath it, so
    selecting a step never moves the layout. */
 .seq .step-info {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 100%;
-  z-index: 1;
+  /* in the layout below the grid (.seq is column-reverse), not over it: the
+     controllers below stay free for setting the steps' parameter locks */
+  order: -1;
+  margin-top: 6px;
   padding: 6px 8px 4px;
   /* selection red, as on the selected steps and the step badge: it edits those */
   border: 1px solid var(--multiselect-highlight);
   border-top-width: 2px;
-  border-radius: 0 0 var(--radius) var(--radius);
-  box-shadow: 0 6px 16px var(--shadow-overlay);
+  border-radius: var(--radius);
+  box-shadow: none;
   display: none;
 }
 
@@ -2438,6 +2466,50 @@ input[type='range'] {
 
 .seq.has-selection .step-info {
   display: block;
+}
+
+/* Parameter locks of the selected steps: chips with name, value and remove */
+.step-locks .lock-list {
+  display: flex;
+  flex-wrap: wrap;
+  flex-grow: 1;
+  gap: 4px;
+  font-size: var(--fs-sm);
+}
+.step-locks .lock-list i {
+  color: var(--darker-2);
+}
+.lock-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 2px 1px 6px;
+  border: 1px solid var(--darker-3);
+  border-radius: var(--radius);
+  background: var(--darker-0);
+}
+.lock-chip .lock-name {
+  color: var(--brighter-3);
+}
+.lock-chip .lock-value {
+  color: var(--text-base-color);
+  font-variant-numeric: tabular-nums;
+}
+.lock-chip .material-icons {
+  font-size: 14px;
+  color: var(--brighter-3);
+  cursor: pointer;
+}
+.lock-chip .material-icons:hover {
+  color: var(--danger);
+}
+/* no controller on its address: kept, not sent */
+.lock-chip.dormant {
+  opacity: 0.5;
+  border-style: dashed;
+}
+.step-locks:not(.has-locks) .seq-step-slide {
+  display: none;
 }
 
 .seq.multi-selection .seq-step-advance,

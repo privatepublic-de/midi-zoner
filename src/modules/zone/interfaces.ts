@@ -1,4 +1,5 @@
 import { Note } from './note';
+import type { ParamLock } from './param-locks';
 
 export const UPDATE_ZONE_VIEW_EVENT = 'update-zone-view';
 
@@ -117,6 +118,8 @@ export interface SeqStepJSON {
   ratchetCount?: number;
   ratchetResolution?: number;
   ratchetVelocityDelta?: number;
+  locks?: ParamLock[];
+  slide?: boolean;
 }
 
 export interface DrumLaneJSON {
