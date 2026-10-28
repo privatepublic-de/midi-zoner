@@ -613,11 +613,17 @@ function tick(): void {
     rafHandle = null;
     return;
   }
-  const zone = activeCtx.zone;
-  if (activeCtx.zones.list.indexOf(zone) === -1) {
-    close();
-    return;
+  if (activeCtx.zones.list.indexOf(activeCtx.zone) === -1) {
+    // Undo/redo replace the zone objects: follow the zone at the same index
+    const replacement = activeCtx.zones.list[activeCtx.zoneindex];
+    if (!replacement) {
+      close();
+      return;
+    }
+    activeCtx.zone = replacement;
+    activeCtx.sequence = replacement.sequence;
   }
+  const zone = activeCtx.zone;
   if (zone.sequence !== lastBoundSequence) {
     lastBoundSequence = zone.sequence;
     if (zone.sequence.isDrumSequence) {
@@ -698,19 +704,27 @@ export function initPianoRoll(): void {
     updateCursorRow();
   });
 
-  document.addEventListener('keydown', (ev) => {
-    if (!overlayEl.classList.contains('open') || !activeCtx) return;
-    if (ev.key === 'Escape') {
-      close();
-      return;
-    }
-    if (ev.key === 'Delete' || ev.key === 'Backspace') {
-      const active = document.activeElement as HTMLElement | null;
-      if (active && active.matches('input,textarea')) return;
-      ev.preventDefault();
-      deleteSelected(activeCtx.zone);
-    }
-  });
+  // Capture phase, ahead of the app's shortcuts: only Space (play/stop) and ⌘Z / ⇧⌘Z
+  // (undo/redo) reach the app; digits, letters etc. would mute zones or switch the
+  // arrangement behind the panel.
+  document.addEventListener(
+    'keydown',
+    (ev) => {
+      if (!overlayEl.classList.contains('open') || !activeCtx) return;
+      if (ev.code === 'Space' || ((ev.metaKey || ev.ctrlKey) && ev.code === 'KeyZ')) return;
+      ev.stopPropagation();
+      if (ev.key === 'Escape') {
+        if (selectedNotes.size > 0) {
+          clearSelection();
+          renderNotesAndVelocity(activeCtx.zone);
+        } else close();
+      } else if (ev.key === 'Delete' || ev.key === 'Backspace') {
+        ev.preventDefault();
+        deleteSelected(activeCtx.zone);
+      }
+    },
+    true
+  );
   document.addEventListener('mousedown', (ev) => {
     if (!overlayEl.classList.contains('open')) return;
     if (!overlayEl.contains(ev.target as Node)) close();

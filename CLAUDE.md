@@ -262,6 +262,8 @@ Note numbers range 0-127. Display format uses `Note.display()` which produces `M
 - Continuous gestures (CC knob drag, BPM input focus): `startGesture(before)` → `endGesture(after)` collapses to one entry
 - Scene file loads also push a snapshot so load is undoable
 - UI buttons `#undoBtn` / `#redoBtn` are disabled when the stack is empty
+- ⌘Z / ⇧⌘Z are app-wide (keydown in app.ts, no undo roles in the macOS Edit menu, which only has cut/copy/paste/select all for text fields). A focused field is blurred first (`commitFocusedField()`), so typing in progress becomes its own entry; the editor panels let these keys through and stop all others (the piano roll in the capture phase; Space also passes there, for play/stop)
+- Undo replaces the zone objects: the piano roll and the controller editor follow the zone at the same index
 
 ### Key Switches
 When enabled (toggle in toolbar), MIDI notes 0–19 from any input are intercepted before zone routing:

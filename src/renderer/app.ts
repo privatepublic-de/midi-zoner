@@ -1016,13 +1016,32 @@ document.addEventListener('DOMContentLoaded', function () {
           sendMackieLeds();
         }
 
+        // A focused field holds an open gesture (typing); blurring commits it as its own
+        // entry first, otherwise ending it after the undo would clear the redo stack.
+        function commitFocusedField(): void {
+          const active = document.activeElement as HTMLElement | null;
+          if (!active?.matches('input, select, textarea')) return;
+          active.blur();
+          // A panel (controller editor) keeps the keyboard, so Esc etc. still reach it
+          active.closest<HTMLElement>('[role="dialog"][tabindex]')?.focus();
+        }
         DOM.get('#undoBtn')!.addEventListener('click', () => {
+          commitFocusedField();
           const snapshot = undoHistory.undo(JSON.stringify(zones));
           if (snapshot) applyUndoRedoSnapshot(snapshot);
         });
         DOM.get('#redoBtn')!.addEventListener('click', () => {
+          commitFocusedField();
           const snapshot = undoHistory.redo(JSON.stringify(zones));
           if (snapshot) applyUndoRedoSnapshot(snapshot);
+        });
+        // ⌘Z / ⇧⌘Z everywhere, also in the editor panels (they let these keys through).
+        // The field commits first: typing may be the only undo entry, the button still disabled.
+        document.addEventListener('keydown', (ev) => {
+          if (!(ev.metaKey || ev.ctrlKey) || ev.code !== 'KeyZ' || ev.altKey) return;
+          ev.preventDefault();
+          commitFocusedField();
+          (DOM.get(ev.shiftKey ? '#redoBtn' : '#undoBtn') as HTMLElement).click();
         });
 
         undoHistory.onChange = updateUndoRedoButtons;
@@ -1130,6 +1149,7 @@ document.addEventListener('DOMContentLoaded', function () {
           }
         });
         document.body.addEventListener('keydown', (ev) => {
+          if (ev.metaKey || ev.ctrlKey || ev.altKey) return; // ⌘Z, ⌘C… aren't Z / C
           if ((document.activeElement as HTMLElement).tagName != 'INPUT') {
             if (ev.code == 'Space') {
               startClockButton.click();

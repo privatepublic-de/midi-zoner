@@ -158,7 +158,22 @@ function createWindow(): void {
     win = null;
   });
   if (process.platform === 'darwin') {
-    Menu.setApplicationMenu(Menu.buildFromTemplate([{ role: 'appMenu' as const }]));
+    // Text fields only get ⌘X/C/V/A through menu roles on macOS. No undo/redo roles:
+    // ⌘Z is the app's undo (app.ts), not the text field's.
+    Menu.setApplicationMenu(
+      Menu.buildFromTemplate([
+        { role: 'appMenu' as const },
+        {
+          label: 'Edit',
+          submenu: [
+            { role: 'cut' as const },
+            { role: 'copy' as const },
+            { role: 'paste' as const },
+            { role: 'selectAll' as const }
+          ]
+        }
+      ])
+    );
   } else {
     Menu.setApplicationMenu(null);
   }

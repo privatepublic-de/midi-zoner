@@ -588,7 +588,9 @@ export function closeCCEditor(): void {
 }
 
 function handleKey(ev: KeyboardEvent): void {
-  // The app's shortcuts (space, digits, letters) must not fire behind the panel
+  const mod = ev.metaKey || ev.ctrlKey;
+  if (mod && ev.code == 'KeyZ') return; // the app's undo / redo (app.ts)
+  // The app's other shortcuts (space, digits, letters) must not fire behind the panel
   ev.stopPropagation();
   const zone = currentZone();
   if (!zone) return;
@@ -596,12 +598,6 @@ function handleKey(ev: KeyboardEvent): void {
     const menu = DOM.get('#contextmenu') as HTMLElement | null;
     if (menu && menu.style.display == 'block') window.dispatchEvent(new CustomEvent('closeContextMenu'));
     else closeCCEditor();
-    return;
-  }
-  const mod = ev.metaKey || ev.ctrlKey;
-  if (mod && ev.code == 'KeyZ') {
-    ev.preventDefault();
-    (DOM.get(ev.shiftKey ? '#redoBtn' : '#undoBtn') as HTMLElement).click();
     return;
   }
   if ((ev.target as HTMLElement).matches('input, select, textarea')) return;
