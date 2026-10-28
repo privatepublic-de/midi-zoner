@@ -24,6 +24,7 @@ import {
   onControllersChanged,
   startControllerDrag
 } from './cc-controller-view';
+import { initSheetHeader, setSheetZone } from './editor-sheet';
 
 /**
  * The controller editor: a full-window panel (like the piano roll) for setting up a
@@ -528,7 +529,7 @@ function refresh(onlyIndex?: number): void {
   if (zone !== shownZone && shownZone) zone.selectedCCIndex = shownSelection;
   if (zone.selectedCCIndex >= zone.cc_controllers.length) zone.selectedCCIndex = zone.cc_controllers.length - 1;
   if (zone.selectedCCIndex < 0 && zone.cc_controllers.length > 0) zone.selectedCCIndex = 0;
-  $('.cce-title').textContent = `Controllers — ${zone.label || `Zone ${zoneIndex + 1}`}`;
+  setSheetZone(overlay, zone, zoneIndex);
   $('.cce-preset-button .cc-preset-name').textContent = devicePresetLabel(zone);
   shownZone = zone;
   shownSelection = zone.selectedCCIndex;
@@ -590,7 +591,12 @@ export function closeCCEditor(): void {
 function handleKey(ev: KeyboardEvent): void {
   const mod = ev.metaKey || ev.ctrlKey;
   if (mod && ev.code == 'KeyZ') return; // the app's undo / redo (app.ts)
-  // The app's other shortcuts (space, digits, letters) must not fire behind the panel
+  const typing = (ev.target as HTMLElement).matches('input, select, textarea');
+  if (ev.code == 'Space' && !typing) {
+    ev.preventDefault(); // play / stop (app.ts), not a press of the focused button
+    return;
+  }
+  // The app's other shortcuts (digits, letters) must not fire behind the panel
   ev.stopPropagation();
   const zone = currentZone();
   if (!zone) return;
@@ -600,7 +606,7 @@ function handleKey(ev: KeyboardEvent): void {
     else closeCCEditor();
     return;
   }
-  if ((ev.target as HTMLElement).matches('input, select, textarea')) return;
+  if (typing) return;
   const sel = zone.selectedCCIndex;
   if (ev.key == 'ArrowUp' || ev.key == 'ArrowDown') {
     ev.preventDefault();
@@ -632,9 +638,7 @@ export function initCCEditor(editorHooks: CCEditorHooks): void {
     act(ev, `cc_step_spread:${$<HTMLInputElement>('.cce-spread-count').value}`);
   });
   $('.cce-preset-button').addEventListener('click', (ev) => hooks.contextHandler(ev as MouseEvent));
-  $('.cce-close').addEventListener('click', closeCCEditor);
-  $('.cce-undo').addEventListener('click', () => (DOM.get('#undoBtn') as HTMLElement).click());
-  $('.cce-redo').addEventListener('click', () => (DOM.get('#redoBtn') as HTMLElement).click());
+  initSheetHeader(overlay, closeCCEditor);
 
   // The test knob sends like the zone's knob
   $('.cce-knob').addEventListener('mousedown', (ev) => {

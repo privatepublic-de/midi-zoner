@@ -10,6 +10,7 @@ import { ipcRenderer, webFrame } from 'electron';
 import { ZoneArrangementJSON, isLayoutEntry } from '../modules/zone/interfaces';
 import { UndoHistory } from '../modules/undo-history';
 import { labelForZone } from '../modules/viewcontroller/action-labels';
+import { updateSheetHistory } from '../modules/viewcontroller/editor-sheet';
 import { loadDevicePresets } from '../modules/device-presets';
 
 // Type aliases for class types
@@ -1002,6 +1003,7 @@ document.addEventListener('DOMContentLoaded', function () {
             redoBtn.disabled = !undoHistory.canRedo;
             redoBtn.title = undoHistory.redoLabel ? `Redo: ${undoHistory.redoLabel}` : 'Redo';
           }
+          updateSheetHistory(undoHistory);
         }
 
         function applyUndoRedoSnapshot(snapshot: string): void {

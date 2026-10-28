@@ -6,6 +6,7 @@ import potDragHandler from '../potdraghandler';
 import { ActionContext, ZoneType, SequenceType } from './types';
 import { labelForZone } from './action-labels';
 import { showStepProperties, stepDetails, velocityLabel } from './step-marks';
+import { initSheetHeader, setSheetZone } from './editor-sheet';
 
 // Steps share the visible width (between these bounds, scrolling beyond); the
 // width is set as --pr-cell-w for the grid lines in styles.css.
@@ -157,8 +158,7 @@ let cursorRowPitch: number | null = null;
 let lastPointer: { x: number; y: number } | null = null;
 
 let overlayEl: HTMLElement;
-let titleEl: HTMLElement;
-let closeBtn: HTMLElement;
+let deleteBtn: HTMLButtonElement;
 let mainScrollEl: HTMLElement;
 let keysEl: HTMLElement;
 let gridEl: HTMLElement;
@@ -240,8 +240,13 @@ function getZoneColor(zone: ZoneType, prop = '--zone-color', fallback = '#dab249
   return fallback;
 }
 
+function updateTools(): void {
+  deleteBtn.disabled = selectedNotes.size === 0;
+}
+
 function clearSelection(): void {
   selectedNotes.clear();
+  updateTools();
 }
 
 function toggleSelection(note: Note, el: HTMLElement): void {
@@ -252,6 +257,12 @@ function toggleSelection(note: Note, el: HTMLElement): void {
     selectedNotes.add(note);
     el.classList.add('selected');
   }
+  updateTools();
+}
+
+function selectAll(zone: ZoneType): void {
+  zone.sequence.steps.forEach((step) => step?.notesArray.forEach((n) => selectedNotes.add(n)));
+  renderNotesAndVelocity(zone);
 }
 
 function commitEdit(ctx: ActionContext): void {
@@ -434,6 +445,7 @@ function renderNotesAndVelocity(zone: ZoneType): void {
   }
   lastLiveStep = null;
   soundingKey = '';
+  updateTools();
   updatePlayhead(zone);
 }
 
@@ -622,6 +634,7 @@ function tick(): void {
     }
     activeCtx.zone = replacement;
     activeCtx.sequence = replacement.sequence;
+    setSheetZone(overlayEl, replacement, activeCtx.zoneindex);
   }
   const zone = activeCtx.zone;
   if (zone.sequence !== lastBoundSequence) {
@@ -670,9 +683,7 @@ export function openPianoRoll(ctx: ActionContext): void {
   activeCtx = ctx;
   lastBoundSequence = ctx.zone.sequence;
   clearSelection();
-  titleEl.textContent = ctx.zone.label
-    ? `Piano Roll — ${ctx.zone.label}`
-    : `Piano Roll — Zone ${ctx.zoneindex + 1}`;
+  setSheetZone(overlayEl, ctx.zone, ctx.zoneindex);
   overlayEl.style.setProperty('--zone-color', getZoneColor(ctx.zone));
   overlayEl.style.setProperty('--zone-surface', getZoneColor(ctx.zone, '--zone-surface', '#7b5f06'));
   overlayEl.classList.add('open');
@@ -684,8 +695,7 @@ export function openPianoRoll(ctx: ActionContext): void {
 
 export function initPianoRoll(): void {
   overlayEl = DOM.get('#pianoRollOverlay') as HTMLElement;
-  titleEl = overlayEl.querySelector('.pr-title') as HTMLElement;
-  closeBtn = overlayEl.querySelector('.pr-close') as HTMLElement;
+  deleteBtn = overlayEl.querySelector('.pr-delete') as HTMLButtonElement;
   mainScrollEl = overlayEl.querySelector('.pr-main-scroll') as HTMLElement;
   keysEl = overlayEl.querySelector('.pr-keys') as HTMLElement;
   gridEl = overlayEl.querySelector('.pr-grid') as HTMLElement;
@@ -697,7 +707,9 @@ export function initPianoRoll(): void {
 
   buildKeyboardOnce();
 
-  closeBtn.addEventListener('click', close);
+  initSheetHeader(overlayEl, close);
+  deleteBtn.addEventListener('click', () => activeCtx && deleteSelected(activeCtx.zone));
+  overlayEl.querySelector('.pr-select-all')!.addEventListener('click', () => activeCtx && selectAll(activeCtx.zone));
   gridEl.addEventListener('mousedown', handleGridMouseDown);
   mainScrollEl.addEventListener('scroll', () => {
     velocityScrollEl.scrollLeft = mainScrollEl.scrollLeft;
@@ -711,9 +723,17 @@ export function initPianoRoll(): void {
     'keydown',
     (ev) => {
       if (!overlayEl.classList.contains('open') || !activeCtx) return;
-      if (ev.code === 'Space' || ((ev.metaKey || ev.ctrlKey) && ev.code === 'KeyZ')) return;
+      const mod = ev.metaKey || ev.ctrlKey;
+      if (mod && ev.code === 'KeyZ') return;
+      if (ev.code === 'Space') {
+        ev.preventDefault(); // play / stop (app.ts), not a press of the focused button
+        return;
+      }
       ev.stopPropagation();
-      if (ev.key === 'Escape') {
+      if (mod && ev.code === 'KeyA') {
+        ev.preventDefault();
+        selectAll(activeCtx.zone);
+      } else if (ev.key === 'Escape') {
         if (selectedNotes.size > 0) {
           clearSelection();
           renderNotesAndVelocity(activeCtx.zone);

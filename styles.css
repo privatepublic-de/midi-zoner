@@ -3698,56 +3698,162 @@ body.running .drumSequencer .lane-expand-toggle {
   opacity: 0.7;
 }
 
-/* Piano roll editor */
-#pianoRollOverlay {
-  --zone-color: var(--zone-2);
-  --zone-surface: var(--zone-surface-2);
+/* =============================================================
+   EDITOR SHEETS: the full-window panels (piano roll, controller
+   editor) and their shared header (viewcontroller/editor-sheet.ts)
+   ============================================================= */
+
+.editor-sheet {
   position: fixed;
-  top: 24px;
-  left: 24px;
-  right: 24px;
-  bottom: 24px;
+  inset: 24px;
   z-index: var(--z-overlay-top);
   display: none;
   flex-direction: column;
   background-color: var(--bg-topbar);
   border: 1px solid var(--zone-color);
-  box-shadow: 0 4px 24px var(--shadow-overlay);
+  /* the second shadow dims the app: a click there closes the panel like Done */
+  box-shadow: 0 4px 24px var(--shadow-overlay), 0 0 0 100vmax rgba(0, 0, 0, 0.55);
   border-radius: var(--radius-lg);
   overflow: hidden;
   color: var(--text-base-color);
-}
-
-#pianoRollOverlay.open {
-  display: flex;
-}
-
-.pr-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--darker-3);
-  background-color: var(--zone-surface);
-  flex-shrink: 0;
-}
-
-.pr-title {
   font-size: var(--fs-md);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--text-base-color);
+}
+.editor-sheet.open {
+  display: flex;
 }
 
-.pr-close {
-  background: none;
-  border: none;
-  color: var(--brighter-4);
-  cursor: pointer;
-  padding: 0;
+.es-bar {
   display: flex;
   align-items: center;
-  line-height: 1;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 6px 8px 6px 14px;
+  background-color: var(--zone-surface);
+  border-bottom: 1px solid var(--darker-3);
+}
+.es-title {
+  font-weight: 600;
+  white-space: nowrap;
+}
+.es-zone {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  min-width: 0;
+  max-width: 20rem;
+  padding: 0 10px 0 8px;
+  border-radius: 11px;
+  background-color: var(--darker-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.es-zone::before {
+  content: '';
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--zone-color);
+}
+.es-sep {
+  width: 1px;
+  align-self: stretch;
+  margin: 4px 4px;
+  background-color: var(--brighter-1);
+}
+.es-grow {
+  flex: 1;
+}
+
+/* :is() with the ids, so these beat the panels' own `#ccEditor button` rules */
+:is(#ccEditor, #pianoRollOverlay) .es-bar :is(button, .es-button) {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  margin: 0;
+  padding: 0 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background-color: transparent;
+  color: var(--text-base-color);
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+:is(#ccEditor, #pianoRollOverlay) .es-bar :is(button, .es-button):hover:not(:disabled) {
+  background-color: var(--darker-1);
+}
+:is(#ccEditor, #pianoRollOverlay) .es-bar button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+:is(#ccEditor, #pianoRollOverlay) .es-bar .material-icons {
+  font-size: var(--icon-md);
+}
+.es-bar .cc-preset-name {
+  max-width: 24rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.es-undo .es-step {
+  max-width: 18ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--brighter-3);
+}
+
+/* Play / stop mirrors the toolbar's Start button; hidden while an external clock leads */
+:is(#ccEditor, #pianoRollOverlay) .es-bar .es-play {
+  background-color: var(--darker-1);
+}
+.es-play::before {
+  content: 'play_arrow';
+  font-family: 'Material Icons';
+  font-size: var(--icon-md);
+  font-feature-settings: 'liga';
+}
+.es-play::after {
+  content: 'Play';
+}
+body.running .es-play::before {
+  content: 'stop';
+}
+body.running .es-play::after {
+  content: 'Stop';
+}
+body.running :is(#ccEditor, #pianoRollOverlay) .es-bar .es-play {
+  background-color: color-mix(in srgb, var(--live) 30%, var(--darker-1));
+}
+body:has(.clocksettings.isExternal) .es-play,
+body:has(.clocksettings.isExternal) .es-play + .es-sep {
+  display: none;
+}
+
+/* Done is the one filled control: the way back, edits are already applied */
+:is(#ccEditor, #pianoRollOverlay) .es-bar .es-done {
+  height: 28px;
+  margin-left: 2px;
+  padding: 0 18px;
+  border-radius: 14px;
+  background-color: var(--zone-color);
+  color: var(--bg-topbar);
+  font-weight: 600;
+}
+:is(#ccEditor, #pianoRollOverlay) .es-bar .es-done:hover {
+  background-color: var(--zone-color);
+  filter: brightness(1.12);
+}
+:is(#ccEditor, #pianoRollOverlay) .es-bar button:focus-visible {
+  outline: 1px solid var(--brighter-4);
+}
+
+/* Piano roll editor */
+#pianoRollOverlay {
+  --zone-color: var(--zone-2);
+  --zone-surface: var(--zone-surface-2);
 }
 
 .pr-main-scroll {
@@ -4249,22 +4355,7 @@ body.minimized .midi-led.on {
 #ccEditor {
   --cce-accent: var(--zone-color);
   --cce-row-h: 26px;
-  position: fixed;
-  inset: 24px;
-  z-index: var(--z-overlay-top);
-  display: none;
-  flex-direction: column;
-  background-color: var(--bg-topbar);
-  border: 1px solid var(--zone-color);
-  box-shadow: 0 4px 24px var(--shadow-overlay);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  color: var(--text-base-color);
-  font-size: var(--fs-md);
   outline: none;
-}
-#ccEditor.open {
-  display: flex;
 }
 #ccEditor [hidden] {
   display: none !important;
@@ -4323,35 +4414,6 @@ body.minimized .midi-led.on {
 }
 .cce-spacer {
   flex: 1;
-}
-
-.cce-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px 6px 12px;
-  background-color: var(--zone-surface);
-  border-bottom: 1px solid var(--darker-3);
-  flex-shrink: 0;
-}
-.cce-title {
-  font-weight: 600;
-  margin-right: 8px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.cce-header .cce-preset-button .cc-preset-name {
-  max-width: 24rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-#ccEditor .cce-header button {
-  background-color: transparent;
-}
-#ccEditor .cce-header button:hover {
-  background-color: var(--darker-1);
 }
 
 .cce-body {
@@ -4715,8 +4777,11 @@ body.minimized .midi-led.on {
 }
 
 @media (max-width: 820px) {
-  #ccEditor {
+  .editor-sheet {
     inset: 8px;
+  }
+  .es-undo .es-step {
+    display: none;
   }
   .cce-body {
     grid-template-columns: 1fr;

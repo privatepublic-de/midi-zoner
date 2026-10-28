@@ -248,10 +248,20 @@
         </div>
       </div>
     </div>
-    <div id="pianoRollOverlay" role="dialog" aria-modal="true" aria-label="Piano roll editor">
-      <div class="pr-header">
-        <span class="pr-title">Piano Roll</span>
-        <button class="pr-close" title="Close"><i class="material-icons">close</i></button>
+    <div id="pianoRollOverlay" class="editor-sheet" role="dialog" aria-modal="true" aria-label="Piano roll editor">
+      <div class="es-bar">
+        <span class="es-title">Piano roll</span>
+        <span class="es-zone"></span>
+        <span class="es-sep"></span>
+        <button class="es-play" title="Play / stop (Space)"></button>
+        <span class="es-sep"></span>
+        <button class="pr-select-all" title="Select all notes (⌘A)"><i class="material-icons">select_all</i>Select all</button>
+        <button class="pr-delete" title="Delete the selected notes (⌫)"><i class="material-icons">delete</i>Delete</button>
+        <span class="es-grow"></span>
+        <button class="es-undo"><i class="material-icons">undo</i><span class="es-step"></span></button>
+        <button class="es-redo"><i class="material-icons">redo</i></button>
+        <span class="es-sep"></span>
+        <button class="es-done" title="Done (Esc)">Done</button>
       </div>
       <div class="pr-main-scroll">
         <div class="pr-step-header">
@@ -273,26 +283,28 @@
         </div>
       </div>
     </div>
-    <div id="ccEditor" role="dialog" aria-modal="true" aria-label="Controller editor" tabindex="-1">
-      <div class="cce-header">
-        <span class="cce-title">Controllers</span>
+    <div id="ccEditor" class="editor-sheet" role="dialog" aria-modal="true" aria-label="Controller editor" tabindex="-1">
+      <div class="es-bar">
+        <span class="es-title">Controllers</span>
+        <span class="es-zone"></span>
+        <span class="es-sep"></span>
+        <button class="es-play" title="Play / stop (Space)"></button>
+        <span class="es-sep"></span>
         <div
-          class="action menu-button cce-preset-button"
+          class="action menu-button es-button cce-preset-button"
           title="Device presets: apply one (⇧-click appends), save these controllers as a preset, manage presets"
           data-contextclick
         >
           <i class="material-icons">tune</i><span class="cc-preset-name">Presets</span><i class="material-icons">expand_more</i>
         </div>
-        <button class="cce-icon-button warn" data-cce-action="cc_remove_all" data-needs-controllers title="Delete all controllers and start anew">
-          <i class="material-icons">delete_sweep</i>Delete all
-        </button>
-        <div class="cce-spacer"></div>
-        <button class="cce-icon-button" data-cce-action="cc_send_all" title="Send the values of all controllers">
+        <button data-cce-action="cc_send_all" title="Send the values of all controllers">
           <i class="material-icons">double_arrow</i>Send all
         </button>
-        <button class="cce-icon-button cce-undo" title="Undo (⌘Z)"><i class="material-icons">undo</i></button>
-        <button class="cce-icon-button cce-redo" title="Redo (⇧⌘Z)"><i class="material-icons">redo</i></button>
-        <button class="cce-icon-button cce-close" title="Close (Esc)"><i class="material-icons">close</i></button>
+        <span class="es-grow"></span>
+        <button class="es-undo"><i class="material-icons">undo</i><span class="es-step"></span></button>
+        <button class="es-redo"><i class="material-icons">redo</i></button>
+        <span class="es-sep"></span>
+        <button class="es-done" title="Done (Esc)">Done</button>
       </div>
       <div class="cce-body">
         <div class="cce-list-pane">
@@ -325,6 +337,9 @@
             <div class="cce-spacer"></div>
             <button class="cce-tool warn" data-cce-action="cc_remove" data-needs-selection title="Delete the selected controller (⌫)">
               <i class="material-icons">delete</i>Delete
+            </button>
+            <button class="cce-tool warn" data-cce-action="cc_remove_all" data-needs-controllers title="Delete all controllers and start anew">
+              <i class="material-icons">delete_sweep</i>
             </button>
           </div>
           <div class="cce-layout" title="How the controllers are laid out in the zone"></div>

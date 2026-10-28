@@ -18,7 +18,7 @@ import {
   ticksToRatchetIndex,
   velocityDeltaToPercent
 } from './actions';
-import { initCCEditor, refreshCCEditor } from './cc-editor';
+import { closeCCEditor, initCCEditor, isCCEditorOpen, refreshCCEditor } from './cc-editor';
 import { initPianoRoll } from './piano-roll';
 import { renderStepLocks } from './step-locks';
 import { describeAction, labelForZone, zonePrefix, ARRANGEMENT_LETTERS } from './action-labels';
@@ -1609,10 +1609,14 @@ function initStepDeselection(): void {
   document.addEventListener('keydown', (ev) => {
     if (ev.key !== 'Escape') return;
     if (DOM.get('#pianoRollOverlay')?.classList.contains('open')) return; // closes itself
-    if (DOM.get('#ccEditor')?.classList.contains('open')) return;
     const menu = DOM.get('#contextmenu') as HTMLElement | null;
     if (menu && menu.style.display === 'block') {
       window.dispatchEvent(new CustomEvent('closeContextMenu'));
+      return;
+    }
+    // The editor handles its keys itself; this only comes here with the focus outside it
+    if (isCCEditorOpen()) {
+      closeCCEditor();
       return;
     }
     clearSelections(null);
