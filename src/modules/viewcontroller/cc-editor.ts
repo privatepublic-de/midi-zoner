@@ -51,6 +51,10 @@ let shownZone: ZoneType | undefined;
 let shownSelection = -1;
 // Structure of the value rows, so typing doesn't rebuild the input it happens in
 let valueRowsKey = '';
+// Collapsed pages and sections in the list (view only: not saved, no undo), per zone
+const collapsedByZone = new Map<number, Set<string>>();
+// Rows inside a collapsed page or section, from the last render
+let hiddenRows: boolean[] = [];
 
 const TYPE_NAMES: Record<number, string> = {
   [CCControllerType.UNIPOLAR_ROTARY]: 'Knob',
@@ -171,6 +175,78 @@ function select(ix: number): void {
 
 // ---------- list ----------
 
+function isHeader(c: CCController | undefined): boolean {
+  return isPage(c) || isSection(c);
+}
+
+/**
+ * Names the page and section rows by kind, label and occurrence, so a collapsed one stays
+ * collapsed when others are added or moved, and across undo (which replaces the objects)
+ */
+function headerKeys(controllers: CCController[]): Map<number, string> {
+  const keys = new Map<number, string>();
+  const seen = new Map<string, number>();
+  controllers.forEach((c, ix) => {
+    if (!isHeader(c)) return;
+    const base = `${isPage(c) ? 'p' : 's'}:${c.label.trim()}`;
+    const n = seen.get(base) ?? 0;
+    seen.set(base, n + 1);
+    keys.set(ix, `${base}:${n}`);
+  });
+  return keys;
+}
+
+function collapsedSet(): Set<string> {
+  let set = collapsedByZone.get(zoneIndex);
+  if (!set) collapsedByZone.set(zoneIndex, (set = new Set()));
+  return set;
+}
+
+/** Collapses or expands a page or section row; `all` does it for every one of its kind */
+function toggleCollapsed(ix: number, collapse?: boolean, all = false): void {
+  const zone = currentZone();
+  const c = zone?.cc_controllers[ix];
+  if (!zone || !isHeader(c)) return;
+  const keys = headerKeys(zone.cc_controllers);
+  const set = collapsedSet();
+  const fold = collapse ?? !set.has(keys.get(ix)!);
+  const targets = all ? [...keys.keys()].filter((h) => isPage(zone.cc_controllers[h]) == isPage(c)) : [ix];
+  for (const h of targets) {
+    if (fold) set.add(keys.get(h)!);
+    else set.delete(keys.get(h)!);
+    // The selection stays visible: inside a collapsed row it moves up to it
+    const [start, end] = moveUnit(zone.cc_controllers, h);
+    if (fold && zone.selectedCCIndex > start && zone.selectedCCIndex < end) zone.selectedCCIndex = h;
+  }
+  refresh();
+  overlay.querySelector('.cce-rows .cce-row.selected')?.scrollIntoView({ block: 'nearest' });
+}
+
+/** Marks the rows inside collapsed pages and sections; expands those around the selection */
+function updateHiddenRows(zone: ZoneType): void {
+  const controllers = zone.cc_controllers;
+  const set = collapsedSet();
+  hiddenRows = controllers.map(() => false);
+  for (const [h, key] of headerKeys(controllers)) {
+    if (!set.has(key)) continue;
+    const [start, end] = moveUnit(controllers, h);
+    if (zone.selectedCCIndex > start && zone.selectedCCIndex < end) {
+      set.delete(key);
+      continue;
+    }
+    for (let i = start + 1; i < end; i++) hiddenRows[i] = true;
+  }
+  // Keys of entries that are gone
+  const live = new Set(headerKeys(controllers).values());
+  for (const key of set) if (!live.has(key)) set.delete(key);
+}
+
+/** The next row up or down that isn't inside a collapsed page or section */
+function nextVisible(from: number, dir: number): number {
+  for (let i = from + dir; i >= 0 && i < hiddenRows.length; i += dir) if (!hiddenRows[i]) return i;
+  return from;
+}
+
 let dragFrom = -1;
 
 function clearDropMarks(rows: HTMLElement): void {
@@ -185,6 +261,9 @@ function dropsAfter(row: HTMLElement, e: DragEvent): boolean {
 function renderRows(zone: ZoneType): void {
   const rows = $('.cce-rows');
   rows.replaceChildren();
+  updateHiddenRows(zone);
+  const collapsed = collapsedSet();
+  const keys = headerKeys(zone.cc_controllers);
   const sectionSizes = new Map(sectionBlocks(zone.cc_controllers).map((b) => [b.section, b.items.length]));
   for (const p of pageBlocks(zone.cc_controllers)) {
     const controls = zone.cc_controllers.slice(p.start, p.end).filter((c) => !isSection(c)).length;
@@ -203,6 +282,8 @@ function renderRows(zone: ZoneType): void {
     row.classList.toggle('cce-section-row', section);
     row.classList.toggle('cce-page-row', page);
     row.classList.toggle('in-section', !section && sectionIndexOf(zone.cc_controllers, ix) >= 0);
+    row.classList.toggle('collapsed', section && collapsed.has(keys.get(ix)!));
+    row.hidden = hiddenRows[ix];
     row.dataset.group = String(effectiveGroup(zone.cc_controllers, ix));
     row.draggable = true;
     const swatch = cell('', 'cce-swatch');
@@ -211,6 +292,21 @@ function renderRows(zone: ZoneType): void {
       'cce-row-name'
     );
     name.title = name.textContent!;
+    if (section) {
+      const fold = document.createElement('i');
+      fold.className = 'material-icons cce-fold';
+      fold.textContent = 'expand_more';
+      fold.title = `Collapse or expand (⌥-click: all ${page ? 'pages' : 'sections'})`;
+      fold.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleCollapsed(ix, undefined, e.altKey);
+        overlay.focus();
+      });
+      // Not a drag handle: a quick click shouldn't start dragging the row
+      fold.addEventListener('mousedown', (e) => e.stopPropagation());
+      name.prepend(fold);
+      row.addEventListener('dblclick', () => toggleCollapsed(ix));
+    }
     const size = sectionSizes.get(ix) ?? 0;
     row.append(
       swatch,
@@ -243,8 +339,11 @@ function renderRows(zone: ZoneType): void {
       // Mark where it lands: above the row at that index, or below the last one
       const at = dropIndex(zone.cc_controllers, dragFrom, ix, dropsAfter(row, e));
       clearDropMarks(rows);
-      if (at < rows.children.length) rows.children[at].classList.add('drop-before');
-      else rows.lastElementChild?.classList.add('drop-after');
+      // Rows inside a collapsed page or section aren't shown: mark the next one that is
+      let mark = at;
+      while (mark < rows.children.length && hiddenRows[mark]) mark++;
+      if (mark < rows.children.length) rows.children[mark].classList.add('drop-before');
+      else [...rows.children].reverse().find((r) => !(r as HTMLElement).hidden)?.classList.add('drop-after');
     });
     row.addEventListener('drop', (e) => {
       e.preventDefault();
@@ -611,7 +710,22 @@ function handleKey(ev: KeyboardEvent): void {
   if (ev.key == 'ArrowUp' || ev.key == 'ArrowDown') {
     ev.preventDefault();
     if (ev.altKey) act(ev, ev.key == 'ArrowUp' ? 'cc_left' : 'cc_right');
-    else select(Math.max(0, Math.min(zone.cc_controllers.length - 1, sel + (ev.key == 'ArrowUp' ? -1 : 1))));
+    else select(nextVisible(sel, ev.key == 'ArrowUp' ? -1 : 1));
+  } else if ((ev.key == 'ArrowLeft' || ev.key == 'ArrowRight') && zone.cc_controllers[sel]) {
+    // Like a tree: ← collapses (or goes up to the section / page), → expands
+    ev.preventDefault();
+    const left = ev.key == 'ArrowLeft';
+    const row = overlay.querySelectorAll('.cce-rows .cce-row')[sel];
+    if (isHeader(zone.cc_controllers[sel])) {
+      if (left && row?.classList.contains('collapsed') && isSection(zone.cc_controllers[sel])) {
+        const page = pageBlocks(zone.cc_controllers).find((p) => sel < p.end)?.page ?? -1;
+        if (page >= 0) select(page);
+      } else toggleCollapsed(sel, left);
+    } else if (left) {
+      const section = sectionIndexOf(zone.cc_controllers, sel);
+      const page = pageBlocks(zone.cc_controllers).find((p) => sel < p.end)?.page ?? -1;
+      if (section >= 0 || page >= 0) select(Math.max(section, page));
+    }
   } else if ((ev.key == 'Delete' || ev.key == 'Backspace') && ev.target === overlay && zone.cc_controllers[sel]) {
     // Only with the list focused: a just-clicked button (Learn, a colour) keeps focus
     ev.preventDefault();

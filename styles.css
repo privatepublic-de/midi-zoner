@@ -4889,7 +4889,27 @@ body.minimized .midi-led.on {
   color: var(--brighter-2);
 }
 .cce-row.in-section .cce-row-name {
-  padding-left: 12px;
+  padding-left: 16px;
+}
+/* collapsing pages and sections */
+#ccEditor .cce-fold {
+  width: 16px;
+  margin: 0 2px 0 -2px;
+  vertical-align: -3px;
+  font-size: 16px;
+  color: var(--brighter-2);
+  border-radius: var(--radius-sm);
+  transition: transform 0.12s;
+}
+#ccEditor .cce-fold:hover {
+  color: var(--text-base-color);
+  background-color: var(--brighter-1);
+}
+.cce-row.collapsed .cce-fold {
+  transform: rotate(-90deg);
+}
+.cce-page-row .cce-fold {
+  vertical-align: -2px;
 }
 .cce-mini-break {
   flex-basis: 100%;
