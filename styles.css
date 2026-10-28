@@ -548,7 +548,8 @@ body.setup-open .setup-toggle .chevron {
 }
 
 .global-resets,
-.strip-end {
+.strip-end,
+.strip-end .history {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -4169,7 +4170,7 @@ body:has(.clocksettings.isExternal) .es-play + .es-sep {
    ============================================================= */
 
 body.minimized #midisettings > :is(#setupToggle, .global-resets, #setupDrawer),
-body.minimized #midisettings .strip-end > #midiPanic,
+body.minimized #midisettings .strip-end > :is(#midiPanic, .history),
 body.minimized #tools,
 body.minimized .zone > :not(.channels),
 body.minimized .zone .channels > :not(.state):not(.solo):not(.showseq):not(.showarp):not(.zone-label):not(.midi-led),
