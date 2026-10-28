@@ -4151,6 +4151,41 @@ body:has(.clocksettings.isExternal) .es-play + .es-sep {
   width: calc(560px - 16px);
   max-width: 100%;
 }
+/* tighter than in the zone, to leave the grid its height: rows closer together, and
+   Apply to all (alone in its row once the zone-only buttons are hidden) moves up
+   beside the ratchet settings; the Locks row, when shown, goes last */
+.pr-steps .seq.has-selection .step-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  padding-top: 3px;
+  padding-bottom: 3px;
+}
+.pr-steps .step-info > .step-controls {
+  flex: 1 0 100%;
+  margin-bottom: 2px;
+  padding-bottom: 2px;
+}
+.pr-steps .step-info > .step-controls:has(.seq_step_ratchet_count) {
+  flex: 1 1 auto;
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+.pr-steps .step-info > .step-controls:last-child {
+  flex: 0 0 auto;
+}
+.pr-steps .step-info > .step-locks {
+  order: 1;
+  margin: 2px 0 0;
+  padding: 2px 0 0;
+  border-top: 1px solid var(--brighter-1);
+  border-bottom: none;
+}
+.pr-steps .step-notes {
+  min-height: 22px;
+  padding: 0 2px;
+}
 /* step navigation, clearing and note input belong to the zone's grid; the piano roll
    has its own arrows, Delete and mouse input */
 .pr-steps.zone [data-action*=':seq_step_move:'],
