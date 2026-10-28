@@ -361,8 +361,7 @@ export class Sequence {
               infoText += '<i>Empty step. Play some notes ...</i>';
             }
           }
-          const stepNotes =
-            this.zone.elements.sequencerElement?.querySelector('.step-notes');
+          const stepNotes = this.zone._$('.step-notes');
           if (stepNotes) stepNotes.innerHTML = infoText;
 
           if (this.isHotRecordingNotes) {

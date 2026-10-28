@@ -2,6 +2,8 @@ import { Note } from './note';
 import type { ParamLock } from './param-locks';
 
 export const UPDATE_ZONE_VIEW_EVENT = 'update-zone-view';
+// After every change that is saved (an action, an edit in a panel): views showing zone data redraw
+export const ZONES_CHANGED_EVENT = 'zones-changed';
 /** A zone's knobs show other values: parameter locks were sent or reverted (detail: the zone) */
 export const CC_LOCK_VALUES_EVENT = 'cc-lock-values';
 

@@ -7,6 +7,7 @@ import { ActionContext, ZoneType, SequenceType } from './types';
 import { labelForZone } from './action-labels';
 import { showStepProperties, stepDetails, velocityLabel } from './step-marks';
 import { initSheetHeader, setSheetZone } from './editor-sheet';
+import { ZONES_CHANGED_EVENT } from '../zone/interfaces';
 
 // Steps share the visible width (between these bounds, scrolling beyond); the
 // width is set as --pr-cell-w for the grid lines in styles.css.
@@ -203,6 +204,10 @@ let lastPointer: { x: number; y: number } | null = null;
 let overlayEl: HTMLElement;
 let deleteBtn: HTMLButtonElement;
 let boxEl: HTMLElement;
+let stepsHostEl: HTMLElement; // .pr-steps
+let stepsSeqEl: HTMLElement; // its .seq, which holds the zone's step editor while open
+let hostedInfo: { el: HTMLElement; parent: HTMLElement; next: Node | null } | null = null;
+let redrawPending = false;
 let mainScrollEl: HTMLElement;
 let keysEl: HTMLElement;
 let gridEl: HTMLElement;
@@ -286,6 +291,53 @@ function getZoneColor(zone: ZoneType, prop = '--zone-color', fallback = '#dab249
 
 function updateTools(): void {
   deleteBtn.disabled = selectedNotes.size === 0;
+  syncStepSelection();
+}
+
+// The zone's step selection follows the notes selected here, so the step editor below
+// edits their steps. Set directly: the setter would arm recording notes into the step.
+function syncStepSelection(): void {
+  if (!activeCtx) return;
+  const sequence = activeCtx.zone.sequence;
+  const steps = new Set(selectedItems(sequence).map((i) => i.startStep));
+  const current = sequence.selectedStepNumbers;
+  if (steps.size === current.size && [...steps].every((n) => current.has(n))) return;
+  if (steps.size === 0) {
+    sequence.clearSelection();
+  } else {
+    current.clear();
+    steps.forEach((n) => current.add(n));
+    sequence.isHotRecordingNotes = false;
+  }
+  activeCtx.updateValuesForZone(activeCtx.zoneindex);
+}
+
+// Moves the zone's step editor in. One found in the zone is a fresh one (the zone was
+// drawn anew, e.g. after undo), so this runs every frame and takes it over.
+function hostStepInfo(zone: ZoneType): void {
+  const fresh = zone.elements.zoneElement?.querySelector('.step-info') as HTMLElement | null;
+  if (!fresh) return;
+  releaseStepInfo();
+  hostedInfo = { el: fresh, parent: fresh.parentElement!, next: fresh.nextSibling };
+  stepsSeqEl.appendChild(fresh);
+  zone.elements.stepInfoHost = fresh; // the zone still finds its fields (zone._$)
+}
+
+/** Puts the step editor back into its zone, or drops it when that zone's DOM is gone */
+function releaseStepInfo(): void {
+  if (!hostedInfo) return;
+  const { el, parent, next } = hostedInfo;
+  hostedInfo = null;
+  if (parent.isConnected) parent.insertBefore(el, next?.parentNode === parent ? next : null);
+  else el.remove();
+}
+
+// The zone's styles for the editor depend on its .seq's state classes
+function mirrorStepState(zone: ZoneType): void {
+  const selected = zone.sequence.hasSelection;
+  stepsSeqEl.classList.toggle('has-selection', selected);
+  stepsSeqEl.classList.toggle('multi-selection', zone.sequence.selectedStepNumbers.size > 1);
+  if (stepsHostEl.hidden === selected) stepsHostEl.hidden = !selected;
 }
 
 function clearSelection(): void {
@@ -815,6 +867,8 @@ function tick(): void {
   } else {
     updatePlayhead(zone);
   }
+  hostStepInfo(zone);
+  mirrorStepState(zone);
   rafHandle = requestAnimationFrame(tick);
 }
 
@@ -823,6 +877,11 @@ function close(): void {
   boxEl.style.display = 'none';
   finishDrag();
   stopPreview();
+  // also ends the zone's step selection: with steps selected its knobs would set locks
+  clearSelection();
+  releaseStepInfo();
+  if (activeCtx) activeCtx.zone.elements.stepInfoHost = null;
+  stepsHostEl.hidden = true;
   if (activeCtx) {
     // Idempotent safety net: also ends an in-flight velocity-bar (potDragHandler)
     // gesture if the popup is closed mid-drag, so undo-history never stays wedged open.
@@ -848,12 +907,18 @@ export function openPianoRoll(ctx: ActionContext): void {
   }
   activeCtx = ctx;
   lastBoundSequence = ctx.zone.sequence;
-  clearSelection();
+  selectedNotes.clear();
+  // steps selected in the zone: their notes start selected
+  ctx.zone.sequence.selectedStepNumbers.forEach((n) =>
+    ctx.zone.sequence.steps[n]?.notesArray.forEach((note) => selectedNotes.add(note))
+  );
   setSheetZone(overlayEl, ctx.zone, ctx.zoneindex);
   overlayEl.style.setProperty('--zone-color', getZoneColor(ctx.zone));
   overlayEl.style.setProperty('--zone-surface', getZoneColor(ctx.zone, '--zone-surface', '#7b5f06'));
   overlayEl.classList.add('open');
+  hostStepInfo(ctx.zone);
   renderAll(ctx.zone);
+  mirrorStepState(ctx.zone);
   centerScrollOnNotes(ctx.zone);
   followStep = -1;
   if (rafHandle === null) rafHandle = requestAnimationFrame(tick);
@@ -870,6 +935,8 @@ export function initPianoRoll(): void {
   stepHeaderEl = overlayEl.querySelector('.pr-step-numbers') as HTMLElement;
   velocityScrollEl = overlayEl.querySelector('.pr-velocity-scroll-inner') as HTMLElement;
   velocityLaneEl = overlayEl.querySelector('.pr-velocity-lane') as HTMLElement;
+  stepsHostEl = overlayEl.querySelector('.pr-steps') as HTMLElement;
+  stepsSeqEl = stepsHostEl.querySelector('.seq') as HTMLElement;
   boxEl = document.createElement('div');
   boxEl.className = 'pr-box';
   gridEl.appendChild(boxEl);
@@ -894,6 +961,15 @@ export function initPianoRoll(): void {
       if (!overlayEl.classList.contains('open') || !activeCtx) return;
       const mod = ev.metaKey || ev.ctrlKey;
       if (mod && ev.code === 'KeyZ') return;
+      const target = ev.target as HTMLElement;
+      if (target.matches('input, select, textarea')) {
+        // a field of the step editor keeps its keys (the overlay stops them for the app)
+        if (ev.key === 'Escape') {
+          ev.stopPropagation();
+          target.blur();
+        }
+        return;
+      }
       if (ev.code === 'Space') {
         ev.preventDefault(); // play / stop (app.ts), not a press of the focused button
         return;
@@ -934,7 +1010,10 @@ export function initPianoRoll(): void {
         ev.preventDefault();
         moveSelected(zone, ...arrows[ev.key]);
       } else if (ev.key === 'Escape') {
-        if (selectedNotes.size > 0) {
+        const menu = DOM.get('#contextmenu') as HTMLElement | null;
+        if (menu && menu.style.display === 'block') {
+          window.dispatchEvent(new CustomEvent('closeContextMenu'));
+        } else if (selectedNotes.size > 0) {
           clearSelection();
           renderNotesAndVelocity(activeCtx.zone);
         } else close();
@@ -945,9 +1024,24 @@ export function initPianoRoll(): void {
     },
     true
   );
+  overlayEl.addEventListener('keydown', (ev) => {
+    if (!((ev.metaKey || ev.ctrlKey) && ev.code === 'KeyZ')) ev.stopPropagation();
+  });
   document.addEventListener('mousedown', (ev) => {
     if (!overlayEl.classList.contains('open')) return;
-    if (!overlayEl.contains(ev.target as Node)) close();
+    const target = ev.target as Element;
+    // menus (Apply to all), dialogs and toasts opened from the panel live outside it
+    if (overlayEl.contains(target) || target.closest('#contextmenu, dialog, #toast')) return;
+    close();
+  });
+  // Changes from the step editor or a menu (marks, lengths, velocities) show here too
+  window.addEventListener(ZONES_CHANGED_EVENT, () => {
+    if (!activeCtx || redrawPending) return;
+    redrawPending = true;
+    requestAnimationFrame(() => {
+      redrawPending = false;
+      if (activeCtx && !dragState && !boxState) renderNotesAndVelocity(activeCtx.zone);
+    });
   });
 
   window.addEventListener('resize', () => {

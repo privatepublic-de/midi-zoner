@@ -4132,6 +4132,37 @@ body:has(.clocksettings.isExternal) .es-play + .es-sep {
   cursor: ns-resize;
 }
 
+/* The zone's step editor for the steps of the selected notes: moved in from the
+   zone (piano-roll.ts) and shown as there, on the zone's surface at the zone's width */
+.pr-steps.zone {
+  flex-shrink: 0;
+  width: auto;
+  min-width: 0;
+  padding: 2px 8px 8px;
+  border-top: 1px solid var(--darker-3);
+  border-radius: 0;
+  box-shadow: none;
+}
+.pr-steps.zone[hidden] {
+  display: none;
+}
+.pr-steps .step-info {
+  width: calc(560px - 16px);
+  max-width: 100%;
+}
+/* step navigation, clearing and note input belong to the zone's grid; the piano roll
+   has its own arrows, Delete and mouse input */
+.pr-steps.zone [data-action*=':seq_step_move:'],
+.pr-steps.zone [data-action$=':seq_clear_selected_step'],
+.pr-steps.zone .seq-step-add-notes,
+.pr-steps.zone .seq-step-advance {
+  display: none;
+}
+/* the knobs that set locks are behind the panel: the row only lists existing ones */
+.pr-steps.zone .step-locks:not(.has-locks) {
+  display: none;
+}
+
 /* =============================================================
    MINIMIZED VIEW  (body.minimized)
    2-column grid of compact blocks: mute/solo/seq/arp toggles + label

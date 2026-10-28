@@ -7,6 +7,7 @@ import potDragHandler from '../potdraghandler';
 import * as zoneTemplate from '../zone-template';
 import { Zone } from '../zone/zone-class';
 import { Sequence } from '../zone/sequence';
+import { ZONES_CHANGED_EVENT } from '../zone/interfaces';
 import { Note } from '../zone/note';
 import { showStepProperties } from './step-marks';
 
@@ -118,6 +119,7 @@ function initController({
   triggerSave = () => {
     undoHistory.afterAction(JSON.stringify(zones));
     originalSave();
+    window.dispatchEvent(new CustomEvent(ZONES_CHANGED_EVENT));
   };
   zones = data;
   midiController = midi;

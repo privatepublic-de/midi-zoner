@@ -19,6 +19,8 @@ export class ZoneElements {
   rangeCurrent: HTMLElement | null = null;
   octaveSelectors: NodeListOf<HTMLElement> | null = null;
   ccPots: NodeListOf<HTMLElement> | null = null;
+  // The step editor while the piano roll shows it, outside the zone element
+  stepInfoHost: HTMLElement | null = null;
   private cachedElements: Record<string, HTMLElement | null> = {};
 
   init(index: number): void {
@@ -52,6 +54,7 @@ export class ZoneElements {
   reset(): void {
     this.isReady = false;
     this.cachedElements = {};
+    this.stepInfoHost = null;
   }
 
   emptyCache(): void {
@@ -60,7 +63,8 @@ export class ZoneElements {
 
   private getCachedElement(selector: string): HTMLElement | null {
     if (!this.cachedElements[selector]) {
-      this.cachedElements[selector] = this.zoneElement?.querySelector(selector) || null;
+      this.cachedElements[selector] =
+        this.zoneElement?.querySelector(selector) || this.stepInfoHost?.querySelector(selector) || null;
     }
     return this.cachedElements[selector];
   }
