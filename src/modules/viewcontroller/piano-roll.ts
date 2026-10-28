@@ -97,6 +97,29 @@ function moveNote(
   }
 }
 
+interface MoveItem {
+  note: Note;
+  startStep: number;
+  startPitch: number;
+}
+
+// Moves notes by an offset from where they started. Notes ahead in the direction of
+// travel go first, so none lands on a note that is about to move away.
+function moveItems(sequence: SequenceType, items: MoveItem[], deltaSteps: number, deltaPitch: number): void {
+  const ordered = [...items].sort(
+    (a, b) =>
+      (deltaSteps >= 0 ? b.startStep - a.startStep : a.startStep - b.startStep) ||
+      (deltaPitch >= 0 ? b.startPitch - a.startPitch : a.startPitch - b.startPitch)
+  );
+  for (const item of ordered) {
+    const currentStep = findNoteLocation(sequence, item.note);
+    if (currentStep === null) continue;
+    const targetStep = clamp(item.startStep + deltaSteps, 0, sequence.length - 1);
+    const targetPitch = clamp(item.startPitch + deltaPitch, 0, 127);
+    moveNote(sequence, currentStep, item.note, targetStep, targetPitch);
+  }
+}
+
 // Single in-flight MIDI audition note, sent directly via the MIDI wrapper (not
 // zone.handleMidi) so previewing a pitch never triggers arp/note-range/playback bookkeeping.
 const previewBuf = new Uint8Array(3);
@@ -131,27 +154,47 @@ function previewNote(zone: ZoneType, pitch: number, velocity: number): void {
 }
 
 type DragMode = 'move' | 'resize';
-interface DragItem {
-  note: Note;
-  startStep: number;
-  startPitch: number;
-}
 interface DragState {
   mode: DragMode;
   anchorX: number;
   anchorY: number;
   lastDeltaSteps: number;
   lastDeltaPitch: number;
-  items: DragItem[];
+  items: MoveItem[];
   resizeStepIndex?: number;
   resizeStartLength?: number;
 }
+
+// A drag on empty grid draws a selection box (⇧ / ⌘ add to the selection); a press
+// without movement adds a note. Grid coordinates, so scrolling during the drag is fine.
+interface BoxState {
+  x0: number;
+  y0: number;
+  active: boolean;
+  base: Set<Note>;
+}
+const BOX_THRESHOLD = 4; // px before a press becomes a box
+
+// Notes copied in the piano roll (⌘C), as offsets from the first copied step
+interface ClipNote {
+  offset: number;
+  note: Note;
+  step: SeqStep; // settings for an empty target step (no notes, locks or slide)
+}
+interface NoteClip {
+  notes: ClipNote[];
+  span: number; // steps from the first copied step to the end of the longest note
+}
+let clipboard: NoteClip | null = null;
+let nextPasteStep = 0; // ⌘V goes on after the copied notes, then after each paste
 
 let activeCtx: ActionContext | null = null;
 let lastBoundSequence: SequenceType | null = null;
 let rafHandle: number | null = null;
 let dragState: DragState | null = null;
 const selectedNotes = new Set<Note>();
+const noteEls = new Map<Note, HTMLElement>();
+let boxState: BoxState | null = null;
 let keysBuilt = false;
 const keyEls: HTMLElement[] = []; // indexed by pitch
 let cursorRowPitch: number | null = null;
@@ -159,6 +202,7 @@ let lastPointer: { x: number; y: number } | null = null;
 
 let overlayEl: HTMLElement;
 let deleteBtn: HTMLButtonElement;
+let boxEl: HTMLElement;
 let mainScrollEl: HTMLElement;
 let keysEl: HTMLElement;
 let gridEl: HTMLElement;
@@ -260,6 +304,84 @@ function toggleSelection(note: Note, el: HTMLElement): void {
   updateTools();
 }
 
+function selectedItems(sequence: SequenceType): MoveItem[] {
+  const items: MoveItem[] = [];
+  selectedNotes.forEach((n) => {
+    const loc = findNoteLocation(sequence, n);
+    if (loc !== null) items.push({ note: n, startStep: loc, startPitch: n.number });
+  });
+  return items;
+}
+
+/** Arrow keys: by steps and semitones, as one undo entry; nothing moves when a note would leave the grid */
+function moveSelected(zone: ZoneType, deltaSteps: number, deltaPitch: number): void {
+  if (!activeCtx) return;
+  const sequence = zone.sequence;
+  const items = selectedItems(sequence);
+  const fits = (i: MoveItem): boolean =>
+    i.startStep + deltaSteps >= 0 &&
+    i.startStep + deltaSteps < sequence.length &&
+    i.startPitch + deltaPitch >= 0 &&
+    i.startPitch + deltaPitch <= 127;
+  if (items.length === 0 || !items.every(fits)) return;
+  activeCtx.beforeAction(labelForZone(zone, activeCtx.zoneindex, 'Note Position'));
+  moveItems(sequence, items, deltaSteps, deltaPitch);
+  renderNotesAndVelocity(zone);
+  if (deltaPitch !== 0) previewNote(zone, items[0].note.number, items[0].note.velo);
+  commitEdit(activeCtx);
+}
+
+function clipSelection(sequence: SequenceType): NoteClip | null {
+  const found = selectedItems(sequence);
+  if (found.length === 0) return null;
+  const first = Math.min(...found.map((i) => i.startStep));
+  const end = Math.max(...found.map((i) => i.startStep + sequence.steps[i.startStep]!.length));
+  const notes = found.map((i) => {
+    const step = SeqStep.from(sequence.steps[i.startStep]);
+    step.notesArray = []; // SeqStep.from shallow-clones the array
+    step.locks = [];
+    step.slide = false;
+    return { offset: i.startStep - first, note: Note.clone(i.note), step };
+  });
+  return { notes, span: end - first };
+}
+
+function copySelection(zone: ZoneType): boolean {
+  const clip = clipSelection(zone.sequence);
+  if (!clip) return false;
+  clipboard = clip;
+  nextPasteStep = Math.min(...selectedItems(zone.sequence).map((i) => i.startStep)) + clip.span;
+  return true;
+}
+
+/** Puts the notes of a clip in at `at` as one undo entry; they become the selection */
+function pasteClip(zone: ZoneType, clip: NoteClip, at: number, label: string): void {
+  if (!activeCtx) return;
+  const sequence = zone.sequence;
+  activeCtx.beforeAction(labelForZone(zone, activeCtx.zoneindex, label));
+  selectedNotes.clear();
+  for (const c of clip.notes) {
+    const i = at + c.offset;
+    if (i >= sequence.length) continue;
+    let step = sequence.steps[i];
+    if (!step) {
+      // as when moving a note: an empty step takes the settings of the copied one
+      step = SeqStep.from(c.step);
+      step.notesArray = [];
+      step.length = Math.min(step.length, sequence.length - i);
+      sequence.steps[i] = step;
+    }
+    const note = Note.clone(c.note);
+    note.channel = zone.channel;
+    note.portId = zone.outputPortId;
+    if (SeqStep.addNote(step.notesArray, note)) selectedNotes.add(note);
+    else if (step.isBlank()) sequence.steps[i] = null;
+  }
+  renderNotesAndVelocity(zone);
+  commitEdit(activeCtx);
+  if (selectedNotes.size === 0) activeCtx.toast('Nothing pasted: past the end of the sequence, or the notes are already there');
+}
+
 function selectAll(zone: ZoneType): void {
   zone.sequence.steps.forEach((step) => step?.notesArray.forEach((n) => selectedNotes.add(n)));
   renderNotesAndVelocity(zone);
@@ -270,9 +392,9 @@ function commitEdit(ctx: ActionContext): void {
   ctx.triggerSave();
 }
 
-function deleteSelected(zone: ZoneType): void {
+function deleteSelected(zone: ZoneType, label = 'Delete Note'): void {
   if (selectedNotes.size === 0 || !activeCtx) return;
-  activeCtx.beforeAction(labelForZone(zone, activeCtx.zoneindex, 'Delete Note'));
+  activeCtx.beforeAction(labelForZone(zone, activeCtx.zoneindex, label));
   const sequence = zone.sequence;
   for (let i = 0; i < sequence.length; i++) {
     const step = sequence.steps[i];
@@ -307,11 +429,7 @@ function wireNoteInteraction(
       renderNotesAndVelocity(zone);
     }
     const sequence = zone.sequence;
-    const items: DragItem[] = [];
-    selectedNotes.forEach((n) => {
-      const loc = findNoteLocation(sequence, n);
-      if (loc !== null) items.push({ note: n, startStep: loc, startPitch: n.number });
-    });
+    const items = selectedItems(sequence);
     if (items.length === 0) return;
     if (activeCtx) activeCtx.startGesture(labelForZone(zone, activeCtx.zoneindex, 'Note Position'));
     dragState = {
@@ -404,6 +522,7 @@ function renderNotesAndVelocity(zone: ZoneType): void {
   fitCellWidth(sequence);
   renderStepHeader(sequence);
   stepNoteEls = [];
+  noteEls.clear();
   const gridWidth = sequence.length * cellW;
   notesEl.style.width = `${gridWidth}px`;
   notesEl.style.height = `${128 * ROW_H}px`;
@@ -427,6 +546,7 @@ function renderNotesAndVelocity(zone: ZoneType): void {
       noteEl.style.setProperty('--velo', (note.velo / 127).toFixed(3));
       noteEl.title = [Note.display(note.number), velocityLabel(note.velo), ...stepDetails(step)].join(', ');
       stepNoteEls[stepIndex].push(noteEl);
+      noteEls.set(note, noteEl);
       const handle = document.createElement('div');
       handle.className = 'pr-note-handle';
       noteEl.appendChild(handle);
@@ -529,13 +649,64 @@ function centerScrollOnNotes(zone: ZoneType): void {
   velocityScrollEl.scrollLeft = 0;
 }
 
+function gridPoint(ev: { clientX: number; clientY: number }): { x: number; y: number } {
+  const rect = gridEl.getBoundingClientRect();
+  return { x: ev.clientX - rect.left, y: ev.clientY - rect.top };
+}
+
 function handleGridMouseDown(ev: MouseEvent): void {
   if (ev.button !== 0 || !activeCtx) return;
-  const zone = activeCtx.zone;
+  const { x, y } = gridPoint(ev);
+  const additive = ev.shiftKey || ev.metaKey || ev.ctrlKey;
+  boxState = { x0: x, y0: y, active: false, base: additive ? new Set(selectedNotes) : new Set() };
+}
+
+function updateBox(ev: MouseEvent): void {
+  if (!boxState || !activeCtx) return;
+  const { x, y } = gridPoint(ev);
+  if (!boxState.active && Math.hypot(x - boxState.x0, y - boxState.y0) < BOX_THRESHOLD) return;
+  boxState.active = true;
+  const left = Math.min(x, boxState.x0);
+  const right = Math.max(x, boxState.x0);
+  const top = Math.min(y, boxState.y0);
+  const bottom = Math.max(y, boxState.y0);
+  Object.assign(boxEl.style, {
+    display: 'block',
+    left: `${left}px`,
+    top: `${top}px`,
+    width: `${right - left}px`,
+    height: `${bottom - top}px`
+  });
+  const sequence = activeCtx.zone.sequence;
+  selectedNotes.clear();
+  boxState.base.forEach((n) => selectedNotes.add(n));
+  for (let i = 0; i < sequence.length; i++) {
+    const step = sequence.steps[i];
+    if (!step) continue;
+    const noteLeft = stepToX(i);
+    const noteRight = noteLeft + step.length * cellW;
+    for (const note of step.notesArray) {
+      const noteTop = pitchToY(note.number);
+      if (noteLeft < right && noteRight > left && noteTop < bottom && noteTop + ROW_H > top) selectedNotes.add(note);
+    }
+  }
+  noteEls.forEach((el, note) => el.classList.toggle('selected', selectedNotes.has(note)));
+  updateTools();
+}
+
+function finishBox(): void {
+  if (!boxState) return;
+  const { x0, y0, active } = boxState;
+  boxState = null;
+  boxEl.style.display = 'none';
+  if (!active && activeCtx) addNoteAt(activeCtx.zone, x0, y0);
+}
+
+function addNoteAt(zone: ZoneType, x: number, y: number): void {
+  if (!activeCtx) return;
   const sequence = zone.sequence;
-  const rect = gridEl.getBoundingClientRect();
-  const stepIndex = xToStep(ev.clientX - rect.left, sequence.length);
-  const pitch = yToPitch(ev.clientY - rect.top);
+  const stepIndex = xToStep(x, sequence.length);
+  const pitch = yToPitch(y);
 
   activeCtx.beforeAction(labelForZone(zone, activeCtx.zoneindex, 'Add Note'));
   let step = sequence.steps[stepIndex];
@@ -557,6 +728,7 @@ function handleWindowMouseMove(ev: MouseEvent): void {
   if (!activeCtx) return;
   lastPointer = { x: ev.clientX, y: ev.clientY };
   updateCursorRow();
+  updateBox(ev);
   if (!dragState) return;
   const zone = activeCtx.zone;
   const sequence = zone.sequence;
@@ -570,16 +742,7 @@ function handleWindowMouseMove(ev: MouseEvent): void {
     dragState.lastDeltaSteps = deltaSteps;
     dragState.lastDeltaPitch = deltaPitch;
 
-    const ordered = [...dragState.items].sort((a, b) =>
-      deltaSteps >= 0 ? b.startStep - a.startStep : a.startStep - b.startStep
-    );
-    for (const item of ordered) {
-      const currentStep = findNoteLocation(sequence, item.note);
-      if (currentStep === null) continue;
-      const targetStep = clamp(item.startStep + deltaSteps, 0, sequence.length - 1);
-      const targetPitch = clamp(item.startPitch + deltaPitch, 0, 127);
-      moveNote(sequence, currentStep, item.note, targetStep, targetPitch);
-    }
+    moveItems(sequence, dragState.items, deltaSteps, deltaPitch);
     renderNotesAndVelocity(zone);
     if (deltaPitch !== 0 && dragState.items.length > 0) {
       const previewPitch = clamp(dragState.items[0].startPitch + deltaPitch, 0, 127);
@@ -612,6 +775,7 @@ function finishDrag(): void {
 }
 
 function handleWindowMouseUp(): void {
+  finishBox();
   finishDrag();
   updateCursorRow();
 }
@@ -655,6 +819,8 @@ function tick(): void {
 }
 
 function close(): void {
+  boxState = null;
+  boxEl.style.display = 'none';
   finishDrag();
   stopPreview();
   if (activeCtx) {
@@ -704,6 +870,9 @@ export function initPianoRoll(): void {
   stepHeaderEl = overlayEl.querySelector('.pr-step-numbers') as HTMLElement;
   velocityScrollEl = overlayEl.querySelector('.pr-velocity-scroll-inner') as HTMLElement;
   velocityLaneEl = overlayEl.querySelector('.pr-velocity-lane') as HTMLElement;
+  boxEl = document.createElement('div');
+  boxEl.className = 'pr-box';
+  gridEl.appendChild(boxEl);
 
   buildKeyboardOnce();
 
@@ -730,9 +899,40 @@ export function initPianoRoll(): void {
         return;
       }
       ev.stopPropagation();
+      const zone = activeCtx.zone;
+      const arrows: Record<string, [number, number]> = {
+        ArrowLeft: [ev.shiftKey ? -4 : -1, 0],
+        ArrowRight: [ev.shiftKey ? 4 : 1, 0],
+        ArrowUp: [0, ev.shiftKey ? 12 : 1],
+        ArrowDown: [0, ev.shiftKey ? -12 : -1]
+      };
       if (mod && ev.code === 'KeyA') {
         ev.preventDefault();
-        selectAll(activeCtx.zone);
+        selectAll(zone);
+      } else if (mod && (ev.code === 'KeyC' || ev.code === 'KeyX')) {
+        ev.preventDefault();
+        const count = selectedNotes.size;
+        if (!copySelection(zone)) return;
+        if (ev.code === 'KeyX') deleteSelected(zone, 'Cut Notes');
+        else activeCtx.toast(`Copied ${count} note${count == 1 ? '' : 's'}`);
+      } else if (mod && ev.code === 'KeyV') {
+        ev.preventDefault();
+        if (!clipboard) {
+          activeCtx.toast('Nothing to paste: copy notes first (⌘C)');
+          return;
+        }
+        const at = nextPasteStep;
+        pasteClip(zone, clipboard, at, 'Paste Notes');
+        nextPasteStep = at + clipboard.span;
+      } else if (mod && ev.code === 'KeyD') {
+        ev.preventDefault();
+        const clip = clipSelection(zone.sequence);
+        if (!clip) return;
+        const first = Math.min(...selectedItems(zone.sequence).map((i) => i.startStep));
+        pasteClip(zone, clip, first + clip.span, 'Duplicate Notes');
+      } else if (arrows[ev.key] && !mod && !ev.altKey) {
+        ev.preventDefault();
+        moveSelected(zone, ...arrows[ev.key]);
       } else if (ev.key === 'Escape') {
         if (selectedNotes.size > 0) {
           clearSelection();
@@ -740,7 +940,7 @@ export function initPianoRoll(): void {
         } else close();
       } else if (ev.key === 'Delete' || ev.key === 'Backspace') {
         ev.preventDefault();
-        deleteSelected(activeCtx.zone);
+        deleteSelected(zone);
       }
     },
     true

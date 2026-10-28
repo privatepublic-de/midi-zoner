@@ -3960,6 +3960,16 @@ body:has(.clocksettings.isExternal) .es-play + .es-sep {
   left: 0;
 }
 
+/* Selection box: drag on empty grid */
+.pr-box {
+  display: none;
+  position: absolute;
+  z-index: 3;
+  border: 1px solid var(--zone-color);
+  background-color: color-mix(in srgb, var(--zone-color) 14%, transparent);
+  pointer-events: none;
+}
+
 /* Notes are shaded by velocity and carry the step grid's marks: hatching for
    chance < 100%, a corner triangle for a play condition, ticks for ratchet. */
 .pr-note {
