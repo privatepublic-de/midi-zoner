@@ -599,6 +599,10 @@ function renderNotesAndVelocity(zone: ZoneType): void {
       noteEl.title = [Note.display(note.number), velocityLabel(note.velo), ...stepDetails(step)].join(', ');
       stepNoteEls[stepIndex].push(noteEl);
       noteEls.set(note, noteEl);
+      const chanceMark = document.createElement('span');
+      chanceMark.className = 'chance-mark';
+      chanceMark.textContent = '?';
+      noteEl.appendChild(chanceMark);
       const handle = document.createElement('div');
       handle.className = 'pr-note-handle';
       noteEl.appendChild(handle);

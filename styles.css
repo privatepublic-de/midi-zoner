@@ -2272,7 +2272,8 @@ input[type='range'] {
 }
 
 /* Step properties at a glance (set by showStepProperties): fill height is
-   velocity, hatching is chance < 100%, a corner triangle is a play condition,
+   velocity, a "?" in place of the beat number is chance < 100%, a corner
+   triangle is a play condition,
    bottom ticks are the ratchet count, a bar through the following cells is
    length. Each mark owns an edge; the beat number sits small at the left. */
 .seq .grid .step {
@@ -2291,14 +2292,14 @@ input[type='range'] {
   color: var(--ink);
 }
 
-.seq .grid .step.active[data-chance] {
-  background-image:
-    repeating-linear-gradient(
-      135deg,
-      var(--darker-3) 0 1.5px,
-      transparent 1.5px 4px
-    ),
-    var(--step-fill);
+.seq .grid .step .chance-mark {
+  display: none;
+}
+.seq .grid .step.active[data-chance] .chance-mark {
+  display: inline;
+}
+.seq .grid .step.active[data-chance] .beat-num {
+  display: none;
 }
 
 .seq .grid .step.active[data-cond]::after {
@@ -3971,8 +3972,9 @@ body:has(.clocksettings.isExternal) .es-play + .es-sep {
   pointer-events: none;
 }
 
-/* Notes are shaded by velocity and carry the step grid's marks: hatching for
-   chance < 100%, a corner triangle for a play condition, ticks for ratchet. */
+/* Notes are shaded by velocity and carry the step grid's marks: a "?" at the
+   right end for chance < 100%, a corner triangle for a play condition, ticks for
+   ratchet. */
 .pr-note {
   position: absolute;
   height: 12px;
@@ -3988,12 +3990,22 @@ body:has(.clocksettings.isExternal) .es-play + .es-sep {
   overflow: hidden;
 }
 
-.pr-note[data-chance] {
-  background-image: repeating-linear-gradient(
-    135deg,
-    var(--darker-3) 0 1.5px,
-    transparent 1.5px 4px
-  );
+.pr-note .chance-mark {
+  display: none;
+  position: absolute;
+  top: -1px;
+  right: 3px;
+  font-size: 9px;
+  line-height: 12px;
+  color: var(--ink);
+  pointer-events: none;
+}
+.pr-note[data-chance] .chance-mark {
+  display: block;
+}
+/* in front of the condition triangle */
+.pr-note[data-chance][data-cond] .chance-mark {
+  right: 9px;
 }
 
 .pr-note[data-cond]::after {
