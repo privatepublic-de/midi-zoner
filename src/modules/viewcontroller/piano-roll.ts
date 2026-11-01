@@ -600,8 +600,8 @@ function renderNotesAndVelocity(zone: ZoneType): void {
       stepNoteEls[stepIndex].push(noteEl);
       noteEls.set(note, noteEl);
       const chanceMark = document.createElement('span');
-      chanceMark.className = 'chance-mark';
-      chanceMark.textContent = '?';
+      chanceMark.className = 'material-icons chance-mark';
+      chanceMark.textContent = 'casino';
       noteEl.appendChild(chanceMark);
       const handle = document.createElement('div');
       handle.className = 'pr-note-handle';

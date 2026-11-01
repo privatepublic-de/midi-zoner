@@ -2272,7 +2272,7 @@ input[type='range'] {
 }
 
 /* Step properties at a glance (set by showStepProperties): fill height is
-   velocity, a "?" in place of the beat number is chance < 100%, a corner
+   velocity, a die in place of the beat number is chance < 100%, a corner
    triangle is a play condition,
    bottom ticks are the ratchet count, a bar through the following cells is
    length. Each mark owns an edge; the beat number sits small at the left. */
@@ -2294,9 +2294,13 @@ input[type='range'] {
 
 .seq .grid .step .chance-mark {
   display: none;
+  font-size: 10px;
+  line-height: 10px;
+  width: 10px;
+  height: 10px;
 }
 .seq .grid .step.active[data-chance] .chance-mark {
-  display: inline;
+  display: block;
 }
 .seq .grid .step.active[data-chance] .beat-num {
   display: none;
@@ -3972,7 +3976,7 @@ body:has(.clocksettings.isExternal) .es-play + .es-sep {
   pointer-events: none;
 }
 
-/* Notes are shaded by velocity and carry the step grid's marks: a "?" at the
+/* Notes are shaded by velocity and carry the step grid's marks: a die at the
    right end for chance < 100%, a corner triangle for a play condition, ticks for
    ratchet. */
 .pr-note {
@@ -3993,10 +3997,12 @@ body:has(.clocksettings.isExternal) .es-play + .es-sep {
 .pr-note .chance-mark {
   display: none;
   position: absolute;
-  top: -1px;
-  right: 3px;
-  font-size: 9px;
-  line-height: 12px;
+  top: 0;
+  right: 2px;
+  font-size: 10px;
+  line-height: 10px;
+  width: 10px;
+  height: 10px;
   color: var(--ink);
   pointer-events: none;
 }
@@ -4005,7 +4011,7 @@ body:has(.clocksettings.isExternal) .es-play + .es-sep {
 }
 /* in front of the condition triangle */
 .pr-note[data-chance][data-cond] .chance-mark {
-  right: 9px;
+  right: 8px;
 }
 
 .pr-note[data-cond]::after {
