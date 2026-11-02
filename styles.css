@@ -888,6 +888,21 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
   opacity: 0.3;
 }
 
+/* playing zones: a band of the zone colour behind the header, fading into the
+   card within 140px (so tall and short cards look alike); not in the mini view,
+   whose rows are all header */
+body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .placeholder) {
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--zone-color) 32%, var(--slate-panel)),
+    color-mix(in srgb, var(--zone-color) 8%, var(--slate-panel)) 140px
+  );
+}
+/* the blocks let the band show through */
+#zones > .zone :is(.arp-settings-block, .seq, .ccpots) {
+  background-color: transparent;
+}
+
 .zone input[type='number'],
 .zone input[type='text'] {
   height: 20px;
@@ -1250,7 +1265,7 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
 
 .zone:is(.disabled, .soloed-out) input.zone-label {
   background-color: transparent;
-  box-shadow: inset 0 0 0 1px var(--zone-color);
+  box-shadow: inset 0 0 0 1px var(--slate-line);
   color: var(--zone-color);
 }
 
@@ -2319,9 +2334,9 @@ input[type='range'] {
   height: var(--step-size);
   justify-content: center;
   align-items: center;
-  border: 1px solid var(--darker-1);
+  border: 1px solid var(--slate-line);
   color: var(--brighter-4);
-  background-color: var(--darker-1);
+  background-color: var(--slate-raise); /* opaque: overlays would take on the band behind them */
   font-size: var(--fs-sm);
   text-align: center;
   cursor: pointer;
