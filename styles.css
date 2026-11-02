@@ -1727,7 +1727,7 @@ input[type='range'] {
 
 
 /* Arp pattern: one cell per step, a hit is a filled bar. Cells share the free
-   row width, so 32 steps stay clickable. */
+   row width up to a sequencer step's size, so 32 steps stay clickable. */
 .arp-pattern-row {
   flex-wrap: nowrap;
 }
@@ -1747,21 +1747,37 @@ input[type='range'] {
   align-self: flex-start;
   height: 15px;
   min-width: 4px;
+  max-width: 20px; /* the size of a sequencer step, so 8 steps stay a small row */
   border-radius: var(--radius-sm);
-  background: var(--darker-1);
+  background-color: var(--slate-raise); /* opaque, like the steps, on the zone's band */
+  box-shadow: inset 0 0 0 1px var(--slate-line);
 }
 
-/* groups of 4 steps: a wider gap before each group, cells keep one shape */
-.pattern > i:nth-child(4n + 1):not(:first-child) {
-  margin-left: 4px;
+/* groups of 4 steps: a short tick under each group's first step, in the
+   playhead's strip, so the cells keep one even rhythm */
+.pattern > i:nth-child(4n + 1)::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -4px;
+  width: 6px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--slate-dim);
+}
+
+/* the label centred on the squares, not on the row with the playhead strip */
+.arp-pattern-row > .label {
+  margin-bottom: 5px;
 }
 
 .pattern > i:hover {
-  background: var(--brighter-0);
+  background-image: linear-gradient(var(--brighter-0), var(--brighter-0));
 }
 
 .pattern > i.on {
-  background: var(--brighter-3);
+  background-image: linear-gradient(var(--brighter-3), var(--brighter-3));
+  box-shadow: none;
 }
 
 /* Playhead: the same green bar under the cell on every step (the cells leave
