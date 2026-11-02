@@ -98,6 +98,21 @@ let elAllMuteOff: HTMLElement;
 let elAllSoloOff: HTMLElement;
 let elAllHoldOff: HTMLElement;
 let numberInputController: NumberInputController;
+
+// View setting, per machine: zones silenced by another zone's solo fold like muted
+// ones (default), or keep their layout, dimmed, so nothing moves when soloing
+const FOLD_SOLOED_OUT_KEY = 'foldSoloedOut';
+let foldSoloedOut = localStorage.getItem(FOLD_SOLOED_OUT_KEY) !== '0';
+
+function isFoldSoloedOut(): boolean {
+  return foldSoloedOut;
+}
+
+function setFoldSoloedOut(on: boolean): void {
+  foldSoloedOut = on;
+  localStorage.setItem(FOLD_SOLOED_OUT_KEY, on ? '1' : '0');
+  updateValuesForAllZones();
+}
 let triggerSave: () => void = () => {};
 let undoHistory: UndoHistory = new UndoHistory();
 
@@ -1128,7 +1143,7 @@ function updateValuesForZone(index: number): void {
       'soloed-out'
     );
     DOM.switchClass(zoneElement, !zone.enabled, 'disabled');
-    const zoneIsEnabled = zone.enabled && (Zone.solocount === 0 || zone.solo);
+    const zoneIsEnabled = zone.enabled && (!foldSoloedOut || Zone.solocount === 0 || zone.solo);
     DOM.switchClass(zoneElement, !zoneIsEnabled, 'disabled');
     DOM.switchClass(zoneElement, zone.show_cc, 'show-cc');
 
@@ -1714,5 +1729,7 @@ export {
   toggleSequencerOnZone,
   toast,
   deleteAllZones,
-  setStateChangeCallback
+  setStateChangeCallback,
+  isFoldSoloedOut,
+  setFoldSoloedOut
 };

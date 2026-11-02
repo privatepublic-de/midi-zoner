@@ -862,6 +862,16 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
   --text-base-color: #9aa0a2;
 }
 
+/* "Fold zones silenced by solo" off: those zones keep their layout, dimmed;
+   the header stays bright so M and S remain easy to hit */
+.zone.soloed-out:not(.disabled) {
+  background-color: color(from var(--zone-color) srgb r g b / 0.1);
+  box-shadow: none;
+}
+.zone.soloed-out:not(.disabled) > :not(.channels) {
+  opacity: 0.3;
+}
+
 .zone input[type='number'],
 .zone input[type='text'] {
   height: 20px;

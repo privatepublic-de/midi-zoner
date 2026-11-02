@@ -159,7 +159,7 @@ Device presets: named CC/NRPN controller sets, stored apart from scenes as one J
 
 Port id changes: macOS/CoreMIDI can give a device a new port id after a reboot. On every port update `remapChangedPortIds()` (app.ts) re-links references to absent ids (zone output/input, output presets, clock outputs, selected inputs, clock input, Mackie in/out) to the single present port of the same direction whose name matches `zones.knownPortNames[oldId]` (full port names). Ambiguous names (identical devices) are left as "⚠ missing".
 
-Solo mode is tracked via `Zone.solocount` static counter.
+Solo mode is tracked via `Zone.solocount` static counter. Zones silenced by another zone's solo get `.soloed-out`; with "Fold zones silenced by solo" (View group of the setup drawer, localStorage `foldSoloedOut`, per machine, default on) they also get `.disabled` and fold like muted zones, otherwise they keep their layout, dimmed, so nothing moves when soloing.
 
 Zone header: M (mute) and S chips like a mixer strip. The M chip carries `zone.enabled` (`.ch.enabled`, "selected" while playing) and is lit amber (`--mute-highlight`) only while muted; the global M clears all mutes. Colour, save to file, copy to arrangement and delete are in the ⋯ menu (`.zonemenu`, `data-contextclick`), which shows the same entries as a right-click on the header (`updateZoneHeaderContextMenus()`).
 

@@ -1393,6 +1393,9 @@ document.addEventListener('DOMContentLoaded', function () {
     zones.keySwitchEnabled = (ev.target as HTMLInputElement).checked;
     saveZones();
   });
+  const foldSoloedOutBox = DOM.get('#foldSoloedOut') as HTMLInputElement;
+  foldSoloedOutBox.checked = view.isFoldSoloedOut();
+  foldSoloedOutBox.addEventListener('change', () => view.setFoldSoloedOut(foldSoloedOutBox.checked));
   DOM.on('#mackieOutlineEnabled', 'change', (ev) => {
     zones.mackieOutlineEnabled = (ev.target as HTMLInputElement).checked;
     saveZones();
