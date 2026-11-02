@@ -1177,7 +1177,9 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
   height: 20px;
   background-color: transparent;
   color: var(--zone-color);
-  font-size: var(--fs-sm);
+  /* the zone's name: not smaller than the chips beside it */
+  font-size: var(--fs-md);
+  text-overflow: ellipsis;
   text-align: left;
   padding: 0 4px;
   border: none;
@@ -1533,7 +1535,11 @@ input[type='range'] {
     0 0 0 3px var(--focus-ring);
 }
 
-/* Panic is rarely used: neutral like the other buttons, red only on hover. */
+/* Panic: the emergency button, so a thin red outline sets it apart from the
+   grey buttons; it fills red only on hover. */
+#midiPanic {
+  box-shadow: inset 0 0 0 1px var(--danger);
+}
 #midiPanic:hover {
   background: var(--danger-soft);
   color: var(--brighter-4);
@@ -4225,18 +4231,6 @@ body.minimized .zone.placeholder,
 body.minimized .zone.addnewzone {
   /* !important: mini view hides these over any zone state rule (e.g. .zone.disabled.show-seq .seqprogress) */
   display: none !important;
-}
-
-#miniLogo {
-  display: none;
-}
-
-body.minimized #miniLogo {
-  display: block;
-  height: 24px;
-  width: 24px;
-  margin: 0 8px 0 4px;
-  flex: none;
 }
 
 body.minimized #midisettings {
