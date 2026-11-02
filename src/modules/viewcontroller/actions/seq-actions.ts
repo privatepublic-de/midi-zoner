@@ -522,12 +522,14 @@ export function createSeqActions(
       updateValuesForZone(zoneindex);
     },
     seq_step_velocity: () => {
-      const velo = calcAndDisplayPercentage() * 127;
+      const velo = Math.round(calcAndDisplayPercentage() * 127);
       sequence.selectedSteps.forEach((step) => {
         step?.notesArray.forEach((note) => {
           note.velo = Math.max(1, Math.min(127, velo));
         });
       });
+      // redraw, so the steps' velocity fill and tooltip follow while dragging
+      updateValuesForZone(zoneindex);
     },
     _seq_step_apply_to_all: (actionIndex?: number) => {
       const idx =

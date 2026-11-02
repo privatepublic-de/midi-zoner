@@ -1298,7 +1298,8 @@ function updateValuesForZone(index: number): void {
           );
           zone.elements.setPercentage(
             '.seq_step_velocity',
-            parseInt(String(sequence.velocityMediumSelectedStep() * 100)),
+            // rounded: velocities are whole MIDI values, 76/127 reads back as 60%, not 59%
+            Math.round(sequence.velocityMediumSelectedStep() * 100),
             index
           );
           zone.elements.setSelectedIndex('.seq_step_condition', step.condition);

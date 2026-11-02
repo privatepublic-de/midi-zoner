@@ -48,7 +48,7 @@ export function showStepProperties(el: HTMLElement, step: SeqStep | null): void 
 }
 
 export function velocityLabel(velo: number): string {
-  return `velocity ${Math.trunc((velo / 127) * 100)}%`;
+  return `velocity ${Math.round((velo / 127) * 100)}%`;
 }
 
 /** Tooltip parts for a step's settings that differ from the defaults. */
