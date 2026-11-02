@@ -1476,13 +1476,13 @@ input[type='range'] {
 
 .octaves {
   border-right: 1px solid var(--brighter-2);
-  height: 14px;
+  height: 18px;
 }
 
 .octselect {
   display: inline-flex;
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   border: 1px solid var(--brighter-2);
   border-right: none;
   cursor: pointer;
@@ -1962,6 +1962,10 @@ input[type='range'] {
   font-size: var(--fs-sm);
   color: var(--brighter-2);
 }
+.ccpot .value.long {
+  font-size: 10px;
+  letter-spacing: -0.3px;
+}
 .ccpot:hover .value,
 .ccpot.dragging .value {
   color: var(--brighter-4);
@@ -2029,6 +2033,16 @@ input[type='range'] {
   padding: 0 2px;
   gap: 2px 3px;
 }
+/* 4 rows: a taller bank (and control) so the labels keep 11px with room in
+   their pills; only rows holding such a bank grow */
+.ccpot[data-type='3'] .buttons[data-rows='4'] {
+  --row: calc((60px - 3 * 2px) / 4);
+  grid-template-rows: repeat(4, var(--row));
+  height: 60px;
+}
+.ccpot[data-type='3']:has(.buttons[data-rows='4']) {
+  height: 88px;
+}
 /* selector: the chosen entry's name over small step arrows, as wide as a knob's arc */
 .ccpot[data-type='9'] .selector {
   display: flex;
@@ -2078,14 +2092,17 @@ input[type='range'] {
   color: var(--brighter-2);
 }
 #zones .selector-step {
-  font-size: var(--icon-sm);
+  font-size: var(--icon-md);
+  /* a larger hit area than the icon, without moving the layout */
+  padding: 3px 4px;
+  margin: -3px -4px;
   cursor: pointer;
 }
 .selector-step:hover {
   color: var(--brighter-4);
 }
 .selector-pos {
-  font-size: 10px;
+  font-size: var(--fs-sm);
   font-variant-numeric: tabular-nums;
 }
 

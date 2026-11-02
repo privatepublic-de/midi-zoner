@@ -259,7 +259,10 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIn
     (zone._$(`${potselector} div.cclabel`) as HTMLElement).textContent =
       c.type == CCControllerType.NOTE_TO_CC ? 'Note to CC' : c.label;
     const display = controllerDisplay(zone, c, ix);
-    (zone._$(`${potselector} .value`) as HTMLElement).textContent = display.value;
+    const valueEl = zone._$(`${potselector} .value`) as HTMLElement;
+    valueEl.textContent = display.value;
+    // 5+ characters (14 bit, NRPN) are set smaller to fit inside the arc
+    valueEl.classList.toggle('long', display.value.length >= 5);
     const valueName = zone._$(`${potselector} .valuename`) as HTMLElement | null;
     if (valueName) {
       valueName.textContent = display.name;
@@ -309,6 +312,7 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIn
       const rows = visibleButtons <= 3 ? Math.max(visibleButtons, 1) : Math.ceil(visibleButtons / 2);
       const buttons = zone._$(`${potselector} .buttons`) as HTMLElement;
       buttons.style.setProperty('--button-rows', String(rows));
+      buttons.dataset.rows = String(rows);
       buttons.dataset.columns = visibleButtons <= 3 ? '1' : '2';
     }
   });
