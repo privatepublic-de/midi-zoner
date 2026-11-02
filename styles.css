@@ -1749,8 +1749,9 @@ input[type='range'] {
   min-width: 4px;
   max-width: 20px; /* the size of a sequencer step, so 8 steps stay a small row */
   border-radius: var(--radius-sm);
-  background-color: var(--slate-raise); /* opaque, like the steps, on the zone's band */
-  box-shadow: inset 0 0 0 1px var(--slate-line);
+  /* the sequencer steps' colours */
+  background-color: color-mix(in srgb, var(--zone-color) 8%, #15171a);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--zone-color) 18%, var(--slate-line));
 }
 
 /* groups of 4 steps: a short tick under each group's first step, in the
@@ -2350,9 +2351,11 @@ input[type='range'] {
   height: var(--step-size);
   justify-content: center;
   align-items: center;
-  border: 1px solid var(--slate-line);
+  /* opaque and dark in the zone's hue: overlays would take on the band behind
+     them, and a neutral slate clashes with warm zone colours */
+  border: 1px solid color-mix(in srgb, var(--zone-color) 18%, var(--slate-line));
   color: var(--brighter-4);
-  background-color: var(--slate-raise); /* opaque: overlays would take on the band behind them */
+  background-color: color-mix(in srgb, var(--zone-color) 8%, #15171a);
   font-size: var(--fs-sm);
   text-align: center;
   cursor: pointer;
