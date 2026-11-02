@@ -5258,7 +5258,8 @@ body.minimized .midi-led.on {
 
 body.track-view:not(.minimized) {
   --track-hdr-w: 272px;
-  --dock-h: 290px;
+  /* --dock-open-h: the height dragged at the top edge (track-view.ts) */
+  --dock-h: min(var(--dock-open-h, 290px), calc(100vh - var(--topbar-h, 44px) - 120px));
   --dock-bar-h: 32px;
 
   &.dock-closed {
@@ -5461,6 +5462,23 @@ body.track-view:not(.minimized) {
   &.no-tracks #trackDock {
     display: none;
   }
+  #trackDock .td-resize {
+    position: absolute;
+    top: -4px;
+    left: 0;
+    right: 0;
+    height: 8px;
+    z-index: 4;
+    cursor: ns-resize;
+  }
+  #trackDock .td-resize:hover,
+  &.dock-resizing #trackDock .td-resize {
+    background: linear-gradient(transparent 3px, var(--slate-dim) 3px, var(--slate-dim) 5px, transparent 5px);
+  }
+  &.dock-resizing {
+    cursor: ns-resize;
+    user-select: none;
+  }
   #trackDock .td-bar {
     display: flex;
     align-items: center;
@@ -5529,9 +5547,21 @@ body.track-view:not(.minimized) {
     padding: 10px 12px;
   }
   &[data-dock='seq']:not(.dock-closed) #zones > .zone.track-selected.show-seq > .seq {
-    display: flex !important;
-    /* column-reverse as in the card: flex-end is the top */
-    justify-content: flex-end;
+    /* the dock is wide: tools over the steps, the step editor beside them */
+    display: grid !important;
+    grid-template-columns: fit-content(calc(100% - 396px)) minmax(380px, 560px);
+    grid-template-areas:
+      'tools info'
+      'steps info';
+    grid-template-rows: auto 1fr;
+    align-items: start;
+    gap: 6px 20px;
+    > .seqtools { grid-area: tools; }
+    > .grid { grid-area: steps; min-width: 0; }
+    > .step-info {
+      grid-area: info;
+      margin-top: 0;
+    }
   }
   &[data-dock='arp']:not(.dock-closed) #zones > .zone.track-selected.arp-enabled > .arp-settings-block {
     display: block !important;

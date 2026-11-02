@@ -1,6 +1,6 @@
 import { Zone } from '../zone/zone-class';
 import { ZONES_CHANGED_EVENT, UPDATE_ZONE_VIEW_EVENT } from '../zone/interfaces';
-import { timeline, nowTick } from '../timeline';
+import { timeline, nowTick, NoteHistory } from '../timeline';
 
 /**
  * Track view: each zone is a row with its header on the left and a lane that scrolls
@@ -16,6 +16,8 @@ const VIEW_KEY = 'viewMode';
 const TAB_KEY = 'trackDockTab';
 const DOCK_OPEN_KEY = 'trackDockOpen';
 const ZOOM_KEY = 'trackZoom';
+const DOCK_HEIGHT_KEY = 'trackDockHeight';
+const DOCK_MIN_H = 120;
 const ZOOMS = [0.5, 1, 2, 4]; // px per clock tick; at 2 a 1/16 step is 12px, a bar 192px
 const PLAYHEAD_AT = 0.3; // share of the lane width behind the playhead
 const TICKS_PER_BEAT = 24;
@@ -40,6 +42,8 @@ let frame = 0;
 let lastDraw = 0;
 // zone colours, read from CSS when something changed rather than every frame
 const zoneColours = new WeakMap<Element, string>();
+// the notes each arp plays from, over time
+const heldHistories = new WeakMap<Zone, NoteHistory>();
 
 function isActive(): boolean {
   return trackView && !document.body.classList.contains('minimized');
@@ -98,6 +102,39 @@ function setDockOpen(open: boolean): void {
   dockOpen = open;
   localStorage.setItem(DOCK_OPEN_KEY, open ? '1' : '0');
   applyBodyState();
+}
+
+function setDockHeight(px: number | null): void {
+  if (px === null) {
+    document.body.style.removeProperty('--dock-open-h');
+    localStorage.removeItem(DOCK_HEIGHT_KEY);
+  } else {
+    document.body.style.setProperty('--dock-open-h', `${Math.round(px)}px`);
+    localStorage.setItem(DOCK_HEIGHT_KEY, String(Math.round(px)));
+  }
+  invalidate();
+}
+
+/** Drag the dock's top edge; a folded dock opens */
+function startDockResize(ev: MouseEvent): void {
+  ev.preventDefault();
+  const dock = document.getElementById('trackDock')!;
+  const startY = ev.clientY;
+  const startH = dockOpen ? dock.getBoundingClientRect().height : DOCK_MIN_H;
+  if (!dockOpen) setDockOpen(true);
+  const topbar = document.getElementById('midisettings')!.getBoundingClientRect().bottom;
+  const maxH = window.innerHeight - topbar - 120;
+  document.body.classList.add('dock-resizing');
+  const move = (e: MouseEvent): void => {
+    setDockHeight(Math.max(DOCK_MIN_H, Math.min(maxH, startH + startY - e.clientY)));
+  };
+  const up = (): void => {
+    document.body.classList.remove('dock-resizing');
+    window.removeEventListener('mousemove', move);
+    window.removeEventListener('mouseup', up);
+  };
+  window.addEventListener('mousemove', move);
+  window.addEventListener('mouseup', up);
 }
 
 function select(index: number): void {
@@ -182,6 +219,29 @@ function laneHeight(zone: Zone): number {
 function anchor(cur: number, ticks: number, head: number): [number, number] {
   if (timeline.running && cur >= 0) return [cur, Math.floor(Math.max(0, timeline.pos) / ticks) * ticks];
   return [0, head];
+}
+
+/** Follows the notes the arp plays from (held keys, or the hold list with Hold) */
+function syncHeld(zone: Zone): NoteHistory | undefined {
+  let held = heldHistories.get(zone);
+  if (!zone.arp_enabled) {
+    held?.closeAll();
+    return held;
+  }
+  if (!held) {
+    held = new NoteHistory();
+    heldHistories.set(zone, held);
+  }
+  const source = zone.arp_hold ? zone.arp_holdlist : zone.arp.orderlist;
+  const pitches = new Set(source.map((n) => n.number));
+  const sounding = new Set(held.notes.filter((n) => n.end === null).map((n) => n.pitch));
+  sounding.forEach((p) => {
+    if (!pitches.has(p)) held!.noteOff(p);
+  });
+  source.forEach((n) => {
+    if (!sounding.has(n.number)) held!.noteOn(n.number, n.velo);
+  });
+  return held;
 }
 
 function divisionName(zone: Zone): string {
@@ -275,8 +335,9 @@ function drawLane(zone: Zone, head: number, historyShift: number, ppt: number): 
     g.fillRect(gx, 0, 1, h);
   }
 
-  // pitch rows: drum lanes, or the span of the sequence's and the sent notes
+  // pitch rows: drum lanes, or the span of the sequence's, the held and the sent notes
   const history = zone.noteHistory.notes;
+  const held = drums ? [] : (syncHeld(zone)?.notes ?? []);
   let rowOf: (pitch: number) => number;
   let rows: number;
   if (drums) {
@@ -294,6 +355,7 @@ function drawLane(zone: Zone, head: number, historyShift: number, ppt: number): 
       for (let s = 0; s < seq.length; s++) seq.steps[s]?.notesArray.forEach((n) => take(n.number));
     }
     history.forEach((n) => take(n.pitch));
+    held.forEach((n) => take(n.pitch));
     if (hi < 0) {
       lo = 60;
       hi = 71;
@@ -329,6 +391,26 @@ function drawLane(zone: Zone, head: number, historyShift: number, ppt: number): 
       g.fillRect(Math.max(x0, playX - 2), y, 2, noteH);
     }
   };
+
+  // the notes the arp plays from: a band behind its notes, fading out ahead while still held
+  const bandH = Math.max(noteH + 2, Math.min(rowH, noteH + 4));
+  for (const n of held) {
+    const x0 = x(n.start + historyShift);
+    const x1 = n.end === null ? playX : x(n.end + historyShift);
+    if (x1 < 0 || x0 > w) continue;
+    const y = rowY(rowOf(n.pitch)) - (bandH - noteH) / 2;
+    g.globalAlpha = silent ? 0.08 : 0.22;
+    g.fillStyle = colour;
+    g.fillRect(x0, y, Math.max(1, x1 - x0), bandH);
+    if (n.end === null && timeline.running) {
+      const fade = TICKS_PER_BAR * ppt * 0.5;
+      const gradient = g.createLinearGradient(playX, 0, playX + fade, 0);
+      gradient.addColorStop(0, colour);
+      gradient.addColorStop(1, 'transparent');
+      g.fillStyle = gradient;
+      g.fillRect(playX, y, fade, bandH);
+    }
+  }
 
   // behind the playhead: what was sent
   for (const n of history) {
@@ -468,6 +550,11 @@ function initTrackView(zones: () => Zone[]): void {
     });
   });
   dock.querySelector('.td-collapse')!.addEventListener('click', () => setDockOpen(!dockOpen));
+  const resize = dock.querySelector('.td-resize') as HTMLElement;
+  resize.addEventListener('mousedown', startDockResize);
+  resize.addEventListener('dblclick', () => setDockHeight(null));
+  const savedHeight = Number(localStorage.getItem(DOCK_HEIGHT_KEY));
+  if (savedHeight >= DOCK_MIN_H) document.body.style.setProperty('--dock-open-h', `${savedHeight}px`);
   dock.querySelector('.td-turn-on')!.addEventListener('click', turnOnFeature);
   document.querySelectorAll('#trackRuler [data-zoom]').forEach((b) => {
     b.addEventListener('click', () => {
