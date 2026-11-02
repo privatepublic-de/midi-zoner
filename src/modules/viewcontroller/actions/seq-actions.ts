@@ -828,8 +828,8 @@ export function createSeqActions(
       updateValuesForZone(zoneindex);
       toast(
         sequence.isLiveRecording
-          ? 'Live recording enabled!'
-          : 'Stopped live recording'
+          ? 'Live recording on'
+          : 'Live recording off'
       );
     },
     seq_open_piano_roll: () => {
