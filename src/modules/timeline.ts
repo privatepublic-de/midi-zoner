@@ -1,35 +1,60 @@
 /**
  * Song position for the track view: the last clock tick and when it came, so the
  * view can scroll smoothly between ticks, plus what each zone sent (NoteHistory).
- * Positions are in clock ticks (24 per quarter) since Start.
+ * Run positions are clock ticks (24 per quarter) since Start. All runs of a session
+ * lie on one session timeline, each starting on the whole bar after the last one
+ * ended, so what was played before a stop stays reachable.
  */
+const SESSION_BAR = 96; // 4/4
+
 const timeline = {
   running: false,
   pos: 0, // last tick
   at: 0, // performance.now() of the last tick
   intervalMs: 0,
   stopPos: 0, // where the last run ended
-  run: 0 // counts runs from position 0 (Start); Continue keeps the run
+  run: 0, // counts runs from position 0 (Start); Continue keeps the run
+  runStart: 0, // session position of the current run's position 0
+  nextRunStart: 0, // where the next run will start (stopped: where the playhead waits)
+  runStarts: [] as number[] // session positions of every run's start
 };
 
 function timelineClock(pos: number, tickIntervalMs: number): void {
-  if (pos === 0) timeline.run++;
+  if (pos === 0) {
+    timeline.run++;
+    timeline.runStart = timeline.nextRunStart;
+    timeline.runStarts.push(timeline.runStart);
+  }
   timeline.pos = pos;
   timeline.at = performance.now();
   if (tickIntervalMs > 0) timeline.intervalMs = tickIntervalMs;
 }
 
 function timelineTransport(started: boolean): void {
-  if (!started && timeline.running) timeline.stopPos = nowTick();
+  if (!started && timeline.running) {
+    timeline.stopPos = nowTick();
+    const end = timeline.runStart + timeline.stopPos;
+    timeline.nextRunStart = Math.max(timeline.nextRunStart, Math.ceil(end / SESSION_BAR) * SESSION_BAR);
+  }
   timeline.at = performance.now();
   timeline.running = started;
 }
 
-/** The current position with the part of a tick since the last one; holds when ticks pause */
+/** The current run position with the part of a tick since the last one; holds when ticks pause */
 function nowTick(): number {
   if (!timeline.running) return timeline.stopPos;
   if (timeline.intervalMs <= 0) return timeline.pos;
   return timeline.pos + Math.min(1, (performance.now() - timeline.at) / timeline.intervalMs);
+}
+
+/** Now on the session timeline; stopped: where the next run will start */
+function sessionNow(): number {
+  return timeline.running ? timeline.runStart + nowTick() : timeline.nextRunStart;
+}
+
+/** Where notes released now end: stopped, where the last run ended (ring-outs) */
+function releaseAt(): number {
+  return timeline.running ? sessionNow() : timeline.runStart + timeline.stopPos;
 }
 
 interface HistoryNote {
@@ -39,41 +64,57 @@ interface HistoryNote {
   end: number | null; // null while sounding
 }
 
-/** The notes a zone sent during the current run (a new run starts empty) */
+/**
+ * The notes a zone sent this session, at session positions, in the order they
+ * started (the oldest dropped beyond MAX). Pitch span kept for the lane's rows.
+ */
 class NoteHistory {
-  static MAX = 512;
-  private _notes: HistoryNote[] = [];
-  private run = 0;
+  static MAX = 50000;
+  // A note that started this long before a range is still looked at by between()
+  static LOOKBACK = 96 * 64;
+  notes: HistoryNote[] = [];
+  low = 128;
+  high = -1;
 
-  get notes(): HistoryNote[] {
-    if (this.run !== timeline.run) {
-      this._notes = [];
-      this.run = timeline.run;
+  /** The notes starting from LOOKBACK before `from` up to `to` (binary search on start) */
+  between(from: number, to: number): HistoryNote[] {
+    const notes = this.notes;
+    let lo = 0;
+    let hi = notes.length;
+    const after = from - NoteHistory.LOOKBACK;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (notes[mid].start < after) lo = mid + 1;
+      else hi = mid;
     }
-    return this._notes;
+    let end = lo;
+    while (end < notes.length && notes[end].start < to) end++;
+    return notes.slice(lo, end);
   }
 
   noteOn(pitch: number, velo: number): void {
     if (!timeline.running) return;
     this.noteOff(pitch);
-    this.notes.push({ pitch, velo, start: nowTick(), end: null });
-    if (this._notes.length > NoteHistory.MAX) this._notes.splice(0, this._notes.length - NoteHistory.MAX);
+    this.notes.push({ pitch, velo, start: sessionNow(), end: null });
+    if (pitch < this.low) this.low = pitch;
+    if (pitch > this.high) this.high = pitch;
+    if (this.notes.length > NoteHistory.MAX) this.notes.splice(0, this.notes.length - NoteHistory.MAX);
   }
 
   noteOff(pitch: number): void {
     for (let i = this.notes.length - 1; i >= 0; i--) {
       const n = this.notes[i];
       if (n.pitch === pitch && n.end === null) {
-        n.end = Math.max(n.start, nowTick());
+        n.end = Math.max(n.start, releaseAt());
         return;
       }
     }
   }
 
   closeAll(): void {
-    const t = nowTick();
+    const t = releaseAt();
     for (const n of this.notes) if (n.end === null) n.end = Math.max(n.start, t);
   }
 }
 
-export { timeline, timelineClock, timelineTransport, nowTick, NoteHistory, HistoryNote };
+export { timeline, timelineClock, timelineTransport, nowTick, sessionNow, NoteHistory, HistoryNote };

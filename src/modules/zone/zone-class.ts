@@ -5,6 +5,7 @@ import { ZoneElements } from './zone-elements';
 import { Sequence } from './sequence';
 import { SeqStep } from './seq-step';
 import { DrumLane } from './drum-lane';
+import { Clip } from './clip';
 import {
   CCController,
   ArpState,
@@ -235,6 +236,8 @@ export class Zone {
   noteHistory = new NoteHistory();
   /** The notes its arp played from during the current run, for the track view */
   heldHistory = new NoteHistory();
+  /** What was played into it (after the octave shift) during the current run: a clip can be made from it */
+  inputHistory = new NoteHistory();
   arrangements: ZoneArrangementJSON[] = [];
   currentArrangementIndex = 0;
   lastTouchedRangePoint = 0;
@@ -377,6 +380,8 @@ export class Zone {
     seq.drum_lanes = ((sd as any).drum_lanes || []).map((lane: any) =>
       lane ? DrumLane.from(lane, seq._length) : lane
     );
+    seq.clip = Clip.from((sd as any).clip);
+    seq.isClip = (sd as any).isClip === true;
     this.sequence = seq;
     // Switched while playing: the new arrangement's locks start from the controllers' values
     if (this.midi.isClockRunning && seq.active) this.paramLocks.start(seq.lockedAddresses());
@@ -716,6 +721,7 @@ export class Zone {
                 activeNoteSlots[srcKey] = playNote;
                 this.addNote(playNote);
                 if (fromMidiInput) {
+                  if (velo > 0) this.inputHistory.noteOn(key, velo);
                   let filteredActiveNotes = [...this.activeNotes];
                   this.sequence.activeNotes().forEach((seqNote) => {
                     filteredActiveNotes = filteredActiveNotes.filter(
@@ -753,6 +759,7 @@ export class Zone {
                   this.removeNote(key);
                 }
                 if (!fromSequencer) {
+                  this.inputHistory.noteOff(srcNote ? srcNote.number : key);
                   this.sequence.noteReleased(
                     srcNote ? srcNote.number : key,
                     this.activeNotes.length
@@ -1699,6 +1706,7 @@ export class Zone {
   adoptHistory(previous: Zone): void {
     this.noteHistory = previous.noteHistory;
     this.heldHistory = previous.heldHistory;
+    this.inputHistory = previous.inputHistory;
   }
 
   dismiss(): void {

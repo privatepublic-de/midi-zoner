@@ -5,6 +5,7 @@ import { DrumLane } from '../../zone/drum-lane';
 import { SeqStepJSON } from '../../zone/interfaces';
 import { ActionContext, ActionHelpers, ActionMap } from '../types';
 import { openPianoRoll } from '../piano-roll';
+import { Clip } from '../../zone/clip';
 
 /** Parse a number field, clamped to [min, max]; empty or invalid input keeps `current`. */
 function clampedInput(element: HTMLElement, min: number, max: number, current: number): number {
@@ -62,6 +63,18 @@ export function createSeqActions(
   } = ctx;
   const { calcAndDisplayPercentage } = helpers;
 
+  const MODE_NAMES = { notes: 'Note sequence', drums: 'Drum sequence', clip: 'Clip' };
+  /** Notes, drum lanes or a clip: one of them plays */
+  function setMode(mode: 'notes' | 'drums' | 'clip'): void {
+    const current = sequence.isClip ? 'clip' : sequence.isDrumSequence ? 'drums' : 'notes';
+    if (mode === current) return;
+    sequence.clearSelection();
+    sequence.isClip = mode === 'clip';
+    sequence.isDrumSequence = mode === 'drums';
+    updateValuesForZone(zoneindex);
+    toast(`${MODE_NAMES[mode]} mode`);
+  }
+
   const actions: ActionMap = {
     toggle_seq: () => {
       sequence.active = !sequence.active;
@@ -75,6 +88,15 @@ export function createSeqActions(
     },
     seq_division: () => {
       sequence.division = (element as HTMLSelectElement).selectedIndex;
+      updateValuesForZone(zoneindex);
+    },
+    seq_mode_notes: () => setMode('notes'),
+    seq_mode_drums: () => setMode('drums'),
+    seq_mode_clip: () => setMode('clip'),
+    seq_clip_bars: () => {
+      // in bars, to the beat (0.25)
+      const v = parseFloat((element as HTMLInputElement).value);
+      if (!isNaN(v)) sequence.clip.bars = Math.max(0.25, Math.min(Clip.MAX_BARS, v));
       updateValuesForZone(zoneindex);
     },
     seq_steps: () => {
@@ -227,7 +249,11 @@ export function createSeqActions(
       updateValuesForZone(zoneindex);
     },
     seq_clear_all: () => {
-      if (sequence.isDrumSequence) {
+      if (sequence.isClip) {
+        sequence.clip.notes = [];
+        updateValuesForZone(zoneindex);
+        toast('Clip cleared');
+      } else if (sequence.isDrumSequence) {
         for (let i = 0; i < sequence.drumLanes; i++) {
           const lane = sequence.getDrumLane(i);
           lane.steps.length = 0;
@@ -759,7 +785,9 @@ export function createSeqActions(
       updateValuesForZone(zoneindex);
     },
     seq_copy: () => {
-      if (sequence.isDrumSequence) {
+      if (sequence.isClip) {
+        Zone.seqClipboardSequence = JSON.stringify({ isClip: true, clip: sequence.clip.toJSON() });
+      } else if (sequence.isDrumSequence) {
         const drum_lanes_copy = [];
         for (let ln = 0; ln < sequence.drumLanes; ln++) {
           const lane = sequence.getDrumLane(ln);
@@ -785,7 +813,13 @@ export function createSeqActions(
     seq_paste: () => {
       if (Zone.seqClipboardSequence) {
         const copyData = JSON.parse(Zone.seqClipboardSequence);
-        if (copyData.isDrumSequence && sequence.isDrumSequence) {
+        if (!!copyData.isClip !== sequence.isClip) {
+          toast('Can\'t paste: clipboard holds a different sequence type');
+          return;
+        }
+        if (copyData.isClip) {
+          sequence.clip = Clip.from(copyData.clip);
+        } else if (copyData.isDrumSequence && sequence.isDrumSequence) {
           const playing = sequence.drum_lanes;
           sequence.drum_lanes = (copyData.drum_lanes || []).map((lane: any, i: number) =>
             lane ? DrumLane.from(lane, copyData.length ?? sequence.length, playing[i]) : lane

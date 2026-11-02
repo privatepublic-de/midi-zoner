@@ -134,15 +134,29 @@
       <div class="drum-step-container">${drumLanes}</div>
     </div>
     <div class="seqtools">
-      <div
-        class="action seq_drum_tracks"
-        data-action="${index}:seq_drum_tracks"
-        title="Switch between a melodic sequence and drum lanes"
-      >
-        <span class="mode-notes">Notes</span><span class="mode-drums">Drums</span>
+      <div class="action seq_drum_tracks" title="A melodic sequence, drum lanes, or a recorded clip">
+        <span class="mode-notes" data-action="${index}:seq_mode_notes">Notes</span
+        ><span class="mode-drums" data-action="${index}:seq_mode_drums">Drums</span
+        ><span class="mode-clip" data-action="${index}:seq_mode_clip">Clip</span>
       </div>
-      <div class="label dismiss-for-drumsequence">Steps</div>
-      <div class="val dismiss-for-drumsequence">
+      <div class="label only-for-clip">Length</div>
+      <div class="val only-for-clip">
+        <input
+          title="Clip length in bars (0.25 = a beat)"
+          class="seq_clip_bars"
+          type="number"
+          min="0.25"
+          max="1024"
+          step="0.25"
+          value="4"
+          data-change="${index}:seq_clip_bars"
+          tabindex="-1"
+        />
+      </div>
+      <div class="label only-for-clip">bars</div>
+      <div class="clip-info only-for-clip"></div>
+      <div class="label dismiss-for-drumsequence dismiss-for-clip">Steps</div>
+      <div class="val dismiss-for-drumsequence dismiss-for-clip">
         <input
           title="Number of steps in sequence"
           class="seq_steps"
@@ -167,7 +181,7 @@
           tabindex="-1"
         />
       </div>
-      <div class="drop-down" title="Step resolution">
+      <div class="drop-down dismiss-for-clip" title="Step resolution">
         <select
           class="seq_division"
           data-change="${index}:seq_division"
@@ -177,21 +191,21 @@
         </select>
       </div>
       <div
-        class="action"
+        class="action dismiss-for-clip"
         title="Move whole sequence 1 step left"
         data-action="${index}:seq_move:-1"
       >
         <i class="material-icons">chevron_left</i>
       </div>
       <div
-        class="action"
+        class="action dismiss-for-clip"
         title="Move whole sequence 1 step right"
         data-action="${index}:seq_move:1"
       >
         <i class="material-icons">chevron_right</i>
       </div>
       <div
-        class="action menu-button dismiss-for-drumsequence"
+        class="action menu-button dismiss-for-drumsequence dismiss-for-clip"
         title="Transpose the whole sequence or the selected steps"
         data-contextclick
         data-contextmenu="${transposeMenu}"
@@ -199,7 +213,7 @@
         Transpose<i class="material-icons">expand_more</i>
       </div>
       <div
-        class="action menu-button"
+        class="action menu-button dismiss-for-clip"
         title="Change the whole sequence"
         data-contextclick
         data-contextmenu="${adjustMenu}"
@@ -208,20 +222,20 @@
       </div>
       <div
         class="action"
-        title="Clear complete sequence"
+        title="Clear the complete sequence or clip"
         data-action="${index}:seq_clear_all"
       >
         <i class="material-icons">playlist_remove</i>
       </div>
       <div
-        class="action seq_record_live dismiss-for-drumsequence"
+        class="action seq_record_live dismiss-for-drumsequence dismiss-for-clip"
         title="Record notes you play into the running sequence"
         data-action="${index}:seq_record_live"
       >
         <i class="material-icons">fiber_manual_record</i>
       </div>
       <div
-        class="action dismiss-for-drumsequence"
+        class="action dismiss-for-drumsequence dismiss-for-clip"
         title="Open piano roll editor"
         data-action="${index}:seq_open_piano_roll"
       >
@@ -794,5 +808,5 @@
     </div>
   </div>
   <div class="zonenumber">${zoneNumber}</div>
-  <div class="track-lane" title="Double-click: piano roll"><canvas></canvas></div>
+  <div class="track-lane" title="Drag over what you played to make a clip of it (snaps to beats, Shift: bars, Option: free). Scroll sideways to look back. Double-click: piano roll"><canvas></canvas></div>
 </div>

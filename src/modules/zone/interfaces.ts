@@ -144,6 +144,20 @@ export interface SeqLayerJSON {
   drum_lanes: DrumLaneJSON[];
 }
 
+/** A note of a clip: start and duration in clock ticks (fractional), pitch, velocity */
+export interface ClipNoteJSON {
+  t: number;
+  d: number;
+  n: number;
+  v: number;
+}
+
+/** A recorded take that loops from bar 1; length in clock ticks (whole bars) */
+export interface ClipJSON {
+  length: number;
+  notes: ClipNoteJSON[];
+}
+
 export interface SequenceJSON {
   active: boolean;
   steps: (SeqStepJSON | null)[];
@@ -153,6 +167,9 @@ export interface SequenceJSON {
   isDrumSequence: boolean;
   drumLanes: number;
   drum_lanes: DrumLaneJSON[];
+  /** Clip mode: the track plays its clip instead of its steps */
+  isClip?: boolean;
+  clip?: ClipJSON;
 }
 
 export interface ZoneArrangementJSON {

@@ -3633,8 +3633,12 @@ body.running .seqprogress.drum .inner {
   padding: 2px 5px;
   color: var(--brighter-2);
 }
-.zone:not(.drumSequencer) .seq_drum_tracks .mode-notes,
-.drumSequencer .seq_drum_tracks .mode-drums {
+.seq_drum_tracks span {
+  cursor: pointer;
+}
+.zone:not(.drumSequencer, .clipSequencer) .seq_drum_tracks .mode-notes,
+.drumSequencer:not(.clipSequencer) .seq_drum_tracks .mode-drums,
+.clipSequencer .seq_drum_tracks .mode-clip {
   background-color: var(--brighter-1);
   color: var(--text-base-color);
 }
@@ -3848,6 +3852,27 @@ body.running .seqprogress.drum .inner {
 
 .only-for-drumsequence {
   display: none;
+}
+
+/* Clip mode: a recorded take plays instead of the steps (track view draws it) */
+.only-for-clip {
+  display: none;
+}
+.clipSequencer {
+  .only-for-clip {
+    display: flex;
+    align-items: center;
+  }
+  .dismiss-for-clip,
+  .only-for-drumsequence,
+  .seq .grid,
+  .seq .step-info {
+    display: none !important;
+  }
+  .clip-info {
+    color: var(--slate-dim);
+    font-size: var(--fs-sm);
+  }
 }
 
 
@@ -5432,6 +5457,26 @@ body.track-view:not(.minimized) {
       height: 100%;
     }
   }
+  .track-lane .track-capture {
+    position: absolute;
+    top: 4px;
+    z-index: 2;
+    height: 20px;
+    padding: 0 8px;
+    white-space: nowrap;
+    font-size: var(--fs-sm);
+    background-color: var(--slate-raise);
+    border: 1px solid var(--slate-line);
+    border-radius: var(--radius);
+    color: var(--text-base-color);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+  }
+  .track-lane .track-capture:hover {
+    background-color: var(--on);
+    color: var(--on-text);
+  }
   #zones > .zone:is(.disabled, .soloed-out) > .track-lane {
     background-color: var(--slate-bg);
   }
@@ -5459,6 +5504,19 @@ body.track-view:not(.minimized) {
     font-size: var(--fs-sm);
     font-variant-numeric: tabular-nums;
     color: var(--slate-dim);
+  }
+  #trackRuler .tr-follow {
+    height: 20px;
+    padding: 0 6px;
+    margin-left: auto;
+    margin-right: 6px;
+    font-size: var(--fs-sm);
+  }
+  /* lit while the lanes follow the playhead; dark while looking back */
+  #trackRuler .tr-follow.active {
+    background-color: var(--on);
+    border-color: var(--on);
+    color: var(--on-text);
   }
   #trackRuler .tr-zoom {
     display: flex;
