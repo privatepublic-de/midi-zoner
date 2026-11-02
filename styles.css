@@ -2335,9 +2335,11 @@ input[type='range'] {
    velocity, a die in place of the beat number is chance < 100%, a corner
    triangle is a play condition,
    bottom ticks are the ratchet count, a bar through the following cells is
-   length. Each mark owns an edge; the beat number sits small at the left. */
+   length. Each mark owns a corner; the beat number (or the die) sits small at
+   the top left, clear of the ratchet ticks below it. */
 .seq .grid .step {
   justify-content: flex-start;
+  align-items: flex-start;
   padding-left: 2px;
   font-size: 9px;
   line-height: 1;
@@ -2352,6 +2354,10 @@ input[type='range'] {
   color: var(--ink);
 }
 
+.seq .grid .step .beat-num,
+.seq .grid .step .chance-mark {
+  margin-top: 2px;
+}
 .seq .grid .step .chance-mark {
   display: none;
   font-size: 10px;
