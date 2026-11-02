@@ -523,7 +523,9 @@ option {
   background: var(--brighter-1);
 }
 
+/* "Setup", then the selected inputs, quieter, so a closed drawer still shows them */
 .setup-toggle #setupSummary {
+  color: var(--brighter-2);
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -2042,6 +2044,14 @@ input[type='range'] {
   grid-template-rows: repeat(4, var(--row));
   height: 60px;
 }
+/* 3 rows: the pills of a 4-row bank, from the top, so the bank keeps room
+   before the next row like 2-row banks do */
+.ccpot[data-type='3'] .buttons[data-rows='3'] {
+  --row: 13.5px;
+  grid-template-rows: repeat(3, var(--row));
+  align-content: start;
+  padding-top: 2px;
+}
 .ccpot[data-type='3']:has(.buttons[data-rows='4']) {
   height: 88px;
 }
@@ -2147,6 +2157,12 @@ input[type='range'] {
   background-color: var(--darker-1);
   font-size: min(var(--fs-sm), calc(var(--row) * 0.85));
   color: var(--brighter-3);
+}
+/* a label wider than its pill (set in cc-controller-view.ts) */
+.ccpot .ccbtn.tight {
+  padding: 0 1px;
+  font-size: 10px;
+  letter-spacing: -0.2px;
 }
 .ccpot .ccbtn.selected {
   background-color: var(--arc, var(--brighter-4));

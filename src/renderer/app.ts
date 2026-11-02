@@ -417,7 +417,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (count == 0) {
       displayString = '(no input device selected)';
     }
-    inputSummary = displayString;
+    inputSummary = count == 0 ? '' : displayString;
     displayString = count + ': ' + displayString;
     (DOM.get('#midiInputSelector') as HTMLElement).innerHTML = displayString;
     updateSetupSummary();

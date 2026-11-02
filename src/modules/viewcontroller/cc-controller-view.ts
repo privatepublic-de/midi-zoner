@@ -314,6 +314,11 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIn
       buttons.style.setProperty('--button-rows', String(rows));
       buttons.dataset.rows = String(rows);
       buttons.dataset.columns = visibleButtons <= 3 ? '1' : '2';
+      // Labels wider than their pill (e.g. "ADSR" in two columns) are set tighter
+      buttons.querySelectorAll<HTMLElement>('.ccbtn').forEach((btn) => {
+        btn.classList.remove('tight');
+        if (btn.style.display !== 'none' && btn.scrollWidth > btn.clientWidth) btn.classList.add('tight');
+      });
     }
   });
   controllersChanged?.(zone, zoneindex, onlyIndex);
