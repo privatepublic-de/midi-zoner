@@ -58,9 +58,12 @@
   --icon-sm: 14px;
   --icon-md: 16px;
   --icon-lg: 24px;
+  /* as in xr18-console: small parts (steps, notes), controls (buttons, fields,
+     chips), panels and floating surfaces (cards, sheets, dialogs, menus);
+     only dots and LEDs are round */
   --radius-sm: 2px;
   --radius: 4px;
-  --radius-lg: 6px; /* zone cards, piano roll */
+  --radius-lg: 6px;
   --ink: #111;
   --focus-ring: #fff; /* >= 5.7:1 on every zone color and on the top bar */
   --floor-zone: 520px; /* narrowest a zone can be with every panel open */
@@ -2358,6 +2361,7 @@ input[type='range'] {
   background-color: color-mix(in srgb, var(--zone-color) 8%, #15171a);
   font-size: var(--fs-sm);
   text-align: center;
+  border-radius: var(--radius-sm);
   cursor: pointer;
 }
 
@@ -2964,7 +2968,7 @@ body.running .seqprogress.drum .inner {
   color: var(--text-base-color);
   background-color: var(--bg-color-popup);
   border: 1px solid var(--slate-edge);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   font-size: var(--fs-md);
   box-shadow: 0 4px 14px var(--shadow-overlay);
   z-index: var(--z-menu);
@@ -3032,7 +3036,7 @@ body.running .seqprogress.drum .inner {
 .popup {
   background-color: var(--bg-color);
   border: 1px solid var(--slate-edge);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   box-shadow: 0 4px 12px var(--shadow-overlay);
   padding: 8px;
   color: var(--text-base-color);
@@ -3441,7 +3445,7 @@ body.running .seqprogress.drum .inner {
   padding: 2px;
   background-color: var(--bg-contextmenu);
   border: 1px solid var(--slate-edge);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   color: var(--text-contextmenu-color);
   font-size: var(--fs-md);
   margin: 0;
@@ -3516,7 +3520,7 @@ body.running .seqprogress.drum .inner {
   gap: 2px;
   padding: 0 6px;
   border: 1px solid transparent;
-  border-radius: 3px;
+  border-radius: var(--radius);
   background: var(--brighter-1);
   font-size: var(--fs-sm);
   line-height: 18px;
@@ -3809,7 +3813,7 @@ body.running .drumSequencer .lane-expand-toggle {
   padding: 3px 8px;
   background: var(--slate-raise);
   border: 1px solid var(--slate-edge);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   z-index: 10;
   white-space: nowrap;
 }
@@ -3874,7 +3878,7 @@ body.running .drumSequencer .lane-expand-toggle {
   min-width: 0;
   max-width: 20rem;
   padding: 0 10px 0 8px;
-  border-radius: 11px;
+  border-radius: var(--radius);
   background-color: var(--darker-2);
   white-space: nowrap;
   overflow: hidden;
@@ -3907,7 +3911,7 @@ body.running .drumSequencer .lane-expand-toggle {
   margin: 0;
   padding: 0 8px;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   background-color: transparent;
   color: var(--text-base-color);
   font: inherit;
@@ -3968,7 +3972,7 @@ body:has(.clocksettings.isExternal) .es-play + .es-sep {
   height: 28px;
   margin-left: 2px;
   padding: 0 18px;
-  border-radius: 14px;
+  border-radius: var(--radius);
   background-color: var(--zone-color);
   color: var(--bg-topbar);
   font-weight: 600;
@@ -4568,7 +4572,7 @@ body.minimized .midi-led.on {
   margin: 0;
   padding: 0 6px;
   border: 1px solid var(--darker-3);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   background-color: var(--darker-2);
   color: var(--text-base-color);
   font: inherit;
@@ -4594,7 +4598,7 @@ body.minimized .midi-led.on {
   height: 24px;
   padding: 0 8px;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   background-color: var(--darker-1);
   color: var(--text-base-color);
   font: inherit;
@@ -5026,7 +5030,7 @@ body.minimized .midi-led.on {
   vertical-align: -3px;
   font-size: 16px;
   color: var(--brighter-2);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   transition: transform 0.12s;
 }
 #ccEditor .cce-fold:hover {
