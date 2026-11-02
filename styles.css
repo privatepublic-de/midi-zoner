@@ -4010,9 +4010,9 @@ body:has(.clocksettings.isExternal) .es-play + .es-sep {
 
 /* Done is the one outlined control: the way back, edits are already applied */
 :is(#ccEditor, #pianoRollOverlay) .es-bar .es-done {
-  height: 28px;
+  height: 26px; /* the bar's button size; the outline sets it apart */
   margin-left: 2px;
-  padding: 0 18px;
+  padding: 0 12px;
   border-radius: var(--radius);
   /* like xr18's Close: outlined in the text colour, raised on hover */
   background-color: transparent;
@@ -4020,12 +4020,13 @@ body:has(.clocksettings.isExternal) .es-play + .es-sep {
   color: var(--text-base-color);
   font-weight: 600;
 }
-/* as specific as the bar's shared hover, which would otherwise win */
+/* as specific as the bar's shared hover, which would otherwise win; a light
+   tint, since the bar's zone tint is as dark as raised slate */
 :is(#ccEditor, #pianoRollOverlay) .es-bar .es-done:hover:not(:disabled) {
-  background-color: var(--slate-raise);
+  background-color: var(--hover-tint);
 }
-:is(#ccEditor, #pianoRollOverlay) .es-bar .es-done:active {
-  background-color: var(--slate-line);
+:is(#ccEditor, #pianoRollOverlay) .es-bar .es-done:active:not(:disabled) {
+  background-color: var(--brighter-1);
 }
 :is(#ccEditor, #pianoRollOverlay) .es-bar button:focus-visible {
   outline: 1px solid var(--brighter-4);
