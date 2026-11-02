@@ -546,6 +546,10 @@ body.setup-open .setup-toggle .chevron {
   align-items: center;
   gap: 14px;
 }
+/* the framed group's 2px gap is for buttons side by side; BPM is a field of its own */
+.transport label[for='bpm'] {
+  margin-left: 8px;
+}
 
 .global-resets,
 .strip-end,
