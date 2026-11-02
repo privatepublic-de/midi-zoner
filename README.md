@@ -15,7 +15,7 @@ This is an [Electron](https://www.electronjs.org/) application built with TypeSc
 - **CC controllers** — unipolar and bipolar rotary knobs, 14-bit precision, button banks, note-to-CC converters, and spacers
 - **Per-zone input routing** — assign a specific MIDI input port and channel per zone (in addition to global multi-input selection)
 - **Internal and external MIDI clock** — internal clock via Web Audio API for accurate timing; external clock from any MIDI input; configurable clock output routing per port
-- **Key switches** — MIDI notes 0–19 (C-2 to G0) mute zones, toggle sequencers, and switch arrangements from a hardware controller
+- **Key switches** — MIDI notes 0–19 (C-1 to G0) mute zones, toggle sequencers, and switch arrangements from a hardware controller
 - **Swing** — per-zone swing amount (0–100%) applied to arpeggiator and sequencer timing
 - **Scene save/load** — export and import complete configurations as JSON files; auto-save to localStorage; undo/redo (20 levels)
 - **Panic** — send All Notes Off to all outputs instantly

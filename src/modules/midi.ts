@@ -47,20 +47,8 @@ interface ListResult {
  */
 class MIDI {
   static INTERNAL_PORT_ID = '*';
-  static NOTENAMES = [
-    'C-',
-    'C#',
-    'D-',
-    'D#',
-    'E-',
-    'F-',
-    'F#',
-    'G-',
-    'G#',
-    'A-',
-    'A#',
-    'B-'
-  ] as const;
+  // With the octave appended: C-1 (note 0) … G9 (127), middle C (60) = C4
+  static NOTENAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const;
   static MESSAGE = {
     NOTE_OFF: 0x80,
     NOTE_ON: 0x90,

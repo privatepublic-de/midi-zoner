@@ -1,6 +1,5 @@
 import DOM, { escapeHTML } from '../domutils';
 import { differsFromPreset, findDevicePreset, matchesPort, presetsByMaker, PresetDevice } from '../device-presets';
-import MIDI from '../midi';
 
 import DragZone from '../dragzone';
 import potDragHandler from '../potdraghandler';
@@ -992,10 +991,8 @@ function renderMarkersForZone(
   const xchi = noteKeyEdges(zone.high, width);
   zone.elements.rangeMarkerLow!.style.left = `${lo.left}px`;
   zone.elements.rangeMarkerHigh!.style.right = `${width - hi.right}px`;
-  zone.elements.rangeMarkerLow!.innerHTML =
-    MIDI.NOTENAMES[low % 12] + (parseInt(String(low / 12)) - 1);
-  zone.elements.rangeMarkerHigh!.innerHTML =
-    MIDI.NOTENAMES[high % 12] + (parseInt(String(high / 12)) - 1);
+  zone.elements.rangeMarkerLow!.textContent = Note.display(low);
+  zone.elements.rangeMarkerHigh!.textContent = Note.display(high);
   zone.elements.rangeJoin!.style.left = `${lo.left}px`;
   zone.elements.rangeJoin!.style.right = `${width - hi.right}px`;
   zone.elements.rangeCurrent!.style.left = `${xclo.left}px`;
