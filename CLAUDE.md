@@ -163,7 +163,7 @@ Mini view (⌘⇧M, `body.minimized`, app.ts `setMiniView()`): a floating window
 
 Solo mode is tracked via `Zone.solocount` static counter. Zones silenced by another zone's solo get `.soloed-out`; with "Fold zones silenced by solo" (View group of the setup drawer, localStorage `foldSoloedOut`, per machine, default on) they also get `.disabled` and fold like muted zones, otherwise they keep their layout, dimmed, so nothing moves when soloing.
 
-Zone header: M (mute) and S chips like a mixer strip. The M chip carries `zone.enabled` (`.ch.enabled`, "selected" while playing) and is lit amber (`--mute-highlight`) only while muted, S in the live green (`--live`); zone colours are only for zones, so the A–D buttons light neutral; the global M clears all mutes. Colour, save to file, copy to arrangement and delete are in the ⋯ menu (`.zonemenu`, `data-contextclick`), which shows the same entries as a right-click on the header (`updateZoneHeaderContextMenus()`).
+Zone header: M (mute) and S chips like a mixer strip. The M chip carries `zone.enabled` (`.ch.enabled`, "selected" while playing) and is lit dark red (`--mute-fill`, white letter) only while muted, S in the live green (`--live`); zone colours are only for zones, so the A–D buttons light neutral; the global M clears all mutes. Colour, save to file, copy to arrangement and delete are in the ⋯ menu (`.zonemenu`, `data-contextclick`), which shows the same entries as a right-click on the header (`updateZoneHeaderContextMenus()`).
 
 Undo/redo state is tracked in a standalone `UndoHistory` instance in app.ts (not part of `zones`). Every discrete mutation calls `undoHistory.push()`; continuous gestures (e.g. dragging a CC knob) use `startGesture()` / `endGesture()` to collapse into a single entry.
 
@@ -313,7 +313,7 @@ Per-zone swing amount (0–100%) stored in `ZoneArrangementJSON.swingAmount`. Ap
 Zones have color indices (0-N) that map to CSS classes. Colors can be randomized per-zone or globally shuffled.
 
 ### Look
-Shared with the sibling app xr18-console: slate surfaces (`--slate-bg`, `--slate-panel`, `--slate-raise`, `--slate-inset`, `--slate-line` in styles.css) and Barlow Semi Condensed (`res/`, SIL OFL in `res/OFL.txt`). `--zone-surface-N` is slate with a 9 % wash of the zone colour (3 % muted), so cards, editor sheets and popups follow one token; the zone name is a solid box in the zone colour, also while muted. Chips are raised with a thin line and light up in `--on` with `--on-text`; top bar groups sit in inset frames. State colours stay midi-zoner's (amber M, green S, red danger), not xr18's.
+Shared with the sibling app xr18-console: slate surfaces (`--slate-bg`, `--slate-panel`, `--slate-raise`, `--slate-inset`, `--slate-line` in styles.css) and Barlow Semi Condensed (`res/`, SIL OFL in `res/OFL.txt`). `--zone-surface-N` is slate with a 9 % wash of the zone colour (3 % muted), so cards, editor sheets and popups follow one token; the zone name is a solid box in the zone colour; a silent zone (muted or silenced by solo) shows it as an outline in the same colour and keeps the slate frame. Chips are raised with a thin line and light up in `--on` with `--on-text`; top bar groups sit in inset frames. Mutes are red as in xr18 (`--mute-highlight` = `--danger` for text and edges, `--mute-fill` for lit M chips); S stays midi-zoner's live green.
 
 ## Testing Notes
 
