@@ -23,14 +23,18 @@ class DragZone {
   startY = 0;
   startX = 0;
   finishedCallback: FinishedCallback;
+  // Swap with the target (cards), or take its place and shift the others (tracks)
+  insert: boolean;
 
   constructor(
     zones: ZonesData,
     index: number,
     startMouseEvent: MouseEvent,
-    finishedCallback: FinishedCallback
+    finishedCallback: FinishedCallback,
+    insert = false
   ) {
     this.finishedCallback = finishedCallback;
+    this.insert = insert;
     this.zoneElement = DOM.get(`#zone${index}`) as HTMLElement;
     this.index = index;
     this.zones = zones;
@@ -97,7 +101,10 @@ class DragZone {
     DOM.removeClass('#zones', 'dragging', 'droptarget');
     DOM.removeClass(document.body, 'zonedrag');
     this.zoneElement.style.display = 'block';
-    if (this.hasmoved && targetIndex > -1) {
+    if (this.hasmoved && targetIndex > -1 && this.insert) {
+      const [dragged] = this.zones.list.splice(this.index, 1);
+      this.zones.list.splice(targetIndex, 0, dragged);
+    } else if (this.hasmoved && targetIndex > -1) {
       const temp = this.zones.list[targetIndex];
       this.zones.list[targetIndex] = this.zones.list[this.index];
       this.zones.list[this.index] = temp;

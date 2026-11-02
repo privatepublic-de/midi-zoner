@@ -206,6 +206,31 @@ function applyStoredZones(
   }
 }
 
+/**
+ * Undo and redo build new zone objects; what the old ones played (the track view's
+ * lanes) goes to the same zone: same name, output and channel, otherwise the same
+ * place when the number of zones didn't change.
+ */
+function carryOverNoteHistory(previous: Zone[], current: Zone[]): void {
+  const key = (z: Zone): string => `${z.label}\u0000${z.outputPortId}\u0000${z.channel}`;
+  const unclaimed = new Set(previous);
+  const adopt = (zone: Zone, from: Zone): void => {
+    zone.adoptHistory(from);
+    unclaimed.delete(from);
+  };
+  const pending = current.filter((zone) => {
+    const matches = previous.filter((p) => key(p) === key(zone));
+    if (matches.length !== 1 || !unclaimed.has(matches[0])) return true;
+    adopt(zone, matches[0]);
+    return false;
+  });
+  if (previous.length !== current.length) return;
+  pending.forEach((zone) => {
+    const from = previous[current.indexOf(zone)];
+    if (unclaimed.has(from)) adopt(zone, from);
+  });
+}
+
 interface Dismissable {
   close: () => void;
   trigger?: string;
@@ -1077,7 +1102,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         function applyUndoRedoSnapshot(snapshot: string): void {
+          const previous = zones.list.slice();
           applyStoredZones(JSON.parse(snapshot), midi);
+          carryOverNoteHistory(previous, zones.list);
           syncZoneInputPorts(midi);
           view.renderZones();
           view.selectArrangement(zones.arrangementIndex);

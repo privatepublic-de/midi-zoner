@@ -232,7 +232,9 @@ export class Zone {
   /** Plays the sequencer's parameter locks; kept across arrangement switches */
   readonly paramLocks = new ParamLocks(this);
   /** What this zone sent during the current run, for the track view */
-  readonly noteHistory = new NoteHistory();
+  noteHistory = new NoteHistory();
+  /** The notes its arp played from during the current run, for the track view */
+  heldHistory = new NoteHistory();
   arrangements: ZoneArrangementJSON[] = [];
   currentArrangementIndex = 0;
   lastTouchedRangePoint = 0;
@@ -1691,6 +1693,12 @@ export class Zone {
       );
       requestAnimationFrame(this._renderNotesBound);
     });
+  }
+
+  /** Undo replaces the zone objects: the replacement keeps showing what was played */
+  adoptHistory(previous: Zone): void {
+    this.noteHistory = previous.noteHistory;
+    this.heldHistory = previous.heldHistory;
   }
 
   dismiss(): void {

@@ -20,7 +20,7 @@ import {
 } from './actions';
 import { closeCCEditor, initCCEditor, isCCEditorOpen, refreshCCEditor } from './cc-editor';
 import { initPianoRoll } from './piano-roll';
-import { initTrackView, isTrackView, setTrackView } from './track-view';
+import { initTrackView, isTrackView, setTrackView, followTrack } from './track-view';
 import { renderStepLocks } from './step-locks';
 import { describeAction, labelForZone, zonePrefix, ARRANGEMENT_LETTERS } from './action-labels';
 import {
@@ -725,13 +725,21 @@ function appendZone(zone: ZoneType, index: number): void {
   dragHandler.addEventListener('mousedown', (ev) => {
     if (zones.list.length > 1) {
       undoHistory.beforeAction(JSON.stringify(zones), labelForZone(zone, index, 'Reorder'));
-      new DragZone(zones, index, ev, () => {
-        triggerSave();
-        renderZones();
-        zone.elements.zoneElement!.scrollIntoView({
-          behavior: 'instant'
-        } as ScrollIntoViewOptions);
-      });
+      new DragZone(
+        zones,
+        index,
+        ev,
+        () => {
+          triggerSave();
+          renderZones();
+          followTrack(zone);
+          zone.elements.zoneElement!.scrollIntoView({
+            behavior: 'instant',
+            block: isTrackView() ? 'nearest' : 'start'
+          } as ScrollIntoViewOptions);
+        },
+        isTrackView()
+      );
     }
   });
 

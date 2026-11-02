@@ -29,6 +29,9 @@ const STOPPED_REDRAW_MS = 500;
 let getZones: () => Zone[] = () => [];
 let trackView = localStorage.getItem(VIEW_KEY) === 'tracks';
 let selected = 0;
+// The selected zone's note history: undo hands it to the zone object that replaces
+// it (Zone.adoptHistory), so the selection stays with that zone wherever it is now
+let selectedHistory: NoteHistory | null = null;
 let tab: DockTab = (['seq', 'arp', 'cc', 'zone'] as DockTab[]).includes(
   localStorage.getItem(TAB_KEY) as DockTab
 )
@@ -42,8 +45,6 @@ let frame = 0;
 let lastDraw = 0;
 // zone colours, read from CSS when something changed rather than every frame
 const zoneColours = new WeakMap<Element, string>();
-// the notes each arp plays from, over time
-const heldHistories = new WeakMap<Zone, NoteHistory>();
 
 function isActive(): boolean {
   return trackView && !document.body.classList.contains('minimized');
@@ -140,7 +141,14 @@ function startDockResize(ev: MouseEvent): void {
 function select(index: number): void {
   if (index === selected) return;
   selected = index;
+  selectedHistory = getZones()[index]?.noteHistory ?? null;
   invalidate();
+}
+
+/** Keep a track selected where it went (zones reordered) */
+function followTrack(zone: Zone): void {
+  const index = getZones().indexOf(zone);
+  if (index >= 0) select(index);
 }
 
 function zoneIndexOf(el: Element | null): number {
@@ -222,24 +230,20 @@ function stepStart(cur: number, ticks: number, head: number): number {
 }
 
 /** Follows the notes the arp plays from (held keys, or the hold list with Hold) */
-function syncHeld(zone: Zone): NoteHistory | undefined {
-  let held = heldHistories.get(zone);
+function syncHeld(zone: Zone): NoteHistory {
+  const held = zone.heldHistory;
   if (!zone.arp_enabled) {
-    held?.closeAll();
+    held.closeAll();
     return held;
-  }
-  if (!held) {
-    held = new NoteHistory();
-    heldHistories.set(zone, held);
   }
   const source = zone.arp_hold ? zone.arp_holdlist : zone.arp.orderlist;
   const pitches = new Set(source.map((n) => n.number));
   const sounding = new Set(held.notes.filter((n) => n.end === null).map((n) => n.pitch));
   sounding.forEach((p) => {
-    if (!pitches.has(p)) held!.noteOff(p);
+    if (!pitches.has(p)) held.noteOff(p);
   });
   source.forEach((n) => {
-    if (!sounding.has(n.number)) held!.noteOn(n.number, n.velo);
+    if (!sounding.has(n.number)) held.noteOn(n.number, n.velo);
   });
   return held;
 }
@@ -251,7 +255,13 @@ function divisionName(zone: Zone): string {
 
 function draw(): void {
   const zones = getZones();
+  const moved = zones.findIndex((z) => z.noteHistory === selectedHistory);
+  if (moved >= 0 && moved !== selected) {
+    selected = moved;
+    dirty = true;
+  }
   if (selected >= zones.length) selected = Math.max(0, zones.length - 1);
+  selectedHistory = zones[selected]?.noteHistory ?? null;
   zones.forEach((z, i) => z.elements.zoneElement?.classList.toggle('track-selected', i === selected));
   const refresh = dirty;
   dirty = false;
@@ -337,7 +347,7 @@ function drawLane(zone: Zone, head: number, historyShift: number, ppt: number): 
 
   // pitch rows: drum lanes, or the span of the sequence's, the held and the sent notes
   const history = zone.noteHistory.notes;
-  const held = drums ? [] : (syncHeld(zone)?.notes ?? []);
+  const held = drums ? [] : syncHeld(zone).notes;
   let rowOf: (pitch: number) => number;
   let rows: number;
   if (drums) {
@@ -572,4 +582,4 @@ function initTrackView(zones: () => Zone[]): void {
   applyBodyState();
 }
 
-export { initTrackView, isTrackView, setTrackView, invalidate as invalidateTrackView };
+export { initTrackView, isTrackView, setTrackView, followTrack, invalidate as invalidateTrackView };

@@ -5389,9 +5389,23 @@ body.track-view:not(.minimized) {
     background-color: var(--live);
     box-shadow: 0 0 5px 1px var(--live);
   }
-  .channels > .sendClock,
-  .channels .dragzone {
+  .channels > .sendClock {
     display: none;
+  }
+  /* drag: the row takes the target's place, the others shift */
+  #zones > .zone.dragged {
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+  }
+  #zones > .zone.droptarget {
+    outline: none;
+  }
+  #zones > .zone.droptarget::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    box-shadow: inset 0 0 0 2px var(--text-base-color);
   }
   /* CC shows the controllers below, so it lights only while they show there */
   #zones > .zone.show-cc .channels > .ch.showccs {
