@@ -727,7 +727,9 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
   --bg-color: var(--zone-surface);
 }
 
-@media (max-width: 1130px) {
+/* one column until two 560px zones fit: 2 × 560 + 5 gap + 10 padding + the 15px
+   scrollbar gutter = 1150px (narrower zones would break rows of 8 knobs) */
+@media (max-width: 1149px) {
   #zones {
     display: block;
   }
@@ -1517,8 +1519,22 @@ input[type='range'] {
 
 /* =============================================================
    SHARED BUTTON BEHAVIOUR
-   One shape and one keyboard-focus ring for every button species.
+   One shape, one hover and one keyboard-focus ring for every button species.
    ============================================================= */
+
+/* Hover: a light tint laid over whatever the control's own background is (zone
+   colour, top bar, lit chip), so borders, outlines and focus rings stay as they are */
+:root {
+  --hover-tint: rgba(255, 255, 255, 0.12);
+}
+:is(.lightButton, .ch, .rtool, .sendClock, .action, .check, .octselect, .ks-help-btn, select):hover:not(:disabled) {
+  background-image: linear-gradient(var(--hover-tint), var(--hover-tint));
+}
+/* a step's background is its velocity fill: a thin ring instead */
+.seq .grid .step:not(.selected):hover {
+  outline: 1px solid var(--brighter-3);
+  outline-offset: -1px;
+}
 
 :is(.lightButton, .ch, .rtool, .selectSeq, .ks-help-btn) {
   border-radius: var(--radius);
