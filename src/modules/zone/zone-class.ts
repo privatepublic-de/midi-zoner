@@ -542,18 +542,19 @@ export class Zone {
     this.sendOut(this._midiMsgBuf, portId);
   }
 
-  /** Sends a MIDI message and flashes the activity LED (visible in minimized view only). */
+  /** Sends a MIDI message; note-ons flash the activity LED (visible in minimized view only). */
   private sendOut(msg: Uint8Array, portId: string, timestamp?: number): void {
+    const noteOn = (msg[0] & 0xf0) === MIDI.MESSAGE.NOTE_ON && msg[2] > 0;
     // A still-sounding note of the same pitch is released before it is struck again,
     // so its late note-off cannot cut the new note
-    if ((msg[0] & 0xf0) === MIDI.MESSAGE.NOTE_ON && msg[2] > 0) {
+    if (noteOn) {
       if (this.ringOuts.size > 0) this.fireRingOut(msg[1]);
       if (this.arp.lastStrumNotes.length > 0) {
         this.releaseSoundingArpPitch(msg[1], msg[0] & 0x0f, portId);
       }
     }
     this.midi.send(msg, portId, timestamp);
-    if (this.ledTimer !== null || !document.body.classList.contains('minimized')) return;
+    if (!noteOn || this.ledTimer !== null || !document.body.classList.contains('minimized')) return;
     const led = this.elements.zoneElement?.querySelector('.midi-led');
     if (!led) return;
     led.classList.add('on');
