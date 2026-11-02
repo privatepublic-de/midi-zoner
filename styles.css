@@ -3,22 +3,34 @@
    ============================================================= */
 
 :root {
+  /* Slate surfaces, shared with xr18-console: window, panels, raised controls, inset fields */
+  --slate-bg: #0e1013;
+  --slate-panel: #22272e;
+  --slate-raise: #2c323a;
+  --slate-inset: #101215;
+  --slate-line: #38404b;
+  --slate-edge: #3c4450; /* zone card frame; its top edge is lighter */
+  --slate-edge-top: #4c5562;
+  --slate-dim: #9aa3ae;
+  --on: #cfd6df; /* a lit switch: Seq/Arp/CC chips, A-D, active buttons */
+  --on-text: #14171b;
+
   --text-base-color: #f0f6f8;
   --text-contextmenu-color: var(--text-base-color);
-  --bg-window: #171717;
+  --bg-window: var(--slate-bg);
   --fg-window: #ddd;
   --scrollbar: #ffffff20;
-  --bg-topbar: #202020;
+  --bg-topbar: var(--slate-panel);
   --shadow-topbar: var(--darker-4);
-  --border-topbar: var(--darker-4);
-  --bg-topbar-button: #2f2f2f;
+  --border-topbar: var(--slate-line);
+  --bg-topbar-button: var(--slate-raise);
   --fg-topbar-button: var(--brighter-3);
-  --shadow-topbar-button: #0008;
-  --bg-topbar-button-active: #666;
-  --fg-topbar-button-active: #fff;
-  --bg-select-window: #111;
+  --shadow-topbar-button: transparent;
+  --bg-topbar-button-active: var(--on);
+  --fg-topbar-button-active: var(--on-text);
+  --bg-select-window: var(--slate-inset);
   --bg-contextmenu: var(--bg-color-popup);
-  --bg-color-popup: #333333;
+  --bg-color-popup: var(--slate-raise);
   --bg-zone-disabled: rgba(255, 255, 255, 0.07);
 
   --brighter-0: rgba(255, 255, 255, 0.125);
@@ -59,7 +71,7 @@
 
   --red-highlight: var(--danger-soft);
   --light-red-highlight: var(--danger);
-  --white-highlight: #ccc;
+  --white-highlight: var(--on);
   --multiselect-highlight: var(--danger);
   --record-highlight: var(--danger-strong);
   --mute-highlight: #f0b429; /* amber: M chips of muted zones */
@@ -92,13 +104,13 @@
   --zone-3: #f99e65;
   --zone-4: #ff968a;
 
-  /* Card bodies: same lightness and chroma (OKLCH L.50 C.10), only the hue differs,
-     so the five sit together as one family; the blue is set deeper. All >= 5:1 with light text. */
-  --zone-surface-0: #025473;
-  --zone-surface-1: #04736c;
-  --zone-surface-2: #7b5f06;
-  --zone-surface-3: #8f5128;
-  --zone-surface-4: #944b43;
+  /* Card bodies: slate with a faint wash of the zone colour (as xr18-console's strips), so the
+     zone name box carries the colour and the controls stay quiet. Muted zones fade to 3 %. */
+  --zone-surface-0: color-mix(in srgb, var(--zone-0) 9%, var(--slate-panel));
+  --zone-surface-1: color-mix(in srgb, var(--zone-1) 9%, var(--slate-panel));
+  --zone-surface-2: color-mix(in srgb, var(--zone-2) 9%, var(--slate-panel));
+  --zone-surface-3: color-mix(in srgb, var(--zone-3) 9%, var(--slate-panel));
+  --zone-surface-4: color-mix(in srgb, var(--zone-4) 9%, var(--slate-panel));
 
   /* CC section colors A-D: violet, pink, bone, periwinkle (OKLCH, accent lightness) */
   --group-1: oklch(0.8 0.13 300);
@@ -125,7 +137,6 @@
 #ccEditor[data-colorindex='2'] {
   --zone-color: var(--zone-2);
   --zone-surface: var(--zone-surface-2);
-  --scrollbar: #ffffff60;
 }
 .zone[data-colorindex='3'],
 #ccEditor[data-colorindex='3'] {
@@ -160,11 +171,19 @@
     url(./res/MaterialIcons-Regular.woff2) format('woff2');
 }
 
+/* Barlow Semi Condensed (SIL OFL, res/OFL.txt), as in xr18-console: narrow enough for the
+   dense zone controls. Bold maps to the 600 file so it is never synthesised. */
 @font-face {
-  font-family: 'Pontano Sans';
+  font-family: 'Barlow Semi Condensed';
   font-style: normal;
   font-weight: 400;
-  src: url(./res/pontano-sans-v17-latin-regular.woff2) format('woff2');
+  src: url(./res/barlow-semi-condensed-latin-400-normal.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'Barlow Semi Condensed';
+  font-style: normal;
+  font-weight: 600 700;
+  src: url(./res/barlow-semi-condensed-latin-600-normal.woff2) format('woff2');
 }
 
 .material-icons {
@@ -201,7 +220,8 @@ html,
 }
 
 body {
-  font-family: 'Pontano Sans', Verdana, sans-serif;
+  font-family: 'Barlow Semi Condensed', 'Arial Narrow', system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
   background: var(--bg-window);
   color: var(--fg-window);
   margin: 30px 0 0 0;
@@ -211,6 +231,13 @@ body {
 * {
   box-sizing: border-box;
   user-select: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
 }
 
 h2 {
@@ -279,7 +306,6 @@ input::-webkit-inner-spin-button {
   padding: 2px 5px;
   font-size: var(--fs-md);
   color: var(--brighter-3);
-  box-shadow: 0 2px 5px var(--shadow-topbar);
   border-bottom: 1px solid var(--border-topbar);
 }
 
@@ -352,8 +378,9 @@ option {
 
 #midisettings input {
   width: 40px;
-  border: 1px solid var(--darker-3);
-  background-color: var(--darker-2);
+  border: 1px solid var(--slate-line);
+  border-radius: var(--radius);
+  background-color: var(--slate-inset);
   color: var(--brighter-3);
   font-size: var(--fs-md);
   padding: 0;
@@ -404,7 +431,8 @@ option {
   background: var(--bg-topbar-button);
   color: var(--fg-topbar-button);
   cursor: pointer;
-  border: none;
+  border: 1px solid var(--slate-line);
+  border-radius: var(--radius);
   min-width: 24px;
   text-align: center;
   height: 16px;
@@ -603,20 +631,30 @@ body.setup-open #setupDrawer {
   margin-right: 0;
 }
 
-/* Collapsed strip: each group of related controls gets a thin outline. */
+/* Collapsed strip: each group of related controls sits in an inset frame; its buttons
+   stay quiet until lit. */
 #midisettings > :is(.global-resets, #arrangementSelector, .transport) {
   box-sizing: border-box;
   height: 32px;
-  padding: 0 6px;
+  padding: 0 3px;
+  gap: 2px;
   align-items: center;
-  border: 1px solid var(--brighter-0);
-  border-radius: var(--radius);
+  background-color: var(--slate-inset);
+  border: 1px solid var(--slate-line);
+  border-radius: var(--radius-lg);
+}
+
+#midisettings > .global-resets .lightButton:not(.active) {
+  background: none;
+  border-color: transparent;
+  color: var(--slate-dim);
 }
 
 body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transport) {
   height: auto;
   padding: 0;
   border: none;
+  background: none;
 }
 
 /* Start / Stop: a real button with a play or stop icon; green tint while the clock runs. */
@@ -724,7 +762,9 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
   padding: 8px;
   width: 560px;
   min-width: var(--floor-zone);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--slate-edge);
+  border-top-color: var(--slate-edge-top);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
   background-color: var(--zone-surface);
   border-radius: var(--radius-lg);
   --bg-color: var(--zone-surface);
@@ -753,6 +793,7 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
   justify-content: flex-start;
   align-items: flex-start;
   box-shadow: none;
+  border: none;
   background: none;
   color: var(--brighter-3);
   padding-top: 6px;
@@ -831,7 +872,7 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
 
 .zone.disabled {
   box-shadow: none;
-  background-color: color(from var(--zone-color) srgb r g b / 0.1);
+  background-color: color-mix(in srgb, var(--zone-color) 3%, var(--slate-panel));
   --bg-color: var(--bg-zone-disabled);
   --text-base-color: #9aa0a2;
 }
@@ -839,13 +880,13 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
 /* a muted zone (M) keeps its identity: a thin frame in its colour around the dimmed
    card; the amber M says it's muted. Zones silenced by solo get no frame. */
 .zone.disabled:not(.soloed-out) {
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--zone-color) 70%, transparent);
+  border-color: color-mix(in srgb, var(--zone-color) 70%, transparent);
 }
 
 /* "Fold zones silenced by solo" off: those zones keep their layout, dimmed;
    the header stays bright so M and S remain easy to hit */
 .zone.soloed-out:not(.disabled) {
-  background-color: color(from var(--zone-color) srgb r g b / 0.1);
+  background-color: color-mix(in srgb, var(--zone-color) 3%, var(--slate-panel));
   box-shadow: none;
 }
 .zone.soloed-out:not(.disabled) > :not(.channels) {
@@ -937,7 +978,9 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
   height: 20px;
   text-align: center;
   color: var(--brighter-4);
-  background-color: var(--darker-1);
+  background-color: var(--slate-raise);
+  border: 1px solid var(--slate-line);
+  border-radius: var(--radius);
   cursor: pointer;
 }
 
@@ -1092,8 +1135,8 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
   flex-shrink: 0;
 }
 .ch.selected {
-  border-color: transparent;
-  background-color: var(--brighter-2);
+  border-color: var(--on);
+  background-color: var(--on);
   color: var(--text-base-color);
 }
 
@@ -1101,13 +1144,15 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
    is muted. The chip carries `enabled`, so it is "selected" while playing. */
 .zone .channels .ch.enabled.selected,
 .drum-lane .lane-header .ch.enabled.selected {
-  background-color: var(--darker-1);
+  background-color: var(--slate-raise);
+  border-color: var(--slate-line);
   color: var(--brighter-4);
 }
 
 .zone .channels .ch.enabled:not(.selected),
 .drum-lane .lane-header .ch.enabled:not(.selected) {
   background-color: var(--mute-highlight);
+  border-color: var(--mute-highlight);
   color: var(--ink);
 }
 
@@ -1119,13 +1164,14 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
 }
 
 .ch.solo {
-  background-color: var(--darker-1);
+  background-color: var(--slate-raise);
 }
 
 .zone .channels .ch.solo.selected,
 .drum-lane .lane-header .ch.solo.selected {
   /* the one "live" green, dark text like the lit M */
   background-color: var(--live);
+  border-color: var(--live);
   color: var(--ink);
 }
 
@@ -1183,29 +1229,28 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
   height: 20px;
 }
 
+/* the zone's name is its scribble strip: a solid box in the zone colour, also while
+   muted (a dimmed name read as another colour; the frame and the amber M say muted) */
 .zone input.zone-label {
   flex: 1 0 70px;
   min-width: 0;
   height: 20px;
-  background-color: transparent;
-  color: var(--zone-color);
+  background-color: var(--zone-color);
+  color: var(--on-text);
   /* the zone's name: not smaller than the chips beside it */
   font-size: var(--fs-md);
+  font-weight: 600;
   text-overflow: ellipsis;
   text-align: left;
-  padding: 0 4px;
+  padding: 0 8px;
   border: none;
+  border-radius: var(--radius);
   outline: none;
 }
 
 .zone input.zone-label::placeholder {
-  color: var(--zone-color);
+  color: color-mix(in srgb, var(--on-text) 60%, transparent);
   font-style: italic;
-}
-
-.zone:not(.disabled) input.zone-label,
-.zone:not(.disabled) input.zone-label::placeholder {
-  color: var(--text-base-color);
 }
 
 .iorouting-popup input.output-config-name {
@@ -1285,7 +1330,7 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
   top: 3px;
   bottom: 3px;
   width: 1px;
-  background: var(--brighter-1);
+  background: var(--slate-line);
 }
 
 /* =============================================================
@@ -1495,12 +1540,17 @@ input[type='range'] {
 
 .zone select,
 .zone input {
-  border: none;
-  background-color: var(--darker-1);
+  border: 1px solid var(--slate-line);
+  border-radius: var(--radius);
+  background-color: var(--slate-inset);
   color: var(--text-base-color);
   font-size: var(--fs-md);
   padding: 0;
   text-align: center;
+}
+
+.zone input:is([type='range'], [type='checkbox']) {
+  border: none;
 }
 
 .zone input {
@@ -1843,11 +1893,13 @@ input[type='range'] {
 }
 
 .show-cc .showccs {
-  background-color: var(--brighter-2);
+  background-color: var(--on);
+  border-color: var(--on);
 }
 
 .show-seq .showseq {
-  background-color: var(--brighter-2);
+  background-color: var(--on);
+  border-color: var(--on);
 }
 
 .ccpot {
@@ -2202,7 +2254,7 @@ input[type='range'] {
 }
 
 .shadowed-zone-block {
-  box-shadow: 0 0 8px var(--darker-1);
+  box-shadow: none;
 }
 
 .zone.disabled .seq {
@@ -2940,7 +2992,9 @@ body.running .seqprogress.drum .inner {
 
 .popup {
   background-color: var(--bg-color);
-  box-shadow: 1px 1px 4px var(--shadow-topbar);
+  border: 1px solid var(--slate-edge);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 12px var(--shadow-overlay);
   padding: 8px;
   color: var(--text-base-color);
   cursor: default;
@@ -2949,14 +3003,16 @@ body.running .seqprogress.drum .inner {
 .selectSeq {
   width: 48px;
   text-align: center;
-  background-color: var(--bg-topbar-button);
+  color: var(--slate-dim);
+  border-radius: var(--radius);
   padding: 2px;
   cursor: pointer;
 }
 
 .selectSeq.selected {
-  background-color: var(--white-highlight);
-  color: var(--darker-4);
+  background-color: var(--on);
+  color: var(--on-text);
+  font-weight: 600;
 }
 
 
@@ -2966,7 +3022,7 @@ body.running .seqprogress.drum .inner {
 
 @keyframes seqLayerPending {
   0% {
-    background-color: var(--bg-topbar-button);
+    background-color: transparent;
   }
   100% {
     background-color: var(--brighter-1);
@@ -2974,8 +3030,8 @@ body.running .seqprogress.drum .inner {
 }
 
 .selectSeq:not(.selected):hover {
-  background-color: var(--brighter-1);
-  color: var(--brighter-2);
+  background-color: var(--brighter-0);
+  color: var(--brighter-4);
 }
 
 
@@ -4358,17 +4414,12 @@ body.minimized .midi-led.on {
   color: var(--ink);
 }
 
-/* Disabled zones: zone name and number in a lighter tint of the zone color. */
+/* Disabled zones: zone number in a lighter tint of the zone color. */
 .zone {
   --zone-label: color-mix(in srgb, var(--zone-color) 50%, #fff);
 }
 
 .disabled .zonenumber {
-  color: var(--zone-label);
-}
-
-.zone.disabled input.zone-label,
-.zone.disabled input.zone-label::placeholder {
   color: var(--zone-label);
 }
 

@@ -312,6 +312,9 @@ Per-zone swing amount (0–100%) stored in `ZoneArrangementJSON.swingAmount`. Ap
 ### Zone Color Indices
 Zones have color indices (0-N) that map to CSS classes. Colors can be randomized per-zone or globally shuffled.
 
+### Look
+Shared with the sibling app xr18-console: slate surfaces (`--slate-bg`, `--slate-panel`, `--slate-raise`, `--slate-inset`, `--slate-line` in styles.css) and Barlow Semi Condensed (`res/`, SIL OFL in `res/OFL.txt`). `--zone-surface-N` is slate with a 9 % wash of the zone colour (3 % muted), so cards, editor sheets and popups follow one token; the zone name is a solid box in the zone colour, also while muted. Chips are raised with a thin line and light up in `--on` with `--on-text`; top bar groups sit in inset frames. State colours stay midi-zoner's (amber M, green S, red danger), not xr18's.
+
 ## Testing Notes
 
 The application has no automated tests. Manual testing should cover:

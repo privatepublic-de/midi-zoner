@@ -1,12 +1,18 @@
 @font-face {
-  font-family: 'Pontano Sans';
+  font-family: 'Barlow Semi Condensed';
   font-style: normal;
   font-weight: 400;
-  src: url(pontano-sans-v17-latin-regular.woff2) format('woff2');
+  src: url(barlow-semi-condensed-latin-400-normal.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'Barlow Semi Condensed';
+  font-style: normal;
+  font-weight: 600 700;
+  src: url(barlow-semi-condensed-latin-600-normal.woff2) format('woff2');
 }
 body {
-  font-family: 'Pontano Sans', sans-serif;
-  background: #272422;
+  font-family: 'Barlow Semi Condensed', 'Arial Narrow', sans-serif;
+  background: #22272e; /* --slate-panel */
   color: #ddd;
   margin: 0 2rem;
 }

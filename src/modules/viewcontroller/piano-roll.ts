@@ -918,7 +918,7 @@ export function openPianoRoll(ctx: ActionContext): void {
   );
   setSheetZone(overlayEl, ctx.zone, ctx.zoneindex);
   overlayEl.style.setProperty('--zone-color', getZoneColor(ctx.zone));
-  overlayEl.style.setProperty('--zone-surface', getZoneColor(ctx.zone, '--zone-surface', '#7b5f06'));
+  overlayEl.style.setProperty('--zone-surface', getZoneColor(ctx.zone, '--zone-surface', '#333330'));
   overlayEl.classList.add('open');
   hostStepInfo(ctx.zone);
   renderAll(ctx.zone);
