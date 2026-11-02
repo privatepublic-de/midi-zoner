@@ -259,15 +259,41 @@ let currentZoomFactor = parseFloat(localStorage.getItem(ZOOM_STORAGE_KEY) || '1'
 // scaled by zoom, so a zoomed window can never be narrower than the layout needs.
 const PAGE_FLOOR_CSS_PX = 540;
 
+// The mini view has its own zoom; it sets the window's size (width = MINI_WIDTH × zoom)
+const MINI_ZOOM_STORAGE_KEY = 'miniZoomFactor';
+const MINI_ZOOM_MIN = 0.5;
+const MINI_ZOOM_MAX = 1.5;
+let miniZoomFactor = parseFloat(localStorage.getItem(MINI_ZOOM_STORAGE_KEY) || '0.8');
+
+/** Zooms the view that is showing: the full view, or the mini view with its own factor. */
 function applyZoom(factor: number): void {
+  if (miniView) {
+    applyMiniZoom(Math.round(factor * 10) / 10);
+    return;
+  }
   currentZoomFactor = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, Math.round(factor * 10) / 10));
   webFrame.setZoomFactor(currentZoomFactor);
   localStorage.setItem(ZOOM_STORAGE_KEY, String(currentZoomFactor));
   ipcRenderer.invoke('set-min-width', Math.ceil(PAGE_FLOOR_CSS_PX * currentZoomFactor));
+}
+
+/** Finer steps than applyZoom: a dragged window width maps to any factor in range. */
+function applyMiniZoom(factor: number): void {
+  miniZoomFactor = Math.max(MINI_ZOOM_MIN, Math.min(MINI_ZOOM_MAX, Math.round(factor * 100) / 100));
+  localStorage.setItem(MINI_ZOOM_STORAGE_KEY, String(miniZoomFactor));
+  if (!miniView) return;
+  webFrame.setZoomFactor(miniZoomFactor);
+  lastMiniSize = '';
   applyMiniSize();
 }
 
 applyZoom(currentZoomFactor);
+
+// The user dragged the mini window's edge: its width becomes the zoom, the height follows
+ipcRenderer.on('mini-resized', (_event, width: number) => {
+  if (!miniView) return;
+  applyMiniZoom(width / MINI_WIDTH);
+});
 
 
 /** Places a fixed popup just below the control that opened it, kept inside the window. */
@@ -282,8 +308,8 @@ function anchorBelow(popup: HTMLElement, anchor: HTMLElement): void {
 function applyMiniSize(): void {
   if (!miniView) return;
   const zonesBottom = DOM.get('#zones')!.getBoundingClientRect().bottom;
-  const width = MINI_WIDTH * currentZoomFactor;
-  const height = (zonesBottom + 8) * currentZoomFactor;
+  const width = MINI_WIDTH * miniZoomFactor;
+  const height = (zonesBottom + 8) * miniZoomFactor;
   const size = `${width}x${height}`;
   if (size === lastMiniSize) return;
   lastMiniSize = size;
@@ -300,6 +326,8 @@ function setMiniView(on: boolean, refresh = true): void {
   miniBtn.title = `${on ? 'Back to full view' : 'Switch to mini view'} (Cmd/Ctrl+Shift+M)`;
   miniBtn.querySelector('i')!.textContent = on ? 'open_in_full' : 'close_fullscreen';
   if (refresh) view.updateValuesForAllZones();
+  // each view keeps its own zoom
+  webFrame.setZoomFactor(on ? miniZoomFactor : currentZoomFactor);
   if (on) {
     applyMiniSize();
   } else {
@@ -321,6 +349,15 @@ document.addEventListener('DOMContentLoaded', function () {
     if (e.code === 'KeyM' && e.shiftKey && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       setMiniView(!miniView);
+    }
+    // ⌘+ / ⌘− / ⌘0 zoom the view that is showing (by key, so "+" works on any layout)
+    if ((e.metaKey || e.ctrlKey) && !e.altKey) {
+      const zoom = miniView ? miniZoomFactor : currentZoomFactor;
+      if (e.key === '+' || e.key === '=') applyZoom(zoom + ZOOM_STEP);
+      else if (e.key === '-') applyZoom(zoom - ZOOM_STEP);
+      else if (e.key === '0') applyZoom(1.0);
+      else return;
+      e.preventDefault();
     }
   });
   new ResizeObserver(applyMiniSize).observe(DOM.get('#zones')!);

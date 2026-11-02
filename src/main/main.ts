@@ -151,6 +151,22 @@ function createWindow(): void {
       win!.webContents.toggleDevTools();
     }
   });
+  // Mini view: dragging the window edge sets its zoom. The renderer turns the width into
+  // a zoom factor and sends the fitting size back (so its own resizes change nothing).
+  // 'resized' fires once a drag ends (macOS, Windows); Linux only has 'resize', so wait for it to settle.
+  let resizeSettle: NodeJS.Timeout | null = null;
+  const reportMiniWidth = (): void => {
+    if (win && fullBounds) win.webContents.send('mini-resized', win.getContentSize()[0]);
+  };
+  if (process.platform === 'linux') {
+    win.on('resize', () => {
+      if (!fullBounds) return;
+      if (resizeSettle) clearTimeout(resizeSettle);
+      resizeSettle = setTimeout(reportMiniWidth, 300);
+    });
+  } else {
+    win.on('resized', reportMiniWidth);
+  }
   win.on('close', () => {
     saveWindowPos(win!);
   });
