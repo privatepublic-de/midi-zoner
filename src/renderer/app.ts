@@ -1293,7 +1293,8 @@ document.addEventListener('DOMContentLoaded', function () {
         setTimeout(() => {
           DOM.removeClass(document.body, 'updated');
         }, 1000);
-        view.toast(`MIDI devices updated<br/>${msg ? msg : ''}`);
+        // only when a device came, went or was reconnected, not on every re-scan
+        if (msg) view.toast(`MIDI devices updated<br/>${msg}`);
       }, 100);
     }
   });

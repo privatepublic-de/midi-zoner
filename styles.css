@@ -4,7 +4,6 @@
 
 :root {
   --text-base-color: #f0f6f8;
-  --text-toast-color: #333;
   --text-contextmenu-color: var(--text-base-color);
   --bg-window: #171717;
   --fg-window: #ddd;
@@ -18,9 +17,6 @@
   --bg-topbar-button-active: #666;
   --fg-topbar-button-active: #fff;
   --bg-select-window: #111;
-  --bg-toast: #ced935;
-  --bg-toast-warning: #ff8888;
-  --shadow-toast: #000000c0;
   --bg-contextmenu: var(--bg-color-popup);
   --shadow-zone: #111;
   --bg-color-popup: #333333;
@@ -67,7 +63,6 @@
   --white-highlight: #ccc;
   --multiselect-highlight: var(--danger);
   --record-highlight: var(--danger-strong);
-  --green-highlight: rgba(0, 196, 0, 1);
   --mute-highlight: #f0b429; /* amber: M chips of muted zones */
 
   --step-size-disabled: 5px;
@@ -1117,8 +1112,10 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
   background-color: var(--darker-1);
 }
 
-.ch.solo.selected {
-  background-color: var(--green-highlight);
+.zone .channels .ch.solo.selected {
+  /* the one "live" green, dark text like the lit M */
+  background-color: var(--live);
+  color: var(--ink);
 }
 
 .settings,
@@ -2829,10 +2826,13 @@ body.running .seqprogress.drum .inner {
   right: 16px;
   left: auto;
   margin-left: 0;
-  color: var(--text-toast-color);
-  background-color: var(--bg-toast);
+  /* neutral, like the menus; a warning gets a red edge */
+  color: var(--text-base-color);
+  background-color: var(--bg-color-popup);
+  border: 1px solid var(--brighter-0);
+  border-radius: var(--radius);
   font-size: var(--fs-md);
-  box-shadow: 1px 1px 4px var(--shadow-toast);
+  box-shadow: 0 4px 14px var(--shadow-overlay);
   z-index: var(--z-menu);
   opacity: 0;
   transform: translateX(120%);
@@ -2847,7 +2847,9 @@ body.running .seqprogress.drum .inner {
 }
 
 #toast.warning {
-  background-color: var(--bg-toast-warning);
+  box-shadow:
+    inset 3px 0 0 var(--danger),
+    0 4px 14px var(--shadow-overlay);
 }
 
 @keyframes toast-bump {
@@ -2867,8 +2869,8 @@ body.running .seqprogress.drum .inner {
 }
 
 #toast .toastinner {
-  padding: 10px;
-  text-align: center;
+  padding: 10px 12px;
+  text-align: left;
   word-wrap: break-word;
 }
 
@@ -2914,18 +2916,6 @@ body.running .seqprogress.drum .inner {
   color: var(--darker-4);
 }
 
-.selectSeq.sqlA.selected {
-  background-color: var(--zone-1);
-}
-.selectSeq.sqlB.selected {
-  background-color: var(--zone-2);
-}
-.selectSeq.sqlC.selected {
-  background-color: var(--zone-3);
-}
-.selectSeq.sqlD.selected {
-  background-color: var(--zone-4);
-}
 
 .selectSeq.pending {
   animation: seqLayerPending 100ms infinite alternate ease-out;
@@ -3221,8 +3211,8 @@ body.running .seqprogress.drum .inner {
   background-color: var(--brighter-1);
 }
 .preset-row-action.warn:hover {
-  background-color: var(--bg-toast-warning);
-  color: var(--text-toast-color);
+  background-color: var(--danger-soft);
+  color: var(--brighter-4);
 }
 .preset-row-action .material-icons {
   font-size: var(--icon-md);
