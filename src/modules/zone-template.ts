@@ -111,10 +111,7 @@ export function getHTML(zone: ZoneType, zoneindex: number): string {
     drumLanes += `
       <div class="drum-lane lane${ln}" data-contextmenu="${index}:seq_copy_lane:${ln},${index}:seq_paste_lane:${ln},-,${index}:seq_clear_lane:${ln}">
         <div class="lane-header">
-          <div class="action ch enabled seq_toggle_lane_enabled" data-action="${index}:seq_toggle_lane_enabled:${ln}" title="Enable lane">
-            <span class="material-icons sel"> check </span>
-            <span class="material-icons unsel"> close </span>
-          </div>
+          <div class="action ch enabled seq_toggle_lane_enabled" data-action="${index}:seq_toggle_lane_enabled:${ln}" title="Mute lane">M</div>
           <div class="action ch solo seq_toggle_lane_solo" data-action="${index}:seq_toggle_lane_solo:${ln}" title="Solo lane">S</div>
           <input class="lane-label" type="text" maxlength="5" placeholder="${ln + 1}" title="Lane label" data-change="${index}:seq_drum_lane_label:${ln}" tabindex="-1"/>
           <div class="lane-controls-ext">

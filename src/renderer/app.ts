@@ -442,8 +442,8 @@ document.addEventListener('DOMContentLoaded', function () {
           isSelected ? 'selected' : ''
         }" data-portid="${
           esc(inport.id)
-        }"><span class="material-icons sel">check_circle</span
-        ><span class="material-icons unsel">radio_button_unchecked</span>
+        }"><span class="material-icons sel">check_box</span
+        ><span class="material-icons unsel">check_box_outline_blank</span>
         <span>${esc(inport.fullName)}</span>
         <span class="chsel"><select tabindex="-1">${channelOptions}</select></span>
         </div>`
@@ -503,8 +503,8 @@ document.addEventListener('DOMContentLoaded', function () {
           isSelected ? 'selected' : ''
         }" data-portid="${
           esc(outport.id)
-        }"><span class="material-icons sel">check_circle</span
-        ><span class="material-icons unsel">radio_button_unchecked</span>
+        }"><span class="material-icons sel">check_box</span
+        ><span class="material-icons unsel">check_box_outline_blank</span>
         <span class="outname">${esc(outport.fullName)}</span
         ><span class="clockSuppressBtn material-icons${isSuppressed ? ' active' : ''}" data-portid="${esc(outport.id)}" title="Free-running clock: send only ticks, no start/stop (keeps delay/reverb synced while transport is stopped)">sync_lock</span>
         </div>`

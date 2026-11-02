@@ -1086,33 +1086,33 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
   color: var(--text-base-color);
 }
 
-/* M (mute): like S, dark while off and lit only while the zone is muted.
-   The chip carries the zone's `enabled`, so it is "selected" while playing. */
-.zone .channels .ch.enabled.selected {
+/* M (mute): like S, dark while off and lit only while the zone (or drum lane)
+   is muted. The chip carries `enabled`, so it is "selected" while playing. */
+.zone .channels .ch.enabled.selected,
+.drum-lane .lane-header .ch.enabled.selected {
   background-color: var(--darker-1);
   color: var(--brighter-4);
 }
 
-.zone .channels .ch.enabled:not(.selected) {
+.zone .channels .ch.enabled:not(.selected),
+.drum-lane .lane-header .ch.enabled:not(.selected) {
   background-color: var(--mute-highlight);
   color: var(--ink);
 }
 
+/* a held arp: the ticked box on the neutral highlight of other toggles (red is
+   for danger and record) */
 .check.arp_hold.selected {
-  background-color: var(--red-highlight);
-  color: var(--brighter-3);
-}
-
-.disabled .check.arp_hold.selected {
-  background-color: var(--record-highlight);
-  color: var(--brighter-3);
+  background-color: var(--brighter-1);
+  color: var(--brighter-4);
 }
 
 .ch.solo {
   background-color: var(--darker-1);
 }
 
-.zone .channels .ch.solo.selected {
+.zone .channels .ch.solo.selected,
+.drum-lane .lane-header .ch.solo.selected {
   /* the one "live" green, dark text like the lit M */
   background-color: var(--live);
   color: var(--ink);
@@ -3660,11 +3660,6 @@ body.running .drumSequencer .lane-expand-toggle {
   opacity: 0.2;
 }
 
-.drum-lane .seq_toggle_lane_enabled .sel,
-.drum-lane .seq_toggle_lane_enabled .unsel {
-  margin-right: 0;
-  font-size: var(--icon-sm);
-}
 .drum-lane.soloed-out {
   opacity: 0.2;
 }
