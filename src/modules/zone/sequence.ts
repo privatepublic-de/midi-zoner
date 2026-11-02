@@ -1,4 +1,4 @@
-import { mulberry32 } from '../prng';
+import { hashRoll, randomSeed } from '../prng';
 import MIDI from '../midi';
 import { Note } from './note';
 import { SeqStep } from './seq-step';
@@ -59,7 +59,9 @@ export class Sequence {
   activeSteps: SeqStep[] = [];
   private ratchetQueue: { note: Note; noteOnPos: number; noteOffPos: number }[] = [];
   private readonly _midiMsgBuf = new Uint8Array(3);
-  private rngProb = mulberry32();
+  // Chance is decided per run, cycle and step (chanceRoll), so the track view can
+  // show ahead which steps will play; renewed on stop
+  private chanceSeed = randomSeed();
   currentPos = 0; // Track current clock position for swing timing
   // Outstanding setTimeout handles for swung note-on dispatch; cancelled on stopped().
   private swingTimers: Set<ReturnType<typeof setTimeout>> = new Set();
@@ -471,7 +473,7 @@ export class Sequence {
       // Evaluate condition and probability exactly once at step boundary
       const conditionMet = this.checkCondition(step, lane.cycleCount, lane.isFirstCycle, lane.previousStepPlayed);
       lane.conditionResults[lane.currentStep] = [lane.cycleCount, conditionMet];
-      const shouldPlay = conditionMet && this.rngProb() < step.probability;
+      const shouldPlay = conditionMet && this.chanceRoll(lane.cycleCount, lane.currentStep, ln) < step.probability;
       lane.previousStepPlayed = shouldPlay;
 
       if (!shouldPlay) continue;
@@ -506,7 +508,7 @@ export class Sequence {
     // Evaluate condition and probability exactly once at step boundary
     const conditionMet = this.checkCondition(currentStep);
     this.conditionResults[this.currentStepNumber] = [this.cycleCount, conditionMet];
-    const shouldPlay = conditionMet && this.rngProb() < currentStep.probability;
+    const shouldPlay = conditionMet && this.chanceRoll(this.cycleCount, this.currentStepNumber) < currentStep.probability;
     this.previousStepPlayed = shouldPlay;
 
     if (!shouldPlay) return;
@@ -533,6 +535,7 @@ export class Sequence {
    */
   stopped(ringOut = false): void {
     this.releaseSoundingNotes(ringOut);
+    this.chanceSeed = randomSeed();
     this.currentStepNumber = this.previousStepNumber = -1;
     this.drum_lanes.forEach((lane) => {
       if (lane) {
@@ -603,6 +606,62 @@ export class Sequence {
     this._midiMsgBuf[1] = number;
     this._midiMsgBuf[2] = velo;
     this.zone.handleMidi(status, this._midiMsgBuf, true, timestamp);
+  }
+
+  /** The chance roll of a step in a cycle of this run (lane -1: the melodic sequence) */
+  private chanceRoll(cycle: number, stepIndex: number, lane = -1): number {
+    return hashRoll(this.chanceSeed, cycle, stepIndex, lane);
+  }
+
+  /**
+   * The steps after the current one, each with whether it will play: conditions and
+   * chance as playback evaluates them, so exact as long as nothing is edited. Endless,
+   * the caller stops. `laneIndex` -1: the melodic sequence, else a drum lane.
+   */
+  *upcoming(laneIndex = -1): Generator<{ step: number; plays: boolean }> {
+    if (laneIndex < 0) {
+      const len = this.length;
+      if (len < 1) return;
+      let cur = this.currentStepNumber;
+      let cycle = this.cycleCount;
+      let first = this.isFirstCycle;
+      let previous = this.previousStepPlayed;
+      for (;;) {
+        cur = (cur + 1) % len;
+        if (cur === 0 && ++cycle === 1) first = false;
+        const step = this.steps[cur];
+        let plays = false;
+        if (step && this.active && !this.isDrumSequence) {
+          plays = this.checkCondition(step, cycle, first, previous) && this.chanceRoll(cycle, cur) < step.probability;
+          previous = plays;
+        }
+        yield { step: cur, plays };
+      }
+    }
+    const lane = this.drum_lanes[laneIndex];
+    if (!lane || lane.length < 1) return;
+    const quiet = !lane.enabled || (this.getDrumLaneSoloCount() > 0 && !lane.solo);
+    let cur = lane.currentStep;
+    let cycle = lane.cycleCount;
+    let first = lane.isFirstCycle;
+    let previous = lane.previousStepPlayed;
+    for (;;) {
+      cur = (cur + 1) % lane.length;
+      let plays = false;
+      if (this.active) {
+        if (cur === 0 && ++cycle === 1) first = false;
+        const step = lane.steps[cur];
+        if (quiet) {
+          previous = false;
+        } else if (step && !step.isBlank()) {
+          plays =
+            this.checkCondition(step, cycle, first, previous) &&
+            this.chanceRoll(cycle, cur, laneIndex) < step.probability;
+          previous = plays;
+        }
+      }
+      yield { step: cur, plays };
+    }
   }
 
   checkCondition(step: SeqStep, cycleCnt = this.cycleCount, firstCycle = this.isFirstCycle, previousStepPlayed = this.previousStepPlayed): boolean {

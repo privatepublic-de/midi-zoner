@@ -215,10 +215,10 @@ function laneHeight(zone: Zone): number {
   return 56;
 }
 
-/** Where the step `cur` of a sequence started, and that step; stopped: step 0 at the playhead */
-function anchor(cur: number, ticks: number, head: number): [number, number] {
-  if (timeline.running && cur >= 0) return [cur, Math.floor(Math.max(0, timeline.pos) / ticks) * ticks];
-  return [0, head];
+/** Where the step `cur` of a sequence started; stopped (cur -1), one step before the playhead */
+function stepStart(cur: number, ticks: number, head: number): number {
+  if (timeline.running && cur >= 0) return Math.floor(Math.max(0, timeline.pos) / ticks) * ticks;
+  return head - ticks;
 }
 
 /** Follows the notes the arp plays from (held keys, or the hold list with Hold) */
@@ -370,17 +370,21 @@ function drawLane(zone: Zone, head: number, historyShift: number, ppt: number): 
   const noteH = Math.max(3, Math.min(drums ? 8 : 6, rowH - (drums ? 2 : 0)));
   const rowY = (row: number): number => LANE_PAD + row * rowH + (rowH - noteH) / 2;
 
-  const note = (t0: number, t1: number, row: number, velo: number, hollow: boolean, alpha = 1): void => {
+  const note = (t0: number, t1: number, row: number, velo: number, ghost: boolean): void => {
     if (row < 0) return;
     const x0 = x(t0);
     const x1 = x(t1);
     if (x1 < 0 || x0 > w) return;
     const y = rowY(row);
     const width = Math.max(2, x1 - x0 - 1);
-    g.globalAlpha = (silent ? 0.3 : 0.45 + (0.55 * velo) / 127) * alpha;
-    if (hollow) {
+    g.globalAlpha = silent ? 0.3 : 0.45 + (0.55 * velo) / 127;
+    if (ghost) {
+      // a step that won't play this time (condition, chance, muted lane)
+      g.globalAlpha *= 0.6;
       g.strokeStyle = colour;
+      g.setLineDash([2, 2]);
       g.strokeRect(x0 + 0.5, y + 0.5, width - 1, noteH - 1);
+      g.setLineDash([]);
     } else {
       g.fillStyle = colour;
       g.fillRect(x0, y, width, noteH);
@@ -419,62 +423,59 @@ function drawLane(zone: Zone, head: number, historyShift: number, ppt: number): 
     note(t0, Math.max(t1, t0 + 1 / ppt), rowOf(n.pitch), n.velo, false);
   }
 
-  // ahead of it: the sequence, repeated; hollow where chance or a condition decide
+  // ahead of it: the sequence step by step, as playback will decide each step
+  // (Sequence.upcoming()); dashed where a condition or chance skips it
   if (seq.active) {
     const ticks = seq.ticks;
-    const ahead = (len: number, cur: number, start: number, s: number, each: (t: number) => void): void => {
-      let t = start + ((((s - cur) % len) + len) % len) * ticks;
-      if (t < head) t += len * ticks;
-      for (; x(t) < w; t += len * ticks) each(t);
+    const MAX_STEPS_AHEAD = 4096;
+    const ahead = (lane: number, cur: number, each: (t: number, step: number, plays: boolean) => void): void => {
+      const base = stepStart(cur, ticks, head);
+      let k = 1;
+      for (const next of seq.upcoming(lane)) {
+        const t = base + k * ticks;
+        if (x(t) > w || k++ > MAX_STEPS_AHEAD) break;
+        if (t >= head) each(t, next.step, next.plays);
+      }
     };
     if (drums) {
-      const soloCount = seq.getDrumLaneSoloCount();
       for (let ln = 0; ln < rows; ln++) {
         const lane = seq.drum_lanes[ln];
-        if (!lane || lane.length < 1) continue;
-        const [cur, start] = anchor(lane.currentStep, ticks, head);
-        const quiet = !lane.enabled || (soloCount > 0 && !lane.solo);
-        for (let s = 0; s < lane.length; s++) {
+        if (!lane) continue;
+        ahead(ln, lane.currentStep, (t, s, plays) => {
           const step = lane.steps[s];
-          if (!step || step.notesArray.length === 0) continue;
-          const hollow = step.probability < 1 || step.condition !== 0;
+          if (!step || step.notesArray.length === 0) return;
           const velo = step.notesArray[0].velo;
           const hits = Math.max(1, step.ratchetCount);
-          ahead(lane.length, cur, start, s, (t) => {
-            for (let r = 0; r < hits; r++) {
-              const rt = t + (hits > 1 ? r * step.ratchetResolution : 0);
-              note(rt, rt + Math.max(1, (hits > 1 ? step.ratchetResolution : ticks) * 0.6), ln, velo, hollow, quiet ? 0.35 : 1);
-            }
-          });
-        }
-      }
-    } else if (seq.length > 0) {
-      const len = seq.length;
-      const [cur, start] = anchor(seq.currentStepNumber, ticks, head);
-      // where each repeat begins
-      g.globalAlpha = silent ? 0.2 : 0.45;
-      g.fillStyle = colour;
-      ahead(len, cur, start, 0, (t) => g.fillRect(Math.round(x(t)), 0, 1, h));
-      for (let s = 0; s < len; s++) {
-        const step = seq.steps[s];
-        if (!step || step.notesArray.length === 0) continue;
-        const hollow = step.probability < 1 || step.condition !== 0;
-        const dur =
-          (Math.max(1, step.length) - 1) * ticks + Math.max(1, Math.min(ticks * step.gateLength, ticks - 1));
-        const hits = Math.max(1, step.ratchetCount);
-        ahead(len, cur, start, s, (t) => {
-          for (const n of step.notesArray) {
-            if (hits > 1) {
-              for (let r = 0; r < hits; r++) {
-                const rt = t + r * step.ratchetResolution;
-                note(rt, rt + Math.max(1, step.ratchetResolution - 1), rowOf(n.number), n.velo, hollow);
-              }
-            } else {
-              note(t, t + dur, rowOf(n.number), n.velo, hollow);
-            }
+          for (let r = 0; r < hits; r++) {
+            const rt = t + (hits > 1 ? r * step.ratchetResolution : 0);
+            note(rt, rt + Math.max(1, (hits > 1 ? step.ratchetResolution : ticks) * 0.6), ln, velo, !plays);
           }
         });
       }
+    } else if (seq.length > 0) {
+      ahead(-1, seq.currentStepNumber, (t, s, plays) => {
+        if (s === 0) {
+          // where each repeat begins
+          g.globalAlpha = silent ? 0.2 : 0.45;
+          g.fillStyle = colour;
+          g.fillRect(Math.round(x(t)), 0, 1, h);
+        }
+        const step = seq.steps[s];
+        if (!step || step.notesArray.length === 0) return;
+        const dur =
+          (Math.max(1, step.length) - 1) * ticks + Math.max(1, Math.min(ticks * step.gateLength, ticks - 1));
+        const hits = Math.max(1, step.ratchetCount);
+        for (const n of step.notesArray) {
+          if (hits > 1) {
+            for (let r = 0; r < hits; r++) {
+              const rt = t + r * step.ratchetResolution;
+              note(rt, rt + Math.max(1, step.ratchetResolution - 1), rowOf(n.number), n.velo, !plays);
+            }
+          } else {
+            note(t, t + dur, rowOf(n.number), n.velo, !plays);
+          }
+        }
+      });
     }
     const label = drums
       ? `${rows} lanes · ${seq.length} × ${divisionName(zone)}`
