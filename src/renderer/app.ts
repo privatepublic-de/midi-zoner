@@ -53,6 +53,8 @@ const saveZones = debounce(() => {
 
 const undoHistory = new UndoHistory();
 let hardwareLockTimer: ReturnType<typeof setTimeout> | null = null;
+// Notes recorded into a sequence: one undo entry per phrase (notes less than a second apart)
+let recordTakeTimer: ReturnType<typeof setTimeout> | null = null;
 
 const channelOptions = (function (): string {
   var result = '';
@@ -942,7 +944,25 @@ document.addEventListener('DOMContentLoaded', function () {
             undoHistory.endGesture(JSON.stringify(zones));
           }, 700);
         }
+        const recording = zone.sequence.isLiveRecording || zone.sequence.isHotRecordingNotes;
+        if (recording && msgtype === MIDI.MESSAGE.NOTE_ON && data[2] > 0) {
+          if (recordTakeTimer === null) {
+            const label = zone.sequence.isLiveRecording ? 'Live Recording' : 'Record Notes';
+            undoHistory.startGesture(JSON.stringify(zones), labelForZone(zone, index, label));
+          } else {
+            clearTimeout(recordTakeTimer);
+          }
+          recordTakeTimer = setTimeout(() => {
+            recordTakeTimer = null;
+            undoHistory.endGesture(JSON.stringify(zones));
+          }, 1000);
+        }
         const resultMessage = zone.handleMidi(msgtype, data);
+        // Notes recorded into the sequence (live or into the selected step) change the
+        // scene without an action, so save here (debounced) or they'd be lost on quit
+        if (recording && (msgtype === MIDI.MESSAGE.NOTE_ON || msgtype === MIDI.MESSAGE.NOTE_OFF)) {
+          saveZones();
+        }
         if (resultMessage == 'lockCC') {
           requestAnimationFrame(() => view.updateValuesForZone(index));
           saveZones();

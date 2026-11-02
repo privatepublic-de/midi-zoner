@@ -71,7 +71,6 @@ export class Sequence {
   stepAdvance = false;
   stepAddNotes = false;
   liveTargetStep: SeqStep | null = null;
-  liveTargetLength = 0;
   liveTargetStepNumber = -1;
   liveNoteSteps = new Map<number, { stepIndex: number; startPos: number }>();
   liveTargetStepStartPos = 0;
@@ -246,7 +245,6 @@ export class Sequence {
           });
         }
         this.liveTargetStep = null;
-        this.liveTargetLength = 0;
         this.liveTargetStepNumber = -1;
         isSequentialAdvance = true;
       }
@@ -261,7 +259,6 @@ export class Sequence {
           this.liveTargetStep.notesArray.length = 0;
         }
         this.liveTargetStepStartPos = this.currentPos;
-        this.liveTargetLength = 1;
       }
       if (SeqStep.addNote(this.liveTargetStep.notesArray, note)) {
         this.updateZoneView();
@@ -292,10 +289,10 @@ export class Sequence {
     }
     if (this.isLiveRecording && this.liveTargetStep) {
       if (count === 0) {
-        this.liveTargetStep.length = this.liveTargetLength;
+        // by duration, like a note released after its step was committed (noteReleased above)
+        this.liveTargetStep.length = Math.max(1, Math.round((this.currentPos - this.liveTargetStepStartPos) / this.ticks));
         this.steps[this.liveTargetStepNumber] = this.liveTargetStep;
         this.liveTargetStep = null;
-        this.liveTargetLength = 0;
         this.liveTargetStepNumber = -1;
         this.updateRecordingState();
         this.updateZoneView();
@@ -417,9 +414,6 @@ export class Sequence {
         (item) => !clearSteps.includes(item)
       );
     }
-    if (this.tickn == this.ticks - 1) {
-      this.liveTargetLength++;
-    }
     if (this.tickn === 0) {
       this.previousStepNumber = this.currentStepNumber;
       this.currentStepNumber = (this.currentStepNumber + 1) % this.length;
@@ -435,7 +429,6 @@ export class Sequence {
           });
         }
         this.liveTargetStep = null;
-        this.liveTargetLength = 0;
         this.liveTargetStepNumber = -1;
         this.updateZoneView();
       }
@@ -553,7 +546,6 @@ export class Sequence {
     this.cycleCount = -1;
     this.previousStepPlayed = false;
     this.isFirstCycle = true;
-    this.liveTargetLength = 0;
     this.liveTargetStep = null;
     this.isLiveRecording = false;
     this.updateRecordingState();
