@@ -18,7 +18,6 @@
   --fg-topbar-button-active: #fff;
   --bg-select-window: #111;
   --bg-contextmenu: var(--bg-color-popup);
-  --shadow-zone: #111;
   --bg-color-popup: #333333;
   --bg-zone-disabled: rgba(255, 255, 255, 0.07);
 
@@ -2686,21 +2685,32 @@ body.running .seqprogress.drum .inner {
    OVERLAYS & CHROME  (port windows, toast, context menu, toolbar)
    ============================================================= */
 
+/* Overlays share one look: the top bar's surface, a thin border, 6px corners,
+   one shadow; panels with a title start with .kshelp-header (see below). */
 #clockOutPortWindow,
 #inputPortWindow {
   position: fixed;
-  background: var(--bg-select-window);
+  background: var(--bg-topbar);
+  border: 1px solid var(--border-topbar);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 24px var(--shadow-overlay);
   color: var(--brighter-3);
-  padding: 5px;
+  padding: 6px 14px 10px;
   top: 50px;
   right: calc(50% - 210px);
   z-index: var(--z-window);
   font-size: var(--fs-md);
   display: none;
   width: 250px;
-  box-shadow: 0 0 10px var(--shadow-zone);
   max-height: 90vh;
   overflow-y: auto;
+}
+
+/* a block below the list, set apart by a ruler */
+.panel-section {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--brighter-1);
 }
 
 #clockOutPortWindow input {
@@ -2993,9 +3003,9 @@ body.running .seqprogress.drum .inner {
   z-index: var(--z-overlay);
   background-color: var(--bg-topbar);
   border: 1px solid var(--border-topbar);
-  box-shadow: 0 4px 12px var(--shadow-overlay);
-  border-radius: var(--radius);
-  padding: 8px 10px 10px;
+  box-shadow: 0 4px 24px var(--shadow-overlay);
+  border-radius: var(--radius-lg);
+  padding: 10px 14px 12px;
   font-size: var(--fs-sm);
   color: var(--text-base-color);
   display: none;
@@ -3006,40 +3016,48 @@ body.running .seqprogress.drum .inner {
   display: block;
 }
 
+/* the title bar of a panel: edge to edge like the editors' bar, sentence case */
 .kshelp-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid var(--brighter-1);
+  margin: -10px -14px 10px;
+  padding: 6px 8px 6px 14px;
+  min-height: 34px;
+  box-sizing: border-box;
+  background-color: var(--bg-topbar-button);
+  border-bottom: 1px solid var(--darker-3);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 
 .kshelp-title {
-  font-size: var(--fs-sm);
+  font-size: var(--fs-md);
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--brighter-3);
+  color: var(--text-base-color);
 }
 
 .kshelp-close {
   background: none;
   border: none;
+  border-radius: var(--radius);
   color: var(--brighter-2);
   cursor: pointer;
   padding: 0;
+  width: 22px;
+  height: 22px;
   display: flex;
   align-items: center;
+  justify-content: center;
   line-height: 1;
 }
 
 .kshelp-close:hover {
   color: var(--brighter-4);
+  background-color: var(--brighter-1);
 }
 
 .kshelp-close .material-icons {
-  font-size: var(--icon-sm);
+  font-size: var(--icon-md);
 }
 
 .kshelp-grid {
@@ -3051,29 +3069,18 @@ body.running .seqprogress.drum .inner {
   flex: 1;
 }
 
+/* column headings like the Mackie help's; mute in its amber, as on the M chips */
 .kshelp-group {
   font-size: var(--fs-sm);
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  padding: 2px 4px;
-  border-radius: var(--radius-sm);
-  margin-bottom: 4px;
+  font-weight: 600;
+  color: var(--brighter-3);
+  margin-bottom: 3px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid var(--brighter-1);
 }
 
 .kshelp-mute {
-  background: rgba(196, 0, 0, 0.35);
-  color: #ff9999;
-}
-
-.kshelp-seq {
-  background: rgba(0, 140, 130, 0.35);
-  color: #7de8e0;
-}
-
-.kshelp-arr {
-  background: rgba(180, 130, 0, 0.35);
-  color: #f0c84a;
+  color: var(--mute-highlight);
 }
 
 .kshelp-row {
@@ -3089,7 +3096,7 @@ body.running .seqprogress.drum .inner {
 }
 
 .kshelp-num {
-  font-family: monospace;
+  font-variant-numeric: tabular-nums;
   font-size: var(--fs-sm);
   color: var(--brighter-2);
   min-width: 16px;
@@ -3098,7 +3105,7 @@ body.running .seqprogress.drum .inner {
 }
 
 .kshelp-note {
-  font-family: monospace;
+  font-variant-numeric: tabular-nums;
   font-size: var(--fs-sm);
   color: var(--brighter-3);
   min-width: 38px;
@@ -3114,11 +3121,11 @@ body.running .seqprogress.drum .inner {
 #presetManageDialog {
   background-color: var(--bg-topbar);
   border: 1px solid var(--border-topbar);
-  border-radius: var(--radius);
-  box-shadow: 0 2px 12px var(--shadow-overlay);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 24px var(--shadow-overlay);
   color: var(--text-base-color);
   font-size: var(--fs-md);
-  padding: 8px 10px 10px;
+  padding: 10px 14px 12px;
   width: min(360px, calc(100vw - 32px));
 }
 #presetManageDialog {
@@ -3246,9 +3253,9 @@ body.running .seqprogress.drum .inner {
   z-index: var(--z-overlay);
   background-color: var(--bg-topbar);
   border: 1px solid var(--border-topbar);
-  box-shadow: 0 -2px 12px var(--shadow-overlay);
-  border-radius: var(--radius);
-  padding: 8px 10px 10px;
+  box-shadow: 0 4px 24px var(--shadow-overlay);
+  border-radius: var(--radius-lg);
+  padding: 10px 14px 12px;
   font-size: var(--fs-sm);
   color: var(--text-base-color);
   display: none;
@@ -3274,8 +3281,6 @@ body.running .seqprogress.drum .inner {
 .mckhelp-heading {
   font-size: var(--fs-sm);
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   color: var(--brighter-3);
   margin-bottom: 3px;
   padding-bottom: 3px;

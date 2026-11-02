@@ -158,12 +158,12 @@
     </div>
     <div id="inputPortWindow">
       <div id="inputPortList"></div>
-      <details style="margin-top: 1rem; border-top: 1px solid var(--brighter-1);padding:.5rem">
+      <details class="panel-section">
         <summary>Manage MIDI ports</summary>
         <p><small>Hide ports you never use. Hidden ports disappear from all selectors; ports currently in use can't be hidden.</small></p>
         <div id="portVisibilityList"></div>
       </details>
-      <div style="margin-top: 1rem; border-top: 1px solid var(--brighter-1);padding:.5rem">
+      <div class="panel-section">
         <p>Mackie Control <button id="mackieHelpBtn" class="ks-help-btn" tabindex="-1" title="Mackie Control mapping reference">?</button></p>
         <p><small>For basic external control, select the MIDI ports that are connected to a MCP (Mackie Control Protocol) device.</small></p>
         <p>
@@ -217,37 +217,37 @@
     <menu id="contextmenu"></menu>
     <div id="keySwitchHelpOverlay" role="dialog" aria-modal="true" aria-label="Key switch reference">
       <div class="kshelp-header">
-        <span class="kshelp-title">Key Switch Reference</span>
+        <span class="kshelp-title">Key switches</span>
         <button class="kshelp-close" id="keySwitchHelpClose"><i class="material-icons">close</i></button>
       </div>
       <div class="kshelp-grid">
         <div class="kshelp-col">
-          <div class="kshelp-group kshelp-mute">Zone Mute</div>
+          <div class="kshelp-group kshelp-mute">Mute zone</div>
           <div class="kshelp-row"><span class="kshelp-num">0</span><span class="kshelp-note">C&#8209;1</span><span class="kshelp-action">Zone 1</span></div>
-          <div class="kshelp-row"><span class="kshelp-num">1</span><span class="kshelp-note">C&#9839;&#8209;1</span><span class="kshelp-action">Zone 2</span></div>
+          <div class="kshelp-row"><span class="kshelp-num">1</span><span class="kshelp-note">C#&#8209;1</span><span class="kshelp-action">Zone 2</span></div>
           <div class="kshelp-row"><span class="kshelp-num">2</span><span class="kshelp-note">D&#8209;1</span><span class="kshelp-action">Zone 3</span></div>
-          <div class="kshelp-row"><span class="kshelp-num">3</span><span class="kshelp-note">D&#9839;&#8209;1</span><span class="kshelp-action">Zone 4</span></div>
+          <div class="kshelp-row"><span class="kshelp-num">3</span><span class="kshelp-note">D#&#8209;1</span><span class="kshelp-action">Zone 4</span></div>
           <div class="kshelp-row"><span class="kshelp-num">4</span><span class="kshelp-note">E&#8209;1</span><span class="kshelp-action">Zone 5</span></div>
           <div class="kshelp-row"><span class="kshelp-num">5</span><span class="kshelp-note">F&#8209;1</span><span class="kshelp-action">Zone 6</span></div>
-          <div class="kshelp-row"><span class="kshelp-num">6</span><span class="kshelp-note">F&#9839;&#8209;1</span><span class="kshelp-action">Zone 7</span></div>
+          <div class="kshelp-row"><span class="kshelp-num">6</span><span class="kshelp-note">F#&#8209;1</span><span class="kshelp-action">Zone 7</span></div>
           <div class="kshelp-row"><span class="kshelp-num">7</span><span class="kshelp-note">G&#8209;1</span><span class="kshelp-action">Zone 8</span></div>
         </div>
         <div class="kshelp-col">
-          <div class="kshelp-group kshelp-seq">Seq Toggle</div>
-          <div class="kshelp-row"><span class="kshelp-num">8</span><span class="kshelp-note">G&#9839;&#8209;1</span><span class="kshelp-action">Zone 1</span></div>
+          <div class="kshelp-group kshelp-seq">Sequencer on/off</div>
+          <div class="kshelp-row"><span class="kshelp-num">8</span><span class="kshelp-note">G#&#8209;1</span><span class="kshelp-action">Zone 1</span></div>
           <div class="kshelp-row"><span class="kshelp-num">9</span><span class="kshelp-note">A&#8209;1</span><span class="kshelp-action">Zone 2</span></div>
-          <div class="kshelp-row"><span class="kshelp-num">10</span><span class="kshelp-note">A&#9839;&#8209;1</span><span class="kshelp-action">Zone 3</span></div>
+          <div class="kshelp-row"><span class="kshelp-num">10</span><span class="kshelp-note">A#&#8209;1</span><span class="kshelp-action">Zone 3</span></div>
           <div class="kshelp-row"><span class="kshelp-num">11</span><span class="kshelp-note">B&#8209;1</span><span class="kshelp-action">Zone 4</span></div>
           <div class="kshelp-row"><span class="kshelp-num">12</span><span class="kshelp-note">C0</span><span class="kshelp-action">Zone 5</span></div>
-          <div class="kshelp-row"><span class="kshelp-num">13</span><span class="kshelp-note">C&#9839;0</span><span class="kshelp-action">Zone 6</span></div>
+          <div class="kshelp-row"><span class="kshelp-num">13</span><span class="kshelp-note">C#0</span><span class="kshelp-action">Zone 6</span></div>
           <div class="kshelp-row"><span class="kshelp-num">14</span><span class="kshelp-note">D0</span><span class="kshelp-action">Zone 7</span></div>
-          <div class="kshelp-row"><span class="kshelp-num">15</span><span class="kshelp-note">D&#9839;0</span><span class="kshelp-action">Zone 8</span></div>
+          <div class="kshelp-row"><span class="kshelp-num">15</span><span class="kshelp-note">D#0</span><span class="kshelp-action">Zone 8</span></div>
         </div>
         <div class="kshelp-col">
           <div class="kshelp-group kshelp-arr">Arrangement</div>
           <div class="kshelp-row"><span class="kshelp-num">16</span><span class="kshelp-note">E0</span><span class="kshelp-action">Select A</span></div>
           <div class="kshelp-row"><span class="kshelp-num">17</span><span class="kshelp-note">F0</span><span class="kshelp-action">Select B</span></div>
-          <div class="kshelp-row"><span class="kshelp-num">18</span><span class="kshelp-note">F&#9839;0</span><span class="kshelp-action">Select C</span></div>
+          <div class="kshelp-row"><span class="kshelp-num">18</span><span class="kshelp-note">F#0</span><span class="kshelp-action">Select C</span></div>
           <div class="kshelp-row"><span class="kshelp-num">19</span><span class="kshelp-note">G0</span><span class="kshelp-action">Select D</span></div>
         </div>
       </div>
@@ -546,7 +546,7 @@
     </dialog>
     <div id="mackieHelpOverlay" role="dialog" aria-modal="true" aria-label="Mackie Control mapping reference">
       <div class="kshelp-header">
-        <span class="kshelp-title">Mackie Control Mapping</span>
+        <span class="kshelp-title">Mackie Control</span>
         <button class="kshelp-close" id="mackieHelpClose"><i class="material-icons">close</i></button>
       </div>
       <div class="mckhelp-body">
@@ -557,7 +557,7 @@
           <div class="mckhelp-row"><span class="mckhelp-ctrl">Jog</span><span class="mckhelp-action">BPM ±1 / ±2 / ±5 — internal clock only</span></div>
         </div>
         <div class="mckhelp-section">
-          <div class="mckhelp-heading">Zone Controls (per channel strip)</div>
+          <div class="mckhelp-heading">Zone controls (per channel strip)</div>
           <div class="mckhelp-row"><span class="mckhelp-ctrl">Rec arm</span><span class="mckhelp-action">Toggle sequencer on / off</span></div>
           <div class="mckhelp-row"><span class="mckhelp-ctrl">Solo</span><span class="mckhelp-action">Toggle zone solo</span></div>
           <div class="mckhelp-row"><span class="mckhelp-ctrl">Mute</span><span class="mckhelp-action">Toggle zone mute</span></div>
