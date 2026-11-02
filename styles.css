@@ -547,7 +547,8 @@ body.setup-open .setup-toggle .chevron {
 
 .global-resets,
 .strip-end,
-.strip-end .history {
+.strip-end .history,
+.strip-end .zoom {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -4249,7 +4250,7 @@ body:has(.clocksettings.isExternal) .es-play + .es-sep {
    ============================================================= */
 
 body.minimized #midisettings > :is(#setupToggle, .global-resets, #setupDrawer),
-body.minimized #midisettings .strip-end > :is(#midiPanic, .history),
+body.minimized #midisettings .strip-end > :is(#midiPanic, .history, .zoom),
 body.minimized .zone > :not(.channels),
 body.minimized .zone .channels > :not(.state):not(.solo):not(.showseq):not(.showarp):not(.zone-label):not(.midi-led),
 body.minimized .zone.placeholder,
@@ -4401,7 +4402,7 @@ body.minimized .midi-led.on {
    Row 2: resets, A-D, start/BPM. Panic is always reachable.
    ============================================================= */
 
-@media (max-width: 780px) {
+@media (max-width: 840px) {
   body:not(.minimized) #midisettings {
     height: auto;
     flex-wrap: wrap;
