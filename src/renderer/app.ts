@@ -282,9 +282,8 @@ function anchorBelow(popup: HTMLElement, anchor: HTMLElement): void {
 function applyMiniSize(): void {
   if (!miniView) return;
   const zonesBottom = DOM.get('#zones')!.getBoundingClientRect().bottom;
-  const toolsHeight = (DOM.get('#tools') as HTMLElement).offsetHeight;
   const width = MINI_WIDTH * currentZoomFactor;
-  const height = (zonesBottom + toolsHeight + 8) * currentZoomFactor;
+  const height = (zonesBottom + 8) * currentZoomFactor;
   const size = `${width}x${height}`;
   if (size === lastMiniSize) return;
   lastMiniSize = size;
@@ -1068,13 +1067,16 @@ document.addEventListener('DOMContentLoaded', function () {
         window.addEventListener('resize', () => {
           requestAnimationFrame(view.renderMarkersForAllZones);
         });
-        DOM.get('#newzone')!.addEventListener('click', createNewZone);
+        // The "+ Add zone" link is re-rendered with the zones, so listen on the list
+        DOM.get('#zones')!.addEventListener('click', (ev) => {
+          if ((ev.target as HTMLElement).closest('.addnewzone a')) createNewZone();
+        });
         DOM.get('#deleteallzones')!.addEventListener('click', async () => {
           await ipcRenderer
             .invoke(
               'open-confirm',
               'Delete all zones',
-              'Do really want to empty this scene and delete all zones?'
+              'Delete all zones in this scene?'
             )
             .then((result: boolean) => {
               if (result == true) {

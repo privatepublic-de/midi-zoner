@@ -648,11 +648,9 @@ function addPlaceholder(): void {
   DOM.addHTML(
     '#zones',
     'beforeend',
-    '<div class="zone addnewzone"><a class="action" data-action="0:add_new_zone" title="Add new zone">+ Add zone</a></div>'
+    '<div class="zone addnewzone"><a class="action" title="Add new zone">+ Add zone</a>' +
+      '<p class="addzone-hint">A zone sends one key range of your keyboard to one MIDI output, with its own arpeggiator, sequencer and controls.</p></div>'
   );
-  DOM.on('#zones .zone.addnewzone a', 'click', () => {
-    (DOM.get('#newzone') as HTMLElement).click();
-  });
   DOM.all('#zones .zone.placeholder', (e) => e.remove());
   if (zones.list.length % 2 == 0) {
     DOM.addHTML(

@@ -10,7 +10,6 @@
   --fg-window: #ddd;
   --scrollbar: #ffffff20;
   --bg-topbar: #202020;
-  --bg-topbar-transparent: #2020209f;
   --shadow-topbar: var(--darker-4);
   --border-topbar: var(--darker-4);
   --bg-topbar-button: #2f2f2f;
@@ -482,12 +481,8 @@ option {
   padding: 2px 0;
 }
 
-/* Destructive action: kept apart from "Add zone" and only red on hover. */
-#deleteallzones.tb-button {
-  margin-right: 8px;
-  color: var(--brighter-2);
-}
-#deleteallzones.tb-button:hover {
+/* Destructive action: in the setup drawer, only red on hover. */
+#deleteallzones:hover {
   background-color: var(--danger-soft);
   color: var(--brighter-4);
 }
@@ -737,10 +732,11 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
   min-height: 30px;
   display: flex;
   flex-wrap: wrap;
-  align-items: stretch;
+  /* each zone only as tall as its content, not stretched to the row's tallest */
+  align-items: flex-start;
   justify-content: center;
   gap: 5px;
-  margin-bottom: 60px;
+  margin-bottom: 16px;
 }
 
 .zone {
@@ -783,10 +779,38 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
   align-items: flex-start;
   box-shadow: none;
   background: none;
-  color: var(--brighter-2);
+  color: var(--brighter-3);
   padding-top: 6px;
   a:hover {
     background-color: var(--brighter-0);
+  }
+}
+
+.addzone-hint {
+  display: none;
+}
+
+/* Empty scene: the link becomes the one thing to do, with a line on what a zone is */
+#zones:not(:has(> .zone:not(.addnewzone, .placeholder))) .zone.addnewzone {
+  flex-direction: column;
+  gap: 10px;
+  padding: 48px 0 0 8px;
+  a {
+    font-size: var(--fs-lg);
+    padding: 8px 16px;
+    background-color: var(--bg-topbar-button);
+    color: var(--brighter-4);
+    border-radius: var(--radius);
+  }
+  a:hover {
+    background-color: var(--brighter-1);
+  }
+  .addzone-hint {
+    display: block;
+    margin: 0;
+    max-width: 46ch;
+    line-height: 1.5;
+    color: var(--brighter-2);
   }
 }
 
@@ -1521,11 +1545,11 @@ input[type='range'] {
    One shape and one keyboard-focus ring for every button species.
    ============================================================= */
 
-:is(.lightButton, .tb-button, .ch, .rtool, .selectSeq, .ks-help-btn) {
+:is(.lightButton, .ch, .rtool, .selectSeq, .ks-help-btn) {
   border-radius: var(--radius);
 }
 
-:is(.lightButton, .tb-button, .ch, .rtool, .selectSeq, .ks-help-btn, .setup-toggle, select, summary, input:not([type='range'])):focus-visible {
+:is(.lightButton, .ch, .rtool, .selectSeq, .ks-help-btn, .setup-toggle, select, summary, input:not([type='range'])):focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 1px;
 }
@@ -2863,29 +2887,6 @@ body.running .seqprogress.drum .inner {
   cursor: default;
 }
 
-#tools {
-  position: fixed;
-  display: flex;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  justify-content: center;
-  align-items: center;
-  background-color: var(--bg-topbar-transparent);
-  padding: 4px 6px;
-  font-size: var(--fs-md);
-  gap: 5px;
-  color: var(--brighter-3);
-  box-shadow: 0 2px 5px var(--shadow-topbar);
-  border: 1px solid var(--border-topbar);
-  border-bottom: none;
-  border-radius: var(--radius) var(--radius) 0 0;
-}
-
-#tools > * {
-  text-wrap: nowrap;
-}
-
 .selectSeq {
   width: 48px;
   text-align: center;
@@ -2925,16 +2926,6 @@ body.running .seqprogress.drum .inner {
   }
 }
 
-.tb-button {
-  background-color: var(--bg-topbar-button);
-  display: block;
-  text-align: center;
-  cursor: pointer;
-  padding: 2px 4px;
-  border-radius: var(--radius);
-}
-
-.tb-button:hover,
 .selectSeq:not(.selected):hover {
   background-color: var(--brighter-1);
   color: var(--brighter-2);
@@ -4224,7 +4215,6 @@ body:has(.clocksettings.isExternal) .es-play + .es-sep {
 
 body.minimized #midisettings > :is(#setupToggle, .global-resets, #setupDrawer),
 body.minimized #midisettings .strip-end > :is(#midiPanic, .history),
-body.minimized #tools,
 body.minimized .zone > :not(.channels),
 body.minimized .zone .channels > :not(.state):not(.solo):not(.showseq):not(.showarp):not(.zone-label):not(.midi-led),
 body.minimized .zone.placeholder,
