@@ -84,8 +84,10 @@
 
 /* =============================================================
    ZONE COLOR PALETTE
-   One palette; each zone takes one color and its CC groups take
-   the remaining four, in palette order.
+   Zone colors mark which zone (instrument) something belongs to. CC
+   section colors are a separate set, the same in every zone, with hues
+   no zone uses and none of the state colors (live green, mute amber,
+   danger red), so a section never reads as another zone.
    ============================================================= */
 
 :root {
@@ -103,73 +105,43 @@
   --zone-surface-2: #7b5f06;
   --zone-surface-3: #8f5128;
   --zone-surface-4: #944b43;
+
+  /* CC section colors A-D: violet, pink, bone, periwinkle (OKLCH, accent lightness) */
+  --group-1: oklch(0.8 0.13 300);
+  --group-2: oklch(0.8 0.13 350);
+  --group-3: oklch(0.86 0.05 95);
+  --group-4: oklch(0.78 0.1 262);
+  --group-surface-1: oklch(0.5 0.1 300);
+  --group-surface-2: oklch(0.5 0.1 350);
+  --group-surface-3: oklch(0.52 0.03 95);
+  --group-surface-4: oklch(0.5 0.08 262);
 }
 
 .zone[data-colorindex='0'],
 #ccEditor[data-colorindex='0'] {
   --zone-color: var(--zone-0);
   --zone-surface: var(--zone-surface-0);
-  --group-1: var(--zone-1);
-  --group-2: var(--zone-2);
-  --group-3: var(--zone-3);
-  --group-4: var(--zone-4);
-  --group-surface-1: var(--zone-surface-1);
-  --group-surface-2: var(--zone-surface-2);
-  --group-surface-3: var(--zone-surface-3);
-  --group-surface-4: var(--zone-surface-4);
 }
 .zone[data-colorindex='1'],
 #ccEditor[data-colorindex='1'] {
   --zone-color: var(--zone-1);
   --zone-surface: var(--zone-surface-1);
-  --group-1: var(--zone-0);
-  --group-2: var(--zone-2);
-  --group-3: var(--zone-3);
-  --group-4: var(--zone-4);
-  --group-surface-1: var(--zone-surface-0);
-  --group-surface-2: var(--zone-surface-2);
-  --group-surface-3: var(--zone-surface-3);
-  --group-surface-4: var(--zone-surface-4);
 }
 .zone[data-colorindex='2'],
 #ccEditor[data-colorindex='2'] {
   --zone-color: var(--zone-2);
   --zone-surface: var(--zone-surface-2);
   --scrollbar: #ffffff60;
-  --group-1: var(--zone-0);
-  --group-2: var(--zone-1);
-  --group-3: var(--zone-3);
-  --group-4: var(--zone-4);
-  --group-surface-1: var(--zone-surface-0);
-  --group-surface-2: var(--zone-surface-1);
-  --group-surface-3: var(--zone-surface-3);
-  --group-surface-4: var(--zone-surface-4);
 }
 .zone[data-colorindex='3'],
 #ccEditor[data-colorindex='3'] {
   --zone-color: var(--zone-3);
   --zone-surface: var(--zone-surface-3);
-  --group-1: var(--zone-0);
-  --group-2: var(--zone-1);
-  --group-3: var(--zone-2);
-  --group-4: var(--zone-4);
-  --group-surface-1: var(--zone-surface-0);
-  --group-surface-2: var(--zone-surface-1);
-  --group-surface-3: var(--zone-surface-2);
-  --group-surface-4: var(--zone-surface-4);
 }
 .zone[data-colorindex='4'],
 #ccEditor[data-colorindex='4'] {
   --zone-color: var(--zone-4);
   --zone-surface: var(--zone-surface-4);
-  --group-1: var(--zone-0);
-  --group-2: var(--zone-1);
-  --group-3: var(--zone-2);
-  --group-4: var(--zone-3);
-  --group-surface-1: var(--zone-surface-0);
-  --group-surface-2: var(--zone-surface-1);
-  --group-surface-3: var(--zone-surface-2);
-  --group-surface-4: var(--zone-surface-3);
 }
 .zone .ccpot[data-group='1'],
 .zone .ccsection[data-group='1'] { --groupcolor: var(--group-1); --groupsurface: var(--group-surface-1); }
