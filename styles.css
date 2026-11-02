@@ -15,7 +15,7 @@
   --on: #cfd6df; /* a lit switch: Seq/Arp/CC chips, A-D, active buttons */
   --on-text: #14171b;
 
-  --text-base-color: #f0f6f8;
+  --text-base-color: #e7eaee; /* values, as xr18's --text; labels are --slate-dim */
   --text-contextmenu-color: var(--text-base-color);
   --bg-window: var(--slate-bg);
   --fg-window: #ddd;
@@ -761,7 +761,7 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
   justify-content: flex-start;
   gap: 5px;
   position: relative;
-  color: var(--brighter-4);
+  color: var(--text-base-color);
   font-size: var(--fs-md);
   padding: 8px;
   width: 560px;
@@ -968,7 +968,7 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
   height: auto;
   padding: 0;
   margin: 0 0 0 4px;
-  background-color: var(--darker-1);
+  background-color: var(--slate-raise);
   text-align: center;
   font-size: var(--fs-sm);
 }
@@ -1028,7 +1028,8 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
   /* room on the right for the chevron (::after) */
   padding: 0 20px 0 4px;
   cursor: pointer;
-  background-color: var(--darker-1);
+  background-color: var(--slate-raise);
+  box-shadow: inset 0 0 0 1px var(--slate-line);
   color: var(--text-base-color);
   font-size: var(--fs-sm);
   white-space: nowrap;
@@ -1117,10 +1118,9 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
 }
 
 .zone .iorouting-popup select {
-  background-color: var(--darker-1);
-  border: none;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.25);
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background-color: var(--slate-raise);
+  border: 1px solid var(--slate-line);
+  border-radius: var(--radius);
   padding: 0 18px 0 4px;
   height: 22px;
   color: inherit;
@@ -1373,12 +1373,6 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
   background-color: var(--red-highlight);
 }
 
-.action.toggle_filters {
-  background-color: transparent;
-}
-.action.toggle_filters:hover {
-  background-color: var(--darker-1);
-}
 .action.toggle_filters::after {
   content: '';
   display: inline-block;
@@ -1399,6 +1393,12 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
   cursor: pointer;
 }
 
+/* labels a step quieter than values, as in xr18-console */
+.zone .label,
+.zone .check:not(.selected) {
+  color: var(--slate-dim);
+}
+
 .action,
 .val,
 .toggle,
@@ -1411,7 +1411,9 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
 .action,
 .toggle {
   padding: 0 6px;
-  background-color: var(--darker-1);
+  /* every button and dropdown in one raised material, as in xr18-console */
+  background-color: var(--slate-raise);
+  box-shadow: inset 0 0 0 1px var(--slate-line);
   cursor: pointer;
   min-width: 55px;
 }
@@ -1565,7 +1567,7 @@ input[type='range'] {
 .zone input {
   border: 1px solid var(--slate-line);
   border-radius: var(--radius);
-  background-color: var(--slate-inset);
+  background-color: var(--slate-raise); /* like the buttons: black wells look punched out of the zone colour */
   color: var(--text-base-color);
   font-size: var(--fs-md);
   padding: 0;
@@ -1815,7 +1817,8 @@ input[type='range'] {
   line-height: 20px;
   text-align: center;
   font-variant-numeric: tabular-nums;
-  background-color: var(--darker-1);
+  background-color: var(--slate-raise);
+  box-shadow: inset 0 0 0 1px var(--slate-line);
   border-radius: var(--radius-sm);
   cursor: ns-resize;
 }
@@ -1982,7 +1985,7 @@ input[type='range'] {
   overflow: hidden;
   text-align: center;
   font-size: var(--fs-sm);
-  color: var(--brighter-3);
+  color: var(--slate-dim);
   white-space: nowrap;
   text-overflow: ellipsis;
 }
