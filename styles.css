@@ -5337,8 +5337,22 @@ body.track-view:not(.minimized) {
   #zones > .zone:is(.disabled, .soloed-out) > .channels {
     box-shadow: inset 3px 0 0 var(--slate-line);
   }
+  /* the selected track (the one the dock shows): its header keeps the zone colour,
+     the others step back to slate, and amber frames the row as "where you are" */
+  #zones > .zone:not(.track-selected) > .channels {
+    background: var(--slate-panel);
+  }
   #zones > .zone.track-selected > .channels {
-    background: color-mix(in srgb, var(--zone-color) 16%, var(--slate-panel));
+    background: color-mix(in srgb, var(--zone-color) 26%, var(--slate-panel));
+  }
+  /* an overlay, so the row gets no stacking context (the dock's blocks inside it are fixed) */
+  #zones > .zone.track-selected::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    box-shadow: inset 0 0 0 1px var(--select);
   }
   .channels > .ch.state { grid-area: m; }
   .channels > .ch.solo { grid-area: s; }
@@ -5508,10 +5522,12 @@ body.track-view:not(.minimized) {
   #trackDock .td-tab:hover {
     color: var(--text-base-color);
   }
+  /* as the active arrangement */
   #trackDock .td-tab.active {
     background-color: var(--slate-raise);
-    border-color: var(--slate-line);
+    box-shadow: inset 0 0 0 1px var(--select);
     color: var(--text-base-color);
+    font-weight: 600;
   }
   #trackDock .td-collapse {
     margin-left: auto;
