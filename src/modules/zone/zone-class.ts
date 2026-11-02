@@ -20,6 +20,7 @@ import {
   CC_LOCK_VALUES_EVENT
 } from './interfaces';
 import { NoteDisplay } from './note-display';
+import { NoteHistory } from '../timeline';
 import { DIV_TICKS, DivTick, PPQ, swingOffsetMs } from './seq-layer';
 import {
   ParamLocks,
@@ -230,6 +231,8 @@ export class Zone {
   sequence: Sequence;
   /** Plays the sequencer's parameter locks; kept across arrangement switches */
   readonly paramLocks = new ParamLocks(this);
+  /** What this zone sent during the current run, for the track view */
+  readonly noteHistory = new NoteHistory();
   arrangements: ZoneArrangementJSON[] = [];
   currentArrangementIndex = 0;
   lastTouchedRangePoint = 0;
@@ -542,9 +545,10 @@ export class Zone {
     this.sendOut(this._midiMsgBuf, portId);
   }
 
-  /** Sends a MIDI message; note-ons flash the activity LED (visible in minimized view only). */
+  /** Sends a MIDI message; note-ons flash the activity LED (visible in the mini and track views). */
   private sendOut(msg: Uint8Array, portId: string, timestamp?: number): void {
-    const noteOn = (msg[0] & 0xf0) === MIDI.MESSAGE.NOTE_ON && msg[2] > 0;
+    const status = msg[0] & 0xf0;
+    const noteOn = status === MIDI.MESSAGE.NOTE_ON && msg[2] > 0;
     // A still-sounding note of the same pitch is released before it is struck again,
     // so its late note-off cannot cut the new note
     if (noteOn) {
@@ -554,7 +558,11 @@ export class Zone {
       }
     }
     this.midi.send(msg, portId, timestamp);
-    if (!noteOn || this.ledTimer !== null || !document.body.classList.contains('minimized')) return;
+    if (noteOn) this.noteHistory.noteOn(msg[1], msg[2]);
+    else if (status === MIDI.MESSAGE.NOTE_ON || status === MIDI.MESSAGE.NOTE_OFF) this.noteHistory.noteOff(msg[1]);
+    if (!noteOn || this.ledTimer !== null) return;
+    const body = document.body.classList;
+    if (!body.contains('minimized') && !body.contains('track-view')) return;
     const led = this.elements.zoneElement?.querySelector('.midi-led');
     if (!led) return;
     led.classList.add('on');
@@ -1712,6 +1720,7 @@ export class Zone {
   panic(): void {
     // Global all-notes-off follows; just drop pending ring-outs
     this.paramLocks.cancelPending();
+    this.noteHistory.closeAll();
     this.ringOuts.forEach((p) => clearTimeout(p.timer));
     this.ringOuts.clear();
     this.activeNotes = [];

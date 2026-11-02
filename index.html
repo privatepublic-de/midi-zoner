@@ -68,6 +68,10 @@
           <a id="zoomReset" class="lightButton" title="Reset zoom">1:1</a>
           <a id="zoomIn" class="lightButton" title="Zoom in"><i class="material-icons">zoom_in</i></a>
         </div>
+        <div class="viewmode" role="group" aria-label="View">
+          <a id="viewCards" class="lightButton" title="Zones as cards (Cmd/Ctrl+Shift+T switches)">Cards</a>
+          <a id="viewTracks" class="lightButton" title="Zones as tracks on a timeline (Cmd/Ctrl+Shift+T switches)">Tracks</a>
+        </div>
         <a id="miniViewBtn" class="lightButton" title="Switch to mini view (Cmd/Ctrl+Shift+M)"
           ><i class="material-icons">close_fullscreen</i></a
         >
@@ -151,9 +155,33 @@
       </div>
     </section>
     <div class="padded">
+      <div id="trackRuler">
+        <div class="tr-head">
+          <span class="tr-pos"></span>
+          <span class="tr-zoom" role="group" aria-label="Timeline zoom">
+            <a class="lightButton" data-zoom="-1" title="Zoom out the timeline"><i class="material-icons">remove</i></a>
+            <a class="lightButton" data-zoom="1" title="Zoom in the timeline"><i class="material-icons">add</i></a>
+          </span>
+        </div>
+        <canvas></canvas>
+      </div>
       <section id="zones">
         <div class="zone initialising">Starting…</div>
       </section>
+    </div>
+    <div id="trackDock">
+      <div class="td-bar">
+        <span class="td-name"></span>
+        <a class="td-tab" data-tab="seq">Sequencer</a>
+        <a class="td-tab" data-tab="arp">Arp</a>
+        <a class="td-tab" data-tab="cc">Controllers</a>
+        <a class="td-tab" data-tab="zone">Zone</a>
+        <a class="td-collapse lightButton" title="Hide the panel"><i class="material-icons">expand_more</i></a>
+      </div>
+      <div class="td-empty">
+        <span class="td-empty-text"></span>
+        <a class="td-turn-on lightButton"></a>
+      </div>
     </div>
     <div id="inputPortWindow">
       <div id="inputPortList"></div>

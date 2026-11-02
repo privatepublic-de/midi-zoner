@@ -12,6 +12,7 @@ import { UndoHistory } from '../modules/undo-history';
 import { labelForZone } from '../modules/viewcontroller/action-labels';
 import { updateSheetHistory } from '../modules/viewcontroller/editor-sheet';
 import { loadDevicePresets } from '../modules/device-presets';
+import { timelineClock, timelineTransport } from '../modules/timeline';
 
 // Type aliases for class types
 type ZoneType = Zone;
@@ -347,10 +348,21 @@ document.addEventListener('DOMContentLoaded', function () {
   DOM.get('#zoomOut')!.addEventListener('click', () => applyZoom(currentZoomFactor - ZOOM_STEP));
   DOM.get('#zoomReset')!.addEventListener('click', () => applyZoom(1.0));
   DOM.get('#miniViewBtn')!.addEventListener('click', () => setMiniView(!miniView));
+  // Cards or tracks: a choice of the full view, so picking one leaves the mini view
+  const showTracks = (on: boolean): void => {
+    if (miniView) setMiniView(false);
+    view.setTrackView(on);
+  };
+  DOM.get('#viewCards')!.addEventListener('click', () => showTracks(false));
+  DOM.get('#viewTracks')!.addEventListener('click', () => showTracks(true));
   document.addEventListener('keydown', (e) => {
     if (e.code === 'KeyM' && e.shiftKey && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       setMiniView(!miniView);
+    }
+    if (e.code === 'KeyT' && e.shiftKey && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      showTracks(!view.isTrackView());
     }
     // ⌘+ / ⌘− / ⌘0 zoom the view that is showing (by key, so "+" works on any layout)
     if ((e.metaKey || e.ctrlKey) && !e.altKey) {
@@ -995,6 +1007,7 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     },
     clockHandler: (pos: number, tickIntervalMs: number) => {
+      timelineClock(pos, tickIntervalMs);
       if (zones.nextArrangementIndex !== zones.arrangementIndex) {
         Sequence.QUANT_TICK_N = pos % Sequence.QUANT_TICKS;
         if (Sequence.QUANT_TICK_N === 0) {
@@ -1010,6 +1023,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     },
     transportHandler: (started: boolean) => {
+      timelineTransport(started);
       if (started) {
         zones.list.forEach((z) => z.started());
         startClockButton.classList.add('selected');

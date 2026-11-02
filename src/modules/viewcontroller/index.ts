@@ -20,6 +20,7 @@ import {
 } from './actions';
 import { closeCCEditor, initCCEditor, isCCEditorOpen, refreshCCEditor } from './cc-editor';
 import { initPianoRoll } from './piano-roll';
+import { initTrackView, isTrackView, setTrackView } from './track-view';
 import { renderStepLocks } from './step-locks';
 import { describeAction, labelForZone, zonePrefix, ARRANGEMENT_LETTERS } from './action-labels';
 import {
@@ -160,6 +161,7 @@ function initController({
     if (index > -1) updateControllerValues(zones.list[index], index);
   }) as EventListener);
   initPianoRoll();
+  initTrackView(() => zones.list);
   setMenuHandler(contextHandler);
   initCCEditor({
     zone: (index) => zones.list[index],
@@ -1733,5 +1735,7 @@ export {
   deleteAllZones,
   setStateChangeCallback,
   isFoldSoloedOut,
-  setFoldSoloedOut
+  setFoldSoloedOut,
+  isTrackView,
+  setTrackView
 };

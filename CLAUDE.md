@@ -112,6 +112,7 @@ UI controller split into focused modules:
 - **cc-controller-view.ts**: CC pot rendering, knob geometry/display shared with the editor (`knobPaths()`, `controllerDisplay()`), mouse drags (`startControllerDrag()`)
 - **cc-editor.ts**: the controller editor panel (`#ccEditor`), see Device presets / CC controllers below
 - **output-port-manager.ts**: MIDI output port selection UI
+- **track-view.ts**: the track view (see below)
 - **toast.ts**: Toast notification utilities
 - **editor-sheet.ts**: the header shared by the full-window editor panels (piano roll, controller editor), `.editor-sheet` / `.es-bar` in styles.css: panel name, zone chip, Play/Stop (clicks `#startClockButton`, hidden with an external clock), the panel's tools, undo/redo naming the step (`updateSheetHistory()` from app.ts, the chip's zone prefix dropped), Done. Edits apply immediately, so Done, Esc and a click on the dimmed app only close. Space passes through both panels as play/stop
 - **number-input-controller.ts**: Numeric input with +/- buttons
@@ -123,6 +124,7 @@ UI controller split into focused modules:
 - **dragzone.ts**: Implements drag-and-drop reordering of zones
 - **potdraghandler.ts**: Handles mouse drag interactions for rotary CC controller knobs
 - **domutils.ts**: DOM utility functions for element selection and class management
+- **timeline.ts**: song position for the track view (`timelineClock()` / `timelineTransport()` from app.ts, `nowTick()`) and `NoteHistory`
 - **prng.ts**: Deterministic PRNG utilities (`mulberry32`, `BagShuffle`) used for arpeggiator randomization
 
 ### Data Flow
@@ -160,6 +162,8 @@ Device presets: named CC/NRPN controller sets, stored apart from scenes as one J
 Port id changes: macOS/CoreMIDI can give a device a new port id after a reboot. On every port update `remapChangedPortIds()` (app.ts) re-links references to absent ids (zone output/input, output presets, clock outputs, selected inputs, clock input, Mackie in/out) to the single present port of the same direction whose name matches `zones.knownPortNames[oldId]` (full port names). Ambiguous names (identical devices) are left as "⚠ missing".
 
 Mini view (⌘⇧M, `body.minimized`, app.ts `setMiniView()`): a floating window with M/S/Seq/Arp per zone. It has its own zoom (localStorage `miniZoomFactor`, default 0.8, 0.5–1.5; the full view keeps `zoomFactor`), and the zoom sets the window size (width = `MINI_WIDTH` × zoom, height fits the zones). Dragging its edge sets the zoom: main.ts sends `mini-resized` with the content width once a drag ends ('resized'; Linux: 'resize', settled 300 ms) and the renderer answers with the fitting size. ⌘+ / ⌘− / ⌘0 zoom whichever view is showing.
+
+Track view (topbar "Cards | Tracks", ⌘⇧T, localStorage `viewMode`, per machine; `viewcontroller/track-view.ts`, `body.track-view`, all CSS scoped `:not(.minimized)` so the mini view wins): each zone is a row, the zone's own header (M, S, name, ⋯ / Seq, Arp, CC, output, activity LED) laid out by CSS on the left and a `.track-lane` canvas (in the zone template) on the right, under a shared bar ruler (`#trackRuler`, 4/4, timeline zoom 0.5–4 px per tick, localStorage `trackZoom`). One rAF loop draws all lanes; the playhead is fixed at 30 % and the content scrolls. Behind it each lane shows what the zone actually sent (`Zone.noteHistory`, recorded in `Zone.sendOut`, see `modules/timeline.ts`: song position from the clock handler, interpolated between ticks; a run starting at position 0 starts an empty history); ahead of it the sequence as it will repeat, anchored at the step now playing (hollow = chance or condition), drum lanes one row each. Stopped, the playhead waits at bar 1 with the sequence starting there and the last run's notes behind it. A press selects a track; the dock (`#trackDock`, tabs Sequencer / Arp / Controllers / Zone in `body[data-dock]`, `trackDockTab`, a click on the open tab or the chevron folds it) shows the selected zone's `.seq`, `.arp-settings-block`, `.ccpots` or `.settings` + `.rangeholder`. These blocks stay inside the zone element (all selectors keep working) and are only placed there with `position: fixed`. Seq/Arp in a track header switch the feature and open its tab; CC only opens the Controllers tab (the click is stopped before `cc_toggle`). Double-click on a lane opens the piano roll (melodic) or the Sequencer tab. View-only lanes; no zone reordering in this view.
 
 Solo mode is tracked via `Zone.solocount` static counter. Zones silenced by another zone's solo get `.soloed-out`; with "Fold zones silenced by solo" (View group of the setup drawer, localStorage `foldSoloedOut`, per machine, default on) they also get `.disabled` and fold like muted zones, otherwise they keep their layout, dimmed, so nothing moves when soloing.
 
