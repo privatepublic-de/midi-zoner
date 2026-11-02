@@ -81,7 +81,9 @@ const contextMenuActionLabel: Record<string, string> = {
   seq_paste_lane:
     '<i class="material-icons">content_paste</i> Paste lane pattern',
   seq_clear_lane: '<i class="material-icons">clear</i> Clear lane',
+  zone_change_color: '<i class="material-icons">palette</i> Change colour',
   zone_export: '<i class="material-icons">save_alt</i> Save zone to file…',
+  zone_delete: '<i class="material-icons">delete_outline</i> Delete zone…',
   cc_preset_save: '<i class="material-icons">save</i> Save as new preset…',
   cc_presets_manage: '<i class="material-icons">library_books</i> Manage presets…',
   step_copy_length: 'Step length',
@@ -520,7 +522,7 @@ function contextHandler(ev: MouseEvent): void {
     } else {
       const parts = act.split(':');
       const name = labelString(parts);
-      const styleClass = isEnabled(parts) ? '' : 'disabled';
+      const styleClass = (isEnabled(parts) ? '' : 'disabled') + (parts[1] === 'zone_delete' ? ' danger' : '');
       DOM.addHTML(
         contextMenuElement,
         'beforeend',
@@ -1519,7 +1521,7 @@ function updateValuesForZone(index: number): void {
 }
 
 function allMuteOff(): void {
-  undoHistory.beforeAction(JSON.stringify(zones), 'Enable All Zones');
+  undoHistory.beforeAction(JSON.stringify(zones), 'Unmute All Zones');
   for (var i = 0; i < zones.list.length; i++) {
     zones.list[i].enabled = true;
   }
@@ -1568,10 +1570,11 @@ function toggleSequencerOnZone(index: number): void {
 function updateZoneHeaderContextMenus(currentArrIndex: number): void {
   const others = [0, 1, 2, 3].filter(i => i !== currentArrIndex);
   zones.list.forEach((z, i) => {
-    const el = z.elements.zoneElement?.querySelector('.channels') as HTMLElement | null;
-    if (!el) return;
     const copyItems = others.map(t => `${i}:zone_arr_copy_to:${t}`).join(',');
-    el.dataset.contextmenu = `${i}:zone_export,-,${copyItems}`;
+    // the header's right-click menu and its ⋯ button show the same entries
+    z.elements.zoneElement?.querySelectorAll<HTMLElement>('.channels, .zonemenu').forEach((el) => {
+      el.dataset.contextmenu = `${i}:zone_change_color,${i}:zone_export,-,${copyItems},-,${i}:zone_delete`;
+    });
   });
 }
 

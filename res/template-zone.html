@@ -3,10 +3,9 @@
     <div
       class="ch state enabled"
       data-action="${index}:zone_enabled"
-      title="Enable zone ${zoneMuteKeyboardHint}"
+      title="Mute zone ${zoneMuteKeyboardHint}"
     >
-      <span class="material-icons isenabled"> check </span>
-      <span class="material-icons isdisabled"> close </span>
+      M
     </div>
     <div
       class="ch solo"
@@ -112,21 +111,14 @@
     </div>
     <div class="zonetools">
       <div
-        class="randzonecolor rtool"
-        data-action="${index}:zone_change_color"
-        title="Change color"
+        class="zonemenu rtool"
+        data-contextclick
+        title="Zone menu: colour, save, copy to arrangement, delete"
       >
-        <i class="material-icons">palette</i>
+        <i class="material-icons">more_horiz</i>
       </div>
       <div class="dragzone rtool" title="Drag zone">
         <i class="material-icons">drag_indicator</i>
-      </div>
-      <div
-        class="delzone rtool"
-        data-action="${index}:zone_delete"
-        title="Remove zone"
-      >
-        <i class="material-icons">close</i>
       </div>
     </div>
   </div>

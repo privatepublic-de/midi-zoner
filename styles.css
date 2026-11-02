@@ -68,6 +68,7 @@
   --multiselect-highlight: var(--danger);
   --record-highlight: var(--danger-strong);
   --green-highlight: rgba(0, 196, 0, 1);
+  --mute-highlight: #f0b429; /* amber: M chips of muted zones */
 
   --step-size-disabled: 5px;
   --shadow-overlay: rgba(0, 0, 0, 0.7); /* floating windows and overlays */
@@ -861,11 +862,6 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
   --text-base-color: #9aa0a2;
 }
 
-.zone.disabled:not(.soloed-out) .ch.enabled:not(.selected) {
-  background-color: var(--zone-surface);
-  box-shadow: inset 0 0 0 1px var(--zone-color);
-}
-
 .zone input[type='number'],
 .zone input[type='text'] {
   height: 20px;
@@ -955,9 +951,6 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
   cursor: pointer;
 }
 
-.state.selected {
-  box-shadow: 0 0 8px var(--darker-2);
-}
 
 .sendClock {
   display: flex;
@@ -1107,36 +1100,22 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
   font-size: var(--icon-sm);
   flex-shrink: 0;
 }
-.ch.enabled.selected,
 .ch.selected {
   border-color: transparent;
   background-color: var(--brighter-2);
   color: var(--text-base-color);
 }
 
-.ch.enabled.selected {
-  color: var(--text-base-color);
-}
-
-.ch.enabled:not(.selected) {
-  background-color: var(--brighter-1);
-}
-.isdisabled {
-  display: none;
-}
-
-.disabled .isdisabled {
-  display: inline;
-}
-
-.disabled .isenabled {
-  display: none;
-}
-
-.ch.enabled,
-.soloed-out .ch.enabled.selected,
-.zone.disabled .ch.enabled.selected {
+/* M (mute): like S, dark while off and lit only while the zone is muted.
+   The chip carries the zone's `enabled`, so it is "selected" while playing. */
+.zone .channels .ch.enabled.selected {
   background-color: var(--darker-1);
+  color: var(--brighter-4);
+}
+
+.zone .channels .ch.enabled:not(.selected) {
+  background-color: var(--mute-highlight);
+  color: var(--ink);
 }
 
 .check.arp_hold.selected {
@@ -1263,6 +1242,19 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
 
 .rtool .material-icons {
   vertical-align: middle;
+}
+
+/* header icons: at least 20px wide to click */
+.zonetools .rtool,
+.channels > .sendClock {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 20px;
+}
+
+#contextmenu li.danger {
+  color: var(--light-red-highlight);
 }
 
 .dragzone {

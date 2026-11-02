@@ -161,6 +161,8 @@ Port id changes: macOS/CoreMIDI can give a device a new port id after a reboot. 
 
 Solo mode is tracked via `Zone.solocount` static counter.
 
+Zone header: M (mute) and S chips like a mixer strip. The M chip carries `zone.enabled` (`.ch.enabled`, "selected" while playing) and is lit amber (`--mute-highlight`) only while muted; the global M clears all mutes. Colour, save to file, copy to arrangement and delete are in the ⋯ menu (`.zonemenu`, `data-contextclick`), which shows the same entries as a right-click on the header (`updateZoneHeaderContextMenus()`).
+
 Undo/redo state is tracked in a standalone `UndoHistory` instance in app.ts (not part of `zones`). Every discrete mutation calls `undoHistory.push()`; continuous gestures (e.g. dragging a CC knob) use `startGesture()` / `endGesture()` to collapse into a single entry.
 
 ### Key Concepts
