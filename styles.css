@@ -2924,7 +2924,7 @@ body.running .seqprogress.drum .inner {
   /* neutral, like the menus; a warning gets a red edge */
   color: var(--text-base-color);
   background-color: var(--bg-color-popup);
-  border: 1px solid var(--brighter-0);
+  border: 1px solid var(--slate-edge);
   border-radius: var(--radius);
   font-size: var(--fs-md);
   box-shadow: 0 4px 14px var(--shadow-overlay);
@@ -3401,6 +3401,8 @@ body.running .seqprogress.drum .inner {
   display: none;
   padding: 2px;
   background-color: var(--bg-contextmenu);
+  border: 1px solid var(--slate-edge);
+  border-radius: var(--radius);
   color: var(--text-contextmenu-color);
   font-size: var(--fs-md);
   margin: 0;
@@ -3766,8 +3768,8 @@ body.running .drumSequencer .lane-expand-toggle {
   align-items: center;
   gap: 6px;
   padding: 3px 8px;
-  background: #1a2a2a;
-  border: 1px solid #3a5a5a;
+  background: var(--slate-raise);
+  border: 1px solid var(--slate-edge);
   border-radius: var(--radius);
   z-index: 10;
   white-space: nowrap;
