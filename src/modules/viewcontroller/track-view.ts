@@ -1,6 +1,7 @@
 import { Zone } from '../zone/zone-class';
 import { ZONES_CHANGED_EVENT, UPDATE_ZONE_VIEW_EVENT } from '../zone/interfaces';
-import { timeline, sessionNow, songNow, songAt, passAt, nowTick, timelineLoop, NoteHistory } from '../timeline';
+import { timeline, sessionNow, songNow, songAt, passAt, nowTick, timelineLoop, timelineMeter, countInNow, NoteHistory } from '../timeline';
+import { Meter, DEFAULT_METER, barTicks, beatOffsets, beatLines, snapToBeat, positionLabel, meterLabel, sameMeter } from '../meter';
 import type { SceneLoop } from './types';
 import { Take } from '../zone/take';
 import { DIV_TICKS } from '../zone/seq-layer';
@@ -25,8 +26,6 @@ const DOCK_HEIGHT_KEY = 'trackDockHeight';
 const DOCK_MIN_H = 120;
 const ZOOMS = [0.5, 1, 2, 4]; // px per clock tick; at 2 a 1/16 step is 12px, a bar 192px
 const PLAYHEAD_AT = 0.3; // share of the lane width behind the playhead
-const TICKS_PER_BEAT = 24;
-const TICKS_PER_BAR = 96; // 4/4
 const LANE_PAD = 6;
 const DIM_TEXT = '#8b95a3';
 const STOPPED_REDRAW_MS = 500;
@@ -52,6 +51,35 @@ let loops: { get: () => SceneLoop | null; set: (loop: SceneLoop | null, label: s
   get: () => null,
   set: () => {}
 };
+// the shown arrangement's meter
+let currentMeter: () => Meter = () => DEFAULT_METER;
+
+/** Bar length in the arrangement's meter */
+function barLen(): number {
+  return barTicks(timeline.meter);
+}
+
+/** The bar a song position is in, from 1 */
+function barNumber(t: number): number {
+  return Math.floor(t / barLen()) + 1;
+}
+
+/** The shortest beat of the meter (a quarter in x/4) */
+function shortestBeat(): number {
+  const lines = [...beatOffsets(timeline.meter), barLen()];
+  return Math.min(...lines.slice(1).map((l, i) => l - lines[i]));
+}
+
+/** Snap a song position: beats, whole bars with Shift, free with Alt/Option */
+function snapWith(t: number, e: { shiftKey: boolean; altKey: boolean }, how: 'round' | 'floor' | 'ceil' = 'round'): number {
+  if (e.altKey) return Math[how](t);
+  return snapToBeat(timeline.meter, t, e.shiftKey, how);
+}
+
+/** The shortest length a drag can give: a tick, a bar with Shift, else the shortest beat */
+function snapMin(e: { shiftKey: boolean; altKey: boolean }): number {
+  return e.altKey ? 1 : e.shiftKey ? barLen() : shortestBeat();
+}
 let loopDrag: { from: number; to: number } | null = null;
 // Changes to a zone that are undo steps (set by the controller)
 let commit: (zoneIndex: number, label: string, change: () => void) => void = (_i, _l, change) => change();
@@ -140,7 +168,7 @@ function invalidate(): void {
 function loop(now: number): void {
   frame = 0;
   if (!isActive()) return;
-  if (timeline.running || dirty || now - lastDraw > STOPPED_REDRAW_MS) {
+  if (timeline.running || timeline.countIn !== null || dirty || now - lastDraw > STOPPED_REDRAW_MS) {
     draw();
     lastDraw = now;
   }
@@ -339,11 +367,14 @@ function draw(): void {
   // the loop of the arrangement shown (also while stopped: Start begins at its start)
   const loop = loops.get();
   timelineLoop(loop?.on ? { from: loop.from, to: loop.to } : null);
+  timelineMeter(currentMeter());
   const songHead = songNow();
   // the sequencer counts run positions: from Start, which plays the song from songHead
   const runToSong = (timeline.running ? nowTick() : 0) - songHead;
   if (follow) pinnedAt = songHead;
-  const scrollPx = (songHead - pinnedAt) * ppt;
+  // counting in: the song (and the playhead waiting at its start) comes in from the right
+  const countIn = follow ? countInNow() : null;
+  const scrollPx = (songHead - pinnedAt - (countIn ?? 0)) * ppt;
   view.head = songHead;
   view.ppt = ppt;
   view.scrollPx = scrollPx;
@@ -385,9 +416,8 @@ function drawRuler(songHead: number, ppt: number, scrollPx: number, loop: SceneL
   const pos = ruler?.querySelector('.tr-pos');
   if (pos) {
     const t = Math.max(0, Math.floor(songHead));
-    pos.textContent = timeline.running
-      ? `${Math.floor(t / TICKS_PER_BAR) + 1}.${Math.floor((t % TICKS_PER_BAR) / TICKS_PER_BEAT) + 1}`
-      : 'Stopped';
+    const state = timeline.running ? positionLabel(timeline.meter, t) : timeline.countIn !== null ? 'Count-in' : 'Stopped';
+    pos.textContent = sameMeter(timeline.meter, DEFAULT_METER) ? state : `${state} · ${meterLabel(timeline.meter)}`;
   }
   const p = prepare(ruler?.querySelector('canvas') ?? null);
   if (!p) return;
@@ -406,14 +436,12 @@ function drawRuler(songHead: number, ppt: number, scrollPx: number, loop: SceneL
     g.globalAlpha = 1;
   }
   g.font = '11px "Barlow Semi Condensed", sans-serif';
-  const first = Math.max(0, Math.ceil((songHead - headX / ppt) / TICKS_PER_BEAT) * TICKS_PER_BEAT);
-  const labelEvery = ppt < 1 ? 2 : 1; // bars apart, so numbers don't touch
-  for (let s = first; ; s += TICKS_PER_BEAT) {
+  // bars apart, so numbers don't touch
+  const labelEvery = Math.max(1, Math.ceil(60 / (barLen() * ppt)));
+  for (const { t: s, bar } of beatLines(timeline.meter, Math.max(0, songHead - headX / ppt), songHead + (w - headX) / ppt)) {
     const x = Math.round(headX + (s - songHead) * ppt);
-    if (x > w) break;
-    const bar = s % TICKS_PER_BAR === 0;
-    const barNo = s / TICKS_PER_BAR;
-    g.fillStyle = barNo === 0 ? '#e7eaee' : bar ? DIM_TEXT : '#4a525d';
+    const barNo = Math.round(s / barLen());
+    g.fillStyle = s === 0 ? '#e7eaee' : bar ? DIM_TEXT : '#4a525d';
     g.fillRect(x, bar ? h - 14 : h - 6, 1, bar ? 14 : 6);
     // clear of the playhead mark
     if (bar && barNo % labelEvery === 0 && Math.abs(x - headX) > 8) g.fillText(String(barNo + 1), x + 4, h - 5);
@@ -459,10 +487,9 @@ function drawLane(
   const running = timeline.running;
 
   // beats and bars of the song
-  for (let s = Math.max(0, Math.ceil((songHead - headX / ppt) / TICKS_PER_BEAT) * TICKS_PER_BEAT); ; s += TICKS_PER_BEAT) {
+  for (const { t: s, bar } of beatLines(timeline.meter, Math.max(0, songHead - headX / ppt), songHead + (w - headX) / ppt)) {
     const gx = Math.round(x(s));
-    if (gx > w) break;
-    g.fillStyle = s === 0 ? '#ffffff40' : s % TICKS_PER_BAR === 0 ? '#ffffff1c' : '#ffffff0a';
+    g.fillStyle = s === 0 ? '#ffffff40' : bar ? '#ffffff1c' : '#ffffff0a';
     g.fillRect(gx, 0, 1, h);
   }
 
@@ -597,7 +624,7 @@ function drawLane(
     g.fillStyle = colour;
     g.fillRect(x0, y, Math.max(1, x1 - x0), bandH);
     if (n.end === null) {
-      const fade = TICKS_PER_BAR * ppt * 0.5;
+      const fade = barLen() * ppt * 0.5;
       const gradient = g.createLinearGradient(headX, 0, headX + fade, 0);
       gradient.addColorStop(0, colour);
       gradient.addColorStop(1, 'transparent');
@@ -795,7 +822,7 @@ function placeTakeChip(
     lane.appendChild(takeChip);
     invalidate(); // placed by its width, known from the next frame
   }
-  const label = `Take ${shown.number}/${shown.count} · ${Take.lengthLabel(shown.take.length)}`;
+  const label = `Take ${shown.number}/${shown.count} · ${Take.lengthLabel(shown.take.length, timeline.meter)}`;
   const labelEl = takeChip.querySelector('.tc-label')!;
   if (labelEl.textContent !== label) labelEl.textContent = label;
   takeChip.querySelector('.tc-prev')!.classList.toggle('off', shown.number <= 1);
@@ -820,7 +847,7 @@ function drawCapture(g: CanvasRenderingContext2D, zoneEl: HTMLElement, x0: numbe
     lane.appendChild(captureButton);
     invalidate(); // placed by its width, known from the next frame
   }
-  const text = `Keep · ${Take.lengthLabel(capture!.to - capture!.from)}`;
+  const text = `Keep · ${Take.lengthLabel(capture!.to - capture!.from, timeline.meter)}`;
   const keepLink = captureButton.querySelector('.cb-keep')!;
   if (keepLink.textContent !== text) keepLink.textContent = text;
   captureButton.style.left = `${Math.max(4, Math.min(w - captureButton.offsetWidth - 4, x1 - captureButton.offsetWidth - 4))}px`;
@@ -852,9 +879,8 @@ function startCaptureDrag(ev: MouseEvent, lane: Element, zone: Zone): void {
     if (!take) return;
     const end = laneTick(lane, e.clientX);
     // beats, whole bars with Shift, free (to the tick) with Alt/Option; within the take
-    const unit = e.altKey ? 1 : e.shiftKey ? TICKS_PER_BAR : TICKS_PER_BEAT;
-    const from = Math.max(take.start, Math.floor(Math.min(start, end) / unit) * unit);
-    const to = Math.min(take.end, Math.max(from + unit, Math.ceil(Math.max(start, end) / unit) * unit));
+    const from = Math.max(take.start, snapWith(Math.min(start, end), e, 'floor'));
+    const to = Math.min(take.end, Math.max(from + snapMin(e), snapWith(Math.max(start, end), e, 'ceil')));
     if (to <= from) return;
     capture = { zone, from, to };
     invalidate();
@@ -907,11 +933,6 @@ function takeAt(zone: Zone, lane: Element, clientX: number): { take: Take; edge:
   return null;
 }
 
-/** Snap a song position: beats, whole bars with Shift, free with Alt/Option */
-function snap(s: number, e: { shiftKey: boolean; altKey: boolean }): number {
-  const unit = e.altKey ? 1 : e.shiftKey ? TICKS_PER_BAR : TICKS_PER_BEAT;
-  return Math.round(s / unit) * unit;
-}
 
 /** Drag a kept take: its body moves it (also to another zone's lane), an edge trims it */
 function startTakeDrag(ev: MouseEvent, lane: Element, zone: Zone, take: Take, edge: 'start' | 'end' | null): void {
@@ -922,20 +943,20 @@ function startTakeDrag(ev: MouseEvent, lane: Element, zone: Zone, take: Take, ed
   const move = (e: MouseEvent): void => {
     if (!takeDrag && Math.abs(e.clientX - startX) < 3 && Math.abs(e.clientY - startY) < 3) return;
     const s = laneTick(lane, e.clientX);
-    const min = e.altKey ? 1 : e.shiftKey ? TICKS_PER_BAR : TICKS_PER_BEAT;
+    const min = snapMin(e);
     let { start, length, offset } = take;
     let target = zone;
     if (mode === 'move') {
-      start = Math.max(0, snap(take.start + s - down, e));
+      start = Math.max(0, snapWith(take.start + s - down, e));
       const over = (document.elementFromPoint(e.clientX, e.clientY) as Element | null)?.closest('#zones > .zone[id^="zone"]');
       const index = over ? parseInt(over.id.slice(4)) : -1;
       target = getZones()[index] ?? zone;
     } else if (mode === 'start') {
-      start = Math.max(0, Math.min(take.end - min, snap(s, e)));
+      start = Math.max(0, Math.min(take.end - min, snapWith(s, e)));
       offset = take.offset + (start - take.start);
       length = take.end - start;
     } else {
-      length = Math.max(min, Math.min(Take.MAX_LENGTH, snap(s, e) - take.start));
+      length = Math.max(min, Math.min(Take.MAX_LENGTH, snapWith(s, e) - take.start));
     }
     takeDrag = { zone, take, mode, start, length, offset, target };
     invalidate();
@@ -1042,7 +1063,7 @@ function updateConvertPanel(): void {
   const c = conv;
   const plural = (n: number, word: string): string => `${n} ${word}${n === 1 ? '' : 's'}`;
   panel.querySelector('.tdc-what')!.textContent =
-    ` · ${Take.lengthLabel(c.to - c.from)} from bar ${Math.floor(c.from / TICKS_PER_BAR) + 1} · ${plural(c.notes.length, 'note')}`;
+    ` · ${Take.lengthLabel(c.to - c.from, timeline.meter)} from bar ${barNumber(c.from)} · ${plural(c.notes.length, 'note')}`;
   const select = panel.querySelector('.tdc-grid') as HTMLSelectElement;
   if (select.options.length === 0) {
     CONVERT_GRIDS.forEach((g) => select.add(new Option(DIV_NAMES[g], String(g))));
@@ -1170,9 +1191,10 @@ function startLoopDrag(ev: MouseEvent): void {
     if (!moved && Math.abs(e.clientX - ev.clientX) < 4) return;
     moved = true;
     const end = laneTick(ruler, e.clientX);
-    const unit = e.altKey ? TICKS_PER_BEAT : TICKS_PER_BAR;
-    const from = Math.max(0, Math.floor(Math.min(start, end) / unit) * unit);
-    const to = Math.min(Take.MAX_LENGTH, Math.max(from + unit, Math.ceil(Math.max(start, end) / unit) * unit));
+    // bars, beats with Alt/Option
+    const bars = { shiftKey: !e.altKey, altKey: false };
+    const from = Math.max(0, snapWith(Math.min(start, end), bars, 'floor'));
+    const to = Math.min(Take.MAX_LENGTH, Math.max(from + snapMin(bars), snapWith(Math.max(start, end), bars, 'ceil')));
     loopDrag = { from, to };
     invalidate();
   };
@@ -1195,8 +1217,8 @@ function toggleLoop(): void {
     loops.set({ ...loop, on: !loop.on }, loop.on ? 'Loop Off' : 'Loop On');
     return;
   }
-  const from = Math.floor(Math.max(0, view.head) / TICKS_PER_BAR) * TICKS_PER_BAR;
-  loops.set({ on: true, from, to: from + 4 * TICKS_PER_BAR }, 'Loop On');
+  const from = (barNumber(Math.max(0, view.head)) - 1) * barLen();
+  loops.set({ on: true, from, to: from + 4 * barLen() }, 'Loop On');
 }
 
 /** Keep the shown take of the selected track, whole */
@@ -1205,7 +1227,7 @@ function keepShownTake(): void {
   const take = zone && shownTake(zone)?.take;
   if (!take) return;
   commit(selected, 'Keep Take', () => zone.keepTake(take));
-  toast(`Take kept: ${Take.lengthLabel(take.length)} from bar ${Math.floor(take.start / TICKS_PER_BAR) + 1}`);
+  toast(`Take kept: ${Take.lengthLabel(take.length, timeline.meter)} from bar ${barNumber(take.start)}`);
 }
 
 /** Keep the picked stretch of the shown take */
@@ -1222,7 +1244,7 @@ function keepStretch(): void {
   }
   commit(index, 'Keep Take', () => zone.keepTake(take, part));
   clearCapture();
-  toast(`Kept ${Take.lengthLabel(part.length)} from bar ${Math.floor(from / TICKS_PER_BAR) + 1}`);
+  toast(`Kept ${Take.lengthLabel(part.length, timeline.meter)} from bar ${barNumber(from)}`);
 }
 
 /** Browse the selected track's unkept takes: -1 an older one, +1 a newer one */
@@ -1239,11 +1261,13 @@ function browseTakes(step: number): void {
 function initTrackView(
   zones: () => Zone[],
   commitChange: (zoneIndex: number, label: string, change: () => void) => void,
-  loopRange: typeof loops
+  loopRange: typeof loops,
+  meter: () => Meter
 ): void {
   getZones = zones;
   commit = commitChange;
   loops = loopRange;
+  currentMeter = meter;
   const rulerCanvas = document.querySelector('#trackRuler canvas') as HTMLCanvasElement;
   rulerCanvas.addEventListener('mousedown', startLoopDrag);
   document.querySelector('#trackRuler .tr-loop')!.addEventListener('click', toggleLoop);
@@ -1422,7 +1446,7 @@ function initTrackView(
     // on a kept take (after Stop): cut it there
     const hit = !timeline.running && zone ? takeAt(zone, lane!, ev.clientX) : null;
     if (hit && !hit.edge) {
-      cutTake(zone, hit.take, snap(laneTick(lane!, ev.clientX), ev));
+      cutTake(zone, hit.take, snapWith(laneTick(lane!, ev.clientX), ev));
       return;
     }
     const pianoRoll = zone?.elements.zoneElement?.querySelector(

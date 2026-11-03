@@ -1,6 +1,7 @@
 import { Zone } from '../zone/zone-class';
 import { Sequence } from '../zone/sequence';
 import MIDI, { InputPortDef } from '../midi';
+import type { Meter } from '../meter';
 
 export type ZoneType = Zone;
 export type SequenceType = Sequence;
@@ -23,6 +24,8 @@ export interface ZonesData {
   knownPortNames: Record<string, string>;
   /** Per arrangement A–D: its loop range (song positions) and whether it's on */
   loops?: (SceneLoop | null)[];
+  /** Per arrangement A–D: its meter (null: 4/4) */
+  meters?: (Meter | null)[];
 }
 
 export interface SceneLoop {

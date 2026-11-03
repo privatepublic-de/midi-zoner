@@ -1,3 +1,5 @@
+import { Meter, DEFAULT_METER } from './meter';
+
 /**
  * Song position for the track view: the last clock tick and when it came, so the
  * view can scroll smoothly between ticks, plus what each zone sent (NoteHistory).
@@ -23,7 +25,11 @@ const timeline = {
   // Song position at sectionStart: bar 1, or the loop's start when the loop is on
   songStart: 0,
   // The current arrangement's loop range while it's on (song positions, whole ticks)
-  loop: null as LoopRange | null
+  loop: null as LoopRange | null,
+  // Counting in before Start: the last count-in tick (negative, -1 just before Start), else null
+  countIn: null as number | null,
+  // The current arrangement's meter (its song's bars and beats)
+  meter: DEFAULT_METER as Meter
 };
 
 export interface LoopRange {
@@ -52,6 +58,26 @@ function timelineTransport(started: boolean): void {
   }
   timeline.at = performance.now();
   timeline.running = started;
+  timeline.countIn = null;
+}
+
+/** The current arrangement's meter; set before an arrangement's song starts, so a take ends in its own */
+function timelineMeter(meter: Meter): void {
+  timeline.meter = meter;
+}
+
+/** A count-in tick (negative positions before Start), null: the count-in was cancelled */
+function timelineCountIn(pos: number | null, tickIntervalMs: number): void {
+  timeline.countIn = pos;
+  timeline.at = performance.now();
+  if (tickIntervalMs > 0) timeline.intervalMs = tickIntervalMs;
+}
+
+/** Counting in: how far Start is ahead (negative ticks, with the part of a tick since the last), else null */
+function countInNow(): number | null {
+  if (timeline.countIn === null) return null;
+  const part = timeline.intervalMs > 0 ? Math.min(1, (performance.now() - timeline.at) / timeline.intervalMs) : 0;
+  return Math.min(0, timeline.countIn + part);
 }
 
 /** The current run position with the part of a tick since the last one; holds when ticks pause */
@@ -182,4 +208,4 @@ class NoteHistory {
   }
 }
 
-export { timeline, timelineClock, timelineTransport, timelineSection, timelineLoop, nowTick, sessionNow, songNow, songEnd, songAt, passAt, NoteHistory, HistoryNote };
+export { timeline, timelineClock, timelineTransport, timelineSection, timelineLoop, timelineCountIn, timelineMeter, countInNow, nowTick, sessionNow, songNow, songEnd, songAt, passAt, NoteHistory, HistoryNote };

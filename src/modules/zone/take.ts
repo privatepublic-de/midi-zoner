@@ -1,7 +1,6 @@
 import { TakeJSON, TakeNoteJSON } from './interfaces';
 import { PPQ } from './seq-layer';
-
-export const TICKS_PER_BAR = PPQ * 4; // 4/4
+import { Meter, DEFAULT_METER, barTicks, unitTicks } from '../meter';
 
 /**
  * A take: what was played into a zone during one run of an arrangement, at free
@@ -10,13 +9,13 @@ export const TICKS_PER_BAR = PPQ * 4; // 4/4
  * (`offset`, `length`) the take shows of them, so a trimmed take can grow back.
  */
 export class Take {
-  static MAX_BARS = 1024;
-  static MAX_LENGTH = Take.MAX_BARS * TICKS_PER_BAR;
+  static MAX_BARS = 1024; // of 4/4
+  static MAX_LENGTH = Take.MAX_BARS * PPQ * 4;
   static MAX_NOTES = 16384;
   // identifies a recorded take, so the session's list can hide it while it's kept
   id = Math.random().toString(36).slice(2, 10);
   start = 0;
-  length = TICKS_PER_BAR;
+  length = PPQ * 4;
   offset = 0; // where in the recording the take's start lies
   notes: TakeNoteJSON[] = []; // sorted by t
 
@@ -91,14 +90,20 @@ export class Take {
     return after;
   }
 
-  /** "3 bars", "2 bars 3 beats", "5 beats", or bars with decimals off the beat grid */
-  static lengthLabel(ticks: number): string {
+  /**
+   * "3 bars", "2 bars 3 beats", "5 beats" (x/8: eighths), or bars with decimals off
+   * the grid, in the arrangement's meter
+   */
+  static lengthLabel(ticks: number, meter: Meter = DEFAULT_METER): string {
     const plural = (n: number, word: string): string => `${n} ${word}${n === 1 ? '' : 's'}`;
-    if (ticks % PPQ !== 0) return plural(Math.round((ticks / TICKS_PER_BAR) * 100) / 100, 'bar');
-    const bars = Math.floor(ticks / TICKS_PER_BAR);
-    const beats = (ticks % TICKS_PER_BAR) / PPQ;
-    if (bars === 0) return plural(beats, 'beat');
-    return beats === 0 ? plural(bars, 'bar') : `${plural(bars, 'bar')} ${plural(beats, 'beat')}`;
+    const bar = barTicks(meter);
+    const unit = unitTicks(meter);
+    if (ticks % unit !== 0) return plural(Math.round((ticks / bar) * 100) / 100, 'bar');
+    const bars = Math.floor(ticks / bar);
+    const rest = (ticks % bar) / unit;
+    const word = meter.d === 8 ? 'eighth' : 'beat';
+    if (bars === 0) return plural(rest, word);
+    return rest === 0 ? plural(bars, 'bar') : `${plural(bars, 'bar')} ${plural(rest, word)}`;
   }
 
   toJSON(): TakeJSON {

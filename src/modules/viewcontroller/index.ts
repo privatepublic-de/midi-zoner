@@ -23,6 +23,7 @@ import { initPianoRoll } from './piano-roll';
 import { initTrackView, isTrackView, setTrackView, followTrack } from './track-view';
 import { renderStepLocks } from './step-locks';
 import { describeAction, labelForZone, zonePrefix, ARRANGEMENT_LETTERS } from './action-labels';
+import { Meter, DEFAULT_METER, METER_CHOICES, meterLabel, sameMeter, parseMeter } from '../meter';
 import {
   updateControllerValues,
   setMenuHandler,
@@ -178,7 +179,8 @@ function initController({
         loops[zones.arrangementIndex] = loop;
         triggerSave();
       }
-    }
+    },
+    () => meterOf(zones.arrangementIndex)
   );
   setMenuHandler(contextHandler);
   initCCEditor({
@@ -322,6 +324,13 @@ function actionHandler(ev: MouseEvent, overrideaction?: string): void {
     return;
   }
 
+  if (action === 'global_arr_meter') {
+    const meter = parseMeter(params.slice(3).join(':'));
+    if (meter) setArrangementMeter(parseInt(actionParam1), meter);
+    window.dispatchEvent(new CustomEvent('closeContextMenu'));
+    return;
+  }
+
   const zone: ZoneType = zones.list[zoneindex];
   const sequence: SequenceType = zone.sequence;
 
@@ -448,6 +457,42 @@ function selectorMenu(spec: string): string[] {
   return (c?.discreteValues ?? []).map((_, i) => `${zoneindex}:cc_select_value:${ccindex}:${i}`);
 }
 
+function meterOf(arrIndex: number): Meter {
+  return zones.meters?.[arrIndex] ?? DEFAULT_METER;
+}
+
+/** An arrangement's meter (an undo step of its own when it comes from the menu's field) */
+function setArrangementMeter(arrIndex: number, meter: Meter): void {
+  if (!(arrIndex >= 0 && arrIndex < 4)) return;
+  const meters = (zones.meters ??= []);
+  while (meters.length < 4) meters.push(null);
+  meters[arrIndex] = sameMeter(meter, DEFAULT_METER) ? null : meter;
+  updateArrangementMeters();
+  triggerSave();
+  toast(`Arrangement ${ARRANGEMENT_LETTERS[arrIndex]} is in ${meterLabel(meter)}`);
+}
+
+/** A–D show their meter when it isn't 4/4 */
+function updateArrangementMeters(): void {
+  (DOM.all("*[data-select-arrangement]") as HTMLElement[]).forEach((el, i) => {
+    const meter = meterOf(i);
+    if (sameMeter(meter, DEFAULT_METER)) el.removeAttribute('data-meter');
+    else el.setAttribute('data-meter', meterLabel(meter).split(' ')[0]);
+    el.title = `Arrangement ${ARRANGEMENT_LETTERS[i]} · ${meterLabel(meter)} (right-click: meter, copy)`;
+  });
+}
+
+/** The meter entries of an arrangement's menu ("meters:<arrangement>") */
+function meterMenu(spec: string): string[] {
+  const arr = parseInt(spec.split(':')[1]);
+  return [
+    '-',
+    'heading:Meter',
+    ...METER_CHOICES.map((m) => `-1:global_arr_meter:${arr}:${meterLabel(m)}`),
+    `html:<li class="meter-other"><input type="text" class="meter-input" data-arr="${arr}" placeholder="Other, e.g. 11/8 3+3+3+2" spellcheck="false" /></li>`
+  ];
+}
+
 function contextHandler(ev: MouseEvent): void {
   ev.preventDefault();
   ev.stopPropagation();
@@ -456,7 +501,13 @@ function contextHandler(ev: MouseEvent): void {
   const menuActions = menuSpecification
     .split(',')
     .flatMap((act) =>
-      act.startsWith('ccpresets:') ? devicePresetMenu(parseInt(act.slice(10))) : act.startsWith('ccselect:') ? selectorMenu(act) : [act]
+      act.startsWith('ccpresets:')
+        ? devicePresetMenu(parseInt(act.slice(10)))
+        : act.startsWith('ccselect:')
+          ? selectorMenu(act)
+          : act.startsWith('meters:')
+            ? meterMenu(act)
+            : [act]
     );
   const contextMenuElement = DOM.get('#contextmenu') as HTMLElement;
 
@@ -502,6 +553,11 @@ function contextHandler(ev: MouseEvent): void {
     if (parts[1] === 'global_arr_copy_to') {
       const target = ARRANGEMENT_LETTERS[parseInt(parts[3])];
       return `<i class="material-icons">content_copy</i> Copy all zones → ${target}`;
+    }
+    if (parts[1] === 'global_arr_meter') {
+      const meter = parseMeter(parts.slice(3).join(':'));
+      const current = !!meter && sameMeter(meter, meterOf(parseInt(parts[2])));
+      return `<i class="material-icons">${current ? 'check' : ''}</i> ${meter ? meterLabel(meter) : ''}`;
     }
     const zoneindex = parseInt(parts[0]);
     const zone: ZoneType = zones.list[zoneindex];
@@ -568,6 +624,24 @@ function contextHandler(ev: MouseEvent): void {
   DOM.all('#contextmenu *[data-action]').forEach((e) => {
     e.addEventListener('click', (event) => {
       actionHandler(event as MouseEvent);
+    });
+  });
+  contextMenuElement.querySelectorAll<HTMLInputElement>('input.meter-input').forEach((input) => {
+    const arr = parseInt(input.dataset.arr!);
+    const current = meterOf(arr);
+    if (!METER_CHOICES.some((m) => sameMeter(m, current))) input.value = meterLabel(current);
+    input.addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.key === 'Escape') window.dispatchEvent(new CustomEvent('closeContextMenu'));
+      if (e.key !== 'Enter') return;
+      const meter = parseMeter(input.value);
+      if (!meter) {
+        toast('A meter is n/4 or n/8 (n up to 32), x/8 with an optional grouping such as 7/8 2+2+3', { warning: true });
+        return;
+      }
+      undoHistory.push(JSON.stringify(zones), `Meter ${ARRANGEMENT_LETTERS[arr]}: ${meterLabel(meter)}`);
+      setArrangementMeter(arr, meter);
+      window.dispatchEvent(new CustomEvent('closeContextMenu'));
     });
   });
   contextMenuElement.style.display = 'block';
@@ -1054,6 +1128,7 @@ function updateValuesForAllZones(): void {
   for (let i = 0; i < zones.list.length; i++) {
     updateValuesForZone(i);
   }
+  updateArrangementMeters();
   onStateChange?.();
 }
 

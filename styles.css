@@ -724,6 +724,112 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
   content: 'Stop';
 }
 
+/* counting in: the beat of the count-in bar; a click cancels it */
+#midisettings #startClockButton.counting {
+  background-color: color-mix(in srgb, var(--live) 14%, var(--bg-topbar-button));
+  color: var(--brighter-4);
+}
+
+#startClockButton.counting::before {
+  content: 'stop';
+}
+
+#startClockButton.counting::after {
+  content: 'Count ' attr(data-count);
+}
+
+/* wide enough for "Count 3", so nothing moves when it counts in */
+#midisettings .isInternal #startClockButton {
+  width: auto;
+  min-width: 78px;
+  box-sizing: border-box;
+}
+
+/* Count-in needs the internal clock */
+#midisettings .isExternal #metroCountIn {
+  display: none;
+}
+
+/* Click and Count-in: quiet until lit, as the global resets */
+#midisettings > .transport {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+#midisettings > .transport .lightButton:not(.active) {
+  background: none;
+  border-color: transparent;
+  color: var(--slate-dim);
+}
+
+#midisettings > .transport .lightButton:not(.active):hover {
+  color: var(--text-base-color);
+}
+
+/* the beat light in the Click chip: flashes on every beat (the bar's first in live green) */
+.beat-led {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--slate-raise);
+  box-shadow: inset 0 0 0 1px var(--slate-line);
+}
+
+.beat-led.beat {
+  background-color: var(--text-base-color);
+}
+
+.beat-led.accent {
+  background-color: var(--live);
+  box-shadow: 0 0 4px var(--live);
+}
+
+#setupDrawer .metro-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-md);
+}
+
+#setupDrawer .metro-field.disabled {
+  opacity: 0.4;
+}
+
+#setupDrawer .metro-field .material-icons {
+  font-size: var(--icon-md);
+  color: var(--slate-dim);
+}
+
+#setupDrawer #metroBars {
+  width: 76px;
+}
+
+#setupDrawer #metroMidiChannel {
+  width: 70px;
+}
+
+#setupDrawer #metroVolume {
+  width: 80px;
+}
+
+#setupDrawer #metroOutput,
+#setupDrawer #metroMidiPort {
+  max-width: 150px;
+}
+
+#setupDrawer .metro-midi {
+  display: none;
+  gap: 4px;
+}
+
+#setupDrawer #metroSettings.has-midi .metro-midi {
+  display: flex;
+}
+
+#setupDrawer .metro-midi input[type='number'] {
+  width: 44px;
+}
+
 /* =============================================================
    EXTERNAL CLOCK: the clock port name replaces the Start button
    ============================================================= */
@@ -1556,7 +1662,8 @@ input[type='range'] {
 }
 
 .zone input[type='range']::-webkit-slider-runnable-track,
-#trackDock input[type='range']::-webkit-slider-runnable-track {
+#trackDock input[type='range']::-webkit-slider-runnable-track,
+#setupDrawer input[type='range']::-webkit-slider-runnable-track {
   width: 300px;
   height: 6px;
   /* lighter filled part up to the thumb (>= 3:1 on every zone color), soft remainder */
@@ -1570,7 +1677,8 @@ input[type='range'] {
 }
 
 .zone input[type='range']::-webkit-slider-thumb,
-#trackDock input[type='range']::-webkit-slider-thumb {
+#trackDock input[type='range']::-webkit-slider-thumb,
+#setupDrawer input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   border: none;
   height: 12px;
@@ -3119,6 +3227,16 @@ body.running .seqprogress.drum .inner {
   cursor: pointer;
 }
 
+/* an arrangement's meter, when it isn't 4/4 */
+.selectSeq[data-meter]::after {
+  content: attr(data-meter);
+  margin-left: 2px;
+  font-size: 9px;
+  font-weight: 400;
+  vertical-align: super;
+  color: var(--slate-dim);
+}
+
 .selectSeq.selected {
   background-color: var(--slate-raise);
   box-shadow: inset 0 0 0 1px var(--select);
@@ -3555,6 +3673,27 @@ body.running .seqprogress.drum .inner {
   color: var(--brighter-2);
   padding: 4px 6px 0;
 }
+#contextmenu li.meter-other {
+  padding: 4px 2px;
+}
+#contextmenu li.meter-other:hover {
+  background: none;
+}
+#contextmenu .meter-input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 24px;
+  padding: 0 6px;
+  background-color: var(--slate-raise);
+  border: 1px solid var(--slate-line);
+  border-radius: var(--radius);
+  color: var(--text-base-color);
+  font: inherit;
+}
+#contextmenu .meter-input::placeholder {
+  color: var(--slate-dim);
+}
+
 #contextmenu li.heading {
   font-size: var(--fs-sm);
   color: var(--brighter-2);
@@ -4430,6 +4569,7 @@ body:has(.clocksettings.isExternal) .es-play + .es-sep {
 
 body.minimized #midisettings > :is(#setupToggle, .global-resets, #setupDrawer),
 body.minimized #midisettings .strip-end > :is(#midiPanic, .history, .zoom, .viewmode),
+body.minimized #midisettings .transport > :is(#metroClick, #metroCountIn),
 body.minimized .zone > :not(.channels),
 body.minimized .zone .channels > :not(.state):not(.solo):not(.showseq):not(.showarp):not(.zone-label):not(.midi-led),
 body.minimized .zone.placeholder,
@@ -4551,7 +4691,7 @@ body.minimized .midi-led.on {
    Row 2: resets, A-D, start/BPM. Panic is always reachable.
    ============================================================= */
 
-@media (max-width: 840px) {
+@media (max-width: 1040px) {
   body:not(.minimized) #midisettings {
     height: auto;
     flex-wrap: wrap;

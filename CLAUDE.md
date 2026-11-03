@@ -118,7 +118,9 @@ UI controller split into focused modules:
 - **number-input-controller.ts**: Numeric input with +/- buttons
 
 #### Other Modules
-- **internal-clock.ts**: Generates internal MIDI clock at specified BPM using Web Audio API for timing accuracy
+- **internal-clock.ts**: Generates internal MIDI clock at specified BPM using Web Audio API for timing accuracy. Ticks are handled `LOOKAHEAD_MS` (100 ms) ahead: the clock output goes at the tick's timestamp, what zones play (and Start) goes out when the tick is handled. Tick timestamps jitter by a few ms (`currentTime` moves in audio blocks)
+- **metronome.ts**: click on every beat while running and the count-in's clicks (see Metronome below)
+- **meter.ts**: meters (see Meters below): bar length, beat positions, snapping, labels, `parseMeter()` for scene data and typed text
 - **undo-history.ts**: `UndoHistory` class — push/undo/redo stack (max 20 entries), with gesture grouping so continuous drags produce a single undo entry
 - **zone-template.ts**: Generates HTML templates for zones using string interpolation
 - **dragzone.ts**: Implements drag-and-drop reordering of zones
@@ -153,7 +155,8 @@ Global state is stored in the `zones` object in app.ts:
 - `zones.outputConfigNames{}`: Named output port configurations
 - `zones.arrangementIndex`: Active arrangement (0–3, maps to A/B/C/D)
 - `zones.nextArrangementIndex`: Pending arrangement for quantized switching
-- `zones.arrangementQuantIndex`: Quantization mode for arrangement switching
+- `zones.arrangementQuantIndex`: Quantization mode for arrangement switching (2 bar, 8 beat, 14 16th of the playing song, in its meter; the old 3 = "3/4 bar" loads as bar)
+- `zones.meters[0–3]`: each arrangement's meter (null = 4/4)
 
 Hidden MIDI ports: `midi.hiddenPorts` (id → name, localStorage key `hiddenPorts`, per machine, not in scenes). `app.ts` filters port lists through `visiblePorts()` before building any selector; ports referenced by zones, clock, Mackie or selected inputs (`portsInUse()`) always stay visible. Managed via "Manage MIDI ports" in the input port window.
 
@@ -310,6 +313,19 @@ When enabled (toggle in toolbar), MIDI notes 0–19 from any input are intercept
 - Quantizing a take in place: the same panel with "Into: Steps | The take" (Quantize buttons next to To steps). `quantizeStarts()` moves each note start `strength` (10–100 %) of the way to its step, with "Keep the swing" to the swung step (detected swing), else to the straight one; lengths stay. A kept take changes in place (`Take.moveNotes()`, matched by song position to a millionth of a tick, none before the take's start); the shown unkept take or a stretch is kept as a new, quantized take. One undo step; the lane previews where each note lands
 - Loop range (per arrangement, `zones.loops[0–3] = {on, from, to}` in song ticks, saved with the scene, sanitized by `sanitizeLoops()` in app.ts): drag on the ruler sets it (bars, ⌥ beats) and switches it on, the ruler's Loop button switches it (without a range: 4 bars from the playhead's bar); undo steps via the `loops` hook from `initTrackView`. The timeline knows the active one (`timelineLoop()` from the clock handler, on arrangement entry and every track-view frame): `songAt(elapsed)` = `songStart` (bar 1, or the loop's start: Start begins there) + elapsed, wrapping in the loop, `passAt()` counts the passes; a change while running continues from where the song is (past the new end: jump to its start). `TakePlayer` schedules in elapsed ticks, so note-offs survive a jump (notes ring out their length); the recorder ends a take at every jump (`endTake(true)`), placed on the loop's range, so each pass is a take to flip through with ‹ ›. Step sequences keep running. The ruler shows the range as a bar (lit while on), the lanes darken outside it; the history behind the playhead shows the current pass
 - Planned next: MIDI export
+
+### Metronome
+- Transport chips: Click (`#metroClick`, a click on every beat while running; its `.beat-led` flashes on every beat either way, the bar's first in live green) and Count-in (`#metroCountIn`, internal clock only, hidden with an external one). Sound in the setup drawer's Metronome group (`viewcontroller/metronome-controls.ts`): count-in length (1 or 2 bars), volume, audio output (`setSinkId` on the metronome's own AudioContext, so the clock's is never affected), MIDI click port/channel/accent and beat notes. Settings are per machine (localStorage `metronome`), not in scenes; the MIDI port is kept visible by `portsInUse()` and remapped by `remapChangedPortIds()`
+- Beats come from the song position (`metronomeBeatAt()` in app.ts, in the arrangement's meter): accents follow the loop and a pending arrangement switch. `metronomeTick()` gets every tick with `atMs`, when the tick is due for what it plays (`clockHandler`'s third argument: internal ticks = timestamp − `LOOKAHEAD_MS`, external = arrival). It follows a steady time and interval (`steadyTime()`: a line fitted through the first bar of ticks, then a phase lock; restarts on a pause, a jump or a tempo change over 15 %) and schedules audio clicks up to 40 ms ahead, so an external clock's beats are predicted. Measured: clicks within ±2 ms of the beat grid from the first count-in beat, a 120 → 90 BPM change settles within one beat. Audio clicks are mapped to the output via `getOutputTimestamp()` and cancelled on Stop; MIDI clicks go out on the beat's own tick (a sent note can't be taken back)
+- Count-in (`midi.startClock(ticks)`, from `startTransport()` in app.ts for the Start button, Space, MMC Play, Mackie Play and an incoming Start; not Continue): the internal clock's ticks go on as while stopped (forwarded to clock outputs as then) and are reported to `midi.countInHandler` at positions −ticks…−1, Start (`startInternal()`) follows on the next tick. Stop during it only cancels (`countInHandler(null)`). The Start button shows "Count n" (`.counting`), the track view's song comes in from the right (`timelineCountIn()` / `countInNow()`), the ruler says Count-in. Notes played during the count-in are not recorded (the run hasn't started)
+- An external clock decides where bar 1 is, so it has no count-in (the drawer's field is disabled with a hint to use the clock source's own)
+
+### Meters
+- One meter per arrangement (`zones.meters`, saved with the scene, sanitized by `parseMeter()`), set in the A–D right-click menu (`meters:<arrangement>` in `data-contextmenu`, expanded by `meterMenu()` in viewcontroller/index.ts: `METER_CHOICES` plus a field for any n/4 or n/8 with a grouping, e.g. "11/8 3+3+3+2"; action `global_arr_meter`, one undo step). A–D show a meter other than 4/4 as a small superscript (`data-meter`), the ruler head as "Stopped · 7/8 2+2+3"
+- A bar is n × 1/d; beats are quarters in x/4 and the group starts in x/8 (6/8 = 3+3, 7/8 = 2+2+3 by default, `groupsOf()`), so the metronome clicks the groups (accent on the bar). Labels show the grouping except for the usual threes (6/8, 9/8, 12/8)
+- `timeline.meter` is the current arrangement's (`timelineMeter()`: from the clock handler each tick and after a switch, Start, and every track-view frame), so a take ending at a switch is cut to bars of its own meter (`Zone.endTake()`)
+- Follows the meter: metronome accents and beats, count-in length and count, ruler and lane lines, bar numbers and "bar.beat", snapping of loops, takes and stretches (`snapWith()` in track-view.ts: beats are the meter's, possibly uneven), take length labels (x/8: eighths), new loops (4 bars), and "Switch at next" (`isSwitchPoint()` in app.ts, on song positions, so it also lines up in a loop)
+- Not affected: step sequences and the arp (polymeter against the bar is fine), the session timeline between runs (`SESSION_BAR` stays 96), the piano roll's beat marks (every 4 steps). Changing a meter moves nothing: takes keep their tick positions
 
 ### Arpeggiator Features
 - Directions: Up, Down, Up/Down, Random, Order, Strum Down, Strum Up, Strum Alt

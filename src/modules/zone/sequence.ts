@@ -12,8 +12,6 @@ export class Sequence {
   static MAX_STEPS_DRUMS = 64;
   static MAX_LANES_DRUMS = 12;
   static CYCLE_CONDITIONS: [number, number][] = [];
-  static QUANT_TICK_N = 0;
-  static QUANT_TICKS: DivTick = DIV_TICKS[2];
 
   static {
     for (let cycles = 2; cycles < 9; cycles++) {
@@ -21,10 +19,6 @@ export class Sequence {
         Sequence.CYCLE_CONDITIONS.push([cycles, b + 1]);
       }
     }
-  }
-
-  static setQuantDiv(index: number): void {
-    Sequence.QUANT_TICKS = DIV_TICKS[index] as DivTick;
   }
 
   static getIdForDrumStep(laneIndex: number, stepIndex: number): number {

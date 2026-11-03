@@ -28,7 +28,8 @@ export interface InputPortDef {
 interface MIDIHandlers {
   portsChangedHandler?: (available: boolean, inputs: PortDescriptor[], outputs: PortDescriptor[], msg?: string) => void;
   eventHandler: (event: MIDIMessage) => void;
-  clockHandler?: (pos: number, tickIntervalMs: number) => void;
+  /** A tick while running; `atMs` (performance.now()) is when what it plays sounds */
+  clockHandler?: (pos: number, tickIntervalMs: number, atMs: number) => void;
   transportHandler?: (started: boolean) => void;
   /** External clock ticks stopped without a Stop message while running */
   clockPausedHandler?: () => void;
@@ -72,7 +73,12 @@ class MIDI {
   eventHandler: (event: MIDIMessage) => void;
   transportHandler?: (started: boolean) => void;
   clockPausedHandler?: () => void;
-  clockHandler?: (pos: number, tickIntervalMs: number) => void;
+  clockHandler?: (pos: number, tickIntervalMs: number, atMs: number) => void;
+  /**
+   * A count-in tick (internal clock, see startClock): `pos` counts up from -ticks to -1,
+   * Start follows on the next tick. null: the count-in was cancelled.
+   */
+  countInHandler: ((pos: number | null, tickIntervalMs: number, atMs: number) => void) | null = null;
   midiAccess: MIDIAccess | null = null;
   deviceIdInClock: string | null;
   deviceInClock: MIDIInput | null = null;
@@ -102,6 +108,7 @@ class MIDI {
   private _bpmTimestamps: number[] = [];
   private _bpmTicksSinceUpdate = 0;
   private _recentTickTimestamps: number[] = [];
+  private _countIn: { left: number } | null = null;
 
   constructor({
     portsChangedHandler,
@@ -313,6 +320,9 @@ class MIDI {
     ) {
       // Computed once and shared by the rolling-average update and the clockHandler call
       let tickTimestamp = 0;
+      // When this tick is due for what it plays: internal ticks are handled LOOKAHEAD_MS
+      // ahead of their timestamp (the clock output's), external ones as they arrive
+      let atMs = 0;
 
       if (midiMessage === MIDI.MESSAGE.CLOCK) {
         this.hasClock = true;
@@ -330,6 +340,15 @@ class MIDI {
           const n = this._recentTickTimestamps.length - 1;
           this.currentTickIntervalMs =
             (this._recentTickTimestamps[n] - this._recentTickTimestamps[0]) / n;
+        }
+        atMs =
+          portId === MIDI.INTERNAL_PORT_ID
+            ? tickTimestamp - internalClock.LOOKAHEAD_MS
+            : tickTimestamp;
+        if (this._countIn && this._countIn.left === 0) {
+          // the count-in is over: this tick is bar 1
+          this._countIn = null;
+          this.startInternal();
         }
 
         if (
@@ -406,12 +425,17 @@ class MIDI {
         }
       }
 
+      if (this._countIn && midiMessage === MIDI.MESSAGE.CLOCK) {
+        if (this.countInHandler) this.countInHandler(-this._countIn.left, this.currentTickIntervalMs, atMs);
+        this._countIn.left--;
+      }
+
       if (
         this.isClockRunning &&
         this.clockHandler &&
         midiMessage === MIDI.MESSAGE.CLOCK
       ) {
-        this.clockHandler(this.songposition, this.currentTickIntervalMs);
+        this.clockHandler(this.songposition, this.currentTickIntervalMs, atMs);
         this.songposition++;
         if (portId !== MIDI.INTERNAL_PORT_ID) this.armClockPauseWatchdog();
       }
@@ -458,6 +482,7 @@ class MIDI {
 
   selectDevices(deviceIdInClock: string | null): void {
     this.clearClockPauseWatchdog();
+    if (deviceIdInClock !== MIDI.INTERNAL_PORT_ID) this.cancelCountIn();
     if (deviceIdInClock !== this.deviceIdInClock) {
       this._bpmTimestamps = [];
       this._bpmTicksSinceUpdate = 0;
@@ -625,23 +650,49 @@ class MIDI {
   /**
    * Starts internal MIDI clock and sends MIDI start message
    * if MIDI controller's sendInternalClock is set to true.
+   * With `countInTicks` (internal clock, stopped) the clock first counts in: the ticks go
+   * on as while stopped, reported to countInHandler, and Start follows after them.
    */
-  startClock(): void {
+  startClock(countInTicks = 0): void {
+    if (this.deviceIdInClock == MIDI.INTERNAL_PORT_ID && countInTicks > 0) {
+      if (!this.isClockRunning && !this._countIn) this._countIn = { left: countInTicks };
+      return;
+    }
+    this._countIn = null;
     this.songposition = 0;
     this.isClockRunning = true;
-    if (this.deviceIdInClock == MIDI.INTERNAL_PORT_ID) {
-      this.sendStart();
-      if (this.transportHandler) {
-        this.transportHandler(true);
-      }
+    if (this.deviceIdInClock == MIDI.INTERNAL_PORT_ID) this.startInternal();
+  }
+
+  private startInternal(): void {
+    this.songposition = 0;
+    this.isClockRunning = true;
+    this.sendStart();
+    if (this.transportHandler) {
+      this.transportHandler(true);
     }
+  }
+
+  get isCountingIn(): boolean {
+    return this._countIn !== null;
+  }
+
+  private cancelCountIn(): void {
+    if (!this._countIn) return;
+    this._countIn = null;
+    if (this.countInHandler) this.countInHandler(null, this.currentTickIntervalMs, performance.now());
   }
 
   /**
    * Stops internal MIDI clock and send MIDI stop message
    * if MIDI controller's sendInternalClock is set to true.
+   * During a count-in only cancels it: nothing has started.
    */
   stopClock(): void {
+    if (this._countIn) {
+      this.cancelCountIn();
+      return;
+    }
     this.isClockRunning = false;
     if (this.deviceIdInClock == MIDI.INTERNAL_PORT_ID) {
       this.sendStop();

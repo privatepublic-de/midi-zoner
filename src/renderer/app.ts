@@ -12,7 +12,10 @@ import { UndoHistory } from '../modules/undo-history';
 import { labelForZone } from '../modules/viewcontroller/action-labels';
 import { updateSheetHistory } from '../modules/viewcontroller/editor-sheet';
 import { loadDevicePresets } from '../modules/device-presets';
-import { timelineClock, timelineTransport, timelineSection, timelineLoop, LoopRange } from '../modules/timeline';
+import { timeline, timelineClock, timelineTransport, timelineSection, timelineLoop, timelineCountIn, timelineMeter, songAt, LoopRange } from '../modules/timeline';
+import { Meter, DEFAULT_METER, barTicks, beatIndexAt, beatNumberAt, parseMeter } from '../modules/meter';
+import { metronomeSettings, metronomeTick, resetMetronome, initMetronome, updateMetronome, Beat } from '../modules/metronome';
+import { initMetronomeControls, updateMetronomePorts, setMetronomeClockExternal, flashBeat } from '../modules/viewcontroller/metronome-controls';
 
 // Type aliases for class types
 type ZoneType = Zone;
@@ -195,11 +198,13 @@ function applyStoredZones(
         }
       }
       zones.loops = sanitizeLoops(storedZones.loops);
+      zones.meters = sanitizeMeters(storedZones.meters);
+      // "3/4 bar" became "bar" (of the arrangement's meter)
+      if (zones.arrangementQuantIndex === 3) zones.arrangementQuantIndex = 2;
       zones.list = [];
       for (let i = 0; i < (storedZones.list?.length ?? 0); i++) {
         zones.list.push(createZone(midi, storedZones.list![i]));
       }
-      Sequence.setQuantDiv(zones.arrangementQuantIndex ?? 2);
     }
     midi.clockOutputPorts = zones.clockOutputPorts;
     midi.suppressTransportPorts = zones.clockSuppressTransportPorts ?? {};
@@ -244,10 +249,55 @@ function sanitizeLoops(data: unknown): ZonesData['loops'] {
   });
 }
 
+/** Meters per arrangement from a scene file (untrusted); null: 4/4 */
+function sanitizeMeters(data: unknown): ZonesData['meters'] {
+  if (!Array.isArray(data)) return [];
+  return data.slice(0, 4).map((m) => parseMeter(m));
+}
+
+function activeMeter(index = zones.arrangementIndex): Meter {
+  return zones.meters?.[index] ?? DEFAULT_METER;
+}
+
 /** The current arrangement's loop range while it's on */
-function activeLoop(): LoopRange | null {
-  const loop = zones.loops?.[zones.arrangementIndex];
+function activeLoop(index = zones.arrangementIndex): LoopRange | null {
+  const loop = zones.loops?.[index];
   return loop && loop.on ? { from: loop.from, to: loop.to } : null;
+}
+
+function beatOfSong(meter: Meter, song: number): Beat {
+  const beat = beatIndexAt(meter, song);
+  return beat === 0 ? Beat.ACCENT : beat > 0 ? Beat.BEAT : Beat.NONE;
+}
+
+const SIXTEENTH = 6;
+
+/**
+ * Whether a pending arrangement switch happens at run position p: on the current
+ * song's next bar, beat or 16th ("Switch at next"), in its meter.
+ */
+function isSwitchPoint(p: number): boolean {
+  const song = songAt(p - timeline.sectionStart);
+  if (zones.arrangementQuantIndex === 14) return song % SIXTEENTH === 0;
+  const beat = beatIndexAt(timeline.meter, song);
+  return zones.arrangementQuantIndex === 8 ? beat >= 0 : beat === 0;
+}
+
+/**
+ * The metronome's beat at run position `p`, a few ticks ahead of `now`: from the song
+ * position, so it follows the loop and the meter; a pending arrangement switch starts
+ * its song at its switch point. Negative positions are the count-in, which ends at Start.
+ */
+function metronomeBeatAt(p: number, now: number, running: boolean): Beat {
+  if (!running) return beatOfSong(activeMeter(), p < 0 ? p : (activeLoop()?.from ?? 0) + p);
+  if (zones.nextArrangementIndex !== zones.arrangementIndex) {
+    for (let at = now + 1; at <= p; at++) {
+      if (!isSwitchPoint(at)) continue;
+      const next = zones.nextArrangementIndex;
+      return beatOfSong(activeMeter(next), (activeLoop(next)?.from ?? 0) + p - at);
+    }
+  }
+  return beatOfSong(timeline.meter, songAt(p - timeline.sectionStart));
 }
 
 interface Dismissable {
@@ -450,8 +500,25 @@ document.addEventListener('DOMContentLoaded', function () {
       extBadge.textContent = select_in_clock.selectedOptions[0]?.text || 'External clock';
     }
   }
+  /** Start from any internal transport control: with Count-in on, the clock counts in first */
+  function startTransport(): void {
+    timelineMeter(activeMeter());
+    const ticks = metronomeSettings.countIn ? metronomeSettings.countInBars * barTicks(activeMeter()) : 0;
+    resetMetronome();
+    midi.startClock(ticks);
+    if (midi.isCountingIn) showCountIn(-ticks);
+  }
+  let countingIn = false;
+  /** The Start button counts the beats of the count-in (null: not counting in) */
+  function showCountIn(pos: number | null): void {
+    countingIn = pos !== null;
+    startClockButton.classList.toggle('counting', countingIn);
+    if (pos === null) return startClockButton.removeAttribute('data-count');
+    startClockButton.setAttribute('data-count', String(beatNumberAt(activeMeter(), pos) + 1));
+  }
   function updateBpmInput(): void {
     updateSetupSummary();
+    setMetronomeClockExternal(midi.deviceIdInClock != MIDI.INTERNAL_PORT_ID);
     if (midi.deviceIdInClock == MIDI.INTERNAL_PORT_ID) {
       DOM.addClass('.clocksettings', 'isInternal');
       DOM.removeClass('.clocksettings', 'isExternal');
@@ -461,6 +528,7 @@ document.addEventListener('DOMContentLoaded', function () {
     } else {
       DOM.removeClass('.clocksettings', 'isInternal');
       DOM.addClass('.clocksettings', 'isExternal');
+      showCountIn(null);
       bpmInput.setAttribute('type', 'text');
       bpmInput.value = midi.detectedBpm !== null ? midi.detectedBpm.toFixed(1) : '---';
       bpmInput.disabled = true;
@@ -670,6 +738,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (midi.deviceIdInClock) inUse.in.add(midi.deviceIdInClock);
     if (midi.deviceIdMackieControl) inUse.in.add(midi.deviceIdMackieControl);
     if (midi.deviceIdMackieOutput) inUse.out.add(midi.deviceIdMackieOutput);
+    if (metronomeSettings.midiPortId) inUse.out.add(metronomeSettings.midiPortId);
     return inUse;
   }
 
@@ -748,6 +817,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (mackieIn) localStorage.setItem('mackieControlPortId', mackieIn);
     const mackieOut = resolve(localStorage.getItem('mackieControlOutputPortId'), 'out');
     if (mackieOut) localStorage.setItem('mackieControlOutputPortId', mackieOut);
+    const metronomeOut = resolve(metronomeSettings.midiPortId, 'out');
+    if (metronomeOut) updateMetronome({ midiPortId: metronomeOut });
 
     if (remapped.size > 0) syncZoneInputPorts(midi);
     return [...remapped];
@@ -854,6 +925,7 @@ document.addEventListener('DOMContentLoaded', function () {
       );
     });
     midi.deviceIdMackieOutput = savedMackieOutId || null;
+    updateMetronomePorts(outputs);
   }
 
   let activeUpdateTimer: ReturnType<typeof setTimeout> | null = null;
@@ -874,15 +946,15 @@ document.addEventListener('DOMContentLoaded', function () {
         ) {
           if (data[4] == 2) {
             // MMC PLAY
-            midi.startClock();
+            if (!midi.isClockRunning) startTransport();
           } else if (data[4] == 1) {
             // MMC STOP
             midi.stopClock();
           }
-        } else if (
-          data[0] == MIDI.MESSAGE.START ||
-          data[0] == MIDI.MESSAGE.CONTINUE
-        ) {
+        } else if (data[0] == MIDI.MESSAGE.START) {
+          if (!midi.isClockRunning) startTransport();
+          else midi.startClock();
+        } else if (data[0] == MIDI.MESSAGE.CONTINUE) {
           midi.startClock();
         } else if (data[0] == MIDI.MESSAGE.STOP) {
           midi.stopClock();
@@ -928,9 +1000,9 @@ document.addEventListener('DOMContentLoaded', function () {
           const note = data[1];
           // Transport (internal clock only)
           if (midi.deviceIdInClock === MIDI.INTERNAL_PORT_ID) {
-            if (note === 94 && !midi.isClockRunning) {
-              midi.startClock();
-            } else if (note === 93 && midi.isClockRunning) {
+            if (note === 94 && !midi.isClockRunning && !midi.isCountingIn) {
+              startTransport();
+            } else if (note === 93 && (midi.isClockRunning || midi.isCountingIn)) {
               midi.stopClock();
             }
           }
@@ -1050,17 +1122,18 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       });
     },
-    clockHandler: (pos: number, tickIntervalMs: number) => {
+    clockHandler: (pos: number, tickIntervalMs: number, atMs: number) => {
       timelineLoop(activeLoop());
+      timelineMeter(activeMeter());
       timelineClock(pos, tickIntervalMs);
       if (zones.nextArrangementIndex !== zones.arrangementIndex) {
-        Sequence.QUANT_TICK_N = pos % Sequence.QUANT_TICKS;
-        if (Sequence.QUANT_TICK_N === 0) {
+        if (isSwitchPoint(pos)) {
           const newIndex = zones.nextArrangementIndex;
           view.switchZonesToArrangement(newIndex);
-          // after the outgoing section's takes ended (in stopped()), before this tick plays;
-          // the new arrangement's song starts at bar 1 or its loop's start
+          // after the outgoing section's takes ended (in stopped(), in its meter), before
+          // this tick plays; the new arrangement's song starts at bar 1 or its loop's start
           timelineLoop(activeLoop());
+          timelineMeter(activeMeter());
           timelineSection(pos);
           view.selectArrangement(newIndex);
           sendMackieLeds();
@@ -1070,9 +1143,14 @@ document.addEventListener('DOMContentLoaded', function () {
       for (let i = 0; i < zones.list.length; i++) {
         zones.list[i].clock(pos, tickIntervalMs);
       }
+      metronomeTick(pos, atMs, tickIntervalMs, (p) => metronomeBeatAt(p, pos, true), () => metronomeSettings.click);
     },
     transportHandler: (started: boolean) => {
+      timelineMeter(activeMeter());
       timelineTransport(started);
+      // after a count-in the first beats are already scheduled
+      if (!countingIn) resetMetronome();
+      showCountIn(null);
       if (started) {
         zones.list.forEach((z) => z.started());
         startClockButton.classList.add('selected');
@@ -1218,10 +1296,10 @@ document.addEventListener('DOMContentLoaded', function () {
         startClockButton.addEventListener('click', () => {
           // transportHandler updates the button, zones and Mackie LEDs
           if (midi.deviceIdInClock === MIDI.INTERNAL_PORT_ID) {
-            if (midi.isClockRunning) {
+            if (midi.isClockRunning || midi.isCountingIn) {
               midi.stopClock();
             } else {
-              midi.startClock();
+              startTransport();
             }
           }
         });
@@ -1259,7 +1337,6 @@ document.addEventListener('DOMContentLoaded', function () {
         updateClockOutputCount();
         midi.setInternalBPM(zones.tempo);
         view.selectArrangement(zones.arrangementIndex || 0);
-        Sequence.setQuantDiv(zones.arrangementQuantIndex ?? 2);
         (DOM.get('#seqquant') as HTMLSelectElement).value = String(
           zones.arrangementQuantIndex ?? 2
         );
@@ -1481,7 +1558,6 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   DOM.on('#seqquant', 'change', (ev) => {
     const quantDiv = parseInt((ev.target as HTMLSelectElement).value);
-    Sequence.setQuantDiv(quantDiv);
     zones.arrangementQuantIndex = quantDiv;
     saveZones();
   });
@@ -1525,6 +1601,23 @@ document.addEventListener('DOMContentLoaded', function () {
     sendMackieLeds();
   });
   view.initController({ saveData: saveZones, data: zones, midi, history: undoHistory });
+  initMetronome(
+    (msg, portId, timestamp) => midi.send(msg, portId, timestamp),
+    flashBeat,
+    (reason) => view.toast(`The click's audio output isn't available (${esc(reason)}); it plays on the system output`, { warning: true })
+  );
+  initMetronomeControls();
+  midi.countInHandler = (pos, tickIntervalMs, atMs) => {
+    timelineCountIn(pos, tickIntervalMs);
+    if (pos === null) {
+      resetMetronome();
+      showCountIn(null);
+      return;
+    }
+    showCountIn(pos);
+    // the count-in always clicks; from Start on only with Click
+    metronomeTick(pos, atMs, tickIntervalMs, (p) => metronomeBeatAt(p, pos, false), (p) => p < 0 || metronomeSettings.click);
+  };
   loadDevicePresets()
     .then((broken) => {
       if (broken.length > 0) {

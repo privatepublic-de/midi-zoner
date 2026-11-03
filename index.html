@@ -29,10 +29,10 @@
         >
       </div>
       <div id="arrangementSelector" role="group" aria-label="Arrangement">
-        <div class="selectSeq sqlA selected" data-select-arrangement="0" data-contextmenu="-1:global_arr_copy_to:0:1,-1:global_arr_copy_to:0:2,-1:global_arr_copy_to:0:3">A</div>
-        <div class="selectSeq sqlB" data-select-arrangement="1" data-contextmenu="-1:global_arr_copy_to:1:0,-1:global_arr_copy_to:1:2,-1:global_arr_copy_to:1:3">B</div>
-        <div class="selectSeq sqlC" data-select-arrangement="2" data-contextmenu="-1:global_arr_copy_to:2:0,-1:global_arr_copy_to:2:1,-1:global_arr_copy_to:2:3">C</div>
-        <div class="selectSeq sqlD" data-select-arrangement="3" data-contextmenu="-1:global_arr_copy_to:3:0,-1:global_arr_copy_to:3:1,-1:global_arr_copy_to:3:2">D</div>
+        <div class="selectSeq sqlA selected" data-select-arrangement="0" data-contextmenu="-1:global_arr_copy_to:0:1,-1:global_arr_copy_to:0:2,-1:global_arr_copy_to:0:3,meters:0">A</div>
+        <div class="selectSeq sqlB" data-select-arrangement="1" data-contextmenu="-1:global_arr_copy_to:1:0,-1:global_arr_copy_to:1:2,-1:global_arr_copy_to:1:3,meters:1">B</div>
+        <div class="selectSeq sqlC" data-select-arrangement="2" data-contextmenu="-1:global_arr_copy_to:2:0,-1:global_arr_copy_to:2:1,-1:global_arr_copy_to:2:3,meters:2">C</div>
+        <div class="selectSeq sqlD" data-select-arrangement="3" data-contextmenu="-1:global_arr_copy_to:3:0,-1:global_arr_copy_to:3:1,-1:global_arr_copy_to:3:2,meters:3">D</div>
       </div>
       <div class="transport clocksettings">
         <div
@@ -40,6 +40,18 @@
           class="toggle internal"
           title="Start arpeggiators and sequencers"
         ></div>
+        <a
+          id="metroClick"
+          class="lightButton"
+          title="Metronome: a click on every beat while running (the light shows the beats either way; sound under Setup → Metronome)"
+          ><span class="beat-led"></span>Click</a
+        >
+        <a
+          id="metroCountIn"
+          class="lightButton internal"
+          title="Count in before Start: the clock runs a bar (or two) with clicks, then starts (Setup → Metronome)"
+          >Count-in</a
+        >
         <div
           class="ext-badge"
           title="Following the external clock: tempo and start/stop come from this input. Click to change the clock source"
@@ -109,14 +121,43 @@
             </div>
           </div>
         </div>
+        <div class="drawer-group" id="metroSettings">
+          <span class="group-label">Metronome</span>
+          <div class="group-body">
+            <label class="metro-field" id="metroBarsField" title="How long Count-in counts before Start">
+              Count-in
+              <select id="metroBars" tabindex="-1">
+                <option value="1">1 bar</option>
+                <option value="2">2 bars</option>
+              </select>
+            </label>
+            <label class="metro-field" title="Click volume (0: no sound, e.g. for the MIDI click only)">
+              <i class="material-icons">volume_up</i>
+              <input type="range" id="metroVolume" min="0" max="100" tabindex="-1" />
+            </label>
+            <select id="metroOutput" tabindex="-1" title="Audio output for the click">
+              <option value="">System output</option>
+            </select>
+            <label class="metro-field" title="Also send the click as MIDI notes, e.g. to a drum machine">
+              MIDI
+              <select id="metroMidiPort" tabindex="-1">
+                <option value="">(None)</option>
+              </select>
+            </label>
+            <span class="metro-midi">
+              <select id="metroMidiChannel" tabindex="-1" title="MIDI channel of the click"></select>
+              <input type="number" id="metroAccentNote" min="0" max="127" tabindex="-1" title="Note on the first beat of a bar" />
+              <input type="number" id="metroBeatNote" min="0" max="127" tabindex="-1" title="Note on the other beats" />
+            </span>
+          </div>
+        </div>
         <div class="drawer-group">
           <span class="group-label">Arrangement</span>
           <div class="group-body">
-            <label class="arr-quant" title="While the clock runs, choosing A–D waits for the next boundary you pick here. With the clock stopped, it switches immediately.">
+            <label class="arr-quant" title="While the clock runs, choosing A–D waits for the next bar, beat or 16th of the playing arrangement (in its meter). With the clock stopped, it switches immediately.">
               Switch at next
               <select id="seqquant">
-                <option value="2">4/4 bar</option>
-                <option value="3">3/4 bar</option>
+                <option value="2">bar</option>
                 <option value="8">beat</option>
                 <option value="14">16th note</option>
               </select>

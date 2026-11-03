@@ -10,6 +10,9 @@ type ClockHandler = (msg: ClockMessage) => void;
 const audioContext = new AudioContext();
 const clockMSG: ClockMessage = { data: Uint8Array.from([0xf8]) };
 const scheduleAheadTime = 0.1; // 100ms lookahead
+// Ticks are handled this far ahead: the MIDI clock goes out at its timestamp, while what
+// the zones play on a tick (and Start) goes out when it is handled
+const LOOKAHEAD_MS = scheduleAheadTime * 1000;
 let tempo = 60 / 120 / PPQ; // defaults to 120bpm
 let nextClockTime = 0.0; // when the next tick is due (relative to startTime)
 let startTime = 0;
@@ -53,4 +56,4 @@ function setBPM(bpm: number): void {
 
 startTime = audioContext.currentTime + 0.005;
 
-export { setHandler, setBPM };
+export { setHandler, setBPM, LOOKAHEAD_MS };

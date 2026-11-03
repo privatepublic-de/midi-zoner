@@ -5,7 +5,8 @@ import { ZoneElements } from './zone-elements';
 import { Sequence } from './sequence';
 import { SeqStep } from './seq-step';
 import { DrumLane } from './drum-lane';
-import { Take, TICKS_PER_BAR } from './take';
+import { Take } from './take';
+import { barTicks } from '../meter';
 import { TakePlayer } from './take-player';
 import {
   CCController,
@@ -1770,8 +1771,10 @@ export class Zone {
       take.start = loop.from;
       take.length = loop.to - loop.from;
     } else {
-      take.start = Math.max(0, Math.floor(rec.notes[0].t / TICKS_PER_BAR) * TICKS_PER_BAR);
-      take.length = Math.min(Take.MAX_LENGTH, Math.max(TICKS_PER_BAR, Math.ceil(end / TICKS_PER_BAR) * TICKS_PER_BAR - take.start));
+      // whole bars of the arrangement's meter
+      const bar = barTicks(timeline.meter);
+      take.start = Math.max(0, Math.floor(rec.notes[0].t / bar) * bar);
+      take.length = Math.min(Take.MAX_LENGTH, Math.max(bar, Math.ceil(end / bar) * bar - take.start));
     }
     take.notes = rec.notes.map((n) => ({
       t: n.t - take.start,
