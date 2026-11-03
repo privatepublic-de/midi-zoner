@@ -153,6 +153,7 @@ interface HistoryNote {
   velo: number;
   start: number;
   end: number | null; // null while sounding
+  live?: boolean; // played through from the input (it also shows in the take being recorded)
 }
 
 /**
@@ -183,10 +184,10 @@ class NoteHistory {
     return notes.slice(lo, end);
   }
 
-  noteOn(pitch: number, velo: number): void {
+  noteOn(pitch: number, velo: number, live = false): void {
     if (!timeline.running) return;
     this.noteOff(pitch);
-    this.notes.push({ pitch, velo, start: sessionNow(), end: null });
+    this.notes.push({ pitch, velo, start: sessionNow(), end: null, live });
     if (pitch < this.low) this.low = pitch;
     if (pitch > this.high) this.high = pitch;
     if (this.notes.length > NoteHistory.MAX) this.notes.splice(0, this.notes.length - NoteHistory.MAX);

@@ -568,8 +568,11 @@ export class Zone {
     this.sendOut(this._midiMsgBuf, portId);
   }
 
-  /** Sends a MIDI message; note-ons flash the activity LED (visible in the mini and track views). */
-  private sendOut(msg: Uint8Array, portId: string, timestamp?: number): void {
+  /**
+   * Sends a MIDI message; note-ons flash the activity LED (visible in the mini and track views).
+   * live: a note played through from the input, marked so in the note history
+   */
+  private sendOut(msg: Uint8Array, portId: string, timestamp?: number, live = false): void {
     const status = msg[0] & 0xf0;
     const noteOn = status === MIDI.MESSAGE.NOTE_ON && msg[2] > 0;
     // A still-sounding note of the same pitch is released before it is struck again,
@@ -581,7 +584,7 @@ export class Zone {
       }
     }
     this.midi.send(msg, portId, timestamp);
-    if (noteOn) this.noteHistory.noteOn(msg[1], msg[2]);
+    if (noteOn) this.noteHistory.noteOn(msg[1], msg[2], live);
     else if (status === MIDI.MESSAGE.NOTE_ON || status === MIDI.MESSAGE.NOTE_OFF) this.noteHistory.noteOff(msg[1]);
     if (!noteOn || this.ledTimer !== null) return;
     const body = document.body.classList;
@@ -714,7 +717,7 @@ export class Zone {
                   outevent[0] = message + this.channel;
                   outevent[1] = key;
                   outevent[2] = velo;
-                  this.sendOut(outevent, this.outputPortId, timestamp);
+                  this.sendOut(outevent, this.outputPortId, timestamp, fromMidiInput);
                 }
                 const playNote = new Note(
                   key,

@@ -5429,13 +5429,9 @@ body.track-view:not(.minimized) {
   --dock-bar-h: 32px;
   --strip-h: 28px; /* STRIP_H in track-view.ts */
 
-  /* folded by the user, or by itself while its tab has nothing for this track */
-  &.dock-closed,
-  &.dock-empty:not(.converting) {
+  /* folded by the user (the chevron or a double-click on the bar) */
+  &.dock-closed {
     --dock-h: var(--dock-bar-h);
-  }
-  &.dock-empty:not(.converting) #trackDock .td-resize {
-    display: none;
   }
 
   .padded {
@@ -5470,7 +5466,7 @@ body.track-view:not(.minimized) {
     background: var(--slate-bg);
   }
 
-  #zones > .zone > :not(.channels, .track-lane) {
+  #zones > .zone:not(.addnewzone) > :not(.channels, .track-lane) {
     display: none !important;
   }
 
@@ -5489,22 +5485,29 @@ body.track-view:not(.minimized) {
     }
   }
 
-  /* header: M S name ⋯ over Seq Arp CC, output, activity */
+  /* header, two rows laid out each on its own (a break after the name row):
+     [M S] name ⋯ ⠿ over [Seq Arp Trk] | [CC output] activity */
   #zones > .zone > .channels {
     grid-column: 1;
     grid-row: 1;
-    display: grid;
-    grid-template-columns: auto auto auto auto 1fr auto;
-    grid-template-areas:
-      'm s name name name tools'
-      'seq arp tk cc route led';
+    display: flex;
+    flex-wrap: wrap;
     align-content: center;
+    align-items: center;
     gap: 6px 4px;
     margin: 0;
     padding: 0 8px 0 12px;
     background: var(--zone-surface);
     border-right: 1px solid var(--slate-line);
     box-shadow: inset 3px 0 0 var(--zone-color);
+  }
+  #zones > .zone > .channels::after {
+    content: '';
+    flex-basis: 100%;
+    order: 10;
+  }
+  #zones > .zone > .channels > * {
+    margin: 0;
   }
   #zones > .zone:is(.disabled, .soloed-out) > .channels {
     box-shadow: inset 3px 0 0 var(--slate-line);
@@ -5526,31 +5529,51 @@ body.track-view:not(.minimized) {
     pointer-events: none;
     box-shadow: inset 0 0 0 1px var(--select);
   }
-  .channels > .ch.state { grid-area: m; }
-  .channels > .ch.solo { grid-area: s; }
-  .channels > .ch.showseq { grid-area: seq; }
-  .channels > .ch.showarp { grid-area: arp; }
-  .channels > .ch.showtakes { grid-area: tk; }
-  .channels > .ch.showccs { grid-area: cc; }
-  .channels > .zone-label {
-    grid-area: name;
-    width: 100%;
+  .channels > .ch.state { order: 1; }
+  .channels > .ch.solo { order: 2; }
+  #zones > .zone > .channels > .zone-label {
+    order: 3;
+    flex: 1 1 0;
+    width: auto;
     min-width: 0;
-    margin: 0;
+    margin-left: 8px;
   }
-  .channels > .zonetools { grid-area: tools; }
+  #zones > .zone > .channels > .zonetools {
+    order: 4;
+    margin-left: 2px;
+  }
+  .channels > .ch.showseq { order: 11; }
+  .channels > .ch.showarp { order: 12; }
+  .channels > .ch.showtakes { order: 13; }
+  /* the features, then what is sent: CC and the output after a line */
+  #zones > .zone > .channels > .ch.showccs {
+    order: 14;
+    margin-left: 13px;
+  }
+  #zones > .zone > .channels > .ch.showseq::before {
+    display: none;
+  }
+  #zones > .zone > .channels > .ch.showccs::before {
+    left: -7.5px;
+  }
   /* the routing sits at the window's left edge here: open its popup to the right */
   .channels .iorouting-popup {
     left: 0;
     right: auto;
   }
   .channels > .iorouting {
-    grid-area: route;
+    order: 15;
+    flex: 1 1 0;
     min-width: 0;
-    margin: 0;
   }
-  .channels > .midi-led {
-    grid-area: led;
+  .channels .iorouting-display {
+    height: 22px;
+    border-right: 0;
+    border-radius: var(--radius);
+  }
+  #zones > .zone > .channels > .midi-led {
+    order: 16;
+    margin-left: 4px;
     display: block;
     align-self: center;
     width: 6px;
@@ -5770,6 +5793,7 @@ body.track-view:not(.minimized) {
     gap: 4px;
     padding: 0 8px 0 12px;
     border-bottom: 1px solid var(--slate-line);
+    font-size: var(--fs-md);
   }
   #trackDock .td-name {
     max-width: 200px;
@@ -5792,6 +5816,10 @@ body.track-view:not(.minimized) {
   }
   #trackDock .td-tab:hover {
     color: var(--text-base-color);
+  }
+  /* its feature is off for this track */
+  #trackDock .td-tab.off:not(.active) {
+    opacity: 0.5;
   }
   /* as the active arrangement */
   #trackDock .td-tab.active {
@@ -5935,12 +5963,14 @@ body.track-view:not(.minimized) {
   &.converting[data-dock] #zones > .zone.track-selected.track-selected > :is(.seq, .arp-settings-block, .ccpots, .settings, .rangeholder) {
     display: none !important;
   }
-  /* in the bar, after the tabs */
+  /* in the dock's place while its tab has nothing for this track */
   #trackDock .td-empty {
     display: none;
+    flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 10px;
-    margin-left: 16px;
+    font-size: var(--fs-md);
     color: var(--slate-dim);
   }
   #trackDock .td-turn-on {

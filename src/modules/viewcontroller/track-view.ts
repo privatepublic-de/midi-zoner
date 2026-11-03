@@ -28,7 +28,7 @@ const ZOOMS = [0.5, 1, 2, 4]; // px per clock tick; at 2 a 1/16 step is 12px, a 
 const PLAYHEAD_AT = 0.3; // share of the lane width behind the playhead
 const LANE_PAD = 6;
 const STRIP_H = 28; // the selected track's strip over its notes, as --strip-h in styles.css
-const TAKE_LANE_H = 48; // the last run below the song: the shown take, while running the one being recorded
+const TAKE_LANE_H = 48; // the last run above the song: the shown take, while running the one being recorded
 const TAKE_PAD = 4;
 const DIM_TEXT = '#8b95a3';
 const STOPPED_REDRAW_MS = 500;
@@ -259,8 +259,12 @@ function updateDock(zones: Zone[]): void {
     dock.style.setProperty('--zone-color', style.getPropertyValue('--zone-color'));
     dock.style.setProperty('--zone-surface', style.getPropertyValue('--zone-surface'));
   }
+  const off: Partial<Record<DockTab, boolean>> = { seq: !zone.sequence.active, arp: !zone.arp_enabled };
   dock.querySelectorAll('.td-tab').forEach((t) => {
-    t.classList.toggle('active', dockOpen && (t as HTMLElement).dataset['tab'] === tab);
+    const name = (t as HTMLElement).dataset['tab'] as DockTab;
+    t.classList.toggle('active', dockOpen && name === tab);
+    // a feature that is off for this track: the tab is dim (it says so when opened)
+    t.classList.toggle('off', !!off[name]);
   });
   // An off feature: say so, with a button that switches it on in the track header
   let empty = '';
@@ -272,9 +276,8 @@ function updateDock(zones: Zone[]): void {
     empty = 'The arpeggiator of this track is off.';
     turnOn = 'Turn on';
   }
+  // nothing to show: the dock keeps its height and says so in its place
   dock.classList.toggle('empty', empty !== '');
-  // nothing to show: the dock folds to its bar, which says so (not saved as the user's fold)
-  document.body.classList.toggle('dock-empty', empty !== '');
   dock.querySelector('.td-empty-text')!.textContent = empty;
   dock.querySelector('.td-turn-on')!.textContent = turnOn;
 }
@@ -313,7 +316,7 @@ function laneHeight(zone: Zone): number {
   return 56;
 }
 
-/** The track's last-run lane below the song, once something was played into it here */
+/** The track's last-run lane above the song, once something was played into it here */
 function hasTakeLane(zone: Zone): boolean {
   return zone.hasRecorded;
 }
@@ -321,7 +324,7 @@ function hasTakeLane(zone: Zone): boolean {
 /** Whether a mouse y on a lane is in its last-run part (presses there pick a stretch) */
 function inTakeLane(zone: Zone, lane: Element, clientY: number): boolean {
   if (!hasTakeLane(zone)) return false;
-  return clientY >= lane.querySelector('canvas')!.getBoundingClientRect().bottom - TAKE_LANE_H;
+  return clientY < lane.querySelector('canvas')!.getBoundingClientRect().top + TAKE_LANE_H;
 }
 
 /** Where the step `cur` of a sequence started; stopped (cur -1), one step before the playhead */
@@ -494,9 +497,10 @@ function drawLane(
   const p = prepare(el.querySelector('.track-lane canvas'));
   if (!p) return;
   const [g, w, fullH] = p;
-  // the song above (h), the last run below it (takeY … fullH)
-  const h = takeLane ? fullH - TAKE_LANE_H : fullH;
-  const takeY = h;
+  // the last run on top (0 … TAKE_LANE_H), the song below it (songY … fullH, h high)
+  const takeY = 0;
+  const songY = takeLane ? TAKE_LANE_H : 0;
+  const h = fullH - songY;
   // where the playhead is: its place, or elsewhere while scrolled
   const headX = Math.round(w * PLAYHEAD_AT) + scrollPx;
   const x = (s: number): number => headX + (s - songHead) * ppt; // song positions
@@ -520,11 +524,11 @@ function drawLane(
     g.fillRect(gx, 0, 1, fullH);
   }
   if (takeLane) {
-    // the last run: a shade darker, under a line
+    // the last run: a shade darker, over a line
     g.fillStyle = '#0000002e';
     g.fillRect(0, takeY, w, TAKE_LANE_H);
     g.fillStyle = '#ffffff14';
-    g.fillRect(0, takeY, w, 1);
+    g.fillRect(0, songY - 1, w, 1);
   }
 
 
@@ -537,7 +541,10 @@ function drawLane(
   // the pass began this long ago (session positions), at most the view's width back
   const passFrom = sessionNow() - Math.min(elapsedNow, (headX + 8) / ppt);
   const heldHistory = drums ? null : syncHeld(zone);
-  const history = running ? zone.noteHistory.between(passFrom, sessionNow() + 1).filter(inPass) : [];
+  // notes played through from the input show only in the take being recorded
+  const history = running
+    ? zone.noteHistory.between(passFrom, sessionNow() + 1).filter((n) => inPass(n) && !(takeLane && n.live))
+    : [];
   const held = running && heldHistory ? heldHistory.between(passFrom, sessionNow() + 1).filter(inPass) : [];
   const shown = shownTake(zone);
   const latest = shown?.take ?? null;
@@ -581,7 +588,7 @@ function drawLane(
   }
   const rowH = (h - 2 * LANE_PAD) / rows;
   const noteH = Math.max(3, Math.min(drums ? 8 : 6, rowH - (drums ? 2 : 0)));
-  const rowY = (row: number): number => LANE_PAD + row * rowH + (rowH - noteH) / 2;
+  const rowY = (row: number): number => songY + LANE_PAD + row * rowH + (rowH - noteH) / 2;
 
   // the last run's rows: the same pitches, pressed into its lane
   const takeRowH = (TAKE_LANE_H - 2 * TAKE_PAD) / rows;
@@ -641,15 +648,15 @@ function drawLane(
   };
 
   // takes: kept ones are the song (solid); the latest unkept one in the last-run lane
-  // below, in a dashed frame; a selected kept take has a light frame, one being dragged
+  // above, in a dashed frame; a selected kept take has a light frame, one being dragged
   // stays as a ghost
   const drawTake = (take: Take, kept: boolean, state: 'normal' | 'selected' | 'ghost' = 'normal'): void => {
     const x0 = x(take.start);
     const x1 = x(take.end);
     if (x1 < 0 || x0 > w) return;
-    const top = kept ? 0 : takeY;
+    const top = kept ? songY : takeY;
     const frameH = kept ? h : TAKE_LANE_H;
-    // a ghost while dragged; kept takes of a zone whose Tk is off are faded (silent)
+    // a ghost while dragged; kept takes of a zone whose Trk is off are faded (silent)
     const ghost = state === 'ghost' ? 0.3 : kept && !zone.takes_on ? 0.4 : 1;
     g.globalAlpha = (kept ? 0.12 : 1) * ghost;
     g.fillStyle = kept ? colour : '#ffffff08';
@@ -738,7 +745,7 @@ function drawLane(
           // where each repeat begins
           g.globalAlpha = silent ? 0.2 : 0.45;
           g.fillStyle = colour;
-          g.fillRect(Math.round(x(s)), 0, 1, h);
+          g.fillRect(Math.round(x(s)), songY, 1, h);
         }
         const step = seq.steps[st];
         if (!step || step.notesArray.length === 0) return;
@@ -759,7 +766,7 @@ function drawLane(
     }
     cornerLabel(
       drums ? `${rows} lanes · ${seq.length} × ${divisionName(zone)}` : `${seq.length} × ${divisionName(zone)}`,
-      0
+      songY
     );
   }
   if (takeLane) {
@@ -787,10 +794,10 @@ function drawLane(
 
   // a kept take converts in the song, the shown take in the last-run lane
   if (conv?.zone === zone) {
-    if (conv.kept || !takeLane) drawConversion(g, x, rowOf, songRows, w, 0, h);
+    if (conv.kept || !takeLane) drawConversion(g, x, rowOf, songRows, w, songY, h);
     else drawConversion(g, x, rowOf, takeRows, w, takeY, TAKE_LANE_H);
   }
-  if (capture?.zone === zone) drawCapture(g, el, x(capture.from), x(capture.to), w, takeY, fullH - takeY);
+  if (capture?.zone === zone) drawCapture(g, el, x(capture.from), x(capture.to), w, takeY, TAKE_LANE_H);
   if (isSelected) {
     // one chip in the strip: a picked stretch, else a selected kept take, else the last run's takes
     const kept = takeSel?.zone === zone && !running && !takeDrag && !conv ? takeSel.take : null;
@@ -1205,7 +1212,7 @@ function updateConvertPanel(): void {
   if (q.merged) parts.push(`${q.merged} merged (same pitch on one step)`);
   let text = parts.join(' · ') + '.';
   if (current) text += ` Replaces the current ${seq.length}-step sequence.`;
-  text += ' The sequencer plays them, Tk switches off; the take stays.';
+  text += ' The sequencer plays them, Trk switches off; the take stays.';
   if (!q.fits) {
     text =
       q.steps > q.max
@@ -1580,13 +1587,14 @@ function initTrackView(
   });
   const dock = document.getElementById('trackDock')!;
   dock.querySelectorAll('.td-tab').forEach((t) => {
-    t.addEventListener('click', () => {
-      const next = (t as HTMLElement).dataset['tab'] as DockTab;
-      if (next === tab && dockOpen) setDockOpen(false);
-      else setTab(next);
-    });
+    // a tab only selects; folding is the chevron's (or a double-click on the bar)
+    t.addEventListener('click', () => setTab((t as HTMLElement).dataset['tab'] as DockTab));
   });
   dock.querySelector('.td-collapse')!.addEventListener('click', () => setDockOpen(!dockOpen));
+  const bar = dock.querySelector('.td-bar')!;
+  bar.addEventListener('dblclick', (e) => {
+    if (e.target === bar) setDockOpen(!dockOpen);
+  });
   const resize = dock.querySelector('.td-resize') as HTMLElement;
   resize.addEventListener('mousedown', startDockResize);
   resize.addEventListener('dblclick', () => setDockHeight(null));

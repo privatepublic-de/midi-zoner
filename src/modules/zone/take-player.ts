@@ -15,7 +15,7 @@ interface Scheduled {
 /**
  * Plays a zone's kept takes at their song positions, every tick: notes between two
  * ticks go out on timers for their place. They are fed through the zone like step
- * notes (arp, octave and range rules apply), only while its Tk switch is on and the
+ * notes (arp, octave and range rules apply), only while its Trk switch is on and the
  * zone is audible: unlike the sequencer, a muted or soloed-out zone doesn't play them.
  */
 export class TakePlayer {
