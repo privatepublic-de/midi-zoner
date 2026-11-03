@@ -6095,7 +6095,7 @@ body.track-view:not(.minimized) {
   }
   #trackDock .tdt-row {
     display: grid;
-    grid-template-columns: 56px 52px minmax(120px, 1fr) 96px 70px 250px;
+    grid-template-columns: 56px 52px minmax(120px, 1fr) 96px 70px 300px;
     align-items: center;
     gap: 10px;
     height: 30px;
@@ -6153,6 +6153,77 @@ body.track-view:not(.minimized) {
   /* Keep always shows; the rest on the row under the mouse and the selected one */
   #trackDock .tdt-row:not(:hover, .selected) .tdt-acts a:not([data-take-act='keep']) {
     visibility: hidden;
+  }
+  /* the Notes tab: a piano roll for the chosen take */
+  #trackDock .td-notes {
+    display: none;
+    grid-row: 2;
+    grid-template-rows: auto minmax(0, 1fr);
+    min-height: 0;
+    font-size: var(--fs-md);
+  }
+  &[data-dock='notes']:not(.dock-closed, .converting) #trackDock:not(.empty) .td-notes {
+    display: grid;
+  }
+  #trackDock .tdn-tools {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    white-space: nowrap;
+    b {
+      font-weight: 600;
+    }
+    .label {
+      margin-left: 8px;
+    }
+    a {
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      height: 22px;
+      padding: 0 9px;
+      background-color: var(--slate-raise);
+      border: 1px solid var(--slate-line);
+      border-radius: var(--radius);
+      color: var(--text-base-color);
+      cursor: pointer;
+    }
+    a:has(.material-icons) {
+      padding: 0 3px;
+    }
+    .material-icons {
+      font-size: 15px;
+    }
+    a.disabled {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+    select {
+      height: 22px;
+    }
+  }
+  #trackDock .tdn-what {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--slate-dim);
+  }
+  #trackDock .tdn-gap {
+    flex: 1;
+  }
+  #trackDock .tdn-zoom {
+    display: flex;
+    gap: 2px;
+    margin-left: 8px;
+  }
+  #trackDock .td-notes canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+  }
+  #trackDock .td-turn-on:empty {
+    display: none;
   }
   /* a muted track stays editable in the dock */
   #zones > .zone.track-selected.disabled .seqtools {

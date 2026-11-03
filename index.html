@@ -221,6 +221,7 @@
         <a class="td-tab" data-tab="arp">Arp</a>
         <a class="td-tab" data-tab="cc">Controllers</a>
         <a class="td-tab" data-tab="zone">Track</a>
+        <a class="td-tab" data-tab="notes" title="Edit the notes of the chosen take (double-click a take)">Notes</a>
         <a class="td-collapse lightButton" title="Hide the panel (or double-click the bar)"><i class="material-icons">expand_more</i></a>
       </div>
       <!-- the Track tab: the zone's settings and range (placed on the left) and its takes -->
@@ -230,6 +231,30 @@
           <div class="tdt-head"><b class="tdt-title"></b><span class="tdt-summary"></span></div>
           <div class="tdt-list"></div>
         </div>
+      </div>
+      <!-- the Notes tab: a piano roll for the chosen take (take-editor.ts) -->
+      <div class="td-notes">
+        <div class="tdn-tools">
+          <b class="tdn-title"></b><span class="tdn-what"></span>
+          <span class="tdn-gap"></span>
+          <span class="label">Grid</span>
+          <select class="tdn-grid" tabindex="-1" title="Grid: new notes and lengths snap to it, moves go by whole steps (⌥: free)"></select>
+          <a class="lightButton tdn-quantize" title="Move note starts onto the grid (the selection, else the whole take)">Quantize take</a>
+          <select class="tdn-strength" tabindex="-1" title="How far notes move towards the grid">
+            <option value="100">100 %</option>
+            <option value="75">75 %</option>
+            <option value="50">50 %</option>
+            <option value="25">25 %</option>
+          </select>
+          <a class="lightButton tdn-delete" title="Delete the selected notes (⌫)">Delete</a>
+          <a class="lightButton tdn-loop" title="Set the loop range to this take and switch it on">Loop take</a>
+          <span class="tdn-zoom" role="group" aria-label="Zoom">
+            <a class="lightButton" data-tdn-zoom="-1" title="Zoom out (⌘ + wheel)"><i class="material-icons">remove</i></a>
+            <a class="lightButton" data-tdn-zoom="1" title="Zoom in (⌘ + wheel)"><i class="material-icons">add</i></a>
+            <a class="lightButton tdn-fit" title="Fit the take">Fit</a>
+          </span>
+        </div>
+        <canvas></canvas>
       </div>
       <div class="td-empty">
         <span class="td-empty-text"></span>

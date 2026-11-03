@@ -34,6 +34,39 @@ export class Take {
     return this.start + this.length;
   }
 
+  /** Song position of a note of the recording */
+  songOf(note: TakeNoteJSON): number {
+    return this.start + note.t - this.offset;
+  }
+
+  /** The earliest song position a note can start at: the take's start, not before the recording */
+  get floor(): number {
+    return this.start + Math.max(0, -this.offset);
+  }
+
+  /** Add notes at song positions (none before `floor`, up to MAX_NOTES); returns the added ones */
+  addNotes(notes: { s: number; d: number; n: number; v: number }[]): TakeNoteJSON[] {
+    const added: TakeNoteJSON[] = [];
+    for (const n of notes) {
+      if (this.notes.length >= Take.MAX_NOTES) break;
+      const s = Math.max(this.floor, n.s);
+      const note = {
+        t: s - this.start + this.offset,
+        d: Math.max(0.01, n.d),
+        n: Math.max(0, Math.min(127, Math.round(n.n))),
+        v: Math.max(1, Math.min(127, Math.round(n.v)))
+      };
+      this.notes.push(note);
+      added.push(note);
+    }
+    this.sort();
+    return added;
+  }
+
+  removeNotes(notes: Set<TakeNoteJSON>): void {
+    this.notes = this.notes.filter((n) => !notes.has(n));
+  }
+
   /** Index of the first note starting at or after tick t (take-relative) */
   firstAtOrAfter(t: number): number {
     let lo = 0;

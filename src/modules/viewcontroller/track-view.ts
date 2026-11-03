@@ -7,6 +7,7 @@ import { Take } from '../zone/take';
 import { DIV_TICKS } from '../zone/seq-layer';
 import { analyse, quantize, quantizeStarts, applyToSequence, swingFor, stepPos, DIV_NAMES, PlayedNote, Quantized } from '../zone/take-quantize';
 import { toast } from './toast';
+import { initTakeEditor, drawTakeEditor, refitTakeEditor, TakeTarget } from './take-editor';
 
 /**
  * Track view: each zone is a row with its header on the left and a lane that scrolls
@@ -16,7 +17,7 @@ import { toast } from './toast';
  * they stay in the zone element and are only placed there by CSS (body[data-dock]).
  */
 
-type DockTab = 'seq' | 'arp' | 'cc' | 'zone';
+type DockTab = 'seq' | 'arp' | 'cc' | 'zone' | 'notes';
 
 const VIEW_KEY = 'viewMode';
 const TAB_KEY = 'trackDockTab';
@@ -39,7 +40,7 @@ let selected = 0;
 // The selected zone's note history: undo hands it to the zone object that replaces
 // it (Zone.adoptHistory), so the selection stays with that zone wherever it is now
 let selectedHistory: NoteHistory | null = null;
-let tab: DockTab = (['seq', 'arp', 'cc', 'zone'] as DockTab[]).includes(
+let tab: DockTab = (['seq', 'arp', 'cc', 'zone', 'notes'] as DockTab[]).includes(
   localStorage.getItem(TAB_KEY) as DockTab
 )
   ? (localStorage.getItem(TAB_KEY) as DockTab)
@@ -275,6 +276,8 @@ function updateDock(zones: Zone[]): void {
   } else if (tab === 'arp' && !zone.arp_enabled) {
     empty = 'The arpeggiator of this track is off.';
     turnOn = 'Turn on';
+  } else if (tab === 'notes' && !editedTake()) {
+    empty = 'No take to edit: pick one in the lane or the Track tab (double-click), or play something, it shows here after Stop.';
   }
   // nothing to show: the dock keeps its height and says so in its place
   dock.classList.toggle('empty', empty !== '');
@@ -407,6 +410,7 @@ function draw(): void {
   document.querySelector('#trackRuler .tr-loop')?.classList.toggle('active', !!loop?.on);
   zones.forEach((z, i) => drawLane(z, i === selected, songHead, runToSong, ppt, scrollPx));
   updateTakeList(zones);
+  if (tab === 'notes' && dockOpen && !conv) drawTakeEditor();
   if (!zones[selected]) takeChip.remove();
 }
 
@@ -421,6 +425,30 @@ function shownTake(zone: Zone): { take: Take; number: number; count: number } | 
   const take = list[list.length - 1 - back];
   const recorded = recordedTakes(zone);
   return { take, number: recorded.indexOf(take) + 1, count: recorded.length };
+}
+
+/** The take the Notes tab edits: the selected track's selected kept take, else its shown take */
+function editedTake(): TakeTarget | null {
+  const zone = getZones()[selected];
+  if (!zone) return null;
+  if (takeSel?.zone === zone) return { zone, take: takeSel.take, kept: true, label: 'Kept take' };
+  const shown = shownTake(zone);
+  return shown ? { zone, take: shown.take, kept: false, label: `Take ${shown.number}/${shown.count}` } : null;
+}
+
+/** Show a take in the Notes tab (kept: selected in the lane too; unkept: shown in the last-run lane) */
+function editTake(zone: Zone, take: Take, kept: boolean): void {
+  clearCapture();
+  if (kept) {
+    takeSel = { zone, take };
+  } else {
+    takeSel = null;
+    const list = zone.arrangementTakes;
+    zone.shownTake = Math.max(0, list.length - 1 - list.indexOf(take));
+  }
+  select(getZones().indexOf(zone));
+  refitTakeEditor();
+  setTab('notes');
 }
 
 /** All takes recorded in the zone's arrangement this session, kept or not, oldest first */
@@ -818,7 +846,7 @@ function drawLane(
     let hint = '';
     if (!running && !conv && !kept && !stretch && !latest) {
       hint = zone.takes.length > 0
-        ? 'Click a take to quantize it or turn it into steps'
+        ? 'Click a take to select it, double-click to edit its notes, ⌘-click to cut it there'
         : 'What you play while the clock runs shows up here as a take after Stop';
     }
     const hintEl = el.querySelector('.track-hint')!;
@@ -1016,10 +1044,6 @@ function dragPreview(drag: NonNullable<typeof takeDrag>): Take {
 /** Undo replaces zones and takes: keep the selection on the take with the same id */
 function validateTakeSelection(zones: Zone[]): void {
   if (!takeSel) return;
-  if (timeline.running) {
-    takeSel = null;
-    return;
-  }
   if (zones.includes(takeSel.zone) && takeSel.zone.takes.includes(takeSel.take)) return;
   const id = takeSel.take.id;
   takeSel = null;
@@ -1421,6 +1445,7 @@ function updateTakeList(zones: Zone[]): void {
       `<span class="tdt-count">${notes} note${notes === 1 ? '' : 's'}</span>` +
       '<span class="tdt-acts">' +
       (r.kept ? '' : button('keep', 'Keep', 'Keep this take: it joins the song and plays from now on')) +
+      `<a class="lightButton" data-take-act="edit" title="Edit its notes">Edit</a>` +
       button('quantize', 'Quantize', r.kept ? 'Quantize this take' : 'Quantize this take (keeps the result)') +
       button('steps', 'To steps', 'Turn this take into steps') +
       (r.kept ? button('delete', '<i class="material-icons">delete_outline</i>', 'Delete this take from the song') : '') +
@@ -1491,6 +1516,11 @@ function chooseTakeRow(zone: Zone, take: Take, kept: boolean): void {
 }
 
 function takeRowAction(act: string, zone: Zone, take: Take, kept: boolean): void {
+  // editing notes works while playing too
+  if (act === 'edit') {
+    editTake(zone, take, kept);
+    return;
+  }
   if (timeline.running) return;
   const index = getZones().indexOf(zone);
   if (index < 0) return;
@@ -1574,12 +1604,16 @@ function initTrackView(
   keptChip = document.createElement('div');
   keptChip.className = 'track-chip';
   keptChip.innerHTML =
+    '<a class="kc-edit lightButton" title="Edit the notes of this take (or double-click it; ⌘-click cuts it)">Edit</a>' +
     '<a class="kc-quantize lightButton" title="Quantize this take">Quantize</a>' +
     '<a class="kc-steps lightButton" title="Turn this kept take into steps">To steps</a>';
   keptChip.addEventListener('mousedown', (ev) => ev.stopPropagation());
   const fromKept = (target: 'steps' | 'take') => (): void => {
     if (takeSel) startConvert(takeSel.zone, takeSel.take, takeSel.take.start, takeSel.take.end, target);
   };
+  keptChip.querySelector('.kc-edit')!.addEventListener('click', () => {
+    if (takeSel) editTake(takeSel.zone, takeSel.take, true);
+  });
   keptChip.querySelector('.kc-steps')!.addEventListener('click', fromKept('steps'));
   keptChip.querySelector('.kc-quantize')!.addEventListener('click', fromKept('take'));
   const panel = document.querySelector('#trackDock .td-convert')!;
@@ -1622,6 +1656,7 @@ function initTrackView(
     '<a class="tc-prev lightButton" title="An earlier take">‹</a><span class="tc-label"></span>' +
     '<a class="tc-next lightButton" title="A later take">›</a>' +
     '<a class="tc-keep lightButton" title="Keep this take: it joins the song and plays from now on">Keep</a>' +
+    '<a class="tc-edit lightButton" title="Edit the notes of this take (the first edit keeps it)">Edit</a>' +
     '<a class="tc-quantize lightButton" title="Quantize this take (keeps the result)">Quantize</a>' +
     '<a class="tc-steps lightButton" title="Turn this take into steps">To steps</a>';
   const fromShown = (target: 'steps' | 'take') => (): void => {
@@ -1635,6 +1670,11 @@ function initTrackView(
   takeChip.querySelector('.tc-prev')!.addEventListener('click', () => browseTakes(-1));
   takeChip.querySelector('.tc-next')!.addEventListener('click', () => browseTakes(1));
   takeChip.querySelector('.tc-keep')!.addEventListener('click', keepShownTake);
+  takeChip.querySelector('.tc-edit')!.addEventListener('click', () => {
+    const zone = getZones()[selected];
+    const shown = zone && shownTake(zone);
+    if (shown) editTake(zone, shown.take, false);
+  });
   const takeList = document.querySelector('#trackDock .tdt-list')!;
   takeList.addEventListener('click', (ev) => {
     const target = ev.target as Element;
@@ -1662,6 +1702,11 @@ function initTrackView(
     // the song: kept takes move, their edges trim
     const hit = takeAt(zone, lane, ev.clientX);
     clearCapture();
+    // ⌘-click: cut it there (beats, Shift bars, ⌥ free)
+    if (hit && !hit.edge && (ev.metaKey || ev.ctrlKey)) {
+      cutTake(zone, hit.take, snapWith(laneTick(lane, ev.clientX), ev));
+      return;
+    }
     if (hit) {
       takeSel = { zone, take: hit.take };
       startTakeDrag(ev, lane, zone, hit.take, hit.edge);
@@ -1677,7 +1722,7 @@ function initTrackView(
     if (ev.key === 'Escape') {
       takeSel = null;
       invalidate();
-    } else if (ev.key === 'Backspace' || ev.key === 'Delete') {
+    } else if ((ev.key === 'Backspace' || ev.key === 'Delete') && !timeline.running) {
       ev.preventDefault();
       deleteSelectedTake();
     }
@@ -1747,11 +1792,15 @@ function initTrackView(
     const index = zoneIndexOf(lane);
     if (index < 0 || (ev.target as Element).closest('.track-strip')) return;
     const zone = getZones()[index];
-    if (zone && inTakeLane(zone, lane!, ev.clientY)) return;
-    // on a kept take (after Stop): cut it there
-    const hit = !timeline.running && zone ? takeAt(zone, lane!, ev.clientX) : null;
+    // the last run's take, or a kept take: its notes in the Notes tab
+    if (zone && inTakeLane(zone, lane!, ev.clientY)) {
+      const shown = shownTake(zone);
+      if (shown) editTake(zone, shown.take, false);
+      return;
+    }
+    const hit = zone ? takeAt(zone, lane!, ev.clientX) : null;
     if (hit && !hit.edge) {
-      cutTake(zone, hit.take, snapWith(laneTick(lane!, ev.clientX), ev));
+      editTake(zone, hit.take, true);
       return;
     }
     const pianoRoll = zone?.elements.zoneElement?.querySelector(
@@ -1789,6 +1838,21 @@ function initTrackView(
   window.addEventListener('resize', invalidate);
   // mini view on and off
   new MutationObserver(invalidate).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  initTakeEditor({
+    zones: getZones,
+    target: editedTake,
+    commit: (index, label, change) => commit(index, label, change),
+    keptAs: (zone, take) => {
+      takeSel = { zone, take };
+    },
+    loop: (from, to) => {
+      holdView();
+      loops.set({ on: true, from: Math.round(from), to: Math.round(to) }, 'Loop Take');
+    },
+    snap: (t, e) => snapWith(t, e),
+    snapMin,
+    invalidate
+  });
   applyBodyState();
 }
 
