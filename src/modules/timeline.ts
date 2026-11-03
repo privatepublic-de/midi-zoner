@@ -16,12 +16,16 @@ const timeline = {
   run: 0, // counts runs from position 0 (Start); Continue keeps the run
   runStart: 0, // session position of the current run's position 0
   nextRunStart: 0, // where the next run will start (stopped: where the playhead waits)
-  runStarts: [] as number[] // session positions of every run's start
+  runStarts: [] as number[], // session positions of every run's start
+  // Run position where the current arrangement's song began: 0 at Start, the switch
+  // position when an arrangement is entered while running (its song starts at bar 1)
+  sectionStart: 0
 };
 
 function timelineClock(pos: number, tickIntervalMs: number): void {
   if (pos === 0) {
     timeline.run++;
+    timeline.sectionStart = 0;
     timeline.runStart = timeline.nextRunStart;
     timeline.runStarts.push(timeline.runStart);
   }
@@ -50,6 +54,21 @@ function nowTick(): number {
 /** Now on the session timeline; stopped: where the next run will start */
 function sessionNow(): number {
   return timeline.running ? timeline.runStart + nowTick() : timeline.nextRunStart;
+}
+
+/** An arrangement was entered at this run position: its song starts there */
+function timelineSection(pos: number): void {
+  timeline.sectionStart = pos;
+}
+
+/** Position in the current arrangement's song (ticks from its bar 1); stopped: 0 */
+function songNow(): number {
+  return timeline.running ? nowTick() - timeline.sectionStart : 0;
+}
+
+/** Song position where the last section ended or is now (stopped: where it stopped) */
+function songEnd(): number {
+  return (timeline.running ? nowTick() : timeline.stopPos) - timeline.sectionStart;
 }
 
 /** Where notes released now end: stopped, where the last run ended (ring-outs) */
@@ -117,4 +136,4 @@ class NoteHistory {
   }
 }
 
-export { timeline, timelineClock, timelineTransport, nowTick, sessionNow, NoteHistory, HistoryNote };
+export { timeline, timelineClock, timelineTransport, timelineSection, nowTick, sessionNow, songNow, songEnd, NoteHistory, HistoryNote };

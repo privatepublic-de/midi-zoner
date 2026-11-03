@@ -33,6 +33,12 @@ export function createZoneActions(
         updateValuesForZone(zoneindex);
       }
     },
+    zone_takes: () => {
+      zone.takes_on = !zone.takes_on;
+      // switched off while playing: what sounds now ends
+      if (!zone.takes_on) zone.takePlayer.release(false);
+      updateValuesForZone(zoneindex);
+    },
     zone_solo: () => {
       zone.solo = !zone.solo;
       if (zone.solo) {

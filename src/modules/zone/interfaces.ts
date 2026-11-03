@@ -144,18 +144,22 @@ export interface SeqLayerJSON {
   drum_lanes: DrumLaneJSON[];
 }
 
-/** A note of a clip: start and duration in clock ticks (fractional), pitch, velocity */
-export interface ClipNoteJSON {
+/** A note of a take: start (take-relative) and duration in clock ticks (fractional), pitch, velocity */
+export interface TakeNoteJSON {
   t: number;
   d: number;
   n: number;
   v: number;
 }
 
-/** A recorded take that loops from bar 1; length in clock ticks (whole bars) */
-export interface ClipJSON {
+/** A kept take: its place in the arrangement's song (ticks from bar 1), length, notes */
+export interface TakeJSON {
+  id?: string;
+  start: number;
   length: number;
-  notes: ClipNoteJSON[];
+  /** where in the recording the take's start lies (trimming moves it) */
+  offset?: number;
+  notes: TakeNoteJSON[];
 }
 
 export interface SequenceJSON {
@@ -167,9 +171,6 @@ export interface SequenceJSON {
   isDrumSequence: boolean;
   drumLanes: number;
   drum_lanes: DrumLaneJSON[];
-  /** Clip mode: the track plays its clip instead of its steps */
-  isClip?: boolean;
-  clip?: ClipJSON;
 }
 
 export interface ZoneArrangementJSON {
@@ -205,6 +206,10 @@ export interface ZoneArrangementJSON {
   euclid_length: number;
   sequence: SequenceJSON;
   swingAmount?: number;
+  /** Kept takes: this arrangement's song for the zone */
+  takes?: TakeJSON[];
+  /** Whether they play */
+  takes_on?: boolean;
 }
 
 export interface ZoneJSON {

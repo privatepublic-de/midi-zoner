@@ -6,7 +6,6 @@ import potDragHandler from '../potdraghandler';
 import * as zoneTemplate from '../zone-template';
 import { Zone } from '../zone/zone-class';
 import { Sequence } from '../zone/sequence';
-import { Clip } from '../zone/clip';
 import { ZONES_CHANGED_EVENT } from '../zone/interfaces';
 import { Note } from '../zone/note';
 import { showStepProperties } from './step-marks';
@@ -1067,12 +1066,6 @@ function rebuildSeqProgress(zone: ZoneType, sequence: SequenceType): void {
 
   progressEl.querySelectorAll('.step-row').forEach((r) => r.remove());
   zone.elements.sequencerDrumLaneCursors = [];
-  // a clip has no steps to show (the track view draws it)
-  if (sequence.isClip) {
-    progressEl.classList.remove('drum');
-    progressEl.style.height = '';
-    return;
-  }
 
   if (sequence.isDrumSequence) {
     progressEl.classList.add('drum');
@@ -1174,18 +1167,6 @@ function updateValuesForZone(index: number): void {
 
     rebuildSeqProgress(zone, sequence);
 
-    DOM.switchClass(zoneElement, sequence.isClip, 'clipSequencer');
-    if (sequence.isClip) {
-      const bars = zone._$('.seq_clip_bars') as HTMLInputElement | null;
-      if (bars && document.activeElement !== bars) bars.value = String(Math.round(sequence.clip.bars * 1000) / 1000);
-      const info = zone._$('.clip-info');
-      const count = sequence.clip.playing.length;
-      if (info) {
-        info.textContent = count
-          ? `${Clip.lengthLabel(sequence.clip.length)} · ${count} note${count === 1 ? '' : 's'}`
-          : 'Empty: drag over a stretch of what you played in the Tracks view, then Make clip';
-      }
-    }
     if (sequence.active) {
       DOM.addClass(zoneElement, 'show-seq');
       DOM.switchClass(zoneElement, sequence.isDrumSequence, 'drumSequencer');
@@ -1438,6 +1419,7 @@ function updateValuesForZone(index: number): void {
       'solo',
       'programchange',
       'arp_enabled',
+      'takes_on',
       'arp_hold',
       'arp_transpose',
       'sustain_on',
@@ -1467,6 +1449,7 @@ function updateValuesForZone(index: number): void {
       );
     });
     DOM.switchClass(zoneElement, zone.arp_enabled, 'arp-enabled');
+    DOM.switchClass(zoneElement, zone.takes_on, 'takes-on');
     DOM.switchClass(zoneElement, zone.arp_direction >= 5, 'strum-mode');
     zone.renderTransposeAmount();
 

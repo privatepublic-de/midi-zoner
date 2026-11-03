@@ -5,7 +5,8 @@ import { ZoneElements } from './zone-elements';
 import { Sequence } from './sequence';
 import { SeqStep } from './seq-step';
 import { DrumLane } from './drum-lane';
-import { Clip } from './clip';
+import { Take, TICKS_PER_BAR } from './take';
+import { TakePlayer } from './take-player';
 import {
   CCController,
   ArpState,
@@ -21,7 +22,8 @@ import {
   CC_LOCK_VALUES_EVENT
 } from './interfaces';
 import { NoteDisplay } from './note-display';
-import { NoteHistory } from '../timeline';
+import { NoteHistory, timeline, songNow, songEnd } from '../timeline';
+import { TakeNoteJSON } from './interfaces';
 import { DIV_TICKS, DivTick, PPQ, swingOffsetMs } from './seq-layer';
 import {
   ParamLocks,
@@ -236,8 +238,18 @@ export class Zone {
   noteHistory = new NoteHistory();
   /** The notes its arp played from during the current run, for the track view */
   heldHistory = new NoteHistory();
-  /** What was played into it (after the octave shift) during the current run: a clip can be made from it */
-  inputHistory = new NoteHistory();
+  /** Kept takes of the current arrangement: its song for this zone (saved with it) */
+  takes: Take[] = [];
+  /** Whether the kept takes play (per arrangement); recording goes on either way */
+  takes_on = false;
+  /** Takes recorded this session and not kept, newest last, with their arrangement */
+  takeList: { arrangement: number; take: Take }[] = [];
+  /** Which of them the track view shows: 0 the latest, 1 the one before… */
+  shownTake = 0;
+  /** The take being recorded: what is played into the zone while the clock runs */
+  private recording: { arrangement: number; notes: (TakeNoteJSON & { open: boolean })[] } | null = null;
+  readonly takePlayer = new TakePlayer(this);
+  static MAX_TAKES = 64;
   arrangements: ZoneArrangementJSON[] = [];
   currentArrangementIndex = 0;
   lastTouchedRangePoint = 0;
@@ -313,7 +325,9 @@ export class Zone {
       euclid_hits: this.euclid_hits,
       euclid_length: this.euclid_length,
       sequence: this.sequence.toJSON(),
-      swingAmount: this.swingAmount
+      swingAmount: this.swingAmount,
+      takes: this.takes.map((t) => t.toJSON()),
+      takes_on: this.takes_on
     };
   }
 
@@ -365,6 +379,9 @@ export class Zone {
       this.euclid_length = this.arp_pattern.length;
     }
     this.swingAmount = data.swingAmount ?? 0;
+    this.takes = Take.listFrom(data.takes);
+    // arrangements from before the switch: their kept takes played
+    this.takes_on = data.takes_on ?? this.takes.length > 0;
 
     const seq = new Sequence(this);
     const sd = data.sequence || {};
@@ -380,8 +397,6 @@ export class Zone {
     seq.drum_lanes = ((sd as any).drum_lanes || []).map((lane: any) =>
       lane ? DrumLane.from(lane, seq._length) : lane
     );
-    seq.clip = Clip.from((sd as any).clip);
-    seq.isClip = (sd as any).isClip === true;
     this.sequence = seq;
     // Switched while playing: the new arrangement's locks start from the controllers' values
     if (this.midi.isClockRunning && seq.active) this.paramLocks.start(seq.lockedAddresses());
@@ -721,7 +736,7 @@ export class Zone {
                 activeNoteSlots[srcKey] = playNote;
                 this.addNote(playNote);
                 if (fromMidiInput) {
-                  if (velo > 0) this.inputHistory.noteOn(key, velo);
+                  if (velo > 0) this.recordTakeNote(key, velo);
                   let filteredActiveNotes = [...this.activeNotes];
                   this.sequence.activeNotes().forEach((seqNote) => {
                     filteredActiveNotes = filteredActiveNotes.filter(
@@ -759,7 +774,7 @@ export class Zone {
                   this.removeNote(key);
                 }
                 if (!fromSequencer) {
-                  this.inputHistory.noteOff(srcNote ? srcNote.number : key);
+                  this.recordTakeNoteOff(srcNote ? srcNote.number : key);
                   this.sequence.noteReleased(
                     srcNote ? srcNote.number : key,
                     this.activeNotes.length
@@ -1188,6 +1203,7 @@ export class Zone {
     // Slides first: one ending on this tick reaches its value before a new step starts
     this.paramLocks.tick(pos);
     this.sequence.clock(pos, tickIntervalMs);
+    this.takePlayer.clock(pos - timeline.sectionStart, tickIntervalMs, this.takes);
     if (tickIntervalMs > 0) this._lastTickIntervalMs = tickIntervalMs;
 
     const tickn = pos % this.arp_ticks;
@@ -1653,6 +1669,9 @@ export class Zone {
     }
     this.arp.repeatnote = null;
     this.sequence.stopped(ringOut);
+    this.takePlayer.release(ringOut);
+    // a stop or an arrangement switch ends the section, and so the take
+    this.endTake();
     // Controllers go back to their own values once ringing notes have ended (a little
     // after the last note-off, whose timer is due at the same moment)
     const ringingMs = ringOut && this.ringOuts.size > 0 ? Math.max(0, this._ringOutUntil - performance.now()) + 20 : 0;
@@ -1677,6 +1696,7 @@ export class Zone {
     this.cancelUnsoundedArpNotes();
     this.ringOutArpNote();
     this.sequence.paused();
+    this.takePlayer.release(true);
     if (this._strumGraceTimer !== null) {
       clearTimeout(this._strumGraceTimer);
       this._strumGraceTimer = null;
@@ -1702,11 +1722,81 @@ export class Zone {
     });
   }
 
+  private recordTakeNote(pitch: number, velo: number): void {
+    if (!timeline.running) return;
+    if (!this.recording) this.recording = { arrangement: this.currentArrangementIndex, notes: [] };
+    if (this.recording.notes.length >= Take.MAX_NOTES) return;
+    this.recordTakeNoteOff(pitch);
+    this.recording.notes.push({ t: songNow(), d: 0, n: pitch, v: velo, open: true });
+  }
+
+  private recordTakeNoteOff(pitch: number): void {
+    const notes = this.recording?.notes;
+    if (!notes) return;
+    for (let i = notes.length - 1; i >= 0; i--) {
+      if (notes[i].open && notes[i].n === pitch) {
+        notes[i].open = false;
+        notes[i].d = Math.max(0.25, (timeline.running ? songNow() : songEnd()) - notes[i].t);
+        return;
+      }
+    }
+  }
+
+  /** The notes being recorded, at song positions, still open ones up to now (for drawing) */
+  get recordingNotes(): TakeNoteJSON[] {
+    const now = songNow();
+    return (this.recording?.notes ?? []).map((n) => (n.open ? { ...n, d: Math.max(0.25, now - n.t) } : n));
+  }
+
+  /**
+   * The section ended (Stop or an arrangement switch): what was played becomes the
+   * latest take, from the bar of its first note to the bar the section ended in.
+   */
+  endTake(): void {
+    const rec = this.recording;
+    this.recording = null;
+    if (!rec || rec.notes.length === 0) return;
+    const end = Math.max(songEnd(), ...rec.notes.map((n) => (n.open ? 0 : n.t + n.d)));
+    const take = new Take();
+    take.start = Math.max(0, Math.floor(rec.notes[0].t / TICKS_PER_BAR) * TICKS_PER_BAR);
+    take.length = Math.min(Take.MAX_LENGTH, Math.max(TICKS_PER_BAR, Math.ceil(end / TICKS_PER_BAR) * TICKS_PER_BAR - take.start));
+    take.notes = rec.notes.map((n) => ({
+      t: n.t - take.start,
+      d: n.open ? Math.max(0.25, end - n.t) : n.d,
+      n: n.n,
+      v: n.v
+    }));
+    take.sort();
+    this.takeList.push({ arrangement: rec.arrangement, take });
+    if (this.takeList.length > Zone.MAX_TAKES) this.takeList.shift();
+    this.shownTake = 0;
+    window.dispatchEvent(new CustomEvent(UPDATE_ZONE_VIEW_EVENT, { detail: this }));
+  }
+
+  /** The session's unkept takes of the current arrangement, newest last (kept ones hidden, so undoing a Keep shows them again) */
+  get arrangementTakes(): Take[] {
+    const kept = new Set(this.takes.map((t) => t.id));
+    return this.takeList
+      .filter((e) => e.arrangement === this.currentArrangementIndex && !kept.has(e.take.id))
+      .map((e) => e.take);
+  }
+
+  /** Keep a take (or a stretch of it, a take of its own): a copy joins this arrangement's song */
+  keepTake(take: Take, part?: Take): void {
+    this.takes.push(part ?? take.copy());
+    this.takes.sort((a, b) => a.start - b.start);
+    this.shownTake = 0;
+    // keeping something means wanting to hear it
+    this.takes_on = true;
+  }
+
   /** Undo replaces the zone objects: the replacement keeps showing what was played */
   adoptHistory(previous: Zone): void {
     this.noteHistory = previous.noteHistory;
     this.heldHistory = previous.heldHistory;
-    this.inputHistory = previous.inputHistory;
+    this.takeList = previous.takeList;
+    this.shownTake = previous.shownTake;
+    this.recording = previous.recording;
   }
 
   dismiss(): void {

@@ -3,7 +3,6 @@ import MIDI from '../midi';
 import { Note } from './note';
 import { SeqStep } from './seq-step';
 import { DrumLane } from './drum-lane';
-import { Clip } from './clip';
 import { DIV_TICKS, DivTick, swingOffsetMs } from './seq-layer';
 import { SequenceJSON, StepCondition, UPDATE_ZONE_VIEW_EVENT } from './interfaces';
 import type { Zone } from './zone-class';
@@ -57,11 +56,6 @@ export class Sequence {
   isLiveRecording = false;
   isDrumSequence = false;
   drumLanes = 4;
-  // Clip mode: the sequence plays its clip (a recorded take) instead of its steps
-  private _isClip = false;
-  clip = new Clip();
-  // Clip notes scheduled or sounding, at absolute (fractional) song positions
-  private clipQueue: { note: Note; onAt: number; offAt: number; sounding: boolean; releasing: boolean }[] = [];
   activeSteps: SeqStep[] = [];
   private ratchetQueue: { note: Note; noteOnPos: number; noteOffPos: number }[] = [];
   private readonly _midiMsgBuf = new Uint8Array(3);
@@ -97,29 +91,8 @@ export class Sequence {
       division: this._division,
       isDrumSequence: this.isDrumSequence,
       drumLanes: this.drumLanes,
-      drum_lanes: this.drum_lanes,
-      isClip: this._isClip,
-      clip: this.clip.toJSON()
+      drum_lanes: this.drum_lanes
     };
-  }
-
-  get isClip(): boolean {
-    return this._isClip;
-  }
-
-  /** Clip mode excludes drum mode; leaving it silences the clip's notes */
-  set isClip(v: boolean) {
-    if (v === this._isClip) return;
-    this._isClip = v;
-    if (v) {
-      // fields only: this runs while an arrangement loads, before the zone has this sequence
-      this.isDrumSequence = false;
-      this.isLiveRecording = false;
-      this.selectedStepNumbers.clear();
-      this.isHotRecordingNotes = false;
-    } else {
-      this.releaseClipNotes(false);
-    }
   }
 
   set active(v: boolean) {
@@ -443,10 +416,6 @@ export class Sequence {
         (item) => !clearSteps.includes(item)
       );
     }
-    if (this._isClip) {
-      this.clipClock(pos, tickIntervalMs);
-      return;
-    }
     if (this.tickn === 0) {
       this.previousStepNumber = this.currentStepNumber;
       this.currentStepNumber = (this.currentStepNumber + 1) % this.length;
@@ -478,78 +447,6 @@ export class Sequence {
       }
       requestAnimationFrame(this.zone._renderSequenceBound);
     }
-  }
-
-  /**
-   * Clip playback, every tick: notes starting before the next tick are sent on a
-   * timer for their place between the ticks, and so are note-offs. The clip loops
-   * from bar 1 (song position modulo its length).
-   */
-  private clipClock(pos: number, tickIntervalMs: number): void {
-    const later = (ticks: number, fn: () => void): void => {
-      const ms = ticks * tickIntervalMs;
-      if (ms < 1) {
-        fn();
-        return;
-      }
-      const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
-        this.swingTimers.delete(timer);
-        fn();
-      }, ms);
-      this.swingTimers.add(timer);
-    };
-    for (let i = this.clipQueue.length - 1; i >= 0; i--) {
-      const ev = this.clipQueue[i];
-      if (!ev.sounding || ev.releasing || ev.offAt >= pos + 1) continue;
-      ev.releasing = true;
-      later(Math.max(0, ev.offAt - pos), () => this.endClipNote(ev));
-    }
-    if (!this.active || this.clip.length <= 0) return;
-    const phase = pos % this.clip.length;
-    const notes = this.clip.notes;
-    for (let i = this.clip.firstAtOrAfter(phase); i < notes.length && notes[i].t < phase + 1; i++) {
-      const cn = notes[i];
-      if (cn.t >= this.clip.length) break;
-      const note = new Note(cn.n, cn.v);
-      note.channel = this.zone.channel;
-      note.portId = this.zone.outputPortId;
-      const onAt = pos + (cn.t - phase);
-      const ev = { note, onAt, offAt: onAt + cn.d, sounding: false, releasing: false };
-      this.clipQueue.push(ev);
-      later(cn.t - phase, () => {
-        ev.sounding = true;
-        this.feedNote(MIDI.MESSAGE.NOTE_ON, note.channel, note.number, note.velo);
-        // a note shorter than the rest of this tick ends before the next one
-        if (ev.offAt < pos + 1 && !ev.releasing) {
-          ev.releasing = true;
-          later(ev.offAt - ev.onAt, () => this.endClipNote(ev));
-        }
-      });
-    }
-  }
-
-  private endClipNote(ev: { note: Note; onAt: number; sounding: boolean }): void {
-    const index = this.clipQueue.indexOf(ev as (typeof this.clipQueue)[number]);
-    if (index === -1) return;
-    this.clipQueue.splice(index, 1);
-    // A later note of the same pitch has taken over; its own note-off ends it
-    const retriggered = this.clipQueue.some((o) => o.sounding && o.note.number === ev.note.number && o.onAt > ev.onAt);
-    if (ev.sounding && !retriggered) this.releaseNote(ev.note);
-  }
-
-  /** Sounding clip notes end (or ring out their length); unsent ones are dropped */
-  private releaseClipNotes(ringOut: boolean): void {
-    const ringOutNotes = ringOut && !this.zone.arp_enabled;
-    for (const ev of this.clipQueue) {
-      if (!ev.sounding) continue;
-      const note = ev.note;
-      if (ringOutNotes) {
-        this.zone.ringOutAfterTicks(note.number, Math.max(0, ev.offAt - this.currentPos), () => this.releaseNote(note));
-      } else {
-        this.releaseNote(note);
-      }
-    }
-    this.clipQueue.length = 0;
   }
 
   private processDrumSequenceStep(tickIntervalMs: number): void {
@@ -722,7 +619,6 @@ export class Sequence {
    * the caller stops. `laneIndex` -1: the melodic sequence, else a drum lane.
    */
   *upcoming(laneIndex = -1): Generator<{ step: number; plays: boolean }> {
-    if (this._isClip) return;
     if (laneIndex < 0) {
       const len = this.length;
       if (len < 1) return;
@@ -914,7 +810,6 @@ export class Sequence {
       }
     }
     this.ratchetQueue.length = 0;
-    this.releaseClipNotes(ringOut);
     this.swingTimers.forEach((t) => clearTimeout(t));
     this.swingTimers.clear();
   }

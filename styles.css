@@ -2437,7 +2437,8 @@ input[type='range'] {
 }
 
 .showseq,
-.showarp {
+.showarp,
+.showtakes {
   letter-spacing: -0.5px;
 }
 
@@ -2451,6 +2452,7 @@ input[type='range'] {
 /* muted zone: a switched-on feature stays lit, dimmed; a coloured outline would
    read as a selection */
 .zone.disabled.arp-enabled .showarp,
+.zone.disabled.takes-on .showtakes,
 .zone.disabled.show-seq .showseq {
   background-color: color-mix(in srgb, var(--on) 35%, var(--slate-panel));
   border-color: transparent;
@@ -3636,9 +3638,8 @@ body.running .seqprogress.drum .inner {
 .seq_drum_tracks span {
   cursor: pointer;
 }
-.zone:not(.drumSequencer, .clipSequencer) .seq_drum_tracks .mode-notes,
-.drumSequencer:not(.clipSequencer) .seq_drum_tracks .mode-drums,
-.clipSequencer .seq_drum_tracks .mode-clip {
+.zone:not(.drumSequencer) .seq_drum_tracks .mode-notes,
+.drumSequencer .seq_drum_tracks .mode-drums {
   background-color: var(--brighter-1);
   color: var(--text-base-color);
 }
@@ -3852,27 +3853,6 @@ body.running .seqprogress.drum .inner {
 
 .only-for-drumsequence {
   display: none;
-}
-
-/* Clip mode: a recorded take plays instead of the steps (track view draws it) */
-.only-for-clip {
-  display: none;
-}
-.clipSequencer {
-  .only-for-clip {
-    display: flex;
-    align-items: center;
-  }
-  .dismiss-for-clip,
-  .only-for-drumsequence,
-  .seq .grid,
-  .seq .step-info {
-    display: none !important;
-  }
-  .clip-info {
-    color: var(--slate-dim);
-    font-size: var(--fs-sm);
-  }
 }
 
 
@@ -5347,10 +5327,10 @@ body.track-view:not(.minimized) {
     grid-column: 1;
     grid-row: 1;
     display: grid;
-    grid-template-columns: auto auto auto 1fr auto;
+    grid-template-columns: auto auto auto auto 1fr auto;
     grid-template-areas:
-      'm s name name tools'
-      'seq arp cc route led';
+      'm s name name name tools'
+      'seq arp tk cc route led';
     align-content: center;
     gap: 6px 4px;
     margin: 0;
@@ -5383,6 +5363,7 @@ body.track-view:not(.minimized) {
   .channels > .ch.solo { grid-area: s; }
   .channels > .ch.showseq { grid-area: seq; }
   .channels > .ch.showarp { grid-area: arp; }
+  .channels > .ch.showtakes { grid-area: tk; }
   .channels > .ch.showccs { grid-area: cc; }
   .channels > .zone-label {
     grid-area: name;
@@ -5472,6 +5453,46 @@ body.track-view:not(.minimized) {
     cursor: pointer;
     display: flex;
     align-items: center;
+  }
+  /* the selected track's takes: ‹ Take 3/5 › Keep */
+  .track-lane .track-takes {
+    position: absolute;
+    top: 4px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 1px;
+    white-space: nowrap;
+    font-size: var(--fs-sm);
+    background-color: var(--slate-panel);
+    border: 1px solid var(--slate-line);
+    border-radius: var(--radius);
+    .tc-label {
+      padding: 0 6px;
+      color: var(--text-base-color);
+    }
+    .lightButton {
+      height: 18px;
+      min-width: 18px;
+      padding: 0 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .lightButton.off {
+      opacity: 0.3;
+      pointer-events: none;
+    }
+    .tc-keep {
+      background-color: var(--slate-raise);
+      color: var(--text-base-color);
+    }
+    .tc-keep:hover {
+      background-color: var(--on);
+      color: var(--on-text);
+    }
   }
   .track-lane .track-capture:hover {
     background-color: var(--on);

@@ -12,7 +12,7 @@ import { UndoHistory } from '../modules/undo-history';
 import { labelForZone } from '../modules/viewcontroller/action-labels';
 import { updateSheetHistory } from '../modules/viewcontroller/editor-sheet';
 import { loadDevicePresets } from '../modules/device-presets';
-import { timelineClock, timelineTransport } from '../modules/timeline';
+import { timelineClock, timelineTransport, timelineSection } from '../modules/timeline';
 
 // Type aliases for class types
 type ZoneType = Zone;
@@ -1038,6 +1038,8 @@ document.addEventListener('DOMContentLoaded', function () {
         if (Sequence.QUANT_TICK_N === 0) {
           const newIndex = zones.nextArrangementIndex;
           view.switchZonesToArrangement(newIndex);
+          // after the outgoing section's takes ended (in stopped()), before this tick plays
+          timelineSection(pos);
           view.selectArrangement(newIndex);
           sendMackieLeds();
           saveZones();
