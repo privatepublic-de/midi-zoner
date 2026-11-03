@@ -5438,24 +5438,9 @@ body.track-view:not(.minimized) {
       height: 100%;
     }
   }
-  .track-lane .track-capture {
-    position: absolute;
-    top: 4px;
-    z-index: 2;
-    height: 20px;
-    padding: 0 8px;
-    white-space: nowrap;
-    font-size: var(--fs-sm);
-    background-color: var(--slate-raise);
-    border: 1px solid var(--slate-line);
-    border-radius: var(--radius);
-    color: var(--text-base-color);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-  }
-  /* the selected track's takes: ‹ Take 3/5 › Keep */
-  .track-lane .track-takes {
+  /* chips on a lane: the selected track's takes (‹ Take 3/5 › Keep To steps), a picked
+     stretch (Keep · 2 bars, To steps), a selected kept take (To steps) */
+  .track-lane .track-chip {
     position: absolute;
     top: 4px;
     z-index: 2;
@@ -5475,28 +5460,26 @@ body.track-view:not(.minimized) {
     .lightButton {
       height: 18px;
       min-width: 18px;
-      padding: 0 5px;
+      padding: 0 6px;
       display: flex;
       align-items: center;
       justify-content: center;
+      background-color: var(--slate-raise);
+      color: var(--text-base-color);
       cursor: pointer;
+    }
+    .tc-prev,
+    .tc-next {
+      background-color: transparent;
     }
     .lightButton.off {
       opacity: 0.3;
       pointer-events: none;
     }
-    .tc-keep {
-      background-color: var(--slate-raise);
-      color: var(--text-base-color);
-    }
-    .tc-keep:hover {
+    .lightButton:not(.tc-prev, .tc-next):hover {
       background-color: var(--on);
       color: var(--on-text);
     }
-  }
-  .track-lane .track-capture:hover {
-    background-color: var(--on);
-    color: var(--on-text);
   }
   #zones > .zone:is(.disabled, .soloed-out) > .track-lane {
     background-color: var(--slate-bg);
@@ -5627,6 +5610,76 @@ body.track-view:not(.minimized) {
   }
   &.dock-closed #trackDock .td-collapse .material-icons {
     transform: rotate(180deg);
+  }
+  /* converting a take into steps: its panel takes the dock's place */
+  #trackDock .td-convert {
+    display: none;
+    align-self: start;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 16px;
+    max-width: 640px;
+    .tdc-head {
+      color: var(--slate-dim);
+      b {
+        color: var(--text-base-color);
+        font-weight: 600;
+      }
+    }
+    .tdc-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .label {
+      width: 40px;
+      color: var(--slate-dim);
+    }
+    .tdc-grid {
+      height: 22px;
+    }
+    .tdc-fit {
+      color: var(--slate-dim);
+      font-size: var(--fs-sm);
+    }
+    .tdc-mode span.on {
+      background-color: var(--brighter-1);
+      color: var(--text-base-color);
+    }
+    .tdc-result {
+      color: var(--text-base-color);
+    }
+    .tdc-result.warn {
+      color: var(--danger);
+    }
+    .tdc-actions {
+      display: flex;
+      gap: 6px;
+      .lightButton {
+        display: inline-flex;
+        align-items: center;
+        height: 24px;
+        padding: 0 12px;
+        cursor: pointer;
+      }
+      .tdc-convert {
+        background-color: var(--on);
+        color: var(--on-text);
+      }
+      .tdc-convert.off {
+        opacity: 0.35;
+        pointer-events: none;
+      }
+    }
+  }
+  &.converting:not(.dock-closed) #trackDock .td-convert {
+    display: flex;
+  }
+  &.converting #trackDock .td-empty {
+    display: none !important;
+  }
+  &.converting[data-dock] #zones > .zone.track-selected.track-selected > :is(.seq, .arp-settings-block, .ccpots, .settings, .rangeholder) {
+    display: none !important;
   }
   #trackDock .td-empty {
     display: none;

@@ -2,6 +2,8 @@ import { Zone } from '../zone/zone-class';
 import { ZONES_CHANGED_EVENT, UPDATE_ZONE_VIEW_EVENT } from '../zone/interfaces';
 import { timeline, sessionNow, songNow, NoteHistory } from '../timeline';
 import { Take } from '../zone/take';
+import { DIV_TICKS } from '../zone/seq-layer';
+import { analyse, quantize, applyToSequence, swingFor, stepPos, DIV_NAMES, PlayedNote, Quantized } from '../zone/take-quantize';
 import { toast } from './toast';
 
 /**
@@ -69,6 +71,21 @@ let takeDrag: {
   target: Zone;
 } | null = null;
 const EDGE_PX = 6;
+let keptChip: HTMLElement;
+// Turning a take (or a stretch of it) into steps: the preview, set in the dock panel
+let conv: {
+  zone: Zone;
+  from: number;
+  to: number;
+  notes: PlayedNote[];
+  suggested: number; // the detected grid
+  grid: number;
+  swing: number; // detected for the grid: places late off-beats, and is offered for the zone
+  useSwing: boolean;
+  drums: boolean;
+  q: Quantized;
+} | null = null;
+const CONVERT_GRIDS = [5, 8, 10, 11, 12, 13, 14, 15, 16, 17]; // 1/2 … 1/32t
 let lastDraw = 0;
 // zone colours, read from CSS when something changed rather than every frame
 const zoneColours = new WeakMap<Element, string>();
@@ -291,6 +308,7 @@ function draw(): void {
   selectedHistory = zones[selected]?.noteHistory ?? null;
   zones.forEach((z, i) => z.elements.zoneElement?.classList.toggle('track-selected', i === selected));
   validateTakeSelection(zones);
+  if (conv && (timeline.running || !zones.includes(conv.zone))) endConvert();
   const refresh = dirty;
   dirty = false;
   if (refresh) {
@@ -629,8 +647,78 @@ function drawLane(
   g.fillStyle = '#e7eaeecc';
   if (headX >= 0 && headX <= w) g.fillRect(headX, 0, 1, h);
 
+  if (conv?.zone === zone) drawConversion(g, x, rowOf, rowY, noteH, w, h);
   if (capture?.zone === zone) drawCapture(g, el, x(capture.from), x(capture.to), w, h);
-  if (isSelected) placeTakeChip(el, shown, latest && !running ? x(latest.start) : null, w);
+  if (isSelected) placeTakeChip(el, shown, latest && !running && !conv ? x(latest.start) : null, w);
+  if (isSelected) {
+    const kept = takeSel?.zone === zone && !running && !takeDrag && !conv ? takeSel.take : null;
+    placeChip(keptChip, el, kept ? x(kept.start) + 4 : null, w, 4);
+  }
+}
+
+/** The steps a conversion would make: boxes on the grid, a line from each played note to its step */
+function drawConversion(
+  g: CanvasRenderingContext2D,
+  x: (s: number) => number,
+  rowOf: (pitch: number) => number,
+  rowY: (row: number) => number,
+  noteH: number,
+  w: number,
+  h: number
+): void {
+  const c = conv!;
+  const ticks = DIV_TICKS[c.grid];
+  g.globalAlpha = 1;
+  // outside the stretch, darker
+  g.fillStyle = '#00000059';
+  g.fillRect(0, 0, Math.max(0, x(c.from)), h);
+  g.fillRect(Math.min(w, x(c.to)), 0, w, h);
+  // the grid's steps
+  g.fillStyle = '#e7eaee14';
+  for (let i = 0; i < c.q.steps && i < c.q.max; i++) {
+    const sx = x(c.from + stepPos(i, ticks, c.swing));
+    if (sx > w) break;
+    if (sx >= 0) g.fillRect(Math.round(sx), 0, 1, h);
+  }
+  g.strokeStyle = '#e7eaee';
+  for (const m of c.q.moves) {
+    const row = rowOf(m.n);
+    if (row < 0) continue;
+    const y = rowY(row) + noteH / 2;
+    g.globalAlpha = 0.7;
+    g.beginPath();
+    g.moveTo(x(m.from), y);
+    g.lineTo(x(m.to), y);
+    g.stroke();
+  }
+  c.q.cells.forEach((cell, i) => {
+    if (!cell) return;
+    const s0 = c.from + stepPos(i, ticks, c.swing);
+    const x0 = x(s0);
+    const x1 = x(s0 + ((cell.length - 1) + cell.gate) * ticks);
+    if (x1 < 0 || x0 > w) return;
+    for (const n of cell.notes) {
+      const row = rowOf(n.n);
+      if (row < 0) continue;
+      g.globalAlpha = 1;
+      g.strokeRect(Math.round(x0) + 0.5, rowY(row) - 1.5, Math.max(2, x1 - x0 - 1), noteH + 2);
+    }
+  });
+}
+
+/** A floating chip on a lane at x (hidden with null) */
+function placeChip(chip: HTMLElement, zoneEl: HTMLElement, at: number | null, w: number, top: number): void {
+  if (at === null) {
+    chip.remove();
+    return;
+  }
+  const lane = zoneEl.querySelector('.track-lane')!;
+  if (chip.parentElement !== lane) {
+    lane.appendChild(chip);
+    invalidate(); // placed by its width, known from the next frame
+  }
+  chip.style.left = `${Math.max(4, Math.min(w - chip.offsetWidth - 4, at))}px`;
+  chip.style.top = `${top}px`;
 }
 
 /** On the selected track: browse its unkept takes (‹ ›) and keep the one shown */
@@ -675,7 +763,8 @@ function drawCapture(g: CanvasRenderingContext2D, zoneEl: HTMLElement, x0: numbe
     invalidate(); // placed by its width, known from the next frame
   }
   const text = `Keep · ${Take.lengthLabel(capture!.to - capture!.from)}`;
-  if (captureButton.textContent !== text) captureButton.textContent = text;
+  const keepLink = captureButton.querySelector('.cb-keep')!;
+  if (keepLink.textContent !== text) keepLink.textContent = text;
   captureButton.style.left = `${Math.max(4, Math.min(w - captureButton.offsetWidth - 4, x1 - captureButton.offsetWidth - 4))}px`;
   captureButton.style.top = '28px';
 }
@@ -846,6 +935,114 @@ function deleteSelectedTake(): void {
   takeSel = null;
 }
 
+/** Open the conversion of a take (or a stretch of it) into steps, with its preview */
+function startConvert(zone: Zone, take: Take, from: number, to: number): void {
+  const notes = take.visibleNotes().filter((n) => n.s >= from && n.s < to);
+  if (notes.length === 0) {
+    toast('Nothing was played there');
+    return;
+  }
+  const analysis = analyse(notes, from);
+  conv = {
+    zone,
+    from,
+    to,
+    notes,
+    suggested: analysis.grid,
+    grid: analysis.grid,
+    swing: analysis.swing,
+    useSwing: analysis.swing > 0,
+    drums: zone.sequence.isDrumSequence,
+    q: quantize(notes, from, to, analysis.grid, analysis.swing, zone.sequence.isDrumSequence)
+  };
+  clearCapture();
+  takeSel = null;
+  const index = getZones().indexOf(zone);
+  if (index >= 0) select(index);
+  setDockOpen(true);
+  document.body.classList.add('converting');
+  updateConvertPanel();
+}
+
+function recompute(): void {
+  if (!conv) return;
+  conv.q = quantize(conv.notes, conv.from, conv.to, conv.grid, conv.swing, conv.drums);
+  updateConvertPanel();
+  invalidate();
+}
+
+function updateConvertPanel(): void {
+  const panel = document.querySelector('#trackDock .td-convert');
+  if (!panel || !conv) return;
+  const c = conv;
+  const plural = (n: number, word: string): string => `${n} ${word}${n === 1 ? '' : 's'}`;
+  panel.querySelector('.tdc-what')!.textContent =
+    ` · ${Take.lengthLabel(c.to - c.from)} from bar ${Math.floor(c.from / TICKS_PER_BAR) + 1} · ${plural(c.notes.length, 'note')}`;
+  const select = panel.querySelector('.tdc-grid') as HTMLSelectElement;
+  if (select.options.length === 0) {
+    CONVERT_GRIDS.forEach((g) => select.add(new Option(DIV_NAMES[g], String(g))));
+  }
+  CONVERT_GRIDS.forEach((g, i) => {
+    select.options[i].text = DIV_NAMES[g] + (g === c.suggested ? ' (detected)' : '');
+  });
+  select.value = String(c.grid);
+  panel.querySelectorAll('.tdc-mode [data-mode]').forEach((m) => {
+    m.classList.toggle('on', ((m as HTMLElement).dataset['mode'] === 'drums') === c.drums);
+  });
+  const swingRow = panel.querySelector('.tdc-swing') as HTMLElement;
+  swingRow.style.display = c.swing > 0 ? '' : 'none';
+  (swingRow.querySelector('input') as HTMLInputElement).checked = c.useSwing;
+  swingRow.querySelector('span')!.textContent =
+    `Set the zone's Swing to ${Math.round(c.swing * 100)} % (the off-beats were played late)`;
+  const q = c.q;
+  const filled = q.cells.filter(Boolean).length;
+  const seq = c.zone.sequence;
+  const current = seq.isDrumSequence
+    ? seq.drum_lanes.some((l) => l?.steps.some((st) => st && !st.isBlank()))
+    : seq.steps.some((st, i) => i < seq.length && st && !st.isBlank());
+  const parts = [
+    `${plural(Math.min(q.steps, q.max), 'step')} of ${DIV_NAMES[c.grid]}`,
+    c.drums ? plural(q.lanes.length, 'lane') : `notes on ${plural(filled, 'step')}`
+  ];
+  if (q.chords) parts.push(plural(q.chords, 'chord'));
+  if (q.merged) parts.push(`${q.merged} merged (same pitch on one step)`);
+  let text = parts.join(' · ') + '.';
+  if (current) text += ` Replaces the current ${seq.length}-step sequence.`;
+  text += ' The sequencer plays them, Tk switches off; the take stays.';
+  if (!q.fits) {
+    text =
+      q.steps > q.max
+        ? `${q.steps} steps don't fit (at most ${q.max}${c.drums ? ' in drum mode' : ''}): pick a coarser grid or drag over a shorter stretch.`
+        : `${q.lanes.length} pitches don't fit into ${12} drum lanes.`;
+  }
+  const result = panel.querySelector('.tdc-result') as HTMLElement;
+  result.textContent = text;
+  result.classList.toggle('warn', !q.fits);
+  panel.querySelector('.tdc-fit')!.textContent = c.grid === c.suggested ? '' : 'not the detected grid';
+  panel.querySelector('.tdc-convert')!.classList.toggle('off', !q.fits);
+}
+
+function convert(): void {
+  if (!conv || !conv.q.fits) return;
+  const c = conv;
+  const index = getZones().indexOf(c.zone);
+  if (index < 0) return;
+  commit(index, 'Take to Steps', () => {
+    applyToSequence(c.zone.sequence, c.q);
+    if (c.useSwing && c.swing > 0) c.zone.swingAmount = c.swing;
+    c.zone.takes_on = false;
+  });
+  endConvert();
+  setTab('seq');
+  toast(`${Math.min(c.q.steps, c.q.max)} steps of ${DIV_NAMES[c.grid]} made from the take`);
+}
+
+function endConvert(): void {
+  conv = null;
+  document.body.classList.remove('converting');
+  invalidate();
+}
+
 /** Keep the shown take of the selected track, whole */
 function keepShownTake(): void {
   const zone = getZones()[selected];
@@ -890,17 +1087,56 @@ function initTrackView(
   getZones = zones;
   commit = commitChange;
   const zonesEl = document.getElementById('zones')!;
-  captureButton = document.createElement('a');
-  captureButton.className = 'track-capture lightButton';
-  captureButton.title = 'Keep this stretch of the take: it joins the song (Esc cancels)';
+  captureButton = document.createElement('div');
+  captureButton.className = 'track-capture track-chip';
+  captureButton.innerHTML =
+    '<a class="cb-keep lightButton" title="Keep this stretch of the take: it joins the song (Esc cancels)"></a>' +
+    '<a class="cb-steps lightButton" title="Turn this stretch into steps">To steps</a>';
   captureButton.addEventListener('mousedown', (ev) => ev.stopPropagation());
-  captureButton.addEventListener('click', keepStretch);
+  captureButton.querySelector('.cb-keep')!.addEventListener('click', keepStretch);
+  captureButton.querySelector('.cb-steps')!.addEventListener('click', () => {
+    const take = capture && shownTake(capture.zone)?.take;
+    if (capture && take) startConvert(capture.zone, take, capture.from, capture.to);
+  });
+  keptChip = document.createElement('div');
+  keptChip.className = 'track-chip';
+  keptChip.innerHTML = '<a class="lightButton" title="Turn this kept take into steps">To steps</a>';
+  keptChip.addEventListener('mousedown', (ev) => ev.stopPropagation());
+  keptChip.querySelector('a')!.addEventListener('click', () => {
+    if (takeSel) startConvert(takeSel.zone, takeSel.take, takeSel.take.start, takeSel.take.end);
+  });
+  const panel = document.querySelector('#trackDock .td-convert')!;
+  panel.querySelector('.tdc-grid')!.addEventListener('change', (ev) => {
+    if (!conv) return;
+    conv.grid = Number((ev.target as HTMLSelectElement).value);
+    conv.swing = swingFor(conv.notes, conv.from, conv.grid);
+    conv.useSwing = conv.swing > 0;
+    recompute();
+  });
+  panel.querySelectorAll('.tdc-mode [data-mode]').forEach((m) =>
+    m.addEventListener('click', () => {
+      if (!conv) return;
+      conv.drums = (m as HTMLElement).dataset['mode'] === 'drums';
+      recompute();
+    })
+  );
+  panel.querySelector('.tdc-swing input')!.addEventListener('change', (ev) => {
+    if (conv) conv.useSwing = (ev.target as HTMLInputElement).checked;
+  });
+  panel.querySelector('.tdc-convert')!.addEventListener('click', convert);
+  panel.querySelector('.tdc-cancel')!.addEventListener('click', endConvert);
   takeChip = document.createElement('div');
-  takeChip.className = 'track-takes';
+  takeChip.className = 'track-takes track-chip';
   takeChip.innerHTML =
     '<a class="tc-prev lightButton" title="An earlier take">‹</a><span class="tc-label"></span>' +
     '<a class="tc-next lightButton" title="A later take">›</a>' +
-    '<a class="tc-keep lightButton" title="Keep this take: it joins the song and plays from now on">Keep</a>';
+    '<a class="tc-keep lightButton" title="Keep this take: it joins the song and plays from now on">Keep</a>' +
+    '<a class="tc-steps lightButton" title="Turn this take into steps">To steps</a>';
+  takeChip.querySelector('.tc-steps')!.addEventListener('click', () => {
+    const zone = getZones()[selected];
+    const take = zone && shownTake(zone)?.take;
+    if (take) startConvert(zone, take, take.start, take.end);
+  });
   takeChip.addEventListener('mousedown', (ev) => ev.stopPropagation());
   takeChip.querySelector('.tc-prev')!.addEventListener('click', () => browseTakes(-1));
   takeChip.querySelector('.tc-next')!.addEventListener('click', () => browseTakes(1));
@@ -925,6 +1161,7 @@ function initTrackView(
   });
   document.addEventListener('keydown', (ev) => {
     if (capture && ev.key === 'Escape') clearCapture();
+    if (conv && ev.key === 'Escape') endConvert();
     if (!takeSel || !isActive()) return;
     if ((ev.target as Element | null)?.closest?.('input, select, textarea')) return;
     if (ev.key === 'Escape') {
