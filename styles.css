@@ -5429,16 +5429,17 @@ body.track-view:not(.minimized) {
   --dock-bar-h: 32px;
   --strip-h: 28px; /* STRIP_H in track-view.ts */
   --track-settings-w: 520px;
+  /* as xr18: tracks are cards on the dark ground, lanes and the ruler inset wells */
+  --track-gap: 10px; /* round the tracks and the dock */
+  --lane-pad: 6px; /* between a track's card and its lane */
 
-  /* folded by the user (the chevron or a double-click on the bar) */
+  /* folded by the user (the chevron or a double-click on the bar): just the tabs */
   &.dock-closed {
-    --dock-h: var(--dock-bar-h);
+    --dock-h: calc(var(--dock-bar-h) + var(--track-gap));
   }
 
   .padded {
-    padding-left: 0;
-    padding-right: 0;
-    padding-bottom: var(--dock-h);
+    padding: 0 var(--track-gap) calc(var(--dock-h) + var(--track-gap));
   }
 
   #zones {
@@ -5446,25 +5447,22 @@ body.track-view:not(.minimized) {
     flex-direction: column;
     flex-wrap: nowrap;
     align-items: stretch;
-    gap: 0;
+    gap: 6px;
     margin: 0;
+    padding-top: 2px;
   }
 
+  /* a track is a card like a zone (and an xr18 strip): the zone's wash, lighter top edge */
   #zones > .zone {
     display: grid;
     grid-template-columns: var(--track-hdr-w) 1fr;
-    grid-template-rows: var(--track-h, 56px);
+    grid-template-rows: calc(var(--track-h, 56px) + 2 * var(--lane-pad));
     width: auto;
     min-width: 0;
     max-width: none;
     margin: 0;
     padding: 0;
     gap: 0;
-    border: none;
-    border-bottom: 1px solid var(--slate-line);
-    border-radius: 0;
-    box-shadow: none;
-    background: var(--slate-bg);
   }
 
   #zones > .zone:not(.addnewzone) > :not(.channels, .track-lane) {
@@ -5477,8 +5475,9 @@ body.track-view:not(.minimized) {
 
   #zones > .zone.addnewzone {
     display: block;
-    padding: 8px 8px 16px;
+    padding: 4px 0 16px;
     border: none;
+    box-shadow: none;
     background: none;
     a {
       width: calc(var(--track-hdr-w) - 16px);
@@ -5498,9 +5497,7 @@ body.track-view:not(.minimized) {
     gap: 6px 4px;
     margin: 0;
     padding: 0 8px 0 12px;
-    background: var(--zone-surface);
-    border-right: 1px solid var(--slate-line);
-    box-shadow: inset 3px 0 0 var(--zone-color);
+    background: none;
   }
   #zones > .zone > .channels::after {
     content: '';
@@ -5510,25 +5507,17 @@ body.track-view:not(.minimized) {
   #zones > .zone > .channels > * {
     margin: 0;
   }
-  #zones > .zone:is(.disabled, .soloed-out) > .channels {
-    box-shadow: inset 3px 0 0 var(--slate-line);
-  }
-  /* the selected track (the one the dock shows): its header keeps the zone colour,
-     the others step back to slate, and amber frames the row as "where you are" */
-  #zones > .zone:not(.track-selected) > .channels {
-    background: var(--slate-panel);
-  }
-  #zones > .zone.track-selected > .channels {
-    background: color-mix(in srgb, var(--zone-color) 26%, var(--slate-panel));
-  }
-  /* an overlay, so the row gets no stacking context (the dock's blocks inside it are fixed) */
+  /* the selected track (the one the dock shows): an amber card edge, "where you are",
+     as a selected strip in xr18; an overlay, so the card gets no stacking context
+     (the dock's blocks inside it are fixed) */
   #zones > .zone.track-selected::after {
     content: '';
     position: absolute;
-    inset: 0;
+    inset: -1px;
     z-index: 1;
     pointer-events: none;
-    box-shadow: inset 0 0 0 1px var(--select);
+    border-radius: var(--radius-lg);
+    box-shadow: inset 0 0 0 2px var(--select);
   }
   .channels > .ch.state { order: 1; }
   .channels > .ch.solo { order: 2; }
@@ -5599,9 +5588,10 @@ body.track-view:not(.minimized) {
   #zones > .zone.droptarget::after {
     content: '';
     position: absolute;
-    inset: 0;
+    inset: -1px;
     z-index: 1;
     pointer-events: none;
+    border-radius: var(--radius-lg);
     box-shadow: inset 0 0 0 2px var(--text-base-color);
   }
   /* CC shows the controllers below, so it lights only while they show there */
@@ -5620,7 +5610,9 @@ body.track-view:not(.minimized) {
     grid-row: 1;
     position: relative;
     overflow: hidden;
-    background-color: color-mix(in srgb, var(--zone-color) 6%, var(--slate-bg));
+    margin: var(--lane-pad) var(--lane-pad) var(--lane-pad) 0;
+    border-radius: var(--radius);
+    background-color: var(--slate-inset);
     cursor: default;
     canvas {
       position: absolute;
@@ -5663,7 +5655,7 @@ body.track-view:not(.minimized) {
   .track-strip .track-chip {
     position: absolute;
     top: 2px;
-    z-index: 2;
+    z-index: 1;
     display: flex;
     align-items: center;
     gap: 3px;
@@ -5696,30 +5688,33 @@ body.track-view:not(.minimized) {
       color: var(--on-text);
     }
   }
-  #zones > .zone:is(.disabled, .soloed-out) > .track-lane {
-    background-color: var(--slate-bg);
-  }
 
+  /* over the lanes, edge to edge with them: the cards' border before the well, the lane's pad after */
   #trackRuler {
     display: grid;
-    grid-template-columns: var(--track-hdr-w) 1fr;
+    grid-template-columns: calc(var(--track-hdr-w) + 1px) 1fr;
     position: sticky;
     top: var(--topbar-h, 44px);
-    z-index: 1;
+    /* tracks scroll under it: above the selected card's edge and the strip's chips (1);
+       the port windows (also 2, later in the page) still open over it */
+    z-index: 2;
     height: 26px;
-    background-color: var(--slate-panel);
-    border-bottom: 1px solid var(--slate-line);
+    margin: 0 calc(-1 * var(--track-gap));
+    padding: 6px calc(var(--track-gap) + var(--lane-pad) + 1px) 6px var(--track-gap);
+    background-color: var(--slate-bg);
     canvas {
       width: 100%;
       height: 26px;
+      border-radius: var(--radius);
+      background-color: var(--slate-inset);
+      box-shadow: inset 0 0 0 1px var(--slate-line);
     }
   }
   #trackRuler .tr-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 6px 0 12px;
-    border-right: 1px solid var(--slate-line);
+    padding: 0 6px 0 4px;
     font-size: var(--fs-sm);
     font-variant-numeric: tabular-nums;
     color: var(--slate-dim);
@@ -5755,25 +5750,39 @@ body.track-view:not(.minimized) {
   }
 
   /* the dock: a bar of tabs over the selected track's block */
+  /* as xr18's lower panel: the tabs in an inset frame led by the track's name, its
+     content a card of its own (::before, behind the grid's second row) */
   #trackDock {
     display: grid;
     grid-template-rows: var(--dock-bar-h) 1fr;
+    row-gap: 6px;
     position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    left: var(--track-gap);
+    right: var(--track-gap);
+    bottom: var(--track-gap);
     z-index: 2;
-    height: var(--dock-h);
+    height: calc(var(--dock-h) - var(--track-gap));
+  }
+  #trackDock::before {
+    content: '';
+    position: absolute;
+    inset: calc(var(--dock-bar-h) + 6px) 0 0 0;
+    z-index: -1;
+    border: 1px solid var(--slate-edge);
+    border-top-color: var(--slate-edge-top);
+    border-radius: var(--radius-lg);
     background-color: var(--zone-surface);
-    border-top: 1px solid var(--slate-edge-top, var(--slate-line));
-    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  }
+  &.dock-closed #trackDock::before {
+    display: none;
   }
   &.no-tracks #trackDock {
     display: none;
   }
   #trackDock .td-resize {
     position: absolute;
-    top: -4px;
+    top: -8px;
     left: 0;
     right: 0;
     height: 8px;
@@ -5791,14 +5800,18 @@ body.track-view:not(.minimized) {
   #trackDock .td-bar {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 0 8px 0 12px;
-    border-bottom: 1px solid var(--slate-line);
+    justify-self: start;
+    gap: 2px;
+    box-sizing: border-box;
+    padding: 2px;
+    background-color: var(--slate-inset);
+    border: 1px solid color-mix(in srgb, var(--zone-color) 55%, var(--slate-line));
+    border-radius: var(--radius-lg);
     font-size: var(--fs-md);
   }
   #trackDock .td-name {
     max-width: 200px;
-    margin-right: 10px;
+    margin-right: 6px;
     padding: 1px 8px;
     overflow: hidden;
     white-space: nowrap;
@@ -5825,12 +5838,14 @@ body.track-view:not(.minimized) {
   /* as the active arrangement */
   #trackDock .td-tab.active {
     background-color: var(--slate-raise);
-    box-shadow: inset 0 0 0 1px var(--select);
+    border-color: var(--select);
     color: var(--text-base-color);
     font-weight: 600;
   }
   #trackDock .td-collapse {
-    margin-left: auto;
+    position: absolute;
+    top: 4px;
+    right: 0;
   }
   &.dock-closed #trackDock .td-collapse .material-icons {
     transform: rotate(180deg);
@@ -5998,14 +6013,14 @@ body.track-view:not(.minimized) {
   /* the selected track's block, placed in the dock */
   #zones > .zone.track-selected > :is(.seq, .arp-settings-block, .ccpots, .settings, .rangeholder) {
     position: fixed;
-    left: 0;
-    right: 0;
+    left: calc(var(--track-gap) + 1px);
+    right: calc(var(--track-gap) + 1px);
     z-index: 3;
     margin: 0;
   }
   #zones > .zone.track-selected > :is(.seq, .arp-settings-block, .ccpots) {
-    bottom: 0;
-    height: calc(var(--dock-h) - var(--dock-bar-h));
+    bottom: calc(var(--track-gap) + 1px);
+    height: calc(var(--dock-h) - var(--track-gap) - var(--dock-bar-h) - 6px - 2px);
     box-sizing: border-box;
     overflow: auto;
     padding: 10px 12px;
@@ -6039,14 +6054,14 @@ body.track-view:not(.minimized) {
   /* the Track tab: the zone's settings and key range on the left (--track-settings-w),
      its takes in the rest */
   #zones > .zone.track-selected > .settings {
-    top: calc(100vh - var(--dock-h) + var(--dock-bar-h) + 12px);
+    top: calc(100vh - var(--dock-h) + var(--dock-bar-h) + 18px);
     right: auto;
     box-sizing: border-box;
     width: var(--track-settings-w);
     padding: 0 12px;
   }
   #zones > .zone.track-selected > .rangeholder {
-    top: calc(100vh - var(--dock-h) + var(--dock-bar-h) + 52px);
+    top: calc(100vh - var(--dock-h) + var(--dock-bar-h) + 58px);
     right: auto;
     width: calc(var(--track-settings-w) - 24px);
     margin: 0 12px;

@@ -210,7 +210,8 @@ function startDockResize(ev: MouseEvent): void {
   ev.preventDefault();
   const dock = document.getElementById('trackDock')!;
   const startY = ev.clientY;
-  const startH = dockOpen ? dock.getBoundingClientRect().height : DOCK_MIN_H;
+  // the room the dock takes from the window's bottom (it floats a gap above it)
+  const startH = dockOpen ? window.innerHeight - dock.getBoundingClientRect().top : DOCK_MIN_H;
   if (!dockOpen) setDockOpen(true);
   const topbar = document.getElementById('midisettings')!.getBoundingClientRect().bottom;
   const maxH = window.innerHeight - topbar - 120;
