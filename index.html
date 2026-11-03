@@ -185,13 +185,22 @@
         <a class="td-turn-on lightButton"></a>
       </div>
       <div class="td-convert">
-        <div class="tdc-head"><b>Take to steps</b><span class="tdc-what"></span></div>
+        <div class="tdc-head"><b class="tdc-title">Take to steps</b><span class="tdc-what"></span></div>
+        <div class="tdc-row">
+          <span class="label">Into</span>
+          <span class="tdc-target seq_drum_tracks"><span data-target="steps">Steps</span><span data-target="take">The take</span></span>
+        </div>
         <div class="tdc-row">
           <span class="label">Grid</span>
           <select class="tdc-grid" tabindex="-1"></select>
           <span class="tdc-fit"></span>
         </div>
-        <div class="tdc-row">
+        <div class="tdc-row tdc-for-take">
+          <span class="label">Strength</span>
+          <input type="range" class="tdc-strength" min="10" max="100" step="5" value="100" tabindex="-1" />
+          <output class="tdc-strength-value">100 %</output>
+        </div>
+        <div class="tdc-row tdc-for-steps">
           <span class="label">Mode</span>
           <span class="tdc-mode seq_drum_tracks"><span data-mode="notes">Notes</span><span data-mode="drums">Drums</span></span>
         </div>

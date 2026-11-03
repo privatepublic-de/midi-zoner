@@ -174,6 +174,28 @@ export function quantize(notes: PlayedNote[], from: number, to: number, grid: nu
   return { grid, swing, drums, steps, max, fits, lanes, chords, merged, cells, moves };
 }
 
+/**
+ * Quantizing a take in place: each note start moves `strength` (0–1) of the way to
+ * its step on the grid; with `keepSwing` to the swung step (the detected swing), else
+ * to the straight one. Lengths stay. Returns the new start per note (song positions).
+ */
+export function quantizeStarts(
+  notes: PlayedNote[],
+  from: number,
+  grid: number,
+  swing: number,
+  strength: number,
+  keepSwing: boolean
+): number[] {
+  const ticks = DIV_TICKS[grid];
+  return notes.map((note) => {
+    const t = note.s - from;
+    const i = nearestStep(t, ticks, swing);
+    const target = stepPos(i, ticks, keepSwing ? swing : 0);
+    return from + t + strength * (target - t);
+  });
+}
+
 /** Write the result into a sequence: its steps (or drum lanes), length and step size */
 export function applyToSequence(seq: Sequence, q: Quantized): void {
   const length = Math.min(q.steps, q.max);

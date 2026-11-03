@@ -62,6 +62,24 @@ export class Take {
     return part;
   }
 
+  /**
+   * Move the notes that start at the given song positions (`from` → `to`), e.g. after
+   * quantizing; none moves before the take's start. Keeps them sorted.
+   */
+  moveNotes(moves: Map<number, number>, songFloor: number): void {
+    // matched to a millionth of a tick: positions computed in other ways may differ slightly
+    const key = (s: number): number => Math.round(s * 1e6);
+    const byKey = new Map<number, number>();
+    moves.forEach((to, from) => byKey.set(key(from), to));
+    for (const n of this.notes) {
+      const s = this.start + n.t - this.offset;
+      const to = byKey.get(key(s));
+      if (to === undefined) continue;
+      n.t = Math.max(0, n.t + Math.max(songFloor, to) - s);
+    }
+    this.sort();
+  }
+
   /** Cut at a song position inside the take: this keeps the part before, the part after is returned */
   cutAt(at: number): Take {
     const after = this.copy();

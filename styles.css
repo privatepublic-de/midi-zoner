@@ -1555,7 +1555,8 @@ input[type='range'] {
   appearance: none;
 }
 
-.zone input[type='range']::-webkit-slider-runnable-track {
+.zone input[type='range']::-webkit-slider-runnable-track,
+#trackDock input[type='range']::-webkit-slider-runnable-track {
   width: 300px;
   height: 6px;
   /* lighter filled part up to the thumb (>= 3:1 on every zone color), soft remainder */
@@ -1568,7 +1569,8 @@ input[type='range'] {
   border-radius: var(--radius-sm);
 }
 
-.zone input[type='range']::-webkit-slider-thumb {
+.zone input[type='range']::-webkit-slider-thumb,
+#trackDock input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   border: none;
   height: 12px;
@@ -1584,7 +1586,8 @@ input[type='range'] {
 }
 
 /* range inputs: the focus ring is drawn on the thumb (see the focus section at the end) */
-.zone input[type='range']:focus {
+.zone input[type='range']:focus,
+#trackDock input[type='range']:focus {
   outline: none;
 }
 
@@ -5632,7 +5635,7 @@ body.track-view:not(.minimized) {
       gap: 8px;
     }
     .label {
-      width: 40px;
+      width: 58px;
       color: var(--slate-dim);
     }
     .tdc-grid {
@@ -5642,6 +5645,10 @@ body.track-view:not(.minimized) {
       color: var(--slate-dim);
       font-size: var(--fs-sm);
     }
+    .tdc-strength {
+      width: 160px;
+    }
+    .tdc-target span.on,
     .tdc-mode span.on {
       background-color: var(--brighter-1);
       color: var(--text-base-color);
@@ -5691,6 +5698,11 @@ body.track-view:not(.minimized) {
   }
   &:not(.dock-closed) #trackDock.empty .td-empty {
     display: flex;
+  }
+
+  /* the +/- buttons of number fields: above the dock's blocks (z-index 3) */
+  .valuebtn {
+    z-index: 4;
   }
 
   /* the selected track's block, placed in the dock */

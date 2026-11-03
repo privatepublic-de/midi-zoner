@@ -3,7 +3,7 @@ import { ZONES_CHANGED_EVENT, UPDATE_ZONE_VIEW_EVENT } from '../zone/interfaces'
 import { timeline, sessionNow, songNow, NoteHistory } from '../timeline';
 import { Take } from '../zone/take';
 import { DIV_TICKS } from '../zone/seq-layer';
-import { analyse, quantize, applyToSequence, swingFor, stepPos, DIV_NAMES, PlayedNote, Quantized } from '../zone/take-quantize';
+import { analyse, quantize, quantizeStarts, applyToSequence, swingFor, stepPos, DIV_NAMES, PlayedNote, Quantized } from '../zone/take-quantize';
 import { toast } from './toast';
 
 /**
@@ -75,6 +75,11 @@ let keptChip: HTMLElement;
 // Turning a take (or a stretch of it) into steps: the preview, set in the dock panel
 let conv: {
   zone: Zone;
+  take: Take;
+  kept: boolean; // a kept take is quantized in place, otherwise the result is kept
+  target: 'steps' | 'take';
+  strength: number; // 0.1–1, quantizing the take
+  starts: number[]; // the notes' new starts, quantizing the take
   from: number;
   to: number;
   notes: PlayedNote[];
@@ -681,6 +686,23 @@ function drawConversion(
     if (sx >= 0) g.fillRect(Math.round(sx), 0, 1, h);
   }
   g.strokeStyle = '#e7eaee';
+  if (c.target === 'take') {
+    // where each note will start, a line from where it was played
+    c.notes.forEach((n, k) => {
+      const row = rowOf(n.n);
+      if (row < 0) return;
+      const y = rowY(row);
+      const to = c.starts[k];
+      g.globalAlpha = 0.7;
+      g.beginPath();
+      g.moveTo(x(n.s), y + noteH / 2);
+      g.lineTo(x(to), y + noteH / 2);
+      g.stroke();
+      g.globalAlpha = 1;
+      g.strokeRect(Math.round(x(to)) + 0.5, y - 1.5, Math.max(2, x(to + n.d) - x(to) - 1), noteH + 2);
+    });
+    return;
+  }
   for (const m of c.q.moves) {
     const row = rowOf(m.n);
     if (row < 0) continue;
@@ -936,7 +958,7 @@ function deleteSelectedTake(): void {
 }
 
 /** Open the conversion of a take (or a stretch of it) into steps, with its preview */
-function startConvert(zone: Zone, take: Take, from: number, to: number): void {
+function startConvert(zone: Zone, take: Take, from: number, to: number, target: 'steps' | 'take' = 'steps'): void {
   const notes = take.visibleNotes().filter((n) => n.s >= from && n.s < to);
   if (notes.length === 0) {
     toast('Nothing was played there');
@@ -945,6 +967,11 @@ function startConvert(zone: Zone, take: Take, from: number, to: number): void {
   const analysis = analyse(notes, from);
   conv = {
     zone,
+    take,
+    kept: zone.takes.includes(take) && from === take.start && to === take.end,
+    target,
+    strength: 1,
+    starts: [],
     from,
     to,
     notes,
@@ -955,6 +982,7 @@ function startConvert(zone: Zone, take: Take, from: number, to: number): void {
     drums: zone.sequence.isDrumSequence,
     q: quantize(notes, from, to, analysis.grid, analysis.swing, zone.sequence.isDrumSequence)
   };
+  conv.starts = quantizeStarts(notes, from, conv.grid, conv.swing, conv.strength, conv.useSwing);
   clearCapture();
   takeSel = null;
   const index = getZones().indexOf(zone);
@@ -967,6 +995,7 @@ function startConvert(zone: Zone, take: Take, from: number, to: number): void {
 function recompute(): void {
   if (!conv) return;
   conv.q = quantize(conv.notes, conv.from, conv.to, conv.grid, conv.swing, conv.drums);
+  conv.starts = quantizeStarts(conv.notes, conv.from, conv.grid, conv.swing, conv.strength, conv.useSwing);
   updateConvertPanel();
   invalidate();
 }
@@ -986,14 +1015,27 @@ function updateConvertPanel(): void {
     select.options[i].text = DIV_NAMES[g] + (g === c.suggested ? ' (detected)' : '');
   });
   select.value = String(c.grid);
+  const intoTake = c.target === 'take';
+  panel.querySelector('.tdc-title')!.textContent = intoTake ? 'Quantize the take' : 'Take to steps';
+  panel.querySelectorAll('.tdc-target [data-target]').forEach((m) => {
+    m.classList.toggle('on', (m as HTMLElement).dataset['target'] === c.target);
+  });
+  panel.querySelectorAll('.tdc-for-take').forEach((r) => ((r as HTMLElement).style.display = intoTake ? '' : 'none'));
+  panel.querySelectorAll('.tdc-for-steps').forEach((r) => ((r as HTMLElement).style.display = intoTake ? 'none' : ''));
+  const strength = panel.querySelector('.tdc-strength') as HTMLInputElement;
+  strength.value = String(Math.round(c.strength * 100));
+  // the filled part of the track, as the zones' sliders show it
+  strength.style.setProperty('--fill', `${((c.strength * 100 - 10) / 90) * 100}%`);
+  panel.querySelector('.tdc-strength-value')!.textContent = `${Math.round(c.strength * 100)} %`;
   panel.querySelectorAll('.tdc-mode [data-mode]').forEach((m) => {
     m.classList.toggle('on', ((m as HTMLElement).dataset['mode'] === 'drums') === c.drums);
   });
   const swingRow = panel.querySelector('.tdc-swing') as HTMLElement;
   swingRow.style.display = c.swing > 0 ? '' : 'none';
   (swingRow.querySelector('input') as HTMLInputElement).checked = c.useSwing;
-  swingRow.querySelector('span')!.textContent =
-    `Set the zone's Swing to ${Math.round(c.swing * 100)} % (the off-beats were played late)`;
+  swingRow.querySelector('span')!.textContent = intoTake
+    ? `Keep the swing (${Math.round(c.swing * 100)} %, the off-beats were played late); off: straighten them`
+    : `Set the zone's Swing to ${Math.round(c.swing * 100)} % (the off-beats were played late)`;
   const q = c.q;
   const filled = q.cells.filter(Boolean).length;
   const seq = c.zone.sequence;
@@ -1015,15 +1057,33 @@ function updateConvertPanel(): void {
         ? `${q.steps} steps don't fit (at most ${q.max}${c.drums ? ' in drum mode' : ''}): pick a coarser grid or drag over a shorter stretch.`
         : `${q.lanes.length} pitches don't fit into ${12} drum lanes.`;
   }
+  if (intoTake) {
+    // how far the notes move, in ms at the current tempo
+    const msPerTick = timeline.intervalMs > 0 ? timeline.intervalMs : 20.83;
+    const moves = c.notes.map((n, k) => Math.abs(c.starts[k] - n.s) * msPerTick);
+    const most = Math.round(Math.max(0, ...moves));
+    const mean = Math.round(moves.reduce((a, b) => a + b, 0) / Math.max(1, moves.length));
+    text =
+      `${plural(c.notes.length, 'note')} move ${Math.round(c.strength * 100)} % toward ${DIV_NAMES[c.grid]}: ` +
+      `${mean} ms on average, at most ${most} ms. Lengths stay. ` +
+      (c.kept ? 'The take changes (undo goes back).' : 'The result is kept as a take.');
+  }
   const result = panel.querySelector('.tdc-result') as HTMLElement;
   result.textContent = text;
-  result.classList.toggle('warn', !q.fits);
+  result.classList.toggle('warn', !intoTake && !q.fits);
   panel.querySelector('.tdc-fit')!.textContent = c.grid === c.suggested ? '' : 'not the detected grid';
-  panel.querySelector('.tdc-convert')!.classList.toggle('off', !q.fits);
+  const action = panel.querySelector('.tdc-convert')!;
+  action.textContent = intoTake ? (c.kept ? 'Quantize' : 'Keep quantized') : 'Convert';
+  action.classList.toggle('off', !intoTake && !q.fits);
 }
 
 function convert(): void {
-  if (!conv || !conv.q.fits) return;
+  if (!conv) return;
+  if (conv.target === 'take') {
+    quantizeTake();
+    return;
+  }
+  if (!conv.q.fits) return;
   const c = conv;
   const index = getZones().indexOf(c.zone);
   if (index < 0) return;
@@ -1035,6 +1095,26 @@ function convert(): void {
   endConvert();
   setTab('seq');
   toast(`${Math.min(c.q.steps, c.q.max)} steps of ${DIV_NAMES[c.grid]} made from the take`);
+}
+
+/** Quantize the take in place (a kept one), or keep the quantized stretch or take */
+function quantizeTake(): void {
+  const c = conv!;
+  const index = getZones().indexOf(c.zone);
+  if (index < 0) return;
+  const moves = new Map<number, number>();
+  c.notes.forEach((n, k) => moves.set(n.s, c.starts[k]));
+  if (c.kept) {
+    commit(index, 'Quantize Take', () => c.take.moveNotes(moves, c.take.start));
+    takeSel = { zone: c.zone, take: c.take };
+  } else {
+    const result = c.take.slice(c.from, c.to);
+    result.moveNotes(moves, c.from);
+    commit(index, 'Keep Quantized Take', () => c.zone.keepTake(c.take, result));
+    takeSel = { zone: c.zone, take: result };
+  }
+  endConvert();
+  toast(`Quantized ${c.notes.length} notes toward ${DIV_NAMES[c.grid]} (${Math.round(c.strength * 100)} %)`);
 }
 
 function endConvert(): void {
@@ -1091,20 +1171,27 @@ function initTrackView(
   captureButton.className = 'track-capture track-chip';
   captureButton.innerHTML =
     '<a class="cb-keep lightButton" title="Keep this stretch of the take: it joins the song (Esc cancels)"></a>' +
+    '<a class="cb-quantize lightButton" title="Keep this stretch quantized">Quantize</a>' +
     '<a class="cb-steps lightButton" title="Turn this stretch into steps">To steps</a>';
   captureButton.addEventListener('mousedown', (ev) => ev.stopPropagation());
   captureButton.querySelector('.cb-keep')!.addEventListener('click', keepStretch);
-  captureButton.querySelector('.cb-steps')!.addEventListener('click', () => {
+  const fromStretch = (target: 'steps' | 'take') => (): void => {
     const take = capture && shownTake(capture.zone)?.take;
-    if (capture && take) startConvert(capture.zone, take, capture.from, capture.to);
-  });
+    if (capture && take) startConvert(capture.zone, take, capture.from, capture.to, target);
+  };
+  captureButton.querySelector('.cb-steps')!.addEventListener('click', fromStretch('steps'));
+  captureButton.querySelector('.cb-quantize')!.addEventListener('click', fromStretch('take'));
   keptChip = document.createElement('div');
   keptChip.className = 'track-chip';
-  keptChip.innerHTML = '<a class="lightButton" title="Turn this kept take into steps">To steps</a>';
+  keptChip.innerHTML =
+    '<a class="kc-quantize lightButton" title="Quantize this take">Quantize</a>' +
+    '<a class="kc-steps lightButton" title="Turn this kept take into steps">To steps</a>';
   keptChip.addEventListener('mousedown', (ev) => ev.stopPropagation());
-  keptChip.querySelector('a')!.addEventListener('click', () => {
-    if (takeSel) startConvert(takeSel.zone, takeSel.take, takeSel.take.start, takeSel.take.end);
-  });
+  const fromKept = (target: 'steps' | 'take') => (): void => {
+    if (takeSel) startConvert(takeSel.zone, takeSel.take, takeSel.take.start, takeSel.take.end, target);
+  };
+  keptChip.querySelector('.kc-steps')!.addEventListener('click', fromKept('steps'));
+  keptChip.querySelector('.kc-quantize')!.addEventListener('click', fromKept('take'));
   const panel = document.querySelector('#trackDock .td-convert')!;
   panel.querySelector('.tdc-grid')!.addEventListener('change', (ev) => {
     if (!conv) return;
@@ -1121,7 +1208,21 @@ function initTrackView(
     })
   );
   panel.querySelector('.tdc-swing input')!.addEventListener('change', (ev) => {
-    if (conv) conv.useSwing = (ev.target as HTMLInputElement).checked;
+    if (!conv) return;
+    conv.useSwing = (ev.target as HTMLInputElement).checked;
+    recompute();
+  });
+  panel.querySelectorAll('.tdc-target [data-target]').forEach((m) =>
+    m.addEventListener('click', () => {
+      if (!conv) return;
+      conv.target = (m as HTMLElement).dataset['target'] as 'steps' | 'take';
+      recompute();
+    })
+  );
+  panel.querySelector('.tdc-strength')!.addEventListener('input', (ev) => {
+    if (!conv) return;
+    conv.strength = Number((ev.target as HTMLInputElement).value) / 100;
+    recompute();
   });
   panel.querySelector('.tdc-convert')!.addEventListener('click', convert);
   panel.querySelector('.tdc-cancel')!.addEventListener('click', endConvert);
@@ -1131,12 +1232,15 @@ function initTrackView(
     '<a class="tc-prev lightButton" title="An earlier take">‹</a><span class="tc-label"></span>' +
     '<a class="tc-next lightButton" title="A later take">›</a>' +
     '<a class="tc-keep lightButton" title="Keep this take: it joins the song and plays from now on">Keep</a>' +
+    '<a class="tc-quantize lightButton" title="Quantize this take (keeps the result)">Quantize</a>' +
     '<a class="tc-steps lightButton" title="Turn this take into steps">To steps</a>';
-  takeChip.querySelector('.tc-steps')!.addEventListener('click', () => {
+  const fromShown = (target: 'steps' | 'take') => (): void => {
     const zone = getZones()[selected];
     const take = zone && shownTake(zone)?.take;
-    if (take) startConvert(zone, take, take.start, take.end);
-  });
+    if (take) startConvert(zone, take, take.start, take.end, target);
+  };
+  takeChip.querySelector('.tc-steps')!.addEventListener('click', fromShown('steps'));
+  takeChip.querySelector('.tc-quantize')!.addEventListener('click', fromShown('take'));
   takeChip.addEventListener('mousedown', (ev) => ev.stopPropagation());
   takeChip.querySelector('.tc-prev')!.addEventListener('click', () => browseTakes(-1));
   takeChip.querySelector('.tc-next')!.addEventListener('click', () => browseTakes(1));
