@@ -12,7 +12,7 @@ import { UndoHistory } from '../modules/undo-history';
 import { labelForZone } from '../modules/viewcontroller/action-labels';
 import { updateSheetHistory } from '../modules/viewcontroller/editor-sheet';
 import { loadDevicePresets } from '../modules/device-presets';
-import { timelineClock, timelineTransport, timelineSection } from '../modules/timeline';
+import { timelineClock, timelineTransport, timelineSection, timelineLoop, LoopRange } from '../modules/timeline';
 
 // Type aliases for class types
 type ZoneType = Zone;
@@ -194,6 +194,7 @@ function applyStoredZones(
           }
         }
       }
+      zones.loops = sanitizeLoops(storedZones.loops);
       zones.list = [];
       for (let i = 0; i < (storedZones.list?.length ?? 0); i++) {
         zones.list.push(createZone(midi, storedZones.list![i]));
@@ -229,6 +230,24 @@ function carryOverNoteHistory(previous: Zone[], current: Zone[]): void {
     const from = previous[current.indexOf(zone)];
     if (unclaimed.has(from)) adopt(zone, from);
   });
+}
+
+/** Loop ranges per arrangement from a scene file (untrusted): whole ticks, at most 1024 bars */
+function sanitizeLoops(data: unknown): ZonesData['loops'] {
+  if (!Array.isArray(data)) return [];
+  return data.slice(0, 4).map((l) => {
+    if (!l || typeof l !== 'object') return null;
+    const from = Math.round(Number((l as any).from));
+    const to = Math.round(Number((l as any).to));
+    if (!(from >= 0 && to > from && to <= 96 * 1024)) return null;
+    return { on: (l as any).on === true, from, to };
+  });
+}
+
+/** The current arrangement's loop range while it's on */
+function activeLoop(): LoopRange | null {
+  const loop = zones.loops?.[zones.arrangementIndex];
+  return loop && loop.on ? { from: loop.from, to: loop.to } : null;
 }
 
 interface Dismissable {
@@ -1032,13 +1051,16 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     },
     clockHandler: (pos: number, tickIntervalMs: number) => {
+      timelineLoop(activeLoop());
       timelineClock(pos, tickIntervalMs);
       if (zones.nextArrangementIndex !== zones.arrangementIndex) {
         Sequence.QUANT_TICK_N = pos % Sequence.QUANT_TICKS;
         if (Sequence.QUANT_TICK_N === 0) {
           const newIndex = zones.nextArrangementIndex;
           view.switchZonesToArrangement(newIndex);
-          // after the outgoing section's takes ended (in stopped()), before this tick plays
+          // after the outgoing section's takes ended (in stopped()), before this tick plays;
+          // the new arrangement's song starts at bar 1 or its loop's start
+          timelineLoop(activeLoop());
           timelineSection(pos);
           view.selectArrangement(newIndex);
           sendMackieLeds();

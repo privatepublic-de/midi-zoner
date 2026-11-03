@@ -21,6 +21,14 @@ export interface ZonesData {
   keySwitchEnabled: boolean;
   mackieOutlineEnabled: boolean;
   knownPortNames: Record<string, string>;
+  /** Per arrangement A–D: its loop range (song positions) and whether it's on */
+  loops?: (SceneLoop | null)[];
+}
+
+export interface SceneLoop {
+  on: boolean;
+  from: number;
+  to: number;
 }
 
 export interface ToastProperties {

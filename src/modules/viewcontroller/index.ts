@@ -168,6 +168,16 @@ function initController({
       change();
       updateValuesForZone(zoneindex);
       triggerSave();
+    },
+    {
+      get: () => zones.loops?.[zones.arrangementIndex] ?? null,
+      set: (loop, label) => {
+        undoHistory.beforeAction(JSON.stringify(zones), label);
+        const loops = (zones.loops ??= []);
+        while (loops.length < 4) loops.push(null);
+        loops[zones.arrangementIndex] = loop;
+        triggerSave();
+      }
     }
   );
   setMenuHandler(contextHandler);

@@ -19,13 +19,23 @@ const timeline = {
   runStarts: [] as number[], // session positions of every run's start
   // Run position where the current arrangement's song began: 0 at Start, the switch
   // position when an arrangement is entered while running (its song starts at bar 1)
-  sectionStart: 0
+  sectionStart: 0,
+  // Song position at sectionStart: bar 1, or the loop's start when the loop is on
+  songStart: 0,
+  // The current arrangement's loop range while it's on (song positions, whole ticks)
+  loop: null as LoopRange | null
 };
+
+export interface LoopRange {
+  from: number;
+  to: number;
+}
 
 function timelineClock(pos: number, tickIntervalMs: number): void {
   if (pos === 0) {
     timeline.run++;
     timeline.sectionStart = 0;
+    timeline.songStart = timeline.loop ? timeline.loop.from : 0;
     timeline.runStart = timeline.nextRunStart;
     timeline.runStarts.push(timeline.runStart);
   }
@@ -56,19 +66,55 @@ function sessionNow(): number {
   return timeline.running ? timeline.runStart + nowTick() : timeline.nextRunStart;
 }
 
-/** An arrangement was entered at this run position: its song starts there */
+/** An arrangement was entered at this run position: its song starts there (bar 1, or its loop's start) */
 function timelineSection(pos: number): void {
   timeline.sectionStart = pos;
+  timeline.songStart = timeline.loop ? timeline.loop.from : 0;
 }
 
-/** Position in the current arrangement's song (ticks from its bar 1); stopped: 0 */
+/**
+ * The current arrangement's loop range (null: off). Changed while running, the song
+ * goes on from where it is (from the next tick); past the new loop's end it jumps
+ * to its start.
+ */
+function timelineLoop(loop: LoopRange | null): void {
+  const valid = loop && loop.to > loop.from ? loop : null;
+  const same = valid === timeline.loop || (!!valid && !!timeline.loop && valid.from === timeline.loop.from && valid.to === timeline.loop.to);
+  if (same) return;
+  if (timeline.running) {
+    const next = timeline.pos + 1;
+    let song = Math.round(songAt(next - timeline.sectionStart));
+    if (valid && song >= valid.to) song = valid.from;
+    timeline.sectionStart = next;
+    timeline.songStart = song;
+  }
+  timeline.loop = valid ? { from: valid.from, to: valid.to } : null;
+}
+
+/** Song position after `elapsed` ticks of the section: on from songStart, wrapping in the loop */
+function songAt(elapsed: number): number {
+  const linear = timeline.songStart + elapsed;
+  const loop = timeline.loop;
+  if (!loop || timeline.songStart >= loop.to || linear < loop.to) return linear;
+  return loop.from + ((linear - loop.from) % (loop.to - loop.from));
+}
+
+/** Which pass of the loop `elapsed` falls in (0 before the first jump) */
+function passAt(elapsed: number): number {
+  const linear = timeline.songStart + elapsed;
+  const loop = timeline.loop;
+  if (!loop || timeline.songStart >= loop.to || linear < loop.to) return 0;
+  return 1 + Math.floor((linear - loop.to) / (loop.to - loop.from));
+}
+
+/** Position in the current arrangement's song (ticks from its bar 1); stopped: where Start begins */
 function songNow(): number {
-  return timeline.running ? nowTick() - timeline.sectionStart : 0;
+  return timeline.running ? songAt(nowTick() - timeline.sectionStart) : timeline.loop ? timeline.loop.from : 0;
 }
 
 /** Song position where the last section ended or is now (stopped: where it stopped) */
 function songEnd(): number {
-  return (timeline.running ? nowTick() : timeline.stopPos) - timeline.sectionStart;
+  return songAt((timeline.running ? nowTick() : timeline.stopPos) - timeline.sectionStart);
 }
 
 /** Where notes released now end: stopped, where the last run ended (ring-outs) */
@@ -136,4 +182,4 @@ class NoteHistory {
   }
 }
 
-export { timeline, timelineClock, timelineTransport, timelineSection, nowTick, sessionNow, songNow, songEnd, NoteHistory, HistoryNote };
+export { timeline, timelineClock, timelineTransport, timelineSection, timelineLoop, nowTick, sessionNow, songNow, songEnd, songAt, passAt, NoteHistory, HistoryNote };

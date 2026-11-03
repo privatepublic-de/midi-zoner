@@ -22,7 +22,7 @@ import {
   CC_LOCK_VALUES_EVENT
 } from './interfaces';
 import { NoteDisplay } from './note-display';
-import { NoteHistory, timeline, songNow, songEnd } from '../timeline';
+import { NoteHistory, timeline, songNow, songEnd, passAt, nowTick } from '../timeline';
 import { TakeNoteJSON } from './interfaces';
 import { DIV_TICKS, DivTick, PPQ, swingOffsetMs } from './seq-layer';
 import {
@@ -247,7 +247,7 @@ export class Zone {
   /** Which of them the track view shows: 0 the latest, 1 the one before… */
   shownTake = 0;
   /** The take being recorded: what is played into the zone while the clock runs */
-  private recording: { arrangement: number; notes: (TakeNoteJSON & { open: boolean })[] } | null = null;
+  private recording: { arrangement: number; pass: number; notes: (TakeNoteJSON & { open: boolean })[] } | null = null;
   readonly takePlayer = new TakePlayer(this);
   static MAX_TAKES = 64;
   arrangements: ZoneArrangementJSON[] = [];
@@ -1203,7 +1203,10 @@ export class Zone {
     // Slides first: one ending on this tick reaches its value before a new step starts
     this.paramLocks.tick(pos);
     this.sequence.clock(pos, tickIntervalMs);
-    this.takePlayer.clock(pos - timeline.sectionStart, tickIntervalMs, this.takes);
+    const elapsed = pos - timeline.sectionStart;
+    // the loop jumped back: the pass just played is a take
+    if (this.recording && passAt(elapsed) !== this.recording.pass) this.endTake(true);
+    this.takePlayer.clock(elapsed, tickIntervalMs, this.takes);
     if (tickIntervalMs > 0) this._lastTickIntervalMs = tickIntervalMs;
 
     const tickn = pos % this.arp_ticks;
@@ -1724,7 +1727,10 @@ export class Zone {
 
   private recordTakeNote(pitch: number, velo: number): void {
     if (!timeline.running) return;
-    if (!this.recording) this.recording = { arrangement: this.currentArrangementIndex, notes: [] };
+    // a pass of the loop is a take of its own
+    const pass = passAt(nowTick() - timeline.sectionStart);
+    if (this.recording && this.recording.pass !== pass) this.endTake(true);
+    if (!this.recording) this.recording = { arrangement: this.currentArrangementIndex, pass, notes: [] };
     if (this.recording.notes.length >= Take.MAX_NOTES) return;
     this.recordTakeNoteOff(pitch);
     this.recording.notes.push({ t: songNow(), d: 0, n: pitch, v: velo, open: true });
@@ -1749,17 +1755,24 @@ export class Zone {
   }
 
   /**
-   * The section ended (Stop or an arrangement switch): what was played becomes the
-   * latest take, from the bar of its first note to the bar the section ended in.
+   * The section ended (Stop or an arrangement switch) or a pass of the loop did
+   * (`atLoopEnd`): what was played becomes the latest take, from the bar of its first
+   * note to the bar the section ended in; within the loop, the loop's range.
    */
-  endTake(): void {
+  endTake(atLoopEnd = false): void {
     const rec = this.recording;
     this.recording = null;
     if (!rec || rec.notes.length === 0) return;
-    const end = Math.max(songEnd(), ...rec.notes.map((n) => (n.open ? 0 : n.t + n.d)));
+    const loop = timeline.loop;
+    const end = atLoopEnd && loop ? loop.to : Math.max(songEnd(), ...rec.notes.map((n) => (n.open ? 0 : n.t + n.d)));
     const take = new Take();
-    take.start = Math.max(0, Math.floor(rec.notes[0].t / TICKS_PER_BAR) * TICKS_PER_BAR);
-    take.length = Math.min(Take.MAX_LENGTH, Math.max(TICKS_PER_BAR, Math.ceil(end / TICKS_PER_BAR) * TICKS_PER_BAR - take.start));
+    if (loop && rec.notes.every((n) => n.t >= loop.from && n.t < loop.to)) {
+      take.start = loop.from;
+      take.length = loop.to - loop.from;
+    } else {
+      take.start = Math.max(0, Math.floor(rec.notes[0].t / TICKS_PER_BAR) * TICKS_PER_BAR);
+      take.length = Math.min(Take.MAX_LENGTH, Math.max(TICKS_PER_BAR, Math.ceil(end / TICKS_PER_BAR) * TICKS_PER_BAR - take.start));
+    }
     take.notes = rec.notes.map((n) => ({
       t: n.t - take.start,
       d: n.open ? Math.max(0.25, end - n.t) : n.d,

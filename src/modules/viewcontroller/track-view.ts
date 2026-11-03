@@ -1,6 +1,7 @@
 import { Zone } from '../zone/zone-class';
 import { ZONES_CHANGED_EVENT, UPDATE_ZONE_VIEW_EVENT } from '../zone/interfaces';
-import { timeline, sessionNow, songNow, NoteHistory } from '../timeline';
+import { timeline, sessionNow, songNow, songAt, passAt, nowTick, timelineLoop, NoteHistory } from '../timeline';
+import type { SceneLoop } from './types';
 import { Take } from '../zone/take';
 import { DIV_TICKS } from '../zone/seq-layer';
 import { analyse, quantize, quantizeStarts, applyToSequence, swingFor, stepPos, DIV_NAMES, PlayedNote, Quantized } from '../zone/take-quantize';
@@ -46,6 +47,12 @@ let zoomIndex = ZOOMS.indexOf(Number(localStorage.getItem(ZOOM_KEY)));
 if (zoomIndex < 0) zoomIndex = 2;
 let dirty = true;
 let frame = 0;
+// The current arrangement's loop range (set by the controller), and one being dragged on the ruler
+let loops: { get: () => SceneLoop | null; set: (loop: SceneLoop | null, label: string) => void } = {
+  get: () => null,
+  set: () => {}
+};
+let loopDrag: { from: number; to: number } | null = null;
 // Changes to a zone that are undo steps (set by the controller)
 let commit: (zoneIndex: number, label: string, change: () => void) => void = (_i, _l, change) => change();
 // The last frame's view, to turn a mouse position on a lane into a song position
@@ -329,15 +336,20 @@ function draw(): void {
   // The lanes show the current arrangement's song (bar 1 = where it started); the
   // sequencer counts run positions, which are the song's plus the section's start.
   // Stopped, the playhead waits at bar 1.
-  const songHead = timeline.running ? songNow() : 0;
-  const runToSong = timeline.running ? timeline.sectionStart : 0;
+  // the loop of the arrangement shown (also while stopped: Start begins at its start)
+  const loop = loops.get();
+  timelineLoop(loop?.on ? { from: loop.from, to: loop.to } : null);
+  const songHead = songNow();
+  // the sequencer counts run positions: from Start, which plays the song from songHead
+  const runToSong = (timeline.running ? nowTick() : 0) - songHead;
   if (follow) pinnedAt = songHead;
   const scrollPx = (songHead - pinnedAt) * ppt;
   view.head = songHead;
   view.ppt = ppt;
   view.scrollPx = scrollPx;
   document.querySelector('#trackRuler .tr-follow')?.classList.toggle('active', follow);
-  drawRuler(songHead, ppt, scrollPx);
+  drawRuler(songHead, ppt, scrollPx, loop);
+  document.querySelector('#trackRuler .tr-loop')?.classList.toggle('active', !!loop?.on);
   zones.forEach((z, i) => drawLane(z, i === selected, songHead, runToSong, ppt, scrollPx));
   if (!zones[selected]) takeChip.remove();
 }
@@ -368,7 +380,7 @@ function scrollBy(px: number): void {
   invalidate();
 }
 
-function drawRuler(songHead: number, ppt: number, scrollPx: number): void {
+function drawRuler(songHead: number, ppt: number, scrollPx: number, loop: SceneLoop | null): void {
   const ruler = document.getElementById('trackRuler');
   const pos = ruler?.querySelector('.tr-pos');
   if (pos) {
@@ -381,6 +393,18 @@ function drawRuler(songHead: number, ppt: number, scrollPx: number): void {
   if (!p) return;
   const [g, w, h] = p;
   const headX = Math.round(w * PLAYHEAD_AT) + scrollPx;
+  // the loop range: a bar along the top, lit while on (dragged: the new range)
+  const range = loopDrag ?? loop;
+  if (range) {
+    const x0 = headX + (range.from - songHead) * ppt;
+    const x1 = headX + (range.to - songHead) * ppt;
+    g.globalAlpha = loopDrag || loop?.on ? 1 : 0.35;
+    g.fillStyle = '#cfd6df';
+    g.fillRect(x0, 0, x1 - x0, 5);
+    g.fillRect(x0, 0, 1, h);
+    g.fillRect(x1 - 1, 0, 1, h);
+    g.globalAlpha = 1;
+  }
   g.font = '11px "Barlow Semi Condensed", sans-serif';
   const first = Math.max(0, Math.ceil((songHead - headX / ppt) / TICKS_PER_BEAT) * TICKS_PER_BEAT);
   const labelEvery = ppt < 1 ? 2 : 1; // bars apart, so numbers don't touch
@@ -442,14 +466,26 @@ function drawLane(
     g.fillRect(gx, 0, 1, h);
   }
 
-  // what this section sent, while running (session positions → song), only what's in view
+  // the loop range while on: outside it a shade darker
+  const loop = timeline.loop;
+  if (loop) {
+    g.globalAlpha = 1;
+    g.fillStyle = '#00000038';
+    g.fillRect(0, 0, Math.max(0, x(loop.from)), h);
+    g.fillRect(Math.min(w, x(loop.to)), 0, w, h);
+  }
+
+  // what this section sent while running, in this pass of the loop (session positions → song)
   const sectionAt = timeline.runStart + timeline.sectionStart;
-  const songOf = (session: number): number => session - sectionAt;
-  const viewFrom = songHead + (0 - headX) / ppt + sectionAt;
-  const viewTo = songHead + (w - headX) / ppt + sectionAt;
+  const elapsedNow = running ? nowTick() - timeline.sectionStart : 0;
+  const passNow = passAt(elapsedNow);
+  const songOf = (session: number): number => songAt(session - sectionAt);
+  const inPass = (n: { start: number }): boolean => n.start >= sectionAt && passAt(n.start - sectionAt) === passNow;
+  // the pass began this long ago (session positions), at most the view's width back
+  const passFrom = sessionNow() - Math.min(elapsedNow, (headX + 8) / ppt);
   const heldHistory = drums ? null : syncHeld(zone);
-  const history = running ? zone.noteHistory.between(viewFrom, viewTo).filter((n) => n.start >= sectionAt) : [];
-  const held = running && heldHistory ? heldHistory.between(viewFrom, viewTo).filter((n) => n.start >= sectionAt) : [];
+  const history = running ? zone.noteHistory.between(passFrom, sessionNow() + 1).filter(inPass) : [];
+  const held = running && heldHistory ? heldHistory.between(passFrom, sessionNow() + 1).filter(inPass) : [];
   const shown = shownTake(zone);
   const latest = shown?.take ?? null;
 
@@ -1123,6 +1159,46 @@ function endConvert(): void {
   invalidate();
 }
 
+/** Drag on the ruler: the loop range (whole bars, beats with Alt/Option), switched on */
+function startLoopDrag(ev: MouseEvent): void {
+  if (!isActive() || ev.button !== 0) return;
+  ev.preventDefault();
+  const ruler = ev.currentTarget as Element;
+  const start = laneTick(ruler, ev.clientX);
+  let moved = false;
+  const move = (e: MouseEvent): void => {
+    if (!moved && Math.abs(e.clientX - ev.clientX) < 4) return;
+    moved = true;
+    const end = laneTick(ruler, e.clientX);
+    const unit = e.altKey ? TICKS_PER_BEAT : TICKS_PER_BAR;
+    const from = Math.max(0, Math.floor(Math.min(start, end) / unit) * unit);
+    const to = Math.min(Take.MAX_LENGTH, Math.max(from + unit, Math.ceil(Math.max(start, end) / unit) * unit));
+    loopDrag = { from, to };
+    invalidate();
+  };
+  const up = (): void => {
+    window.removeEventListener('mousemove', move);
+    window.removeEventListener('mouseup', up);
+    const range = loopDrag;
+    loopDrag = null;
+    invalidate();
+    if (range) loops.set({ on: true, from: range.from, to: range.to }, 'Loop Range');
+  };
+  window.addEventListener('mousemove', move);
+  window.addEventListener('mouseup', up);
+}
+
+/** The Loop button: on and off; without a range yet, the 4 bars from the playhead's bar */
+function toggleLoop(): void {
+  const loop = loops.get();
+  if (loop) {
+    loops.set({ ...loop, on: !loop.on }, loop.on ? 'Loop Off' : 'Loop On');
+    return;
+  }
+  const from = Math.floor(Math.max(0, view.head) / TICKS_PER_BAR) * TICKS_PER_BAR;
+  loops.set({ on: true, from, to: from + 4 * TICKS_PER_BAR }, 'Loop On');
+}
+
 /** Keep the shown take of the selected track, whole */
 function keepShownTake(): void {
   const zone = getZones()[selected];
@@ -1162,10 +1238,15 @@ function browseTakes(step: number): void {
 
 function initTrackView(
   zones: () => Zone[],
-  commitChange: (zoneIndex: number, label: string, change: () => void) => void
+  commitChange: (zoneIndex: number, label: string, change: () => void) => void,
+  loopRange: typeof loops
 ): void {
   getZones = zones;
   commit = commitChange;
+  loops = loopRange;
+  const rulerCanvas = document.querySelector('#trackRuler canvas') as HTMLCanvasElement;
+  rulerCanvas.addEventListener('mousedown', startLoopDrag);
+  document.querySelector('#trackRuler .tr-loop')!.addEventListener('click', toggleLoop);
   const zonesEl = document.getElementById('zones')!;
   captureButton = document.createElement('div');
   captureButton.className = 'track-capture track-chip';

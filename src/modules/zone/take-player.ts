@@ -1,11 +1,12 @@
 import MIDI from '../midi';
 import { Note } from './note';
 import { Take } from './take';
+import { songAt } from '../timeline';
 import type { Zone } from './zone-class';
 
 interface Scheduled {
   note: Note;
-  onAt: number; // song positions (fractional)
+  onAt: number; // ticks since the section began (fractional): a loop's jump can't strand a note-off
   offAt: number;
   sounding: boolean;
   releasing: boolean;
@@ -21,14 +22,15 @@ export class TakePlayer {
   private zone: Zone;
   private queue: Scheduled[] = [];
   private timers = new Set<ReturnType<typeof setTimeout>>();
-  private songPos = 0;
+  private elapsed = 0;
 
   constructor(zone: Zone) {
     this.zone = zone;
   }
 
-  clock(songPos: number, tickIntervalMs: number, takes: Take[]): void {
-    this.songPos = songPos;
+  /** `elapsed`: ticks since the section began; the song position follows from it (loop) */
+  clock(elapsed: number, tickIntervalMs: number, takes: Take[]): void {
+    this.elapsed = elapsed;
     const later = (ticks: number, fn: () => void): void => {
       const ms = ticks * tickIntervalMs;
       if (ms < 1) {
@@ -42,12 +44,14 @@ export class TakePlayer {
       this.timers.add(timer);
     };
     for (const ev of this.queue) {
-      if (!ev.sounding || ev.releasing || ev.offAt >= songPos + 1) continue;
+      if (!ev.sounding || ev.releasing || ev.offAt >= elapsed + 1) continue;
       ev.releasing = true;
-      later(Math.max(0, ev.offAt - songPos), () => this.end(ev));
+      later(Math.max(0, ev.offAt - elapsed), () => this.end(ev));
     }
     const zone = this.zone;
     if (!zone.takes_on || !zone.enabled || ((zone.constructor as typeof Zone).solocount > 0 && !zone.solo)) return;
+    // a loop's bounds are whole ticks, so a tick never spans its jump
+    const songPos = songAt(elapsed);
     for (const take of takes) {
       const local = songPos - take.start;
       if (local < 0 || local >= take.length) continue;
@@ -60,7 +64,7 @@ export class TakePlayer {
         const note = new Note(tn.n, tn.v);
         note.channel = zone.channel;
         note.portId = zone.outputPortId;
-        const onAt = songPos + (tn.t - at);
+        const onAt = elapsed + (tn.t - at);
         // a note is cut where the take ends
         const ev: Scheduled = { note, onAt, offAt: onAt + Math.min(tn.d, last - tn.t), sounding: false, releasing: false };
         this.queue.push(ev);
@@ -68,7 +72,7 @@ export class TakePlayer {
           ev.sounding = true;
           this.send(MIDI.MESSAGE.NOTE_ON, note);
           // a note shorter than the rest of this tick ends before the next one
-          if (ev.offAt < songPos + 1 && !ev.releasing) {
+          if (ev.offAt < elapsed + 1 && !ev.releasing) {
             ev.releasing = true;
             later(ev.offAt - ev.onAt, () => this.end(ev));
           }
@@ -84,7 +88,7 @@ export class TakePlayer {
       if (!ev.sounding) continue;
       const note = ev.note;
       if (ringOutNotes) {
-        this.zone.ringOutAfterTicks(note.number, Math.max(0, ev.offAt - this.songPos), () =>
+        this.zone.ringOutAfterTicks(note.number, Math.max(0, ev.offAt - this.elapsed), () =>
           this.send(MIDI.MESSAGE.NOTE_OFF, note)
         );
       } else {
