@@ -406,15 +406,26 @@ function draw(): void {
   drawRuler(songHead, ppt, scrollPx, loop);
   document.querySelector('#trackRuler .tr-loop')?.classList.toggle('active', !!loop?.on);
   zones.forEach((z, i) => drawLane(z, i === selected, songHead, runToSong, ppt, scrollPx));
+  updateTakeList(zones);
   if (!zones[selected]) takeChip.remove();
 }
 
-/** The latest take of the zone's arrangement, or the one browsed back to */
+/**
+ * The latest unkept take of the zone's arrangement, or the one browsed back to. Its number
+ * counts all takes recorded in the arrangement, so it stays when another one is kept
+ */
 function shownTake(zone: Zone): { take: Take; number: number; count: number } | null {
   const list = zone.arrangementTakes;
   if (list.length === 0) return null;
   const back = Math.min(zone.shownTake, list.length - 1);
-  return { take: list[list.length - 1 - back], number: list.length - back, count: list.length };
+  const take = list[list.length - 1 - back];
+  const recorded = recordedTakes(zone);
+  return { take, number: recorded.indexOf(take) + 1, count: recorded.length };
+}
+
+/** All takes recorded in the zone's arrangement this session, kept or not, oldest first */
+function recordedTakes(zone: Zone): Take[] {
+  return zone.takeList.filter((e) => e.arrangement === zone.currentArrangementIndex).map((e) => e.take);
 }
 
 /** The song's extent: up to the end of the last take of any zone, at least where the playhead is */
@@ -1340,6 +1351,161 @@ function toggleLoop(): void {
   loops.set({ on: true, from, to: from + 4 * barLen() }, 'Loop On');
 }
 
+// ---------------------------------------------------------------------------
+// The Track tab's takes: the song's kept takes and the session's unkept ones, a row
+// each; the selection is the lanes' (a kept take: takeSel; an unkept one: the shown take)
+
+let takeListKey = '';
+let takeListRows: { zone: Zone; rows: { take: Take; kept: boolean; label: string }[] } | null = null;
+
+function takeRowsOf(zone: Zone): { take: Take; kept: boolean; label: string }[] {
+  const kept = [...zone.takes].sort((a, b) => a.start - b.start).map((take) => ({ take, kept: true, label: 'Kept' }));
+  const recorded = recordedTakes(zone);
+  const unkept = zone.arrangementTakes
+    .map((take) => ({ take, kept: false, label: `Take ${recorded.indexOf(take) + 1}` }))
+    .reverse();
+  return [...kept, ...unkept];
+}
+
+function updateTakeList(zones: Zone[]): void {
+  const zone = zones[selected];
+  const panel = document.querySelector('#trackDock .td-track');
+  if (!panel || !zone || tab !== 'zone' || !dockOpen) return;
+  const rows = takeRowsOf(zone);
+  const shown = takeSel?.zone === zone ? null : shownTake(zone)?.take ?? null;
+  const chosen = takeSel?.zone === zone ? takeSel.take : shown;
+  const key = [
+    selected,
+    zone.currentArrangementIndex,
+    timeline.running,
+    barLen(),
+    chosen?.id,
+    zoneColours.get(zone.elements.zoneElement!),
+    window.innerWidth,
+    document.body.classList.contains('converting'),
+    ...rows.map((r) => `${r.kept}${r.take.id}:${r.take.start}:${r.take.length}:${r.take.offset}:${r.take.notes.length}`)
+  ].join('|');
+  if (key === takeListKey) return;
+  takeListKey = key;
+  takeListRows = { zone, rows };
+  const arrangement = 'ABCD'[zone.currentArrangementIndex] ?? '';
+  const keptCount = rows.filter((r) => r.kept).length;
+  panel.querySelector('.tdt-title')!.textContent = `Takes in ${arrangement}`;
+  panel.querySelector('.tdt-summary')!.textContent = [
+    keptCount ? `${keptCount} kept` : '',
+    rows.length > keptCount ? `${rows.length - keptCount} not kept` : ''
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  const list = panel.querySelector('.tdt-list')!;
+  if (rows.length === 0) {
+    list.innerHTML =
+      '<p class="tdt-none">Nothing recorded here yet. What you play while the clock runs becomes a take after Stop.</p>';
+    return;
+  }
+  const off = timeline.running ? ' disabled' : '';
+  const button = (act: string, text: string, title: string): string =>
+    `<a class="lightButton${off}" data-take-act="${act}" title="${title}">${text}</a>`;
+  const group = (title: string): string => `<div class="tdt-group">${title}</div>`;
+  let html = '';
+  rows.forEach((r, i) => {
+    if (i === 0 && r.kept) html += group('In the song');
+    if (!r.kept && (i === 0 || rows[i - 1].kept)) html += group('Not kept · newest first');
+    const notes = r.take.visibleNotes().length;
+    html +=
+      `<div class="tdt-row${r.take === chosen ? ' selected' : ''}${r.kept ? ' kept' : ''}" data-index="${i}">` +
+      `<span class="tdt-name">${r.label}</span>` +
+      `<span class="tdt-where">bar ${barNumber(r.take.start)}</span>` +
+      `<canvas class="tdt-preview"></canvas>` +
+      `<span class="tdt-len">${Take.lengthLabel(r.take.length, timeline.meter)}</span>` +
+      `<span class="tdt-count">${notes} note${notes === 1 ? '' : 's'}</span>` +
+      '<span class="tdt-acts">' +
+      (r.kept ? '' : button('keep', 'Keep', 'Keep this take: it joins the song and plays from now on')) +
+      button('quantize', 'Quantize', r.kept ? 'Quantize this take' : 'Quantize this take (keeps the result)') +
+      button('steps', 'To steps', 'Turn this take into steps') +
+      (r.kept ? button('delete', '<i class="material-icons">delete_outline</i>', 'Delete this take from the song') : '') +
+      '</span></div>';
+  });
+  list.innerHTML = html;
+  // previews to one scale, so lengths compare (a hidden list has no sizes yet: drawn when shown)
+  const longest = Math.max(...rows.map((r) => r.take.length));
+  const colour = zoneColours.get(zone.elements.zoneElement!) || '#8fa3b8';
+  list.querySelectorAll('.tdt-row').forEach((row) => {
+    const take = rows[Number((row as HTMLElement).dataset['index'])].take;
+    drawTakePreview(row.querySelector('canvas')!, take, take.length / longest, colour);
+  });
+}
+
+function drawTakePreview(canvas: HTMLCanvasElement, take: Take, share: number, colour: string): void {
+  const dpr = window.devicePixelRatio || 1;
+  const full = canvas.clientWidth;
+  const h = canvas.clientHeight;
+  if (!full || !h) return;
+  canvas.width = full * dpr;
+  canvas.height = h * dpr;
+  const g = canvas.getContext('2d')!;
+  g.scale(dpr, dpr);
+  const w = Math.max(4, full * share);
+  g.fillStyle = '#ffffff0d';
+  g.fillRect(0, 0, w, h);
+  const notes = take.visibleNotes();
+  if (notes.length === 0) return;
+  let lo = 127;
+  let hi = 0;
+  for (const n of notes) {
+    lo = Math.min(lo, n.n);
+    hi = Math.max(hi, n.n);
+  }
+  const span = Math.max(1, hi - lo);
+  const px = w / take.length;
+  g.fillStyle = colour;
+  for (const n of notes) {
+    g.globalAlpha = 0.45 + (0.55 * n.v) / 127;
+    const y = 2 + ((hi - n.n) / span) * (h - 6);
+    g.fillRect((n.s - take.start) * px, y, Math.max(1.5, n.d * px - 0.5), 2);
+  }
+}
+
+/** A row clicked: its take is selected in the lane too, and scrolled into view */
+function chooseTakeRow(zone: Zone, take: Take, kept: boolean): void {
+  clearCapture();
+  if (kept) {
+    takeSel = { zone, take };
+  } else {
+    takeSel = null;
+    const list = zone.arrangementTakes;
+    zone.shownTake = Math.max(0, list.length - 1 - list.indexOf(take));
+  }
+  // in view: its start at the playhead's place, unless it's on screen already
+  const lane = zone.elements.zoneElement?.querySelector('.track-lane canvas') as HTMLCanvasElement | null;
+  const laneW = lane?.clientWidth ?? 0;
+  const headX = laneW * PLAYHEAD_AT + view.scrollPx;
+  const left = view.head - headX / view.ppt;
+  const visible = take.start >= left && take.end <= left + laneW / view.ppt;
+  if (!timeline.running && !visible) {
+    pinnedAt = Math.max(0, take.start);
+    follow = false;
+    followOnStart = false;
+  }
+  invalidate();
+}
+
+function takeRowAction(act: string, zone: Zone, take: Take, kept: boolean): void {
+  if (timeline.running) return;
+  const index = getZones().indexOf(zone);
+  if (index < 0) return;
+  if (act === 'keep') {
+    commit(index, 'Keep Take', () => zone.keepTake(take));
+    toast(`Take kept: ${Take.lengthLabel(take.length, timeline.meter)} from bar ${barNumber(take.start)}`);
+  } else if (act === 'delete' && kept) {
+    commit(index, 'Delete Take', () => zone.takes.splice(zone.takes.indexOf(take), 1));
+    if (takeSel?.take === take) takeSel = null;
+  } else if (act === 'quantize' || act === 'steps') {
+    startConvert(zone, take, take.start, take.end, act === 'steps' ? 'steps' : 'take');
+  }
+  invalidate();
+}
+
 /** Keep the shown take of the selected track, whole */
 function keepShownTake(): void {
   const zone = getZones()[selected];
@@ -1469,6 +1635,16 @@ function initTrackView(
   takeChip.querySelector('.tc-prev')!.addEventListener('click', () => browseTakes(-1));
   takeChip.querySelector('.tc-next')!.addEventListener('click', () => browseTakes(1));
   takeChip.querySelector('.tc-keep')!.addEventListener('click', keepShownTake);
+  const takeList = document.querySelector('#trackDock .tdt-list')!;
+  takeList.addEventListener('click', (ev) => {
+    const target = ev.target as Element;
+    const row = target.closest('.tdt-row') as HTMLElement | null;
+    const entry = row && takeListRows?.rows[Number(row.dataset['index'])];
+    if (!entry || !takeListRows) return;
+    const act = (target.closest('[data-take-act]') as HTMLElement | null)?.dataset['takeAct'];
+    if (act) takeRowAction(act, takeListRows.zone, entry.take, entry.kept);
+    else chooseTakeRow(takeListRows.zone, entry.take, entry.kept);
+  });
   zonesEl.addEventListener('mousedown', (ev) => {
     if (!isActive() || ev.button !== 0 || timeline.running) return;
     const lane = (ev.target as Element).closest('.track-lane');

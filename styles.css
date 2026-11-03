@@ -5428,6 +5428,7 @@ body.track-view:not(.minimized) {
   --dock-h: min(var(--dock-open-h, 290px), calc(100vh - var(--topbar-h, 44px) - 120px));
   --dock-bar-h: 32px;
   --strip-h: 28px; /* STRIP_H in track-view.ts */
+  --track-settings-w: 520px;
 
   /* folded by the user (the chevron or a double-click on the bar) */
   &.dock-closed {
@@ -6035,13 +6036,123 @@ body.track-view:not(.minimized) {
   &[data-dock='zone']:not(.dock-closed) #zones > .zone.track-selected > :is(.settings, .rangeholder) {
     display: flex !important;
   }
+  /* the Track tab: the zone's settings and key range on the left (--track-settings-w),
+     its takes in the rest */
   #zones > .zone.track-selected > .settings {
     top: calc(100vh - var(--dock-h) + var(--dock-bar-h) + 12px);
+    right: auto;
+    box-sizing: border-box;
+    width: var(--track-settings-w);
     padding: 0 12px;
   }
   #zones > .zone.track-selected > .rangeholder {
     top: calc(100vh - var(--dock-h) + var(--dock-bar-h) + 52px);
+    right: auto;
+    width: calc(var(--track-settings-w) - 24px);
     margin: 0 12px;
+  }
+  #trackDock .td-track {
+    display: none;
+    grid-row: 2;
+    grid-template-columns: var(--track-settings-w) 1fr;
+    min-height: 0;
+  }
+  &[data-dock='zone']:not(.dock-closed, .converting) #trackDock .td-track {
+    display: grid;
+  }
+  #trackDock .tdt-takes {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    border-left: 1px solid var(--slate-line);
+    font-size: var(--fs-md);
+  }
+  #trackDock .tdt-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 9px 14px 4px;
+    b {
+      font-weight: 600;
+    }
+  }
+  #trackDock .tdt-summary,
+  #trackDock .tdt-none {
+    color: var(--slate-dim);
+  }
+  #trackDock .tdt-none {
+    margin: 6px 14px;
+  }
+  #trackDock .tdt-list {
+    overflow: auto;
+    padding: 0 8px 10px;
+  }
+  #trackDock .tdt-group {
+    padding: 8px 6px 3px;
+    color: var(--slate-dim);
+    font-size: var(--fs-sm);
+  }
+  #trackDock .tdt-row {
+    display: grid;
+    grid-template-columns: 56px 52px minmax(120px, 1fr) 96px 70px 250px;
+    align-items: center;
+    gap: 10px;
+    height: 30px;
+    padding: 0 6px;
+    border-radius: var(--radius);
+    cursor: pointer;
+  }
+  #trackDock .tdt-row:hover {
+    background-color: var(--brighter-1);
+  }
+  /* the take selected in the lane: "where you are" */
+  #trackDock .tdt-row.selected {
+    background-color: var(--slate-raise);
+    box-shadow: inset 0 0 0 1px var(--select);
+  }
+  #trackDock .tdt-row.kept .tdt-name {
+    font-weight: 600;
+  }
+  #trackDock :is(.tdt-where, .tdt-len, .tdt-count) {
+    color: var(--slate-dim);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  #trackDock .tdt-preview {
+    width: 100%;
+    height: 20px;
+  }
+  #trackDock .tdt-acts {
+    display: flex;
+    gap: 4px;
+    a {
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      height: 22px;
+      padding: 0 9px;
+      background-color: var(--slate-raise);
+      border: 1px solid var(--slate-line);
+      border-radius: var(--radius);
+      color: var(--text-base-color);
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    a:has(.material-icons) {
+      padding: 0 4px;
+    }
+    .material-icons {
+      font-size: 15px;
+    }
+    a.disabled {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+  }
+  /* Keep always shows; the rest on the row under the mouse and the selected one */
+  #trackDock .tdt-row:not(:hover, .selected) .tdt-acts a:not([data-take-act='keep']) {
+    visibility: hidden;
   }
   /* a muted track stays editable in the dock */
   #zones > .zone.track-selected.disabled .seqtools {
