@@ -58,7 +58,7 @@
         >
           External clock
         </div>
-        <div class="internal">
+        <div class="internal bpm-field">
           <label for="bpm">BPM</label>
           <input
             type="number"
@@ -134,6 +134,7 @@
             <label class="metro-field" title="Click volume (0: no sound, e.g. for the MIDI click only)">
               <i class="material-icons">volume_up</i>
               <input type="range" id="metroVolume" min="0" max="100" tabindex="-1" />
+              <output id="metroVolumeValue"></output>
             </label>
             <select id="metroOutput" tabindex="-1" title="Audio output for the click">
               <option value="">System output</option>
@@ -220,17 +221,17 @@
         <a class="td-tab" data-tab="arp">Arp</a>
         <a class="td-tab" data-tab="cc">Controllers</a>
         <a class="td-tab" data-tab="zone">Zone</a>
+        <div class="td-empty">
+          <span class="td-empty-text"></span>
+          <a class="td-turn-on lightButton"></a>
+        </div>
         <a class="td-collapse lightButton" title="Hide the panel"><i class="material-icons">expand_more</i></a>
-      </div>
-      <div class="td-empty">
-        <span class="td-empty-text"></span>
-        <a class="td-turn-on lightButton"></a>
       </div>
       <div class="td-convert">
         <div class="tdc-head"><b class="tdc-title">Take to steps</b><span class="tdc-what"></span></div>
         <div class="tdc-row">
           <span class="label">Into</span>
-          <span class="tdc-target seq_drum_tracks"><span data-target="steps">Steps</span><span data-target="take">The take</span></span>
+          <span class="tdc-target tdc-segments"><span data-target="steps">Steps</span><span data-target="take">The take</span></span>
         </div>
         <div class="tdc-row">
           <span class="label">Grid</span>
@@ -244,9 +245,13 @@
         </div>
         <div class="tdc-row tdc-for-steps">
           <span class="label">Mode</span>
-          <span class="tdc-mode seq_drum_tracks"><span data-mode="notes">Notes</span><span data-mode="drums">Drums</span></span>
+          <span class="tdc-mode tdc-segments"><span data-mode="notes">Notes</span><span data-mode="drums">Drums</span></span>
         </div>
-        <label class="tdc-row tdc-swing"><input type="checkbox" tabindex="-1" /><span></span></label>
+        <div class="tdc-row tdc-swing">
+          <span class="label">Swing</span>
+          <label class="tdc-swing-chip"><input type="checkbox" tabindex="-1" /><span class="tdc-swing-text"></span></label>
+          <span class="tdc-swing-note"></span>
+        </div>
         <div class="tdc-result"></div>
         <div class="tdc-actions">
           <a class="lightButton tdc-convert">Convert</a>

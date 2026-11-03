@@ -38,9 +38,11 @@ function initMetronomeControls(): void {
   });
 
   const volume = DOM.get('#metroVolume') as HTMLInputElement;
+  const volumeValue = DOM.get('#metroVolumeValue') as HTMLOutputElement;
   const showVolume = (): void => {
     volume.value = String(Math.round(metronomeSettings.volume * 100));
     volume.style.setProperty('--fill', `${volume.value}%`);
+    volumeValue.textContent = volume.value === '0' ? 'Off' : `${volume.value} %`;
   };
   showVolume();
   volume.addEventListener('input', () => {

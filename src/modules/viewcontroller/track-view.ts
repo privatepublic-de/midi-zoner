@@ -27,6 +27,9 @@ const DOCK_MIN_H = 120;
 const ZOOMS = [0.5, 1, 2, 4]; // px per clock tick; at 2 a 1/16 step is 12px, a bar 192px
 const PLAYHEAD_AT = 0.3; // share of the lane width behind the playhead
 const LANE_PAD = 6;
+const STRIP_H = 28; // the selected track's strip over its notes, as --strip-h in styles.css
+const TAKE_LANE_H = 48; // the last run below the song: the shown take, while running the one being recorded
+const TAKE_PAD = 4;
 const DIM_TEXT = '#8b95a3';
 const STOPPED_REDRAW_MS = 500;
 
@@ -89,6 +92,7 @@ const view = { head: 0, ppt: 1, scrollPx: 0 };
 // stays where the playhead normally is (a wheel or trackpad scrolls, Follow returns)
 let follow = true;
 let pinnedAt = 0;
+let followOnStart = false; // the view was held for a loop set while stopped (holdView)
 // A stretch of the shown take to keep, in song positions
 let capture: { zone: Zone; from: number; to: number } | null = null;
 let captureButton: HTMLElement;
@@ -269,6 +273,8 @@ function updateDock(zones: Zone[]): void {
     turnOn = 'Turn on';
   }
   dock.classList.toggle('empty', empty !== '');
+  // nothing to show: the dock folds to its bar, which says so (not saved as the user's fold)
+  document.body.classList.toggle('dock-empty', empty !== '');
   dock.querySelector('.td-empty-text')!.textContent = empty;
   dock.querySelector('.td-turn-on')!.textContent = turnOn;
 }
@@ -303,8 +309,19 @@ function prepare(canvas: HTMLCanvasElement | null): [CanvasRenderingContext2D, n
 function laneHeight(zone: Zone): number {
   const seq = zone.sequence;
   if (seq.active && seq.isDrumSequence) return Math.max(56, seq.drumLanes * 10 + 2 * LANE_PAD);
-  if (seq.active || zone.takes.length > 0 || zone.takeList.length > 0) return 80;
+  if (seq.active || zone.takes.length > 0) return 80;
   return 56;
+}
+
+/** The track's last-run lane below the song, once something was played into it here */
+function hasTakeLane(zone: Zone): boolean {
+  return zone.hasRecorded;
+}
+
+/** Whether a mouse y on a lane is in its last-run part (presses there pick a stretch) */
+function inTakeLane(zone: Zone, lane: Element, clientY: number): boolean {
+  if (!hasTakeLane(zone)) return false;
+  return clientY >= lane.querySelector('canvas')!.getBoundingClientRect().bottom - TAKE_LANE_H;
 }
 
 /** Where the step `cur` of a sequence started; stopped (cur -1), one step before the playhead */
@@ -371,6 +388,10 @@ function draw(): void {
   const songHead = songNow();
   // the sequencer counts run positions: from Start, which plays the song from songHead
   const runToSong = (timeline.running ? nowTick() : 0) - songHead;
+  if (followOnStart && (timeline.running || timeline.countIn !== null)) {
+    follow = true;
+    followOnStart = false;
+  }
   if (follow) pinnedAt = songHead;
   // counting in: the song (and the playhead waiting at its start) comes in from the right
   const countIn = follow ? countInNow() : null;
@@ -408,6 +429,7 @@ function songExtent(): number {
 function scrollBy(px: number): void {
   pinnedAt = Math.max(0, Math.min(songExtent(), (follow ? view.head : pinnedAt) + px / view.ppt));
   follow = false;
+  followOnStart = false; // scrolled away on purpose
   invalidate();
 }
 
@@ -443,8 +465,9 @@ function drawRuler(songHead: number, ppt: number, scrollPx: number, loop: SceneL
     const barNo = Math.round(s / barLen());
     g.fillStyle = s === 0 ? '#e7eaee' : bar ? DIM_TEXT : '#4a525d';
     g.fillRect(x, bar ? h - 14 : h - 6, 1, bar ? 14 : 6);
-    // clear of the playhead mark
-    if (bar && barNo % labelEvery === 0 && Math.abs(x - headX) > 8) g.fillText(String(barNo + 1), x + 4, h - 5);
+    // on the playhead mark: just after it
+    const labelX = Math.abs(x - headX) > 8 ? x + 4 : headX + 9;
+    if (bar && barNo % labelEvery === 0) g.fillText(String(barNo + 1), labelX, h - 5);
   }
   if (headX < -6 || headX > w + 6) return;
   g.fillStyle = '#e7eaee';
@@ -465,11 +488,15 @@ function drawLane(
 ): void {
   const el = zone.elements.zoneElement;
   if (!el) return;
-  const height = `${laneHeight(zone)}px`;
+  const takeLane = hasTakeLane(zone);
+  const height = `${laneHeight(zone) + (takeLane ? TAKE_LANE_H : 0) + (isSelected ? STRIP_H : 0)}px`;
   if (el.style.getPropertyValue('--track-h') !== height) el.style.setProperty('--track-h', height);
   const p = prepare(el.querySelector('.track-lane canvas'));
   if (!p) return;
-  const [g, w, h] = p;
+  const [g, w, fullH] = p;
+  // the song above (h), the last run below it (takeY … fullH)
+  const h = takeLane ? fullH - TAKE_LANE_H : fullH;
+  const takeY = h;
   // where the playhead is: its place, or elsewhere while scrolled
   const headX = Math.round(w * PLAYHEAD_AT) + scrollPx;
   const x = (s: number): number => headX + (s - songHead) * ppt; // song positions
@@ -490,17 +517,16 @@ function drawLane(
   for (const { t: s, bar } of beatLines(timeline.meter, Math.max(0, songHead - headX / ppt), songHead + (w - headX) / ppt)) {
     const gx = Math.round(x(s));
     g.fillStyle = s === 0 ? '#ffffff40' : bar ? '#ffffff1c' : '#ffffff0a';
-    g.fillRect(gx, 0, 1, h);
+    g.fillRect(gx, 0, 1, fullH);
+  }
+  if (takeLane) {
+    // the last run: a shade darker, under a line
+    g.fillStyle = '#0000002e';
+    g.fillRect(0, takeY, w, TAKE_LANE_H);
+    g.fillStyle = '#ffffff14';
+    g.fillRect(0, takeY, w, 1);
   }
 
-  // the loop range while on: outside it a shade darker
-  const loop = timeline.loop;
-  if (loop) {
-    g.globalAlpha = 1;
-    g.fillStyle = '#00000038';
-    g.fillRect(0, 0, Math.max(0, x(loop.from)), h);
-    g.fillRect(Math.min(w, x(loop.to)), 0, w, h);
-  }
 
   // what this section sent while running, in this pass of the loop (session positions → song)
   const sectionAt = timeline.runStart + timeline.sectionStart;
@@ -557,13 +583,43 @@ function drawLane(
   const noteH = Math.max(3, Math.min(drums ? 8 : 6, rowH - (drums ? 2 : 0)));
   const rowY = (row: number): number => LANE_PAD + row * rowH + (rowH - noteH) / 2;
 
+  // the last run's rows: the same pitches, pressed into its lane
+  const takeRowH = (TAKE_LANE_H - 2 * TAKE_PAD) / rows;
+  const takeNoteH = Math.max(2, Math.min(4, takeRowH));
+  const songRows = { y: rowY, h: noteH };
+  const takeRows = {
+    y: (row: number): number => takeY + TAKE_PAD + row * takeRowH + (takeRowH - takeNoteH) / 2,
+    h: takeNoteH
+  };
+
+  // a small label at the lane's top right
+  const cornerLabel = (label: string, top: number): void => {
+    if (!label) return;
+    g.font = '10px "Barlow Semi Condensed", sans-serif';
+    const labelW = g.measureText(label).width;
+    g.globalAlpha = 0.85;
+    g.fillStyle = '#15171a';
+    g.fillRect(w - labelW - 10, top + 1, labelW + 8, 13);
+    g.fillStyle = DIM_TEXT;
+    g.fillText(label, w - labelW - 6, top + 11);
+  };
+
   // a note at song positions; ghost: dashed (won't play), faint: an unkept take
-  const note = (s0: number, s1: number, row: number, velo: number, ghost: boolean, alpha = 1): void => {
+  const note = (
+    s0: number,
+    s1: number,
+    row: number,
+    velo: number,
+    ghost: boolean,
+    alpha = 1,
+    place = songRows
+  ): void => {
     if (row < 0) return;
     const x0 = x(s0);
     const x1 = x(s1);
     if (x1 < 0 || x0 > w) return;
-    const y = rowY(row);
+    const y = place.y(row);
+    const noteH = place.h;
     const width = Math.max(2, x1 - x0 - 1);
     g.globalAlpha = (silent ? 0.3 : 0.45 + (0.55 * velo) / 127) * alpha;
     if (ghost) {
@@ -584,34 +640,41 @@ function drawLane(
     }
   };
 
-  // takes: kept ones are the song (solid), the latest unkept one faint in a dashed frame;
-  // a selected kept take has a light frame, one being dragged stays as a ghost
+  // takes: kept ones are the song (solid); the latest unkept one in the last-run lane
+  // below, in a dashed frame; a selected kept take has a light frame, one being dragged
+  // stays as a ghost
   const drawTake = (take: Take, kept: boolean, state: 'normal' | 'selected' | 'ghost' = 'normal'): void => {
     const x0 = x(take.start);
     const x1 = x(take.end);
     if (x1 < 0 || x0 > w) return;
+    const top = kept ? 0 : takeY;
+    const frameH = kept ? h : TAKE_LANE_H;
     // a ghost while dragged; kept takes of a zone whose Tk is off are faded (silent)
     const ghost = state === 'ghost' ? 0.3 : kept && !zone.takes_on ? 0.4 : 1;
     g.globalAlpha = (kept ? 0.12 : 1) * ghost;
     g.fillStyle = kept ? colour : '#ffffff08';
-    g.fillRect(x0, 1, x1 - x0, h - 2);
+    g.fillRect(x0, top + 1, x1 - x0, frameH - 2);
     g.strokeStyle = state === 'selected' ? '#e7eaee' : kept ? colour : '#e7eaee66';
     g.lineWidth = state === 'selected' ? 2 : 1;
     g.globalAlpha = (state === 'selected' ? 1 : kept ? 0.6 : 1) * ghost;
     if (!kept) g.setLineDash([3, 3]);
-    g.strokeRect(Math.round(x0) + 0.5, 1.5, Math.round(x1 - x0) - 1, h - 3);
+    g.strokeRect(Math.round(x0) + 0.5, top + 1.5, Math.round(x1 - x0) - 1, frameH - 3);
     g.setLineDash([]);
     g.lineWidth = 1;
     for (const n of take.visibleNotes()) {
       if (x(n.s) > w) break;
-      note(n.s, n.s + n.d, rowOf(n.n), n.v, false, (kept ? 1 : 0.45) * ghost);
+      note(n.s, n.s + n.d, rowOf(n.n), n.v, false, (kept ? 1 : 0.7) * ghost, kept ? songRows : takeRows);
     }
   };
   for (const t of zone.takes) {
     drawTake(t, true, takeDrag?.take === t ? 'ghost' : takeSel?.take === t ? 'selected' : 'normal');
   }
-  if (latest && !running) drawTake(latest, false);
+  if (latest && !running && takeLane) drawTake(latest, false);
   if (takeDrag?.target === zone) drawTake(dragPreview(takeDrag), true, 'selected');
+  // while running, the last-run lane shows the take being recorded
+  if (running && takeLane) {
+    for (const n of zone.recordingNotes) note(n.t, n.t + n.d, rowOf(n.n), n.v, false, 0.85, takeRows);
+  }
 
   // the notes the arp plays from: a band behind its notes, fading out ahead while still held
   const bandH = Math.max(noteH + 2, Math.min(rowH, noteH + 4));
@@ -694,33 +757,54 @@ function drawLane(
         }
       });
     }
-    const label = drums
-      ? `${rows} lanes · ${seq.length} × ${divisionName(zone)}`
-      : `${seq.length} × ${divisionName(zone)}`;
-    g.font = '10px "Barlow Semi Condensed", sans-serif';
-    const labelW = g.measureText(label).width;
-    g.globalAlpha = 0.85;
-    g.fillStyle = '#15171a';
-    g.fillRect(w - labelW - 10, 1, labelW + 8, 13);
-    g.fillStyle = DIM_TEXT;
-    g.fillText(label, w - labelW - 6, 11);
+    cornerLabel(
+      drums ? `${rows} lanes · ${seq.length} × ${divisionName(zone)}` : `${seq.length} × ${divisionName(zone)}`,
+      0
+    );
+  }
+  if (takeLane) {
+    const recording = running && zone.recordingNotes.length > 0;
+    cornerLabel(recording ? 'Recording' : running ? '' : shown ? `Take ${shown.number}/${shown.count}` : 'All takes kept', takeY);
+  }
+
+  // the loop range while on: outside it everything recedes (it doesn't play there)
+  const loop = timeline.loop;
+  if (loop) {
+    g.globalAlpha = 1;
+    g.fillStyle = '#0b0d10a6';
+    g.fillRect(0, 0, Math.max(0, x(loop.from)), fullH);
+    g.fillRect(Math.min(w, x(loop.to)), 0, w, fullH);
   }
 
   // the past a shade darker while running, then the playhead
   g.globalAlpha = 1;
   if (running) {
     g.fillStyle = '#0000002e';
-    g.fillRect(0, 0, Math.max(0, Math.min(w, headX)), h);
+    g.fillRect(0, 0, Math.max(0, Math.min(w, headX)), fullH);
   }
   g.fillStyle = '#e7eaeecc';
-  if (headX >= 0 && headX <= w) g.fillRect(headX, 0, 1, h);
+  if (headX >= 0 && headX <= w) g.fillRect(headX, 0, 1, fullH);
 
-  if (conv?.zone === zone) drawConversion(g, x, rowOf, rowY, noteH, w, h);
-  if (capture?.zone === zone) drawCapture(g, el, x(capture.from), x(capture.to), w, h);
-  if (isSelected) placeTakeChip(el, shown, latest && !running && !conv ? x(latest.start) : null, w);
+  // a kept take converts in the song, the shown take in the last-run lane
+  if (conv?.zone === zone) {
+    if (conv.kept || !takeLane) drawConversion(g, x, rowOf, songRows, w, 0, h);
+    else drawConversion(g, x, rowOf, takeRows, w, takeY, TAKE_LANE_H);
+  }
+  if (capture?.zone === zone) drawCapture(g, el, x(capture.from), x(capture.to), w, takeY, fullH - takeY);
   if (isSelected) {
+    // one chip in the strip: a picked stretch, else a selected kept take, else the last run's takes
     const kept = takeSel?.zone === zone && !running && !takeDrag && !conv ? takeSel.take : null;
-    placeChip(keptChip, el, kept ? x(kept.start) + 4 : null, w, 4);
+    const stretch = capture?.zone === zone;
+    placeChip(keptChip, el, kept ? x(kept.start) + 4 : null, w);
+    placeTakeChip(el, shown, latest && !running && !conv && !kept && !stretch ? x(latest.start) : null, w);
+    let hint = '';
+    if (!running && !conv && !kept && !stretch && !latest) {
+      hint = zone.takes.length > 0
+        ? 'Click a take to quantize it or turn it into steps'
+        : 'What you play while the clock runs shows up here as a take after Stop';
+    }
+    const hintEl = el.querySelector('.track-hint')!;
+    if (hintEl.textContent !== hint) hintEl.textContent = hint;
   }
 }
 
@@ -729,24 +813,26 @@ function drawConversion(
   g: CanvasRenderingContext2D,
   x: (s: number) => number,
   rowOf: (pitch: number) => number,
-  rowY: (row: number) => number,
-  noteH: number,
+  place: { y: (row: number) => number; h: number },
   w: number,
+  top: number,
   h: number
 ): void {
   const c = conv!;
+  const rowY = place.y;
+  const noteH = place.h;
   const ticks = DIV_TICKS[c.grid];
   g.globalAlpha = 1;
   // outside the stretch, darker
   g.fillStyle = '#00000059';
-  g.fillRect(0, 0, Math.max(0, x(c.from)), h);
-  g.fillRect(Math.min(w, x(c.to)), 0, w, h);
+  g.fillRect(0, top, Math.max(0, x(c.from)), h);
+  g.fillRect(Math.min(w, x(c.to)), top, w, h);
   // the grid's steps
   g.fillStyle = '#e7eaee14';
   for (let i = 0; i < c.q.steps && i < c.q.max; i++) {
     const sx = x(c.from + stepPos(i, ticks, c.swing));
     if (sx > w) break;
-    if (sx >= 0) g.fillRect(Math.round(sx), 0, 1, h);
+    if (sx >= 0) g.fillRect(Math.round(sx), top, 1, h);
   }
   g.strokeStyle = '#e7eaee';
   if (c.target === 'take') {
@@ -792,18 +878,17 @@ function drawConversion(
 }
 
 /** A floating chip on a lane at x (hidden with null) */
-function placeChip(chip: HTMLElement, zoneEl: HTMLElement, at: number | null, w: number, top: number): void {
+function placeChip(chip: HTMLElement, zoneEl: HTMLElement, at: number | null, w: number): void {
   if (at === null) {
     chip.remove();
     return;
   }
-  const lane = zoneEl.querySelector('.track-lane')!;
-  if (chip.parentElement !== lane) {
-    lane.appendChild(chip);
+  const strip = zoneEl.querySelector('.track-strip')!;
+  if (chip.parentElement !== strip) {
+    strip.appendChild(chip);
     invalidate(); // placed by its width, known from the next frame
   }
   chip.style.left = `${Math.max(4, Math.min(w - chip.offsetWidth - 4, at))}px`;
-  chip.style.top = `${top}px`;
 }
 
 /** On the selected track: browse its unkept takes (‹ ›) and keep the one shown */
@@ -817,9 +902,9 @@ function placeTakeChip(
     takeChip.remove();
     return;
   }
-  const lane = zoneEl.querySelector('.track-lane')!;
-  if (takeChip.parentElement !== lane) {
-    lane.appendChild(takeChip);
+  const strip = zoneEl.querySelector('.track-strip')!;
+  if (takeChip.parentElement !== strip) {
+    strip.appendChild(takeChip);
     invalidate(); // placed by its width, known from the next frame
   }
   const label = `Take ${shown.number}/${shown.count} · ${Take.lengthLabel(shown.take.length, timeline.meter)}`;
@@ -831,27 +916,34 @@ function placeTakeChip(
 }
 
 /** The stretch picked for keeping, and its Keep button at its end */
-function drawCapture(g: CanvasRenderingContext2D, zoneEl: HTMLElement, x0: number, x1: number, w: number, h: number): void {
-  const lane = zoneEl.querySelector('.track-lane')!;
+function drawCapture(
+  g: CanvasRenderingContext2D,
+  zoneEl: HTMLElement,
+  x0: number,
+  x1: number,
+  w: number,
+  top: number,
+  h: number
+): void {
+  const strip = zoneEl.querySelector('.track-strip')!;
   if (x1 < 0 || x0 > w) {
     captureButton.remove(); // scrolled out of view; still picked
     return;
   }
   g.globalAlpha = 1;
   g.fillStyle = '#e7eaee1a';
-  g.fillRect(x0, 0, x1 - x0, h);
+  g.fillRect(x0, top, x1 - x0, h);
   g.fillStyle = '#e7eaeeb3';
-  g.fillRect(Math.round(x0), 0, 1, h);
-  g.fillRect(Math.round(x1) - 1, 0, 1, h);
-  if (captureButton.parentElement !== lane) {
-    lane.appendChild(captureButton);
+  g.fillRect(Math.round(x0), top, 1, h);
+  g.fillRect(Math.round(x1) - 1, top, 1, h);
+  if (captureButton.parentElement !== strip) {
+    strip.appendChild(captureButton);
     invalidate(); // placed by its width, known from the next frame
   }
   const text = `Keep · ${Take.lengthLabel(capture!.to - capture!.from, timeline.meter)}`;
   const keepLink = captureButton.querySelector('.cb-keep')!;
   if (keepLink.textContent !== text) keepLink.textContent = text;
   captureButton.style.left = `${Math.max(4, Math.min(w - captureButton.offsetWidth - 4, x1 - captureButton.offsetWidth - 4))}px`;
-  captureButton.style.top = '28px';
 }
 
 function clearCapture(): void {
@@ -985,7 +1077,7 @@ function startTakeDrag(ev: MouseEvent, lane: Element, zone: Zone, take: Take, ed
         drag.zone.takes.splice(drag.zone.takes.indexOf(take), 1);
         drag.target.takes.push(take);
       }
-      drag.target.takes.sort((a, b) => a.start - b.start);
+      drag.target.clearUnder(take);
     });
     takeSel = { zone: drag.target, take };
     if (other) select(getZones().indexOf(drag.target));
@@ -1090,9 +1182,15 @@ function updateConvertPanel(): void {
   const swingRow = panel.querySelector('.tdc-swing') as HTMLElement;
   swingRow.style.display = c.swing > 0 ? '' : 'none';
   (swingRow.querySelector('input') as HTMLInputElement).checked = c.useSwing;
-  swingRow.querySelector('span')!.textContent = intoTake
-    ? `Keep the swing (${Math.round(c.swing * 100)} %, the off-beats were played late); off: straighten them`
-    : `Set the zone's Swing to ${Math.round(c.swing * 100)} % (the off-beats were played late)`;
+  const swing = Math.round(c.swing * 100);
+  swingRow.querySelector('.tdc-swing-text')!.textContent = `${intoTake ? 'Keep' : 'Set'} ${swing} %`;
+  swingRow.querySelector('.tdc-swing-note')!.textContent = intoTake
+    ? c.useSwing
+      ? 'The off-beats were played late and stay late'
+      : 'Off: the off-beats move to the straight grid'
+    : c.useSwing
+      ? "The zone's Swing, as the off-beats were played late"
+      : "Off: the zone's Swing stays as it is";
   const q = c.q;
   const filled = q.cells.filter(Boolean).length;
   const seq = c.zone.sequence;
@@ -1204,15 +1302,29 @@ function startLoopDrag(ev: MouseEvent): void {
     const range = loopDrag;
     loopDrag = null;
     invalidate();
-    if (range) loops.set({ on: true, from: range.from, to: range.to }, 'Loop Range');
+    if (!range) return;
+    holdView();
+    loops.set({ on: true, from: range.from, to: range.to }, 'Loop Range');
   };
   window.addEventListener('mousemove', move);
   window.addEventListener('mouseup', up);
 }
 
+/**
+ * Stopped, a loop moves where Start begins (the playhead): the song stays where it is on
+ * screen and only the playhead moves; Start (or its count-in) follows again
+ */
+function holdView(): void {
+  if (timeline.running || timeline.countIn !== null || !follow) return;
+  pinnedAt = view.head;
+  follow = false;
+  followOnStart = true;
+}
+
 /** The Loop button: on and off; without a range yet, the 4 bars from the playhead's bar */
 function toggleLoop(): void {
   const loop = loops.get();
+  holdView();
   if (loop) {
     loops.set({ ...loop, on: !loop.on }, loop.on ? 'Loop Off' : 'Loop On');
     return;
@@ -1354,19 +1466,25 @@ function initTrackView(
     if (!isActive() || ev.button !== 0 || timeline.running) return;
     const lane = (ev.target as Element).closest('.track-lane');
     const zone = getZones()[zoneIndexOf(lane)];
-    if (!lane || !zone || (ev.target as Element).closest('.track-capture, .track-takes')) return;
+    if (!lane || !zone || (ev.target as Element).closest('.track-strip')) return;
     // no text selection; a field being typed in still commits its value (on blur)
     ev.preventDefault();
     (document.activeElement as HTMLElement | null)?.blur();
+    // the last run: a stretch of the shown take to keep
+    if (inTakeLane(zone, lane, ev.clientY)) {
+      takeSel = null;
+      startCaptureDrag(ev, lane, zone);
+      return;
+    }
+    // the song: kept takes move, their edges trim
     const hit = takeAt(zone, lane, ev.clientX);
+    clearCapture();
     if (hit) {
       takeSel = { zone, take: hit.take };
-      clearCapture();
       startTakeDrag(ev, lane, zone, hit.take, hit.edge);
       return;
     }
     takeSel = null;
-    startCaptureDrag(ev, lane, zone);
   });
   document.addEventListener('keydown', (ev) => {
     if (capture && ev.key === 'Escape') clearCapture();
@@ -1387,7 +1505,9 @@ function initTrackView(
     const lane = (ev.target as Element).closest('.track-lane') as HTMLElement | null;
     if (!lane) return;
     const zone = getZones()[zoneIndexOf(lane)];
-    const hit = !timeline.running && zone ? takeAt(zone, lane, ev.clientX) : null;
+    const onStrip = !!(ev.target as Element).closest('.track-strip');
+    const inSong = zone && !onStrip && !inTakeLane(zone, lane, ev.clientY);
+    const hit = !timeline.running && inSong ? takeAt(zone, lane, ev.clientX) : null;
     const cursor = hit ? (hit.edge ? 'ew-resize' : 'grab') : '';
     if (lane.style.cursor !== cursor) lane.style.cursor = cursor;
   });
@@ -1407,6 +1527,7 @@ function initTrackView(
   );
   document.querySelector('#trackRuler .tr-follow')?.addEventListener('click', () => {
     follow = true;
+    followOnStart = false;
     invalidate();
   });
   // Any press on a track selects it
@@ -1441,8 +1562,9 @@ function initTrackView(
     if (!isActive()) return;
     const lane = (ev.target as Element).closest('.track-lane');
     const index = zoneIndexOf(lane);
-    if (index < 0) return;
+    if (index < 0 || (ev.target as Element).closest('.track-strip')) return;
     const zone = getZones()[index];
+    if (zone && inTakeLane(zone, lane!, ev.clientY)) return;
     // on a kept take (after Stop): cut it there
     const hit = !timeline.running && zone ? takeAt(zone, lane!, ev.clientX) : null;
     if (hit && !hit.edge) {

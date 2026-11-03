@@ -766,6 +766,13 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
   color: var(--text-base-color);
 }
 
+/* BPM is a setting, not one of the switches before it */
+body:not(.minimized) #midisettings > .transport > .bpm-field {
+  margin-left: 4px;
+  padding-left: 10px;
+  border-left: 1px solid var(--slate-line);
+}
+
 /* the beat light in the Click chip: flashes on every beat (the bar's first in live green) */
 .beat-led {
   width: 6px;
@@ -793,6 +800,11 @@ body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transp
 
 #setupDrawer .metro-field.disabled {
   opacity: 0.4;
+}
+
+/* wide enough for "100 %", so the output selector beside it doesn't move */
+#metroVolumeValue {
+  min-width: 3.4em;
 }
 
 #setupDrawer .metro-field .material-icons {
@@ -3646,6 +3658,12 @@ body.running .seqprogress.drum .inner {
   padding: 2px;
 }
 
+/* an icon's room on every entry, so a ✓ (meters, selector values) doesn't push its entry out of line */
+#contextmenu li > .material-icons:first-child {
+  display: inline-block;
+  width: 1em;
+}
+
 #contextmenu li.disabled,
 #contextmenu li.label {
   color: var(--brighter-1);
@@ -5409,9 +5427,15 @@ body.track-view:not(.minimized) {
   /* --dock-open-h: the height dragged at the top edge (track-view.ts) */
   --dock-h: min(var(--dock-open-h, 290px), calc(100vh - var(--topbar-h, 44px) - 120px));
   --dock-bar-h: 32px;
+  --strip-h: 28px; /* STRIP_H in track-view.ts */
 
-  &.dock-closed {
+  /* folded by the user, or by itself while its tab has nothing for this track */
+  &.dock-closed,
+  &.dock-empty:not(.converting) {
     --dock-h: var(--dock-bar-h);
+  }
+  &.dock-empty:not(.converting) #trackDock .td-resize {
+    display: none;
   }
 
   .padded {
@@ -5581,39 +5605,63 @@ body.track-view:not(.minimized) {
       height: 100%;
     }
   }
-  /* chips on a lane: the selected track's takes (‹ Take 3/5 › Keep To steps), a picked
-     stretch (Keep · 2 bars, To steps), a selected kept take (To steps) */
-  .track-lane .track-chip {
+  /* the selected track's strip over its notes: one chip at a time, at the take it is for
+     (a picked stretch: Keep · 2 bars; a selected kept take: Quantize, To steps; else the
+     last run's takes: ‹ Take 3/5 › Keep), or a hint */
+  .track-lane .track-strip {
+    display: none;
+  }
+  #zones > .zone.track-selected > .track-lane {
+    canvas {
+      top: var(--strip-h);
+      height: calc(100% - var(--strip-h));
+    }
+    .track-strip {
+      display: flex;
+      align-items: center;
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: var(--strip-h);
+      box-sizing: border-box;
+      background-color: var(--slate-panel);
+      border-bottom: 1px solid var(--slate-line);
+    }
+    .track-hint {
+      padding: 0 8px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      color: var(--slate-dim);
+    }
+  }
+  .track-strip .track-chip {
     position: absolute;
-    top: 4px;
+    top: 2px;
     z-index: 2;
     display: flex;
     align-items: center;
-    gap: 2px;
-    padding: 1px;
+    gap: 3px;
     white-space: nowrap;
-    font-size: var(--fs-sm);
-    background-color: var(--slate-panel);
-    border: 1px solid var(--slate-line);
-    border-radius: var(--radius);
+    font-size: var(--fs-md);
     .tc-label {
       padding: 0 6px;
       color: var(--text-base-color);
     }
     .lightButton {
-      height: 18px;
-      min-width: 18px;
-      padding: 0 6px;
+      box-sizing: border-box;
+      height: 22px;
+      min-width: 24px;
+      padding: 0 9px;
       display: flex;
       align-items: center;
       justify-content: center;
       background-color: var(--slate-raise);
+      border: 1px solid var(--slate-line);
+      border-radius: var(--radius);
       color: var(--text-base-color);
       cursor: pointer;
-    }
-    .tc-prev,
-    .tc-next {
-      background-color: transparent;
     }
     .lightButton.off {
       opacity: 0.3;
@@ -5782,8 +5830,68 @@ body.track-view:not(.minimized) {
       width: 58px;
       color: var(--slate-dim);
     }
+    /* the zone's controls: raised, 22px, the chosen segment and a switched-on chip lit */
     .tdc-grid {
+      box-sizing: border-box;
       height: 22px;
+      padding: 0 6px;
+      font-size: var(--fs-md);
+      background-color: var(--slate-raise);
+      border: 1px solid var(--slate-line);
+      border-radius: var(--radius);
+      color: var(--text-base-color);
+    }
+    .tdc-segments {
+      display: inline-flex;
+      span {
+        box-sizing: border-box;
+        display: inline-flex;
+        align-items: center;
+        height: 22px;
+        padding: 0 10px;
+        font-size: var(--fs-md);
+        background-color: var(--slate-raise);
+        border: 1px solid var(--slate-line);
+        border-right: none;
+        color: var(--slate-dim);
+        cursor: pointer;
+      }
+      span:first-child {
+        border-radius: var(--radius) 0 0 var(--radius);
+      }
+      span:last-child {
+        border-right: 1px solid var(--slate-line);
+        border-radius: 0 var(--radius) var(--radius) 0;
+      }
+      span.on {
+        background-color: var(--on);
+        border-color: var(--on);
+        color: var(--on-text);
+      }
+    }
+    .tdc-swing-chip {
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      height: 22px;
+      padding: 0 9px;
+      font-size: var(--fs-md);
+      border-radius: var(--radius);
+      background-color: var(--slate-raise);
+      box-shadow: inset 0 0 0 1px var(--slate-line);
+      color: var(--slate-dim);
+      cursor: pointer;
+      input {
+        display: none;
+      }
+    }
+    .tdc-swing-chip:has(input:checked) {
+      background-color: var(--on);
+      box-shadow: none;
+      color: var(--on-text);
+    }
+    .tdc-swing-note {
+      color: var(--slate-dim);
     }
     .tdc-fit {
       color: var(--slate-dim);
@@ -5791,11 +5899,6 @@ body.track-view:not(.minimized) {
     }
     .tdc-strength {
       width: 160px;
-    }
-    .tdc-target span.on,
-    .tdc-mode span.on {
-      background-color: var(--brighter-1);
-      color: var(--text-base-color);
     }
     .tdc-result {
       color: var(--text-base-color);
@@ -5832,13 +5935,25 @@ body.track-view:not(.minimized) {
   &.converting[data-dock] #zones > .zone.track-selected.track-selected > :is(.seq, .arp-settings-block, .ccpots, .settings, .rangeholder) {
     display: none !important;
   }
+  /* in the bar, after the tabs */
   #trackDock .td-empty {
     display: none;
-    align-self: start;
     align-items: center;
     gap: 10px;
-    padding: 16px;
+    margin-left: 16px;
     color: var(--slate-dim);
+  }
+  #trackDock .td-turn-on {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    height: 22px;
+    padding: 0 9px;
+    background-color: var(--slate-raise);
+    border: 1px solid var(--slate-line);
+    border-radius: var(--radius);
+    color: var(--text-base-color);
+    cursor: pointer;
   }
   &:not(.dock-closed) #trackDock.empty .td-empty {
     display: flex;
