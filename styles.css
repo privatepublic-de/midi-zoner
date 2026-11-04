@@ -4177,7 +4177,8 @@ body:has(.clocksettings.isExternal) .es-play + .es-sep {
   left: 0;
   right: 0;
   box-sizing: border-box;
-  border-bottom: 1px solid var(--darker-1);
+  /* dark enough that neighbouring white keys (E/F, B/C) stay two keys */
+  border-bottom: 1px solid var(--darker-4);
   background-color: var(--brighter-1);
   font-size: var(--fs-sm);
   color: var(--darker-4);
@@ -4222,17 +4223,34 @@ body:has(.clocksettings.isExternal) .es-play + .es-sep {
       var(--darker-1) 0 1px,
       transparent 1px var(--pr-cell-w, 24px)
     ),
-    linear-gradient(to bottom, transparent calc(14px - 1px), var(--brighter-0) 0);
+    linear-gradient(to bottom, transparent calc(14px - 1px), var(--brighter-0) 0),
+    /* black-key rows a shade darker; the tile runs B…C from the top, like the C line's */
+    linear-gradient(
+      to bottom,
+      transparent 0 14px,
+      var(--darker-2) 14px 28px,
+      transparent 28px 42px,
+      var(--darker-2) 42px 56px,
+      transparent 56px 70px,
+      var(--darker-2) 70px 84px,
+      transparent 84px 112px,
+      var(--darker-2) 112px 126px,
+      transparent 126px 140px,
+      var(--darker-2) 140px 154px,
+      transparent 154px
+    );
   background-size:
     100% calc(12 * 14px),
     auto,
     auto,
-    100% 14px;
+    100% 14px,
+    100% calc(12 * 14px);
   background-position:
     0 calc(8 * 14px),
     0 0,
     0 0,
-    0 0;
+    0 0,
+    0 calc(8 * 14px);
   cursor: copy;
 }
 
@@ -4650,22 +4668,21 @@ body.minimized .midi-led.on {
     height: 0;
   }
 
-  body:not(.minimized) #setupToggle {
-    order: 1;
-    flex: 1 1 0;
-    min-width: 0;
-    max-width: none;
-  }
-
-  body:not(.minimized) #midisettings .strip-end {
-    order: 1;
-    margin-left: 0;
-  }
-
+  /* what you play with first (M S H, A–D, Start), then Setup and the tools,
+     right above the drawer Setup opens */
   body:not(.minimized) #midisettings .global-resets,
   body:not(.minimized) #midisettings #arrangementSelector,
   body:not(.minimized) #midisettings .transport {
+    order: 1;
+  }
+
+  body:not(.minimized) #setupToggle {
     order: 3;
+  }
+
+  body:not(.minimized) #midisettings .strip-end {
+    order: 3;
+    margin-left: auto;
   }
 }
 
