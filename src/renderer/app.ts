@@ -33,6 +33,8 @@ const zones: ZonesData = {
   arrangementIndex: 0,
   nextArrangementIndex: 0,
   arrangementQuantIndex: 2,
+  toggleQuantOn: true,
+  toggleQuantIndex: 2,
   keySwitchEnabled: true,
   mackieOutlineEnabled: true,
   knownPortNames: {}
@@ -201,6 +203,9 @@ function applyStoredZones(
       zones.meters = sanitizeMeters(storedZones.meters);
       // "3/4 bar" became "bar" (of the arrangement's meter)
       if (zones.arrangementQuantIndex === 3) zones.arrangementQuantIndex = 2;
+      if (![2, 8, 14].includes(zones.toggleQuantIndex)) zones.toggleQuantIndex = 2;
+      zones.toggleQuantOn = zones.toggleQuantOn !== false;
+      showToggleQuant();
       zones.list = [];
       for (let i = 0; i < (storedZones.list?.length ?? 0); i++) {
         zones.list.push(createZone(midi, storedZones.list![i]));
@@ -273,14 +278,26 @@ function beatOfSong(meter: Meter, song: number): Beat {
 const SIXTEENTH = 6;
 
 /**
- * Whether a pending arrangement switch happens at run position p: on the current
- * song's next bar, beat or 16th ("Switch at next"), in its meter.
+ * Whether a pending arrangement switch (or, with `quant` = toggleQuantIndex, a waiting
+ * zone toggle) happens at run position p: on the current song's next bar, beat or 16th
+ * ("A–D change at next"), in its meter.
  */
-function isSwitchPoint(p: number): boolean {
+function isSwitchPoint(p: number, quant = zones.arrangementQuantIndex): boolean {
   const song = songAt(p - timeline.sectionStart);
-  if (zones.arrangementQuantIndex === 14) return song % SIXTEENTH === 0;
+  if (quant === 14) return song % SIXTEENTH === 0;
   const beat = beatIndexAt(timeline.meter, song);
-  return zones.arrangementQuantIndex === 8 ? beat >= 0 : beat === 0;
+  return quant === 8 ? beat >= 0 : beat === 0;
+}
+
+const QUANT_NAMES: Record<number, string> = { 2: 'bar', 8: 'beat', 14: '16th' };
+
+/** The Quantize chip (lit while zone toggles wait for the boundary) and its setting */
+function showToggleQuant(): void {
+  const chip = DOM.get('#toggleQuantChip');
+  if (!chip) return;
+  chip.classList.toggle('active', zones.toggleQuantOn);
+  chip.textContent = `Q ${QUANT_NAMES[zones.toggleQuantIndex]}`;
+  (DOM.get('#togglequant') as HTMLSelectElement).value = String(zones.toggleQuantIndex);
 }
 
 /**
@@ -1013,14 +1030,9 @@ document.addEventListener('DOMContentLoaded', function () {
             if (note < 8) {
               view.toggleSequencerOnZone(zoneIndex); // Rec arm → seq enable
             } else if (note < 16) {
-              zone.solo = !zone.solo;
-              if (zone.solo) zone.enabled = true;
-              view.updateValuesForAllZones();
-              saveZones();
+              view.toggleZoneSolo(zoneIndex);
             } else if (note < 24) {
-              zone.enabled = !zone.enabled;
-              view.updateValuesForAllZones();
-              saveZones();
+              view.toggleZoneMute(zoneIndex);
             } else {
               mackieSelectedZone = zoneIndex;
             }
@@ -1140,6 +1152,11 @@ document.addEventListener('DOMContentLoaded', function () {
           saveZones();
         }
       }
+      // waiting mutes and Seq/Arp switches land on this tick (after a switch: in the new arrangement)
+      if (view.hasPendingToggles() && isSwitchPoint(pos, zones.toggleQuantIndex)) {
+        view.applyPendingToggles();
+        sendMackieLeds();
+      }
       for (let i = 0; i < zones.list.length; i++) {
         zones.list[i].clock(pos, tickIntervalMs);
       }
@@ -1164,6 +1181,8 @@ document.addEventListener('DOMContentLoaded', function () {
         zones.list.forEach((z) => {
           z.stopped(true);
         });
+        // nothing to wait for any more
+        view.applyPendingToggles();
       }
       sendMackieLeds();
     },
@@ -1340,6 +1359,7 @@ document.addEventListener('DOMContentLoaded', function () {
         (DOM.get('#seqquant') as HTMLSelectElement).value = String(
           zones.arrangementQuantIndex ?? 2
         );
+        showToggleQuant();
         (DOM.get('#keySwitchEnabled') as HTMLInputElement).checked =
           zones.keySwitchEnabled !== false;
         (DOM.get('#mackieOutlineEnabled') as HTMLInputElement).checked =
@@ -1559,6 +1579,16 @@ document.addEventListener('DOMContentLoaded', function () {
   DOM.on('#seqquant', 'change', (ev) => {
     const quantDiv = parseInt((ev.target as HTMLSelectElement).value);
     zones.arrangementQuantIndex = quantDiv;
+    saveZones();
+  });
+  DOM.on('#togglequant', 'change', (ev) => {
+    zones.toggleQuantIndex = parseInt((ev.target as HTMLSelectElement).value);
+    showToggleQuant();
+    saveZones();
+  });
+  DOM.on('#toggleQuantChip', 'click', () => {
+    zones.toggleQuantOn = !zones.toggleQuantOn;
+    showToggleQuant();
     saveZones();
   });
   DOM.on('#aboutBtn', 'click', () => ipcRenderer.invoke('open-about'));

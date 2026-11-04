@@ -6248,3 +6248,35 @@ body.track-view:not(.minimized) {
     display: flex;
   }
 }
+
+/* =============================================================
+   WAITING TOGGLES
+   With Q on, M, S, Seq, Arp and Trk wait for the next boundary while the clock runs
+   (pending-toggles.ts); every other blink phase (`data-flip`) the chip shows the look
+   it will have.
+   ============================================================= */
+
+.zone .channels .ch.pending[data-flip='on'] {
+  background-color: var(--on);
+  border-color: var(--on);
+  color: var(--ink);
+}
+
+.zone .channels .ch.state.pending[data-flip='on'] {
+  background-color: var(--mute-fill);
+  border-color: var(--mute-fill);
+  color: var(--brighter-4);
+}
+
+.zone .channels .ch.solo.pending[data-flip='on'] {
+  background-color: var(--live);
+  border-color: var(--live);
+  color: var(--ink);
+}
+
+.zone .channels .ch.pending[data-flip='off'] {
+  background-color: var(--slate-raise);
+  border-color: var(--slate-line);
+  box-shadow: none;
+  color: var(--brighter-4);
+}

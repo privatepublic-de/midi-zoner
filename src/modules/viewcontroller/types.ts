@@ -19,6 +19,10 @@ export interface ZonesData {
   arrangementIndex: number;
   nextArrangementIndex: number;
   arrangementQuantIndex: number;
+  /** Whether zone toggles wait for the next boundary while the clock runs */
+  toggleQuantOn: boolean;
+  /** Their boundary: 2 bar, 8 beat, 14 16th (as arrangementQuantIndex) */
+  toggleQuantIndex: number;
   keySwitchEnabled: boolean;
   mackieOutlineEnabled: boolean;
   knownPortNames: Record<string, string>;

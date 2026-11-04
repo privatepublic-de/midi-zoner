@@ -52,6 +52,12 @@
           title="Count in before Start: the clock runs a bar (or two) with clicks, then starts (Setup → Metronome)"
           >Count-in</a
         >
+        <a
+          id="toggleQuantChip"
+          class="lightButton active"
+          title="Quantize: while the clock runs, M, S, Seq, Arp and Trk wait for the next bar (or beat, 16th: Setup → Switching → "M S Seq Arp Trk change at next") and blink until then; click again to cancel. Shift-click does the opposite. Key switches and Mackie buttons wait too"
+          >Q bar</a
+        >
         <div
           class="ext-badge"
           title="Following the external clock: tempo and start/stop come from this input. Click to change the clock source"
@@ -153,11 +159,19 @@
           </div>
         </div>
         <div class="drawer-group">
-          <span class="group-label">Arrangement</span>
+          <span class="group-label">Switching</span>
           <div class="group-body">
             <label class="arr-quant" title="While the clock runs, choosing A–D waits for the next bar, beat or 16th of the playing arrangement (in its meter). With the clock stopped, it switches immediately.">
-              Switch at next
+              A–D change at next
               <select id="seqquant">
+                <option value="2">bar</option>
+                <option value="8">beat</option>
+                <option value="14">16th note</option>
+              </select>
+            </label>
+            <label class="arr-quant" title="With Q lit in the transport, M, S, Seq, Arp and Trk wait for the next bar, beat or 16th while the clock runs">
+              M S Seq Arp Trk change at next
+              <select id="togglequant">
                 <option value="2">bar</option>
                 <option value="8">beat</option>
                 <option value="14">16th note</option>

@@ -22,6 +22,7 @@ import { closeCCEditor, initCCEditor, isCCEditorOpen, refreshCCEditor } from './
 import { initPianoRoll } from './piano-roll';
 import { initTrackView, isTrackView, setTrackView, followTrack } from './track-view';
 import { renderStepLocks } from './step-locks';
+import { isQuantizable, requestToggle, isPending, hasPendingToggles, takePendingToggles, markPending } from './pending-toggles';
 import { describeAction, labelForZone, zonePrefix, ARRANGEMENT_LETTERS } from './action-labels';
 import { Meter, DEFAULT_METER, METER_CHOICES, meterLabel, sameMeter, parseMeter } from '../meter';
 import {
@@ -289,6 +290,44 @@ function findTouchedNote(
   };
 }
 
+/** True while waiting toggles land, so they don't wait again */
+let landingToggles = false;
+
+/**
+ * While the clock runs, a zone toggle waits for the next "M S Seq Arp Trk change at next" boundary
+ * when quantizing (the Quantize chip; Shift does the opposite). Pressing a waiting
+ * toggle again cancels it.
+ */
+function waitsForBoundary(ev: MouseEvent, actionString: string): boolean {
+  const [index, action] = actionString.split(':');
+  const zone = zones.list[parseInt(index)];
+  if (!zone || !isQuantizable(action) || landingToggles || !midiController.isClockRunning) return false;
+  if (!isPending(zone, action) && zones.toggleQuantOn === !!ev.shiftKey) return false;
+  requestToggle(zone, action);
+  return true;
+}
+
+/** The waiting toggles land, each one an undo step as if pressed now */
+function applyPendingToggles(): void {
+  if (!hasPendingToggles()) return;
+  landingToggles = true;
+  try {
+    takePendingToggles().forEach(({ zone, action }) => {
+      const index = zones.list.indexOf(zone);
+      if (index >= 0) zoneToggle(index, action);
+    });
+  } finally {
+    landingToggles = false;
+  }
+}
+
+/** A zone toggle from a key switch or a Mackie button: like a click on its chip */
+function zoneToggle(index: number, action: string): void {
+  if (!zones.list[index]) return;
+  const press = { type: 'click', shiftKey: false, currentTarget: null, stopPropagation: () => {} };
+  actionHandler(press as unknown as MouseEvent, `${index}:${action}`);
+}
+
 function actionHandler(ev: MouseEvent, overrideaction?: string): void {
   ev.stopPropagation();
   const element = ev.currentTarget as HTMLElement;
@@ -303,6 +342,7 @@ function actionHandler(ev: MouseEvent, overrideaction?: string): void {
     actionString = element.getAttribute('data-focus-change');
     actionString += ':' + (ev.type == 'focus' ? 1 : 0);
   }
+  if (waitsForBoundary(ev, actionString!)) return;
   undoHistory.beforeAction(JSON.stringify(zones), describeAction(actionString!, zones));
   const params = actionString!.split(':');
   const zoneindex = parseInt(params[0]);
@@ -751,6 +791,7 @@ function renderZones(): void {
   addPlaceholder();
   updateZoneHeaderContextMenus(zones.arrangementIndex);
   refreshCCEditor();
+  markPending();
 }
 
 function addPlaceholder(): void {
@@ -1670,23 +1711,15 @@ function allHoldOff(): void {
 }
 
 function toggleZoneMute(index: number): void {
-  const zone = zones.list[index];
-  if (zone) {
-    undoHistory.beforeAction(JSON.stringify(zones), labelForZone(zone, index, 'Enabled'));
-    zone.enabled = !zone.enabled;
-    updateValuesForAllZones();
-    triggerSave();
-  }
+  zoneToggle(index, 'zone_enabled');
+}
+
+function toggleZoneSolo(index: number): void {
+  zoneToggle(index, 'zone_solo');
 }
 
 function toggleSequencerOnZone(index: number): void {
-  const zone = zones.list[index];
-  if (zone) {
-    undoHistory.beforeAction(JSON.stringify(zones), labelForZone(zone, index, 'Sequencer On/Off'));
-    zone.sequence.active = !zone.sequence.active;
-    updateValuesForAllZones();
-    triggerSave();
-  }
+  zoneToggle(index, 'toggle_seq');
 }
 
 function updateZoneHeaderContextMenus(currentArrIndex: number): void {
@@ -1831,6 +1864,9 @@ export {
   updateValuesForAllZones,
   updateValuesForZone,
   toggleZoneMute,
+  toggleZoneSolo,
+  applyPendingToggles,
+  hasPendingToggles,
   selectArrangement,
   switchZonesToArrangement,
   toggleSequencerOnZone,

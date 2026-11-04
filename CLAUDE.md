@@ -158,6 +158,7 @@ Global state is stored in the `zones` object in app.ts:
 - `zones.nextArrangementIndex`: Pending arrangement for quantized switching
 - `zones.arrangementQuantIndex`: Quantization mode for arrangement switching (2 bar, 8 beat, 14 16th of the playing song, in its meter; the old 3 = "3/4 bar" loads as bar)
 - `zones.meters[0–3]`: each arrangement's meter (null = 4/4)
+- `zones.toggleQuantOn` / `zones.toggleQuantIndex`: whether zone toggles wait for a boundary while running, and which (2 bar, 8 beat, 14 16th; see Quantized toggles)
 
 Hidden MIDI ports: `midi.hiddenPorts` (id → name, localStorage key `hiddenPorts`, per machine, not in scenes). `app.ts` filters port lists through `visiblePorts()` before building any selector; ports referenced by zones, clock, Mackie or selected inputs (`portsInUse()`) always stay visible. Managed via "Manage MIDI ports" in the input port window.
 
@@ -278,8 +279,14 @@ Note numbers range 0-127. Display format uses `Note.display()` which produces `M
 - ⌘Z / ⇧⌘Z are app-wide (keydown in app.ts, no undo roles in the macOS Edit menu, which only has cut/copy/paste/select all for text fields). A focused field is blurred first (`commitFocusedField()`), so typing in progress becomes its own entry; the editor panels let these keys through and stop all others (the piano roll in the capture phase; Space also passes there, for play/stop)
 - Undo replaces the zone objects: the piano roll and the controller editor follow the zone at the same index; the track view's note history and selection go with the matching zone (see Track view)
 
+### Quantized toggles
+- While the clock runs (not during a count-in), M, S, Seq, Arp and Trk wait for the next "M S Seq Arp Trk change at next" boundary (Setup → Switching, `#togglequant`) when the transport's Q chip (`#toggleQuantChip`) is lit; Shift-click does the opposite of the chip. Global M/S/H stay instant
+- `viewcontroller/pending-toggles.ts` keeps the waiting toggles (by zone object, in order) and blinks their chips (`.pending`, `data-flip` = the look after the toggle, CSS at the end of styles.css); pressing a waiting chip again cancels it
+- `waitsForBoundary()` in `actionHandler` (viewcontroller/index.ts) runs before the undo snapshot; key switches and Mackie mute/solo/rec go through `zoneToggle()`, the same path as a plain click
+- They land in `clockHandler` (app.ts) on `isSwitchPoint(pos, zones.toggleQuantIndex)`, after a pending arrangement switch on the same tick (so in the new arrangement), before the zones play the tick; `applyPendingToggles()` runs each one as a click (one undo step each). Stop lands what is still waiting
+
 ### Key Switches
-When enabled (toggle in toolbar), MIDI notes 0–19 from any input are intercepted before zone routing:
+When enabled (toggle in toolbar), MIDI notes 0–19 from any input are intercepted before zone routing (mutes and sequencer toggles wait like clicks, see Quantized toggles):
 
 | Note range | Dec | Action |
 |---|---|---|
@@ -327,7 +334,7 @@ When enabled (toggle in toolbar), MIDI notes 0–19 from any input are intercept
 - One meter per arrangement (`zones.meters`, saved with the scene, sanitized by `parseMeter()`), set in the A–D right-click menu (`meters:<arrangement>` in `data-contextmenu`, expanded by `meterMenu()` in viewcontroller/index.ts: `METER_CHOICES` plus a field for any n/4 or n/8 with a grouping, e.g. "11/8 3+3+3+2"; action `global_arr_meter`, one undo step). A–D show a meter other than 4/4 as a small superscript (`data-meter`), the ruler head as "Stopped · 7/8 2+2+3"
 - A bar is n × 1/d; beats are quarters in x/4 and the group starts in x/8 (6/8 = 3+3, 7/8 = 2+2+3 by default, `groupsOf()`), so the metronome clicks the groups (accent on the bar). Labels show the grouping except for the usual threes (6/8, 9/8, 12/8)
 - `timeline.meter` is the current arrangement's (`timelineMeter()`: from the clock handler each tick and after a switch, Start, and every track-view frame), so a take ending at a switch is cut to bars of its own meter (`Zone.endTake()`)
-- Follows the meter: metronome accents and beats, count-in length and count, ruler and lane lines, bar numbers and "bar.beat", snapping of loops, takes and stretches (`snapWith()` in track-view.ts: beats are the meter's, possibly uneven), take length labels (x/8: eighths), new loops (4 bars), and "Switch at next" (`isSwitchPoint()` in app.ts, on song positions, so it also lines up in a loop)
+- Follows the meter: metronome accents and beats, count-in length and count, ruler and lane lines, bar numbers and "bar.beat", snapping of loops, takes and stretches (`snapWith()` in track-view.ts: beats are the meter's, possibly uneven), take length labels (x/8: eighths), new loops (4 bars), and "A–D change at next" (`isSwitchPoint()` in app.ts, on song positions, so it also lines up in a loop)
 - Not affected: step sequences and the arp (polymeter against the bar is fine), the session timeline between runs (`SESSION_BAR` stays 96), the piano roll's beat marks (every 4 steps). Changing a meter moves nothing: takes keep their tick positions
 
 ### Arpeggiator Features
