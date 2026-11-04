@@ -753,6 +753,27 @@ function drawLane(
     g.fillText(label, w - labelW - 6, top + 11);
   };
 
+  // with the arp on, the sequence and kept takes only feed it: they show as the band of
+  // the notes it plays from (as held keys do), what it sends shows behind the playhead
+  let feedsArp = false;
+  const bandH = Math.max(noteH + 2, Math.min(rowH, noteH + 4));
+  const inputBand = (x0: number, x1: number, y: number, ghost: boolean, nh: number): void => {
+    // layered takes: their own thinner rows
+    const bh = nh === noteH ? bandH : nh + 2;
+    const top = y - (bh - nh) / 2;
+    g.fillStyle = colour;
+    g.strokeStyle = colour;
+    if (ghost) {
+      g.globalAlpha = 0.35;
+      g.setLineDash([2, 2]);
+      g.strokeRect(x0 + 0.5, top + 0.5, Math.max(1, x1 - x0 - 1), bh - 1);
+      g.setLineDash([]);
+      return;
+    }
+    g.globalAlpha = silent && !mini ? 0.08 : 0.22;
+    g.fillRect(x0, top, Math.max(1, x1 - x0 - 1), bh);
+  };
+
   // a note at song positions; ghost: dashed (won't play), faint: an unkept take
   const note = (
     s0: number,
@@ -770,6 +791,10 @@ function drawLane(
     const y = place.y(row);
     const noteH = place.h;
     const width = Math.max(2, x1 - x0 - 1);
+    if (feedsArp && place !== takeRows) {
+      inputBand(x0, x1, y, ghost, noteH);
+      return;
+    }
     // mini lanes draw a silent zone as it is: mute and solo are for the input, its
     // sequence and takes still sound
     g.globalAlpha = (silent && !mini ? 0.3 : 0.45 + (0.55 * velo) / 127) * alpha;
@@ -820,9 +845,11 @@ function drawLane(
       note(n.s, n.s + n.d, rowOf(n.n), n.v, false, (kept ? 1 : 0.7) * ghost, place);
     }
   };
+  feedsArp = zone.arp_enabled;
   for (const t of zone.takes) {
     drawTake(t, true, mini ? 'normal' : takeDrag?.take === t ? 'ghost' : takeSel?.take === t ? 'selected' : 'normal');
   }
+  feedsArp = false;
   if (latest && !running && takeLane) drawTake(latest, false);
   if (!mini && takeDrag?.target === zone) drawTake(dragPreview(takeDrag), true, 'selected');
   // while running, the last-run lane shows the take being recorded
@@ -831,7 +858,6 @@ function drawLane(
   }
 
   // the notes the arp plays from: a band behind its notes, fading out ahead while still held
-  const bandH = Math.max(noteH + 2, Math.min(rowH, noteH + 4));
   for (const n of held) {
     const x0 = x(songOf(n.start));
     const x1 = n.end === null ? headX : x(songOf(n.end));
@@ -864,6 +890,7 @@ function drawLane(
   // ahead of it: the sequence step by step, as playback will decide each step
   // (Sequence.upcoming()); dashed where a condition or chance skips it
   if (seqShown) {
+    feedsArp = zone.arp_enabled;
     const ticks = seq.ticks;
     const MAX_STEPS_AHEAD = 4096;
     const ahead = (lane: number, cur: number, each: (s: number, step: number, plays: boolean) => void): void => {
@@ -916,6 +943,7 @@ function drawLane(
         }
       });
     }
+    feedsArp = false;
     if (!mini) {
       cornerLabel(
         drums ? `${rows} lanes · ${seq.length} × ${divisionName(zone)}` : `${seq.length} × ${divisionName(zone)}`,
