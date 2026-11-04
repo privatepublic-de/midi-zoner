@@ -2045,9 +2045,11 @@ input[type='range'] {
 }
 .ccsection-head .cctools {
   order: 1;
-  /* as tall as the heading, right edge where the toolbar's is */
-  margin: -4px -2px -4px 0;
-  padding: 0;
+  /* as tall as the heading, right edge where the toolbar's is; a line before them
+     says they belong to the zone's controllers, not to this section */
+  margin: -4px -2px -4px 8px;
+  padding: 0 0 0 8px;
+  border-left: 1px solid var(--slate-line);
   flex-wrap: nowrap;
   font-size: var(--fs-md);
   line-height: normal;
@@ -3707,23 +3709,26 @@ input[type='range'] {
    DRUM SEQUENCER
    ============================================================= */
 
-/* mode switch: both modes are named, the current one is highlighted */
+/* mode switch: both modes are named, the current one lit like the octave's segment
+   (a setting, so the on fill, not amber) */
 .seq_drum_tracks {
   display: inline-flex;
   padding: 0;
+  overflow: hidden;
   font-size: var(--fs-sm);
 }
 .seq_drum_tracks span {
   padding: 2px 5px;
   color: var(--brighter-2);
-}
-.seq_drum_tracks span {
   cursor: pointer;
+}
+.seq_drum_tracks span + span {
+  border-left: 1px solid var(--slate-line);
 }
 .zone:not(.drumSequencer) .seq_drum_tracks .mode-notes,
 .drumSequencer .seq_drum_tracks .mode-drums {
-  background-color: var(--brighter-1);
-  color: var(--text-base-color);
+  background-color: var(--on);
+  color: var(--on-text);
 }
 
 .drumSequencer {
