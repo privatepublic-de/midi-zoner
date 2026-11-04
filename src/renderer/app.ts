@@ -296,6 +296,7 @@ function showToggleQuant(): void {
   const chip = DOM.get('#toggleQuantChip');
   if (!chip) return;
   chip.classList.toggle('active', zones.toggleQuantOn);
+  view.setToggleBoundary(zones.toggleQuantIndex);
   chip.textContent = `Q ${QUANT_NAMES[zones.toggleQuantIndex]}`;
   (DOM.get('#togglequant') as HTMLSelectElement).value = String(zones.toggleQuantIndex);
 }

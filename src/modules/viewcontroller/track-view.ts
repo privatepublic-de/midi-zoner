@@ -7,6 +7,7 @@ import { Take } from '../zone/take';
 import { DIV_TICKS } from '../zone/seq-layer';
 import { analyse, quantize, quantizeStarts, applyToSequence, swingFor, stepPos, DIV_NAMES, PlayedNote, Quantized } from '../zone/take-quantize';
 import { toast } from './toast';
+import { pendingOf, toggleBoundary } from './pending-toggles';
 import { initTakeEditor, drawTakeEditor, refitTakeEditor, TakeTarget } from './take-editor';
 
 /**
@@ -27,6 +28,9 @@ const DOCK_HEIGHT_KEY = 'trackDockHeight';
 const DOCK_MIN_H = 120;
 const ZOOMS = [0.5, 1, 2, 4]; // px per clock tick; at 2 a 1/16 step is 12px, a bar 192px
 const PLAYHEAD_AT = 0.3; // share of the lane width behind the playhead
+// The cards' mini lanes: a fixed view of a few bars around the playhead
+const MINI_PLAYHEAD_AT = 0.22;
+const MINI_BARS = 3.5;
 const LANE_PAD = 6;
 const STRIP_H = 28; // the selected track's strip over its notes, as --strip-h in styles.css
 const TAKE_LANE_H = 48; // the last run above the song: the shown take, while running the one being recorded
@@ -163,20 +167,74 @@ function applyBodyState(): void {
   invalidate();
 }
 
+/** The cards (not the mini view) show their mini lanes */
+function cardsActive(): boolean {
+  return !trackView && !document.body.classList.contains('minimized');
+}
+
 /** Something changed: redraw on the next frame (also restarts the loop) */
 function invalidate(): void {
   dirty = true;
-  if (!frame && isActive()) frame = requestAnimationFrame(loop);
+  if (!frame && (isActive() || cardsActive())) frame = requestAnimationFrame(loop);
 }
 
 function loop(now: number): void {
   frame = 0;
-  if (!isActive()) return;
+  const tracks = isActive();
+  if (!tracks && !cardsActive()) return;
   if (timeline.running || timeline.countIn !== null || dirty || now - lastDraw > STOPPED_REDRAW_MS) {
-    draw();
+    if (tracks) draw();
+    else drawCards();
     lastDraw = now;
   }
   frame = requestAnimationFrame(loop);
+}
+
+/** Whether a sequence has notes to show, even while it's off */
+function seqHasNotes(seq: Zone['sequence']): boolean {
+  const has = (steps: ({ notesArray: unknown[] } | null | undefined)[]): boolean =>
+    steps.some((st) => !!st && st.notesArray.length > 0);
+  return seq.isDrumSequence
+    ? seq.drum_lanes.slice(0, seq.drumLanes).some((l) => !!l && has(l.steps))
+    : has(seq.steps.slice(0, seq.length));
+}
+
+/**
+ * The cards: a mini lane under each header that has something to play (sequence notes,
+ * kept takes, the arp), on the same song as the track view
+ */
+function drawCards(): void {
+  const zones = getZones();
+  if (dirty) {
+    dirty = false;
+    zones.forEach((z) => {
+      const el = z.elements.zoneElement;
+      if (el) zoneColours.set(el, getComputedStyle(el).getPropertyValue('--zone-color').trim());
+    });
+  }
+  const loop = loops.get();
+  timelineLoop(loop?.on ? { from: loop.from, to: loop.to } : null);
+  timelineMeter(currentMeter());
+  const songHead = songNow();
+  const runToSong = (timeline.running ? nowTick() : 0) - songHead;
+  zones.forEach((z) => {
+    const el = z.elements.zoneElement;
+    if (!el) return;
+    const show = seqHasNotes(z.sequence) || z.takes.length > 0 || z.arp_enabled;
+    if (el.classList.contains('has-mini-lane') !== show) el.classList.toggle('has-mini-lane', show);
+    const canvas = el.querySelector('.mini-lane canvas') as HTMLCanvasElement | null;
+    if (show && canvas) drawLane(z, false, songHead, runToSong, 0, 0, canvas);
+  });
+}
+
+/** Song position where a waiting toggle lands: the next bar, beat or 16th after `head` */
+function landingAt(head: number): number {
+  const quant = toggleBoundary();
+  if (quant === 14) return (Math.floor(head / 6) + 1) * 6;
+  for (const { t, bar } of beatLines(timeline.meter, head + 0.001, head + 2 * barLen() + 1)) {
+    if (t > head && (quant === 8 || bar)) return t;
+  }
+  return head;
 }
 
 function setTab(next: DockTab): void {
@@ -541,22 +599,27 @@ function drawLane(
   songHead: number,
   runToSong: number,
   ppt: number,
-  scrollPx: number
+  scrollPx: number,
+  // a card's mini lane: its own zoom, no last-run lane, nothing to edit
+  mini: HTMLCanvasElement | null = null
 ): void {
   const el = zone.elements.zoneElement;
   if (!el) return;
-  const takeLane = hasTakeLane(zone);
-  const height = `${laneHeight(zone) + (takeLane ? TAKE_LANE_H : 0) + (isSelected ? STRIP_H : 0)}px`;
-  if (el.style.getPropertyValue('--track-h') !== height) el.style.setProperty('--track-h', height);
-  const p = prepare(el.querySelector('.track-lane canvas'));
+  const takeLane = !mini && hasTakeLane(zone);
+  if (!mini) {
+    const height = `${laneHeight(zone) + (takeLane ? TAKE_LANE_H : 0) + (isSelected ? STRIP_H : 0)}px`;
+    if (el.style.getPropertyValue('--track-h') !== height) el.style.setProperty('--track-h', height);
+  }
+  const p = prepare(mini ?? el.querySelector('.track-lane canvas'));
   if (!p) return;
   const [g, w, fullH] = p;
+  if (mini) ppt = w / (MINI_BARS * barLen());
   // the last run on top (0 … TAKE_LANE_H), the song below it (songY … fullH, h high)
   const takeY = 0;
   const songY = takeLane ? TAKE_LANE_H : 0;
   const h = fullH - songY;
   // where the playhead is: its place, or elsewhere while scrolled
-  const headX = Math.round(w * PLAYHEAD_AT) + scrollPx;
+  const headX = mini ? Math.round(w * MINI_PLAYHEAD_AT) : Math.round(w * PLAYHEAD_AT) + scrollPx;
   const x = (s: number): number => headX + (s - songHead) * ppt; // song positions
   const runHead = songHead + runToSong; // the sequencer's position
   let colour = zoneColours.get(el);
@@ -568,14 +631,29 @@ function drawLane(
   }
   const silent = el.classList.contains('disabled') || el.classList.contains('soloed-out');
   const seq = zone.sequence;
-  const drums = seq.active && seq.isDrumSequence;
+  // a mini lane also shows a sequence that's off (dashed: it won't sound)
+  const seqShown = seq.active || (!!mini && seqHasNotes(seq));
+  const drums = seqShown && seq.isDrumSequence;
   const running = timeline.running;
+  // waiting toggles (mini lanes): where they land; a waiting Seq switch flips the sequence there
+  const waiting = mini && running ? pendingOf(zone) : [];
+  const landAt = waiting.length > 0 ? landingAt(songHead) : Infinity;
+  const seqFlips = waiting.some((p) => p.action === 'toggle_seq');
+  const seqSounds = (s: number): boolean => seq.active !== (seqFlips && s >= landAt);
 
   // beats and bars of the song
   for (const { t: s, bar } of beatLines(timeline.meter, Math.max(0, songHead - headX / ppt), songHead + (w - headX) / ppt)) {
     const gx = Math.round(x(s));
     g.fillStyle = s === 0 ? '#ffffff40' : bar ? '#ffffff1c' : '#ffffff0a';
     g.fillRect(gx, 0, 1, fullH);
+    if (mini && bar) {
+      // bar numbers, as there's no ruler above
+      g.font = '9px "Barlow Semi Condensed", sans-serif';
+      g.fillStyle = DIM_TEXT;
+      g.globalAlpha = 0.8;
+      g.fillText(String(barNumber(s)), gx + 3, 9);
+      g.globalAlpha = 1;
+    }
   }
   if (takeLane) {
     // the last run: a shade darker, over a line
@@ -617,7 +695,7 @@ function drawLane(
       if (p < lo) lo = p;
       if (p > hi) hi = p;
     };
-    if (seq.active) {
+    if (seqShown) {
       for (let s = 0; s < seq.length; s++) seq.steps[s]?.notesArray.forEach((n) => take(n.number));
     }
     for (const t of zone.takes) t.notes.forEach((n) => take(n.n));
@@ -692,7 +770,9 @@ function drawLane(
     const y = place.y(row);
     const noteH = place.h;
     const width = Math.max(2, x1 - x0 - 1);
-    g.globalAlpha = (silent ? 0.3 : 0.45 + (0.55 * velo) / 127) * alpha;
+    // mini lanes draw a silent zone as it is: mute and solo are for the input, its
+    // sequence and takes still sound
+    g.globalAlpha = (silent && !mini ? 0.3 : 0.45 + (0.55 * velo) / 127) * alpha;
     if (ghost) {
       // a step that won't play this time (condition, chance, muted lane)
       g.globalAlpha *= 0.6;
@@ -741,10 +821,10 @@ function drawLane(
     }
   };
   for (const t of zone.takes) {
-    drawTake(t, true, takeDrag?.take === t ? 'ghost' : takeSel?.take === t ? 'selected' : 'normal');
+    drawTake(t, true, mini ? 'normal' : takeDrag?.take === t ? 'ghost' : takeSel?.take === t ? 'selected' : 'normal');
   }
   if (latest && !running && takeLane) drawTake(latest, false);
-  if (takeDrag?.target === zone) drawTake(dragPreview(takeDrag), true, 'selected');
+  if (!mini && takeDrag?.target === zone) drawTake(dragPreview(takeDrag), true, 'selected');
   // while running, the last-run lane shows the take being recorded
   if (running && takeLane) {
     for (const n of zone.recordingNotes) note(n.t, n.t + n.d, rowOf(n.n), n.v, false, 0.85, takeRows);
@@ -783,13 +863,14 @@ function drawLane(
 
   // ahead of it: the sequence step by step, as playback will decide each step
   // (Sequence.upcoming()); dashed where a condition or chance skips it
-  if (seq.active) {
+  if (seqShown) {
     const ticks = seq.ticks;
     const MAX_STEPS_AHEAD = 4096;
     const ahead = (lane: number, cur: number, each: (s: number, step: number, plays: boolean) => void): void => {
       const base = stepStart(cur, ticks, runHead);
       let k = 1;
-      for (const next of seq.upcoming(lane)) {
+      // a sequence that's off: what it would play, dashed until a waiting Seq on lands
+      for (const next of seq.upcoming(lane, !!mini)) {
         const t = base + k * ticks;
         if (x(t - runToSong) > w || k++ > MAX_STEPS_AHEAD) break;
         if (t >= runHead) each(t - runToSong, next.step, next.plays);
@@ -806,7 +887,7 @@ function drawLane(
           const hits = Math.max(1, step.ratchetCount);
           for (let r = 0; r < hits; r++) {
             const rs = s + (hits > 1 ? r * step.ratchetResolution : 0);
-            note(rs, rs + Math.max(1, (hits > 1 ? step.ratchetResolution : ticks) * 0.6), ln, velo, !plays);
+            note(rs, rs + Math.max(1, (hits > 1 ? step.ratchetResolution : ticks) * 0.6), ln, velo, !plays || !seqSounds(rs));
           }
         });
       }
@@ -827,18 +908,20 @@ function drawLane(
           if (hits > 1) {
             for (let r = 0; r < hits; r++) {
               const rs = s + r * step.ratchetResolution;
-              note(rs, rs + Math.max(1, step.ratchetResolution - 1), rowOf(n.number), n.velo, !plays);
+              note(rs, rs + Math.max(1, step.ratchetResolution - 1), rowOf(n.number), n.velo, !plays || !seqSounds(rs));
             }
           } else {
-            note(s, s + dur, rowOf(n.number), n.velo, !plays);
+            note(s, s + dur, rowOf(n.number), n.velo, !plays || !seqSounds(s));
           }
         }
       });
     }
-    cornerLabel(
-      drums ? `${rows} lanes · ${seq.length} × ${divisionName(zone)}` : `${seq.length} × ${divisionName(zone)}`,
-      songY
-    );
+    if (!mini) {
+      cornerLabel(
+        drums ? `${rows} lanes · ${seq.length} × ${divisionName(zone)}` : `${seq.length} × ${divisionName(zone)}`,
+        songY
+      );
+    }
   }
   if (takeLane) {
     const recording = running && zone.recordingNotes.length > 0;
@@ -862,6 +945,23 @@ function drawLane(
   }
   g.fillStyle = '#e7eaeecc';
   if (headX >= 0 && headX <= w) g.fillRect(headX, 0, 1, fullH);
+
+  // waiting toggles: a light line where they land, tagged with what they'll do
+  if (waiting.length > 0) {
+    const lx = Math.round(x(landAt));
+    const tag = waiting.map((p) => p.tag).join(' · ');
+    g.globalAlpha = 1;
+    g.fillStyle = '#cfd6df';
+    g.fillRect(lx, 0, 2, fullH);
+    g.font = '600 9px "Barlow Semi Condensed", sans-serif';
+    const tw = Math.ceil(g.measureText(tag).width) + 6;
+    // left of the line, unless that runs into the playhead
+    const tx = lx - tw - 1 > headX + 2 ? lx - tw - 1 : lx + 3;
+    g.fillRect(tx, 1, tw, 11);
+    g.fillStyle = '#15171a';
+    g.fillText(tag, tx + 3, 10);
+  }
+  if (mini) return;
 
   // a kept take converts in the song, the shown take in the last-run lane
   if (conv?.zone === zone) {

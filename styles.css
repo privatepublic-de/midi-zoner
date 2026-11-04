@@ -6282,3 +6282,35 @@ body.track-view:not(.minimized) {
   box-shadow: none;
   color: var(--brighter-4);
 }
+
+/* =============================================================
+   MINI LANE (cards)
+   Under the header, what the zone plays: the track view's lane drawn small
+   (track-view.ts drawCards()), on zones with something to play. It replaces
+   the old step progress bar.
+   ============================================================= */
+
+.zone .mini-lane {
+  display: none;
+  height: 40px;
+  margin: 6px 0 2px;
+}
+
+.zone.has-mini-lane .mini-lane {
+  display: block;
+}
+
+.zone .mini-lane canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius);
+  background-color: var(--slate-inset);
+  box-shadow: inset 0 0 0 1px var(--slate-line);
+}
+
+body.track-view .zone .mini-lane,
+body.minimized .zone .mini-lane,
+.zone .seqprogress {
+  display: none !important;
+}

@@ -17,7 +17,19 @@ const LIT_AFTER: Record<string, (zone: ZoneType) => boolean> = {
   zone_takes: (zone) => !zone.takes_on
 };
 
+/** What a waiting toggle will do, for the mini lane's marker */
+const TAG: Record<string, (zone: ZoneType) => string> = {
+  zone_enabled: (zone) => (zone.enabled ? 'Mute' : 'Unmute'),
+  zone_solo: (zone) => (zone.solo ? 'Solo off' : 'Solo'),
+  toggle_seq: (zone) => (zone.sequence.active ? 'Seq off' : 'Seq on'),
+  zone_arp_enabled: (zone) => (zone.arp_enabled ? 'Arp off' : 'Arp on'),
+  zone_takes: (zone) => (zone.takes_on ? 'Trk off' : 'Trk on')
+};
+
 const BLINK_MS = 120;
+
+/** Where waiting toggles land: 2 bar, 8 beat, 14 16th (zones.toggleQuantIndex) */
+let boundary = 2;
 
 /** Waiting toggles in the order they were asked for */
 let pending: { zone: ZoneType; action: string }[] = [];
@@ -40,6 +52,19 @@ function requestToggle(zone: ZoneType, action: string): boolean {
 
 function isPending(zone: ZoneType, action: string): boolean {
   return pending.some((p) => p.zone === zone && p.action === action);
+}
+
+/** The waiting toggles of a zone, as their tags (e.g. "Seq on") with their actions */
+function pendingOf(zone: ZoneType): { action: string; tag: string }[] {
+  return pending.filter((p) => p.zone === zone).map((p) => ({ action: p.action, tag: TAG[p.action](zone) }));
+}
+
+function setToggleBoundary(quant: number): void {
+  boundary = quant;
+}
+
+function toggleBoundary(): number {
+  return boundary;
 }
 
 function hasPendingToggles(): boolean {
@@ -87,4 +112,14 @@ function blink(): void {
   });
 }
 
-export { isQuantizable, requestToggle, isPending, hasPendingToggles, takePendingToggles, markPending };
+export {
+  isQuantizable,
+  requestToggle,
+  isPending,
+  pendingOf,
+  setToggleBoundary,
+  toggleBoundary,
+  hasPendingToggles,
+  takePendingToggles,
+  markPending
+};

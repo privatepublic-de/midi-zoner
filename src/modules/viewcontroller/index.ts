@@ -22,7 +22,7 @@ import { closeCCEditor, initCCEditor, isCCEditorOpen, refreshCCEditor } from './
 import { initPianoRoll } from './piano-roll';
 import { initTrackView, isTrackView, setTrackView, followTrack } from './track-view';
 import { renderStepLocks } from './step-locks';
-import { isQuantizable, requestToggle, isPending, hasPendingToggles, takePendingToggles, markPending } from './pending-toggles';
+import { isQuantizable, requestToggle, isPending, hasPendingToggles, takePendingToggles, markPending, setToggleBoundary } from './pending-toggles';
 import { describeAction, labelForZone, zonePrefix, ARRANGEMENT_LETTERS } from './action-labels';
 import { Meter, DEFAULT_METER, METER_CHOICES, meterLabel, sameMeter, parseMeter } from '../meter';
 import {
@@ -1867,6 +1867,7 @@ export {
   toggleZoneSolo,
   applyPendingToggles,
   hasPendingToggles,
+  setToggleBoundary,
   selectArrangement,
   switchZonesToArrangement,
   toggleSequencerOnZone,

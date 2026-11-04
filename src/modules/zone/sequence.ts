@@ -610,9 +610,11 @@ export class Sequence {
   /**
    * The steps after the current one, each with whether it will play: conditions and
    * chance as playback evaluates them, so exact as long as nothing is edited. Endless,
-   * the caller stops. `laneIndex` -1: the melodic sequence, else a drum lane.
+   * the caller stops. `laneIndex` -1: the melodic sequence, else a drum lane. `asOn`:
+   * as if the sequence were on (what switching it on would play).
    */
-  *upcoming(laneIndex = -1): Generator<{ step: number; plays: boolean }> {
+  *upcoming(laneIndex = -1, asOn = false): Generator<{ step: number; plays: boolean }> {
+    const on = this.active || asOn;
     if (laneIndex < 0) {
       const len = this.length;
       if (len < 1) return;
@@ -625,7 +627,7 @@ export class Sequence {
         if (cur === 0 && ++cycle === 1) first = false;
         const step = this.steps[cur];
         let plays = false;
-        if (step && this.active && !this.isDrumSequence) {
+        if (step && on && !this.isDrumSequence) {
           plays = this.checkCondition(step, cycle, first, previous) && this.chanceRoll(cycle, cur) < step.probability;
           previous = plays;
         }
@@ -642,7 +644,7 @@ export class Sequence {
     for (;;) {
       cur = (cur + 1) % lane.length;
       let plays = false;
-      if (this.active) {
+      if (on) {
         if (cur === 0 && ++cycle === 1) first = false;
         const step = lane.steps[cur];
         if (quiet) {
