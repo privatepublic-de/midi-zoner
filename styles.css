@@ -447,6 +447,14 @@ option {
   color: var(--fg-topbar-button-active);
 }
 
+/* Cards | Tracks is where you are: amber as the arrangements A–D */
+:is(#viewCards, #viewTracks).lightButton.active {
+  background: var(--slate-raise);
+  box-shadow: inset 0 0 0 1px var(--select);
+  color: var(--text-base-color);
+  font-weight: 600;
+}
+
 .lightButton:disabled {
   opacity: 0.3;
   cursor: default;
@@ -5291,9 +5299,12 @@ body.minimized .midi-led.on {
 .cc-page:hover {
   color: var(--brighter-3);
 }
+/* where you are: amber as the arrangements A–D, not the "on" fill */
 .cc-page.selected {
-  background-color: var(--brighter-1);
+  background-color: var(--slate-raise);
+  box-shadow: inset 0 0 0 1px var(--select);
   color: var(--text-base-color);
+  font-weight: 600;
 }
 
 /* controller editor: pages */

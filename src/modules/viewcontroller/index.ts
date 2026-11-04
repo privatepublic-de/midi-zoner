@@ -1,4 +1,5 @@
 import DOM, { escapeHTML } from '../domutils';
+import MIDI from '../midi';
 import { differsFromPreset, findDevicePreset, matchesPort, presetsByMaker, PresetDevice } from '../device-presets';
 
 import DragZone from '../dragzone';
@@ -1568,6 +1569,8 @@ function updateValuesForZone(index: number): void {
       nameField.value = '';
       nameField.placeholder = outOption?.dataset.fullName ?? shortPortName;
     }
+    // no port chosen (and no named output config): the zone sends nowhere
+    const noOutput = !nameField.value && (!zone.outputPortId || zone.outputPortId === MIDI.INTERNAL_PORT_ID);
     const labelField = zone._$('.zone-label') as HTMLInputElement;
     if (labelField && document.activeElement !== labelField) {
       labelField.value = zone.label || '';
@@ -1575,7 +1578,7 @@ function updateValuesForZone(index: number): void {
     if (labelField) {
       // minimized view: unnamed zones show their output port / preset instead of "Zone N"
       labelField.dataset.defaultPlaceholder ??= labelField.placeholder;
-      const portName = nameField.value || shortPortName;
+      const portName = noOutput ? '' : nameField.value || shortPortName;
       labelField.placeholder =
         document.body.classList.contains('minimized') && portName
           ? portName
@@ -1601,7 +1604,7 @@ function updateValuesForZone(index: number): void {
       ) as HTMLElement;
       const chEl = routingText.querySelector('.iorouting-ch') as HTMLElement;
       const isPreset = !!zones.outputConfigNames[zones.list[index].configId];
-      const outPortName = nameField.value || shortPortName;
+      const outPortName = noOutput ? 'No output' : nameField.value || shortPortName;
       let portLabel = outPortName;
       if (zone.inputPortId) {
         const inPort = getCachedInputPorts().find(
@@ -1613,8 +1616,8 @@ function updateValuesForZone(index: number): void {
         portLabel = `${inName}${chStr} ${outPortName}`;
       }
       if (portnameEl) portnameEl.textContent = portLabel;
-      routingText.classList.toggle('missing', outPortName.startsWith('⚠'));
-      if (chEl) chEl.textContent = isPreset ? '' : `#${zone.channel + 1}`;
+      routingText.classList.toggle('missing', noOutput || outPortName.startsWith('⚠'));
+      if (chEl) chEl.textContent = isPreset || noOutput ? '' : `#${zone.channel + 1}`;
     }
     updateControllerValues(zone, index);
     updateGeneralButtons();
