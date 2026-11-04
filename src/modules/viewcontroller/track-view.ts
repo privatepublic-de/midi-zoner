@@ -721,8 +721,9 @@ function drawLane(
   const rowH = (h - 2 * LANE_PAD) / rows;
   const noteH = Math.max(3, Math.min(drums ? 8 : 6, rowH - (drums ? 2 : 0)));
   const rowY = (row: number): number => songY + LANE_PAD + row * rowH + (rowH - noteH) / 2;
-  // overlapping kept takes: a band of the song lane per layer, with the same pitch rows
-  const layers = takeLayers(zone.takes);
+  // overlapping kept takes: a band of the song lane per layer, with the same pitch rows;
+  // the mini lane is too low for bands: its takes share the rows, as one take does
+  const layers = mini ? { of: new Map<Take, number>(), count: 1 } : takeLayers(zone.takes);
   const layerH = (h - 2 * LANE_PAD) / layers.count;
   const bandTop = (layer: number): number => songY + LANE_PAD + layer * layerH;
   const bandRows = (layer: number): { y: (row: number) => number; h: number } => {
