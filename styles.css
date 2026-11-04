@@ -1723,15 +1723,18 @@ input[type='range'] {
 }
 
 
-/* octave: a segmented control, raised segments, the chosen one lit */
+/* octave: a segmented control of raised segments named −3…+3, the chosen one a step
+   lighter with its number bright (quiet at 0, a transposed zone still reads at once) */
 .octselect {
   box-sizing: border-box;
   display: inline-flex;
-  width: 18px;
+  width: 20px;
   height: 20px;
   border: 1px solid var(--slate-line);
   border-right: none;
   background-color: var(--slate-raise);
+  color: var(--slate-dim);
+  font-size: 10px;
   cursor: pointer;
   margin: 0;
   justify-content: center;
@@ -1745,15 +1748,10 @@ input[type='range'] {
   border-radius: 0 var(--radius) var(--radius) 0;
 }
 
-.octselect.octcenter:not(.selected)::after {
-  content: '·';
-  color: var(--slate-dim);
-  font-size: var(--fs-sm);
-}
-
 .octselect.selected {
-  background-color: var(--on);
-  border-color: var(--on);
+  background-color: var(--slate-line);
+  color: var(--text-base-color);
+  font-weight: 600;
 }
 
 .zone select,
@@ -5376,7 +5374,7 @@ body.track-view:not(.minimized) {
   --dock-h: min(var(--dock-open-h, 290px), calc(100vh - var(--topbar-h, 44px) - 120px));
   --dock-bar-h: 32px;
   --strip-h: 28px; /* STRIP_H in track-view.ts */
-  --track-settings-w: 520px;
+  --track-settings-w: 540px;
   /* as xr18: tracks are cards on the dark ground, lanes and the ruler inset wells */
   --track-gap: 10px; /* round the tracks and the dock */
   --lane-pad: 6px; /* between a track's card and its lane */
