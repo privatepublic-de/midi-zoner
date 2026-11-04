@@ -184,7 +184,6 @@ function apply(label: string, change: (take: Take, mine: (n: TakeNoteJSON) => Ta
       take = copy;
     }
     change(take, mine);
-    target.zone.clearUnder(take);
   });
   if (!target.kept) {
     hooks.keptAs(target.zone, take);

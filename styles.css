@@ -5438,8 +5438,10 @@ body.track-view:not(.minimized) {
     --dock-h: calc(var(--dock-bar-h) + var(--track-gap));
   }
 
+  /* right below the fixed top bar (body has a 30px top margin), so the ruler sticks
+     where it starts and covers no track */
   .padded {
-    padding: 0 var(--track-gap) calc(var(--dock-h) + var(--track-gap));
+    padding: calc(var(--topbar-h, 44px) - 30px) var(--track-gap) calc(var(--dock-h) + var(--track-gap));
   }
 
   #zones {

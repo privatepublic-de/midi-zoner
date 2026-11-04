@@ -312,10 +312,30 @@ function prepare(canvas: HTMLCanvasElement | null): [CanvasRenderingContext2D, n
   return [g, w, h];
 }
 
+// Kept takes may overlap (layers, like a looper's overdubs): then the song lane splits
+// into a band per layer, each with its takes and their notes on the lane's pitch rows.
+// The lane grows for the first few layers, beyond that the bands get thinner.
+const LAYER_GROW = 40;
+const LAYER_GROW_MAX = 2;
+
+/** Which layer each kept take sits in (the lowest free one by start), and how many layers */
+function takeLayers(takes: Take[]): { of: Map<Take, number>; count: number } {
+  const of = new Map<Take, number>();
+  const ends: number[] = [];
+  for (const t of [...takes].sort((a, b) => a.start - b.start)) {
+    let layer = ends.findIndex((end) => end <= t.start);
+    if (layer < 0) layer = ends.length;
+    ends[layer] = t.end;
+    of.set(t, layer);
+  }
+  return { of, count: Math.max(1, ends.length) };
+}
+
 function laneHeight(zone: Zone): number {
   const seq = zone.sequence;
-  if (seq.active && seq.isDrumSequence) return Math.max(56, seq.drumLanes * 10 + 2 * LANE_PAD);
-  if (seq.active || zone.takes.length > 0) return 80;
+  const layers = Math.min(LAYER_GROW_MAX, takeLayers(zone.takes).count - 1) * LAYER_GROW;
+  if (seq.active && seq.isDrumSequence) return Math.max(56, seq.drumLanes * 10 + 2 * LANE_PAD) + layers;
+  if (seq.active || zone.takes.length > 0) return 80 + layers;
   return 56;
 }
 
@@ -623,6 +643,16 @@ function drawLane(
   const rowH = (h - 2 * LANE_PAD) / rows;
   const noteH = Math.max(3, Math.min(drums ? 8 : 6, rowH - (drums ? 2 : 0)));
   const rowY = (row: number): number => songY + LANE_PAD + row * rowH + (rowH - noteH) / 2;
+  // overlapping kept takes: a band of the song lane per layer, with the same pitch rows
+  const layers = takeLayers(zone.takes);
+  const layerH = (h - 2 * LANE_PAD) / layers.count;
+  const bandTop = (layer: number): number => songY + LANE_PAD + layer * layerH;
+  const bandRows = (layer: number): { y: (row: number) => number; h: number } => {
+    if (layers.count === 1) return { y: rowY, h: noteH };
+    const rh = (layerH - 4) / rows;
+    const nh = Math.max(2, Math.min(drums ? 8 : 6, rh - (drums ? 1 : 0)));
+    return { y: (row) => bandTop(layer) + 2 + row * rh + (rh - nh) / 2, h: nh };
+  };
 
   // the last run's rows: the same pitches, pressed into its lane
   const takeRowH = (TAKE_LANE_H - 2 * TAKE_PAD) / rows;
@@ -688,8 +718,10 @@ function drawLane(
     const x0 = x(take.start);
     const x1 = x(take.end);
     if (x1 < 0 || x0 > w) return;
-    const top = kept ? songY : takeY;
-    const frameH = kept ? h : TAKE_LANE_H;
+    // layered: its band (one being dragged: the band it came from, else the last)
+    const layer = kept && layers.count > 1 ? layers.of.get(take) ?? layers.count - 1 : -1;
+    const top = layer >= 0 ? bandTop(layer) - 1 : kept ? songY : takeY;
+    const frameH = layer >= 0 ? layerH + 1 : kept ? h : TAKE_LANE_H;
     // a ghost while dragged; kept takes of a zone whose Trk is off are faded (silent)
     const ghost = state === 'ghost' ? 0.3 : kept && !zone.takes_on ? 0.4 : 1;
     g.globalAlpha = (kept ? 0.12 : 1) * ghost;
@@ -702,9 +734,10 @@ function drawLane(
     g.strokeRect(Math.round(x0) + 0.5, top + 1.5, Math.round(x1 - x0) - 1, frameH - 3);
     g.setLineDash([]);
     g.lineWidth = 1;
+    const place = kept ? bandRows(Math.max(0, layer)) : takeRows;
     for (const n of take.visibleNotes()) {
       if (x(n.s) > w) break;
-      note(n.s, n.s + n.d, rowOf(n.n), n.v, false, (kept ? 1 : 0.7) * ghost, kept ? songRows : takeRows);
+      note(n.s, n.s + n.d, rowOf(n.n), n.v, false, (kept ? 1 : 0.7) * ghost, place);
     }
   };
   for (const t of zone.takes) {
@@ -737,9 +770,13 @@ function drawLane(
     }
   }
 
-  // behind the playhead while running: what was sent
+  // behind the playhead while running: what was sent; layered, not what a kept take
+  // played (its band shows it)
+  const inLayeredTake = (s: number): boolean =>
+    layers.count > 1 && zone.takes_on && !zone.arp_enabled && zone.takes.some((t) => t.start <= s && s < t.end);
   for (const n of history) {
     const s0 = songOf(n.start);
+    if (inLayeredTake(s0)) continue;
     const s1 = songOf(n.end ?? sessionNow());
     note(s0, Math.max(s1, s0 + 1 / ppt), rowOf(n.pitch), n.velo, false);
   }
@@ -1048,12 +1085,24 @@ function validateTakeSelection(zones: Zone[]): void {
   }
 }
 
-/** The kept take under a mouse x on a lane (the last drawn wins), and whether at an edge */
-function takeAt(zone: Zone, lane: Element, clientX: number): { take: Take; edge: 'start' | 'end' | null } | null {
+/**
+ * The kept take under the mouse on a lane, and whether at an edge. Layered, only the
+ * takes of the band under the mouse; else the last drawn (the latest kept) wins.
+ */
+function takeAt(zone: Zone, lane: Element, clientX: number, clientY: number): { take: Take; edge: 'start' | 'end' | null } | null {
   const s = laneTick(lane, clientX);
   const edge = EDGE_PX / view.ppt;
+  const layers = takeLayers(zone.takes);
+  let band = -1;
+  if (layers.count > 1) {
+    const rect = lane.querySelector('canvas')!.getBoundingClientRect();
+    const songTop = rect.top + (hasTakeLane(zone) ? TAKE_LANE_H : 0);
+    const bandH = (rect.bottom - songTop - 2 * LANE_PAD) / layers.count;
+    band = Math.max(0, Math.min(layers.count - 1, Math.floor((clientY - songTop - LANE_PAD) / bandH)));
+  }
   for (let i = zone.takes.length - 1; i >= 0; i--) {
     const take = zone.takes[i];
+    if (band >= 0 && layers.of.get(take) !== band) continue;
     if (s < take.start - edge || s > take.end + edge) continue;
     if (Math.abs(s - take.start) <= edge) return { take, edge: 'start' };
     if (Math.abs(s - take.end) <= edge) return { take, edge: 'end' };
@@ -1114,7 +1163,6 @@ function startTakeDrag(ev: MouseEvent, lane: Element, zone: Zone, take: Take, ed
         drag.zone.takes.splice(drag.zone.takes.indexOf(take), 1);
         drag.target.takes.push(take);
       }
-      drag.target.clearUnder(take);
     });
     takeSel = { zone: drag.target, take };
     if (other) select(getZones().indexOf(drag.target));
@@ -1724,7 +1772,7 @@ function initTrackView(
       return;
     }
     // the song: kept takes move, their edges trim
-    const hit = takeAt(zone, lane, ev.clientX);
+    const hit = takeAt(zone, lane, ev.clientX, ev.clientY);
     clearCapture();
     // ⌘-click: cut it there (beats, Shift bars, ⌥ free)
     if (hit && !hit.edge && (ev.metaKey || ev.ctrlKey)) {
@@ -1759,7 +1807,7 @@ function initTrackView(
     const zone = getZones()[zoneIndexOf(lane)];
     const onStrip = !!(ev.target as Element).closest('.track-strip');
     const inSong = zone && !onStrip && !inTakeLane(zone, lane, ev.clientY);
-    const hit = !timeline.running && inSong ? takeAt(zone, lane, ev.clientX) : null;
+    const hit = !timeline.running && inSong ? takeAt(zone, lane, ev.clientX, ev.clientY) : null;
     const cursor = hit ? (hit.edge ? 'ew-resize' : 'grab') : '';
     if (lane.style.cursor !== cursor) lane.style.cursor = cursor;
   });
@@ -1821,7 +1869,7 @@ function initTrackView(
       if (shown) editTake(zone, shown.take, false);
       return;
     }
-    const hit = zone ? takeAt(zone, lane!, ev.clientX) : null;
+    const hit = zone ? takeAt(zone, lane!, ev.clientX, ev.clientY) : null;
     if (hit && !hit.edge) {
       editTake(zone, hit.take, true);
       return;

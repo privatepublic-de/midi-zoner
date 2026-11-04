@@ -1811,42 +1811,11 @@ export class Zone {
   /** Keep a take (or a stretch of it, a take of its own): a copy joins this arrangement's song */
   keepTake(take: Take, part?: Take): void {
     const kept = part ?? take.copy();
+    // over other kept takes it's a layer: they all play (an overdub)
     this.takes.push(kept);
-    this.clearUnder(kept);
     this.shownTake = 0;
     // keeping something means wanting to hear it
     this.takes_on = true;
-  }
-
-  /**
-   * Kept takes don't overlap: `top` (just kept, moved or trimmed) wins, the others are
-   * trimmed away under it; one reaching past both ends is cut in two, one covered whole
-   * is removed. Trimming keeps the notes, so a part can be dragged back out.
-   */
-  clearUnder(top: Take): void {
-    const result: Take[] = [];
-    for (const t of this.takes) {
-      if (t === top || t.end <= top.start || t.start >= top.end) {
-        result.push(t);
-        continue;
-      }
-      const end = t.end;
-      if (t.start < top.start && end > top.end) {
-        const after = t.cutAt(top.end);
-        t.length = top.start - t.start;
-        result.push(t, after);
-      } else if (t.start < top.start) {
-        t.length = top.start - t.start;
-        result.push(t);
-      } else if (end > top.end) {
-        t.offset += top.end - t.start;
-        t.start = top.end;
-        t.length = end - top.end;
-        result.push(t);
-      }
-    }
-    // in place: the array is the arrangement's song
-    this.takes.splice(0, this.takes.length, ...result.filter((t) => t.length >= 1).sort((a, b) => a.start - b.start));
   }
 
   /** Undo replaces the zone objects: the replacement keeps showing what was played */
