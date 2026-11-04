@@ -1621,13 +1621,15 @@ function updateValuesForZone(index: number): void {
       zone.fixedvel_value
     );
     const nameField = zone._$('.output-config-name') as HTMLInputElement;
+    // the port as the selector shows it (long names shortened in the middle); the
+    // rename field offers the full name
+    const outOption = (zone._$('select.outport') as HTMLSelectElement).selectedOptions[0];
+    const shortPortName = outOption?.textContent ?? '';
     if (zones.outputConfigNames[zones.list[index].configId]) {
       nameField.value = zones.outputConfigNames[zones.list[index].configId];
     } else {
       nameField.value = '';
-      nameField.placeholder = (
-        zone._$('select.outport') as HTMLSelectElement
-      ).selectedOptions[0]?.textContent ?? '';
+      nameField.placeholder = outOption?.dataset.fullName ?? shortPortName;
     }
     const labelField = zone._$('.zone-label') as HTMLInputElement;
     if (labelField && document.activeElement !== labelField) {
@@ -1636,7 +1638,7 @@ function updateValuesForZone(index: number): void {
     if (labelField) {
       // minimized view: unnamed zones show their output port / preset instead of "Zone N"
       labelField.dataset.defaultPlaceholder ??= labelField.placeholder;
-      const portName = nameField.value || nameField.placeholder;
+      const portName = nameField.value || shortPortName;
       labelField.placeholder =
         document.body.classList.contains('minimized') && portName
           ? portName
@@ -1662,7 +1664,7 @@ function updateValuesForZone(index: number): void {
       ) as HTMLElement;
       const chEl = routingText.querySelector('.iorouting-ch') as HTMLElement;
       const isPreset = !!zones.outputConfigNames[zones.list[index].configId];
-      const outPortName = nameField.value || nameField.placeholder || '';
+      const outPortName = nameField.value || shortPortName;
       let portLabel = outPortName;
       if (zone.inputPortId) {
         const inPort = getCachedInputPorts().find(

@@ -1185,7 +1185,7 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
   font-size: var(--fs-sm);
   white-space: nowrap;
   overflow: hidden;
-  border-right: 6px solid transparent;
+  border-radius: var(--radius);
 }
 
 .iorouting-text.missing {
@@ -5560,8 +5560,6 @@ body.track-view:not(.minimized) {
   }
   .channels .iorouting-display {
     height: 22px;
-    border-right: 0;
-    border-radius: var(--radius);
   }
   #zones > .zone > .channels > .midi-led {
     order: 16;

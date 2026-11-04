@@ -122,7 +122,7 @@ export function updateOutputPortsForZone(
     DOM.addHTML(
       select,
       'beforeend',
-      `<option value="${esc(port.id)}">${esc(port.name)}</option>`
+      `<option value="${esc(port.id)}" data-full-name="${esc(port.fullName ?? port.name)}">${esc(port.name)}</option>`
     );
     if (port.id == preferredOutputPortId) {
       preferredPortAvailable = true;

@@ -2,6 +2,36 @@ import { PPQ } from './zone/seq-layer';
 import * as internalClock from './internal-clock';
 import { escapeHTML } from './domutils';
 
+/**
+ * A long port name as its first and last 10 characters around an ellipsis, tidied at
+ * the cuts: no spaces or punctuation there ("Iridium Co…) MIDI 2.0" showed a stray
+ * bracket) and no scraps of one or two letters of a cut word ("…d KBD/KNOB"); a space
+ * after the ellipsis where the tail starts a word
+ */
+export function shortPortName(name: string): string {
+  const N = 10;
+  const isWord = (c: string | undefined): boolean => !!c && /[\p{L}\p{N}]/u.test(c);
+  let head = name.slice(0, N);
+  let tail = name.slice(-N);
+  // a word cut by the head's end: drop it when only a scrap of it is left
+  if (isWord(name[N - 1]) && isWord(name[N])) {
+    const scrap = /[\p{L}\p{N}]+$/u.exec(head)?.[0] ?? '';
+    if (scrap.length < 3 && scrap.length < head.length) head = head.slice(0, -scrap.length);
+  }
+  // the same at the tail's start
+  const from = name.length - N;
+  if (isWord(name[from - 1]) && isWord(name[from])) {
+    const scrap = /^[\p{L}\p{N}]+/u.exec(tail)?.[0] ?? '';
+    if (scrap.length < 3 && scrap.length < tail.length) tail = tail.slice(scrap.length);
+  }
+  const trimmedHead = head.replace(/[\s\p{P}]+$/u, '');
+  const trimmedTail = tail.replace(/^[\s\p{P}]+/u, '');
+  if (!trimmedHead || !trimmedTail) return name.slice(0, N).trim() + '…' + name.slice(-N).trim();
+  const cut = tail.slice(0, tail.length - trimmedTail.length);
+  const startsWord = /\s/.test(cut) || (cut === '' && !isWord(name[name.length - trimmedTail.length - 1]));
+  return trimmedHead + '…' + (startsWord ? ' ' : '') + trimmedTail;
+}
+
 export interface PortDescriptor {
   id: string;
   name: string;
@@ -263,12 +293,7 @@ class MIDI {
       const mapDescriptor = (port: [string, MIDIPort]): PortDescriptor => {
         const fullName = port[1].name ?? '';
         let sName = fullName;
-        if (sName.length > 20) {
-          sName =
-            sName.slice(0, 10).trim() +
-            '…' +
-            sName.slice(-10).trim();
-        }
+        if (sName.length > 20) sName = shortPortName(sName);
         return {
           id: port[1].id,
           name: sName,

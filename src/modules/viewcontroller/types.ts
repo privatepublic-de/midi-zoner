@@ -51,6 +51,7 @@ export interface TouchedNoteResult {
 export interface PortDescriptor {
   id: string;
   name: string;
+  fullName?: string;
 }
 
 export interface ActionContext {
