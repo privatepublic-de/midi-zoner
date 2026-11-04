@@ -20,6 +20,7 @@ import {
 } from './actions';
 import { closeCCEditor, initCCEditor, isCCEditorOpen, refreshCCEditor } from './cc-editor';
 import { initPianoRoll } from './piano-roll';
+import { initCardPacking } from './card-packing';
 import { initTrackView, isTrackView, setTrackView, followTrack } from './track-view';
 import { renderStepLocks } from './step-locks';
 import { isQuantizable, requestToggle, isPending, hasPendingToggles, takePendingToggles, markPending, setToggleBoundary } from './pending-toggles';
@@ -194,6 +195,7 @@ function initController({
     showPage: showControllerPage
   });
   initStepDeselection();
+  initCardPacking(DOM.get('#zones') as HTMLElement);
   // A knob writing parameter locks: the steps' marks and the step editor follow, once per frame
   let lockRedrawPending = false;
   onLockEdited((_zone, zoneindex) => {
