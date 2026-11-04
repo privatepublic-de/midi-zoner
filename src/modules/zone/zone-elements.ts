@@ -9,9 +9,6 @@ export class ZoneElements {
   sequencerGridStepElements: NodeListOf<HTMLElement> | HTMLElement[] = [];
   sequencerDrumStepElements: NodeListOf<HTMLElement> | HTMLElement[] = [];
   sequencerDrumLanes: (NodeListOf<HTMLElement> | HTMLElement[])[] = [];
-  sequencerProgressElement: HTMLElement | null = null;
-  sequencerProgressElementInner: HTMLElement | null = null;
-  sequencerDrumLaneCursors: HTMLElement[] = [];
   rangeContainer: HTMLElement | null = null;
   rangeMarkerLow: HTMLElement | null = null;
   rangeMarkerHigh: HTMLElement | null = null;
@@ -33,8 +30,6 @@ export class ZoneElements {
     this.patternElement = this.zoneElement.querySelector('.pattern');
     this.sequencerElement = this.zoneElement.querySelector('.seq');
     this.sequencerGridElement = this.zoneElement.querySelector('.grid');
-    this.sequencerProgressElement = this.zoneElement.querySelector('.seqprogress');
-    this.sequencerProgressElementInner = this.zoneElement.querySelector('.seqprogress .inner');
     this.sequencerGridStepElements = this.zoneElement.querySelectorAll('.seq .grid .step-container .step');
     this.sequencerDrumStepElements = this.zoneElement.querySelectorAll('.seq .grid .drum-step-container .step');
     this.sequencerDrumLanes = [];

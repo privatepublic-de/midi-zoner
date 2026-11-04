@@ -1185,69 +1185,6 @@ function updateGeneralButtons(): void {
   DOM.switchClass(elAllHoldOff, held > 0, 'active');
 }
 
-function rebuildSeqProgress(zone: ZoneType, sequence: SequenceType): void {
-  const progressEl = zone.elements.sequencerProgressElement;
-  const innerEl = zone.elements.sequencerProgressElementInner;
-  if (!progressEl || !innerEl) return;
-
-  progressEl.querySelectorAll('.step-row').forEach((r) => r.remove());
-  zone.elements.sequencerDrumLaneCursors = [];
-
-  if (sequence.isDrumSequence) {
-    progressEl.classList.add('drum');
-    const ROW_H = 4;
-    progressEl.style.height = `${sequence.drumLanes * ROW_H + 2}px`;
-    let hasAnyNotes = false;
-    for (let ln = 0; ln < sequence.drumLanes; ln++) {
-      const lane = sequence.drum_lanes[ln];
-      if (!lane) continue;
-      const laneLength = lane.length || 1;
-      const row = document.createElement('div');
-      row.className = `step-row lane-slot-idx-${ln % 4}`;
-      row.style.cssText = `position:absolute;left:0;right:0;top:${ln * ROW_H}px;height:${ROW_H}px;`;
-      const w = 100 / laneLength;
-      for (let s = 0; s < laneLength; s++) {
-        const hasNote = lane.steps[s] != null;
-        if (hasNote) hasAnyNotes = true;
-        const block = document.createElement('div');
-        block.className = hasNote ? 'step-block has-notes' : 'step-block';
-        block.style.cssText = `left:${s * w}%;width:${w}%;`;
-        row.appendChild(block);
-      }
-      const cursor = document.createElement('div');
-      cursor.className = 'lane-cursor';
-      cursor.style.cssText = `width:${w}%;left:-100%;`;
-      row.appendChild(cursor);
-      zone.elements.sequencerDrumLaneCursors.push(cursor);
-      progressEl.appendChild(row);
-    }
-    if (hasAnyNotes && !(zone.enabled && sequence.active)) DOM.show(progressEl);
-    else DOM.hide(progressEl);
-  } else {
-    progressEl.classList.remove('drum');
-    progressEl.style.height = '';
-    const stepLen = sequence.length || 1;
-    const w = 100 / stepLen;
-    innerEl.style.width = `${w}%`;
-    const row = document.createElement('div');
-    row.className = 'step-row';
-    row.style.cssText = 'position:absolute;left:0;right:0;top:0;bottom:0;';
-    let hasAnyNotes = false;
-    for (let s = 0; s < stepLen; s++) {
-      const step = sequence.steps[s];
-      const hasNote = step != null && step.notesArray.length > 0;
-      if (hasNote) hasAnyNotes = true;
-      const block = document.createElement('div');
-      block.className = hasNote ? 'step-block has-notes' : 'step-block';
-      block.style.cssText = `left:${s * w}%;width:${w}%;`;
-      row.appendChild(block);
-    }
-    progressEl.appendChild(row);
-    if (hasAnyNotes && !(zone.enabled && sequence.active)) DOM.show(progressEl);
-    else DOM.hide(progressEl);
-  }
-}
-
 /** Range inputs have no native "filled" part in Chromium: expose the value as a percentage for the track gradient. */
 function syncRangeFill(el: HTMLInputElement): void {
   const min = parseFloat(el.min || '0');
@@ -1290,8 +1227,6 @@ function updateValuesForZone(index: number): void {
     const zoneIsEnabled = zone.enabled && (!foldSoloedOut || Zone.solocount === 0 || zone.solo);
     DOM.switchClass(zoneElement, !zoneIsEnabled, 'disabled');
     DOM.switchClass(zoneElement, zone.show_cc, 'show-cc');
-
-    rebuildSeqProgress(zone, sequence);
 
     if (sequence.active) {
       DOM.addClass(zoneElement, 'show-seq');

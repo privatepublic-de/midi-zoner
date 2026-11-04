@@ -1162,23 +1162,6 @@ export class Zone {
         }
       }
     }
-    if (this.sequence.isDrumSequence) {
-      this.elements.sequencerDrumLaneCursors.forEach((cursor, ln) => {
-        const lane = this.sequence.drum_lanes[ln];
-        if (!lane) return;
-        const pos = lane.currentStep;
-        cursor.style.left =
-          pos > -1 && lane.length > 0
-            ? `${(pos / lane.length) * 100}%`
-            : '-100%';
-      });
-    } else if (this.elements.sequencerProgressElementInner) {
-      const pos = this.sequence.currentStepNumber;
-      this.elements.sequencerProgressElementInner.style.left =
-        pos > -1 && this.sequence.length > 0
-          ? `${(pos / this.sequence.length) * 100}%`
-          : '-100%';
-    }
     this.renderConditionOutcomes();
   }
 

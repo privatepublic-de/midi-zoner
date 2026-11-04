@@ -2908,93 +2908,6 @@ input[type='range'] {
   display: none;
 }
 
-.seqprogress {
-  position: relative;
-  display: none;
-  overflow: hidden;
-  height: 7px;
-  border-radius: var(--radius);
-  background-color: var(--zone-color);
-  border: 1px solid var(--zone-color);
-  border-right-width: 2px;
-  border-left-width: 2px;
-}
-.disabled:not(.show-seq) .seqprogress {
-  background-color: var(--darker-0);
-  border: 1px solid transparent;
-}
-
-/* enabled zone, sequencer off: muted strip, steps and cursor stay readable */
-.zone:not(.disabled):not(.show-seq) .seqprogress {
-  background-color: var(--darker-1);
-  border-color: transparent;
-}
-
-.zone.disabled.show-seq .seqprogress {
-  background-color: var(--darker-0);
-  border: 1px solid transparent;
-}
-
-.seqprogress .step-row {
-  position: absolute;
-  left: 0;
-  right: 0;
-}
-.seqprogress .step-block {
-  position: absolute;
-  top: 1px;
-  bottom: 1px;
-  box-sizing: border-box;
-  border-right: 1px solid var(--darker-2);
-}
-.seqprogress .step-block.has-notes {
-  background-color: var(--brighter-1);
-}
-.show-seq .seqprogress .step-block.has-notes {
-  background-color: var(--darker-4);
-  opacity: 1;
-}
-
-.zone.disabled.show-seq .seqprogress .step-block.has-notes {
-  background-color: var(--zone-color);
-  border-left: 1px solid var(--darker-4);
-  opacity: 1;
-}
-
-.disabled:not(.show-seq) .seqprogress .step-block.has-notes {
-  border-right-color: var(--darker-4);
-  opacity: 1;
-}
-
-.seqprogress .inner,
-.seqprogress .lane-cursor {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  background-color: var(--brighter-2);
-  box-sizing: border-box;
-  z-index: 2;
-  display: none;
-}
-.seqprogress .inner {
-  width: 2px;
-}
-
-.disabled:not(.show-seq) .seqprogress .inner,
-.disabled:not(.show-seq) .seqprogress .lane-cursor {
-  background-color: var(--brighter-0);
-}
-body.running .seqprogress .inner {
-  display: block;
-}
-body.running .seqprogress.drum .lane-cursor {
-  display: block;
-}
-.seqprogress.drum .inner,
-body.running .seqprogress.drum .inner {
-  display: none;
-}
-
 /* =============================================================
    OVERLAYS & CHROME  (port windows, toast, context menu, toolbar)
    ============================================================= */
@@ -4592,7 +4505,7 @@ body.minimized .zone > :not(.channels),
 body.minimized .zone .channels > :not(.state):not(.solo):not(.showseq):not(.showarp):not(.zone-label):not(.midi-led),
 body.minimized .zone.placeholder,
 body.minimized .zone.addnewzone {
-  /* !important: mini view hides these over any zone state rule (e.g. .zone.disabled.show-seq .seqprogress) */
+  /* !important: mini view hides these over any zone state rule (e.g. .zone.disabled.show-seq .seq) */
   display: none !important;
 }
 
@@ -6284,8 +6197,7 @@ body.track-view:not(.minimized) {
 /* =============================================================
    MINI LANE (cards)
    Under the header, what the zone plays: the track view's lane drawn small
-   (track-view.ts drawCards()), on zones with something to play. It replaces
-   the old step progress bar.
+   (track-view.ts drawCards()), on zones with something to play.
    ============================================================= */
 
 .zone .mini-lane {
@@ -6308,7 +6220,6 @@ body.track-view:not(.minimized) {
 }
 
 body.track-view .zone .mini-lane,
-body.minimized .zone .mini-lane,
-.zone .seqprogress {
+body.minimized .zone .mini-lane {
   display: none !important;
 }
