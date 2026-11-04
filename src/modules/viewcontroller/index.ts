@@ -294,7 +294,7 @@ function findTouchedNote(
 let landingToggles = false;
 
 /**
- * While the clock runs, a zone toggle waits for the next "M S Seq Arp Trk change at next" boundary
+ * While the clock runs, a zone toggle waits for the next boundary (Setup → Switching → Zone switches)
  * when quantizing (the Quantize chip; Shift does the opposite). Pressing a waiting
  * toggle again cancels it.
  */

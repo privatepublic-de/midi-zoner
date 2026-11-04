@@ -422,11 +422,7 @@ option {
   min-width: 55px;
 }
 
-.toolbar {
-  margin-bottom: 6px;
-}
-
-.toolbar .lightButton .material-icons {
+#setupDrawer .lightButton .material-icons {
   font-size: var(--icon-md);
 }
 
@@ -571,73 +567,105 @@ body.setup-open .setup-toggle .chevron {
   top: 100%;
   left: 0;
   right: 0;
-  flex-wrap: wrap;
-  gap: 12px 20px;
-  padding: 10px 16px 12px;
+  /* a column per topic; narrow windows wrap whole columns */
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  align-items: start;
+  gap: 14px 32px;
+  padding: 12px 16px 14px;
   background-color: var(--bg-topbar);
   border-bottom: 1px solid var(--border-topbar);
   box-shadow: 0 6px 10px var(--shadow-topbar);
 }
 
 body.setup-open #setupDrawer {
-  display: flex;
+  display: grid;
 }
 
-.drawer-group {
+.drawer-col {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
+  min-width: 0;
 }
 
-/* The rule under the label spans the whole group, tying it to its controls. */
-.drawer-group .group-label {
-  font-size: var(--fs-sm);
-  color: var(--brighter-2);
+/* The rule under the title spans the column, tying it to its rows. */
+.drawer-title {
+  margin-bottom: 3px;
   padding-bottom: 3px;
   border-bottom: 1px solid var(--brighter-0);
+  color: var(--brighter-2);
+  font-size: var(--fs-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
-.drawer-group .group-body {
+/* A dim label on the left, its controls beside it: the column reads like a form */
+.drawer-row {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 26px;
+}
+
+.drawer-row.disabled {
+  opacity: 0.4;
+}
+
+.drawer-row.drawer-end {
+  margin-top: 4px;
+}
+
+.drawer-label,
+.drawer-hint {
+  color: var(--slate-dim);
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+}
+
+.drawer-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.drawer-val {
   display: flex;
   align-items: center;
   gap: 6px;
-  min-height: 24px;
+  min-width: 0;
 }
 
-.drawer-group .group-body .tb-label {
+.drawer-val > * {
   margin-left: 0;
+  margin-right: 0;
 }
 
-#setupDrawer .arr-quant {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--fs-md);
+/* fields and selectors take the row's width */
+#setupDrawer .drawer-val > select,
+#setupDrawer #midiInputSelector,
+#setupDrawer #clockSendButton,
+#setupDrawer #metroVolume {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+  margin: 0;
 }
 
-/* The arrangement buttons now live directly in the strip. */
+#setupDrawer #midiInputSelector,
+#setupDrawer #clockSendButton {
+  height: 24px;
+  line-height: 22px;
+  box-sizing: border-box;
+}
 
 #setupDrawer .tb-label {
   display: flex;
   min-width: 0;
+  margin: 0;
 }
 
-#setupDrawer #midiInputSelector {
-  width: 180px;
-}
-
-#setupDrawer #midiClockInDeviceId {
-  width: 130px;
-}
-
-#setupDrawer .arr-quant select {
-  width: 84px;
-}
-
-/* Controls start exactly under their group label; the gap handles spacing. */
-#setupDrawer .group-body > * {
-  margin-left: 0;
-  margin-right: 0;
+#deleteallzones {
+  color: var(--brighter-2);
 }
 
 /* Collapsed strip: each group of related controls sits in an inset frame; its buttons
@@ -791,55 +819,23 @@ body:not(.minimized) #midisettings > .transport > .bpm-field {
   box-shadow: 0 0 4px var(--live);
 }
 
-#setupDrawer .metro-field {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--fs-md);
-}
-
-#setupDrawer .metro-field.disabled {
-  opacity: 0.4;
-}
-
-/* wide enough for "100 %", so the output selector beside it doesn't move */
+/* wide enough for "100 %", so the slider doesn't move */
 #metroVolumeValue {
   min-width: 3.4em;
+  text-align: right;
 }
 
-#setupDrawer .metro-field .material-icons {
-  font-size: var(--icon-md);
-  color: var(--slate-dim);
-}
-
-#setupDrawer #metroBars {
-  width: 76px;
-}
-
-#setupDrawer #metroMidiChannel {
-  width: 70px;
-}
-
-#setupDrawer #metroVolume {
-  width: 80px;
-}
-
-#setupDrawer #metroOutput,
-#setupDrawer #metroMidiPort {
-  max-width: 150px;
-}
-
+/* channel and notes, once a MIDI out is chosen */
 #setupDrawer .metro-midi {
   display: none;
-  gap: 4px;
 }
 
 #setupDrawer #metroSettings.has-midi .metro-midi {
-  display: flex;
+  display: grid;
 }
 
 #setupDrawer .metro-midi input[type='number'] {
-  width: 44px;
+  width: 52px;
 }
 
 /* =============================================================
@@ -3051,9 +3047,7 @@ input[type='range'] {
 }
 
 #clockOutPortsCount {
-  font-family: monospace;
-  padding-right: 6px;
-  margin-left: 5px;
+  padding: 0 4px;
 }
 
 #toast {

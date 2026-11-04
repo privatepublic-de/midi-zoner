@@ -55,7 +55,7 @@
         <a
           id="toggleQuantChip"
           class="lightButton active"
-          title="Quantize: while the clock runs, M, S, Seq, Arp and Trk wait for the next bar (or beat, 16th: Setup → Switching → "M S Seq Arp Trk change at next") and blink until then; click again to cancel. Shift-click does the opposite. Key switches and Mackie buttons wait too"
+          title="Quantize: while the clock runs, M, S, Seq, Arp and Trk wait for the next bar (or beat, 16th: Setup → Switching → Zone switches) and blink until then; click again to cancel. Shift-click does the opposite. Key switches and Mackie buttons wait too"
           >Q bar</a
         >
         <div
@@ -103,109 +103,160 @@
       </div>
 
       <div id="setupDrawer">
-        <div class="drawer-group">
-          <span class="group-label">Input</span>
-          <div class="group-body">
-            <span id="midiInputSelector">Choose inputs</span>
-            <label class="tb-label check" title="When enabled, notes 0–15 (C-1 to D#0) act as zone-mute and sequencer-toggle key switches, and notes 16–19 (E0 to G0) select arrangements A–D, instead of being routed to zones">
-              <input type="checkbox" id="keySwitchEnabled" checked tabindex="-1" />
-              <span class="material-icons sel">check_box</span><span class="material-icons unsel">check_box_outline_blank</span> Key switches
-            </label>
-            <button id="keySwitchHelp" class="ks-help-btn" tabindex="-1" title="Key switch reference">?</button>
+        <div class="drawer-col">
+          <div class="drawer-title">MIDI</div>
+          <div class="drawer-row" title="The MIDI inputs zones listen to (a zone can also have an input of its own)">
+            <span class="drawer-label">In</span>
+            <div class="drawer-val"><span id="midiInputSelector">None</span></div>
           </div>
-        </div>
-        <div class="drawer-group">
-          <span class="group-label">Clock</span>
-          <div class="group-body">
-            <select id="midiClockInDeviceId" tabindex="-1" title="Clock source">
-              <option>(No devices)</option>
-            </select>
-            <div title="Select clock output ports" id="clockSendButton">
-              <i class="material-icons">query_builder</i>
-              <i class="material-icons">keyboard_double_arrow_right</i>
-              <span id="clockOutPortsCount">-</span>
+          <div class="drawer-row">
+            <span class="drawer-label">Key switches</span>
+            <div class="drawer-val">
+              <label class="tb-label check" title="When enabled, notes 0–15 (C-1 to D#0) act as zone-mute and sequencer-toggle key switches, and notes 16–19 (E0 to G0) select arrangements A–D, instead of being routed to zones">
+                <input type="checkbox" id="keySwitchEnabled" checked tabindex="-1" />
+                <span class="material-icons sel">check_box</span><span class="material-icons unsel">check_box_outline_blank</span> Notes C-1 – G0
+              </label>
+              <button id="keySwitchHelp" class="ks-help-btn" tabindex="-1" title="Key switch reference">?</button>
+            </div>
+          </div>
+          <div class="drawer-row">
+            <span class="drawer-label">Clock from</span>
+            <div class="drawer-val">
+              <select id="midiClockInDeviceId" tabindex="-1" title="Clock source">
+                <option>(No devices)</option>
+              </select>
+            </div>
+          </div>
+          <div class="drawer-row">
+            <span class="drawer-label">Clock to</span>
+            <div class="drawer-val">
+              <div title="The outputs that get the clock" id="clockSendButton"><span id="clockOutPortsCount">None</span></div>
             </div>
           </div>
         </div>
-        <div class="drawer-group" id="metroSettings">
-          <span class="group-label">Metronome</span>
-          <div class="group-body">
-            <label class="metro-field" id="metroBarsField" title="How long Count-in counts before Start">
-              Count-in
+        <div class="drawer-col" id="metroSettings">
+          <div class="drawer-title">Metronome</div>
+          <div class="drawer-row" id="metroBarsField" title="How long Count-in counts before Start">
+            <span class="drawer-label">Count-in</span>
+            <div class="drawer-val">
               <select id="metroBars" tabindex="-1">
                 <option value="1">1 bar</option>
                 <option value="2">2 bars</option>
               </select>
-            </label>
-            <label class="metro-field" title="Click volume (0: no sound, e.g. for the MIDI click only)">
-              <i class="material-icons">volume_up</i>
+            </div>
+          </div>
+          <div class="drawer-row" title="Click volume (0: no sound, e.g. for the MIDI click only)">
+            <span class="drawer-label">Volume</span>
+            <div class="drawer-val">
               <input type="range" id="metroVolume" min="0" max="100" tabindex="-1" />
               <output id="metroVolumeValue"></output>
-            </label>
-            <select id="metroOutput" tabindex="-1" title="Audio output for the click">
-              <option value="">System output</option>
-            </select>
-            <label class="metro-field" title="Also send the click as MIDI notes, e.g. to a drum machine">
-              MIDI
+            </div>
+          </div>
+          <div class="drawer-row" title="Audio output for the click">
+            <span class="drawer-label">Audio out</span>
+            <div class="drawer-val">
+              <select id="metroOutput" tabindex="-1">
+                <option value="">System output</option>
+              </select>
+            </div>
+          </div>
+          <div class="drawer-row" title="Also send the click as MIDI notes, e.g. to a drum machine">
+            <span class="drawer-label">MIDI out</span>
+            <div class="drawer-val">
               <select id="metroMidiPort" tabindex="-1">
                 <option value="">(None)</option>
               </select>
-            </label>
-            <span class="metro-midi">
-              <select id="metroMidiChannel" tabindex="-1" title="MIDI channel of the click"></select>
+            </div>
+          </div>
+          <div class="drawer-row metro-midi" title="MIDI channel of the click">
+            <span class="drawer-label">Channel</span>
+            <div class="drawer-val">
+              <select id="metroMidiChannel" tabindex="-1"></select>
+            </div>
+          </div>
+          <div class="drawer-row metro-midi">
+            <span class="drawer-label">Notes</span>
+            <div class="drawer-val">
+              <span class="drawer-hint">Accent</span>
               <input type="number" id="metroAccentNote" min="0" max="127" tabindex="-1" title="Note on the first beat of a bar" />
+              <span class="drawer-hint">Beat</span>
               <input type="number" id="metroBeatNote" min="0" max="127" tabindex="-1" title="Note on the other beats" />
-            </span>
+            </div>
           </div>
         </div>
-        <div class="drawer-group">
-          <span class="group-label">Switching</span>
-          <div class="group-body">
-            <label class="arr-quant" title="While the clock runs, choosing A–D waits for the next bar, beat or 16th of the playing arrangement (in its meter). With the clock stopped, it switches immediately.">
-              A–D change at next
+        <div class="drawer-col">
+          <div class="drawer-title">Switching</div>
+          <div class="drawer-row" title="While the clock runs, choosing A–D waits for the next bar, beat or 16th of the playing arrangement (in its meter). With the clock stopped, it switches immediately.">
+            <span class="drawer-label">A–D</span>
+            <div class="drawer-val">
+              <span class="drawer-hint">at next</span>
               <select id="seqquant">
                 <option value="2">bar</option>
                 <option value="8">beat</option>
                 <option value="14">16th note</option>
               </select>
-            </label>
-            <label class="arr-quant" title="With Q lit in the transport, M, S, Seq, Arp and Trk wait for the next bar, beat or 16th while the clock runs">
-              M S Seq Arp Trk change at next
+            </div>
+          </div>
+          <div class="drawer-row" title="With Q lit in the transport, the zones' M, S, Seq, Arp and Trk wait for the next bar, beat or 16th while the clock runs">
+            <span class="drawer-label">Zone switches</span>
+            <div class="drawer-val">
+              <span class="drawer-hint">at next</span>
               <select id="togglequant">
                 <option value="2">bar</option>
                 <option value="8">beat</option>
                 <option value="14">16th note</option>
               </select>
-            </label>
+            </div>
           </div>
         </div>
-        <div class="drawer-group">
-          <span class="group-label">Scene</span>
-          <div class="group-body toolbar">
-            <a id="load" class="lightButton"
-              ><i class="material-icons">folder_open</i> Load</a
-            >
-            <a id="save" class="lightButton"
-              ><i class="material-icons">archive</i> Save</a
-            >
-            <a id="deleteallzones" class="lightButton" title="Delete all zones"
-              ><i class="material-icons">delete_sweep</i> Delete all</a
-            >
+        <div class="drawer-col">
+          <div class="drawer-title">View</div>
+          <div class="drawer-row">
+            <span class="drawer-label">Solo</span>
+            <div class="drawer-val">
+              <label class="tb-label check" title="On: zones silenced by another zone's solo fold up like muted zones. Off: they keep their layout, dimmed, so nothing moves when you solo">
+                <input type="checkbox" id="foldSoloedOut" checked tabindex="-1" />
+                <span class="material-icons sel">check_box</span><span class="material-icons unsel">check_box_outline_blank</span> Fold silenced zones
+              </label>
+            </div>
+          </div>
+          <div class="drawer-row">
+            <span class="drawer-label">Colours</span>
+            <div class="drawer-val">
+              <a id="shuffleColors" class="lightButton" title="Give the zones new colours"
+                ><i class="material-icons">palette</i> Shuffle</a
+              >
+            </div>
           </div>
         </div>
-        <div class="drawer-group">
-          <span class="group-label">View</span>
-          <div class="group-body toolbar">
-            <a id="shuffleColors" class="lightButton" title="Shuffle colors"
-              ><i class="material-icons">palette</i></a
-            >
-            <a id="aboutBtn" class="lightButton" title="About midi-zoner"
-              ><i class="material-icons">info_outline</i></a
-            >
-            <label class="tb-label check" title="On: zones silenced by another zone's solo fold up like muted zones. Off: they keep their layout, dimmed, so nothing moves when you solo">
-              <input type="checkbox" id="foldSoloedOut" checked tabindex="-1" />
-              <span class="material-icons sel">check_box</span><span class="material-icons unsel">check_box_outline_blank</span> Fold zones silenced by solo
-            </label>
+        <div class="drawer-col">
+          <div class="drawer-title">Scene</div>
+          <div class="drawer-row">
+            <span class="drawer-label">File</span>
+            <div class="drawer-val">
+              <a id="load" class="lightButton"
+                ><i class="material-icons">folder_open</i> Load</a
+              >
+              <a id="save" class="lightButton"
+                ><i class="material-icons">archive</i> Save</a
+              >
+            </div>
+          </div>
+          <div class="drawer-row">
+            <span class="drawer-label">Zones</span>
+            <div class="drawer-val">
+              <a id="deleteallzones" class="lightButton" title="Delete all zones"
+                ><i class="material-icons">delete_sweep</i> Delete all</a
+              >
+            </div>
+          </div>
+          <div class="drawer-row drawer-end">
+            <span class="drawer-label"></span>
+            <div class="drawer-val">
+              <a id="aboutBtn" class="lightButton" title="About midi-zoner"
+                ><i class="material-icons">info_outline</i> About</a
+              >
+            </div>
           </div>
         </div>
       </div>

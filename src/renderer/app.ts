@@ -280,7 +280,7 @@ const SIXTEENTH = 6;
 /**
  * Whether a pending arrangement switch (or, with `quant` = toggleQuantIndex, a waiting
  * zone toggle) happens at run position p: on the current song's next bar, beat or 16th
- * ("A–D change at next"), in its meter.
+ * (Setup → Switching → A–D), in its meter.
  */
 function isSwitchPoint(p: number, quant = zones.arrangementQuantIndex): boolean {
   const song = songAt(p - timeline.sectionStart);
@@ -565,8 +565,8 @@ document.addEventListener('DOMContentLoaded', function () {
         count++;
       }
     }
-    (DOM.get('#clockOutPortsCount') as HTMLElement).innerHTML =
-      count > 0 ? String(count) : '-';
+    (DOM.get('#clockOutPortsCount') as HTMLElement).textContent =
+      count === 0 ? 'None' : count === 1 ? '1 port' : `${count} ports`;
   }
 
   function updateInputDisplay(inputs: PortDescriptor[]): void {
@@ -596,10 +596,9 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
     if (count == 0) {
-      displayString = '(no input device selected)';
+      displayString = 'None';
     }
     inputSummary = count == 0 ? '' : displayString;
-    displayString = count + ': ' + displayString;
     (DOM.get('#midiInputSelector') as HTMLElement).innerHTML = displayString;
     updateSetupSummary();
   }

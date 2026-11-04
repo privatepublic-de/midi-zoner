@@ -1,6 +1,6 @@
 /**
  * Zone toggles (M, S, Seq, Arp, Trk) that wait for the next bar, beat or 16th while
- * the clock runs ("M S Seq Arp Trk change at next"), so they land in time. The topbar's Quantize chip
+ * the clock runs (Setup → Switching → Zone switches), so they land in time. The topbar's Quantize chip
  * decides whether they wait; Shift does the opposite of the chip. A waiting chip
  * blinks between its look now and the one it will have; clicking it again cancels.
  * Key switches and Mackie buttons wait like a plain click.
