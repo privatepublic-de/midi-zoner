@@ -22,7 +22,7 @@ const timeline = {
   // Run position where the current arrangement's song began: 0 at Start, the switch
   // position when an arrangement is entered while running (its song starts at bar 1)
   sectionStart: 0,
-  // Song position at sectionStart: bar 1, or the loop's start when the loop is on
+  // Song position at sectionStart: bar 1 (the song runs into a loop); set elsewhere when a loop changes while running
   songStart: 0,
   // The current arrangement's loop range while it's on (song positions, whole ticks)
   loop: null as LoopRange | null,
@@ -41,7 +41,7 @@ function timelineClock(pos: number, tickIntervalMs: number): void {
   if (pos === 0) {
     timeline.run++;
     timeline.sectionStart = 0;
-    timeline.songStart = timeline.loop ? timeline.loop.from : 0;
+    timeline.songStart = 0;
     timeline.runStart = timeline.nextRunStart;
     timeline.runStarts.push(timeline.runStart);
   }
@@ -92,10 +92,10 @@ function sessionNow(): number {
   return timeline.running ? timeline.runStart + nowTick() : timeline.nextRunStart;
 }
 
-/** An arrangement was entered at this run position: its song starts there (bar 1, or its loop's start) */
+/** An arrangement was entered at this run position: its song starts there at bar 1 */
 function timelineSection(pos: number): void {
   timeline.sectionStart = pos;
-  timeline.songStart = timeline.loop ? timeline.loop.from : 0;
+  timeline.songStart = 0;
 }
 
 /**
@@ -133,9 +133,9 @@ function passAt(elapsed: number): number {
   return 1 + Math.floor((linear - loop.to) / (loop.to - loop.from));
 }
 
-/** Position in the current arrangement's song (ticks from its bar 1); stopped: where Start begins */
+/** Position in the current arrangement's song (ticks from its bar 1); stopped: where Start begins (bar 1) */
 function songNow(): number {
-  return timeline.running ? songAt(nowTick() - timeline.sectionStart) : timeline.loop ? timeline.loop.from : 0;
+  return timeline.running ? songAt(nowTick() - timeline.sectionStart) : 0;
 }
 
 /** Song position where the last section ended or is now (stopped: where it stopped) */

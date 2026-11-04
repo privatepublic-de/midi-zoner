@@ -306,12 +306,12 @@ function showToggleQuant(): void {
  * its song at its switch point. Negative positions are the count-in, which ends at Start.
  */
 function metronomeBeatAt(p: number, now: number, running: boolean): Beat {
-  if (!running) return beatOfSong(activeMeter(), p < 0 ? p : (activeLoop()?.from ?? 0) + p);
+  if (!running) return beatOfSong(activeMeter(), p);
   if (zones.nextArrangementIndex !== zones.arrangementIndex) {
     for (let at = now + 1; at <= p; at++) {
       if (!isSwitchPoint(at)) continue;
       const next = zones.nextArrangementIndex;
-      return beatOfSong(activeMeter(next), (activeLoop(next)?.from ?? 0) + p - at);
+      return beatOfSong(activeMeter(next), p - at);
     }
   }
   return beatOfSong(timeline.meter, songAt(p - timeline.sectionStart));

@@ -93,7 +93,6 @@ const view = { head: 0, ppt: 1, scrollPx: 0 };
 // stays where the playhead normally is (a wheel or trackpad scrolls, Follow returns)
 let follow = true;
 let pinnedAt = 0;
-let followOnStart = false; // the view was held for a loop set while stopped (holdView)
 // A stretch of the shown take to keep, in song positions
 let capture: { zone: Zone; from: number; to: number } | null = null;
 let captureButton: HTMLElement;
@@ -388,17 +387,13 @@ function draw(): void {
   // The lanes show the current arrangement's song (bar 1 = where it started); the
   // sequencer counts run positions, which are the song's plus the section's start.
   // Stopped, the playhead waits at bar 1.
-  // the loop of the arrangement shown (also while stopped: Start begins at its start)
+  // the loop of the arrangement shown (Start begins at bar 1 and runs into it)
   const loop = loops.get();
   timelineLoop(loop?.on ? { from: loop.from, to: loop.to } : null);
   timelineMeter(currentMeter());
   const songHead = songNow();
   // the sequencer counts run positions: from Start, which plays the song from songHead
   const runToSong = (timeline.running ? nowTick() : 0) - songHead;
-  if (followOnStart && (timeline.running || timeline.countIn !== null)) {
-    follow = true;
-    followOnStart = false;
-  }
   if (follow) pinnedAt = songHead;
   // counting in: the song (and the playhead waiting at its start) comes in from the right
   const countIn = follow ? countInNow() : null;
@@ -472,7 +467,6 @@ function songExtent(): number {
 function scrollBy(px: number): void {
   pinnedAt = Math.max(0, Math.min(songExtent(), (follow ? view.head : pinnedAt) + px / view.ppt));
   follow = false;
-  followOnStart = false; // scrolled away on purpose
   invalidate();
 }
 
@@ -1321,12 +1315,30 @@ function endConvert(): void {
   invalidate();
 }
 
-/** Drag on the ruler: the loop range (whole bars, beats with Alt/Option), switched on */
+const LOOP_EDGE_PX = 6;
+
+/** What a press on the ruler at clientX grabs of the loop range: an edge, the range itself, or nothing */
+function loopHit(ruler: Element, clientX: number): 'from' | 'to' | 'body' | null {
+  const loop = loops.get();
+  if (!loop) return null;
+  const t = laneTick(ruler, clientX);
+  const edge = LOOP_EDGE_PX / view.ppt;
+  if (Math.abs(t - loop.from) <= edge) return 'from';
+  if (Math.abs(t - loop.to) <= edge) return 'to';
+  return t > loop.from && t < loop.to ? 'body' : null;
+}
+
+/**
+ * Drag on the ruler: an edge of the loop range moves that edge, inside it moves the range,
+ * elsewhere draws a new one (whole bars, beats with Alt/Option); either way it's on after
+ */
 function startLoopDrag(ev: MouseEvent): void {
   if (!isActive() || ev.button !== 0) return;
   ev.preventDefault();
   const ruler = ev.currentTarget as Element;
   const start = laneTick(ruler, ev.clientX);
+  const grab = loopHit(ruler, ev.clientX);
+  const loop = loops.get();
   let moved = false;
   const move = (e: MouseEvent): void => {
     if (!moved && Math.abs(e.clientX - ev.clientX) < 4) return;
@@ -1334,8 +1346,23 @@ function startLoopDrag(ev: MouseEvent): void {
     const end = laneTick(ruler, e.clientX);
     // bars, beats with Alt/Option
     const bars = { shiftKey: !e.altKey, altKey: false };
-    const from = Math.max(0, snapWith(Math.min(start, end), bars, 'floor'));
-    const to = Math.min(Take.MAX_LENGTH, Math.max(from + snapMin(bars), snapWith(Math.max(start, end), bars, 'ceil')));
+    const min = snapMin(bars);
+    let from: number;
+    let to: number;
+    if (loop && grab === 'from') {
+      to = loop.to;
+      from = Math.max(0, Math.min(to - min, snapWith(end, bars)));
+    } else if (loop && grab === 'to') {
+      from = loop.from;
+      to = Math.min(Take.MAX_LENGTH, Math.max(from + min, snapWith(end, bars)));
+    } else if (loop && grab === 'body') {
+      const length = loop.to - loop.from;
+      from = Math.max(0, Math.min(Take.MAX_LENGTH - length, snapWith(loop.from + end - start, bars)));
+      to = from + length;
+    } else {
+      from = Math.max(0, snapWith(Math.min(start, end), bars, 'floor'));
+      to = Math.min(Take.MAX_LENGTH, Math.max(from + min, snapWith(Math.max(start, end), bars, 'ceil')));
+    }
     loopDrag = { from, to };
     invalidate();
   };
@@ -1346,28 +1373,24 @@ function startLoopDrag(ev: MouseEvent): void {
     loopDrag = null;
     invalidate();
     if (!range) return;
-    holdView();
-    loops.set({ on: true, from: range.from, to: range.to }, 'Loop Range');
+    if (loop && loop.on && range.from === loop.from && range.to === loop.to) return;
+    loops.set({ on: true, from: range.from, to: range.to }, grab === 'body' ? 'Move Loop' : grab ? 'Loop Length' : 'Loop Range');
   };
   window.addEventListener('mousemove', move);
   window.addEventListener('mouseup', up);
 }
 
-/**
- * Stopped, a loop moves where Start begins (the playhead): the song stays where it is on
- * screen and only the playhead moves; Start (or its count-in) follows again
- */
-function holdView(): void {
-  if (timeline.running || timeline.countIn !== null || !follow) return;
-  pinnedAt = view.head;
-  follow = false;
-  followOnStart = true;
+/** The ruler's cursor says what a drag will do */
+function rulerHover(ev: MouseEvent): void {
+  const ruler = ev.currentTarget as HTMLElement;
+  if (loopDrag) return;
+  const grab = loopHit(ruler, ev.clientX);
+  ruler.style.cursor = grab === 'body' ? 'grab' : grab ? 'ew-resize' : '';
 }
 
 /** The Loop button: on and off; without a range yet, the 4 bars from the playhead's bar */
 function toggleLoop(): void {
   const loop = loops.get();
-  holdView();
   if (loop) {
     loops.set({ ...loop, on: !loop.on }, loop.on ? 'Loop Off' : 'Loop On');
     return;
@@ -1511,7 +1534,6 @@ function chooseTakeRow(zone: Zone, take: Take, kept: boolean): void {
   if (!timeline.running && !visible) {
     pinnedAt = Math.max(0, take.start);
     follow = false;
-    followOnStart = false;
   }
   invalidate();
 }
@@ -1586,6 +1608,7 @@ function initTrackView(
   currentMeter = meter;
   const rulerCanvas = document.querySelector('#trackRuler canvas') as HTMLCanvasElement;
   rulerCanvas.addEventListener('mousedown', startLoopDrag);
+  rulerCanvas.addEventListener('mousemove', rulerHover);
   document.querySelector('#trackRuler .tr-loop')!.addEventListener('click', toggleLoop);
   const zonesEl = document.getElementById('zones')!;
   captureButton = document.createElement('div');
@@ -1756,7 +1779,6 @@ function initTrackView(
   );
   document.querySelector('#trackRuler .tr-follow')?.addEventListener('click', () => {
     follow = true;
-    followOnStart = false;
     invalidate();
   });
   // Any press on a track selects it
@@ -1847,7 +1869,6 @@ function initTrackView(
       takeSel = { zone, take };
     },
     loop: (from, to) => {
-      holdView();
       loops.set({ on: true, from: Math.round(from), to: Math.round(to) }, 'Loop Take');
     },
     snap: (t, e) => snapWith(t, e),

@@ -15,8 +15,8 @@ interface Scheduled {
 /**
  * Plays a zone's kept takes at their song positions, every tick: notes between two
  * ticks go out on timers for their place. They are fed through the zone like step
- * notes (arp, octave and range rules apply), only while its Trk switch is on and the
- * zone is audible: unlike the sequencer, a muted or soloed-out zone doesn't play them.
+ * notes (arp, octave and range rules apply), while its Trk switch is on. Like the
+ * sequencer, they play in a muted or soloed-out zone (mute and solo are for the input).
  */
 export class TakePlayer {
   private zone: Zone;
@@ -49,7 +49,7 @@ export class TakePlayer {
       later(Math.max(0, ev.offAt - elapsed), () => this.end(ev));
     }
     const zone = this.zone;
-    if (!zone.takes_on || !zone.enabled || ((zone.constructor as typeof Zone).solocount > 0 && !zone.solo)) return;
+    if (!zone.takes_on) return;
     // a loop's bounds are whole ticks, so a tick never spans its jump
     const songPos = songAt(elapsed);
     for (const take of takes) {
