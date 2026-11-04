@@ -42,7 +42,7 @@ function initMetronomeControls(): void {
   const showVolume = (): void => {
     volume.value = String(Math.round(metronomeSettings.volume * 100));
     volume.style.setProperty('--fill', `${volume.value}%`);
-    volumeValue.textContent = volume.value === '0' ? 'Off' : `${volume.value} %`;
+    volumeValue.textContent = volume.value === '0' ? 'Off' : `${volume.value}%`;
   };
   showVolume();
   volume.addEventListener('input', () => {

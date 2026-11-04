@@ -10,6 +10,9 @@ import { toast } from './toast';
 import { pendingOf, toggleBoundary } from './pending-toggles';
 import { initTakeEditor, drawTakeEditor, refitTakeEditor, TakeTarget } from './take-editor';
 
+/** The one sentence on how takes come about (lane strip, Track tab, Notes tab) */
+const TAKE_HINT = 'What you play while the clock runs becomes a take after Stop';
+
 /**
  * Track view: each zone is a row with its header on the left and a lane that scrolls
  * under a fixed playhead. Behind the playhead the lane shows what the zone sent
@@ -335,7 +338,9 @@ function updateDock(zones: Zone[]): void {
     empty = 'The arpeggiator of this track is off.';
     turnOn = 'Turn on';
   } else if (tab === 'notes' && !editedTake()) {
-    empty = 'No take to edit: pick one in the lane or the Track tab (double-click), or play something, it shows here after Stop.';
+    empty = zone.takes.length > 0 || zone.hasRecorded
+      ? 'Double-click a take in the lane or in the Track tab to edit its notes.'
+      : `Nothing recorded yet. ${TAKE_HINT}.`;
   }
   // nothing to show: the dock keeps its height and says so in its place
   dock.classList.toggle('empty', empty !== '');
@@ -1007,7 +1012,7 @@ function drawLane(
     if (!running && !conv && !kept && !stretch && !latest) {
       hint = zone.takes.length > 0
         ? 'Click a take to select it, double-click to edit its notes, ⌘-click to cut it there'
-        : 'What you play while the clock runs shows up here as a take after Stop';
+        : TAKE_HINT;
     }
     const hintEl = el.querySelector('.track-hint')!;
     if (hintEl.textContent !== hint) hintEl.textContent = hint;
@@ -1388,7 +1393,7 @@ function updateConvertPanel(): void {
   strength.value = String(Math.round(c.strength * 100));
   // the filled part of the track, as the zones' sliders show it
   strength.style.setProperty('--fill', `${((c.strength * 100 - 10) / 90) * 100}%`);
-  panel.querySelector('.tdc-strength-value')!.textContent = `${Math.round(c.strength * 100)} %`;
+  panel.querySelector('.tdc-strength-value')!.textContent = `${Math.round(c.strength * 100)}%`;
   panel.querySelectorAll('.tdc-mode [data-mode]').forEach((m) => {
     m.classList.toggle('on', ((m as HTMLElement).dataset['mode'] === 'drums') === c.drums);
   });
@@ -1396,7 +1401,7 @@ function updateConvertPanel(): void {
   swingRow.style.display = c.swing > 0 ? '' : 'none';
   (swingRow.querySelector('input') as HTMLInputElement).checked = c.useSwing;
   const swing = Math.round(c.swing * 100);
-  swingRow.querySelector('.tdc-swing-text')!.textContent = `${intoTake ? 'Keep' : 'Set'} ${swing} %`;
+  swingRow.querySelector('.tdc-swing-text')!.textContent = `${intoTake ? 'Keep' : 'Set'} ${swing}%`;
   swingRow.querySelector('.tdc-swing-note')!.textContent = intoTake
     ? c.useSwing
       ? 'The off-beats were played late and stay late'
@@ -1432,7 +1437,7 @@ function updateConvertPanel(): void {
     const most = Math.round(Math.max(0, ...moves));
     const mean = Math.round(moves.reduce((a, b) => a + b, 0) / Math.max(1, moves.length));
     text =
-      `${plural(c.notes.length, 'note')} move ${Math.round(c.strength * 100)} % toward ${DIV_NAMES[c.grid]}: ` +
+      `${plural(c.notes.length, 'note')} move ${Math.round(c.strength * 100)}% toward ${DIV_NAMES[c.grid]}: ` +
       `${mean} ms on average, at most ${most} ms. Lengths stay. ` +
       (c.kept ? 'The take changes (undo goes back).' : 'The result is kept as a take.');
   }
@@ -1482,7 +1487,7 @@ function quantizeTake(): void {
     takeSel = { zone: c.zone, take: result };
   }
   endConvert();
-  toast(`Quantized ${c.notes.length} notes toward ${DIV_NAMES[c.grid]} (${Math.round(c.strength * 100)} %)`);
+  toast(`Quantized ${c.notes.length} notes toward ${DIV_NAMES[c.grid]} (${Math.round(c.strength * 100)}%)`);
 }
 
 function endConvert(): void {
@@ -1624,7 +1629,7 @@ function updateTakeList(zones: Zone[]): void {
   const list = panel.querySelector('.tdt-list')!;
   if (rows.length === 0) {
     list.innerHTML =
-      '<p class="tdt-none">Nothing recorded here yet. What you play while the clock runs becomes a take after Stop.</p>';
+      `<p class="tdt-none">Nothing recorded yet. ${TAKE_HINT}.</p>`;
     return;
   }
   const off = timeline.running ? ' disabled' : '';

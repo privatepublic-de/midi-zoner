@@ -287,7 +287,7 @@ Note numbers range 0-127. Display format uses `Note.display()` which produces `M
 - Undo replaces the zone objects: the piano roll and the controller editor follow the zone at the same index; the track view's note history and selection go with the matching zone (see Track view)
 
 ### Quantized toggles
-- While the clock runs (not during a count-in), M, S, Seq, Arp and Trk wait for the next "Zone switches at next" boundary (Setup → Switching, `#togglequant`) when the transport's Q chip (`#toggleQuantChip`) is lit; Shift-click does the opposite of the chip. Global M/S/H stay instant
+- While the clock runs (not during a count-in), M, S, Seq, Arp and Trk wait for the next "Zone switches at next" boundary (Setup → Switching, `#togglequant`) when the transport's Quant chip (`#toggleQuantChip`, "Quant bar") is lit; Shift-click does the opposite of the chip. Global M/S/H stay instant
 - `viewcontroller/pending-toggles.ts` keeps the waiting toggles (by zone object, in order) and blinks their chips (`.pending`, `data-flip` = the look after the toggle, CSS at the end of styles.css); pressing a waiting chip again cancels it
 - `waitsForBoundary()` in `actionHandler` (viewcontroller/index.ts) runs before the undo snapshot; key switches and Mackie mute/solo/rec go through `zoneToggle()`, the same path as a plain click
 - They land in `clockHandler` (app.ts) on `isSwitchPoint(pos, zones.toggleQuantIndex)`, after a pending arrangement switch on the same tick (so in the new arrangement), before the zones play the tick; `applyPendingToggles()` runs each one as a click (one undo step each). Stop lands what is still waiting

@@ -1617,7 +1617,7 @@ function updateValuesForZone(index: number): void {
       }
       if (portnameEl) portnameEl.textContent = portLabel;
       routingText.classList.toggle('missing', noOutput || outPortName.startsWith('⚠'));
-      if (chEl) chEl.textContent = isPreset || noOutput ? '' : `#${zone.channel + 1}`;
+      if (chEl) chEl.textContent = isPreset || noOutput ? '' : `Ch ${zone.channel + 1}`;
     }
     updateControllerValues(zone, index);
     updateGeneralButtons();
