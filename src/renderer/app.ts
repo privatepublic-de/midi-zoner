@@ -1213,11 +1213,11 @@ document.addEventListener('DOMContentLoaded', function () {
           const redoBtn = DOM.get('#redoBtn') as HTMLButtonElement | null;
           if (undoBtn) {
             undoBtn.disabled = !undoHistory.canUndo;
-            undoBtn.title = undoHistory.undoLabel ? `Undo: ${undoHistory.undoLabel}` : 'Undo';
+            undoBtn.title = undoHistory.undoLabel ? `Undo ${undoHistory.undoLabel} (⌘Z)` : 'Undo (⌘Z)';
           }
           if (redoBtn) {
             redoBtn.disabled = !undoHistory.canRedo;
-            redoBtn.title = undoHistory.redoLabel ? `Redo: ${undoHistory.redoLabel}` : 'Redo';
+            redoBtn.title = undoHistory.redoLabel ? `Redo ${undoHistory.redoLabel} (⇧⌘Z)` : 'Redo (⇧⌘Z)';
           }
           updateSheetHistory(undoHistory);
         }

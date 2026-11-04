@@ -601,10 +601,9 @@ body.setup-open #setupDrawer {
   margin-bottom: 3px;
   padding-bottom: 3px;
   border-bottom: 1px solid var(--brighter-0);
-  color: var(--brighter-2);
-  font-size: var(--fs-sm);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  color: var(--text-base-color);
+  font-size: var(--fs-md);
+  font-weight: 600;
 }
 
 /* A dim label on the left, its controls beside it: the column reads like a form */
