@@ -877,12 +877,11 @@ function drawLane(
   }
 
   // behind the playhead while running: what was sent; layered, not what a kept take
-  // played (its band shows it)
-  const inLayeredTake = (s: number): boolean =>
-    layers.count > 1 && zone.takes_on && !zone.arp_enabled && zone.takes.some((t) => t.start <= s && s < t.end);
+  // played (its band shows it), the sequence and the arp's notes still
+  const skipTakeNotes = layers.count > 1 && !zone.arp_enabled;
   for (const n of history) {
+    if (skipTakeNotes && n.take) continue;
     const s0 = songOf(n.start);
-    if (inLayeredTake(s0)) continue;
     const s1 = songOf(n.end ?? sessionNow());
     note(s0, Math.max(s1, s0 + 1 / ppt), rowOf(n.pitch), n.velo, false);
   }

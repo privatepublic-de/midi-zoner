@@ -237,6 +237,8 @@ export class Zone {
   readonly paramLocks = new ParamLocks(this);
   /** What this zone sent during the current run, for the track view */
   noteHistory = new NoteHistory();
+  /** Set while the take player feeds a note in, so the note history knows where it came from */
+  playingTake = false;
   /** The notes its arp played from during the current run, for the track view */
   heldHistory = new NoteHistory();
   /** Kept takes of the current arrangement: its song for this zone (saved with it) */
@@ -584,7 +586,7 @@ export class Zone {
       }
     }
     this.midi.send(msg, portId, timestamp);
-    if (noteOn) this.noteHistory.noteOn(msg[1], msg[2], live);
+    if (noteOn) this.noteHistory.noteOn(msg[1], msg[2], live, this.playingTake);
     else if (status === MIDI.MESSAGE.NOTE_ON || status === MIDI.MESSAGE.NOTE_OFF) this.noteHistory.noteOff(msg[1]);
     if (!noteOn || this.ledTimer !== null) return;
     const body = document.body.classList;

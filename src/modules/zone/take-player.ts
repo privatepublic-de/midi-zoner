@@ -111,6 +111,11 @@ export class TakePlayer {
 
   private send(status: number, note: Note): void {
     const msg = Uint8Array.from([status + note.channel, note.number, status === MIDI.MESSAGE.NOTE_ON ? note.velo : 0]);
-    this.zone.handleMidi(status, msg, true);
+    this.zone.playingTake = true;
+    try {
+      this.zone.handleMidi(status, msg, true);
+    } finally {
+      this.zone.playingTake = false;
+    }
   }
 }
