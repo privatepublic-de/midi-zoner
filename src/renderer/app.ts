@@ -753,6 +753,8 @@ document.addEventListener('DOMContentLoaded', function () {
       if (on) inUse.out.add(id);
     }
     if (midi.deviceIdInClock) inUse.in.add(midi.deviceIdInClock);
+    const clockChoice = chosenClockSource();
+    if (clockChoice !== MIDI.INTERNAL_PORT_ID) inUse.in.add(clockChoice);
     if (midi.deviceIdMackieControl) inUse.in.add(midi.deviceIdMackieControl);
     if (midi.deviceIdMackieOutput) inUse.out.add(midi.deviceIdMackieOutput);
     if (metronomeSettings.midiPortId) inUse.out.add(metronomeSettings.midiPortId);
@@ -827,8 +829,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const clockIn = resolve(localStorage.getItem('midiInClockId'), 'in');
     if (clockIn) {
       localStorage.setItem('midiInClockId', clockIn);
-      midi.selectDevices(clockIn);
-      inputs.forEach((p) => { p.isSelectedClockInput = p.id === clockIn; });
+      // standing in with the internal clock: followClockSource() switches back
+      if (midi.deviceIdInClock !== MIDI.INTERNAL_PORT_ID) midi.selectDevices(clockIn);
     }
     const mackieIn = resolve(localStorage.getItem('mackieControlPortId'), 'in');
     if (mackieIn) localStorage.setItem('mackieControlPortId', mackieIn);
@@ -896,6 +898,40 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  /** The clock source chosen in the selector (per machine); it stays chosen while its port is missing */
+  function chosenClockSource(): string {
+    return localStorage.getItem('midiInClockId') || MIDI.INTERNAL_PORT_ID;
+  }
+  /** The chosen clock port came back while the internal clock was playing: it takes over at Stop */
+  let clockReturnPending = false;
+  /**
+   * The internal clock stands in while the chosen clock port is missing, and the
+   * port takes over again when it reconnects (at once when stopped, else at Stop).
+   * Returns a line for the ports toast, or ''.
+   */
+  function followClockSource(): string {
+    const chosen = chosenClockSource();
+    const current = midi.deviceIdInClock;
+    const present = (id: string | null): boolean => !!id && midi.knownPorts[id] != null;
+    const nameOf = (id: string): string =>
+      midi.knownPorts[id]?.name || zones.knownPortNames[id] || 'clock source';
+    clockReturnPending = false;
+    if (current !== MIDI.INTERNAL_PORT_ID && !present(current)) {
+      console.log('app: Clock in port', current, 'not available. Internal clock until it is back.');
+      midi.selectDevices(MIDI.INTERNAL_PORT_ID);
+      return chosen !== MIDI.INTERNAL_PORT_ID
+        ? `Clock: ${esc(nameOf(chosen))} missing, internal clock until it's back`
+        : '';
+    }
+    if (chosen === MIDI.INTERNAL_PORT_ID || chosen === current || !present(chosen)) return '';
+    if (current === MIDI.INTERNAL_PORT_ID && midi.isClockRunning) {
+      clockReturnPending = true;
+      return `Clock: ${esc(nameOf(chosen))} is back, takes over at Stop`;
+    }
+    midi.selectDevices(chosen);
+    return `Clock: back to ${esc(nameOf(chosen))}`;
+  }
+
   function rebuildPortSelectors(inputs: PortDescriptor[], outputs: PortDescriptor[]): void {
     // rebuild clock source selector
     DOM.empty(select_in_clock);
@@ -904,17 +940,25 @@ document.addEventListener('DOMContentLoaded', function () {
       'beforeend',
       /*html*/ `<option value="*">midi-zoner internal</option>`
     );
-    if (inputs.length > 0) {
-      inputs.forEach((input) => {
-        DOM.addHTML(
-          select_in_clock,
-          'beforeend',
-          `<option value="${esc(input.id)}" ${
-            input.isSelectedClockInput ? 'selected' : ''
-          }>${esc(input.name)}</option>`
-        );
-      });
-    } else {
+    inputs.forEach((input) => {
+      DOM.addHTML(
+        select_in_clock,
+        'beforeend',
+        `<option value="${esc(input.id)}" ${
+          input.id === midi.deviceIdInClock ? 'selected' : ''
+        }>${esc(input.name)}</option>`
+      );
+    });
+    // a chosen clock port that is missing stays listed (and shown), so picking internal forgets it
+    const chosenClock = chosenClockSource();
+    if (chosenClock !== MIDI.INTERNAL_PORT_ID && !inputs.some((p) => p.id === chosenClock)) {
+      const name = zones.knownPortNames[chosenClock] || 'Clock source';
+      DOM.addHTML(
+        select_in_clock,
+        'beforeend',
+        `<option value="${esc(chosenClock)}" selected>⚠ ${esc(name)} (missing, internal clock)</option>`
+      );
+    } else if (inputs.length === 0) {
       DOM.addHTML(select_in_clock, 'beforeend', optionNoDevice);
     }
     updateSetupSummary();
@@ -1183,6 +1227,12 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         // nothing to wait for any more
         view.applyPendingToggles();
+        if (clockReturnPending) {
+          const clockMsg = followClockSource();
+          refreshPortLists();
+          updateBpmInput();
+          if (clockMsg) view.toast(clockMsg);
+        }
       }
       sendMackieLeds();
     },
@@ -1469,6 +1519,8 @@ document.addEventListener('DOMContentLoaded', function () {
         if (remappedPorts.length > 0) {
           msg = `${msg ? msg + '<br/>' : ''}Reconnected by name: ${remappedPorts.join(', ')}`;
         }
+        const clockMsg = followClockSource();
+        if (clockMsg) msg = `${msg ? msg + '<br/>' : ''}${clockMsg}`;
         const inputs = visiblePorts(allInputs, 'in');
         const outputs = visiblePorts(allOutputs, 'out');
         rebuildPortSelectors(inputs, outputs);
@@ -1496,14 +1548,6 @@ document.addEventListener('DOMContentLoaded', function () {
           }
         });
         portsFirstUpdateDone = true;
-        if (
-          midi.deviceIdInClock !== MIDI.INTERNAL_PORT_ID &&
-          (midi.deviceIdInClock === null || midi.knownPorts[midi.deviceIdInClock] == null)
-        ) {
-          console.log('app: Clock in port', midi.deviceIdInClock, 'not available. Switching to internal clock.');
-          midi.selectDevices(MIDI.INTERNAL_PORT_ID);
-          localStorage.setItem('midiInClockId', MIDI.INTERNAL_PORT_ID);
-        }
         updateBpmInput();
         updateClockReceivers(outputs);
         updateInputSelection(inputs);
@@ -1521,9 +1565,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const inClockId = (
       DOM.find(select_in_clock, 'option:checked')[0] as HTMLOptionElement
     ).value;
+    localStorage.setItem('midiInClockId', inClockId);
+    clockReturnPending = false;
     midi.selectDevices(inClockId);
     updateBpmInput();
-    localStorage.setItem('midiInClockId', inClockId);
+    refreshPortLists();
   });
   select_mackie.addEventListener('change', () => {
     const portId = (select_mackie.querySelector('option:checked') as HTMLOptionElement).value;
