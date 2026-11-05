@@ -1522,6 +1522,16 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
   background: var(--slate-line);
 }
 
+/* cards: the name sits between [M S] and [Seq Arp Trk | CC], set apart from both by the
+   same group gap as the divider before CC (6px + 8px), so it needs no divider of its own */
+body:not(.track-view):not(.minimized) .zone .channels {
+  > .ch.state { order: -3; }
+  > .ch.solo { order: -2; }
+  > .zone-label { order: -1; margin-left: 8px; margin-right: 8px; }
+  > .ch.showseq { margin-left: 0; }
+  > .ch.showseq::before { display: none; }
+}
+
 /* =============================================================
    REUSABLE COMPONENTS  (.action, .check, .flex-row, toggles…)
    ============================================================= */
