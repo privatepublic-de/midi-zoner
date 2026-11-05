@@ -204,7 +204,8 @@ function seqHasNotes(seq: Zone['sequence']): boolean {
 
 /**
  * The cards: a mini lane under each header that has something to play (sequence notes,
- * kept takes, the arp), on the same song as the track view
+ * kept takes, the arp) or an enabled zone's sequencer on (even with an empty sequence),
+ * on the same song as the track view
  */
 function drawCards(): void {
   const zones = getZones();
@@ -223,7 +224,8 @@ function drawCards(): void {
   zones.forEach((z) => {
     const el = z.elements.zoneElement;
     if (!el) return;
-    const show = seqHasNotes(z.sequence) || z.takes.length > 0 || z.arp_enabled;
+    const show =
+      (z.enabled && z.sequence.active) || seqHasNotes(z.sequence) || z.takes.length > 0 || z.arp_enabled;
     if (el.classList.contains('has-mini-lane') !== show) el.classList.toggle('has-mini-lane', show);
     const canvas = el.querySelector('.mini-lane canvas') as HTMLCanvasElement | null;
     if (show && canvas) drawLane(z, false, songHead, runToSong, 0, 0, canvas);
