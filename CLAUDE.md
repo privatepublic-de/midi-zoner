@@ -117,7 +117,6 @@ UI controller split into focused modules:
 - **toast.ts**: Toast notification utilities
 - **editor-sheet.ts**: the header shared by the full-window editor panels (piano roll, controller editor), `.editor-sheet` / `.es-bar` in styles.css: panel name, zone chip, Play/Stop (clicks `#startClockButton`, hidden with an external clock), the panel's tools, undo/redo naming the step (`updateSheetHistory()` from app.ts, the chip's zone prefix dropped), Done. Edits apply immediately, so Done, Esc and a click on the dimmed app only close. Space passes through both panels as play/stop
 - **number-input-controller.ts**: Numeric input with +/- buttons
-- **card-packing.ts**: packs the cards into columns (see Card layout)
 
 #### Other Modules
 - **internal-clock.ts**: Generates internal MIDI clock at specified BPM using Web Audio API for timing accuracy. Ticks are handled `LOOKAHEAD_MS` (100 ms) ahead: the clock output goes at the tick's timestamp, what zones play (and Start) goes out when the tick is handled. Tick timestamps jitter by a few ms (`currentTime` moves in audio blocks)
@@ -169,7 +168,7 @@ Device presets: named CC/NRPN controller sets, stored apart from scenes as one J
 
 Port id changes: macOS/CoreMIDI can give a device a new port id after a reboot. On every port update `remapChangedPortIds()` (app.ts) re-links references to absent ids (zone output/input, output presets, clock outputs, selected inputs, clock input, Mackie in/out) to the single present port of the same direction whose name matches `zones.knownPortNames[oldId]` (full port names). Ambiguous names (identical devices) are left as "⚠ missing".
 
-Card layout: `#zones` is a grid of 1px rows with 560px columns; each card spans its height plus the 5px gap (`--card-rows`, kept up to date by a ResizeObserver in `card-packing.ts`, read only by the cards layout), so grid auto-placement puts it in zone order at the first place with room and short cards leave no holes. The order across columns is therefore not strictly left/right; the mini view keeps rows of two in zone order, matching a pad laid out as zones 1/2 per row. Below 1150px the cards are one column.
+Card layout: `#zones` is a grid of 560px columns, cards in rows in zone order (left to right, so with two columns zone N is in row ⌈N/2⌉, like the pad and the mini view); every card stretches to the tallest card of its row, so opening a sequencer or arp or folding a zone never moves a card to another column, only the rows below. (A packed masonry layout was tried in Nov 2026 and dropped: cards jumped columns while editing.) Below 1150px the cards are one column.
 
 Mini view (⌘⇧M, `body.minimized`, app.ts `setMiniView()`): a floating window with M/S/Seq/Arp per zone. It has its own zoom (localStorage `miniZoomFactor`, default 0.8, 0.5–1.5; the full view keeps `zoomFactor`), and the zoom sets the window size (width = `MINI_WIDTH` × zoom, height fits the zones). Dragging its edge sets the zoom: main.ts sends `mini-resized` with the content width once a drag ends ('resized'; Linux: 'resize', settled 300 ms) and the renderer answers with the fitting size. ⌘+ / ⌘− / ⌘0 zoom whichever view is showing.
 
