@@ -11,7 +11,7 @@ export class NoteDisplay {
   static readonly fillArpPlayed = 'rgba(255,255,196,1)';
   static readonly fillBlack = 'rgba(255,255,255,1)';
   static readonly fillSustain = 'rgba(255,255,255,.5)';
-  static readonly fillOctaveLabel = 'rgba(255,255,255,0.4)';
+  static readonly fillOctaveLabel = 'rgba(255,255,255,0.2)';
   // the 128 key outlines are a ruler, not content: low contrast, so a played range reads
   static readonly fillHintWhite = 'rgba(255,255,255,0.06)';
   static readonly fillHintBlack = 'rgba(0,0,0,0.22)';
