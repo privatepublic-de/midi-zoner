@@ -1933,6 +1933,24 @@ input[type='range'] {
   flex-wrap: nowrap;
 }
 
+/* Hits in length come first, next to the label; the shift arrows flank the
+   cells, which only take the width they need, however short the pattern */
+.arp-pattern-row > .pattern {
+  flex: 0 1 auto;
+  margin: 0 2px;
+  /* only the cells' height, so they centre on the arrows and inputs; the
+     group ticks and the playhead hang below */
+  height: 15px;
+  align-self: center;
+}
+.arp-pattern-row > .pattern > i {
+  flex: 0 1 auto;
+  width: 20px; /* the row's width comes from this, flex-basis isn't counted */
+}
+.arp-pattern-row > .euclid {
+  margin-right: 8px;
+}
+
 .pattern {
   display: flex;
   flex: 1;
@@ -1968,11 +1986,6 @@ input[type='range'] {
   background: var(--slate-dim);
 }
 
-/* the label centred on the squares, not on the row with the playhead strip */
-.arp-pattern-row > .label {
-  margin-bottom: 5px;
-}
-
 .pattern > i:hover {
   background-image: linear-gradient(var(--brighter-0), var(--brighter-0));
 }
@@ -2002,7 +2015,6 @@ input[type='range'] {
   display: flex;
   align-items: center;
   gap: 3px;
-  margin-left: 4px;
 }
 
 /* transpose amount: a value you drag or scroll, shown while Transpose is on */
