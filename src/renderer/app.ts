@@ -1517,10 +1517,12 @@ document.addEventListener('DOMContentLoaded', function () {
         allPorts = { inputs: allInputs, outputs: allOutputs };
         const remappedPorts = remapChangedPortIds(allInputs, allOutputs);
         if (remappedPorts.length > 0) {
-          msg = `${msg ? msg + '<br/>' : ''}Reconnected by name: ${remappedPorts.join(', ')}`;
+          msg = (msg ?? '') + remappedPorts
+            .map((n) => `<div class="toast-row on"><span class="toast-name">${esc(n)}</span><span class="toast-meta">reconnected</span></div>`)
+            .join('');
         }
         const clockMsg = followClockSource();
-        if (clockMsg) msg = `${msg ? msg + '<br/>' : ''}${clockMsg}`;
+        if (clockMsg) msg = `${msg ?? ''}<div class="toast-note">${clockMsg}</div>`;
         const inputs = visiblePorts(allInputs, 'in');
         const outputs = visiblePorts(allOutputs, 'out');
         rebuildPortSelectors(inputs, outputs);
@@ -1557,7 +1559,7 @@ document.addEventListener('DOMContentLoaded', function () {
           DOM.removeClass(document.body, 'updated');
         }, 1000);
         // only when a device came, went or was reconnected, not on every re-scan
-        if (msg) view.toast(`MIDI devices updated<br/>${msg}`);
+        if (msg) view.toast(`<div class="toast-title">MIDI devices</div>${msg}`);
       }, 100);
     }
   });

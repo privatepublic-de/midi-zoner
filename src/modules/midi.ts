@@ -207,14 +207,28 @@ class MIDI {
       const after = portKeys(result);
       const nameOf = (r: ListResult, key: string): string =>
         (key[0] === 'i' ? r.inputs : r.outputs).find((p) => p.id === key.slice(1))?.fullName ?? key;
-      const added = new Set([...after].filter((k) => !before.has(k)).map((k) => nameOf(result, k)));
-      const removed = new Set([...before].filter((k) => !after.has(k)).map((k) => nameOf(reportedPorts, k)));
+      // one row per port name, with the directions it came or went in
+      const byName = (r: ListResult, keys: string[]): Map<string, Set<string>> => {
+        const m = new Map<string, Set<string>>();
+        keys.forEach((k) => {
+          const n = nameOf(r, k);
+          if (!m.has(n)) m.set(n, new Set());
+          m.get(n)!.add(k[0] === 'i' ? 'in' : 'out');
+        });
+        return m;
+      };
+      const added = byName(result, [...after].filter((k) => !before.has(k)));
+      const removed = byName(reportedPorts, [...before].filter((k) => !after.has(k)));
       if (added.size === 0 && removed.size === 0) return;
       reportedPorts = result;
+      const row = (name: string, dirs: Set<string>, on: boolean): string =>
+        `<div class="toast-row ${on ? 'on' : 'off'}" title="${on ? 'Connected' : 'Disconnected'}">` +
+        `<span class="toast-name">${escapeHTML(name)}</span>` +
+        `<span class="toast-meta">${['in', 'out'].filter((d) => dirs.has(d)).join(' · ')}</span></div>`;
       const msg = [
-        ...[...added].map((n) => `${escapeHTML(n)} connected`),
-        ...[...removed].map((n) => `${escapeHTML(n)} disconnected`)
-      ].join('<br/>');
+        ...[...added].map(([n, d]) => row(n, d, true)),
+        ...[...removed].map(([n, d]) => row(n, d, false))
+      ].join('');
       reportStatus(result.success, msg, result.inputs, result.outputs);
     };
 

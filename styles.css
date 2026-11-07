@@ -3084,7 +3084,7 @@ input[type='range'] {
 
 #toast {
   position: fixed;
-  width: 240px;
+  width: 280px;
   bottom: 36px;
   right: 16px;
   left: auto;
@@ -3134,7 +3134,60 @@ input[type='range'] {
 #toast .toastinner {
   padding: 10px 12px;
   text-align: left;
+  line-height: 1.35;
   word-wrap: break-word;
+}
+
+/* structured toasts (MIDI devices): a dim title over one row per device */
+#toast .toast-title {
+  margin-bottom: 6px;
+  color: var(--slate-dim);
+  font-size: var(--fs-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+#toast .toast-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+#toast .toast-row::before {
+  content: '';
+  flex: none;
+  align-self: center;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--live);
+}
+
+#toast .toast-row.off::before {
+  background: var(--danger);
+}
+
+#toast .toast-row.off .toast-name {
+  color: var(--slate-dim);
+}
+
+#toast .toast-name {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+#toast .toast-meta {
+  flex: none;
+  color: var(--slate-dim);
+  font-size: var(--fs-sm);
+}
+
+#toast .toast-note {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--slate-line);
 }
 
 .popupsettings,
@@ -4600,7 +4653,7 @@ body.minimized {
 }
 
 body.minimized #toast {
-  left: calc(50% - 120px);
+  left: calc(50% - 140px);
   right: auto;
   transform: translateY(150%);
 }
