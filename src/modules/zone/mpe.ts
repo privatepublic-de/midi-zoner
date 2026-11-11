@@ -11,7 +11,8 @@ import MIDI from '../midi';
  *   stays expressive. Pressure counts from a threshold (just playing gives none, like
  *   the dead zone of an aftertouch keyboard), stretched back to 0–127; when another key
  *   takes over it glides there (PressureGlide) instead of jumping. Slide goes out on a
- *   CC of the zone's choice, or not at all (CC 74 is the cutoff on many synths).
+ *   CC of the zone's choice, or not at all (CC 74 is the cutoff on many synths). With
+ *   poly aftertouch on, each held key sends its own pressure on its note instead.
  */
 export enum MpeMode {
   OFF = 0,
@@ -36,6 +37,15 @@ interface Voice {
   /** CC 74; null until the controller sends one */
   slide: number | null;
   pressure: number;
+  /** The note the zone sent for the channel's key (after its octave shift) */
+  outNote: number;
+  /** Poly aftertouch sent last for that note, -1 = none yet */
+  sentPoly: number;
+}
+
+/** Pressure from the threshold up, stretched back to 0–127 */
+function scalePressure(pressure: number, from: number): number {
+  return Math.round((Math.max(0, pressure - from) * 127) / (127 - from));
 }
 
 export interface CollapsedExpression {
@@ -74,7 +84,9 @@ export class MpeInput {
       owned: false,
       bend: 8192,
       slide: null,
-      pressure: 0
+      pressure: 0,
+      outNote: -1,
+      sentPoly: -1
     }));
     this.held = [];
     this.source = -1;
@@ -117,11 +129,27 @@ export class MpeInput {
     v.owned = false;
   }
 
-  /** The zone plays the channel's note */
-  claim(ch: number): void {
-    this.voices[ch].owned = true;
+  /** The zone plays the channel's note, sent as outNote */
+  claim(ch: number, outNote: number): void {
+    const v = this.voices[ch];
+    v.owned = true;
+    v.outNote = outNote;
+    v.sentPoly = -1;
     this.held.push(ch);
     this.source = ch;
+  }
+
+  /**
+   * Poly aftertouch for a held key: its note and pressure (from the threshold up), or
+   * null when the zone doesn't hold the key or the value is unchanged
+   */
+  polyPressure(ch: number, from: number): { note: number; value: number } | null {
+    if (!this.held.includes(ch)) return null;
+    const v = this.voices[ch];
+    const value = scalePressure(v.pressure, from);
+    if (value === v.sentPoly) return null;
+    v.sentPoly = value;
+    return { note: v.outNote, value };
   }
 
   /** The channel's key is up; false when it wasn't the zone's held note */
@@ -153,7 +181,7 @@ export class MpeInput {
     // none once no key is held
     const key = src && this.held.includes(this.source) ? this.source : -1;
     const pressed = key >= 0 ? this.voices[key].pressure : 0;
-    const pressure = Math.round((Math.max(0, pressed - o.pressureFrom) * 127) / (127 - o.pressureFrom));
+    const pressure = scalePressure(pressed, o.pressureFrom);
     // Glide only from one held key to another: the first key after silence, or the
     // last one let go, already starts or ends at its own pressure
     const handover = key !== this.pressureKey && key >= 0 && this.pressureKey >= 0;

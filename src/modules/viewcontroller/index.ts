@@ -1605,6 +1605,8 @@ function updateValuesForZone(index: number): void {
       const field = zone._$('input.' + p) as HTMLInputElement;
       if (field && document.activeElement !== field) field.value = String(zone[p]);
     });
+    const polySelect = zone._$('select.mpe_poly_at') as HTMLSelectElement;
+    if (polySelect) polySelect.value = zone.mpe_poly_at ? '1' : '0';
     const slideField = zone._$('input.mpe_slide_cc') as HTMLInputElement;
     if (slideField && document.activeElement !== slideField) {
       slideField.value = zone.mpe_slide_cc === null ? '' : String(zone.mpe_slide_cc);

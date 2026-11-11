@@ -145,10 +145,15 @@
         </div>
         <div
           class="ior-row ior-row-collapse"
-          title="Pressure below this counts as none, like the dead zone of an aftertouch keyboard (just playing a Seaboard key reads 50–100). Pressure follows the last key held, as pitch does"
+          title="Channel AT: the last key held decides, as for pitch. Poly AT: each key sends its own pressure on its note, for synths that take polyphonic aftertouch. Pressure below the threshold counts as none, like the dead zone of an aftertouch keyboard (just playing a Seaboard key reads 50–100)"
         >
           <span class="ior-label"></span>
-          <span class="ior-unit">Pressure from</span>
+          <span class="ior-unit">Pressure</span>
+          <select class="mpe_poly_at" data-change="${index}:zone_mpe_poly_at" tabindex="-1">
+            <option value="0">Channel AT</option>
+            <option value="1">Poly AT</option>
+          </select>
+          <span class="ior-unit">from</span>
           <input
             type="number"
             class="mpe_at_from"
@@ -157,14 +162,19 @@
             data-change="${index}:zone_mpe_at_from"
             tabindex="-1"
           />
-          <span class="ior-unit" title="CC the slide (moving up and down the key) is sent on. Empty: not sent. Many synths have the filter cutoff on CC 74">Slide → CC</span>
+        </div>
+        <div
+          class="ior-row ior-row-collapse"
+          title="CC the slide (moving up and down the key) is sent on, following the last key held. Empty: not sent. Many synths have the filter cutoff on CC 74"
+        >
+          <span class="ior-label"></span>
+          <span class="ior-unit">Slide → CC</span>
           <input
             type="number"
             class="mpe_slide_cc"
             min="0"
             max="127"
             placeholder="off"
-            title="CC the slide (moving up and down the key) is sent on. Empty: not sent. Many synths have the filter cutoff on CC 74"
             data-change="${index}:zone_mpe_slide_cc"
             tabindex="-1"
           />

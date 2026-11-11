@@ -100,6 +100,8 @@ export class Zone {
   mpe_at_from = DEFAULT_PRESSURE_FROM;
   /** Collapse: CC the slide goes out on, null = not sent */
   mpe_slide_cc: number | null = null;
+  /** Collapse: each key's pressure as poly aftertouch instead of merged channel pressure */
+  mpe_poly_at = false;
   /** The input's MPE master channel, set by app.ts with every message */
   mpeMaster = 0;
   private mpeIn = new MpeInput();
@@ -299,6 +301,7 @@ export class Zone {
       mpe_bend_out: this.mpe_bend_out,
       mpe_at_from: this.mpe_at_from,
       mpe_slide_cc: this.mpe_slide_cc,
+      mpe_poly_at: this.mpe_poly_at,
       label: this.label,
       colorIndex: this._colorIndex,
       low: this.low,
@@ -753,7 +756,7 @@ export class Zone {
                 const outChannel =
                   mpeMember && this.mpe === MpeMode.PASS && passThrough ? mpeCh : this.channel;
                 if (mpeMember && (passThrough || this.mpe === MpeMode.COLLAPSE)) {
-                  this.mpeIn.claim(mpeCh);
+                  this.mpeIn.claim(mpeCh, key);
                   // The expression sent before the note-on goes out ahead of it
                   if (this.mpe === MpeMode.PASS) this.sendMpeVoice(mpeCh);
                   else this.sendCollapsed();
@@ -941,7 +944,9 @@ export class Zone {
     const owned = this.mpeIn.voice(ch).owned;
     if (this.mpe === MpeMode.COLLAPSE) {
       if (!expression) return false; // anything else merges into the zone channel as before
-      if (owned) this.sendCollapsed();
+      if (!owned) return true;
+      if (this.mpe_poly_at && message === MIDI.MESSAGE.CHANNEL_PRESSURE) this.sendPolyPressure(ch);
+      else this.sendCollapsed();
       return true;
     }
     if (owned && (message !== MIDI.MESSAGE.PITCH_BEND || this.pitchbend)) {
@@ -981,7 +986,23 @@ export class Zone {
     if (out.slide !== undefined && this.mpe_slide_cc !== null) {
       this.sendOut(new Uint8Array([MIDI.MESSAGE.CONTROLLER + this.channel, this.mpe_slide_cc, out.slide]), this.outputPortId);
     }
-    this.mpePressure.to(out.pressure, out.handover);
+    if (!this.mpe_poly_at) this.mpePressure.to(out.pressure, out.handover);
+  }
+
+  /** Collapse with poly aftertouch: a held key's pressure on its own note */
+  private sendPolyPressure(ch: number): void {
+    const poly = this.mpeIn.polyPressure(ch, this.mpe_at_from);
+    if (poly) {
+      this.sendOut(
+        new Uint8Array([MIDI.MESSAGE.NOTE_PRESSURE + this.channel, poly.note, poly.value]),
+        this.outputPortId
+      );
+    }
+  }
+
+  setMpePolyAT(on: boolean): void {
+    this.mpe_poly_at = on;
+    this.mpePressure.reset();
   }
 
   convertNote2CC(key: number, velo: number): void {

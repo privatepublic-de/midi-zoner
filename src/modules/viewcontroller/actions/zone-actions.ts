@@ -146,6 +146,10 @@ export function createZoneActions(
       zone.mpe_bend_out = sanitizeBendRange((element as HTMLInputElement).value, zone.mpe_bend_out);
       updateValuesForZone(zoneindex);
     },
+    zone_mpe_poly_at: () => {
+      zone.setMpePolyAT((element as HTMLSelectElement).value === '1');
+      updateValuesForZone(zoneindex);
+    },
     zone_mpe_slide_cc: () => {
       zone.mpe_slide_cc = sanitizeSlideCC((element as HTMLInputElement).value);
       updateValuesForZone(zoneindex);

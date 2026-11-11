@@ -152,6 +152,7 @@ function createZone(midi: MIDIInstance, zoneData: any): Zone {
   zone.mpe_bend_out = sanitizeBendRange(zoneData.mpe_bend_out, 2);
   zone.mpe_at_from = sanitizePressureFrom(zoneData.mpe_at_from, DEFAULT_PRESSURE_FROM);
   zone.mpe_slide_cc = sanitizeSlideCC(zoneData.mpe_slide_cc);
+  zone.mpe_poly_at = zoneData.mpe_poly_at === true;
   zone.label = zoneData.label ?? '';
   zone.low = zoneData.low ?? 0;
   zone.high = zoneData.high ?? 127;
