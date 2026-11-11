@@ -931,7 +931,7 @@ export class Zone {
       return true;
     }
     const expression = MpeInput.isExpression(message, data);
-    const owned = this.mpeIn.voice(ch).owned;
+    const owned = this.mpeIn.owns(ch);
     if (this.mpe === MpeMode.COLLAPSE) {
       if (!expression) return false; // anything else merges into the zone channel as before
       if (!owned) return true;

@@ -23,6 +23,12 @@ export enum MpeMode {
 
 /** MPE's default bend range on the master channel, in semitones */
 const MASTER_BEND_RANGE = 2;
+/**
+ * How long a zone keeps acting on a channel after its key is up (release tails), in ms.
+ * After that the channel's next key, which may land in another zone of a key split,
+ * can't move this zone's fading note: its expression arrives before its note-on.
+ */
+const RELEASE_KEEP_MS = 500;
 /** Member channels of a full MPE zone, as a Seaboard uses them */
 const MEMBER_CHANNELS = 15;
 /** How long pressure glides when another key takes over, in ms */
@@ -33,8 +39,10 @@ export const MPE_SLIDE_CC = 74;
 interface Voice {
   /** Last note started on the channel */
   note: number;
-  /** The zone plays that note (in its range, enabled), so it acts on the channel's expression */
+  /** The zone played that note (in its range, enabled), so it acts on the channel's expression */
   owned: boolean;
+  /** When its key went up (performance.now()), -1 while held */
+  releasedAt: number;
   /** 14-bit, 8192 = centre */
   bend: number;
   /** CC 74; null until the controller sends one */
@@ -85,6 +93,7 @@ export class MpeInput {
     this.voices = Array.from({ length: 16 }, () => ({
       note: -1,
       owned: false,
+      releasedAt: -1,
       bend: 8192,
       slide: null,
       pressure: 0,
@@ -136,6 +145,7 @@ export class MpeInput {
   claim(ch: number, outNote: number): void {
     const v = this.voices[ch];
     v.owned = true;
+    v.releasedAt = -1;
     v.outNote = outNote;
     v.sentPoly = -1;
     this.held.push(ch);
@@ -161,10 +171,17 @@ export class MpeInput {
     return this.release(ch);
   }
 
+  /** The zone acts on the channel: its key is held, or went up less than RELEASE_KEEP_MS ago */
+  owns(ch: number): boolean {
+    const v = this.voices[ch];
+    return v.owned && (v.releasedAt < 0 || performance.now() - v.releasedAt < RELEASE_KEEP_MS);
+  }
+
   private release(ch: number): boolean {
     const i = this.held.indexOf(ch);
     if (i === -1) return false;
     this.held.splice(i, 1);
+    this.voices[ch].releasedAt = performance.now();
     if (this.held.length > 0) this.source = this.held[this.held.length - 1];
     return true;
   }
