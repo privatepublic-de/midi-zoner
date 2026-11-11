@@ -6,6 +6,7 @@ import DragZone from '../dragzone';
 import potDragHandler from '../potdraghandler';
 import * as zoneTemplate from '../zone-template';
 import { Zone } from '../zone/zone-class';
+import { MpeMode } from '../zone/mpe';
 import { Sequence } from '../zone/sequence';
 import { ZONES_CHANGED_EVENT } from '../zone/interfaces';
 import { Note } from '../zone/note';
@@ -1595,6 +1596,19 @@ function updateValuesForZone(index: number): void {
       inchannelSelect.value =
         zone.inputChannel !== null ? String(zone.inputChannel) : '-1';
     }
+    const mpeSelect = zone._$('select.mpe') as HTMLSelectElement;
+    if (mpeSelect) mpeSelect.value = String(zone.mpe);
+    zone.elements.zoneElement?.querySelectorAll<HTMLElement>('.ior-row-collapse').forEach((row) => {
+      row.hidden = zone.mpe !== MpeMode.COLLAPSE;
+    });
+    (['mpe_bend_in', 'mpe_bend_out', 'mpe_at_from'] as const).forEach((p) => {
+      const field = zone._$('input.' + p) as HTMLInputElement;
+      if (field && document.activeElement !== field) field.value = String(zone[p]);
+    });
+    const slideField = zone._$('input.mpe_slide_cc') as HTMLInputElement;
+    if (slideField && document.activeElement !== slideField) {
+      slideField.value = zone.mpe_slide_cc === null ? '' : String(zone.mpe_slide_cc);
+    }
     const routingText = zone._$('.iorouting-text') as HTMLElement;
     if (routingText) {
       const portnameEl = routingText.querySelector(
@@ -1615,7 +1629,10 @@ function updateValuesForZone(index: number): void {
       }
       if (portnameEl) portnameEl.textContent = portLabel;
       routingText.classList.toggle('missing', noOutput || outPortName.startsWith('⚠'));
-      if (chEl) chEl.textContent = isPreset || noOutput ? '' : `Ch ${zone.channel + 1}`;
+      let chText = isPreset || noOutput ? '' : `Ch ${zone.channel + 1}`;
+      if (zone.mpe === MpeMode.PASS) chText = 'MPE';
+      else if (zone.mpe === MpeMode.COLLAPSE) chText = `MPE→${zone.channel + 1}`;
+      if (chEl) chEl.textContent = chText;
     }
     updateControllerValues(zone, index);
     updateGeneralButtons();

@@ -217,6 +217,15 @@ export interface ZoneJSON {
   preferredOutputPortId: string;
   inputPortId?: string | null;
   inputChannel?: number | null;
+  /** MpeMode: 0 off, 1 pass through, 2 collapse to the zone channel */
+  mpe?: number;
+  /** Collapse: bend range of the MPE input and of the target synth, in semitones */
+  mpe_bend_in?: number;
+  mpe_bend_out?: number;
+  /** Collapse: pressure threshold */
+  mpe_at_from?: number;
+  /** Collapse: CC for the slide, null = off */
+  mpe_slide_cc?: number | null;
   label?: string;
   colorIndex: number | null;
   low: number;

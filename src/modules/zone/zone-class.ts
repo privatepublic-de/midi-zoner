@@ -8,6 +8,7 @@ import { DrumLane } from './drum-lane';
 import { Take } from './take';
 import { barTicks } from '../meter';
 import { TakePlayer } from './take-player';
+import { MpeInput, MpeMode, MPE_SLIDE_CC, PressureGlide, DEFAULT_PRESSURE_FROM } from './mpe';
 import {
   CCController,
   ArpState,
@@ -91,6 +92,18 @@ export class Zone {
   outputPortId = MIDI.INTERNAL_PORT_ID;
   inputPortId: string | null = null;
   inputChannel: number | null = null;
+  /** MPE input handling, see zone/mpe.ts (zone-global: it describes the synth) */
+  mpe = MpeMode.OFF;
+  mpe_bend_in = 48;
+  mpe_bend_out = 2;
+  /** Collapse: pressure below this counts as none */
+  mpe_at_from = DEFAULT_PRESSURE_FROM;
+  /** Collapse: CC the slide goes out on, null = not sent */
+  mpe_slide_cc: number | null = null;
+  /** The input's MPE master channel, set by app.ts with every message */
+  mpeMaster = 0;
+  private mpeIn = new MpeInput();
+  private mpePressure = new PressureGlide((value) => this.sendPressure(value));
   label = '';
   enabled = true;
   _solo = false;
@@ -217,8 +230,9 @@ export class Zone {
   private _strumGraceTimer: ReturnType<typeof setTimeout> | null = null;
   activeNotes: Note[] = [];
   // Held notes that were sent straight to the output (arp not running). Their
-  // note-off must go out even if the arp has started meanwhile.
-  private passedThrough = new Set<Note>();
+  // note-off must go out even if the arp has started meanwhile, on the channel the
+  // note-on went out on (an MPE member channel in pass-through, else the note's).
+  private passedThrough = new Map<Note, number>();
   midiActiveNotes: (Note | null)[] = [];
   seqActiveNotes: (Note | null)[] = [];
   holdList: Note[] = [];
@@ -280,6 +294,11 @@ export class Zone {
       preferredOutputPortId: this.preferredOutputPortId,
       inputPortId: this.inputPortId,
       inputChannel: this.inputChannel,
+      mpe: this.mpe,
+      mpe_bend_in: this.mpe_bend_in,
+      mpe_bend_out: this.mpe_bend_out,
+      mpe_at_from: this.mpe_at_from,
+      mpe_slide_cc: this.mpe_slide_cc,
       label: this.label,
       colorIndex: this._colorIndex,
       low: this.low,
@@ -655,6 +674,18 @@ export class Zone {
     fromSequencer?: boolean,
     timestamp?: number
   ): string | void {
+    // MPE: the input channel of a message from the keyboard (-1: not MPE)
+    const mpeCh = this.mpe !== MpeMode.OFF && !fromSequencer ? data[0] & 0x0f : -1;
+    const mpeMember = mpeCh >= 0 && mpeCh !== this.mpeMaster;
+    if (mpeMember) {
+      // Expression is kept even while muted, so a note after unmuting starts from it
+      this.mpeIn.store(mpeCh, message, data);
+      // A channel's new note is not this zone's until it plays it (see the note-on below)
+      if (message === MIDI.MESSAGE.NOTE_ON) this.mpeIn.noteStarted(mpeCh, data[1]);
+      else if (message === MIDI.MESSAGE.NOTE_OFF && this.mpeIn.noteEnded(mpeCh, data[1])) {
+        if (this.mpe === MpeMode.COLLAPSE) this.sendCollapsed(); // follows the previous key
+      }
+    }
     // Pass note-off through for actively sounding keyboard notes even when zone is disabled,
     // so held notes are not stuck when the arrangement switches and disables this zone.
     if (
@@ -666,8 +697,9 @@ export class Zone {
         this.midiActiveNotes[data[1]] = null;
         this.removeNote(srcNote);
         const outevent = new Uint8Array(3);
-        outevent[0] = MIDI.MESSAGE.NOTE_OFF + srcNote.channel;
+        outevent[0] = MIDI.MESSAGE.NOTE_OFF + (this.passedThrough.get(srcNote) ?? srcNote.channel);
         outevent[1] = srcNote.number;
+        this.passedThrough.delete(srcNote);
         this.sendOut(outevent, srcNote.portId);
         this.notesChanged();
       }
@@ -676,6 +708,7 @@ export class Zone {
     if (this.shouldHandleMidi(message, fromSequencer)) {
       const fromMidiInput = !fromSequencer;
       const isArpActive = this.arp_enabled && this.midi.isClockRunning;
+      if (mpeCh >= 0 && this.handleMpeExpression(message, data, mpeCh, mpeMember)) return;
       switch (message) {
         case MIDI.MESSAGE.NOTE_OFF:
         case MIDI.MESSAGE.NOTE_ON:
@@ -715,12 +748,24 @@ export class Zone {
                 const heldByLiveInput =
                   fromSequencer && this.midiActiveNotes[srcKey] != null;
                 const passThrough = !isArpActive && !heldByLiveInput;
+                // MPE pass-through keeps the key's channel; notes the arp plays don't
+                // own it, so the arp drops their expression
+                const outChannel =
+                  mpeMember && this.mpe === MpeMode.PASS && passThrough ? mpeCh : this.channel;
+                if (mpeMember && (passThrough || this.mpe === MpeMode.COLLAPSE)) {
+                  this.mpeIn.claim(mpeCh);
+                  // The expression sent before the note-on goes out ahead of it
+                  if (this.mpe === MpeMode.PASS) this.sendMpeVoice(mpeCh);
+                  else this.sendCollapsed();
+                }
                 if (passThrough) {
-                  outevent[0] = message + this.channel;
+                  outevent[0] = message + outChannel;
                   outevent[1] = key;
                   outevent[2] = velo;
                   this.sendOut(outevent, this.outputPortId, timestamp, fromMidiInput);
                 }
+                // The zone channel even for an MPE key: the arp, step recording and
+                // the hold list play from held notes
                 const playNote = new Note(
                   key,
                   velo,
@@ -728,7 +773,7 @@ export class Zone {
                   this.outputPortId
                 );
                 playNote.fromInput = fromMidiInput;
-                if (passThrough) this.passedThrough.add(playNote);
+                if (passThrough) this.passedThrough.set(playNote, outChannel);
                 const activeNoteSlots = fromSequencer
                   ? this.seqActiveNotes
                   : this.midiActiveNotes;
@@ -770,8 +815,9 @@ export class Zone {
                   this.removeNote(srcNote);
                   // Decided by whether the note-on went out, not by the current
                   // transport state: a key held across Start would otherwise stick
+                  const sentOn = this.passedThrough.get(srcNote);
                   if (this.passedThrough.delete(srcNote) && !heldByLiveInput) {
-                    outevent[0] = message + srcNote.channel;
+                    outevent[0] = message + (sentOn ?? srcNote.channel);
                     outevent[1] = srcNote.number;
                     outevent[2] = velo;
                     this.sendOut(outevent, this.outputPortId);
@@ -850,15 +896,8 @@ export class Zone {
           }
           break;
         case MIDI.MESSAGE.CHANNEL_PRESSURE:
-          if (this.at2mod) {
-            const atOutevent = new Uint8Array(3);
-            atOutevent[0] = MIDI.MESSAGE.CONTROLLER + this.channel;
-            atOutevent[1] = 1;
-            atOutevent[2] = data[1];
-            this.sendOut(atOutevent, this.outputPortId);
-            break;
-          }
-        // fallthrough
+          this.sendPressure(data[1]);
+          break;
         default: {
           const defaultOutevent = new Uint8Array(data);
           defaultOutevent[0] = message + this.channel;
@@ -867,6 +906,82 @@ export class Zone {
       }
     }
     return;
+  }
+
+  /** Channel pressure on the zone channel, or as mod wheel with Aftertouch > MW */
+  private sendPressure(value: number): void {
+    if (this.at2mod) {
+      this.sendOut(new Uint8Array([MIDI.MESSAGE.CONTROLLER + this.channel, 1, value]), this.outputPortId);
+    } else {
+      this.sendOut(new Uint8Array([MIDI.MESSAGE.CHANNEL_PRESSURE + this.channel, value]), this.outputPortId);
+    }
+  }
+
+  setMpe(mode: MpeMode): void {
+    this.mpe = mode;
+    this.mpeIn.reset();
+    this.mpePressure.reset();
+  }
+
+  /**
+   * MPE messages other than notes. Member channels' bend, slide and pressure are kept
+   * per channel and acted on only while the zone plays the channel's note: passed on as
+   * they are, or merged into the zone channel. Returns true when the message is done.
+   */
+  private handleMpeExpression(message: number, data: Uint8Array, ch: number, member: boolean): boolean {
+    if (message === MIDI.MESSAGE.NOTE_ON || message === MIDI.MESSAGE.NOTE_OFF) return false;
+    if (!member) {
+      // Master channel: normal path, except that a merged bend adds the master's
+      if (this.mpe !== MpeMode.COLLAPSE || message !== MIDI.MESSAGE.PITCH_BEND) return false;
+      this.mpeIn.setMasterBend(data);
+      this.sendCollapsed();
+      return true;
+    }
+    const expression = MpeInput.isExpression(message, data);
+    const owned = this.mpeIn.voice(ch).owned;
+    if (this.mpe === MpeMode.COLLAPSE) {
+      if (!expression) return false; // anything else merges into the zone channel as before
+      if (owned) this.sendCollapsed();
+      return true;
+    }
+    if (owned && (message !== MIDI.MESSAGE.PITCH_BEND || this.pitchbend)) {
+      const out = new Uint8Array(data);
+      out[0] = message + ch;
+      this.sendOut(out, this.outputPortId);
+    }
+    return true;
+  }
+
+  /** Pass-through: a channel's bend, slide and pressure, sent ahead of its note-on */
+  private sendMpeVoice(ch: number): void {
+    const v = this.mpeIn.voice(ch);
+    if (this.pitchbend) {
+      this.sendOut(new Uint8Array([MIDI.MESSAGE.PITCH_BEND + ch, v.bend & 0x7f, v.bend >> 7]), this.outputPortId);
+    }
+    if (v.slide !== null) {
+      this.sendOut(new Uint8Array([MIDI.MESSAGE.CONTROLLER + ch, MPE_SLIDE_CC, v.slide]), this.outputPortId);
+    }
+    this.sendOut(new Uint8Array([MIDI.MESSAGE.CHANNEL_PRESSURE + ch, v.pressure]), this.outputPortId);
+  }
+
+  /** Collapse: the merged bend, slide and pressure on the zone channel, where they changed */
+  private sendCollapsed(): void {
+    const out = this.mpeIn.collapsed({
+      bendIn: this.mpe_bend_in,
+      bendOut: this.mpe_bend_out,
+      withBend: this.pitchbend,
+      pressureFrom: this.mpe_at_from
+    });
+    if (out.bend !== undefined) {
+      this.sendOut(
+        new Uint8Array([MIDI.MESSAGE.PITCH_BEND + this.channel, out.bend & 0x7f, out.bend >> 7]),
+        this.outputPortId
+      );
+    }
+    if (out.slide !== undefined && this.mpe_slide_cc !== null) {
+      this.sendOut(new Uint8Array([MIDI.MESSAGE.CONTROLLER + this.channel, this.mpe_slide_cc, out.slide]), this.outputPortId);
+    }
+    this.mpePressure.to(out.pressure, out.handover);
   }
 
   convertNote2CC(key: number, velo: number): void {
@@ -1630,9 +1745,9 @@ export class Zone {
       this.paramLocks.start(this.sequence.lockedAddresses());
     }
     if (!this.arp_enabled || this.passedThrough.size === 0) return;
-    this.passedThrough.forEach((n) => {
+    this.passedThrough.forEach((channel, n) => {
       this.sendOut(
-        Uint8Array.from([MIDI.MESSAGE.NOTE_OFF + n.channel, n.number, 0]),
+        Uint8Array.from([MIDI.MESSAGE.NOTE_OFF + channel, n.number, 0]),
         n.portId
       );
     });
@@ -1847,6 +1962,8 @@ export class Zone {
     this.seqActiveNotes = [];
     this.passedThrough.clear();
     this.holdList = [];
+    this.mpeIn.reset();
+    this.mpePressure.reset();
     this.notesChanged();
   }
 

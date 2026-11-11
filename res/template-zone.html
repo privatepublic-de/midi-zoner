@@ -106,6 +106,69 @@
             ${channelOptions}
           </select>
         </div>
+        <div class="ior-row ior-row-mpe">
+          <span class="ior-label">MPE</span>
+          <select
+            class="mpe"
+            data-change="${index}:zone_mpe"
+            title="MPE keyboard input (e.g. Seaboard, master on the In channel): pass each key's channel on to an MPE synth, or merge them into the zone channel for a synth without MPE"
+            tabindex="-1"
+          >
+            <option value="0">Off</option>
+            <option value="1">Pass through</option>
+            <option value="2">To one channel</option>
+          </select>
+        </div>
+        <div
+          class="ior-row ior-row-collapse"
+          title="Bend range of the MPE keyboard → bend range set on the synth, in semitones. Pitch, slide and pressure follow the last key held"
+        >
+          <span class="ior-label"></span>
+          <span class="ior-unit">Bend ±</span>
+          <input
+            type="number"
+            class="mpe_bend_in"
+            min="1"
+            max="96"
+            data-change="${index}:zone_mpe_bend_in"
+            tabindex="-1"
+          />
+          <span class="ior-unit">→ ±</span>
+          <input
+            type="number"
+            class="mpe_bend_out"
+            min="1"
+            max="96"
+            data-change="${index}:zone_mpe_bend_out"
+            tabindex="-1"
+          />
+        </div>
+        <div
+          class="ior-row ior-row-collapse"
+          title="Pressure below this counts as none, like the dead zone of an aftertouch keyboard (just playing a Seaboard key reads 50–100). Pressure follows the last key held, as pitch does"
+        >
+          <span class="ior-label"></span>
+          <span class="ior-unit">Pressure from</span>
+          <input
+            type="number"
+            class="mpe_at_from"
+            min="0"
+            max="120"
+            data-change="${index}:zone_mpe_at_from"
+            tabindex="-1"
+          />
+          <span class="ior-unit" title="CC the slide (moving up and down the key) is sent on. Empty: not sent. Many synths have the filter cutoff on CC 74">Slide → CC</span>
+          <input
+            type="number"
+            class="mpe_slide_cc"
+            min="0"
+            max="127"
+            placeholder="off"
+            title="CC the slide (moving up and down the key) is sent on. Empty: not sent. Many synths have the filter cutoff on CC 74"
+            data-change="${index}:zone_mpe_slide_cc"
+            tabindex="-1"
+          />
+        </div>
       </div>
     </div>
     <div

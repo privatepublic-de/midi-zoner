@@ -1269,7 +1269,7 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
 }
 
 .ior-label {
-  width: 20px;
+  width: 26px;
   font-size: var(--fs-sm);
   color: var(--brighter-4);
   flex-shrink: 0;
@@ -1296,6 +1296,29 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
   flex: 1;
   min-width: 0;
   width: auto;
+}
+
+.ior-row[hidden] {
+  display: none;
+}
+
+.iorouting-popup select.mpe {
+  flex: 1;
+}
+
+.ior-unit {
+  font-size: var(--fs-sm);
+  color: var(--slate-dim);
+}
+
+.zone .iorouting-popup input[type='number'] {
+  width: 44px;
+  height: 22px;
+  background-color: var(--slate-raise);
+  border: 1px solid var(--slate-line);
+  border-radius: var(--radius);
+  color: inherit;
+  padding: 0 4px;
 }
 
 .iorouting-popup select.inchannel,

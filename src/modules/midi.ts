@@ -118,6 +118,8 @@ class MIDI {
   suppressTransportPorts: Record<string, boolean> = {};
   selectedInputPorts: Record<string, InputPortDef> = {};
   zoneInputPorts: Set<string> = new Set();
+  /** An MPE zone on the global input: selected ports pass all channels, app.ts filters per zone */
+  zoneAllChannels = false;
   deviceIdMackieControl: string | null = null;
   deviceIdMackieOutput: string | null = null;
   outputPortsRegistered: PortDescriptor[] = [];
@@ -482,7 +484,7 @@ class MIDI {
 
     const channel = data[0] & 0x0f;
     const portDef = this.selectedInputPorts[portId];
-    if (this.zoneInputPorts.has(portId)) {
+    if (this.zoneInputPorts.has(portId) || (this.zoneAllChannels && portDef?.isSelected)) {
       // Port has per-zone subscribers: pass all channels, app.ts filters per-zone
       this.eventHandler(event);
     } else if (

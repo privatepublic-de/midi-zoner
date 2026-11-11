@@ -1,6 +1,7 @@
 import MIDI from '../../midi';
 import { ActionContext, ActionHelpers, ActionMap } from '../types';
 import { ipcRenderer } from 'electron';
+import { MpeMode, sanitizeBendRange, sanitizePressureFrom, sanitizeSlideCC, zoneInputClaims } from '../../zone/mpe';
 import { ARRANGEMENT_LETTERS, labelForZone } from '../action-labels';
 
 export function createZoneActions(
@@ -17,6 +18,14 @@ export function createZoneActions(
     toast
   } = ctx;
   const { applySelectedIndex } = helpers;
+
+  /** Ports and channels zones listen to beyond the global input selection */
+  const syncZoneInputs = (): void => {
+    const claims = zoneInputClaims(zones.list);
+    midiController.zoneInputPorts = claims.ports;
+    midiController.zoneAllChannels = claims.allChannels;
+    midiController.selectDevices(midiController.deviceIdInClock);
+  };
 
   return {
     zone_enabled: () => {
@@ -62,6 +71,7 @@ export function createZoneActions(
             zone.dismiss();
             zones.list.splice(zoneindex, 1);
             midiController.updateUsedPorts(listUsedPorts());
+            syncZoneInputs();
             renderZones();
             triggerSave();
             window.scrollTo({ top: scrollPos });
@@ -119,10 +129,29 @@ export function createZoneActions(
     zone_input_port: () => {
       const select = element as HTMLSelectElement;
       zone.inputPortId = select.value || null;
-      const portIds = new Set<string>();
-      zones.list.forEach((z) => { if (z.inputPortId) portIds.add(z.inputPortId); });
-      midiController.zoneInputPorts = portIds;
-      midiController.selectDevices(midiController.deviceIdInClock);
+      syncZoneInputs();
+      updateValuesForZone(zoneindex);
+    },
+    zone_mpe: () => {
+      const mode = parseInt((element as HTMLSelectElement).value);
+      zone.setMpe(mode === MpeMode.PASS || mode === MpeMode.COLLAPSE ? mode : MpeMode.OFF);
+      syncZoneInputs();
+      updateValuesForZone(zoneindex);
+    },
+    zone_mpe_bend_in: () => {
+      zone.mpe_bend_in = sanitizeBendRange((element as HTMLInputElement).value, zone.mpe_bend_in);
+      updateValuesForZone(zoneindex);
+    },
+    zone_mpe_bend_out: () => {
+      zone.mpe_bend_out = sanitizeBendRange((element as HTMLInputElement).value, zone.mpe_bend_out);
+      updateValuesForZone(zoneindex);
+    },
+    zone_mpe_slide_cc: () => {
+      zone.mpe_slide_cc = sanitizeSlideCC((element as HTMLInputElement).value);
+      updateValuesForZone(zoneindex);
+    },
+    zone_mpe_at_from: () => {
+      zone.mpe_at_from = sanitizePressureFrom((element as HTMLInputElement).value, zone.mpe_at_from);
       updateValuesForZone(zoneindex);
     },
     zone_input_channel: () => {

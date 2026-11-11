@@ -1,6 +1,7 @@
 import DOM, { escapeHTML as esc } from '../modules/domutils';
 import { Zone } from '../modules/zone/zone-class';
 import { migrateSpacers } from '../modules/zone/cc-layout';
+import { MpeMode, sanitizeMpeMode, sanitizeBendRange, sanitizePressureFrom, sanitizeSlideCC, DEFAULT_PRESSURE_FROM, zoneInputClaims } from '../modules/zone/mpe';
 import { Sequence } from '../modules/zone/sequence';
 import { DIV_TICKS } from '../modules/zone/seq-layer';
 import MIDI, { PortDescriptor, MIDIMessage } from '../modules/midi';
@@ -71,11 +72,9 @@ const channelOptions = (function (): string {
 })();
 
 function syncZoneInputPorts(midi: MIDIInstance): void {
-  const portIds = new Set<string>();
-  zones.list.forEach((zone) => {
-    if (zone.inputPortId) portIds.add(zone.inputPortId);
-  });
-  midi.zoneInputPorts = portIds;
+  const claims = zoneInputClaims(zones.list);
+  midi.zoneInputPorts = claims.ports;
+  midi.zoneAllChannels = claims.allChannels;
   midi.selectDevices(midi.deviceIdInClock);
   zones.selectedInputPorts = midi.selectedInputPorts;
 }
@@ -148,6 +147,11 @@ function createZone(midi: MIDIInstance, zoneData: any): Zone {
   zone.outputPortId = zone.preferredOutputPortId;
   zone.inputPortId = zoneData.inputPortId ?? null;
   zone.inputChannel = zoneData.inputChannel ?? null;
+  zone.mpe = sanitizeMpeMode(zoneData.mpe);
+  zone.mpe_bend_in = sanitizeBendRange(zoneData.mpe_bend_in, 48);
+  zone.mpe_bend_out = sanitizeBendRange(zoneData.mpe_bend_out, 2);
+  zone.mpe_at_from = sanitizePressureFrom(zoneData.mpe_at_from, DEFAULT_PRESSURE_FROM);
+  zone.mpe_slide_cc = sanitizeSlideCC(zoneData.mpe_slide_cc);
   zone.label = zoneData.label ?? '';
   zone.low = zoneData.low ?? 0;
   zone.high = zoneData.high ?? 127;
@@ -1105,12 +1109,17 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
       }
       zones.list.forEach((zone, index) => {
+        // An MPE zone takes every channel of its input: the In channel is its master channel
+        const mpe = zone.mpe !== MpeMode.OFF;
         if (zone.inputPortId !== null) {
           if (zone.inputPortId !== sourcePortId) return;
-          if (zone.inputChannel !== null && zone.inputChannel !== sourceChannel) return;
-        } else if (midi.zoneInputPorts.has(sourcePortId)) {
+          if (!mpe && zone.inputChannel !== null && zone.inputChannel !== sourceChannel) return;
+          zone.mpeMaster = zone.inputChannel ?? 0;
+        } else if (midi.zoneInputPorts.has(sourcePortId) || midi.zoneAllChannels) {
           const portDef = midi.selectedInputPorts[sourcePortId];
-          if (!portDef?.isSelected || portDef.ch !== sourceChannel) return;
+          if (!portDef?.isSelected) return;
+          if (!mpe && !portDef.allChannels && portDef.ch !== sourceChannel) return;
+          zone.mpeMaster = portDef.allChannels ? 0 : portDef.ch;
         }
         if (
           msgtype === MIDI.MESSAGE.CONTROLLER &&
