@@ -98,8 +98,6 @@ export class Zone {
   mpe_bend_out = 2;
   /** Collapse: pressure below this counts as none */
   mpe_at_from = DEFAULT_PRESSURE_FROM;
-  /** Collapse: CC the slide goes out on, null = not sent */
-  mpe_slide_cc: number | null = null;
   /** Collapse: each key's pressure as poly aftertouch instead of merged channel pressure */
   mpe_poly_at = false;
   /** The input's MPE master channel, set by app.ts with every message */
@@ -300,7 +298,6 @@ export class Zone {
       mpe_bend_in: this.mpe_bend_in,
       mpe_bend_out: this.mpe_bend_out,
       mpe_at_from: this.mpe_at_from,
-      mpe_slide_cc: this.mpe_slide_cc,
       mpe_poly_at: this.mpe_poly_at,
       label: this.label,
       colorIndex: this._colorIndex,
@@ -671,7 +668,27 @@ export class Zone {
     );
   }
 
+  /**
+   * An incoming message (or a note from the sequencer/takes). Returns what the view
+   * must do: 'updateCC[:index]', 'midiLearn:index', 'lockCC' or 'updateDrumLaneNote'
+   */
   handleMidi(
+    message: number,
+    data: Uint8Array,
+    fromSequencer?: boolean,
+    timestamp?: number
+  ): string | void {
+    const result = this.handleMessage(message, data, fromSequencer, timestamp);
+    // Merged MPE slide may have played the zone's controllers on the way
+    const slid = this.slideResult;
+    this.slideResult = undefined;
+    return result || slid;
+  }
+
+  /** What playing the controllers from MPE slide needs the view to do (see handleMidi) */
+  private slideResult: string | undefined;
+
+  private handleMessage(
     message: number,
     data: Uint8Array,
     fromSequencer?: boolean,
@@ -842,39 +859,9 @@ export class Zone {
             this.notesChanged(fromSequencer);
           }
           break;
-        case MIDI.MESSAGE.CONTROLLER:
-          if (this.midiLearnCC && this.cc_controllers[this.selectedCCIndex]) {
-            this.cc_controllers[this.selectedCCIndex].number_in = data[1];
-            this.midiLearnCC = false;
-            return `midiLearn:${this.selectedCCIndex}`;
-          }
-          let firstMatchedCC = -1;
-          let matchCount = 0;
-          let lockEdited = false;
-          for (let i = 0; i < this.cc_controllers.length; i++) {
-            const ctrl = this.cc_controllers[i];
-            if (ctrl.number_in == data[1] && !isLayoutEntry(ctrl.type)) {
-              // With sequencer steps selected the knob sets their lock instead
-              const edit = this.beginControllerEdit(i);
-              if (edit.ctrl !== ctrl) lockEdited = true;
-              if (isHiResCC(ctrl.type)) {
-                edit.ctrl.val = Math.round((data[2] * 16383) / 127);
-              } else if (ctrl.type == CCControllerType.SELECTOR) {
-                // A hardware knob sweeps the entries evenly
-                const entries = ctrl.discreteValues ?? [];
-                if (entries.length > 0) edit.ctrl.val = entries[Math.round((data[2] * (entries.length - 1)) / 127)];
-              } else {
-                this.snap2DiscreteValue(data[2], i, edit.ctrl);
-              }
-              if (edit.commit().length > 0) matchCount++; // others changed too: redraw all
-              if (firstMatchedCC === -1) firstMatchedCC = i;
-              matchCount++;
-            }
-          }
-          if (lockEdited) return 'lockCC'; // the steps' marks and inspector change too
-          if (matchCount > 0) {
-            return matchCount === 1 ? `updateCC:${firstMatchedCC}` : 'updateCC';
-          }
+        case MIDI.MESSAGE.CONTROLLER: {
+          const played = this.playControllers(data[1], data[2]);
+          if (played) return played;
           if (data[1] == 0x40 && !this.sustain) return;
           if (data[1] == 0x01 && !this.mod) return;
           if (data[1] == 0x40) {
@@ -886,6 +873,7 @@ export class Zone {
           ccOutevent[0] = message + this.channel;
           this.sendOut(ccOutevent, this.outputPortId);
           break;
+        }
         case MIDI.MESSAGE.PITCH_BEND:
           if (this.pitchbend) {
             const pbOutevent = new Uint8Array(data);
@@ -959,6 +947,45 @@ export class Zone {
     return true;
   }
 
+  /**
+   * An incoming controller value (a hardware knob, or merged MPE slide as CC 74) plays
+   * the controllers learned to its number, or is learned by the armed one. Returns what
+   * the view must do (see handleMidi), undefined when no controller took it.
+   */
+  private playControllers(number: number, value: number): string | undefined {
+    if (this.midiLearnCC && this.cc_controllers[this.selectedCCIndex]) {
+      this.cc_controllers[this.selectedCCIndex].number_in = number;
+      this.midiLearnCC = false;
+      return `midiLearn:${this.selectedCCIndex}`;
+    }
+    let firstMatchedCC = -1;
+    let matchCount = 0;
+    let lockEdited = false;
+    for (let i = 0; i < this.cc_controllers.length; i++) {
+      const ctrl = this.cc_controllers[i];
+      if (ctrl.number_in == number && !isLayoutEntry(ctrl.type)) {
+        // With sequencer steps selected the knob sets their lock instead
+        const edit = this.beginControllerEdit(i);
+        if (edit.ctrl !== ctrl) lockEdited = true;
+        if (isHiResCC(ctrl.type)) {
+          edit.ctrl.val = Math.round((value * 16383) / 127);
+        } else if (ctrl.type == CCControllerType.SELECTOR) {
+          // A hardware knob sweeps the entries evenly
+          const entries = ctrl.discreteValues ?? [];
+          if (entries.length > 0) edit.ctrl.val = entries[Math.round((value * (entries.length - 1)) / 127)];
+        } else {
+          this.snap2DiscreteValue(value, i, edit.ctrl);
+        }
+        if (edit.commit().length > 0) matchCount++; // others changed too: redraw all
+        if (firstMatchedCC === -1) firstMatchedCC = i;
+        matchCount++;
+      }
+    }
+    if (lockEdited) return 'lockCC'; // the steps' marks and inspector change too
+    if (matchCount > 0) return matchCount === 1 ? `updateCC:${firstMatchedCC}` : 'updateCC';
+    return undefined;
+  }
+
   /** Pass-through: a channel's bend, slide and pressure, sent ahead of its note-on */
   private sendMpeVoice(ch: number): void {
     const v = this.mpeIn.voice(ch);
@@ -985,9 +1012,8 @@ export class Zone {
         this.outputPortId
       );
     }
-    if (out.slide !== undefined && this.mpe_slide_cc !== null) {
-      this.sendOut(new Uint8Array([MIDI.MESSAGE.CONTROLLER + this.channel, this.mpe_slide_cc, out.slide]), this.outputPortId);
-    }
+    // Slide plays the controllers learned to CC 74, like a hardware knob; nothing else
+    if (out.slide !== undefined) this.slideResult = this.playControllers(MPE_SLIDE_CC, out.slide) || this.slideResult;
     if (!this.mpe_poly_at) this.mpePressure.to(out.pressure, out.handover);
   }
 

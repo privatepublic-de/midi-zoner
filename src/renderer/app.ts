@@ -1,7 +1,7 @@
 import DOM, { escapeHTML as esc } from '../modules/domutils';
 import { Zone } from '../modules/zone/zone-class';
 import { migrateSpacers } from '../modules/zone/cc-layout';
-import { MpeMode, sanitizeMpeMode, sanitizeBendRange, sanitizePressureFrom, sanitizeSlideCC, DEFAULT_PRESSURE_FROM, zoneInputClaims } from '../modules/zone/mpe';
+import { MpeMode, sanitizeMpeMode, sanitizeBendRange, sanitizePressureFrom, DEFAULT_PRESSURE_FROM, zoneInputClaims } from '../modules/zone/mpe';
 import { Sequence } from '../modules/zone/sequence';
 import { DIV_TICKS } from '../modules/zone/seq-layer';
 import MIDI, { PortDescriptor, MIDIMessage } from '../modules/midi';
@@ -151,7 +151,6 @@ function createZone(midi: MIDIInstance, zoneData: any): Zone {
   zone.mpe_bend_in = sanitizeBendRange(zoneData.mpe_bend_in, 48);
   zone.mpe_bend_out = sanitizeBendRange(zoneData.mpe_bend_out, 2);
   zone.mpe_at_from = sanitizePressureFrom(zoneData.mpe_at_from, DEFAULT_PRESSURE_FROM);
-  zone.mpe_slide_cc = sanitizeSlideCC(zoneData.mpe_slide_cc);
   zone.mpe_poly_at = zoneData.mpe_poly_at === true;
   zone.label = zoneData.label ?? '';
   zone.low = zoneData.low ?? 0;

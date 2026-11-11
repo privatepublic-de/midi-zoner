@@ -165,19 +165,10 @@
         </div>
         <div
           class="ior-row ior-row-collapse"
-          title="CC the slide (moving up and down the key) is sent on, following the last key held. Empty: not sent. Many synths have the filter cutoff on CC 74"
+          title="Slide (moving up and down the key, following the last key held) plays the zone's controllers like a knob on CC 74: Learn it in the controller editor by sliding on a key. Without one it isn't sent"
         >
           <span class="ior-label"></span>
-          <span class="ior-unit">Slide → CC</span>
-          <input
-            type="number"
-            class="mpe_slide_cc"
-            min="0"
-            max="127"
-            placeholder="off"
-            data-change="${index}:zone_mpe_slide_cc"
-            tabindex="-1"
-          />
+          <span class="ior-unit">Slide plays controllers learned to CC 74</span>
         </div>
       </div>
     </div>

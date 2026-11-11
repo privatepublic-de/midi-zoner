@@ -224,8 +224,6 @@ export interface ZoneJSON {
   mpe_bend_out?: number;
   /** Collapse: pressure threshold */
   mpe_at_from?: number;
-  /** Collapse: CC for the slide, null = off */
-  mpe_slide_cc?: number | null;
   /** Collapse: each key's pressure as poly aftertouch */
   mpe_poly_at?: boolean;
   label?: string;

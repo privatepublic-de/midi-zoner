@@ -1,7 +1,7 @@
 import MIDI from '../../midi';
 import { ActionContext, ActionHelpers, ActionMap } from '../types';
 import { ipcRenderer } from 'electron';
-import { MpeMode, sanitizeBendRange, sanitizePressureFrom, sanitizeSlideCC, zoneInputClaims } from '../../zone/mpe';
+import { MpeMode, sanitizeBendRange, sanitizePressureFrom, zoneInputClaims } from '../../zone/mpe';
 import { ARRANGEMENT_LETTERS, labelForZone } from '../action-labels';
 
 export function createZoneActions(
@@ -148,10 +148,6 @@ export function createZoneActions(
     },
     zone_mpe_poly_at: () => {
       zone.setMpePolyAT((element as HTMLSelectElement).value === '1');
-      updateValuesForZone(zoneindex);
-    },
-    zone_mpe_slide_cc: () => {
-      zone.mpe_slide_cc = sanitizeSlideCC((element as HTMLInputElement).value);
       updateValuesForZone(zoneindex);
     },
     zone_mpe_at_from: () => {

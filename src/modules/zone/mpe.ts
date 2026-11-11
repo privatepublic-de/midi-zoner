@@ -10,8 +10,9 @@ import MIDI from '../midi';
  *   and pressure follow the last played key still held, so a solo over held notes
  *   stays expressive. Pressure counts from a threshold (just playing gives none, like
  *   the dead zone of an aftertouch keyboard), stretched back to 0–127; when another key
- *   takes over it glides there (PressureGlide) instead of jumping. Slide goes out on a
- *   CC of the zone's choice, or not at all (CC 74 is the cutoff on many synths). With
+ *   takes over it glides there (PressureGlide) instead of jumping. Slide plays the
+ *   zone's controllers learned to CC 74 like a hardware knob (any CC/NRPN, range),
+ *   and goes nowhere else (CC 74 is the cutoff on many synths). With
  *   poly aftertouch on, each held key sends its own pressure on its note instead.
  */
 export enum MpeMode {
@@ -248,13 +249,6 @@ export const DEFAULT_PRESSURE_FROM = 80;
 export function sanitizePressureFrom(value: unknown, fallback: number): number {
   const n = Math.round(Number(value));
   return Number.isFinite(n) && n >= 0 && n <= 120 ? n : fallback;
-}
-
-/** Slide target CC, null = off (many synths have the cutoff on CC 74) */
-export function sanitizeSlideCC(value: unknown): number | null {
-  if (value === null || value === undefined || value === '') return null;
-  const n = Math.round(Number(value));
-  return Number.isFinite(n) && n >= 0 && n <= 127 ? n : null;
 }
 
 /** Bend ranges are whole semitones, 1–96 */
