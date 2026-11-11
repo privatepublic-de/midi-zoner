@@ -290,10 +290,23 @@ function createWindow(): void {
   });
 }
 
-app.on('ready', () => {
-  registerDevicePresetHandlers();
-  createWindow();
-});
+// One instance per profile: a second one would get no localStorage (locked by the
+// first, so it shows an empty scene) and open the same MIDI ports. It brings the
+// running window to the front instead. (--user-data-dir gives a profile of its own.)
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (!win) return;
+    if (win.isMinimized()) win.restore();
+    win.show();
+    win.focus();
+  });
+  app.on('ready', () => {
+    registerDevicePresetHandlers();
+    createWindow();
+  });
+}
 
 app.on('window-all-closed', () => {
   app.quit();

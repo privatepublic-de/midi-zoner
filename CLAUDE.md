@@ -69,7 +69,7 @@ src/
 ```
 
 ### Application Entry Points
-- **src/main/main.ts**: Electron main process. Handles window creation, application menu, file dialogs (save/load scenes), IPC communication, and window state persistence via electron-settings.
+- **src/main/main.ts**: Electron main process. Handles window creation, application menu, file dialogs (save/load scenes), IPC communication, and window state persistence via electron-settings. One instance per profile (`requestSingleInstanceLock()`): a second start focuses the running window, since it would get no localStorage and open the same MIDI ports; `--user-data-dir` gives a test instance a profile (and lock) of its own.
 - **index.html**: Main application UI structure. Loads compiled app.js and styles.css.
 - **src/renderer/app.ts**: Renderer process entry point. Initializes MIDI, loads/saves zones from localStorage, manages the zone list, handles UI interactions, and coordinates between modules.
 
