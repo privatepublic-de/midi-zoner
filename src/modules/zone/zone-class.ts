@@ -731,7 +731,9 @@ export class Zone {
           }
           let key = data[1];
           const srcKey = key;
-          let velo = this.scaledVelocity(data[2]);
+          // Vel% and Fixed Vel shape the strike; a note-off's (release) velocity, e.g. a
+          // Seaboard's lift, passes as it came
+          let velo = message === MIDI.MESSAGE.NOTE_ON ? this.scaledVelocity(data[2]) : data[2];
           if (key >= this.low && key <= this.high) {
             if (isArpActive && this.arp_hold && this.arp_transpose) {
               this.arp_transpose_amount = ((key + 12) % 24) - 12;
@@ -740,7 +742,7 @@ export class Zone {
             }
             key = key + (isArpActive || fromSequencer ? 0 : this.octave * 12);
             if (key >= 0 && key <= 127) {
-              if (this.fixedvel && velo > 0) {
+              if (this.fixedvel && message === MIDI.MESSAGE.NOTE_ON && velo > 0) {
                 velo = this.fixedvel_value || 127;
               }
               const outevent = new Uint8Array(data);
