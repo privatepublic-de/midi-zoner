@@ -1483,7 +1483,10 @@ document.addEventListener('DOMContentLoaded', function () {
                   view.renderZones();
                   saveZones();
                   updateUndoRedoButtons();
-                  zones.list.forEach((zone) => zone.sendProgramChange());
+                  zones.list.forEach((zone) => {
+                    zone.sendProgramChange();
+                    zone.sendMpeSetup();
+                  });
                 } catch (ex) {
                   console.log('app: Error loading file', ex);
                   view.toast(
@@ -1544,18 +1547,18 @@ document.addEventListener('DOMContentLoaded', function () {
         allOutputs.forEach((p) => { zones.knownPortNames[p.id] = p.fullName; });
         allInputs.forEach((p) => { zones.knownPortNames[p.id] = p.fullName; });
         saveZones();
-        // update zone port selectors and send program changes for reconnected ports
+        // update zone port selectors; program changes and MPE setups for reconnected ports
         const prevPortIds = zones.list.map((z) => z.outputPortId);
         midi.updateUsedPorts(view.updateOutputPortsForAllZone(outputs));
         view.updateInputPortsForAllZones(inputs);
         zones.list.forEach((zone, i) => {
           if (
-            zone.pgm_no != null &&
             zone.preferredOutputPortId !== MIDI.INTERNAL_PORT_ID &&
             zone.outputPortId === zone.preferredOutputPortId &&
             (prevPortIds[i] !== zone.outputPortId || !portsFirstUpdateDone)
           ) {
-            zone.sendProgramChange();
+            if (zone.pgm_no != null) zone.sendProgramChange();
+            zone.sendMpeSetup();
           }
         });
         portsFirstUpdateDone = true;

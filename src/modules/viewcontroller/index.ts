@@ -1601,9 +1601,13 @@ function updateValuesForZone(index: number): void {
     zone.elements.zoneElement?.querySelectorAll<HTMLElement>('.ior-row-collapse').forEach((row) => {
       row.hidden = zone.mpe !== MpeMode.COLLAPSE;
     });
+    zone.elements.zoneElement?.querySelectorAll<HTMLElement>('.ior-row-pass').forEach((row) => {
+      row.hidden = zone.mpe !== MpeMode.PASS;
+    });
     (['mpe_bend_in', 'mpe_bend_out', 'mpe_at_from'] as const).forEach((p) => {
-      const field = zone._$('input.' + p) as HTMLInputElement;
-      if (field && document.activeElement !== field) field.value = String(zone[p]);
+      zone.elements.zoneElement?.querySelectorAll<HTMLInputElement>('.iorouting-popup input.' + p).forEach((field) => {
+        if (document.activeElement !== field) field.value = String(zone[p]);
+      });
     });
     const polySelect = zone._$('select.mpe_poly_at') as HTMLSelectElement;
     if (polySelect) polySelect.value = zone.mpe_poly_at ? '1' : '0';

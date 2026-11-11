@@ -23,6 +23,8 @@ export enum MpeMode {
 
 /** MPE's default bend range on the master channel, in semitones */
 const MASTER_BEND_RANGE = 2;
+/** Member channels of a full MPE zone, as a Seaboard uses them */
+const MEMBER_CHANNELS = 15;
 /** How long pressure glides when another key takes over, in ms */
 const PRESSURE_GLIDE_MS = 150;
 /** CC number of the slide dimension (MPE "timbre") */
@@ -249,6 +251,26 @@ export const DEFAULT_PRESSURE_FROM = 80;
 export function sanitizePressureFrom(value: unknown, fallback: number): number {
   const n = Math.round(Number(value));
   return Number.isFinite(n) && n >= 0 && n <= 120 ? n : fallback;
+}
+
+/** An RPN set on a channel, closed with the null RPN so later data entry can't change it */
+function rpn(ch: number, param: number, value: number): number[][] {
+  const cc = MIDI.MESSAGE.CONTROLLER + ch;
+  return [[cc, 101, 0], [cc, 100, param], [cc, 6, value], [cc, 38, 0], [cc, 101, 127], [cc, 100, 127]];
+}
+
+/**
+ * Pass-through: tells an MPE synth the keyboard's layout. The MPE Configuration Message
+ * (RPN 6 on the master channel: the number of member channels) switches it to MPE, then
+ * the bend ranges: the master's ±2 and memberBend on each member channel. Master Ch 16
+ * is an upper zone (members Ch 1–15), any other a lower zone (master Ch 1, members 2–16).
+ */
+export function mpeSetupMessages(master: number, memberBend: number): number[][] {
+  const upper = master === 15;
+  const masterCh = upper ? 15 : 0;
+  const messages = [...rpn(masterCh, 6, MEMBER_CHANNELS), ...rpn(masterCh, 0, MASTER_BEND_RANGE)];
+  for (let i = 0; i < MEMBER_CHANNELS; i++) messages.push(...rpn(upper ? i : i + 1, 0, memberBend));
+  return messages;
 }
 
 /** Bend ranges are whole semitones, 1–96 */

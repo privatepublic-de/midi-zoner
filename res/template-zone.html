@@ -120,6 +120,22 @@
           </select>
         </div>
         <div
+          class="ior-row ior-row-pass"
+          title="MPE Configuration Message (15 member channels) and bend ranges for an MPE synth. Also sent on startup, when the port connects and on switching to Pass through. Not every synth reacts to it (a Hydrasynth needs MPE switched on in its settings, with a member bend range to match)"
+        >
+          <span class="ior-label"></span>
+          <span class="ior-unit">Bend ±</span>
+          <input
+            type="number"
+            class="mpe_bend_in"
+            min="1"
+            max="96"
+            data-change="${index}:zone_mpe_bend_in"
+            tabindex="-1"
+          />
+          <div class="action" data-action="${index}:zone_mpe_setup">Send MPE setup</div>
+        </div>
+        <div
           class="ior-row ior-row-collapse"
           title="Bend range of the MPE keyboard → bend range set on the synth, in semitones. Pitch, slide and pressure follow the last key held"
         >

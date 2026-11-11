@@ -98,6 +98,7 @@ export function createZoneActions(
         updateValuesForZone(zoneindex);
         midiController.updateUsedPorts(listUsedPorts());
       }
+      zone.sendMpeSetup();
     },
     zone_output_config_name: () => {
       const inputElement = element as HTMLInputElement;
@@ -136,10 +137,15 @@ export function createZoneActions(
       const mode = parseInt((element as HTMLSelectElement).value);
       zone.setMpe(mode === MpeMode.PASS || mode === MpeMode.COLLAPSE ? mode : MpeMode.OFF);
       syncZoneInputs();
+      zone.sendMpeSetup();
       updateValuesForZone(zoneindex);
+    },
+    zone_mpe_setup: () => {
+      toast(zone.sendMpeSetup() ? 'MPE setup sent' : 'No output port to send the MPE setup to', { warning: zone.outputPortId === MIDI.INTERNAL_PORT_ID });
     },
     zone_mpe_bend_in: () => {
       zone.mpe_bend_in = sanitizeBendRange((element as HTMLInputElement).value, zone.mpe_bend_in);
+      zone.sendMpeSetup(); // the synth's member bend range follows
       updateValuesForZone(zoneindex);
     },
     zone_mpe_bend_out: () => {

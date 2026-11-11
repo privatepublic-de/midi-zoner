@@ -8,7 +8,7 @@ import { DrumLane } from './drum-lane';
 import { Take } from './take';
 import { barTicks } from '../meter';
 import { TakePlayer } from './take-player';
-import { MpeInput, MpeMode, MPE_SLIDE_CC, PressureGlide, DEFAULT_PRESSURE_FROM } from './mpe';
+import { MpeInput, MpeMode, MPE_SLIDE_CC, PressureGlide, DEFAULT_PRESSURE_FROM, mpeSetupMessages } from './mpe';
 import {
   CCController,
   ArpState,
@@ -1026,6 +1026,17 @@ export class Zone {
         this.outputPortId
       );
     }
+  }
+
+  /**
+   * Pass-through: the MPE setup for the synth (zone layout and bend ranges), sent on
+   * startup, when its port connects, on switching to Pass and from the popup's button
+   */
+  sendMpeSetup(): boolean {
+    if (this.mpe !== MpeMode.PASS || this.outputPortId === MIDI.INTERNAL_PORT_ID) return false;
+    const master = this.inputPortId !== null ? this.inputChannel ?? 0 : this.mpeMaster;
+    mpeSetupMessages(master, this.mpe_bend_in).forEach((m) => this.sendOut(Uint8Array.from(m), this.outputPortId));
+    return true;
   }
 
   setMpePolyAT(on: boolean): void {
