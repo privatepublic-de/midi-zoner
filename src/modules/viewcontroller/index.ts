@@ -1595,9 +1595,12 @@ function updateValuesForZone(index: number): void {
     if (inchannelSelect) {
       inchannelSelect.value =
         zone.inputChannel !== null ? String(zone.inputChannel) : '-1';
+      // Global input: the channel is set per port in the input window, so there's none here
+      inchannelSelect.hidden = !zone.inputPortId;
     }
     const mpeSelect = zone._$('select.mpe') as HTMLSelectElement;
     if (mpeSelect) mpeSelect.value = String(zone.mpe);
+    (zone._$('.ior-link') as HTMLElement)?.classList.toggle('off', zone.mpe === MpeMode.OFF);
     zone.elements.zoneElement?.querySelectorAll<HTMLElement>('.ior-row-collapse').forEach((row) => {
       row.hidden = zone.mpe !== MpeMode.COLLAPSE;
     });
@@ -1627,7 +1630,8 @@ function updateValuesForZone(index: number): void {
         const inName = inPort ? inPort.name : '?';
         const chStr =
           zone.inputChannel !== null ? `:${zone.inputChannel + 1}` : '';
-        portLabel = `${inName}${chStr} ${outPortName}`;
+        // Its maker's or model's first word is enough to tell the input; the synth must fit
+        portLabel = `${inName.split(' ')[0]}${chStr} → ${outPortName}`;
       }
       if (portnameEl) portnameEl.textContent = portLabel;
       routingText.classList.toggle('missing', noOutput || outPortName.startsWith('⚠'));

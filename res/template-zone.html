@@ -63,14 +63,117 @@
         ></span>
       </div>
       <div class="iorouting-popup popup hideonleave">
-        <input
-          type="text"
-          class="output-config-name"
-          placeholder="Name this output config…"
-          onKeyUp="event.stopPropagation();"
-          data-change="${index}:zone_output_config_name"
-          tabindex="-1"
-        />
+        <div class="ior-row">
+          <span class="ior-label">In</span>
+          <select
+            class="inport"
+            data-change="${index}:zone_input_port"
+            tabindex="-1"
+          >
+            <option value="">Global</option>
+          </select>
+          <select
+            class="inchannel"
+            data-change="${index}:zone_input_channel"
+            title="The channel this zone takes from its own input (the MPE master channel with MPE on)"
+            tabindex="-1"
+          >
+            <option value="-1">All ch</option>
+            ${channelOptions}
+          </select>
+        </div>
+        <div class="ior-link">
+          <div class="ior-row">
+            <span class="ior-label">MPE</span>
+            <select
+              class="mpe"
+              data-change="${index}:zone_mpe"
+              title="MPE keyboard input (e.g. Seaboard, master on the In channel): pass each key's channel on to an MPE synth, or merge them into the zone channel for a synth without MPE"
+              tabindex="-1"
+            >
+              <option value="0">Off</option>
+              <option value="1">Pass through</option>
+              <option value="2">To one channel</option>
+            </select>
+          </div>
+          <div
+            class="ior-row ior-row-pass"
+            title="Bend range of the MPE keyboard → the MPE bend range set on the synth, in semitones: each key's bend is converted, so pitch follows the finger (glides beyond the synth's range stop at its limit)"
+          >
+            <span class="ior-unit">Bend: keys ±</span>
+            <input
+              type="number"
+              class="mpe_bend_in"
+              min="1"
+              max="96"
+              data-change="${index}:zone_mpe_bend_in"
+              tabindex="-1"
+            />
+            <span class="ior-unit">→ synth ±</span>
+            <input
+              type="number"
+              class="mpe_pass_bend_out"
+              min="1"
+              max="96"
+              data-change="${index}:zone_mpe_pass_bend_out"
+              tabindex="-1"
+            />
+          </div>
+          <div
+            class="ior-row ior-row-pass"
+            title="MPE Configuration Message (15 member channels) and the synth's bend ranges. Also sent on startup, when the port connects and on switching to Pass through. Not every synth reacts to it (a Hydrasynth or Iridium needs MPE switched on in its settings)"
+          >
+            <div class="action" data-action="${index}:zone_mpe_setup">Send MPE setup</div>
+          </div>
+          <div
+            class="ior-row ior-row-collapse"
+            title="Bend range of the MPE keyboard → bend range set on the synth, in semitones. Pitch, slide and pressure follow the last key held"
+          >
+            <span class="ior-unit">Bend: keys ±</span>
+            <input
+              type="number"
+              class="mpe_bend_in"
+              min="1"
+              max="96"
+              data-change="${index}:zone_mpe_bend_in"
+              tabindex="-1"
+            />
+            <span class="ior-unit">→ synth ±</span>
+            <input
+              type="number"
+              class="mpe_bend_out"
+              min="1"
+              max="96"
+              data-change="${index}:zone_mpe_bend_out"
+              tabindex="-1"
+            />
+          </div>
+          <div
+            class="ior-row ior-row-collapse"
+            title="Channel AT: the last key held decides, as for pitch. Poly AT: each key sends its own pressure on its note, for synths that take polyphonic aftertouch. Pressure below the threshold counts as none, like the dead zone of an aftertouch keyboard (just playing a Seaboard key reads 50–100)"
+          >
+            <span class="ior-unit">Pressure</span>
+            <select class="mpe_poly_at" data-change="${index}:zone_mpe_poly_at" tabindex="-1">
+              <option value="0">Channel AT</option>
+              <option value="1">Poly AT</option>
+            </select>
+            <span class="ior-unit">from</span>
+            <input
+              type="number"
+              class="mpe_at_from"
+              min="0"
+              max="120"
+              data-change="${index}:zone_mpe_at_from"
+              tabindex="-1"
+            />
+          </div>
+          <div
+            class="ior-row ior-row-collapse"
+            title="Slide (moving up and down the key, following the last key held) plays the zone's controllers like a knob on CC 74: Learn it in the controller editor by sliding on a key. Without one it isn't sent"
+          >
+            <span class="ior-unit">Slide → controllers on CC 74</span>
+          </div>
+        </div>
         <div class="ior-row">
           <span class="ior-label">Out</span>
           <select
@@ -88,119 +191,14 @@
             ${channelOptions}
           </select>
         </div>
-        <div class="ior-row ior-row-input">
-          <span class="ior-label">In</span>
-          <select
-            class="inport"
-            data-change="${index}:zone_input_port"
-            tabindex="-1"
-          >
-            <option value="">Global</option>
-          </select>
-          <select
-            class="inchannel"
-            data-change="${index}:zone_input_channel"
-            tabindex="-1"
-          >
-            <option value="-1">All ch</option>
-            ${channelOptions}
-          </select>
-        </div>
-        <div class="ior-row ior-row-mpe">
-          <span class="ior-label">MPE</span>
-          <select
-            class="mpe"
-            data-change="${index}:zone_mpe"
-            title="MPE keyboard input (e.g. Seaboard, master on the In channel): pass each key's channel on to an MPE synth, or merge them into the zone channel for a synth without MPE"
-            tabindex="-1"
-          >
-            <option value="0">Off</option>
-            <option value="1">Pass through</option>
-            <option value="2">To one channel</option>
-          </select>
-        </div>
-        <div
-          class="ior-row ior-row-pass"
-          title="Bend range of the MPE keyboard → the MPE bend range set on the synth, in semitones: each key's bend is converted, so pitch follows the finger (glides beyond the synth's range stop at its limit)"
-        >
-          <span class="ior-label"></span>
-          <span class="ior-unit">Bend ±</span>
-          <input
-            type="number"
-            class="mpe_bend_in"
-            min="1"
-            max="96"
-            data-change="${index}:zone_mpe_bend_in"
-            tabindex="-1"
-          />
-          <span class="ior-unit">→ ±</span>
-          <input
-            type="number"
-            class="mpe_pass_bend_out"
-            min="1"
-            max="96"
-            data-change="${index}:zone_mpe_pass_bend_out"
-            tabindex="-1"
-          />
-        </div>
-        <div
-          class="ior-row ior-row-pass"
-          title="MPE Configuration Message (15 member channels) and the synth's bend ranges. Also sent on startup, when the port connects and on switching to Pass through. Not every synth reacts to it (a Hydrasynth or Iridium needs MPE switched on in its settings)"
-        >
-          <span class="ior-label"></span>
-          <div class="action" data-action="${index}:zone_mpe_setup">Send MPE setup</div>
-        </div>
-        <div
-          class="ior-row ior-row-collapse"
-          title="Bend range of the MPE keyboard → bend range set on the synth, in semitones. Pitch, slide and pressure follow the last key held"
-        >
-          <span class="ior-label"></span>
-          <span class="ior-unit">Bend ±</span>
-          <input
-            type="number"
-            class="mpe_bend_in"
-            min="1"
-            max="96"
-            data-change="${index}:zone_mpe_bend_in"
-            tabindex="-1"
-          />
-          <span class="ior-unit">→ ±</span>
-          <input
-            type="number"
-            class="mpe_bend_out"
-            min="1"
-            max="96"
-            data-change="${index}:zone_mpe_bend_out"
-            tabindex="-1"
-          />
-        </div>
-        <div
-          class="ior-row ior-row-collapse"
-          title="Channel AT: the last key held decides, as for pitch. Poly AT: each key sends its own pressure on its note, for synths that take polyphonic aftertouch. Pressure below the threshold counts as none, like the dead zone of an aftertouch keyboard (just playing a Seaboard key reads 50–100)"
-        >
-          <span class="ior-label"></span>
-          <span class="ior-unit">Pressure</span>
-          <select class="mpe_poly_at" data-change="${index}:zone_mpe_poly_at" tabindex="-1">
-            <option value="0">Channel AT</option>
-            <option value="1">Poly AT</option>
-          </select>
-          <span class="ior-unit">from</span>
-          <input
-            type="number"
-            class="mpe_at_from"
-            min="0"
-            max="120"
-            data-change="${index}:zone_mpe_at_from"
-            tabindex="-1"
-          />
-        </div>
-        <div
-          class="ior-row ior-row-collapse"
-          title="Slide (moving up and down the key, following the last key held) plays the zone's controllers like a knob on CC 74: Learn it in the controller editor by sliding on a key. Without one it isn't sent"
-        >
-          <span class="ior-label"></span>
-          <span class="ior-unit">Slide plays controllers learned to CC 74</span>
-        </div>
+        <input
+          type="text"
+          class="output-config-name"
+          placeholder="Name this output config…"
+          onKeyUp="event.stopPropagation();"
+          data-change="${index}:zone_output_config_name"
+          tabindex="-1"
+        />
       </div>
     </div>
     <div
