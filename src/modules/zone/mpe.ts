@@ -270,6 +270,16 @@ export function sanitizePressureFrom(value: unknown, fallback: number): number {
   return Number.isFinite(n) && n >= 0 && n <= 120 ? n : fallback;
 }
 
+/**
+ * A 14-bit bend from a keyboard bending inRange semitones to a synth bending outRange:
+ * the same pitch, clamped at the synth's limit (unchanged when the ranges match)
+ */
+export function rescaleBend(bend: number, inRange: number, outRange: number): number {
+  if (inRange === outRange) return bend;
+  const semis = ((bend - 8192) / 8192) * inRange;
+  return Math.max(0, Math.min(16383, Math.round(8192 + (semis / Math.max(1, outRange)) * 8192)));
+}
+
 /** An RPN set on a channel, closed with the null RPN so later data entry can't change it */
 function rpn(ch: number, param: number, value: number): number[][] {
   const cc = MIDI.MESSAGE.CONTROLLER + ch;

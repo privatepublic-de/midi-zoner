@@ -8,7 +8,7 @@ import { DrumLane } from './drum-lane';
 import { Take } from './take';
 import { barTicks } from '../meter';
 import { TakePlayer } from './take-player';
-import { MpeInput, MpeMode, MPE_SLIDE_CC, PressureGlide, DEFAULT_PRESSURE_FROM, mpeSetupMessages } from './mpe';
+import { MpeInput, MpeMode, MPE_SLIDE_CC, PressureGlide, DEFAULT_PRESSURE_FROM, mpeSetupMessages, rescaleBend } from './mpe';
 import {
   CCController,
   ArpState,
@@ -95,7 +95,10 @@ export class Zone {
   /** MPE input handling, see zone/mpe.ts (zone-global: it describes the synth) */
   mpe = MpeMode.OFF;
   mpe_bend_in = 48;
+  /** Collapse: the synth's bend range */
   mpe_bend_out = 2;
+  /** Pass through: the MPE synth's member bend range (48 = as the keyboard sends it) */
+  mpe_pass_bend_out = 48;
   /** Collapse: pressure below this counts as none */
   mpe_at_from = DEFAULT_PRESSURE_FROM;
   /** Collapse: each key's pressure as poly aftertouch instead of merged channel pressure */
@@ -297,6 +300,7 @@ export class Zone {
       mpe: this.mpe,
       mpe_bend_in: this.mpe_bend_in,
       mpe_bend_out: this.mpe_bend_out,
+      mpe_pass_bend_out: this.mpe_pass_bend_out,
       mpe_at_from: this.mpe_at_from,
       mpe_poly_at: this.mpe_poly_at,
       label: this.label,
@@ -939,11 +943,14 @@ export class Zone {
       else this.sendCollapsed();
       return true;
     }
-    if (owned && (message !== MIDI.MESSAGE.PITCH_BEND || this.pitchbend)) {
-      const out = new Uint8Array(data);
-      out[0] = message + ch;
-      this.sendOut(out, this.outputPortId);
+    if (!owned) return true;
+    if (message === MIDI.MESSAGE.PITCH_BEND) {
+      if (this.pitchbend) this.sendPassBend(ch, this.mpeIn.voice(ch).bend);
+      return true;
     }
+    const out = new Uint8Array(data);
+    out[0] = message + ch;
+    this.sendOut(out, this.outputPortId);
     return true;
   }
 
@@ -986,12 +993,16 @@ export class Zone {
     return undefined;
   }
 
+  /** Pass-through: a key's bend on its channel, rescaled to the synth's range */
+  private sendPassBend(ch: number, bend: number): void {
+    const out = rescaleBend(bend, this.mpe_bend_in, this.mpe_pass_bend_out);
+    this.sendOut(new Uint8Array([MIDI.MESSAGE.PITCH_BEND + ch, out & 0x7f, out >> 7]), this.outputPortId);
+  }
+
   /** Pass-through: a channel's bend, slide and pressure, sent ahead of its note-on */
   private sendMpeVoice(ch: number): void {
     const v = this.mpeIn.voice(ch);
-    if (this.pitchbend) {
-      this.sendOut(new Uint8Array([MIDI.MESSAGE.PITCH_BEND + ch, v.bend & 0x7f, v.bend >> 7]), this.outputPortId);
-    }
+    if (this.pitchbend) this.sendPassBend(ch, v.bend);
     if (v.slide !== null) {
       this.sendOut(new Uint8Array([MIDI.MESSAGE.CONTROLLER + ch, MPE_SLIDE_CC, v.slide]), this.outputPortId);
     }
@@ -1035,7 +1046,7 @@ export class Zone {
   sendMpeSetup(): boolean {
     if (this.mpe !== MpeMode.PASS || this.outputPortId === MIDI.INTERNAL_PORT_ID) return false;
     const master = this.inputPortId !== null ? this.inputChannel ?? 0 : this.mpeMaster;
-    mpeSetupMessages(master, this.mpe_bend_in).forEach((m) => this.sendOut(Uint8Array.from(m), this.outputPortId));
+    mpeSetupMessages(master, this.mpe_pass_bend_out).forEach((m) => this.sendOut(Uint8Array.from(m), this.outputPortId));
     return true;
   }
 

@@ -150,6 +150,7 @@ function createZone(midi: MIDIInstance, zoneData: any): Zone {
   zone.mpe = sanitizeMpeMode(zoneData.mpe);
   zone.mpe_bend_in = sanitizeBendRange(zoneData.mpe_bend_in, 48);
   zone.mpe_bend_out = sanitizeBendRange(zoneData.mpe_bend_out, 2);
+  zone.mpe_pass_bend_out = sanitizeBendRange(zoneData.mpe_pass_bend_out, 48);
   zone.mpe_at_from = sanitizePressureFrom(zoneData.mpe_at_from, DEFAULT_PRESSURE_FROM);
   zone.mpe_poly_at = zoneData.mpe_poly_at === true;
   zone.label = zoneData.label ?? '';

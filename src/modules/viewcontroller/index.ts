@@ -1604,7 +1604,7 @@ function updateValuesForZone(index: number): void {
     zone.elements.zoneElement?.querySelectorAll<HTMLElement>('.ior-row-pass').forEach((row) => {
       row.hidden = zone.mpe !== MpeMode.PASS;
     });
-    (['mpe_bend_in', 'mpe_bend_out', 'mpe_at_from'] as const).forEach((p) => {
+    (['mpe_bend_in', 'mpe_bend_out', 'mpe_pass_bend_out', 'mpe_at_from'] as const).forEach((p) => {
       zone.elements.zoneElement?.querySelectorAll<HTMLInputElement>('.iorouting-popup input.' + p).forEach((field) => {
         if (document.activeElement !== field) field.value = String(zone[p]);
       });

@@ -222,6 +222,8 @@ export interface ZoneJSON {
   /** Collapse: bend range of the MPE input and of the target synth, in semitones */
   mpe_bend_in?: number;
   mpe_bend_out?: number;
+  /** Pass through: the MPE synth's member bend range */
+  mpe_pass_bend_out?: number;
   /** Collapse: pressure threshold */
   mpe_at_from?: number;
   /** Collapse: each key's pressure as poly aftertouch */

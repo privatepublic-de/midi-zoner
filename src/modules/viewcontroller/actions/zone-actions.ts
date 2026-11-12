@@ -148,6 +148,11 @@ export function createZoneActions(
       zone.sendMpeSetup(); // the synth's member bend range follows
       updateValuesForZone(zoneindex);
     },
+    zone_mpe_pass_bend_out: () => {
+      zone.mpe_pass_bend_out = sanitizeBendRange((element as HTMLInputElement).value, zone.mpe_pass_bend_out);
+      zone.sendMpeSetup(); // for synths that take the bend range from it
+      updateValuesForZone(zoneindex);
+    },
     zone_mpe_bend_out: () => {
       zone.mpe_bend_out = sanitizeBendRange((element as HTMLInputElement).value, zone.mpe_bend_out);
       updateValuesForZone(zoneindex);
