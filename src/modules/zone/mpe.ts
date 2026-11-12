@@ -29,6 +29,8 @@ const MASTER_BEND_RANGE = 2;
  * can't move this zone's fading note: its expression arrives before its note-on.
  */
 const RELEASE_KEEP_MS = 500;
+/** How long a released key's dot fades on the zone's keyboard strip, in ms */
+const DOT_FADE_MS = 300;
 /** Member channels of a full MPE zone, as a Seaboard uses them */
 const MEMBER_CHANNELS = 15;
 /** How long pressure glides when another key takes over, in ms */
@@ -57,6 +59,20 @@ interface Voice {
 /** Pressure from the threshold up, stretched back to 0–127 */
 function scalePressure(pressure: number, from: number): number {
   return Math.round((Math.max(0, pressure - from) * 127) / (127 - from));
+}
+
+/** A key the zone plays, as the keyboard strip draws it */
+export interface MpeDot {
+  /** Its output note (after the zone's octave shift) */
+  note: number;
+  /** Its bend, in semitones of the keyboard's range */
+  semis: number;
+  slide: number | null;
+  pressure: number;
+  /** Bend, slide and pressure follow it (To one channel) */
+  followed: boolean;
+  /** 1 while held, fading to 0 after release */
+  alpha: number;
 }
 
 export interface CollapsedExpression {
@@ -169,6 +185,25 @@ export class MpeInput {
   noteEnded(ch: number, note: number): boolean {
     if (this.voices[ch].note !== note) return false;
     return this.release(ch);
+  }
+
+  /** The keys the zone plays, held or fading out after release, for the keyboard strip */
+  dots(bendIn: number, now = performance.now()): MpeDot[] {
+    const dots: MpeDot[] = [];
+    this.voices.forEach((v, ch) => {
+      if (!v.owned || v.outNote < 0) return;
+      const age = v.releasedAt < 0 ? 0 : now - v.releasedAt;
+      if (age >= DOT_FADE_MS) return;
+      dots.push({
+        note: v.outNote,
+        semis: ((v.bend - 8192) / 8192) * bendIn,
+        slide: v.slide,
+        pressure: v.pressure,
+        followed: ch === this.source,
+        alpha: 1 - age / DOT_FADE_MS
+      });
+    });
+    return dots;
   }
 
   /** The zone acts on the channel: its key is held, or went up less than RELEASE_KEEP_MS ago */

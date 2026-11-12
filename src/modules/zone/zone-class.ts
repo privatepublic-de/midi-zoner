@@ -9,6 +9,7 @@ import { Take } from './take';
 import { barTicks } from '../meter';
 import { TakePlayer } from './take-player';
 import { MpeInput, MpeMode, MPE_SLIDE_CC, PressureGlide, DEFAULT_PRESSURE_FROM, mpeSetupMessages, rescaleBend } from './mpe';
+import type { MpeDot } from './mpe';
 import {
   CCController,
   ArpState,
@@ -704,6 +705,7 @@ export class Zone {
     if (mpeMember) {
       // Expression is kept even while muted, so a note after unmuting starts from it
       this.mpeIn.store(mpeCh, message, data);
+      this.requestRender(); // the keyboard strip's dots follow
       // A channel's new note is not this zone's until it plays it (see the note-on below)
       if (message === MIDI.MESSAGE.NOTE_ON) this.mpeIn.noteStarted(mpeCh, data[1]);
       else if (message === MIDI.MESSAGE.NOTE_OFF && this.mpeIn.noteEnded(mpeCh, data[1])) {
@@ -1114,6 +1116,18 @@ export class Zone {
     }
   }
 
+  private _renderQueued = false;
+
+  /** renderNotes() on the next frame, once however many requests come in (MPE floods) */
+  requestRender(): void {
+    if (this._renderQueued) return;
+    this._renderQueued = true;
+    requestAnimationFrame(() => {
+      this._renderQueued = false;
+      this.renderNotes();
+    });
+  }
+
   renderNotes(): void {
     this.renderTransposeAmount();
     if (this.elements.isReady && this.elements.canvasElement) {
@@ -1250,7 +1264,8 @@ export class Zone {
           .filter((n) => n.fromInput)
           .map((n) => n.number);
         drawNoteList(seqNumbers, NoteDisplay.fillSeq, NoteDisplay.fillSeqBlack);
-        drawNoteList(liveNumbers, NoteDisplay.fill, NoteDisplay.fillBlack);
+        const liveFill = this.mpe !== MpeMode.OFF ? NoteDisplay.fillMpeKey : NoteDisplay.fill;
+        drawNoteList(liveNumbers, liveFill, this.mpe !== MpeMode.OFF ? NoteDisplay.fillMpeKey : NoteDisplay.fillBlack);
       }
       if (this.arp_enabled) {
         const note = this.arp.lastnote;
@@ -1269,7 +1284,62 @@ export class Zone {
           );
         }
       }
+      if (this.mpe !== MpeMode.OFF) {
+        const keyX = (n: number): number =>
+          Note.isBlackKey(n)
+            ? notewidth * Note.nearestWhiteKeyIndex(n) + blackkeyoffset + blackkeywidth / 2
+            : whitekeyoffset + notewidth * Note.nearestWhiteKeyIndex(n) + whitekeywidth / 2;
+        const dots = this.mpeIn.dots(this.mpe_bend_in);
+        this.drawMpeDots(context, rect.height, dots, keyX);
+        if (dots.some((d) => d.alpha < 1)) this.requestRender(); // a release still fading
+      }
     }
+  }
+
+  /**
+   * MPE keys as dots in the zone colour, as ROLI's Dashboard draws them: x = the pitch
+   * sounding (key + bend, so a glide runs across the keys), y = slide (top = high), size
+   * and brightness = pressure. With To one channel the key bend, slide and pressure
+   * follow is a filled dot, the others rings.
+   */
+  private drawMpeDots(
+    context: CanvasRenderingContext2D,
+    height: number,
+    dots: MpeDot[],
+    keyX: (note: number) => number
+  ): void {
+    if (dots.length === 0) return;
+    const colour = this.elements.zoneElement
+      ? getComputedStyle(this.elements.zoneElement).getPropertyValue('--zone-color').trim() || NoteDisplay.fillMpeDot
+      : NoteDisplay.fillMpeDot;
+    context.save();
+    for (const d of dots) {
+      const pitch = Math.max(0, Math.min(127, d.note + d.semis));
+      const low = Math.floor(pitch);
+      const x = keyX(low) + (keyX(Math.min(127, low + 1)) - keyX(low)) * (pitch - low);
+      const press = d.pressure / 127;
+      const r = 1.5 + press * 6;
+      const y = d.slide === null ? height / 2 : r + (1 - d.slide / 127) * (height - 2 * r);
+      const filled = this.mpe !== MpeMode.COLLAPSE || d.followed;
+      context.beginPath();
+      context.arc(x, y, r, 0, Math.PI * 2);
+      // a dark rim keeps the dot apart from the keys under it
+      context.globalAlpha = d.alpha;
+      context.lineWidth = filled ? 1 : 3;
+      context.strokeStyle = NoteDisplay.strokeMpeDot;
+      context.stroke();
+      // light touch: the zone colour muted on the dark strip; pressed hard: full colour
+      context.globalAlpha = d.alpha * (0.35 + 0.65 * press);
+      if (filled) {
+        context.fillStyle = colour;
+        context.fill();
+      } else {
+        context.lineWidth = 1.5;
+        context.strokeStyle = colour;
+        context.stroke();
+      }
+    }
+    context.restore();
   }
 
   renderPattern(): void {

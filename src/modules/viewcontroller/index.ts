@@ -1601,6 +1601,8 @@ function updateValuesForZone(index: number): void {
     const mpeSelect = zone._$('select.mpe') as HTMLSelectElement;
     if (mpeSelect) mpeSelect.value = String(zone.mpe);
     (zone._$('.ior-link') as HTMLElement)?.classList.toggle('off', zone.mpe === MpeMode.OFF);
+    // MPE zones get a taller keyboard strip for the keys' dots
+    zone.elements.zoneElement?.classList.toggle('mpe-on', zone.mpe !== MpeMode.OFF);
     zone.elements.zoneElement?.querySelectorAll<HTMLElement>('.ior-row-collapse').forEach((row) => {
       row.hidden = zone.mpe !== MpeMode.COLLAPSE;
     });

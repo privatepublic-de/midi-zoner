@@ -1921,6 +1921,11 @@ input[type='range'] {
   cursor: ns-resize !important;
 }
 
+/* MPE zones: room under the keys for the keys' dots (slide is their height) */
+.zone.mpe-on .range {
+  height: 40px;
+}
+
 .range canvas {
   position: absolute;
   left: 0;
