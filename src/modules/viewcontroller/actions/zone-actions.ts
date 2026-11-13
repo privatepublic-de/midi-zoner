@@ -1,6 +1,8 @@
 import MIDI from '../../midi';
 import { ActionContext, ActionHelpers, ActionMap } from '../types';
 import { ipcRenderer } from 'electron';
+import { MpeMode, sanitizeBendRange, sanitizePressureFrom, zoneInputClaims } from '../../zone/mpe';
+import { ARRANGEMENT_LETTERS, labelForZone } from '../action-labels';
 
 export function createZoneActions(
   ctx: ActionContext,
@@ -12,10 +14,18 @@ export function createZoneActions(
     updateValuesForZone, updateValuesForAllZones,
     renderMarkersForZone, renderZones, listUsedPorts,
     updateOutputPortsForZone, cachedOutputPorts,
-    updateInputPortsForZone, cachedInputPorts, findTouchedNote,
+    findTouchedNote,
     toast
   } = ctx;
   const { applySelectedIndex } = helpers;
+
+  /** Ports and channels zones listen to beyond the global input selection */
+  const syncZoneInputs = (): void => {
+    const claims = zoneInputClaims(zones.list);
+    midiController.zoneInputPorts = claims.ports;
+    midiController.zoneAllChannels = claims.allChannels;
+    midiController.selectDevices(midiController.deviceIdInClock);
+  };
 
   return {
     zone_enabled: () => {
@@ -28,9 +38,15 @@ export function createZoneActions(
       }
       if (!zone.enabled && sequence.active) {
         sequence.clearSelection();
-        sequence.isLiveRecoding = false;
+        sequence.isLiveRecording = false;
         updateValuesForZone(zoneindex);
       }
+    },
+    zone_takes: () => {
+      zone.takes_on = !zone.takes_on;
+      // switched off while playing: what sounds now ends
+      if (!zone.takes_on) zone.takePlayer.release(false);
+      updateValuesForZone(zoneindex);
     },
     zone_solo: () => {
       zone.solo = !zone.solo;
@@ -50,11 +66,12 @@ export function createZoneActions(
         )
         .then((result: boolean) => {
           if (result == true) {
-            pushHistory(snapshotBeforeDelete);
+            pushHistory(snapshotBeforeDelete, labelForZone(zone, zoneindex, 'Delete'));
             const scrollPos = window.scrollY;
             zone.dismiss();
             zones.list.splice(zoneindex, 1);
             midiController.updateUsedPorts(listUsedPorts());
+            syncZoneInputs();
             renderZones();
             triggerSave();
             window.scrollTo({ top: scrollPos });
@@ -68,9 +85,9 @@ export function createZoneActions(
     zone_outport: () => {
       const selectElement = element as HTMLSelectElement;
       if (selectElement.value.charAt(0) == '$') {
-        const parts = selectElement.value.substr(1).split(',');
+        const parts = selectElement.value.slice(1).split(',');
         zone.channel = parseInt(parts[1]);
-        zone.preferredOutputPortId = zone.outputPortId = parseInt(parts[0]) as any;
+        zone.preferredOutputPortId = zone.outputPortId = parts[0];
         updateOutputPortsForZone(zoneindex, cachedOutputPorts);
         midiController.updateUsedPorts(listUsedPorts());
       } else {
@@ -81,6 +98,7 @@ export function createZoneActions(
         updateValuesForZone(zoneindex);
         midiController.updateUsedPorts(listUsedPorts());
       }
+      zone.sendMpeSetup();
     },
     zone_output_config_name: () => {
       const inputElement = element as HTMLInputElement;
@@ -112,10 +130,39 @@ export function createZoneActions(
     zone_input_port: () => {
       const select = element as HTMLSelectElement;
       zone.inputPortId = select.value || null;
-      const portIds = new Set<string>();
-      zones.list.forEach((z) => { if (z.inputPortId) portIds.add(z.inputPortId); });
-      midiController.zoneInputPorts = portIds;
-      midiController.selectDevices(midiController.deviceIdInClock);
+      syncZoneInputs();
+      updateValuesForZone(zoneindex);
+    },
+    zone_mpe: () => {
+      const mode = parseInt((element as HTMLSelectElement).value);
+      zone.setMpe(mode === MpeMode.PASS || mode === MpeMode.COLLAPSE ? mode : MpeMode.OFF);
+      syncZoneInputs();
+      zone.sendMpeSetup();
+      updateValuesForZone(zoneindex);
+    },
+    zone_mpe_setup: () => {
+      toast(zone.sendMpeSetup() ? 'MPE setup sent' : 'No output port to send the MPE setup to', { warning: zone.outputPortId === MIDI.INTERNAL_PORT_ID });
+    },
+    zone_mpe_bend_in: () => {
+      zone.mpe_bend_in = sanitizeBendRange((element as HTMLInputElement).value, zone.mpe_bend_in);
+      zone.sendMpeSetup(); // the synth's member bend range follows
+      updateValuesForZone(zoneindex);
+    },
+    zone_mpe_pass_bend_out: () => {
+      zone.mpe_pass_bend_out = sanitizeBendRange((element as HTMLInputElement).value, zone.mpe_pass_bend_out);
+      zone.sendMpeSetup(); // for synths that take the bend range from it
+      updateValuesForZone(zoneindex);
+    },
+    zone_mpe_bend_out: () => {
+      zone.mpe_bend_out = sanitizeBendRange((element as HTMLInputElement).value, zone.mpe_bend_out);
+      updateValuesForZone(zoneindex);
+    },
+    zone_mpe_poly_at: () => {
+      zone.setMpePolyAT((element as HTMLSelectElement).value === '1');
+      updateValuesForZone(zoneindex);
+    },
+    zone_mpe_at_from: () => {
+      zone.mpe_at_from = sanitizePressureFrom((element as HTMLInputElement).value, zone.mpe_at_from);
       updateValuesForZone(zoneindex);
     },
     zone_input_channel: () => {
@@ -149,9 +196,15 @@ export function createZoneActions(
         .invoke('open-save', payload)
         .then((result: { canceled: boolean; message: string; warning?: boolean }) => {
           if (!result.canceled) {
-            toast(result.message, { longer: true, warning: result.warning });
+            toast(result.message, { warning: result.warning });
           }
         });
+    },
+    zone_arr_copy_to: () => {
+      const targetIndex = parseInt(actionParam1);
+      if (isNaN(targetIndex) || targetIndex < 0 || targetIndex > 3) return;
+      zone.copyArrangementTo(targetIndex);
+      toast(`Arrangement ${ARRANGEMENT_LETTERS[zones.arrangementIndex]} → ${ARRANGEMENT_LETTERS[targetIndex]} copied`);
     },
   };
 }

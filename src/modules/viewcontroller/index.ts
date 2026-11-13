@@ -1,18 +1,36 @@
-import DOM from '../domutils';
+import DOM, { escapeHTML } from '../domutils';
 import MIDI from '../midi';
+import { differsFromPreset, findDevicePreset, matchesPort, presetsByMaker, PresetDevice } from '../device-presets';
 
 import DragZone from '../dragzone';
+import potDragHandler from '../potdraghandler';
 import * as zoneTemplate from '../zone-template';
 import { Zone } from '../zone/zone-class';
+import { MpeMode } from '../zone/mpe';
 import { Sequence } from '../zone/sequence';
+import { ZONES_CHANGED_EVENT } from '../zone/interfaces';
 import { Note } from '../zone/note';
+import { showStepProperties } from './step-marks';
 
 import { initToast, toast } from './toast';
 import { NumberInputController } from './number-input-controller';
 import { UndoHistory } from '../undo-history';
-import { createActionHandlers, ratchetResToLabel } from './actions';
+import {
+  createActionHandlers,
+  ticksToRatchetIndex,
+  velocityDeltaToPercent
+} from './actions';
+import { closeCCEditor, initCCEditor, isCCEditorOpen, refreshCCEditor } from './cc-editor';
+import { initPianoRoll } from './piano-roll';
+import { initTrackView, isTrackView, setTrackView, followTrack } from './track-view';
+import { renderStepLocks } from './step-locks';
+import { isQuantizable, requestToggle, isPending, hasPendingToggles, takePendingToggles, markPending, setToggleBoundary } from './pending-toggles';
+import { describeAction, labelForZone, zonePrefix, ARRANGEMENT_LETTERS } from './action-labels';
+import { Meter, DEFAULT_METER, METER_CHOICES, meterLabel, sameMeter, parseMeter } from '../meter';
 import {
   updateControllerValues,
+  setMenuHandler,
+  onLockEdited,
   renderControllersForZone as renderControllersForZoneInternal
 } from './cc-controller-view';
 import {
@@ -37,10 +55,29 @@ import {
   ActionHelpers
 } from './types';
 
+let onStateChange: (() => void) | null = null;
+
+function setStateChangeCallback(fn: (() => void) | null): void {
+  onStateChange = fn;
+}
+
+const SEQ_ADJUST_LABELS: Record<string, string> = {
+  double: 'Repeat (double length)',
+  halftime: 'Half speed',
+  thirdtime: 'Third speed',
+  veloup: 'Velocity 133%',
+  velodown: 'Velocity 75%',
+  seq_legato: 'Legato',
+  seq_staccato: 'Staccato',
+  'euclid-distrib': 'Euclidean distribution'
+};
+const DRUM_UNSUPPORTED_ADJUSTMENTS = ['seq_legato', 'seq_staccato', 'euclid-distrib'];
+
 const contextMenuActionLabel: Record<string, string> = {
   seq_copy_step: '<i class="material-icons">content_copy</i> Copy ',
   seq_paste_step: '<i class="material-icons">content_paste</i> Paste steps',
   seq_clear_step: '<i class="material-icons">clear</i> Clear step',
+  seq_clear_locks: '<i class="material-icons">lock_open</i> Clear parameter locks',
   seq_clear_all:
     '<i class="material-icons">playlist_remove</i> Clear complete sequence',
   seq_copy: '<i class="material-icons">content_copy</i> Copy sequence',
@@ -49,9 +86,11 @@ const contextMenuActionLabel: Record<string, string> = {
   seq_paste_lane:
     '<i class="material-icons">content_paste</i> Paste lane pattern',
   seq_clear_lane: '<i class="material-icons">clear</i> Clear lane',
+  zone_change_color: '<i class="material-icons">palette</i> Change colour',
   zone_export: '<i class="material-icons">save_alt</i> Save zone to file…',
-  cc_edit: '<i class="material-icons">edit</i> Edit CC controllers',
-  cc_send_all: '<i class="material-icons">double_arrow</i> Send all CC values',
+  zone_delete: '<i class="material-icons">delete_outline</i> Delete zone…',
+  cc_preset_save: '<i class="material-icons">save</i> Save as new preset…',
+  cc_presets_manage: '<i class="material-icons">library_books</i> Manage presets…',
   step_copy_length: 'Step length',
   step_copy_gate: 'Gate length',
   step_copy_condition: 'Condition',
@@ -64,6 +103,21 @@ let elAllMuteOff: HTMLElement;
 let elAllSoloOff: HTMLElement;
 let elAllHoldOff: HTMLElement;
 let numberInputController: NumberInputController;
+
+// View setting, per machine: zones silenced by another zone's solo fold like muted
+// ones (default), or keep their layout, dimmed, so nothing moves when soloing
+const FOLD_SOLOED_OUT_KEY = 'foldSoloedOut';
+let foldSoloedOut = localStorage.getItem(FOLD_SOLOED_OUT_KEY) !== '0';
+
+function isFoldSoloedOut(): boolean {
+  return foldSoloedOut;
+}
+
+function setFoldSoloedOut(on: boolean): void {
+  foldSoloedOut = on;
+  localStorage.setItem(FOLD_SOLOED_OUT_KEY, on ? '1' : '0');
+  updateValuesForAllZones();
+}
 let triggerSave: () => void = () => {};
 let undoHistory: UndoHistory = new UndoHistory();
 
@@ -86,6 +140,7 @@ function initController({
   triggerSave = () => {
     undoHistory.afterAction(JSON.stringify(zones));
     originalSave();
+    window.dispatchEvent(new CustomEvent(ZONES_CHANGED_EVENT));
   };
   zones = data;
   midiController = midi;
@@ -105,9 +160,58 @@ function initController({
       updateValuesForAllZones();
     }
   }) as EventListener);
+  window.addEventListener(Zone.lockValuesEventName, ((ev: CustomEvent) => {
+    const index = zones.list.indexOf(ev.detail);
+    if (index > -1) updateControllerValues(zones.list[index], index);
+  }) as EventListener);
+  initPianoRoll();
+  initTrackView(
+    () => zones.list,
+    (zoneindex, label, change) => {
+      undoHistory.beforeAction(JSON.stringify(zones), labelForZone(zones.list[zoneindex], zoneindex, label));
+      change();
+      updateValuesForZone(zoneindex);
+      triggerSave();
+    },
+    {
+      get: () => zones.loops?.[zones.arrangementIndex] ?? null,
+      set: (loop, label) => {
+        undoHistory.beforeAction(JSON.stringify(zones), label);
+        const loops = (zones.loops ??= []);
+        while (loops.length < 4) loops.push(null);
+        loops[zones.arrangementIndex] = loop;
+        triggerSave();
+      }
+    },
+    () => meterOf(zones.arrangementIndex)
+  );
+  setMenuHandler(contextHandler);
+  initCCEditor({
+    zone: (index) => zones.list[index],
+    actionHandler: actionHandler as (ev: Event, overrideaction?: string) => void,
+    contextHandler,
+    gestureStart: (label) => undoHistory.startGesture(JSON.stringify(zones), label),
+    gestureEnd: () => undoHistory.endGesture(JSON.stringify(zones)),
+    triggerSave: () => triggerSave(),
+    showPage: showControllerPage
+  });
+  initStepDeselection();
+  // A knob writing parameter locks: the steps' marks and the step editor follow, once per frame
+  let lockRedrawPending = false;
+  onLockEdited((_zone, zoneindex) => {
+    if (lockRedrawPending) return;
+    lockRedrawPending = true;
+    requestAnimationFrame(() => {
+      lockRedrawPending = false;
+      updateValuesForZone(zoneindex);
+    });
+  });
   numberInputController = new NumberInputController();
   numberInputController.onAttach = () =>
-    undoHistory.startGesture(JSON.stringify(zones));
+    undoHistory.startGesture(
+      JSON.stringify(zones),
+      describeElementAction(numberInputController.elValueBtnAttachedInput)
+    );
   numberInputController.onDetach = () => {
     // Don't end gesture if the input still has keyboard focus — the focus/blur pair
     // will handle that boundary instead (avoids premature commit mid-typing).
@@ -121,12 +225,18 @@ function initController({
     DOM.all(`#midisettings input[type=number]`)
   );
 
+  document.addEventListener('input', (ev) => {
+    const target = ev.target as HTMLElement;
+    if (target.matches('input[type="range"]')) syncRangeFill(target as HTMLInputElement);
+  });
+
   // Range slider gesture: one undo entry per drag, not per pixel.
   // The one-shot mouseup is added only when a range slider actually starts,
   // so it never fires on unrelated clicks (e.g. focusing a text input).
   document.addEventListener('mousedown', (ev) => {
-    if ((ev.target as HTMLElement).matches('input[type="range"]')) {
-      undoHistory.startGesture(JSON.stringify(zones));
+    const target = ev.target as HTMLElement;
+    if (target.matches('input[type="range"]')) {
+      undoHistory.startGesture(JSON.stringify(zones), describeElementAction(target));
       window.addEventListener(
         'mouseup',
         () => {
@@ -136,6 +246,16 @@ function initController({
       );
     }
   });
+}
+
+// Reads the data-action/data-change/data-focus-change attribute off an input
+// element to build the same kind of undo/redo label the click dispatcher uses.
+function describeElementAction(element: HTMLElement | null): string {
+  const actionString =
+    element?.getAttribute('data-change') ||
+    element?.getAttribute('data-action') ||
+    element?.getAttribute('data-focus-change');
+  return actionString ? describeAction(actionString, zones) : 'Value';
 }
 
 function findTouchedNote(
@@ -172,9 +292,46 @@ function findTouchedNote(
   };
 }
 
+/** True while waiting toggles land, so they don't wait again */
+let landingToggles = false;
+
+/**
+ * While the clock runs, a zone toggle waits for the next boundary (Setup → Switching → Zone switches)
+ * when quantizing (the Quantize chip; Shift does the opposite). Pressing a waiting
+ * toggle again cancels it.
+ */
+function waitsForBoundary(ev: MouseEvent, actionString: string): boolean {
+  const [index, action] = actionString.split(':');
+  const zone = zones.list[parseInt(index)];
+  if (!zone || !isQuantizable(action) || landingToggles || !midiController.isClockRunning) return false;
+  if (!isPending(zone, action) && zones.toggleQuantOn === !!ev.shiftKey) return false;
+  requestToggle(zone, action);
+  return true;
+}
+
+/** The waiting toggles land, each one an undo step as if pressed now */
+function applyPendingToggles(): void {
+  if (!hasPendingToggles()) return;
+  landingToggles = true;
+  try {
+    takePendingToggles().forEach(({ zone, action }) => {
+      const index = zones.list.indexOf(zone);
+      if (index >= 0) zoneToggle(index, action);
+    });
+  } finally {
+    landingToggles = false;
+  }
+}
+
+/** A zone toggle from a key switch or a Mackie button: like a click on its chip */
+function zoneToggle(index: number, action: string): void {
+  if (!zones.list[index]) return;
+  const press = { type: 'click', shiftKey: false, currentTarget: null, stopPropagation: () => {} };
+  actionHandler(press as unknown as MouseEvent, `${index}:${action}`);
+}
+
 function actionHandler(ev: MouseEvent, overrideaction?: string): void {
   ev.stopPropagation();
-  undoHistory.beforeAction(JSON.stringify(zones));
   const element = ev.currentTarget as HTMLElement;
   let actionString =
     overrideaction ||
@@ -187,12 +344,35 @@ function actionHandler(ev: MouseEvent, overrideaction?: string): void {
     actionString = element.getAttribute('data-focus-change');
     actionString += ':' + (ev.type == 'focus' ? 1 : 0);
   }
+  if (waitsForBoundary(ev, actionString!)) return;
+  undoHistory.beforeAction(JSON.stringify(zones), describeAction(actionString!, zones));
   const params = actionString!.split(':');
   const zoneindex = parseInt(params[0]);
   const action = params[1];
   const actionProperty = action.substring(action.indexOf('_') + 1);
   const actionParam1 = params[2];
   const actionParam2 = params[3];
+  const actionParam3 = params[4];
+
+  if (action === 'global_arr_copy_to') {
+    const sourceIndex = parseInt(actionParam1);
+    const targetIndex = parseInt(actionParam2);
+    if (!isNaN(sourceIndex) && !isNaN(targetIndex) && sourceIndex !== targetIndex) {
+      zones.list.forEach(z => z.copyArrangementFromTo(sourceIndex, targetIndex));
+      triggerSave();
+      toast(`Arrangement ${ARRANGEMENT_LETTERS[sourceIndex]} → ${ARRANGEMENT_LETTERS[targetIndex]} copied for all zones`);
+    }
+    window.dispatchEvent(new CustomEvent('closeContextMenu'));
+    return;
+  }
+
+  if (action === 'global_arr_meter') {
+    const meter = parseMeter(params.slice(3).join(':'));
+    if (meter) setArrangementMeter(parseInt(actionParam1), meter);
+    window.dispatchEvent(new CustomEvent('closeContextMenu'));
+    return;
+  }
+
   const zone: ZoneType = zones.list[zoneindex];
   const sequence: SequenceType = zone.sequence;
 
@@ -232,8 +412,9 @@ function actionHandler(ev: MouseEvent, overrideaction?: string): void {
     ev,
     actionParam1,
     actionParam2,
+    actionParam3,
     triggerSave,
-    pushHistory: (snapshot: string) => undoHistory.push(snapshot),
+    pushHistory: (snapshot: string, label: string) => undoHistory.push(snapshot, label),
     updateValuesForZone,
     updateValuesForAllZones,
     renderControllersForZone,
@@ -254,7 +435,10 @@ function actionHandler(ev: MouseEvent, overrideaction?: string): void {
       updateInputPortsForZoneInternal(zones, index, inputs),
     findTouchedNote,
     updateControllerValues,
-    selectArrangement
+    selectArrangement,
+    beforeAction: (label: string) => undoHistory.beforeAction(JSON.stringify(zones), label),
+    startGesture: (label: string) => undoHistory.startGesture(JSON.stringify(zones), label),
+    endGesture: () => undoHistory.endGesture(JSON.stringify(zones))
   };
 
   const helpers: ActionHelpers = {
@@ -270,35 +454,175 @@ function actionHandler(ev: MouseEvent, overrideaction?: string): void {
   window.dispatchEvent(new CustomEvent('closeContextMenu'));
 }
 
+/**
+ * Menu entries for the device presets of a zone: presets grouped by device (click
+ * replaces, shift-click appends), then update / save / folder.
+ */
+function devicePresetMenu(zoneindex: number): string[] {
+  const zone: ZoneType = zones.list[zoneindex];
+  const entries = ['label:Device presets · ⇧-click appends'];
+  const groups = presetsByMaker();
+  if (groups.length === 0) entries.push('label:No presets saved yet');
+  for (const group of groups) {
+    if (group.maker) entries.push(`heading:${escapeHTML(group.maker)}`);
+    for (const device of group.devices) entries.push(`html:${presetDeviceRow(zone, zoneindex, device)}`);
+  }
+  entries.push('-', `${zoneindex}:cc_preset_update`, `${zoneindex}:cc_preset_save`, `${zoneindex}:cc_presets_manage`);
+  return entries;
+}
+
+/** A device with its presets as chips (plus "Add all" with more than one) */
+function presetDeviceRow(zone: ZoneType, zoneindex: number, device: PresetDevice): string {
+  const portName = zones.knownPortNames?.[zone.outputPortId];
+  const chips = device.presets.map((preset) => {
+    const linked = zone.devicePreset?.id === preset.id;
+    const modified = linked && differsFromPreset(zone.cc_controllers, preset) ? ' •' : '';
+    const icon = linked ? 'check' : matchesPort(preset, portName) ? 'star_outline' : '';
+    const classes = ['cc-preset-chip', linked ? 'linked' : '', preset.source == 'user' ? 'user' : ''].join(' ');
+    const title = preset.source == 'user' ? 'Your preset' : 'Factory preset';
+    return `<span class="${classes}" title="${title}" data-action="${zoneindex}:cc_preset_apply:${preset.id}">${
+      icon ? `<i class="material-icons">${icon}</i>` : ''
+    }${escapeHTML(preset.name)}${modified}</span>`;
+  });
+  if (device.presets.length > 1) {
+    chips.push(
+      `<span class="cc-preset-chip all" title="Each preset on a page of its own" data-action="${zoneindex}:cc_preset_apply_all:${device.presets[0].id}">Add all</span>`
+    );
+  }
+  return `<li class="cc-preset-device"><span class="cc-preset-device-name">${escapeHTML(device.label)}</span><span class="cc-preset-chips">${chips.join('')}</span></li>`;
+}
+
+/** The entries of a selector ("ccselect:<zone>:<controller>") */
+function selectorMenu(spec: string): string[] {
+  const [, zoneindex, ccindex] = spec.split(':');
+  const c = zones.list[parseInt(zoneindex)]?.cc_controllers[parseInt(ccindex)];
+  return (c?.discreteValues ?? []).map((_, i) => `${zoneindex}:cc_select_value:${ccindex}:${i}`);
+}
+
+function meterOf(arrIndex: number): Meter {
+  return zones.meters?.[arrIndex] ?? DEFAULT_METER;
+}
+
+/** An arrangement's meter (an undo step of its own when it comes from the menu's field) */
+function setArrangementMeter(arrIndex: number, meter: Meter): void {
+  if (!(arrIndex >= 0 && arrIndex < 4)) return;
+  const meters = (zones.meters ??= []);
+  while (meters.length < 4) meters.push(null);
+  meters[arrIndex] = sameMeter(meter, DEFAULT_METER) ? null : meter;
+  updateArrangementMeters();
+  triggerSave();
+  toast(`Arrangement ${ARRANGEMENT_LETTERS[arrIndex]} is in ${meterLabel(meter)}`);
+}
+
+/** A–D show their meter when it isn't 4/4 */
+function updateArrangementMeters(): void {
+  (DOM.all("*[data-select-arrangement]") as HTMLElement[]).forEach((el, i) => {
+    const meter = meterOf(i);
+    if (sameMeter(meter, DEFAULT_METER)) el.removeAttribute('data-meter');
+    else el.setAttribute('data-meter', meterLabel(meter).split(' ')[0]);
+    el.title = `Arrangement ${ARRANGEMENT_LETTERS[i]} · ${meterLabel(meter)} (right-click: meter, copy)`;
+  });
+}
+
+/** The meter entries of an arrangement's menu ("meters:<arrangement>") */
+function meterMenu(spec: string): string[] {
+  const arr = parseInt(spec.split(':')[1]);
+  return [
+    '-',
+    'heading:Meter',
+    ...METER_CHOICES.map((m) => `-1:global_arr_meter:${arr}:${meterLabel(m)}`),
+    `html:<li class="meter-other"><input type="text" class="meter-input" data-arr="${arr}" placeholder="Other, e.g. 11/8 3+3+3+2" spellcheck="false" /></li>`
+  ];
+}
+
 function contextHandler(ev: MouseEvent): void {
   ev.preventDefault();
   ev.stopPropagation();
   const element = ev.currentTarget as HTMLElement;
   const menuSpecification = element.getAttribute('data-contextmenu')!;
-  const menuActions = menuSpecification.split(',');
+  const menuActions = menuSpecification
+    .split(',')
+    .flatMap((act) =>
+      act.startsWith('ccpresets:')
+        ? devicePresetMenu(parseInt(act.slice(10)))
+        : act.startsWith('ccselect:')
+          ? selectorMenu(act)
+          : act.startsWith('meters:')
+            ? meterMenu(act)
+            : [act]
+    );
   const contextMenuElement = DOM.get('#contextmenu') as HTMLElement;
 
   DOM.empty(contextMenuElement);
+  contextMenuElement.classList.toggle('cc-presets-menu', menuSpecification.startsWith('ccpresets:'));
 
   function isEnabled(parts: string[]): boolean {
+    if (parseInt(parts[0]) < 0) return true;
     const zoneindex = parseInt(parts[0]);
     const zone: ZoneType = zones.list[zoneindex];
     switch (parts[1]) {
       case 'seq_copy_step':
         return zone.sequence.isStepUsed(parseInt(parts[2]));
+      case 'seq_clear_locks': {
+        const stepno = parseInt(parts[2]);
+        const steps = zone.sequence.selectedStepNumbers.has(stepno) ? [...zone.sequence.selectedStepNumbers] : [stepno];
+        return steps.some((n) => zone.sequence.stepAt(n)?.hasLocks());
+      }
       case 'seq_paste_step':
         return Zone.seqClipboardStep != null;
       case 'seq_paste':
         return Zone.seqClipboardSequence != null;
       case 'seq_paste_lane':
         return Zone.seqClipboardDrumLane != null;
+      case 'cc_preset_update': {
+        const linked = findDevicePreset(zone.devicePreset?.id);
+        return linked?.source == 'user' && differsFromPreset(zone.cc_controllers, linked);
+      }
+      case 'cc_preset_save':
+        return zone.cc_controllers.length > 0;
+      case 'seq_adjust':
+        // drum lanes only support length and velocity changes
+        return !zone.sequence.isDrumSequence || !DRUM_UNSUPPORTED_ADJUSTMENTS.includes(parts[2]);
     }
     return true;
   }
 
   function labelString(parts: string[]): string {
+    if (parts[1] === 'zone_arr_copy_to') {
+      const label = ARRANGEMENT_LETTERS[parseInt(parts[2])];
+      return `<i class="material-icons">content_copy</i> Copy to arrangement ${label}`;
+    }
+    if (parts[1] === 'global_arr_copy_to') {
+      const target = ARRANGEMENT_LETTERS[parseInt(parts[3])];
+      return `<i class="material-icons">content_copy</i> Copy all zones → ${target}`;
+    }
+    if (parts[1] === 'global_arr_meter') {
+      const meter = parseMeter(parts.slice(3).join(':'));
+      const current = !!meter && sameMeter(meter, meterOf(parseInt(parts[2])));
+      return `<i class="material-icons">${current ? 'check' : ''}</i> ${meter ? meterLabel(meter) : ''}`;
+    }
     const zoneindex = parseInt(parts[0]);
     const zone: ZoneType = zones.list[zoneindex];
+    if (parts[1] === 'seq_transpose') {
+      const n = parseInt(parts[2]);
+      const interval = Math.abs(n) === 12 ? ' (octave)' : Math.abs(n) === 7 ? ' (fifth)' : '';
+      return `${n > 0 ? '+' : ''}${n}${interval}`;
+    }
+    if (parts[1] === 'seq_adjust') {
+      return SEQ_ADJUST_LABELS[parts[2]] ?? parts[2];
+    }
+    if (parts[1] === 'cc_select_value') {
+      const c = zone.cc_controllers[parseInt(parts[2])];
+      const i = parseInt(parts[3]);
+      const value = c.discreteValues![i];
+      const current = c.val === value;
+      // Names come from scene and preset files
+      return `<i class="material-icons">${current ? 'check' : ''}</i> ${escapeHTML(c.valueNames?.[i] || String(value))}`;
+    }
+    if (parts[1] === 'cc_preset_update') {
+      const name = findDevicePreset(zone.devicePreset?.id)?.name ?? zone.devicePreset?.name;
+      return `<i class="material-icons">save_as</i> Update ${name ? `"${escapeHTML(name)}"` : 'preset'}`;
+    }
     if (parts[1] == 'seq_copy_step') {
       let subs;
       if (
@@ -317,8 +641,12 @@ function contextHandler(ev: MouseEvent): void {
   menuActions.forEach((act) => {
     if (act == '-') {
       DOM.addHTML(contextMenuElement, 'beforeend', `<hr/>`);
+    } else if (act.startsWith('html:')) {
+      DOM.addHTML(contextMenuElement, 'beforeend', act.slice(5));
+    } else if (act.startsWith('heading:')) {
+      DOM.addHTML(contextMenuElement, 'beforeend', `<li class="heading">${act.slice(8)}</li>`);
     } else if (act.startsWith('label:')) {
-      const label = act.substr(6);
+      const label = act.slice(6);
       DOM.addHTML(
         contextMenuElement,
         'beforeend',
@@ -327,7 +655,7 @@ function contextHandler(ev: MouseEvent): void {
     } else {
       const parts = act.split(':');
       const name = labelString(parts);
-      const styleClass = isEnabled(parts) ? '' : 'disabled';
+      const styleClass = (isEnabled(parts) ? '' : 'disabled') + (parts[1] === 'zone_delete' ? ' danger' : '');
       DOM.addHTML(
         contextMenuElement,
         'beforeend',
@@ -340,19 +668,47 @@ function contextHandler(ev: MouseEvent): void {
       actionHandler(event as MouseEvent);
     });
   });
+  contextMenuElement.querySelectorAll<HTMLInputElement>('input.meter-input').forEach((input) => {
+    const arr = parseInt(input.dataset.arr!);
+    const current = meterOf(arr);
+    if (!METER_CHOICES.some((m) => sameMeter(m, current))) input.value = meterLabel(current);
+    input.addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.key === 'Escape') window.dispatchEvent(new CustomEvent('closeContextMenu'));
+      if (e.key !== 'Enter') return;
+      const meter = parseMeter(input.value);
+      if (!meter) {
+        toast('A meter is n/4 or n/8 (n up to 32), x/8 with an optional grouping such as 7/8 2+2+3', { warning: true });
+        return;
+      }
+      undoHistory.push(JSON.stringify(zones), `Meter ${ARRANGEMENT_LETTERS[arr]}: ${meterLabel(meter)}`);
+      setArrangementMeter(arr, meter);
+      window.dispatchEvent(new CustomEvent('closeContextMenu'));
+    });
+  });
   contextMenuElement.style.display = 'block';
   const srcRect = element.getBoundingClientRect();
   const menuRect = contextMenuElement.getBoundingClientRect();
 
   let top = ev.clientY;
   let left = ev.clientX;
-  if (left + menuRect.width > window.innerWidth) {
-    left = window.innerWidth - menuRect.width;
-  }
-  if (top + menuRect.height > window.innerHeight) {
-    top = window.innerHeight - menuRect.height;
-    if (top < srcRect.top && srcRect.width < menuRect.width) {
-      left += srcRect.width;
+  if (element.hasAttribute('data-contextclick')) {
+    // menu button: drop down from the button, pushed up only as far as needed
+    left = srcRect.left;
+    top = srcRect.bottom;
+    if (top + menuRect.height > window.innerHeight) {
+      top = Math.max(0, window.innerHeight - menuRect.height);
+    }
+    left = Math.min(left, window.innerWidth - menuRect.width);
+  } else {
+    if (left + menuRect.width > window.innerWidth) {
+      left = window.innerWidth - menuRect.width;
+    }
+    if (top + menuRect.height > window.innerHeight) {
+      top = window.innerHeight - menuRect.height;
+      if (top < srcRect.top && srcRect.width < menuRect.width) {
+        left += srcRect.width;
+      }
     }
   }
   contextMenuElement.style.top = top + 'px';
@@ -391,10 +747,10 @@ function hoverOutHandler(ev: MouseEvent): void {
 }
 
 function dblClickHandler(ev: MouseEvent): void {
-  undoHistory.beforeAction(JSON.stringify(zones));
   const e = ev.currentTarget as HTMLElement;
   const action =
     e.getAttribute('data-dblclickaction') || e.getAttribute('data-action');
+  undoHistory.beforeAction(JSON.stringify(zones), describeAction(action!, zones));
   const params = action!.split(':');
   const zoneindex = parseInt(params[0]);
   const zone = zones.list[zoneindex];
@@ -409,6 +765,7 @@ function dblClickHandler(ev: MouseEvent): void {
       for (let i = 0; i < zone.arp_pattern.length; i++) {
         zone.arp_pattern[i] = true;
       }
+      zone.syncEuclidToPattern();
       zone.renderPattern();
       break;
     case 'zone_solo':
@@ -434,6 +791,9 @@ function renderZones(): void {
     appendZone(zone, index);
   });
   addPlaceholder();
+  updateZoneHeaderContextMenus(zones.arrangementIndex);
+  refreshCCEditor();
+  markPending();
 }
 
 function addPlaceholder(): void {
@@ -441,11 +801,9 @@ function addPlaceholder(): void {
   DOM.addHTML(
     '#zones',
     'beforeend',
-    '<div class="zone addnewzone"><a class="action" data-action="0:add_new_zone" title="Add new zone">+ Add zone</a></div>'
+    '<div class="zone addnewzone"><a class="action" title="Add new zone">+ Add zone</a>' +
+      '<p class="addzone-hint">A zone sends one key range of your keyboard to one MIDI output, with its own arpeggiator, sequencer and controls.</p></div>'
   );
-  DOM.on('#zones .zone.addnewzone a', 'click', () => {
-    (DOM.get('#newzone') as HTMLElement).click();
-  });
   DOM.all('#zones .zone.placeholder', (e) => e.remove());
   if (zones.list.length % 2 == 0) {
     DOM.addHTML(
@@ -461,6 +819,7 @@ function renderLastZone(): void {
   const zone = zones.list[index];
   appendZone(zone, index);
   addPlaceholder();
+  updateZoneHeaderContextMenus(zones.arrangementIndex);
 }
 
 function renderControllersForZone(zone: ZoneType, index: number): void {
@@ -469,11 +828,21 @@ function renderControllersForZone(zone: ZoneType, index: number): void {
     index,
     actionHandler,
     triggerSave,
-    () => undoHistory.startGesture(JSON.stringify(zones)),
-    () => undoHistory.endGesture(JSON.stringify(zones))
+    (label: string) => undoHistory.startGesture(JSON.stringify(zones), label),
+    () => undoHistory.endGesture(JSON.stringify(zones)),
+    (page: number) => showControllerPage(index, page)
   );
   updateValuesForZone(index);
   updateControllerValues(zone, index);
+}
+
+/** Shows another controller page of a zone: saved, but not an undo step */
+function showControllerPage(index: number, page: number): void {
+  const zone = zones.list[index];
+  if (!zone || zone.ccPage == page) return;
+  zone.ccPage = page;
+  renderControllersForZone(zone, index);
+  triggerSave();
 }
 
 function appendZone(zone: ZoneType, index: number): void {
@@ -485,17 +854,27 @@ function appendZone(zone: ZoneType, index: number): void {
   initInputPortsForZoneInternal(zones, index);
   updateValuesForZone(index);
   zone.renderPattern();
+  // the range strip's keys are drawn by renderNotes; next frame, once the canvas has its size
+  requestAnimationFrame(zone._renderNotesBound);
   const dragHandler = zone._$('.dragzone') as HTMLElement;
   dragHandler.addEventListener('mousedown', (ev) => {
     if (zones.list.length > 1) {
-      undoHistory.beforeAction(JSON.stringify(zones));
-      new DragZone(zones, index, ev, () => {
-        triggerSave();
-        renderZones();
-        zone.elements.zoneElement!.scrollIntoView({
-          behavior: 'instant'
-        } as ScrollIntoViewOptions);
-      });
+      undoHistory.beforeAction(JSON.stringify(zones), labelForZone(zone, index, 'Reorder'));
+      new DragZone(
+        zones,
+        index,
+        ev,
+        () => {
+          triggerSave();
+          renderZones();
+          followTrack(zone);
+          zone.elements.zoneElement!.scrollIntoView({
+            behavior: 'instant',
+            block: isTrackView() ? 'nearest' : 'start'
+          } as ScrollIntoViewOptions);
+        },
+        isTrackView()
+      );
     }
   });
 
@@ -549,7 +928,7 @@ function appendZone(zone: ZoneType, index: number): void {
   DOM.on(`#zone${index} .step-info`, 'mouseup', (ev) => {
     ev.stopPropagation();
   });
-  DOM.on(`#zone${index} .seq_transpose`, 'mouseup', (ev) => {
+  DOM.on(`#zone${index} .seqtools`, 'mouseup', (ev) => {
     ev.stopPropagation();
   });
   DOM.on(zone.elements.sequencerElement!, 'mouseup', (ev) => {
@@ -593,6 +972,72 @@ function appendZone(zone: ZoneType, index: number): void {
       }
     });
   });
+  // Arp pattern: press on a cell sets or clears it, dragging paints the same value
+  // over further cells; one stroke is one undo step.
+  const patternEl = zone.elements.patternElement;
+  if (patternEl) {
+    let paintValue: boolean | null = null;
+    const paint = (target: EventTarget | null): void => {
+      const cell = (target as HTMLElement | null)?.closest('.pattern > i');
+      if (!cell || paintValue === null) return;
+      const i = Array.prototype.indexOf.call(patternEl.children, cell);
+      if (zone.arp_pattern[i] === paintValue) return;
+      zone.arp_pattern[i] = paintValue;
+      zone.syncEuclidToPattern();
+      zone.renderPattern();
+    };
+    const endStroke = (): void => {
+      if (paintValue === null) return;
+      paintValue = null;
+      undoHistory.endGesture(JSON.stringify(zones));
+      triggerSave();
+    };
+    patternEl.addEventListener('mousedown', (ev) => {
+      if (ev.button !== 0) return;
+      const cell = (ev.target as HTMLElement).closest('.pattern > i');
+      if (!cell) return;
+      undoHistory.startGesture(JSON.stringify(zones), describeAction(`${index}:zone_arp_pattern`, zones));
+      paintValue = !zone.arp_pattern[Array.prototype.indexOf.call(patternEl.children, cell)];
+      paint(cell);
+    });
+    patternEl.addEventListener('mouseover', (ev) => paint(ev.target));
+    patternEl.addEventListener('mouseup', endStroke);
+    patternEl.addEventListener('mouseleave', endStroke);
+  }
+  // Arp transpose amount: drag up/down or scroll for -12..+12 semitones, double-click for 0
+  const transposeEl = zone._$('.arp_transpose_value') as HTMLElement | null;
+  if (transposeEl) {
+    const STEP14 = 16383 / 24; // pot drag range 0..16383 mapped to 25 semitone values
+    const setAmount = (amount: number): void => {
+      zone.arp_transpose_amount = Math.max(-12, Math.min(12, amount));
+      zone.renderNotes();
+    };
+    const commitAmount = (label: string, change: () => void): void => {
+      undoHistory.beforeAction(JSON.stringify(zones), labelForZone(zone, index, label));
+      change();
+      triggerSave();
+    };
+    transposeEl.addEventListener('mousedown', (ev) => {
+      if (ev.button !== 0) return;
+      ev.stopPropagation();
+      undoHistory.startGesture(JSON.stringify(zones), labelForZone(zone, index, 'Arp Transpose'));
+      potDragHandler.startDrag(
+        ev,
+        (zone.arp_transpose_amount + 12) * STEP14,
+        (v14) => setAmount(Math.round(v14 / STEP14) - 12),
+        () => {
+          undoHistory.endGesture(JSON.stringify(zones));
+          triggerSave();
+        }
+      );
+    });
+    transposeEl.addEventListener('wheel', (ev) => {
+      ev.preventDefault();
+      if (ev.deltaY === 0) return;
+      commitAmount('Arp Transpose', () => setAmount(zone.arp_transpose_amount - Math.sign(ev.deltaY)));
+    });
+    transposeEl.addEventListener('dblclick', () => commitAmount('Arp Transpose', () => setAmount(0)));
+  }
   DOM.all(`#zone${index} *[data-hover]`).forEach((e) => {
     e.addEventListener('mousemove', hoverHandler as EventListener);
     e.addEventListener('mouseleave', hoverOutHandler as EventListener);
@@ -613,12 +1058,12 @@ function appendZone(zone: ZoneType, index: number): void {
       const currentJSON = JSON.stringify(zones);
       undoHistory.endGesture(currentJSON);
       if (document.activeElement === e) {
-        undoHistory.startGesture(currentJSON);
+        undoHistory.startGesture(currentJSON, describeElementAction(e as HTMLElement));
       }
     };
 
     e.addEventListener('keyup', function (this: HTMLElement, event) {
-      if ((event as KeyboardEvent).keyCode === 13) {
+      if ((event as KeyboardEvent).key === 'Enter') {
         event.preventDefault();
         this.dispatchEvent(new Event('input'));
         commitInputGesture();
@@ -626,7 +1071,7 @@ function appendZone(zone: ZoneType, index: number): void {
     });
     e.addEventListener('focus', () => {
       (e as HTMLInputElement).select();
-      undoHistory.startGesture(JSON.stringify(zones));
+      undoHistory.startGesture(JSON.stringify(zones), describeElementAction(e as HTMLElement));
     });
     e.addEventListener('input', () => {
       if (inputDebounceTimer) clearTimeout(inputDebounceTimer);
@@ -679,6 +1124,20 @@ function renderMarkersForAllZones(): void {
   }
 }
 
+// Returns the left and right canvas x-coordinates of a MIDI note key,
+// matching the piano geometry used in Zone.renderNotes() (75 white-key slots).
+function noteKeyEdges(note: number, width: number): { left: number; right: number } {
+  const notewidth = width / 75;
+  const wkIndex = Note.nearestWhiteKeyIndex(note);
+  if (Note.isBlackKey(note)) {
+    const left = notewidth * (wkIndex + 0.75);
+    return { left, right: left + notewidth * 0.5 };
+  } else {
+    const left = notewidth * (wkIndex + 0.125);
+    return { left, right: left + notewidth * 0.75 };
+  }
+}
+
 function renderMarkersForZone(
   index: number,
   tempLo?: number,
@@ -687,30 +1146,19 @@ function renderMarkersForZone(
   const zone: ZoneType = zones.list[index];
   const low = tempLo != undefined ? tempLo : zone.low;
   const high = tempHigh != undefined ? tempHigh : zone.high;
-  const xlow = low / 127.0;
-  const xhi = high / 127.0;
-  const xclow = zone.low / 127.0;
-  const xchi = zone.high / 127.0;
   const width = zone.elements.rangeContainer!.offsetWidth;
-  const xpad = (0.75 / 127.0) * width;
-  zone.elements.rangeMarkerLow!.style.left = `${xlow * width}px`;
-  zone.elements.rangeMarkerHigh!.style.right = `${
-    width - xhi * width - xpad
-  }px`;
-  zone.elements.rangeMarkerLow!.innerHTML =
-    MIDI.NOTENAMES[low % 12] + (parseInt(String(low / 12)) - 1);
-  zone.elements.rangeMarkerHigh!.innerHTML =
-    MIDI.NOTENAMES[high % 12] + (parseInt(String(high / 12)) - 1);
-  zone.elements.rangeJoin!.style.left = `${xlow * width}px`;
-  zone.elements.rangeJoin!.style.right = `${width - xhi * width - xpad}px`;
-  zone.elements.rangeCurrent!.style.left = `${xclow * width}px`;
-  zone.elements.rangeCurrent!.style.right = `${width - xchi * width - xpad}px`;
-  let ocount = 0;
-  zone.elements.rangeOctaveElements!.forEach((e) => {
-    ocount++;
-    (e as HTMLElement).style.left = `${((ocount * 12.0) / 127.0) * width}px`;
-    e.innerHTML = String(ocount - 1);
-  });
+  const lo = noteKeyEdges(low, width);
+  const hi = noteKeyEdges(high, width);
+  const xclo = noteKeyEdges(zone.low, width);
+  const xchi = noteKeyEdges(zone.high, width);
+  zone.elements.rangeMarkerLow!.style.left = `${lo.left}px`;
+  zone.elements.rangeMarkerHigh!.style.right = `${width - hi.right}px`;
+  zone.elements.rangeMarkerLow!.textContent = Note.display(low);
+  zone.elements.rangeMarkerHigh!.textContent = Note.display(high);
+  zone.elements.rangeJoin!.style.left = `${lo.left}px`;
+  zone.elements.rangeJoin!.style.right = `${width - hi.right}px`;
+  zone.elements.rangeCurrent!.style.left = `${xclo.left}px`;
+  zone.elements.rangeCurrent!.style.right = `${width - xchi.right}px`;
   DOM.switchClass(zone.elements.rangeMarkerLow!, tempLo != undefined, 'hover');
   DOM.switchClass(
     zone.elements.rangeMarkerHigh!,
@@ -723,6 +1171,8 @@ function updateValuesForAllZones(): void {
   for (let i = 0; i < zones.list.length; i++) {
     updateValuesForZone(i);
   }
+  updateArrangementMeters();
+  onStateChange?.();
 }
 
 function updateGeneralButtons(): void {
@@ -737,65 +1187,28 @@ function updateGeneralButtons(): void {
   DOM.switchClass(elAllHoldOff, held > 0, 'active');
 }
 
-function rebuildSeqProgress(zone: ZoneType, sequence: SequenceType): void {
-  const progressEl = zone.elements.sequencerProgressElement;
-  const innerEl = zone.elements.sequencerProgressElementInner;
-  if (!progressEl || !innerEl) return;
+/** Range inputs have no native "filled" part in Chromium: expose the value as a percentage for the track gradient. */
+function syncRangeFill(el: HTMLInputElement): void {
+  const min = parseFloat(el.min || '0');
+  const max = parseFloat(el.max || '100');
+  const pct = max > min ? ((parseFloat(el.value) - min) / (max - min)) * 100 : 0;
+  el.style.setProperty('--fill', `${Math.max(0, Math.min(100, pct))}%`);
+}
 
-  progressEl.querySelectorAll('.step-row').forEach((r) => r.remove());
-  zone.elements.sequencerDrumLaneCursors = [];
+function syncRangeFills(root: ParentNode): void {
+  root.querySelectorAll<HTMLInputElement>('input[type="range"]').forEach(syncRangeFill);
+}
 
-  if (sequence.isDrumSequence) {
-    progressEl.classList.add('drum');
-    const ROW_H = 4;
-    progressEl.style.height = `${sequence.drumLanes * ROW_H}px`;
-    let hasAnyNotes = false;
-    for (let ln = 0; ln < sequence.drumLanes; ln++) {
-      const lane = sequence.drum_lanes[ln];
-      if (!lane) continue;
-      const laneLength = lane.length || 1;
-      const row = document.createElement('div');
-      row.className = `step-row lane-slot-idx-${ln % 4}`;
-      row.style.cssText = `position:absolute;left:0;right:0;top:${ln * ROW_H}px;height:${ROW_H}px;`;
-      const w = 100 / laneLength;
-      for (let s = 0; s < laneLength; s++) {
-        const hasNote = lane.steps[s] != null;
-        if (hasNote) hasAnyNotes = true;
-        const block = document.createElement('div');
-        block.className = hasNote ? 'step-block has-notes' : 'step-block';
-        block.style.cssText = `left:${s * w}%;width:${w}%;`;
-        row.appendChild(block);
-      }
-      const cursor = document.createElement('div');
-      cursor.className = 'lane-cursor';
-      cursor.style.cssText = `width:${w}%;left:-100%;`;
-      row.appendChild(cursor);
-      zone.elements.sequencerDrumLaneCursors.push(cursor);
-      progressEl.appendChild(row);
+/** Steps covered by the tail of a longer step (length > 1), wrapping at the end. */
+function tiedStepIndexes(sequence: SequenceType): Set<number> {
+  const tied = new Set<number>();
+  sequence.steps.forEach((step, i) => {
+    if (!step || step.notesArray.length === 0 || i >= sequence.length) return;
+    for (let k = 1; k < Math.min(step.length, sequence.length); k++) {
+      tied.add((i + k) % sequence.length);
     }
-    if (hasAnyNotes) DOM.show(progressEl); else DOM.hide(progressEl);
-  } else {
-    progressEl.classList.remove('drum');
-    progressEl.style.height = '';
-    const stepLen = sequence.length || 1;
-    const w = 100 / stepLen;
-    innerEl.style.width = `${w}%`;
-    const row = document.createElement('div');
-    row.className = 'step-row';
-    row.style.cssText = 'position:absolute;left:0;right:0;top:0;bottom:0;';
-    let hasAnyNotes = false;
-    for (let s = 0; s < stepLen; s++) {
-      const step = sequence.steps[s];
-      const hasNote = step != null && step.notesArray.length > 0;
-      if (hasNote) hasAnyNotes = true;
-      const block = document.createElement('div');
-      block.className = hasNote ? 'step-block has-notes' : 'step-block';
-      block.style.cssText = `left:${s * w}%;width:${w}%;`;
-      row.appendChild(block);
-    }
-    progressEl.appendChild(row);
-    if (hasAnyNotes) DOM.show(progressEl); else DOM.hide(progressEl);
-  }
+  });
+  return tied;
 }
 
 function updateValuesForZone(index: number): void {
@@ -813,11 +1226,9 @@ function updateValuesForZone(index: number): void {
       'soloed-out'
     );
     DOM.switchClass(zoneElement, !zone.enabled, 'disabled');
-    const zoneIsEnabled = zone.enabled && (Zone.solocount === 0 || zone.solo);
+    const zoneIsEnabled = zone.enabled && (!foldSoloedOut || Zone.solocount === 0 || zone.solo);
     DOM.switchClass(zoneElement, !zoneIsEnabled, 'disabled');
     DOM.switchClass(zoneElement, zone.show_cc, 'show-cc');
-
-    rebuildSeqProgress(zone, sequence);
 
     if (sequence.active) {
       DOM.addClass(zoneElement, 'show-seq');
@@ -894,23 +1305,9 @@ function updateValuesForZone(index: number): void {
             ) {
               DOM.removeClass(stepElement, 'unused');
               const step = lane.steps[stepIndex];
-              if (step != null) {
-                DOM.addClass(stepElement, 'active');
-                (stepElement as HTMLElement).style.setProperty(
-                  '--velo',
-                  String((step.notesArray[0]?.velo ?? 96) / 127)
-                );
-                const rc = step.ratchetCount ?? 1;
-                if (rc > 1) {
-                  (stepElement as HTMLElement).dataset.rc = String(rc);
-                } else {
-                  delete (stepElement as HTMLElement).dataset.rc;
-                }
-              } else {
-                DOM.removeClass(stepElement, 'active');
-                (stepElement as HTMLElement).style.removeProperty('--velo');
-                delete (stepElement as HTMLElement).dataset.rc;
-              }
+              // A step with locks only is no hit: it shows its lock mark
+              DOM.switchClass(stepElement, step != null && step.notesArray.length > 0, 'active');
+              showStepProperties(stepElement as HTMLElement, step ?? null);
               if (
                 sequence.selectedStepNumbers.has(
                   Sequence.getIdForDrumStep(laneIndex, stepIndex)
@@ -931,7 +1328,9 @@ function updateValuesForZone(index: number): void {
           'selected-step',
           'activelength'
         );
+        const tiedSteps = tiedStepIndexes(sequence);
         zone.elements.sequencerGridStepElements!.forEach((stepElement, i) => {
+          DOM.switchClass(stepElement, tiedSteps.has(i), 'tied');
           if (i < sequence.length) {
             DOM.removeClass(stepElement, 'unused');
             if (sequence.selectedStepNumbers.has(i)) {
@@ -940,23 +1339,20 @@ function updateValuesForZone(index: number): void {
               DOM.removeClass(stepElement, 'selected');
             }
             const stepData = sequence.steps[i];
-            if ((stepData && stepData.length > 0) || sequence.liveTargetStepNumber == i) {
+            if (
+              (stepData && stepData.length > 0 && stepData.notesArray.length > 0) ||
+              sequence.liveTargetStepNumber == i
+            ) {
               DOM.addClass(stepElement, 'active');
-              const rc = stepData?.ratchetCount ?? 1;
-              if (rc > 1) {
-                (stepElement as HTMLElement).dataset.rc = String(rc);
-              } else {
-                delete (stepElement as HTMLElement).dataset.rc;
-              }
             } else {
               DOM.removeClass(stepElement, 'active');
-              delete (stepElement as HTMLElement).dataset.rc;
             }
+            showStepProperties(stepElement as HTMLElement, stepData ?? null);
           } else {
             DOM.addClass(stepElement, 'unused');
           }
         });
-        DOM.switchClass(zoneElement, sequence.isLiveRecoding, 'liveRecording');
+        DOM.switchClass(zoneElement, sequence.isLiveRecording, 'liveRecording');
       }
       if (sequence.hasSelection) {
         DOM.addClass(zone.elements.sequencerElement!, 'has-selection');
@@ -983,7 +1379,8 @@ function updateValuesForZone(index: number): void {
           );
           zone.elements.setPercentage(
             '.seq_step_velocity',
-            parseInt(String(sequence.velocityMediumSelectedStep() * 100)),
+            // rounded: velocities are whole MIDI values, 76/127 reads back as 60%, not 59%
+            Math.round(sequence.velocityMediumSelectedStep() * 100),
             index
           );
           zone.elements.setSelectedIndex('.seq_step_condition', step.condition);
@@ -996,7 +1393,9 @@ function updateValuesForZone(index: number): void {
           if (ratchetCountEl) {
             const countVal = step.ratchetCount ?? 1;
             ratchetCountEl.value = String(countVal);
-            const stepControls = ratchetCountEl.closest('.step-controls') as HTMLElement | null;
+            const stepControls = ratchetCountEl.closest(
+              '.step-controls'
+            ) as HTMLElement | null;
             if (stepControls) {
               stepControls.classList.toggle('ratchet-off', countVal <= 1);
             }
@@ -1004,18 +1403,19 @@ function updateValuesForZone(index: number): void {
           const ratchetDeltaEl = zone._$(
             '.seq_step_ratchet_delta'
           ) as HTMLInputElement | null;
-          if (ratchetDeltaEl)
-            ratchetDeltaEl.value = String(step.ratchetVelocityDelta ?? 0);
+          if (ratchetDeltaEl) {
+            const pct = velocityDeltaToPercent(step.ratchetVelocityDelta ?? 0);
+            ratchetDeltaEl.value = String(pct);
+            const deltaOut = ratchetDeltaEl.parentElement?.querySelector(
+              `output[for="${ratchetDeltaEl.id}"]`
+            ) as HTMLOutputElement | null;
+            if (deltaOut) deltaOut.value = (pct > 0 ? '+' : '') + pct + '%';
+          }
           const ratchetResEl = zone._$(
             '.seq_step_ratchet_res'
-          ) as HTMLInputElement | null;
+          ) as HTMLSelectElement | null;
           if (ratchetResEl) {
-            const resVal = step.ratchetResolution ?? 6;
-            ratchetResEl.value = String(resVal);
-            const resOut = ratchetResEl.parentElement?.querySelector(
-              `output[for="${ratchetResEl.id}"]`
-            ) as HTMLOutputElement | null;
-            if (resOut) resOut.value = ratchetResToLabel(resVal);
+            ratchetResEl.value = String(ticksToRatchetIndex(step.ratchetResolution ?? 6));
           }
         } else {
           if (sequence.selectedStepNumbers.size == 1) {
@@ -1023,10 +1423,14 @@ function updateValuesForZone(index: number): void {
             zone.elements.setSelectedIndex('.seq_step_condition', 0);
             zone.elements.setPercentage('.seq_step_probability', 100, index);
             zone.elements.setPercentage('.seq_gatelength', 100, index);
-            const ratchetCountEl2 = zone._$('.seq_step_ratchet_count') as HTMLSelectElement | null;
+            const ratchetCountEl2 = zone._$(
+              '.seq_step_ratchet_count'
+            ) as HTMLSelectElement | null;
             if (ratchetCountEl2) {
               ratchetCountEl2.value = '1';
-              (ratchetCountEl2.closest('.step-controls') as HTMLElement | null)?.classList.add('ratchet-off');
+              (
+                ratchetCountEl2.closest('.step-controls') as HTMLElement | null
+              )?.classList.add('ratchet-off');
             }
           }
         }
@@ -1050,6 +1454,7 @@ function updateValuesForZone(index: number): void {
           }
         });
         sequence.updateRecordingState();
+        renderStepLocks(zone, index, actionHandler as (ev: Event, overrideaction?: string) => void);
       } else {
         DOM.removeClass(
           zone.elements.sequencerElement!,
@@ -1077,6 +1482,7 @@ function updateValuesForZone(index: number): void {
       'solo',
       'programchange',
       'arp_enabled',
+      'takes_on',
       'arp_hold',
       'arp_transpose',
       'sustain_on',
@@ -1084,10 +1490,21 @@ function updateValuesForZone(index: number): void {
     ].forEach((p) => {
       zone.elements.addSelectedStyle('.' + p, (zone as any)[p]);
     });
-    ['channel', 'arp_direction', 'arp_division', 'arp_octaves', 'arp_ratchet_count'].forEach((p) => {
+    [
+      'channel',
+      'arp_direction',
+      'arp_division',
+      'arp_octaves',
+      'arp_ratchet_count'
+    ].forEach((p) => {
       zone.elements.setSelectedIndex('.' + p, (zone as any)[p]);
     });
-    ['arp_gatelength', 'arp_probability', 'arp_strum_taper', 'arp_ratchet_probability'].forEach((p) => {
+    [
+      'arp_gatelength',
+      'arp_probability',
+      'arp_strum_taper',
+      'arp_ratchet_probability'
+    ].forEach((p) => {
       zone.elements.setPercentage(
         '.' + p,
         parseInt(String((zone as any)[p] * 100)),
@@ -1095,13 +1512,9 @@ function updateValuesForZone(index: number): void {
       );
     });
     DOM.switchClass(zoneElement, zone.arp_enabled, 'arp-enabled');
+    DOM.switchClass(zoneElement, zone.takes_on, 'takes-on');
     DOM.switchClass(zoneElement, zone.arp_direction >= 5, 'strum-mode');
-    const transposeEl = zone._$('.arp_transpose_value') as HTMLElement | null;
-    if (transposeEl) {
-      transposeEl.textContent = zone.arp_transpose
-        ? (zone.arp_transpose_amount > 0 ? '+' : '') + zone.arp_transpose_amount
-        : '';
-    }
+    zone.renderTransposeAmount();
 
     const swingSliders = zone.elements.get(
       '.swing-amount'
@@ -1145,17 +1558,30 @@ function updateValuesForZone(index: number): void {
       zone.fixedvel_value
     );
     const nameField = zone._$('.output-config-name') as HTMLInputElement;
+    // the port as the selector shows it (long names shortened in the middle); the
+    // rename field offers the full name
+    const outOption = (zone._$('select.outport') as HTMLSelectElement).selectedOptions[0];
+    const shortPortName = outOption?.textContent ?? '';
     if (zones.outputConfigNames[zones.list[index].configId]) {
       nameField.value = zones.outputConfigNames[zones.list[index].configId];
     } else {
       nameField.value = '';
-      nameField.placeholder = (
-        zone._$('select.outport') as HTMLSelectElement
-      ).selectedOptions[0].innerHTML;
+      nameField.placeholder = outOption?.dataset.fullName ?? shortPortName;
     }
+    // no port chosen (and no named output config): the zone sends nowhere
+    const noOutput = !nameField.value && (!zone.outputPortId || zone.outputPortId === MIDI.INTERNAL_PORT_ID);
     const labelField = zone._$('.zone-label') as HTMLInputElement;
     if (labelField && document.activeElement !== labelField) {
       labelField.value = zone.label || '';
+    }
+    if (labelField) {
+      // minimized view: unnamed zones show their output port / preset instead of "Zone N"
+      labelField.dataset.defaultPlaceholder ??= labelField.placeholder;
+      const portName = noOutput ? '' : nameField.value || shortPortName;
+      labelField.placeholder =
+        document.body.classList.contains('minimized') && portName
+          ? portName
+          : labelField.dataset.defaultPlaceholder;
     }
     zone.elements.addSelectedStyle(
       '.sendClock',
@@ -1169,7 +1595,27 @@ function updateValuesForZone(index: number): void {
     if (inchannelSelect) {
       inchannelSelect.value =
         zone.inputChannel !== null ? String(zone.inputChannel) : '-1';
+      // Global input: the channel is set per port in the input window, so there's none here
+      inchannelSelect.hidden = !zone.inputPortId;
     }
+    const mpeSelect = zone._$('select.mpe') as HTMLSelectElement;
+    if (mpeSelect) mpeSelect.value = String(zone.mpe);
+    (zone._$('.ior-link') as HTMLElement)?.classList.toggle('off', zone.mpe === MpeMode.OFF);
+    // MPE zones get a taller keyboard strip for the keys' dots
+    zone.elements.zoneElement?.classList.toggle('mpe-on', zone.mpe !== MpeMode.OFF);
+    zone.elements.zoneElement?.querySelectorAll<HTMLElement>('.ior-row-collapse').forEach((row) => {
+      row.hidden = zone.mpe !== MpeMode.COLLAPSE;
+    });
+    zone.elements.zoneElement?.querySelectorAll<HTMLElement>('.ior-row-pass').forEach((row) => {
+      row.hidden = zone.mpe !== MpeMode.PASS;
+    });
+    (['mpe_bend_in', 'mpe_bend_out', 'mpe_pass_bend_out', 'mpe_at_from'] as const).forEach((p) => {
+      zone.elements.zoneElement?.querySelectorAll<HTMLInputElement>('.iorouting-popup input.' + p).forEach((field) => {
+        if (document.activeElement !== field) field.value = String(zone[p]);
+      });
+    });
+    const polySelect = zone._$('select.mpe_poly_at') as HTMLSelectElement;
+    if (polySelect) polySelect.value = zone.mpe_poly_at ? '1' : '0';
     const routingText = zone._$('.iorouting-text') as HTMLElement;
     if (routingText) {
       const portnameEl = routingText.querySelector(
@@ -1177,7 +1623,7 @@ function updateValuesForZone(index: number): void {
       ) as HTMLElement;
       const chEl = routingText.querySelector('.iorouting-ch') as HTMLElement;
       const isPreset = !!zones.outputConfigNames[zones.list[index].configId];
-      const outPortName = nameField.value || nameField.placeholder || '';
+      const outPortName = noOutput ? 'No output' : nameField.value || shortPortName;
       let portLabel = outPortName;
       if (zone.inputPortId) {
         const inPort = getCachedInputPorts().find(
@@ -1186,18 +1632,24 @@ function updateValuesForZone(index: number): void {
         const inName = inPort ? inPort.name : '?';
         const chStr =
           zone.inputChannel !== null ? `:${zone.inputChannel + 1}` : '';
-        portLabel = `${inName}${chStr} ${outPortName}`;
+        // Its maker's or model's first word is enough to tell the input; the synth must fit
+        portLabel = `${inName.split(' ')[0]}${chStr} → ${outPortName}`;
       }
       if (portnameEl) portnameEl.textContent = portLabel;
-      if (chEl) chEl.textContent = isPreset ? '' : `#${zone.channel + 1}`;
+      routingText.classList.toggle('missing', noOutput || outPortName.startsWith('⚠'));
+      let chText = isPreset || noOutput ? '' : `Ch ${zone.channel + 1}`;
+      if (zone.mpe === MpeMode.PASS) chText = 'MPE';
+      else if (zone.mpe === MpeMode.COLLAPSE) chText = `MPE→${zone.channel + 1}`;
+      if (chEl) chEl.textContent = chText;
     }
     updateControllerValues(zone, index);
     updateGeneralButtons();
+    syncRangeFills(zoneElement as HTMLElement);
   }
 }
 
 function allMuteOff(): void {
-  undoHistory.beforeAction(JSON.stringify(zones));
+  undoHistory.beforeAction(JSON.stringify(zones), 'Unmute All Zones');
   for (var i = 0; i < zones.list.length; i++) {
     zones.list[i].enabled = true;
   }
@@ -1206,7 +1658,7 @@ function allMuteOff(): void {
 }
 
 function allSoloOff(): void {
-  undoHistory.beforeAction(JSON.stringify(zones));
+  undoHistory.beforeAction(JSON.stringify(zones), 'Un-solo All Zones');
   for (var i = 0; i < zones.list.length; i++) {
     zones.list[i].solo = false;
   }
@@ -1215,7 +1667,7 @@ function allSoloOff(): void {
 }
 
 function allHoldOff(): void {
-  undoHistory.beforeAction(JSON.stringify(zones));
+  undoHistory.beforeAction(JSON.stringify(zones), 'Arp Hold Off (All Zones)');
   for (var i = 0; i < zones.list.length; i++) {
     zones.list[i].arp_hold = false;
   }
@@ -1223,85 +1675,125 @@ function allHoldOff(): void {
   triggerSave();
 }
 
-function soloZone(index: number): void {
-  const zone = zones.list[index];
-  if (zone) {
-    undoHistory.beforeAction(JSON.stringify(zones));
-    if (!zone.solo) {
-      if (index < zones.list.length) {
-        for (var i = 0; i < zones.list.length; i++) {
-          zones.list[i].solo = false;
-        }
-        zone.solo = true;
-        zone.enabled = true;
-      }
-    } else {
-      zone.solo = false;
-    }
-    updateValuesForAllZones();
-    triggerSave();
-  }
+function toggleZoneMute(index: number): void {
+  zoneToggle(index, 'zone_enabled');
 }
 
-function toggleZoneMute(index: number): void {
-  const zone = zones.list[index];
-  if (zone) {
-    undoHistory.beforeAction(JSON.stringify(zones));
-    zone.enabled = !zone.enabled;
-    updateValuesForAllZones();
-    triggerSave();
-  }
+function toggleZoneSolo(index: number): void {
+  zoneToggle(index, 'zone_solo');
 }
 
 function toggleSequencerOnZone(index: number): void {
-  const zone = zones.list[index];
-  if (zone) {
-    undoHistory.beforeAction(JSON.stringify(zones));
-    zone.sequence.active = !zone.sequence.active;
-    updateValuesForAllZones();
-    triggerSave();
+  zoneToggle(index, 'toggle_seq');
+}
+
+function updateZoneHeaderContextMenus(currentArrIndex: number): void {
+  const others = [0, 1, 2, 3].filter(i => i !== currentArrIndex);
+  zones.list.forEach((z, i) => {
+    const copyItems = others.map(t => `${i}:zone_arr_copy_to:${t}`).join(',');
+    // the header's right-click menu and its ⋯ button show the same entries
+    z.elements.zoneElement?.querySelectorAll<HTMLElement>('.channels, .zonemenu').forEach((el) => {
+      el.dataset.contextmenu = `${i}:zone_change_color,${i}:zone_export,-,${copyItems},-,${i}:zone_delete`;
+    });
+  });
+}
+
+/**
+ * A step selection lasts while you work in that zone's sequencer panel (grid,
+ * toolbar, step editor) or its controllers (they set the steps' parameter locks).
+ * A press anywhere else, or Escape, ends it. The context menu and the piano roll
+ * act on the selection, so presses there keep it.
+ */
+function initStepDeselection(): void {
+  const clearSelections = (keepInside: Element | null): void => {
+    zones.list.forEach((zone, i) => {
+      if (!zone.sequence.hasSelection) return;
+      if (keepInside && zone.elements.sequencerElement?.contains(keepInside)) return;
+      if (keepInside?.closest('.ccpots') && zone.elements.zoneElement?.contains(keepInside)) return;
+      zone.sequence.clearSelection();
+      updateValuesForZone(i);
+    });
+  };
+  // capture phase: controls that stop propagation (pots, velocity bars) still count
+  document.addEventListener(
+    'mousedown',
+    (ev) => {
+      const target = ev.target as Element;
+      if (target.closest('#contextmenu, #pianoRollOverlay, #ccEditor')) return;
+      // The +/− buttons of number fields float outside the zone: count them as their field
+      const field = target.closest('.valuebtn') ? numberInputController.elValueBtnAttachedInput : null;
+      clearSelections(field ?? target);
+    },
+    true
+  );
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Escape') return;
+    if (DOM.get('#pianoRollOverlay')?.classList.contains('open')) return; // closes itself
+    const menu = DOM.get('#contextmenu') as HTMLElement | null;
+    if (menu && menu.style.display === 'block') {
+      window.dispatchEvent(new CustomEvent('closeContextMenu'));
+      return;
+    }
+    // The editor handles its keys itself; this only comes here with the focus outside it
+    if (isCCEditorOpen()) {
+      closeCCEditor();
+      return;
+    }
+    clearSelections(null);
+  });
+}
+
+/**
+ * Saves the current arrangement of every zone, stops and loads `arrIndex`.
+ * Live recording ends with the switch, so say so when it was on.
+ */
+function switchZonesToArrangement(arrIndex: number): void {
+  const recordingZones: string[] = [];
+  zones.list.forEach((z, i) => {
+    // the toast renders HTML; zone labels come from scene files
+    if (z.sequence.isLiveRecording) recordingZones.push(escapeHTML(zonePrefix(z, i)));
+    z.saveArrangement(zones.arrangementIndex);
+    z.stopped();
+    z.loadArrangement(arrIndex);
+  });
+  zones.arrangementIndex = arrIndex;
+  if (recordingZones.length > 0) {
+    toast(
+      `Stopped live recording on ${recordingZones.join(', ')}: switched to arrangement ${ARRANGEMENT_LETTERS[arrIndex]}`,
+      { warning: true }
+    );
   }
 }
 
 function selectArrangement(arrIndex: number): void {
   const clockRunning = midiController.isClockRunning;
-  DOM.removeClass('#tools *[data-select-arrangement]', 'selected', 'pending');
+  DOM.removeClass('*[data-select-arrangement]', 'selected', 'pending');
   zones.nextArrangementIndex = arrIndex;
   if (clockRunning) {
     if (zones.arrangementIndex !== arrIndex) {
       DOM.addClass(
-        DOM.all('#tools *[data-select-arrangement]')[arrIndex],
+        DOM.all('*[data-select-arrangement]')[arrIndex],
         'pending'
       );
     }
   } else {
-    zones.list.forEach((z) => {
-      z.saveArrangement(zones.arrangementIndex);
-      z.stopped();
-      z.loadArrangement(arrIndex);
-    });
-    zones.arrangementIndex = arrIndex;
+    switchZonesToArrangement(arrIndex);
     triggerSave();
   }
+  updateZoneHeaderContextMenus(zones.arrangementIndex);
   DOM.addClass(
-    DOM.all('#tools *[data-select-arrangement]')[zones.arrangementIndex],
+    DOM.all('*[data-select-arrangement]')[zones.arrangementIndex],
     'selected'
   );
-  const indicator = document.getElementById('arrangementIndicator');
-  if (indicator) {
-    indicator.textContent = String.fromCharCode(65 + zones.arrangementIndex);
-    indicator.dataset.arr = String(zones.arrangementIndex);
-    if (clockRunning && zones.arrangementIndex !== arrIndex) {
-      indicator.dataset.pendingArr = String.fromCharCode(65 + arrIndex);
-    } else {
-      delete indicator.dataset.pendingArr;
-    }
-  }
   updateValuesForAllZones();
 }
 
+function showContextMenuFor(ev: MouseEvent): void {
+  contextHandler(ev);
+}
+
 function deleteAllZones(): void {
-  undoHistory.beforeAction(JSON.stringify(zones));
+  undoHistory.beforeAction(JSON.stringify(zones), 'Delete All Zones');
   zones.list.forEach((zone) => {
     zone.dismiss();
   });
@@ -1328,6 +1820,7 @@ function updateInputPortsForAllZones(inputs: PortDescriptor[]): void {
 export {
   initController,
   renderZones,
+  showContextMenuFor,
   renderLastZone,
   renderMarkersForAllZones,
   updateOutputPortsForAllZones as updateOutputPortsForAllZone,
@@ -1335,11 +1828,19 @@ export {
   updateControllerValues,
   updateValuesForAllZones,
   updateValuesForZone,
-  soloZone,
   toggleZoneMute,
-  allSoloOff,
+  toggleZoneSolo,
+  applyPendingToggles,
+  hasPendingToggles,
+  setToggleBoundary,
   selectArrangement,
+  switchZonesToArrangement,
   toggleSequencerOnZone,
   toast,
-  deleteAllZones
+  deleteAllZones,
+  setStateChangeCallback,
+  isFoldSoloedOut,
+  setFoldSoloedOut,
+  isTrackView,
+  setTrackView
 };

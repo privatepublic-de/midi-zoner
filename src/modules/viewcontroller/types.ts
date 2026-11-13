@@ -1,6 +1,7 @@
 import { Zone } from '../zone/zone-class';
 import { Sequence } from '../zone/sequence';
-import MIDI from '../midi';
+import MIDI, { InputPortDef } from '../midi';
+import type { Meter } from '../meter';
 
 export type ZoneType = Zone;
 export type SequenceType = Sequence;
@@ -8,15 +9,36 @@ export type MIDIInstance = InstanceType<typeof MIDI>;
 
 export interface ZonesData {
   list: ZoneType[];
-  outputConfigNames: Record<string, string>;
+  inChannel: number;
   clockOutputPorts: Record<string, boolean>;
+  clockSuppressTransportPorts: Record<string, boolean>;
+  selectedInputPorts: Record<string, InputPortDef>;
+  tempo: number;
+  sendInternalClockIfPlaying: boolean;
+  outputConfigNames: Record<string, string>;
   arrangementIndex: number;
   nextArrangementIndex: number;
+  arrangementQuantIndex: number;
+  /** Whether zone toggles wait for the next boundary while the clock runs */
+  toggleQuantOn: boolean;
+  /** Their boundary: 2 bar, 8 beat, 14 16th (as arrangementQuantIndex) */
+  toggleQuantIndex: number;
+  keySwitchEnabled: boolean;
+  mackieOutlineEnabled: boolean;
   knownPortNames: Record<string, string>;
+  /** Per arrangement A–D: its loop range (song positions) and whether it's on */
+  loops?: (SceneLoop | null)[];
+  /** Per arrangement A–D: its meter (null: 4/4) */
+  meters?: (Meter | null)[];
+}
+
+export interface SceneLoop {
+  on: boolean;
+  from: number;
+  to: number;
 }
 
 export interface ToastProperties {
-  longer?: boolean;
   warning?: boolean;
 }
 
@@ -29,6 +51,7 @@ export interface TouchedNoteResult {
 export interface PortDescriptor {
   id: string;
   name: string;
+  fullName?: string;
 }
 
 export interface ActionContext {
@@ -41,8 +64,9 @@ export interface ActionContext {
   ev: MouseEvent;
   actionParam1: string;
   actionParam2: string;
+  actionParam3?: string;
   triggerSave: () => void;
-  pushHistory: (snapshot: string) => void;
+  pushHistory: (snapshot: string, label: string) => void;
   updateValuesForZone: (index: number) => void;
   updateValuesForAllZones: () => void;
   renderControllersForZone: (zone: ZoneType, index: number) => void;
@@ -57,6 +81,9 @@ export interface ActionContext {
   findTouchedNote: (ev: MouseEvent, e: HTMLElement, zone: ZoneType) => TouchedNoteResult;
   updateControllerValues: (zone: ZoneType, index: number, onlyIndex?: number) => void;
   selectArrangement: (index: number) => void;
+  beforeAction: (label: string) => void;
+  startGesture: (label: string) => void;
+  endGesture: () => void;
 }
 
 export interface ActionHelpers {

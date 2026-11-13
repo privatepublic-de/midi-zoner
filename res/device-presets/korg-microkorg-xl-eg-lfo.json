@@ -1,0 +1,204 @@
+{
+  "format": "midi-zoner-device-preset",
+  "version": 1,
+  "name": "EG/LFO",
+  "device": "KORG microKORG XL",
+  "portMatch": "microKORG XL",
+  "notes": "Needs MIDI FLT > CTRL CHG = ENABLE. CC numbers are the factory CC MAP (GLOBAL > CC MAP can change them). CCs act on the timbre of their channel: timbre 1 on the global channel, timbre 2 on T2MIDI.CH in MULTI mode. NRPNs (arp, voice mode, vocoder, virtual patch) go to the global channel and use only the Data Entry MSB. Values from the German manual's MIDI chapter, untested. With BPM SYNC on, LFO freq selects a note value (8/1 … 1/64). EG3 has no CC.",
+  "controllers": [
+    {
+      "type": 8,
+      "label": "EG1 (filter)",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 1
+    },
+    {
+      "type": 0,
+      "label": "Attack",
+      "number": 85,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Decay",
+      "number": 86,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Sustain",
+      "number": 87,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Release",
+      "number": 88,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 8,
+      "label": "EG2 (amp)",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 2,
+      "new_row": false
+    },
+    {
+      "type": 0,
+      "label": "Attack",
+      "number": 73,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Decay",
+      "number": 75,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Sustain",
+      "number": 70,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Release",
+      "number": 72,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 8,
+      "label": "LFO 1",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 3
+    },
+    {
+      "type": 9,
+      "label": "LFO1 wave",
+      "number": 89,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "discreteValues": [
+        12,
+        38,
+        64,
+        89,
+        115
+      ],
+      "valueNames": [
+        "Saw",
+        "Square",
+        "Triangle",
+        "S&H",
+        "Random"
+      ]
+    },
+    {
+      "type": 0,
+      "label": "LFO1 freq",
+      "number": 90,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 8,
+      "label": "LFO 2",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 4,
+      "new_row": false
+    },
+    {
+      "type": 9,
+      "label": "LFO2 wave",
+      "number": 102,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "discreteValues": [
+        12,
+        38,
+        64,
+        89,
+        115
+      ],
+      "valueNames": [
+        "Saw",
+        "Square+",
+        "Sine",
+        "S&H",
+        "Random"
+      ]
+    },
+    {
+      "type": 0,
+      "label": "LFO2 freq",
+      "number": 76,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    }
+  ]
+}

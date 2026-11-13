@@ -23,4 +23,8 @@ export { createFilterActions } from './filter-actions';
 export { createZoneActions } from './zone-actions';
 export { createArpActions } from './arp-actions';
 export { createCCActions } from './cc-actions';
-export { createSeqActions, ratchetResToLabel } from './seq-actions';
+export {
+  createSeqActions,
+  ticksToRatchetIndex,
+  velocityDeltaToPercent
+} from './seq-actions';

@@ -1,7 +1,12 @@
 import DOM from '../domutils';
 import * as zoneTemplate from '../zone-template';
 import potDragHandler from '../potdraghandler';
-import { ZoneType, ZonesData } from './types';
+import { ZoneType } from './types';
+import { CCController, CCControllerType, isHiResCC } from '../zone/interfaces';
+import { transmittedValue } from '../zone/param-locks';
+import { labelForZone } from './action-labels';
+import { differsFromPreset, findDevicePreset } from '../device-presets';
+import { effectiveGroup, pageBlocks, pageName } from '../zone/cc-layout';
 
 function polarToCartesian(
   centerX: number,
@@ -61,42 +66,209 @@ function describeDiscreteValues(values: number[], is14bit: boolean): string {
   return path;
 }
 
-const rangePath = describeArc(28, 30, 18, -135, 135);
+/** Background arc of every knob (viewBox 0 0 56 56) */
+export const knobRangePath = describeArc(28, 30, 18, -135, 135);
+
+// NRPN controllers with at most this many steps get tick marks like snap steps
+const MAX_NRPN_TICKS = 24;
+
+export function isBipolarController(c: CCController): boolean {
+  return (
+    c.type == CCControllerType.BIPOLAR_ROTARY ||
+    c.type == CCControllerType.BIPOLAR_14BIT ||
+    (c.type == CCControllerType.NRPN && !!c.bipolar)
+  );
+}
+
+/** Value arc and tick marks of a knob (viewBox 0 0 56 56) */
+export function knobPaths(c: CCController): { value: string; discrete: string; bipolar: boolean } {
+  const is14bit = isHiResCC(c.type);
+  const bipolar = isBipolarController(c);
+  const valDegrees = is14bit
+    ? 270 * (bipolar ? (c.val - 8192) / 8192 : c.val / 16383)
+    : 270 * (bipolar ? (c.val - 64) / 64 : c.val / 127);
+  let ticks = c.discreteValues || [];
+  if (c.type == CCControllerType.NRPN) {
+    const steps = (c.max ?? 16383) - (c.min || 0);
+    ticks = steps > 0 && steps <= MAX_NRPN_TICKS
+      ? Array.from({ length: steps + 1 }, (_, i) => Math.round((i * 16383) / steps))
+      : [];
+  }
+  return {
+    value: bipolar ? describeArc(28, 30, 18, 0, valDegrees / 2) : describeArc(28, 30, 18, -135, -135 + valDegrees),
+    discrete: describeDiscreteValues(ticks, is14bit),
+    bipolar
+  };
+}
+
+/** The number shown on a knob and its value name, if any */
+export function controllerDisplay(zone: ZoneType, c: CCController, ix: number): { value: string; name: string } {
+  const is14bit = isHiResCC(c.type);
+  let displayValue: number = c.val;
+  // Index into valueNames: the snap step, or the value counted from min
+  let nameIndex = -1;
+  if (c.type == CCControllerType.UNIPOLAR_ROTARY) {
+    displayValue = zone.remapCCValue(c.val, ix);
+    nameIndex = c.discreteValues?.length ? c.discreteValues.indexOf(c.val) : displayValue - (c.min || 0);
+  } else if (c.type == CCControllerType.NRPN) {
+    displayValue = zone.nrpnValue(c);
+    nameIndex = displayValue - (c.min || 0);
+    if (c.bipolar) displayValue -= Math.round(((c.min || 0) + (c.max ?? 16383)) / 2);
+  } else if (is14bit) {
+    const bits = 7 + (c.lsb_bits ?? 7);
+    displayValue = zone.hiResValue(c) - (isBipolarController(c) ? 1 << (bits - 1) : 0);
+  } else if (isBipolarController(c)) {
+    displayValue -= 64;
+  }
+  return { value: String(displayValue), name: c.valueNames?.[nameIndex] ?? '' };
+}
+
+/** Device and name of the linked device preset, "•" when the controllers were changed since */
+export function devicePresetLabel(zone: ZoneType): string {
+  if (!zone.devicePreset) return 'Presets';
+  const linked = findDevicePreset(zone.devicePreset.id);
+  const name = linked ? (linked.device ? `${linked.device} · ${linked.name}` : linked.name) : zone.devicePreset.name;
+  return name + (!linked || differsFromPreset(zone.cc_controllers, linked) ? ' •' : '');
+}
+
+/** Rotary types; buttons, note to CC and spacers have no knob to drag */
+export function isRotary(c: CCController): boolean {
+  return c.type < CCControllerType.SPACER || isHiResCC(c.type);
+}
+
+/** The entry a selector shows: its index, name and position text */
+export function selectorDisplay(c: CCController): { index: number; name: string; position: string } {
+  const entries = c.discreteValues ?? [];
+  const index = entries.indexOf(c.val);
+  if (entries.length == 0) return { index: -1, name: 'No entries', position: '' };
+  return {
+    index,
+    name: index >= 0 ? c.valueNames?.[index] || String(c.val) : String(c.val),
+    position: `${index >= 0 ? index + 1 : '–'}/${entries.length}`
+  };
+}
+
+type MenuHandler = (ev: MouseEvent) => void;
+let menuHandler: MenuHandler | null = null;
+
+/** Opens a context menu for an element with data-contextmenu (set by the view controller) */
+export function setMenuHandler(handler: MenuHandler): void {
+  menuHandler = handler;
+}
+
+type ControllersChangedListener = (zone: ZoneType, zoneindex: number, onlyIndex?: number) => void;
+let controllersChanged: ControllersChangedListener | null = null;
+
+/** Called after every update of a zone's controllers (the controller editor follows it) */
+export function onControllersChanged(listener: ControllersChangedListener): void {
+  controllersChanged = listener;
+}
+
+type LockEditedListener = (zone: ZoneType, zoneindex: number) => void;
+let lockEdited: LockEditedListener | null = null;
+
+/** Called while a knob writes parameter locks on the selected steps (they redraw) */
+export function onLockEdited(listener: LockEditedListener): void {
+  lockEdited = listener;
+}
+
+
+/**
+ * Drags a controller's value with the mouse: sends when the transmitted value changes,
+ * one undo entry per drag. With sequencer steps selected it drags their lock instead.
+ */
+export function startControllerDrag(
+  zone: ZoneType,
+  zoneindex: number,
+  ix: number,
+  e: MouseEvent,
+  onGestureStart: (label: string) => void,
+  onGestureEnd: () => void,
+  triggerSave: () => void
+): void {
+  const edit = zone.beginControllerEdit(ix);
+  const ctrl = edit.ctrl;
+  const isLock = ctrl !== zone.cc_controllers[ix];
+  const is14bit = isHiResCC(ctrl.type);
+  // Selectors step through their entries: the drag runs over the list, not over values
+  const entries = ctrl.type == CCControllerType.SELECTOR ? ctrl.discreteValues ?? [] : null;
+  if (entries && entries.length < 2) return;
+  const setFromDrag = (v: number): void => {
+    if (entries) ctrl.val = entries[Math.round((v * (entries.length - 1)) / 16383)];
+    else if (is14bit) ctrl.val = v;
+    else zone.snap2DiscreteValue(v >> 7, ix, ctrl);
+  };
+  const startValue = entries
+    ? Math.round((Math.max(0, entries.indexOf(ctrl.val)) * 16383) / (entries.length - 1))
+    : is14bit
+      ? ctrl.val
+      : ctrl.val << 7;
+  const label = ctrl.label || `CC ${ix + 1}`;
+  onGestureStart(labelForZone(zone, zoneindex, isLock ? `Lock ${label}` : label));
+  // Keeps the value readout up while the mouse leaves the knob
+  const pot = zone._$(`#pot_${zoneindex}_${ix}`) as HTMLElement | null;
+  pot?.classList.add('dragging');
+  potDragHandler.startDrag(
+    e,
+    startValue,
+    (v) => {
+      const oldVal = ctrl.val;
+      const oldOutput = transmittedValue(ctrl);
+      setFromDrag(v);
+      if (ctrl.val !== oldVal) {
+        // Narrow ranges map many knob positions onto one value: send only real changes
+        const synced = transmittedValue(ctrl) !== oldOutput ? edit.commit() : [];
+        // A new lock can turn an empty step into one with locks only
+        if (isLock) lockEdited?.(zone, zoneindex);
+        updateControllerValues(zone, zoneindex, ix);
+        synced.forEach((j) => updateControllerValues(zone, zoneindex, j));
+      }
+    },
+    () => {
+      pot?.classList.remove('dragging');
+      onGestureEnd();
+      triggerSave();
+    }
+  );
+}
 
 export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIndex?: number): void {
   zone.cc_controllers.forEach((c, ix) => {
     if (onlyIndex !== undefined && ix !== onlyIndex) return;
     const potselector = `#pot_${zoneindex}_${ix}`;
-    const is14bit = c.type == 5 || c.type == 6;
-    const isBiploar = c.type == 1 || c.type == 6;
-    const valDegrees = is14bit
-      ? 270 * (isBiploar ? (c.val - 8192) / 8192 : c.val / 16383)
-      : 270 * (isBiploar ? (c.val - 64) / 64 : c.val / 127);
-    const valuePath = isBiploar
-      ? describeArc(28, 30, 18, 0, valDegrees / 2)
-      : describeArc(28, 30, 18, -135, -135 + valDegrees);
+    // Sections, pages and controllers on other pages have no pot (the latter show their
+    // value when their page is drawn)
+    if (!zone._$(potselector)) return;
+    // With sequencer steps selected the knob shows their lock
+    const view = zone.lockedView(c);
+    c = view.ctrl;
+    const knob = knobPaths(c);
     if (onlyIndex === undefined) {
-      zone._$(`${potselector}_range`)?.setAttribute('d', rangePath);
+      zone._$(`${potselector}_range`)?.setAttribute('d', knobRangePath);
     }
-    zone._$(`${potselector}_value`)?.setAttribute('d', valuePath);
-    (zone._$(`${potselector}_zero`) as HTMLElement).style.display = isBiploar ? 'block' : 'none';
-    zone
-      ._$(`${potselector}_discrete`)
-      ?.setAttribute('d', describeDiscreteValues(c.discreteValues || [], is14bit));
+    zone._$(`${potselector}_value`)?.setAttribute('d', knob.value);
+    (zone._$(`${potselector}_zero`) as HTMLElement).style.display = knob.bipolar ? 'block' : 'none';
+    zone._$(`${potselector}_discrete`)?.setAttribute('d', knob.discrete);
     const potcontainer = zone._$(potselector) as HTMLElement;
     potcontainer.dataset.type = String(c.type);
-    potcontainer.dataset.group = String(c.group || 0);
+    potcontainer.dataset.group = String(effectiveGroup(zone.cc_controllers, ix));
     potcontainer.dataset.hasInput = c.number_in != null ? '1' : '';
+    potcontainer.classList.toggle('locked', view.locked);
+    potcontainer.classList.toggle('lock-mixed', view.mixed);
+    potcontainer.classList.toggle('lock-live', view.live);
     (zone._$(`${potselector} div.cclabel`) as HTMLElement).textContent =
-      c.type == 4 ? 'Note to CC' : c.label;
-    let displayValue: number = c.val;
-    if (c.type == 0) {
-      displayValue = zone.remapCCValue(c.val, ix);
-    } else if (isBiploar) {
-      displayValue = is14bit ? displayValue - 8192 : displayValue - 64;
+      c.type == CCControllerType.NOTE_TO_CC ? 'Note to CC' : c.label;
+    const display = controllerDisplay(zone, c, ix);
+    const valueEl = zone._$(`${potselector} .value`) as HTMLElement;
+    valueEl.textContent = display.value;
+    // 5+ characters (14 bit, NRPN) are set smaller to fit inside the arc
+    valueEl.classList.toggle('long', display.value.length >= 5);
+    const valueName = zone._$(`${potselector} .valuename`) as HTMLElement | null;
+    if (valueName) {
+      valueName.textContent = display.name;
+      valueName.title = display.name;
     }
-    (zone._$(`${potselector} .value`) as HTMLElement).textContent = String(displayValue);
-    if (c.type == 4) {
+    if (c.type == CCControllerType.NOTE_TO_CC) {
       let infotext = '';
       if (c.note_cc != null) {
         infotext += '<div>Note: <br/>#' + c.note_cc + '</div>';
@@ -106,7 +278,15 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIn
       }
       (zone._$(`${potselector} .info`) as HTMLElement).innerHTML = infotext;
     }
-    if (c.type == 3) {
+    if (c.type == CCControllerType.SELECTOR) {
+      const display = selectorDisplay(c);
+      const name = zone._$(`${potselector} .selector-name span`) as HTMLElement;
+      name.textContent = display.name;
+      (name.parentElement as HTMLElement).dataset.empty = display.index < 0 ? '1' : '';
+      (zone._$(`${potselector} .selector-pos`) as HTMLElement).textContent = display.position;
+    }
+    if (c.type == CCControllerType.BUTTON_BANK) {
+      let visibleButtons = 0;
       for (let i = 0; i < 8; i++) {
         const btn = zone._$(`${potselector} .ccbtn${i}`) as HTMLElement;
         const label = (c as any)[`buttonlabel${i}`];
@@ -116,8 +296,9 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIn
           typeof value != 'undefined' &&
           label.trim() != ''
         ) {
-          btn.style.display = 'block';
+          btn.style.display = '';
           btn.textContent = label;
+          visibleButtons++;
           if (value == c.val) {
             btn.classList.add('selected');
           } else {
@@ -126,49 +307,21 @@ export function updateControllerValues(zone: ZoneType, zoneindex: number, onlyIn
         } else {
           btn.style.display = 'none';
         }
-        if (ix == zone.selectedCCIndex) {
-          const labelin = zone._$(
-            `input[data-change="${zoneindex}:cc_button_label:${i}"]`
-          ) as HTMLInputElement;
-          const valuein = zone._$(
-            `input[data-change="${zoneindex}:cc_button_value:${i}"]`
-          ) as HTMLInputElement;
-          labelin.value = label || '';
-          valuein.value = typeof value == 'undefined' ? '' : value;
-        }
       }
-    }
-    if (ix == zone.selectedCCIndex) {
-      DOM.addClass(potselector, 'selected');
-      if (zone.editCC) {
-        (zone._$('.cc-editor') as HTMLElement).dataset.type = String(c.type);
-        (zone._$('.cc-editor .cclabel') as HTMLInputElement).value = c.label;
-        (zone._$('.cc-editor .cc-out-lsb') as HTMLInputElement).value =
-          typeof c.number_lsb == 'undefined' ? '' : String(c.number_lsb);
-        const ccInEl = zone._$('.cc-editor .cc-in') as HTMLInputElement;
-        ccInEl.value = c.number_in != null ? String(c.number_in) : '';
-        ccInEl.classList.add('midi-learn-active');
-        (zone._$('.cc-editor .cc-out') as HTMLInputElement).value = String(c.number);
-        (zone._$('.cc-editor .cc-min') as HTMLInputElement).value = String(c.min || 0);
-        (zone._$('.cc-editor .cc-max') as HTMLInputElement).value = String(c.max || 127);
-        (zone._$('.cc-editor .cc_change_type') as HTMLSelectElement).value = String(c.type);
-        (zone._$('.cc-editor .cc_change_group') as HTMLSelectElement).selectedIndex = c.group || 0;
-        (zone._$('.cc-editor .cc_notenum2cc') as HTMLInputElement).value = c.note_cc != null ? String(c.note_cc) : '';
-        (zone._$('.cc-editor .cc_notevelocity2cc') as HTMLInputElement).value = c.velocity_cc != null ? String(c.velocity_cc) : '';
-        (zone._$('.cc-editor .cc_discrete_values') as HTMLInputElement).value =
-          c.discreteValues?.join(',') || '';
-      }
-    } else {
-      DOM.removeClass(potselector, 'selected');
+      // One column up to 3 buttons, then two columns of up to 4 rows
+      const rows = visibleButtons <= 3 ? Math.max(visibleButtons, 1) : Math.ceil(visibleButtons / 2);
+      const buttons = zone._$(`${potselector} .buttons`) as HTMLElement;
+      buttons.style.setProperty('--button-rows', String(rows));
+      buttons.dataset.rows = String(rows);
+      buttons.dataset.columns = visibleButtons <= 3 ? '1' : '2';
+      // Labels wider than their pill (e.g. "ADSR" in two columns) are set tighter
+      buttons.querySelectorAll<HTMLElement>('.ccbtn').forEach((btn) => {
+        btn.classList.remove('tight');
+        if (btn.style.display !== 'none' && btn.scrollWidth > btn.clientWidth) btn.classList.add('tight');
+      });
     }
   });
-  const wasEditing = zone.elements.ccPots![0]?.classList.contains('cc-edit') ?? false;
-  DOM.switchClass(zone.elements.ccPots!, zone.editCC, 'cc-edit');
-  if (zone.editCC && !wasEditing) {
-    requestAnimationFrame(() => {
-      (zone._$('.cc-editor') as HTMLElement)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    });
-  }
+  controllersChanged?.(zone, zoneindex, onlyIndex);
 }
 
 export function renderControllersForZone(
@@ -176,103 +329,114 @@ export function renderControllersForZone(
   index: number,
   actionHandler: (ev: MouseEvent, overrideaction?: string) => void,
   triggerSave: () => void,
-  onGestureStart: () => void,
-  onGestureEnd: () => void
+  onGestureStart: (label: string) => void,
+  onGestureEnd: () => void,
+  showPage: (page: number) => void
 ): void {
-  DOM.all(`#zone${index} .ccpots .ccpot`).forEach((e) => e.remove());
+  // The toolbar may sit in a section heading: back to its place before the controllers go
+  const ccpots = document.querySelector(`#zone${index} .ccpots`) as HTMLElement;
+  const tools = ccpots.querySelector('.cctools') as HTMLElement;
+  ccpots.prepend(tools);
+  DOM.all(`#zone${index} .ccpots .container > *`).forEach((e) => e.remove());
   DOM.addHTML(
     `#zone${index} .ccpots .container`,
     'afterbegin',
     zoneTemplate.getControllerHTML(zone, index)
   );
   zone.elements.emptyCache();
-  const suckEvent = (e: Event): void => {
-    e.stopPropagation();
-  };
-  DOM.on(`#zone${index} .ccpots .cc-editor`, 'click', suckEvent);
-  DOM.on(`#zone${index} .ccpots input`, 'keyup', suckEvent);
-  DOM.on(`#zone${index} .ccpots input`, 'focus', (e) => {
-    (e.target as HTMLInputElement).select();
-    onGestureStart();
-  });
-  DOM.on(`#zone${index} .ccpots input`, 'blur', () => {
-    onGestureEnd();
-  });
 
-  DOM.all(`#zone${index} .ccpots .ccpot`).forEach((pot, ix) => {
-    const is14bit =
-      zone.cc_controllers[ix].type == 5 || zone.cc_controllers[ix].type == 6;
-    (pot.querySelector('.cclabel') as HTMLElement).addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (zone.selectedCCIndex === ix && zone.editCC) {
-        zone.editCC = false;
-      } else {
-        zone.selectedCCIndex = ix;
-        zone.editCC = true;
-      }
-      updateControllerValues(zone, index);
+  // Page tabs (with 2 or more pages); switching is saved but no undo step
+  const pages = pageBlocks(zone.cc_controllers);
+  zone.ccPage = Math.min(zone.ccPage, pages.length - 1);
+  const tabs = zone._$('.cc-pages') as HTMLElement;
+  tabs.replaceChildren();
+  if (pages.length > 1) {
+    pages.forEach((_, n) => {
+      const tab = document.createElement('div');
+      tab.className = 'cc-page';
+      tab.setAttribute('role', 'tab');
+      tab.setAttribute('aria-selected', String(n == zone.ccPage));
+      tab.classList.toggle('selected', n == zone.ccPage);
+      tab.textContent = pageName(zone.cc_controllers, pages, n);
+      tab.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showPage(n);
+      });
+      tabs.append(tab);
     });
+  }
+  // Without tabs, Edit and Send all sit on the ruler of the first row's last section (when
+  // it has a name), so the panel starts with its controls like the arp and sequencer
+  const firstRowEnd = ccpots.querySelector('.ccsection.last');
+  const head = pages.length < 2 ? firstRowEnd?.querySelector('.ccsection-head') : null;
+  head?.append(tools);
+  DOM.switchClass(ccpots, !!head, 'tools-on-ruler');
 
+  DOM.all(`#zone${index} .ccpots .ccpot`).forEach((pot) => {
+    const ix = parseInt(pot.id.split('_')[2]);
+    // The zone is for playing; double-click opens the controller editor
+    pot.addEventListener('dblclick', (e) => {
+      if ((e.target as HTMLElement).closest('.ccbtn')) return;
+      actionHandler(e as MouseEvent, `${index}:cc_edit:${ix}`);
+    });
     pot.addEventListener('mousedown', (e) => {
       const mouseEvent = e as MouseEvent;
-      if (
-        (e.target as HTMLElement).closest('.cclabel') ||
-        (zone.cc_controllers[ix].type > 1 &&
-          zone.cc_controllers[ix].type < 5) ||
-        zone.editCC ||
-        mouseEvent.button !== 0
-      ) {
-        return;
-      }
-      onGestureStart();
-      const currentValue14 = is14bit
-        ? zone.cc_controllers[ix].val
-        : zone.cc_controllers[ix].val << 7;
-      potDragHandler.startDrag(
-        mouseEvent,
-        currentValue14,
-        (v) => {
-          const oldVal = zone.cc_controllers[ix].val;
-          if (is14bit) {
-            zone.cc_controllers[ix].val = v;
-          } else {
-            zone.snap2DiscreteValue(v >> 7, ix);
-          }
-          if (zone.cc_controllers[ix].val !== oldVal) {
-            zone.sendCC(ix);
-            updateControllerValues(zone, index, ix);
-          }
-        },
-        () => {
-          onGestureEnd();
-          triggerSave();
-        }
-      );
+      if (!isRotary(zone.cc_controllers[ix]) || mouseEvent.button !== 0) return;
+      startControllerDrag(zone, index, ix, mouseEvent, onGestureStart, onGestureEnd, triggerSave);
     });
+  });
+  zone.cc_controllers.forEach((c, ix) => {
+    if (c.type != CCControllerType.SELECTOR) return;
+    const name = zone._$(`#pot_${index}_${ix} .selector-name`) as HTMLElement | null;
+    if (!name) return;
+    // Click: the list; drag up/down: step through it. The drag starts only after a few
+    // pixels of movement, since a running drag swallows the click (.dragvalue)
+    name.dataset.contextclick = '';
+    name.dataset.contextmenu = `ccselect:${index}:${ix}`;
+    name.addEventListener('mousedown', (down) => {
+      if (down.button !== 0) return;
+      const move = (e: MouseEvent): void => {
+        if (Math.abs(e.pageY - down.pageY) < 4) return;
+        stop();
+        startControllerDrag(zone, index, ix, down, onGestureStart, onGestureEnd, triggerSave);
+      };
+      const stop = (): void => {
+        window.removeEventListener('mousemove', move);
+        window.removeEventListener('mouseup', stop);
+      };
+      window.addEventListener('mousemove', move);
+      window.addEventListener('mouseup', stop);
+    });
+    name.addEventListener('click', (e) => {
+      e.stopPropagation();
+      menuHandler?.(e);
+    });
+    // Scrolling steps one entry per notch
+    let wheel = 0;
+    name.parentElement!.addEventListener(
+      'wheel',
+      (e) => {
+        e.preventDefault();
+        wheel += e.deltaY;
+        if (Math.abs(wheel) < 40) return;
+        const dir = wheel > 0 ? 1 : -1;
+        wheel = 0;
+        actionHandler(e as unknown as MouseEvent, `${index}:cc_step:${ix}:${dir}`);
+      },
+      { passive: false }
+    );
   });
   if (zone.cc_controllers.length === 0) {
     const container = document.querySelector(`#zone${index} .ccpots .container`) as HTMLElement;
     const placeholder = document.createElement('div');
     placeholder.className = 'ccpots-empty';
+    placeholder.title = 'Add a controller';
+    placeholder.dataset.action = `${index}:cc_add`;
     placeholder.innerHTML = '<span class="material-icons">add</span>';
-    placeholder.addEventListener('click', (e) => {
-      e.stopPropagation();
-      zone.cc_controllers.push({
-        number: 1, number_in: null, min: 0, max: 127, type: 0,
-        label: 'Ctrl #1', val: 0, note_cc: null, velocity_cc: null
-      } as any);
-      zone.selectedCCIndex = 0;
-      zone.editCC = true;
-      renderControllersForZone(zone, index, actionHandler, triggerSave, onGestureStart, onGestureEnd);
-      triggerSave();
-    });
     container.appendChild(placeholder);
   }
 
   DOM.all(`#zone${index} .ccpots *[data-action]`).forEach((e) => {
     e.addEventListener('click', actionHandler as EventListener);
-  });
-  DOM.all(`#zone${index} .ccpots *[data-change]`).forEach((e) => {
-    e.addEventListener('input', actionHandler as EventListener);
   });
 }

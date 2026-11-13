@@ -3,31 +3,34 @@
    ============================================================= */
 
 :root {
-  --text-base-color: #f0f6f8;
-  --text-toast-color: #333;
-  --text-contextmenu-color: #f0f6f8;
-  --bg-window: #171717;
+  /* Slate surfaces, shared with xr18-console: window, panels, raised controls, inset fields */
+  --slate-bg: #0e1013;
+  --slate-panel: #22272e;
+  --slate-raise: #2c323a;
+  --slate-inset: #101215;
+  --slate-line: #38404b;
+  --slate-edge: #3c4450; /* zone card frame; its top edge is lighter */
+  --slate-edge-top: #4c5562;
+  --slate-dim: #9aa3ae;
+  --on: #cfd6df; /* a lit switch: Seq/Arp/CC chips, A-D, active buttons */
+  --on-text: #14171b;
+
+  --text-base-color: #e7eaee; /* values, as xr18's --text; labels are --slate-dim */
+  --text-contextmenu-color: var(--text-base-color);
+  --bg-window: var(--slate-bg);
   --fg-window: #ddd;
   --scrollbar: #ffffff20;
-  --bg-topbar: #202020;
-  --bg-topbar-transparent: #2020209f;
-  --shadow-topbar: #000000;
-  --border-topbar: #000;
-  --bg-topbar-button: #2f2f2f;
-  --fg-topbar-button: var(--brighter-2);
-  --shadow-topbar-button: #0008;
-  --bg-topbar-button-active: #666;
-  --fg-topbar-button-active: #ccc;
-  --highlight-bpm-value: #0cc;
-  --fg-midi-update: #000;
-  --bg-midi-update: #fff;
-  --bg-select-window: #111;
-  --bg-toast: #ced935;
-  --bg-toast-warning: #ff8888;
-  --shadow-toast: #000000c0;
-  --bg-contextmenu: #333333;
-  --shadow-zone: #111;
-  --bg-color-popup: #333333;
+  --bg-topbar: var(--slate-panel);
+  --shadow-topbar: var(--darker-4);
+  --border-topbar: var(--slate-line);
+  --bg-topbar-button: var(--slate-raise);
+  --fg-topbar-button: var(--brighter-3);
+  --shadow-topbar-button: transparent;
+  --bg-topbar-button-active: var(--on);
+  --fg-topbar-button-active: var(--on-text);
+  --bg-select-window: var(--slate-inset);
+  --bg-contextmenu: var(--bg-color-popup);
+  --bg-color-popup: var(--slate-raise);
   --bg-zone-disabled: rgba(255, 255, 255, 0.07);
 
   --brighter-0: rgba(255, 255, 255, 0.125);
@@ -42,100 +45,122 @@
   --darker-3: rgba(0, 0, 0, 0.5);
   --darker-4: rgba(0, 0, 0, 1);
 
-  --red-highlight: rgba(196, 0, 0, 0.4);
-  --light-red-highlight: #f00;
-  --white-highlight: #ccc;
-  --multiselect-highlight: #f00;
-  --record-highlight: rgba(255, 0, 0, 0.8);
-  --green-highlight: rgba(0, 196, 0, 1);
+  /* Role tokens: new styles use these; the older names below alias them. */
+  --live: #3dff6e; /* sounding / running */
+  --danger: #e5484d; /* panic, delete, record, multi-select */
+  --danger-soft: color-mix(in srgb, var(--danger) 45%, transparent);
+  --danger-strong: color-mix(in srgb, var(--danger) 85%, transparent);
+
+  /* Type scale (4 sizes) and shape */
+  --fs-sm: 11px;
+  --fs-md: 13px;
+  --fs-lg: 16px;
+  --icon-sm: 14px;
+  --icon-md: 16px;
+  --icon-lg: 24px;
+  /* as in xr18-console: small parts (steps, notes), controls (buttons, fields,
+     chips), panels and floating surfaces (cards, sheets, dialogs, menus);
+     only dots and LEDs are round */
+  --radius-sm: 2px;
+  --radius: 4px;
+  --radius-lg: 6px;
+  --ink: #111;
+  --focus-ring: #fff; /* >= 5.7:1 on every zone color and on the top bar */
+  --floor-zone: 520px; /* narrowest a zone can be with every panel open */
+  --floor-page: 540px;
+  --slider-fill: #8fa3b8; /* xr18's value fill */
+  --slider-rest: var(--slate-inset);
+  --select: #ffb347; /* xr18's amber: where you are (the active arrangement), never "on" */
+  --strip-h: 44px;
+
+  --red-highlight: var(--danger-soft);
+  --light-red-highlight: var(--danger);
+  --white-highlight: var(--on);
+  --multiselect-highlight: var(--danger);
+  --record-highlight: var(--danger-strong);
+  --mute-highlight: var(--danger); /* red, as in xr18-console: silences something (text, edges) */
+  --mute-fill: #861f24; /* lit M chips: darker, so a row of mutes doesn't glare */
 
   --step-size-disabled: 5px;
+  --shadow-overlay: rgba(0, 0, 0, 0.7); /* floating windows and overlays */
+
+  /* Page-level stacking; values 1-10 elsewhere are local to a component */
+  --z-topbar: 2;
+  --z-window: 2; /* port windows */
+  --z-zone-popup: 100; /* output/input routing popup */
+  --z-overlay: 200; /* key switch and Mackie help */
+  --z-overlay-top: 210; /* piano roll, controller editor */
+  --z-menu: 220; /* context menu and toast, also above the overlays */
 }
 
 /* =============================================================
    ZONE COLOR PALETTE
+   Zone colors mark which zone (instrument) something belongs to. CC
+   section colors are a separate set, the same in every zone, with hues
+   no zone uses and none of the state colors (live green, mute and
+   danger red), so a section never reads as another zone.
    ============================================================= */
 
-.zone[data-colorindex='0'] {
-  --zone-color: #2a4f5f;
-  .ccpot[data-group='1'] {
-    --groupcolor: #2a9d8f;
-  }
-  .ccpot[data-group='2'] {
-    --groupcolor: #e9c46a;
-  }
-  .ccpot[data-group='3'] {
-    --groupcolor: #f4a261;
-  }
-  .ccpot[data-group='4'] {
-    --groupcolor: #e76f51;
-  }
-}
-.zone[data-colorindex='1'] {
-  --zone-color: #2a9d8f;
-  .ccpot[data-group='1'] {
-    --groupcolor: #2a4f5f;
-  }
-  .ccpot[data-group='2'] {
-    --groupcolor: #e9c46a;
-  }
-  .ccpot[data-group='3'] {
-    --groupcolor: #f4a261;
-  }
-  .ccpot[data-group='4'] {
-    --groupcolor: #e76f51;
-  }
-}
-.zone[data-colorindex='2'] {
-  --zone-color: #e9c46a;
-  --scrollbar: #ffffff60;
-  .ccpot[data-group='1'] {
-    --groupcolor: #2a4f5f;
-  }
-  .ccpot[data-group='2'] {
-    --groupcolor: #2a9d8f;
-  }
-  .ccpot[data-group='3'] {
-    --groupcolor: #f4a261;
-  }
-  .ccpot[data-group='4'] {
-    --groupcolor: #e76f51;
-  }
-}
-.zone[data-colorindex='3'] {
-  --zone-color: #f4a261;
-  .ccpot[data-group='1'] {
-    --groupcolor: #2a4f5f;
-  }
-  .ccpot[data-group='2'] {
-    --groupcolor: #2a9d8f;
-  }
-  .ccpot[data-group='3'] {
-    --groupcolor: #e9c46a;
-  }
-  .ccpot[data-group='4'] {
-    --groupcolor: #e76f51;
-  }
-}
-.zone[data-colorindex='4'] {
-  --zone-color: #e76f51;
-  .ccpot[data-group='1'] {
-    --groupcolor: #2a4f5f;
-  }
-  .ccpot[data-group='2'] {
-    --groupcolor: #2a9d8f;
-  }
-  .ccpot[data-group='3'] {
-    --groupcolor: #e9c46a;
-  }
-  .ccpot[data-group='4'] {
-    --groupcolor: #f4a261;
-  }
+:root {
+  /* Accents (OKLCH L.78 C.13): CC groups, bars, highlights, A-D buttons */
+  --zone-0: #4fc5fc;
+  --zone-1: #25d2c7;
+  --zone-2: #dab249;
+  --zone-3: #f99e65;
+  --zone-4: #ff968a;
+
+  /* Card bodies: slate with a faint wash of the zone colour (as xr18-console's strips), so the
+     zone name box carries the colour and the controls stay quiet. Muted zones fade to 3 %. */
+  --zone-surface-0: color-mix(in srgb, var(--zone-0) 9%, var(--slate-panel));
+  --zone-surface-1: color-mix(in srgb, var(--zone-1) 9%, var(--slate-panel));
+  --zone-surface-2: color-mix(in srgb, var(--zone-2) 9%, var(--slate-panel));
+  --zone-surface-3: color-mix(in srgb, var(--zone-3) 9%, var(--slate-panel));
+  --zone-surface-4: color-mix(in srgb, var(--zone-4) 9%, var(--slate-panel));
+
+  /* CC section colors A-D: violet, pink, bone, periwinkle (OKLCH, accent lightness) */
+  --group-1: oklch(0.8 0.13 300);
+  --group-2: oklch(0.8 0.13 350);
+  --group-3: oklch(0.86 0.05 95);
+  --group-4: oklch(0.78 0.1 262);
+  --group-surface-1: oklch(0.5 0.1 300);
+  --group-surface-2: oklch(0.5 0.1 350);
+  --group-surface-3: oklch(0.52 0.03 95);
+  --group-surface-4: oklch(0.5 0.08 262);
 }
 
-.zone[data-colorindex='0'] .popup {
-  --bg-color: #4f97b5;
+.zone[data-colorindex='0'],
+#ccEditor[data-colorindex='0'] {
+  --zone-color: var(--zone-0);
+  --zone-surface: var(--zone-surface-0);
 }
+.zone[data-colorindex='1'],
+#ccEditor[data-colorindex='1'] {
+  --zone-color: var(--zone-1);
+  --zone-surface: var(--zone-surface-1);
+}
+.zone[data-colorindex='2'],
+#ccEditor[data-colorindex='2'] {
+  --zone-color: var(--zone-2);
+  --zone-surface: var(--zone-surface-2);
+}
+.zone[data-colorindex='3'],
+#ccEditor[data-colorindex='3'] {
+  --zone-color: var(--zone-3);
+  --zone-surface: var(--zone-surface-3);
+}
+.zone[data-colorindex='4'],
+#ccEditor[data-colorindex='4'] {
+  --zone-color: var(--zone-4);
+  --zone-surface: var(--zone-surface-4);
+}
+.zone .ccpot[data-group='1'],
+.zone .ccsection[data-group='1'] { --groupcolor: var(--group-1); --groupsurface: var(--group-surface-1); }
+.zone .ccpot[data-group='2'],
+.zone .ccsection[data-group='2'] { --groupcolor: var(--group-2); --groupsurface: var(--group-surface-2); }
+.zone .ccpot[data-group='3'],
+.zone .ccsection[data-group='3'] { --groupcolor: var(--group-3); --groupsurface: var(--group-surface-3); }
+.zone .ccpot[data-group='4'],
+.zone .ccsection[data-group='4'] { --groupcolor: var(--group-4); --groupsurface: var(--group-surface-4); }
 
 /* =============================================================
    FONTS
@@ -151,11 +176,19 @@
     url(./res/MaterialIcons-Regular.woff2) format('woff2');
 }
 
+/* Barlow Semi Condensed (SIL OFL, res/OFL.txt), as in xr18-console: narrow enough for the
+   dense zone controls. Bold maps to the 600 file so it is never synthesised. */
 @font-face {
-  font-family: 'Pontano Sans';
+  font-family: 'Barlow Semi Condensed';
   font-style: normal;
   font-weight: 400;
-  src: url(./res/pontano-sans-v17-latin-regular.woff2) format('woff2');
+  src: url(./res/barlow-semi-condensed-latin-400-normal.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'Barlow Semi Condensed';
+  font-style: normal;
+  font-weight: 600 700;
+  src: url(./res/barlow-semi-condensed-latin-600-normal.woff2) format('woff2');
 }
 
 .material-icons {
@@ -182,12 +215,22 @@ html {
   scroll-behavior: smooth;
 }
 
+/* room for the scrollbar is always kept, so content doesn't jump when it appears */
+html,
+#inputPortWindow,
+.preset-manager-list,
+.cce-table,
+.cce-inspector {
+  scrollbar-gutter: stable;
+}
+
 body {
-  font-family: 'Pontano Sans', Verdana, sans-serif;
+  font-family: 'Barlow Semi Condensed', 'Arial Narrow', system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
   background: var(--bg-window);
   color: var(--fg-window);
   margin: 30px 0 0 0;
-  min-width: 700px;
+  min-width: var(--floor-page);
 }
 
 * {
@@ -195,9 +238,16 @@ body {
   user-select: none;
 }
 
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
 h2 {
   font-weight: normal;
-  font-size: 1.2em;
+  font-size: var(--fs-lg);
 }
 
 p {
@@ -208,10 +258,6 @@ body.dragging * {
   cursor: col-resize;
 }
 
-select {
-  outline: none;
-  cursor: pointer;
-}
 
 ::-webkit-scrollbar {
   background-color: transparent;
@@ -227,7 +273,7 @@ select {
 
 ::selection {
   background: var(--brighter-4);
-  color: #000;
+  color: var(--darker-4);
 }
 
 ul {
@@ -254,28 +300,18 @@ input::-webkit-inner-spin-button {
 #midisettings {
   display: flex;
   align-items: center;
+  gap: 10px;
+  height: var(--strip-h);
   position: fixed;
-  z-index: 2;
+  z-index: var(--z-topbar);
   top: 0;
   left: 0;
   right: 0;
   background-color: var(--bg-topbar);
   padding: 2px 5px;
-  font-size: 12px;
+  font-size: var(--fs-md);
   color: var(--brighter-3);
-  box-shadow: 0 2px 5px var(--shadow-topbar);
   border-bottom: 1px solid var(--border-topbar);
-}
-
-#midisettings .controls {
-  margin: 0 auto;
-}
-
-#midisettings .row {
-  display: flex;
-  align-items: center;
-  padding: 2px 0;
-  min-height: 24px;
 }
 
 #midisettings label {
@@ -295,9 +331,9 @@ input::-webkit-inner-spin-button {
   border: 1px solid var(--darker-3);
   background-color: var(--darker-2);
   color: var(--brighter-3);
-  font-family: Arial;
-  font-size: 12px;
-  padding: 0 0 0 4px;
+  font-size: var(--fs-md);
+  /* room on the right for the chevron (::after) */
+  padding: 0 20px 0 4px;
   margin: 0 0 0 2px;
 }
 
@@ -316,17 +352,21 @@ input::-webkit-inner-spin-button {
 }
 
 select {
+  outline: none;
+  cursor: pointer;
   border: 1px solid var(--darker-3);
   background-color: var(--darker-2);
   color: var(--brighter-3);
-  font-size: 12px;
+  font-size: var(--fs-md);
   padding: 0;
   margin: 0 2px;
 }
 
-#midisettings select,
-.clockOutOption select {
+/* Selects narrower than their text: room for the arrow, which Chromium draws over
+   the text otherwise. Selects that size to their content don't need it. */
+#midisettings select {
   width: 170px;
+  padding-right: 18px;
 }
 
 #midiInputSelector,
@@ -341,21 +381,14 @@ option {
   margin: 5px 0;
 }
 
-.clockOutOption select {
-  width: auto !important;
-}
-
 #midisettings input {
   width: 40px;
-  border: 1px solid var(--darker-3);
-  background-color: var(--darker-2);
+  border: 1px solid var(--slate-line);
+  border-radius: var(--radius);
+  background-color: var(--slate-inset);
   color: var(--brighter-3);
-  font-size: 12px;
+  font-size: var(--fs-md);
   padding: 0;
-}
-
-input:focus-visible {
-  outline: none;
 }
 
 #midisettings .toggle {
@@ -389,12 +422,8 @@ input:focus-visible {
   min-width: 55px;
 }
 
-.toolbar {
-  margin-bottom: 6px;
-}
-
-.toolbar .lightButton .material-icons {
-  font-size: 16px;
+#setupDrawer .lightButton .material-icons {
+  font-size: var(--icon-md);
 }
 
 .lightButton {
@@ -403,7 +432,8 @@ input:focus-visible {
   background: var(--bg-topbar-button);
   color: var(--fg-topbar-button);
   cursor: pointer;
-  border: none;
+  border: 1px solid var(--slate-line);
+  border-radius: var(--radius);
   min-width: 24px;
   text-align: center;
   height: 16px;
@@ -417,120 +447,21 @@ input:focus-visible {
   color: var(--fg-topbar-button-active);
 }
 
+/* Cards | Tracks is where you are: amber as the arrangements A–D */
+:is(#viewCards, #viewTracks).lightButton.active {
+  background: var(--slate-raise);
+  box-shadow: inset 0 0 0 1px var(--select);
+  color: var(--text-base-color);
+  font-weight: 600;
+}
+
 .lightButton:disabled {
   opacity: 0.3;
   cursor: default;
 }
 
 .lightButton .material-icons {
-  font-size: 14px;
-}
-
-.lsCancel {
-  position: absolute;
-  top: 0.5em;
-  right: 2px;
-  cursor: pointer;
-  font-size: 1.5em;
-}
-
-#midisettings .left {
-  margin: 0 0 0 8px;
-}
-
-#midisettings .right {
-  text-align: right;
-}
-
-#arrangementIndicator {
-  font-size: 34px;
-  font-weight: 900;
-  -webkit-text-stroke: 2px currentColor;
-  line-height: 1;
-  letter-spacing: -0.03em;
-  padding: 0 14px;
-  align-self: stretch;
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  border-left: 1px solid var(--border-topbar);
-  border-right: 1px solid var(--border-topbar);
-  transition:
-    color 150ms ease,
-    text-shadow 150ms ease;
-  cursor: default;
-  user-select: none;
-  position: relative;
-}
-
-#arrangementIndicator[data-pending-arr]::after {
-  content: attr(data-pending-arr);
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 34px;
-  font-weight: 900;
-  -webkit-text-stroke: 2px currentColor;
-  line-height: 1;
-  letter-spacing: -0.03em;
-  background-color: #000;
-  animation: pendingArrFade 480ms infinite alternate ease-in-out;
-}
-
-#arrangementIndicator[data-pending-arr='A']::after {
-  color: #2a9d8f;
-}
-#arrangementIndicator[data-pending-arr='B']::after {
-  color: #e9c46a;
-}
-#arrangementIndicator[data-pending-arr='C']::after {
-  color: #f4a261;
-}
-#arrangementIndicator[data-pending-arr='D']::after {
-  color: #e76f51;
-}
-
-@keyframes pendingArrFade {
-  0% {
-    opacity: 0.3;
-  }
-  100% {
-    opacity: 1;
-  }
-}
-
-#arrangementIndicator[data-arr='0'] {
-  color: #2a9d8f;
-  text-shadow: 0 0 14px rgba(42, 157, 143, 0.5);
-}
-#arrangementIndicator[data-arr='1'] {
-  color: #e9c46a;
-  text-shadow: 0 0 14px rgba(233, 196, 106, 0.5);
-}
-#arrangementIndicator[data-arr='2'] {
-  color: #f4a261;
-  text-shadow: 0 0 14px rgba(244, 162, 97, 0.5);
-}
-#arrangementIndicator[data-arr='3'] {
-  color: #e76f51;
-  text-shadow: 0 0 14px rgba(231, 111, 81, 0.5);
-}
-
-#displayBPM {
-  display: inline-block;
-  text-align: center;
-  background-color: var(--darker-2);
-  border: 1px solid var(--darker-3);
-  width: 50px;
-  cursor: col-resize;
-}
-
-#displayBPM:hover,
-.dragging #displayBPM {
-  color: var(--highlight-bpm-value);
-  box-shadow: 0 0 10px var(--highlight-bpm-value);
+  font-size: var(--icon-sm);
 }
 
 #bpm {
@@ -538,32 +469,429 @@ input:focus-visible {
 }
 
 /* =============================================================
+   ARRANGEMENT SELECTOR (top bar)
+   Sits beside the big active-arrangement letter: four buttons,
+   with the quantize choice underneath.
+   ============================================================= */
+
+#arrangementSelector {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+#arrangementSelector .selectSeq {
+  width: 36px;
+  padding: 2px 0;
+}
+
+/* Destructive action: in the setup drawer, only red on hover. */
+#deleteallzones:hover {
+  background-color: var(--danger-soft);
+  color: var(--brighter-4);
+}
+
+/* =============================================================
+   TOP BAR: PERFORMANCE STRIP + SETUP DRAWER
+   The strip holds what you touch while playing. Everything you set
+   once (input, clock, files, view) lives in the drawer below it.
+   ============================================================= */
+
+#midisettings .lightButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 24px;
+  min-width: 28px;
+  margin: 0;
+}
+
+.setup-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 300px;
+  height: 28px;
+  padding: 0 8px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--bg-topbar-button);
+  color: var(--fg-topbar-button);
+  font: inherit;
+  cursor: pointer;
+}
+
+.setup-toggle:hover {
+  background: var(--brighter-1);
+}
+
+/* "Setup", then the selected inputs, quieter, so a closed drawer still shows them */
+.setup-toggle #setupSummary {
+  color: var(--brighter-2);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.setup-toggle .chevron {
+  transition: transform 150ms ease;
+}
+
+body.setup-open .setup-toggle .chevron {
+  transform: rotate(180deg);
+}
+
+.transport {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+/* the framed group's 2px gap is for buttons side by side; BPM is a field of its own */
+.transport label[for='bpm'] {
+  margin-left: 8px;
+}
+
+.global-resets,
+.strip-end,
+.strip-end .history,
+.strip-end .zoom {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.strip-end {
+  margin-left: auto;
+  gap: 12px;
+}
+
+#setupDrawer {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  /* a column per topic; narrow windows wrap whole columns */
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  align-items: start;
+  gap: 14px 32px;
+  padding: 12px 16px 14px;
+  background-color: var(--bg-topbar);
+  border-bottom: 1px solid var(--border-topbar);
+  box-shadow: 0 6px 10px var(--shadow-topbar);
+}
+
+body.setup-open #setupDrawer {
+  display: grid;
+}
+
+.drawer-col {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+/* The rule under the title spans the column, tying it to its rows. */
+.drawer-title {
+  margin-bottom: 3px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid var(--brighter-0);
+  color: var(--text-base-color);
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+
+/* A dim label on the left, its controls beside it: the column reads like a form */
+.drawer-row {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 26px;
+}
+
+.drawer-row.disabled {
+  opacity: 0.4;
+}
+
+.drawer-row.drawer-end {
+  margin-top: 4px;
+}
+
+.drawer-label,
+.drawer-hint {
+  color: var(--slate-dim);
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+}
+
+.drawer-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.drawer-val {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.drawer-val > * {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* fields and selectors take the row's width */
+#setupDrawer .drawer-val > select,
+#setupDrawer #midiInputSelector,
+#setupDrawer #clockSendButton,
+#setupDrawer #metroVolume {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+  margin: 0;
+}
+
+#setupDrawer #midiInputSelector,
+#setupDrawer #clockSendButton {
+  height: 24px;
+  line-height: 22px;
+  box-sizing: border-box;
+}
+
+#setupDrawer .tb-label {
+  display: flex;
+  min-width: 0;
+  margin: 0;
+}
+
+#deleteallzones {
+  color: var(--brighter-2);
+}
+
+/* Collapsed strip: each group of related controls sits in an inset frame; its buttons
+   stay quiet until lit. */
+#midisettings > :is(.global-resets, #arrangementSelector, .transport) {
+  box-sizing: border-box;
+  height: 32px;
+  padding: 0 3px;
+  gap: 2px;
+  align-items: center;
+  background-color: var(--slate-inset);
+  border: 1px solid var(--slate-line);
+  border-radius: var(--radius-lg);
+}
+
+#midisettings > .global-resets .lightButton:not(.active) {
+  background: none;
+  border-color: transparent;
+  color: var(--slate-dim);
+}
+
+/* lit while there is something to clear, in the colours of the zone chips */
+#midisettings #allMuteOff.active {
+  background-color: var(--mute-fill);
+  border-color: var(--mute-fill);
+  color: var(--brighter-4);
+}
+#midisettings #allSoloOff.active {
+  background-color: var(--slate-raise);
+  border-color: var(--live);
+  color: var(--text-base-color);
+}
+
+body.minimized #midisettings > :is(.global-resets, #arrangementSelector, .transport) {
+  height: auto;
+  padding: 0;
+  border: none;
+  background: none;
+}
+
+/* Start / Stop: a real button with a play or stop icon; green tint while the clock runs. */
+#midisettings #startClockButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 12px 0 6px;
+  margin: 0;
+  border-radius: var(--radius);
+  background-color: var(--bg-topbar-button);
+  background-image: none;
+  color: var(--fg-topbar-button);
+  box-shadow: 0 0 2px var(--shadow-topbar-button);
+  cursor: pointer;
+  user-select: none;
+}
+
+#midisettings #startClockButton:hover {
+  background-color: var(--brighter-1);
+}
+
+#startClockButton::before {
+  content: 'play_arrow';
+  font-family: 'Material Icons';
+  font-size: var(--icon-md);
+  font-feature-settings: 'liga';
+  line-height: 1;
+}
+
+#startClockButton::after {
+  content: 'Start';
+}
+
+#midisettings #startClockButton.selected {
+  background-color: color-mix(in srgb, var(--live) 30%, var(--bg-topbar-button));
+  color: var(--brighter-4);
+}
+
+#startClockButton.selected::before {
+  content: 'stop';
+}
+
+#startClockButton.selected::after {
+  content: 'Stop';
+}
+
+/* counting in: the beat of the count-in bar; a click cancels it */
+#midisettings #startClockButton.counting {
+  background-color: color-mix(in srgb, var(--live) 14%, var(--bg-topbar-button));
+  color: var(--brighter-4);
+}
+
+#startClockButton.counting::before {
+  content: 'stop';
+}
+
+#startClockButton.counting::after {
+  content: 'Count ' attr(data-count);
+}
+
+/* wide enough for "Count 3", so nothing moves when it counts in */
+#midisettings .isInternal #startClockButton {
+  width: auto;
+  min-width: 78px;
+  box-sizing: border-box;
+}
+
+/* Count-in needs the internal clock */
+#midisettings .isExternal #metroCountIn {
+  display: none;
+}
+
+/* Click and Count-in: quiet until lit, as the global resets */
+#midisettings > .transport {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+#midisettings > .transport .lightButton:not(.active) {
+  background: none;
+  border-color: transparent;
+  color: var(--slate-dim);
+}
+
+#midisettings > .transport .lightButton:not(.active):hover {
+  color: var(--text-base-color);
+}
+
+/* BPM is a setting, not one of the switches before it */
+body:not(.minimized) #midisettings > .transport > .bpm-field {
+  margin-left: 4px;
+  padding-left: 10px;
+  border-left: 1px solid var(--slate-line);
+}
+
+/* the beat light in the Click chip: flashes on every beat (the bar's first in live green) */
+.beat-led {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--slate-raise);
+  box-shadow: inset 0 0 0 1px var(--slate-line);
+}
+
+.beat-led.beat {
+  background-color: var(--text-base-color);
+}
+
+.beat-led.accent {
+  background-color: var(--live);
+  box-shadow: 0 0 4px var(--live);
+}
+
+/* wide enough for "100 %", so the slider doesn't move */
+#metroVolumeValue {
+  min-width: 3.4em;
+  text-align: right;
+}
+
+/* channel and notes, once a MIDI out is chosen */
+#setupDrawer .metro-midi {
+  display: none;
+}
+
+#setupDrawer #metroSettings.has-midi .metro-midi {
+  display: grid;
+}
+
+#setupDrawer .metro-midi input[type='number'] {
+  width: 52px;
+}
+
+/* =============================================================
+   EXTERNAL CLOCK: the clock port name replaces the Start button
+   ============================================================= */
+
+.transport .ext-badge {
+  display: none;
+  line-height: 24px;
+  max-width: 160px;
+  color: var(--brighter-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  user-select: none;
+}
+
+.transport .ext-badge:hover {
+  color: var(--brighter-4);
+}
+
+#midisettings .isExternal #startClockButton {
+  display: none;
+}
+
+#midisettings .isExternal .ext-badge {
+  display: inline-block;
+}
+
+/* =============================================================
    ZONE LAYOUT & STATES
    ============================================================= */
 
 .padded {
-  padding: 30px 5px 0 5px;
+  padding: calc(var(--topbar-h, var(--strip-h)) - 24px) 5px 0 5px;
 }
 
+/* cards in rows, in zone order (left to right, so zone N sits in row ⌈N/2⌉ at two
+   columns, like the pad); every card stretches to the tallest in its row, so opening a
+   sequencer or arp only moves the rows below, never a card to another column */
 #zones {
   min-height: 30px;
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 560px);
+  gap: 5px;
   align-items: stretch;
   justify-content: center;
-  gap: 5px;
-  margin-bottom: 60px;
-}
-
-@media (max-width: 1130px) {
-  #zones {
-    display: block;
-  }
-  .zone {
-    width: 90% !important;
-    max-width: 800px;
-    margin: 0 auto 5px auto;
-  }
+  margin-bottom: 16px;
 }
 
 .zone {
@@ -573,16 +901,30 @@ input:focus-visible {
   justify-content: flex-start;
   gap: 5px;
   position: relative;
-  color: var(--brighter-4);
-  font-size: 12px;
+  color: var(--text-base-color);
+  font-size: var(--fs-md);
   padding: 8px;
   width: 560px;
-  min-width: 480px;
-  box-shadow: 0 2px 10px var(--shadow-zone);
-  background-color: var(--zone-color);
-  background-image: linear-gradient(#00000000 67%, #00000040 100%);
-  border-radius: 6px;
-  --bg-color: var(--zone-color);
+  min-width: var(--floor-zone);
+  border: 1px solid var(--slate-edge);
+  border-top-color: var(--slate-edge-top);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+  background-color: var(--zone-surface);
+  border-radius: var(--radius-lg);
+  --bg-color: var(--zone-surface);
+}
+
+/* one column until two 560px zones fit: 2 × 560 + 5 gap + 10 padding + the 15px
+   scrollbar gutter = 1150px (narrower zones would break rows of 8 knobs) */
+@media (max-width: 1149px) {
+  #zones {
+    display: block;
+  }
+  .zone {
+    width: 90%;
+    max-width: 800px;
+    margin: 0 auto 5px auto;
+  }
 }
 
 .zone.placeholder {
@@ -595,11 +937,59 @@ input:focus-visible {
   justify-content: flex-start;
   align-items: flex-start;
   box-shadow: none;
+  border: none;
   background: none;
-  color: var(--brighter-0);
-  padding-top: 6px;
+  color: var(--brighter-3);
+  padding: 0;
+  /* where the next zone goes: dim text only, the dashed slot shows on hover; the whole row clickable */
+  a {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    height: 36px;
+    padding-left: 12px;
+    border: 1px dashed transparent;
+    border-radius: var(--radius-lg);
+    background-color: transparent;
+    box-shadow: none;
+    color: color-mix(in srgb, var(--slate-dim) 70%, transparent);
+  }
   a:hover {
-    background-color: var(--brighter-0);
+    border-color: var(--slate-line);
+    color: var(--text-base-color);
+  }
+}
+
+.addzone-hint {
+  display: none;
+}
+
+/* Empty scene: the link becomes the one thing to do, with a line on what a zone is */
+#zones:not(:has(> .zone:not(.addnewzone, .placeholder))) .zone.addnewzone {
+  flex-direction: column;
+  gap: 10px;
+  padding: 48px 0 0 8px;
+  a {
+    width: auto;
+    height: auto;
+    font-size: var(--fs-lg);
+    padding: 8px 16px;
+    border: none;
+    background-color: var(--bg-topbar-button);
+    color: var(--brighter-4);
+    border-radius: var(--radius);
+  }
+  a:hover {
+    background-color: var(--brighter-1);
+  }
+  .addzone-hint {
+    display: block;
+    margin: 0;
+    max-width: 46ch;
+    line-height: 1.5;
+    color: var(--brighter-2);
   }
 }
 
@@ -607,17 +997,13 @@ input:focus-visible {
   position: absolute;
   bottom: 7px;
   right: 5px;
-  color: var(--bg-color);
-  font-size: 18px;
-  font-weight: 900;
-  -webkit-text-stroke: 1.5px var(--bg-color);
+  /* small and dim like xr18's strip numbers: the name identifies the zone */
+  color: var(--slate-dim);
+  font-size: var(--fs-sm);
+  font-weight: 600;
   pointer-events: none;
-  text-shadow: 0 0 1px var(--darker-3);
 }
 
-.disabled .zonenumber {
-  color: var(--zone-color);
-}
 
 .zone.droptarget {
   outline: 4px solid #eee;
@@ -628,6 +1014,11 @@ input:focus-visible {
   cursor: grabbing;
   z-index: 1;
   opacity: 0.8;
+}
+
+.zone.mackie-selected {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
 }
 
 .zone.initialising {
@@ -642,13 +1033,34 @@ input:focus-visible {
 
 .zone.disabled {
   box-shadow: none;
-  background-color: color(from var(--zone-color) srgb r g b / 0.1);
+  background-color: color-mix(in srgb, var(--zone-color) 3%, var(--slate-panel));
   --bg-color: var(--bg-zone-disabled);
-  --text-base-color: #767a7b;
+  --text-base-color: #9aa0a2;
 }
 
-.zone.disabled:not(.soloed-out) .ch.enabled:not(.selected) {
-  background-color: var(--zone-color);
+/* "Fold zones silenced by solo" off: those zones keep their layout, dimmed;
+   the header stays bright so M and S remain easy to hit */
+.zone.soloed-out:not(.disabled) {
+  background-color: color-mix(in srgb, var(--zone-color) 3%, var(--slate-panel));
+  box-shadow: none;
+}
+.zone.soloed-out:not(.disabled) > :not(.channels) {
+  opacity: 0.3;
+}
+
+/* playing zones: a soft band of the zone colour behind the header, fading into
+   the card within 110px (so tall and short cards look alike); not in the mini view,
+   whose rows are all header */
+body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .placeholder) {
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--zone-color) 20%, var(--slate-panel)),
+    color-mix(in srgb, var(--zone-color) 10%, var(--slate-panel)) 110px
+  );
+}
+/* the blocks let the band show through */
+#zones > .zone :is(.arp-settings-block, .seq, .ccpots) {
+  background-color: transparent;
 }
 
 .zone input[type='number'],
@@ -660,13 +1072,7 @@ input:focus-visible {
 
 .zone input[type='number'].midi-learn-active {
   background-color: var(--zone-color);
-  color: #000;
-  font-weight: bold;
-}
-
-.cc-editor .cc-in.midi-learn-active {
-  background-color: var(--brighter-1);
-  color: var(--text-base-color);
+  color: var(--darker-4);
   font-weight: bold;
 }
 
@@ -688,7 +1094,7 @@ input:focus-visible {
 @keyframes midiLearnFlash {
   0% {
     background-color: yellow;
-    color: #000;
+    color: var(--darker-4);
   }
   100% {
     background-color: var(--zone-color);
@@ -707,15 +1113,11 @@ input:focus-visible {
   display: flex;
 }
 
-.strum-taper-holder {
+.zone:not(.strum-mode) .strum-taper-holder {
   display: none;
 }
 
-.strum-mode .strum-taper-holder {
-  display: flex;
-}
-
-.strum-mode .ratchet-holder {
+.zone.strum-mode .ratchet-holder {
   display: none;
 }
 
@@ -723,9 +1125,9 @@ input:focus-visible {
   height: auto;
   padding: 0;
   margin: 0 0 0 4px;
-  background-color: var(--darker-1);
+  background-color: var(--slate-raise);
   text-align: center;
-  font-size: 11px;
+  font-size: var(--fs-sm);
 }
 
 /* =============================================================
@@ -746,26 +1148,20 @@ input:focus-visible {
   height: 20px;
   text-align: center;
   color: var(--brighter-4);
-  background-color: var(--darker-1);
+  background-color: var(--slate-raise);
+  border: 1px solid var(--slate-line);
+  border-radius: var(--radius);
   cursor: pointer;
 }
 
-.state.selected {
-  box-shadow: 0 0 8px var(--darker-2);
-}
-
-.outselection {
-  position: relative;
-  margin-left: 13px;
-}
 
 .sendClock {
   display: flex;
   justify-content: center;
   align-items: center;
   height: 20px;
-  font-size: 16px;
-  color: var(--brighter-1);
+  font-size: var(--icon-md);
+  color: var(--brighter-4);
   cursor: pointer;
 }
 
@@ -786,14 +1182,20 @@ input:focus-visible {
   position: relative;
   height: 20px;
   width: 100%;
-  padding: 0 6px 0 4px;
+  /* room on the right for the chevron (::after) */
+  padding: 0 20px 0 4px;
   cursor: pointer;
-  background-color: var(--darker-1);
+  background-color: var(--slate-raise);
+  box-shadow: inset 0 0 0 1px var(--slate-line);
   color: var(--text-base-color);
-  font-size: 11px;
+  font-size: var(--fs-sm);
   white-space: nowrap;
   overflow: hidden;
-  border-right: 6px solid transparent;
+  border-radius: var(--radius);
+}
+
+.iorouting-text.missing {
+  color: var(--danger);
 }
 
 .iorouting-text {
@@ -813,8 +1215,8 @@ input:focus-visible {
 
 .iorouting-ch {
   flex-shrink: 0;
-  color: var(--brighter-2);
-  font-size: 10px;
+  color: var(--brighter-4);
+  font-size: var(--fs-sm);
 }
 
 .iorouting-display:hover {
@@ -837,11 +1239,57 @@ input:focus-visible {
 .iorouting-popup {
   position: absolute;
   top: 100%;
-  left: 0;
-  z-index: 100;
+  right: 0;
+  z-index: var(--z-zone-popup);
   display: none;
-  min-width: 280px;
+  min-width: 300px;
   margin-top: 2px;
+}
+
+/* In → MPE → Out: the signal runs down a line from In to Out, with the MPE
+   translation on it; grey while MPE is off */
+.ior-link {
+  position: relative;
+  margin: 3px 0 3px 10px;
+  padding: 4px 0 8px 22px;
+  border-left: 1.5px solid var(--on);
+}
+
+.ior-link::after {
+  content: '';
+  position: absolute;
+  left: -5px;
+  bottom: -4px;
+  border: 4px solid transparent;
+  border-top: 6px solid var(--on);
+}
+
+.ior-link.off {
+  border-left-color: var(--slate-line);
+}
+
+.ior-link.off::after {
+  border-top-color: var(--slate-line);
+}
+
+.ior-link .ior-label {
+  width: auto;
+}
+
+.ior-link .action {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  background-color: var(--slate-raise);
+  border: 1px solid var(--slate-line);
+  border-radius: var(--radius);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.ior-link .action:hover {
+  background-color: var(--darker-2);
 }
 
 .ior-row {
@@ -855,34 +1303,21 @@ input:focus-visible {
   margin-bottom: 0;
 }
 
-.ior-row-input {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid rgba(0, 0, 0, 0.15);
-  opacity: 0.75;
-}
-
-.ior-row-input:hover,
-.ior-row-input:focus-within {
-  opacity: 1;
-}
-
 .ior-label {
-  width: 20px;
-  font-size: 11px;
-  color: var(--brighter-3);
+  width: 26px;
+  font-size: var(--fs-sm);
+  color: var(--slate-dim);
   flex-shrink: 0;
   text-align: left;
   display: flex;
   align-items: center;
 }
 
-.iorouting-popup select {
-  background-color: var(--darker-1);
-  border: none;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.25);
-  border-radius: 2px 2px 0 0;
-  padding: 0 4px;
+.zone .iorouting-popup select {
+  background-color: var(--slate-raise);
+  border: 1px solid var(--slate-line);
+  border-radius: var(--radius);
+  padding: 0 18px 0 4px;
   height: 22px;
   color: inherit;
 }
@@ -898,6 +1333,29 @@ input:focus-visible {
   width: auto;
 }
 
+.ior-row[hidden] {
+  display: none;
+}
+
+.iorouting-popup select.mpe {
+  flex: 1;
+}
+
+.ior-unit {
+  font-size: var(--fs-sm);
+  color: var(--slate-dim);
+}
+
+.zone .iorouting-popup input[type='number'] {
+  width: 44px;
+  height: 22px;
+  background-color: var(--slate-raise);
+  border: 1px solid var(--slate-line);
+  border-radius: var(--radius);
+  color: inherit;
+  padding: 0 4px;
+}
+
 .iorouting-popup select.inchannel,
 .iorouting-popup select.channel {
   width: 66px;
@@ -905,57 +1363,48 @@ input:focus-visible {
 }
 
 .iorouting-popup .sendClock {
-  font-size: 14px;
+  font-size: var(--icon-sm);
   flex-shrink: 0;
 }
-.ch.enabled.selected,
 .ch.selected {
-  border-color: transparent;
-  background-color: var(--brighter-2);
+  border-color: var(--on);
+  background-color: var(--on);
   color: var(--text-base-color);
 }
 
-.ch.enabled.selected {
-  color: var(--text-base-color);
+/* M (mute): like S, dark while off and lit only while the zone (or drum lane)
+   is muted. The chip carries `enabled`, so it is "selected" while playing. */
+.zone .channels .ch.enabled.selected,
+.drum-lane .lane-header .ch.enabled.selected {
+  background-color: var(--slate-raise);
+  border-color: var(--slate-line);
+  color: var(--brighter-4);
 }
 
-.ch.enabled:not(.selected) {
-  background-color: var(--brighter-1);
-}
-.isdisabled {
-  display: none;
-}
-
-.disabled .isdisabled {
-  display: inline;
+.zone .channels .ch.enabled:not(.selected),
+.drum-lane .lane-header .ch.enabled:not(.selected) {
+  background-color: var(--mute-fill);
+  border-color: var(--mute-fill);
+  color: var(--brighter-4);
 }
 
-.disabled .isenabled {
-  display: none;
-}
-
-.ch.enabled,
-.soloed-out .ch.enabled.selected,
-.zone.disabled .ch.enabled.selected {
-  background-color: var(--darker-1);
-}
-
+/* a held arp: the ticked box on the neutral highlight of other toggles (red is
+   for danger and record) */
 .check.arp_hold.selected {
-  background-color: var(--red-highlight);
-  color: var(--brighter-3);
-}
-
-.disabled .check.arp_hold.selected {
-  background-color: var(--record-highlight);
-  color: var(--brighter-3);
+  background-color: var(--brighter-1);
+  color: var(--brighter-4);
 }
 
 .ch.solo {
-  background-color: var(--darker-1);
+  background-color: var(--slate-raise);
 }
 
-.ch.solo.selected {
-  background-color: var(--green-highlight);
+.zone .channels .ch.solo.selected,
+.drum-lane .lane-header .ch.solo.selected {
+  /* the one "live" green, dark text like the lit M */
+  background-color: var(--live);
+  border-color: var(--live);
+  color: var(--ink);
 }
 
 .settings,
@@ -1000,6 +1449,10 @@ input:focus-visible {
   align-items: center;
 }
 
+.zone.disabled.arp-enabled .arp-settings-block .arp-settings:nth-of-type(n + 2) {
+  display: none;
+}
+
 .zonetools {
   display: flex;
   justify-content: flex-end;
@@ -1008,46 +1461,62 @@ input:focus-visible {
   height: 20px;
 }
 
+/* the zone's name is its scribble strip: a solid box in the zone colour; a silent zone
+   (muted or silenced by solo) keeps the exact colour as an outline, so playing zones lead */
 .zone input.zone-label {
   flex: 1 0 70px;
   min-width: 0;
   height: 20px;
-  background-color: transparent;
-  color: var(--text-base-color);
-  font-size: 11px;
+  background-color: var(--zone-color);
+  color: var(--on-text);
+  /* the zone's name: not smaller than the chips beside it */
+  font-size: var(--fs-md);
+  font-weight: 600;
+  text-overflow: ellipsis;
   text-align: left;
-  padding: 0 4px;
+  padding: 0 8px;
   border: none;
+  border-radius: var(--radius);
   outline: none;
 }
 
 .zone input.zone-label::placeholder {
-  color: var(--brighter-2);
-  font-style: italic;
+  color: color-mix(in srgb, var(--on-text) 60%, transparent);
+}
+
+.zone:is(.disabled, .soloed-out) input.zone-label {
+  background-color: transparent;
+  box-shadow: inset 0 0 0 1px var(--slate-line);
+  color: var(--zone-color);
+}
+
+.zone:is(.disabled, .soloed-out) input.zone-label::placeholder {
+  color: color-mix(in srgb, var(--zone-color) 70%, transparent);
 }
 
 .iorouting-popup input.output-config-name {
-  width: 100%;
+  /* under Out, which it names: aligned with the port select */
+  width: calc(100% - 32px);
   height: 22px;
+  margin: 2px 0 0 32px;
   background-color: transparent;
   color: var(--text-base-color);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   text-align: left;
-  padding: 2px 4px 6px;
+  padding: 2px 2px 4px;
   border: none;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid var(--slate-line);
   outline: none;
-  margin-bottom: 8px;
   box-sizing: border-box;
 }
 
 .iorouting-popup input.output-config-name::placeholder {
-  color: var(--brighter-2);
+  color: var(--slate-dim);
   font-style: italic;
 }
 
 .rtool {
-  font-size: 14px;
+  font-size: var(--icon-sm);
   color: var(--text-base-color);
   text-align: center;
   cursor: pointer;
@@ -1055,6 +1524,19 @@ input:focus-visible {
 
 .rtool .material-icons {
   vertical-align: middle;
+}
+
+/* header icons: at least 20px wide to click */
+.zonetools .rtool,
+.channels > .sendClock {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 20px;
+}
+
+#contextmenu li.danger {
+  color: var(--light-red-highlight);
 }
 
 .dragzone {
@@ -1067,35 +1549,59 @@ input:focus-visible {
 }
 
 /* =============================================================
+   ZONE HEADER GROUPS
+   [On][Solo] route the zone, [Seq][Arp] switch a generator on and
+   show its panel, [CC] only shows a panel. A divider separates the
+   groups; all chips share the same on/off styling.
+   ============================================================= */
+
+.channels .ch {
+  position: relative;
+}
+
+.channels .ch.showseq,
+.channels .ch.showccs {
+  margin-left: 8px;
+}
+
+.channels .ch.showseq::before,
+.channels .ch.showccs::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 3px;
+  bottom: 3px;
+  width: 1px;
+  background: var(--slate-line);
+}
+
+/* cards: the name sits between [M S] and [Seq Arp Trk | CC], set apart from both by the
+   same group gap as the divider before CC (6px + 8px), so it needs no divider of its own */
+body:not(.track-view):not(.minimized) .zone .channels {
+  > .ch.state { order: -3; }
+  > .ch.solo { order: -2; }
+  > .zone-label { order: -1; margin-left: 8px; margin-right: 8px; }
+  > .ch.showseq { margin-left: 0; }
+  > .ch.showseq::before { display: none; }
+}
+
+/* =============================================================
    REUSABLE COMPONENTS  (.action, .check, .flex-row, toggles…)
    ============================================================= */
 
-.action,
-.action-light {
+.action {
   transition: background-color ease-out 200ms;
   cursor: pointer;
 }
 
-.action:active,
-.action-light:active {
+.action:active {
   background-color: var(--brighter-4);
-}
-
-.action-light:hover {
-  background-color: var(--brighter-1);
-  color: var(--text-base-color);
 }
 
 .action.warn {
   background-color: var(--red-highlight);
 }
 
-.action.toggle_filters {
-  background-color: transparent;
-}
-.action.toggle_filters:hover {
-  background-color: var(--darker-1);
-}
 .action.toggle_filters::after {
   content: '';
   display: inline-block;
@@ -1116,11 +1622,34 @@ input:focus-visible {
   cursor: pointer;
 }
 
+/* switches in a zone are toggle chips (raised, lit in "on"), not checkboxes */
+.zone .check {
+  box-sizing: border-box;
+  height: 20px;
+  gap: 4px;
+  padding: 0 6px;
+  border-radius: var(--radius);
+  background-color: var(--slate-raise);
+  box-shadow: inset 0 0 0 1px var(--slate-line);
+}
+.zone .check .material-icons {
+  display: none;
+}
+.zone .check.selected {
+  background-color: var(--on);
+  box-shadow: none;
+  color: var(--on-text);
+}
+
+/* labels a step quieter than values, as in xr18-console */
+.zone .label,
+.zone .check:not(.selected) {
+  color: var(--slate-dim);
+}
+
 .action,
-.action-light,
 .val,
 .toggle,
-.action-hover,
 .drop-down {
   height: 20px;
   display: flex;
@@ -1128,27 +1657,17 @@ input:focus-visible {
 }
 
 .action,
-.action-hover,
 .toggle {
   padding: 0 6px;
-  background-color: var(--darker-1);
+  /* every button and dropdown in one raised material, as in xr18-console */
+  background-color: var(--slate-raise);
+  box-shadow: inset 0 0 0 1px var(--slate-line);
   cursor: pointer;
   min-width: 55px;
 }
 
-.action,
-.action-hover {
+.action {
   min-width: 0;
-}
-
-.patgen {
-  margin-left: 4px;
-  position: relative;
-}
-
-.check.mini {
-  font-size: 0.66em;
-  height: 14px;
 }
 
 .sel,
@@ -1163,11 +1682,11 @@ input:focus-visible {
 .sel,
 .unsel {
   margin-right: 4px;
-  font-size: 14px;
+  font-size: var(--icon-sm);
 }
 
 .unsel {
-  color: var(--brighter-2);
+  color: var(--brighter-4);
 }
 
 .flex-row {
@@ -1183,37 +1702,13 @@ input:focus-visible {
   padding-top: 5px;
 }
 
-.innertoggle {
-  font-size: 0.75em;
-  border: 1px solid var(--brighter-2);
-  color: var(--brighter-2);
-  padding: 0 3px;
-  float: right;
-  margin-left: 5px;
-}
-
-.innertoggle.selected {
-  color: var(--brighter-4);
-  background-color: var(--brighter-2);
-}
-
-.arp-settings .innertoggle {
-  border-color: var(--brighter-1);
-  color: var(--brighter-3);
-}
-
-.arp-settings .innertoggle.selected {
-  color: var(--brighter-4);
-  background-color: var(--brighter-2);
-}
-
 .valuebtn {
   position: absolute;
   display: none;
   text-align: right;
   background-color: transparent;
   color: var(--brighter-1);
-  font-size: 8px;
+  font-size: var(--fs-sm);
   z-index: 2;
   cursor: pointer;
   text-decoration: none;
@@ -1227,101 +1722,115 @@ input:focus-visible {
 }
 
 .zone input.percent {
-  width: 80px;
-  background: var(--brighter-1);
+  width: 64px;
+  background: var(--darker-2);
 }
 
+/* the value sits next to its slider, so a setting reads without hovering */
 .percent-holder {
   position: relative;
-}
-.percent-holder:hover output {
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
 }
 .percent-holder output {
-  display: none;
-  position: absolute;
-  width: 100%;
-  left: 0;
-  top: -6px;
-  font-size: 9px;
-  text-align: center;
+  min-width: 4ch;
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-base-color);
   pointer-events: none;
+}
+.percent-holder + :is(.label, .drop-down) {
+  margin-left: 8px;
 }
 
 input[type='range'] {
   appearance: none;
 }
 
-.zone input[type='range']::-webkit-slider-runnable-track {
+.zone input[type='range']::-webkit-slider-runnable-track,
+#trackDock input[type='range']::-webkit-slider-runnable-track,
+#setupDrawer input[type='range']::-webkit-slider-runnable-track {
   width: 300px;
-  height: 5px;
-  background: var(--brighter-1);
+  height: 6px;
+  /* lighter filled part up to the thumb (>= 3:1 on every zone color), soft remainder */
+  background: linear-gradient(
+    to right,
+    var(--slider-fill) var(--fill, 0%),
+    var(--slider-rest) var(--fill, 0%)
+  );
   border: none;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
 }
 
-.zone input[type='range']::-webkit-slider-thumb {
+.zone input[type='range']::-webkit-slider-thumb,
+#trackDock input[type='range']::-webkit-slider-thumb,
+#setupDrawer input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   border: none;
   height: 12px;
   width: 12px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--on);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
   margin-top: -3px;
 }
 
 .zone.disabled input[type='range']::-webkit-slider-thumb {
-  background: #999;
+  background: #c8cccd;
 }
 
-.zone input[type='range']:focus {
+/* range inputs: the focus ring is drawn on the thumb (see the focus section at the end) */
+.zone input[type='range']:focus,
+#trackDock input[type='range']:focus {
   outline: none;
 }
 
-.zone input[type='range']:focus::-webkit-slider-runnable-track {
-  background: var(--brighter-1);
-}
 
-.octaves {
-  border-right: 1px solid var(--brighter-2);
-  height: 14px !important;
-}
-
+/* octave: a segmented control of raised segments named −3…+3, the chosen one a step
+   lighter with its number bright (quiet at 0, a transposed zone still reads at once) */
 .octselect {
+  box-sizing: border-box;
   display: inline-flex;
-  width: 14px;
-  height: 14px;
-  border: 1px solid var(--brighter-2);
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--slate-line);
   border-right: none;
+  background-color: var(--slate-raise);
+  color: var(--slate-dim);
+  font-size: 10px;
   cursor: pointer;
   margin: 0;
   justify-content: center;
   align-items: center;
 }
-
-.octselect.octcenter:not(.selected)::after {
-  content: '·';
-  color: var(--brighter-2);
-  font-size: 0.75em;
+.octselect:first-child {
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+.octselect:last-child {
+  border-right: 1px solid var(--slate-line);
+  border-radius: 0 var(--radius) var(--radius) 0;
 }
 
 .octselect.selected {
-  background-color: var(--brighter-2);
-  border: 1px solid var(--brighter-2);
-}
-
-.octselect.selected + .octselect {
-  border-left: none;
+  background-color: var(--slate-line);
+  color: var(--text-base-color);
+  font-weight: 600;
 }
 
 .zone select,
 .zone input {
-  border: none;
-  background-color: var(--darker-1);
+  border: 1px solid var(--slate-line);
+  border-radius: var(--radius);
+  background-color: var(--slate-raise); /* like the buttons: black wells look punched out of the zone colour */
   color: var(--text-base-color);
-  font-size: 12px;
+  font-size: var(--fs-md);
   padding: 0;
   text-align: center;
+}
+
+.zone input:is([type='range'], [type='checkbox']) {
+  border: none;
 }
 
 .zone input {
@@ -1349,15 +1858,58 @@ input[type='range'] {
 }
 
 /* =============================================================
+   SHARED BUTTON BEHAVIOUR
+   One shape, one hover and one keyboard-focus ring for every button species.
+   ============================================================= */
+
+/* Hover: a light tint laid over whatever the control's own background is (zone
+   colour, top bar, lit chip), so borders, outlines and focus rings stay as they are */
+:root {
+  --hover-tint: rgba(255, 255, 255, 0.12);
+}
+:is(.lightButton, .ch, .rtool, .sendClock, .action, .check, .octselect, .ks-help-btn, select):hover:not(:disabled) {
+  background-image: linear-gradient(var(--hover-tint), var(--hover-tint));
+}
+/* a step's background is its velocity fill: a thin ring instead */
+.seq .grid .step:not(.selected):hover {
+  outline: 1px solid var(--brighter-3);
+  outline-offset: -1px;
+}
+
+:is(.lightButton, .ch, .rtool, .selectSeq, .ks-help-btn) {
+  border-radius: var(--radius);
+}
+
+:is(.lightButton, .ch, .rtool, .selectSeq, .ks-help-btn, .setup-toggle, select, summary, input:not([type='range'])):focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.zone input[type='range']:focus-visible::-webkit-slider-thumb {
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.4),
+    0 0 0 3px var(--focus-ring);
+}
+
+/* Panic: the emergency button, so a thin red outline sets it apart from the
+   grey buttons; it fills red only on hover. */
+#midiPanic {
+  box-shadow: inset 0 0 0 1px var(--danger);
+}
+#midiPanic:hover {
+  background: var(--danger-soft);
+  color: var(--brighter-4);
+}
+
+/* =============================================================
    NOTE RANGE
    ============================================================= */
 
 .range {
   position: relative;
-  height: 28px;
+  height: 16px;
   cursor: pointer;
   width: 100%;
-  overflow: hidden;
 }
 
 .dragvalue {
@@ -1369,20 +1921,26 @@ input[type='range'] {
   cursor: ns-resize !important;
 }
 
+/* MPE zones: room under the keys for the keys' dots (slide is their height) */
+.zone.mpe-on .range {
+  height: 40px;
+}
+
 .range canvas {
   position: absolute;
   left: 0;
-  bottom: 0;
-  height: 20px;
+  top: 0;
+  height: 100%;
   width: 100%;
 }
 
 .marker {
   position: absolute;
   display: none;
-  top: 7px;
+  top: 0;
+  z-index: 1;
   width: 32px;
-  font-size: 12px;
+  font-size: var(--fs-md);
   padding: 1px 0 0 0;
   text-align: center;
   transition:
@@ -1390,16 +1948,13 @@ input[type='range'] {
     400ms right;
 }
 
-.marker.low {
-  top: 0;
-}
-
-.marker.high {
-  top: 10px;
-}
-
+/* Darker than the zone so .join (zone colour) shows the active range. */
 .rangeholder {
-  background-color: var(--darker-0);
+  background-color: var(--darker-2);
+}
+
+.disabled .rangeholder {
+  background-color: var(--darker-3);
 }
 
 .rangeholder:hover .marker {
@@ -1409,64 +1964,20 @@ input[type='range'] {
 .join {
   position: absolute;
   top: 0;
-  height: 28px;
+  height: 100%;
   background-color: var(--bg-color);
 }
 
 .current {
   display: none;
   position: absolute;
-  top: 6px;
-  height: 14px;
+  top: 2px;
+  height: calc(100% - 4px);
   background-color: var(--brighter-1);
 }
 
 .range:hover .current {
   display: block;
-}
-
-.oct {
-  position: absolute;
-  top: 0;
-  background-color: var(--brighter-1);
-  color: var(--brighter-2);
-  width: 1px;
-  bottom: 0;
-  font-size: 8px;
-  text-indent: 4px;
-}
-
-.zone.disabled .oct {
-  background-color: var(--brighter-0);
-  color: transparent;
-}
-
-.show-seq:not(.disabled) .rangeholder {
-  margin-top: 0;
-}
-
-.show-seq:not(.disabled) .range,
-.show-seq:not(.disabled) .join {
-  height: 14px;
-}
-
-.show-seq:not(.disabled) .current {
-  top: 2px;
-  height: 10px;
-}
-
-.show-seq:not(.disabled) .marker {
-  font-size: 50%;
-  width: 16px;
-}
-
-.show-seq:not(.disabled) .marker.high {
-  top: 5px;
-  padding-right: 6px;
-}
-
-.show-seq:not(.disabled) .oct {
-  overflow: hidden;
 }
 
 .toggle {
@@ -1479,46 +1990,112 @@ input[type='range'] {
   background-color: var(--red-highlight);
 }
 
-#startClockButton::before {
-  content: 'Start';
+
+/* Arp pattern: one cell per step, a hit is a filled bar. Cells share the free
+   row width up to a sequencer step's size, so 32 steps stay clickable. */
+.arp-pattern-row {
+  flex-wrap: nowrap;
 }
 
-#startClockButton.selected::before {
-  content: 'Stop ';
+/* Hits in length come first, next to the label; the shift arrows flank the
+   cells, which only take the width they need, however short the pattern */
+.arp-pattern-row > .pattern {
+  flex: 0 1 auto;
+  margin: 0 2px;
+  /* only the cells' height, so they centre on the arrows and inputs; the
+     group ticks and the playhead hang below */
+  height: 15px;
+  align-self: center;
+}
+.arp-pattern-row > .pattern > i {
+  flex: 0 1 auto;
+  width: 20px; /* the row's width comes from this, flex-basis isn't counted */
+}
+.arp-pattern-row > .euclid {
+  margin-right: 8px;
 }
 
 .pattern {
-  position: relative;
-  cursor: pointer;
-  background-color: var(--brighter-0);
-  padding: 0 1px;
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.pattern canvas {
-  vertical-align: middle;
-}
-
-.zone .euclid {
-  position: absolute;
-  cursor: default;
-  display: none;
-  top: 100%;
-  right: 0;
-  text-align: center;
-  line-height: 1.2em;
-  z-index: 1;
-}
-
-.euclid > div {
   display: flex;
-  gap: 8px;
-  justify-content: space-between;
+  flex: 1;
+  gap: 2px;
+  height: 20px;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.pattern > i {
+  flex: 1;
+  position: relative;
+  align-self: flex-start;
+  height: 15px;
+  min-width: 4px;
+  max-width: 20px; /* the size of a sequencer step, so 8 steps stay a small row */
+  border-radius: var(--radius-sm);
+  /* the sequencer steps' colours */
+  background-color: color-mix(in srgb, var(--zone-color) 8%, #15171a);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--zone-color) 18%, var(--slate-line));
+}
+
+/* groups of 4 steps: a short tick under each group's first step, in the
+   playhead's strip, so the cells keep one even rhythm */
+.pattern > i:nth-child(4n + 1)::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -4px;
+  width: 6px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--slate-dim);
+}
+
+.pattern > i:hover {
+  background-image: linear-gradient(var(--brighter-0), var(--brighter-0));
+}
+
+.pattern > i.on {
+  background-image: linear-gradient(var(--brighter-3), var(--brighter-3));
+  box-shadow: none;
+}
+
+/* Playhead: the same green bar under the cell on every step (the cells leave
+   room for it in the 20px row); a hit that plays also turns green. */
+.pattern > i.playhead::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -5px;
+  height: 3px;
+  border-radius: 1px;
+  background: var(--live);
+}
+.pattern > i.on.playhead {
+  background: var(--live);
+}
+
+.euclid {
+  display: flex;
   align-items: center;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  margin-bottom: 8px;
+  gap: 3px;
+}
+
+/* transpose amount: a value you drag or scroll, shown while Transpose is on */
+.arp_transpose_value {
+  min-width: 3ch;
+  padding: 0 4px;
+  height: 20px;
+  line-height: 20px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  background-color: var(--slate-raise);
+  box-shadow: inset 0 0 0 1px var(--slate-line);
+  border-radius: var(--radius-sm);
+  cursor: ns-resize;
+}
+.arp_transpose:not(.selected) + .arp_transpose_value {
+  display: none;
 }
 
 /* =============================================================
@@ -1533,11 +2110,99 @@ input[type='range'] {
   padding: 0 0 2px 0;
 }
 
+.cctools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+  /* like the sequencer's toolbar; the tabs start where the controls and rulers do */
+  padding: 6px 4px 6px 6px;
+}
+/* no tabs: the tools sit at the end of the first row's ruler (moved into its heading) */
+.ccpots.tools-on-ruler .container {
+  padding-top: 6px;
+}
+.ccsection-head .cctools {
+  order: 1;
+  /* as tall as the heading, right edge where the toolbar's is; a line before them
+     says they belong to the zone's controllers, not to this section */
+  margin: -4px -2px -4px 8px;
+  padding: 0 0 0 8px;
+  border-left: 1px solid var(--slate-line);
+  flex-wrap: nowrap;
+  font-size: var(--fs-md);
+  line-height: normal;
+  color: var(--text-base-color);
+}
+.ccsection-head .cctools > :not(.action) {
+  display: none;
+}
+.cctools .action {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.cctools .action .material-icons {
+  font-size: var(--icon-md);
+}
+
 .ccpots .container {
   display: flex;
   flex-wrap: wrap;
-  max-width: 544px;
+  /* sections sharing a row line up their knobs, with or without a heading */
+  align-items: flex-end;
   padding: 0 4px;
+}
+
+/* a section: optional heading line in its colour over its controllers */
+.ccsection {
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+}
+.ccsection-pots {
+  display: flex;
+  flex-wrap: wrap;
+  /* 8 knobs per row (and a half for gaps) */
+  max-width: 536px;
+}
+.ccsection.last {
+  flex-grow: 1;
+}
+.ccsection-break {
+  flex-basis: 100%;
+  height: 0;
+}
+.ccsection.inline {
+  margin-left: 6px;
+}
+.ccsection-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 12px;
+  /* starts at the cell edge; closer to its controls than to the row above */
+  margin: 2px 2px 4px 2px;
+  font-size: var(--fs-sm);
+  line-height: 12px;
+  color: var(--groupcolor, var(--brighter-3));
+  white-space: nowrap;
+}
+/* the ruler shows how far the section reaches; the name is set into it, a quarter cell in */
+.ccsection-head::before {
+  content: '';
+  flex: 0 0 calc(var(--ccpot-width) / 4);
+  height: 1px;
+  background-color: currentColor;
+  opacity: 0.45;
+}
+.ccsection-head::after {
+  content: '';
+  flex: 1;
+  min-width: 12px;
+  height: 1px;
+  background-color: currentColor;
+  opacity: 0.45;
 }
 
 .show-cc .ccpots {
@@ -1545,11 +2210,13 @@ input[type='range'] {
 }
 
 .show-cc .showccs {
-  background-color: var(--brighter-2);
+  background-color: var(--on);
+  border-color: var(--on);
 }
 
 .show-seq .showseq {
-  background-color: var(--brighter-2);
+  background-color: var(--on);
+  border-color: var(--on);
 }
 
 .ccpot {
@@ -1557,16 +2224,9 @@ input[type='range'] {
   width: var(--ccpot-width);
   height: 72px;
   margin: 1px;
-  border: 1px solid var(--darker-2);
-}
-
-.cc-edit .ccpot.selected {
-  background-color: var(--bg-color-popup);
-  box-shadow: 0 0.5px 2px var(--darker-4);
-}
-
-.cc-edit .ccpot {
-  cursor: pointer;
+  /* no box: only the value arc and the chosen button carry colour */
+  border: 1px solid transparent;
+  --arc: var(--groupcolor);
 }
 
 .zone.disabled .ccpots {
@@ -1574,7 +2234,7 @@ input[type='range'] {
 }
 
 .ccpot[data-group='0'] {
-  --groupcolor: var(--darker-1);
+  --arc: var(--brighter-4);
 }
 
 .ccpot[data-type='2'] {
@@ -1587,18 +2247,6 @@ input[type='range'] {
   display: none;
 }
 
-.cc-edit .ccpot[data-type='2']::after {
-  content: '...';
-  position: absolute;
-  font-size: 9px;
-  font-style: italic;
-  bottom: 15%;
-  left: 0;
-  right: 0;
-  text-align: center;
-  color: var(--brighter-1);
-}
-
 .ccpot svg {
   position: absolute;
   top: 16px;
@@ -1606,16 +2254,56 @@ input[type='range'] {
 }
 
 .ccpot > .cclabel {
-  padding: 2px 0;
+  padding: 3px 0 0;
   margin: 0;
   overflow: hidden;
   text-align: center;
-  font-size: 9px;
-  color: var(--brighter-3);
-  background-color: var(--groupcolor);
+  font-size: var(--fs-sm);
+  color: var(--slate-dim);
   white-space: nowrap;
   text-overflow: ellipsis;
-  cursor: pointer;
+}
+
+.ccpot .knob-track {
+  stroke: var(--darker-2);
+  stroke-width: 4;
+}
+.ccpot:hover .knob-track,
+.ccpot.dragging .knob-track {
+  stroke: var(--darker-3);
+}
+.ccpot .knob-value {
+  stroke: var(--arc);
+  stroke-width: 4;
+}
+/* showing the selected steps' parameter lock: selection red, dashed when they differ */
+.ccpot.locked {
+  --arc: var(--multiselect-highlight);
+}
+.ccpot.lock-mixed .knob-value {
+  stroke-dasharray: 3 2;
+}
+/* playing: following the value a parameter lock (or its slide) sent; the bottom
+   right corner has the MIDI input dot */
+.ccpot.lock-live::before {
+  content: '';
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  bottom: 3px;
+  left: 3px;
+  border-radius: 50%;
+  background: var(--live);
+}
+.ccpot .knob-ticks {
+  stroke: var(--bg-color);
+  stroke-width: 1.5;
+}
+.ccpot .knob-zero {
+  fill: var(--brighter-1);
+}
+.ccpot .rotary {
+  cursor: ns-resize;
 }
 
 .ccpots-empty {
@@ -1636,130 +2324,55 @@ input[type='range'] {
 }
 
 .ccpots-empty .material-icons {
-  font-size: 18px;
+  font-size: var(--icon-md);
 }
 
 .ccpot .value {
   position: absolute;
-  cursor: default;
   top: 39px;
   left: 0;
   right: 0;
   text-align: center;
-  font-size: 9px;
+  font-size: var(--fs-sm);
   color: var(--brighter-2);
 }
+.ccpot .value.long {
+  font-size: 10px;
+  letter-spacing: -0.3px;
+}
+.ccpot:hover .value,
+.ccpot.dragging .value {
+  color: var(--brighter-4);
+}
 
-.cc-editor {
-  display: none;
+/* a named value takes the number's place; hovering or dragging shows the number */
+.ccpot .valuename {
   position: absolute;
-  left: 0;
-  right: 0;
-  z-index: 1;
-  top: 100%;
-  .show-type-0,
-  .show-type-1,
-  .show-type-2,
-  .show-type-3,
-  .show-type-4,
-  .show-type-5,
-  .show-type-6 {
-    display: none;
-  }
+  top: 39px;
+  left: 1px;
+  right: 1px;
+  font-size: var(--fs-sm);
+  text-align: center;
+  color: var(--brighter-4);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-
-.cc-edit .cc-editor {
-  display: block;
+.ccpot .rotary:has(.valuename:not(:empty)) .value {
+  visibility: hidden;
 }
-
-.cc-editor[data-type='0'] {
-  .show-type-0 {
-    display: block;
-  }
-  .flex-row.show-type-0 {
-    display: flex;
-  }
-  .hide-type-0 {
-    display: none;
-  }
+.ccpot:is(:hover, .dragging) .rotary:has(.valuename:not(:empty)) .value {
+  visibility: visible;
 }
-.cc-editor[data-type='1'] {
-  .show-type-1 {
-    display: block;
-  }
-  .flex-row.show-type-1 {
-    display: flex;
-  }
-  .hide-type-1 {
-    display: none;
-  }
-}
-.cc-editor[data-type='2'] {
-  .show-type-2 {
-    display: block;
-  }
-  .flex-row.show-type-2 {
-    display: flex;
-  }
-  .hide-type-2 {
-    display: none;
-  }
-}
-.cc-editor[data-type='3'] {
-  .show-type-3 {
-    display: block;
-  }
-  .flex-row.show-type-3 {
-    display: flex;
-  }
-  .hide-type-3 {
-    display: none;
-  }
-}
-.cc-editor[data-type='4'] {
-  .show-type-4 {
-    display: block;
-  }
-  .flex-row.show-type-4 {
-    display: flex;
-  }
-  .hide-type-4 {
-    display: none;
-  }
-}
-.cc-editor[data-type='5'] {
-  .show-type-5 {
-    display: block;
-  }
-  .flex-row.show-type-5 {
-    display: flex;
-  }
-  .hide-type-5 {
-    display: none;
-  }
-}
-.cc-editor[data-type='6'] {
-  .show-type-6 {
-    display: block;
-  }
-  .flex-row.show-type-6 {
-    display: flex;
-  }
-  .hide-type-6 {
-    display: none;
-  }
-}
-
-.ccpots.cc-edit .edit-cc-button {
-  background-color: var(--brighter-1);
-  color: var(--text-base-color);
+.ccpot:is(:hover, .dragging) .valuename {
+  visibility: hidden;
 }
 
 .ccpot .info {
   flex-direction: column;
   height: 56px;
   justify-content: space-evenly;
-  font-size: 9px;
+  font-size: var(--fs-sm);
   text-align: center;
 }
 
@@ -1774,56 +2387,171 @@ input[type='range'] {
 .ccpot[data-type='0'] .rotary,
 .ccpot[data-type='1'] .rotary,
 .ccpot[data-type='5'] .rotary,
-.ccpot[data-type='6'] .rotary {
+.ccpot[data-type='6'] .rotary,
+.ccpot[data-type='7'] .rotary {
   display: block;
 }
 .ccpot[data-type='3'] .buttons {
+  /* the height of a row when 4 rows share the space: the label font follows it */
+  --row: calc((48px - (var(--button-rows, 3) - 1) * 2px) / var(--button-rows, 3));
+  display: grid;
+  grid-auto-flow: column;
+  /* pills of one height, less only when 4 rows need it, centred in the bank */
+  grid-template-rows: repeat(var(--button-rows, 3), minmax(0, 17px));
+  grid-auto-columns: 1fr;
+  align-content: center;
+  /* the space under the label: up to 4 rows of 8 buttons */
+  height: 52px;
+  width: calc(var(--ccpot-width) - 4px);
+  overflow: hidden;
+  padding: 0 2px;
+  gap: 2px 3px;
+}
+/* 4 rows: a taller bank (and control) so the labels keep 11px with room in
+   their pills; only rows holding such a bank grow */
+.ccpot[data-type='3'] .buttons[data-rows='4'] {
+  --row: calc((60px - 3 * 2px) / 4);
+  grid-template-rows: repeat(4, var(--row));
+  height: 60px;
+}
+/* 3 rows: the pills of a 4-row bank, from the top, so the bank keeps room
+   before the next row like 2-row banks do */
+.ccpot[data-type='3'] .buttons[data-rows='3'] {
+  --row: 13.5px;
+  grid-template-rows: repeat(3, var(--row));
+  align-content: start;
+  padding-top: 2px;
+}
+.ccpot[data-type='3']:has(.buttons[data-rows='4']) {
+  height: 88px;
+}
+/* selector: the chosen entry's name over small step arrows, as wide as a knob's arc */
+.ccpot[data-type='9'] .selector {
   display: flex;
   flex-direction: column;
-  flex-wrap: wrap;
-  max-height: 56px;
-  width: calc(var(--ccpot-width)-4px);
+  height: 52px;
+  padding: 3px 9.5px 1px 10.5px;
+}
+.selector-name {
+  /* the chosen entry: a pill as tall as its text, in the section colour like a
+     chosen button */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: auto 0;
+  padding: 2px 0 3px;
+  min-height: 0;
+  text-align: center;
+  font-size: var(--fs-sm);
+  line-height: 1.15;
+  border-radius: var(--radius);
+  background: var(--arc, var(--brighter-4));
+  color: var(--ink);
+  cursor: pointer;
+}
+.selector-name:hover {
+  filter: brightness(1.12);
+}
+.selector-name span {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  justify-content: start;
-  padding: 3px 1px 3px 1px;
-  gap: 2px;
+  overflow-wrap: anywhere;
+}
+.selector-name[data-empty='1'] {
+  background: var(--darker-1);
+  color: var(--brighter-2);
+}
+.selector-steps {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* wider than the name by half an arrow on each side: the arrows centre on the
+     pill's ends, the position in the middle */
+  margin: 0 -6px;
+  height: 15px;
+  color: var(--brighter-2);
+}
+#zones .selector-step {
+  font-size: var(--icon-md);
+  /* a larger hit area than the icon, without moving the layout */
+  padding: 3px 4px;
+  margin: -3px -4px;
+  cursor: pointer;
+}
+.selector-step:hover {
+  color: var(--brighter-4);
+}
+.selector-pos {
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
 }
 
-.cc-edit .buttons {
-  pointer-events: none;
+/* one column: as wide as a knob's arc, so it lines up with the knobs and headings */
+.ccpot[data-type='3'] .buttons[data-columns='1'] {
+  padding: 2px 9.5px 2px 10.5px;
 }
 
 .ccbtn {
-  font-size: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  line-height: 1;
+  font-size: var(--fs-sm);
   overflow: hidden;
   text-overflow: ellipsis;
   text-wrap: nowrap;
   text-align: center;
   cursor: pointer;
   color: var(--brighter-2);
-  box-shadow: 0 0 2px var(--darker-3);
 }
 
+/* the chosen entry (the editor's test buttons): bright, underlined */
 .ccbtn.selected {
-  background-color: var(--brighter-3);
-  color: var(--darker-4);
-  box-shadow: 0 0 2px inset var(--darker-3);
+  color: var(--brighter-4);
+  box-shadow: inset 0 -2px 0 var(--arc, var(--brighter-4));
 }
 
 .ccbtn:not(.selected):hover {
-  background-color: var(--brighter-1);
+  background-color: var(--darker-1);
+  color: var(--brighter-3);
+}
+
+/* in a zone: pills, the chosen one filled in the section colour; the font follows
+   the row height */
+.ccpot .ccbtn {
+  padding: 0 3px;
+  border-radius: var(--radius);
+  background-color: var(--darker-1);
+  font-size: min(var(--fs-sm), calc(var(--row) * 0.85));
+  color: var(--brighter-3);
+}
+/* a label wider than its pill (set in cc-controller-view.ts) */
+.ccpot .ccbtn.tight {
+  padding: 0 1px;
+  font-size: 10px;
+  letter-spacing: -0.2px;
+}
+.ccpot .ccbtn.selected {
+  background-color: var(--arc, var(--brighter-4));
+  color: var(--ink);
+  box-shadow: none;
+}
+.ccpot .ccbtn:not(.selected):hover {
+  background-color: var(--darker-2);
   color: var(--brighter-4);
-  box-shadow: 0 0 2px var(--darker-3);
 }
 
 .fixedvel select {
   height: 12px;
-  font-size: 8px;
+  font-size: var(--fs-sm);
   vertical-align: middle;
 }
 
-#bpm.hasClock {
-  border-color: #0a0 !important;
+#midisettings input#bpm.hasClock {
+  border-color: #0a0;
 }
 
 /* =============================================================
@@ -1843,16 +2571,16 @@ input[type='range'] {
 }
 
 .shadowed-zone-block {
-  box-shadow: 0 0 8px var(--darker-1);
+  box-shadow: none;
 }
 
-.disabled .seq {
-  display: none !important;
+.zone.disabled .seq {
+  display: none;
 }
 
 .seqtools {
   display: flex;
-  gap: 8px;
+  gap: 5px;
   align-items: center;
   padding: 6px 0 6px 8px;
   width: 100%;
@@ -1860,13 +2588,19 @@ input[type='range'] {
 
 .seqtools .drop-down select {
   max-width: 7rem;
+  padding-right: 18px;
 }
-.seqtools-icon {
-  font-size: 14px;
-  opacity: 0.7;
-  pointer-events: none;
+
+
+/* nothing in the toolbar shrinks: squeezed items overlapped their neighbours */
+.seqtools > * {
   flex-shrink: 0;
-  margin-right: 3px;
+}
+.seqtools input.seq_steps,
+.seqtools input.seq_lanes,
+.zone .euclid input {
+  min-width: 0;
+  width: 36px;
 }
 
 .show-seq .seq {
@@ -1897,11 +2631,14 @@ input[type='range'] {
   height: var(--step-size);
   justify-content: center;
   align-items: center;
-  border: 1px solid var(--darker-1);
-  color: var(--darker-2);
-  background-color: var(--darker-1);
-  font-size: 0.85em;
+  /* opaque and dark in the zone's hue: overlays would take on the band behind
+     them, and a neutral slate clashes with warm zone colours */
+  border: 1px solid color-mix(in srgb, var(--zone-color) 18%, var(--slate-line));
+  color: var(--brighter-4);
+  background-color: color-mix(in srgb, var(--zone-color) 8%, #15171a);
+  font-size: var(--fs-sm);
   text-align: center;
+  border-radius: var(--radius-sm);
   cursor: pointer;
 }
 
@@ -1914,7 +2651,9 @@ input[type='range'] {
   border-radius: 50%;
 }
 
-.showarp {
+.showseq,
+.showarp,
+.showtakes {
   letter-spacing: -0.5px;
 }
 
@@ -1925,13 +2664,15 @@ input[type='range'] {
   overflow: hidden;
 }
 
-.zone.disabled.arp-enabled .showarp {
-  background-color: var(--zone-color);
-  color: var(--brighter-3);
-}
-
+/* muted zone: a switched-on feature stays lit, dimmed; a coloured outline would
+   read as a selection */
+.zone.disabled.arp-enabled .showarp,
+.zone.disabled.takes-on .showtakes,
 .zone.disabled.show-seq .showseq {
-  background-color: var(--zone-color);
+  background-color: color-mix(in srgb, var(--on) 35%, var(--slate-panel));
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--brighter-4);
 }
 
 .zone.disabled .seq .grid .step {
@@ -1940,16 +2681,23 @@ input[type='range'] {
 }
 
 .zone.disabled .seq .grid .step.active {
-  background-color: var(--zone-color);
+  background: var(--zone-color);
 }
 
+.zone.disabled .seq .grid .step::before,
+.zone.disabled .seq .grid .step::after {
+  display: none;
+}
+
+/* The playhead is a bar on top of the column; the step keeps showing its own state. */
 .seq .grid .step.playhead {
-  background-color: var(--brighter-0) !important;
+  box-shadow: inset 0 3px 0 var(--live);
 }
 
-.seq .grid .step.playhead.active,
-.disabled .seq .grid .step.playhead.active {
-  background-color: var(--brighter-3) !important;
+/* muted zone: no "sounding" green, the steps are too flat for a bar */
+.zone.disabled .seq .grid .step.playhead {
+  box-shadow: none;
+  background: var(--brighter-2);
 }
 
 .seq .grid .step.unused,
@@ -1957,14 +2705,117 @@ input[type='range'] {
   display: none;
 }
 
+/* Step properties at a glance (set by showStepProperties): fill height is
+   velocity, a die in place of the beat number is chance < 100%, a corner
+   triangle is a play condition,
+   bottom ticks are the ratchet count, a bar through the following cells is
+   length. Each mark owns a corner; the beat number (or the die) sits small at
+   the top left, clear of the ratchet ticks below it. */
+.seq .grid .step {
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding-left: 2px;
+  font-size: 9px;
+  line-height: 1;
+}
 .seq .grid .step.active {
-  background-color: var(--brighter-1);
-  color: var(--brighter-4);
+  --step-fill: linear-gradient(
+    to top,
+    var(--brighter-3) calc(var(--velo, 0.78) * 100%),
+    var(--brighter-1) 0
+  );
+  background-image: var(--step-fill);
+  color: var(--ink);
+}
+
+.seq .grid .step .beat-num,
+.seq .grid .step .chance-mark {
+  margin-top: 2px;
+}
+.seq .grid .step .chance-mark {
+  display: none;
+  font-size: 10px;
+  line-height: 10px;
+  width: 10px;
+  height: 10px;
+}
+.seq .grid .step.active[data-chance] .chance-mark {
+  display: block;
+}
+.seq .grid .step.active[data-chance] .beat-num {
+  display: none;
+}
+
+.seq .grid .step.active[data-cond]::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  background: var(--ink);
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+}
+
+/* While running: a conditional step that skips this cycle fades back, one that
+   plays gets a green condition mark (see Sequence.conditionOutcome). */
+.seq .grid .step.active.cond-skips {
+  opacity: 0.35;
+}
+.seq .grid .step.active[data-cond].cond-plays::after {
+  background: var(--live);
+}
+
+.seq .grid .step.active[data-rc]::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  bottom: 2px;
+  width: calc(var(--rc) * var(--rc-pitch, 3px) - 1px);
+  height: 3px;
+  background: repeating-linear-gradient(
+    to right,
+    var(--ink) 0 calc(var(--rc-pitch) - 1px),
+    transparent 0 var(--rc-pitch)
+  );
+}
+
+/* Parameter locks: a dot in the bottom right corner; a step with locks only is an
+   outlined empty cell */
+.seq .grid .step .lock-dot {
+  display: none;
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ink);
+}
+.seq .grid .step[data-locks] .lock-dot {
+  display: block;
+}
+.seq .grid .step[data-locks='only']:not(.active) {
+  box-shadow: inset 0 0 0 1px var(--brighter-2);
+}
+.seq .grid .step[data-locks='only']:not(.active) .lock-dot {
+  background: var(--brighter-3);
+}
+
+.seq .grid .step.tied:not(.active)::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  right: 2px;
+  bottom: 2px;
+  height: 4px;
+  background: var(--brighter-2);
 }
 
 .seq .grid .step.selected {
-  box-shadow: 0 0 8px var(--brighter-4);
-  outline: 4px solid var(--multiselect-highlight);
+  outline: 2px solid var(--multiselect-highlight);
+  outline-offset: 1px;
+  z-index: 1;
 }
 
 .seq .grid .step {
@@ -1980,6 +2831,7 @@ input[type='range'] {
 
 .seq .grid .step.activelength {
   background-color: var(--multiselect-highlight);
+  background-image: none;
 }
 
 .liveRecording .seq_record_live {
@@ -2000,28 +2852,38 @@ input[type='range'] {
   }
 }
 
+.seq .grid .step:not(.active) {
+  color: var(--brighter-2);
+}
+
 .seq .grid .step-container .step:nth-child(4n + 1) {
   border-bottom: 2px solid var(--darker-4);
   height: calc(var(--step-size) + 1px);
 }
 
-.seq .grid .drum-step-container .step:nth-child(4n + 2) {
+.seq .grid .drum-step-container .step:nth-child(4n + 3) {
   border-bottom: 1px solid var(--darker-4);
 }
 
 .disabled .seq .grid .step-container .step:nth-child(4n + 1),
-.disabled .seq .grid .drum-step-container .step:nth-child(4n + 2) {
+.disabled .seq .grid .drum-step-container .step:nth-child(4n + 3) {
   border-bottom: none;
   height: var(--step-size-disabled);
 }
 
+/* The step editor floats below the grid over the panels beneath it, so
+   selecting a step never moves the layout. */
 .seq .step-info {
-  padding: 4px 8px;
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 100%;
-  z-index: 1;
+  /* in the layout below the grid (.seq is column-reverse), not over it: the
+     controllers below stay free for setting the steps' parameter locks */
+  order: -1;
+  margin-top: 6px;
+  padding: 6px 8px 4px;
+  /* selection red, as on the selected steps and the step badge: it edits those */
+  border: 1px solid var(--multiselect-highlight);
+  border-top-width: 2px;
+  border-radius: var(--radius);
+  box-shadow: none;
   display: none;
 }
 
@@ -2033,7 +2895,7 @@ input[type='range'] {
   display: inline-block;
   position: relative;
   margin: 1px 0;
-  border-radius: 0 0 6px 6px;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
   overflow: hidden;
 }
 
@@ -2060,7 +2922,7 @@ input[type='range'] {
   margin-bottom: 4px;
   padding-bottom: 4px;
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
   justify-content: start;
 }
@@ -2070,11 +2932,6 @@ input[type='range'] {
   padding-bottom: 0;
 }
 
-.euclid .zonebg,
-.step-controls .zonebg {
-  background-color: var(--bg-color);
-}
-
 .step-notes {
   display: flex;
   flex-wrap: wrap;
@@ -2082,7 +2939,7 @@ input[type='range'] {
   flex-grow: 1;
   padding: 2px;
   min-height: 26px;
-  font-size: 0.85em;
+  font-size: var(--fs-sm);
 }
 
 .step-notes i {
@@ -2094,95 +2951,85 @@ input[type='range'] {
   display: block;
 }
 
-.seq.multi-selection .seq_step_condition_apply {
-  visibility: hidden;
+/* Parameter locks of the selected steps: chips with name, value and remove */
+.step-locks .lock-list {
+  display: flex;
+  flex-wrap: wrap;
+  flex-grow: 1;
+  gap: 4px;
+  font-size: var(--fs-sm);
 }
-.seq.multi-selection .seq-step-advance,
-.seq.multi-selection .seq-step-add-notes {
+.step-locks .lock-list i {
+  color: var(--darker-2);
+}
+.lock-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 2px 1px 6px;
+  border: 1px solid var(--darker-3);
+  border-radius: var(--radius);
+  background: var(--darker-0);
+}
+.lock-chip .lock-name {
+  color: var(--brighter-3);
+}
+.lock-chip .lock-value {
+  color: var(--text-base-color);
+  font-variant-numeric: tabular-nums;
+}
+.lock-chip .material-icons {
+  font-size: 14px;
+  color: var(--brighter-3);
+  cursor: pointer;
+}
+.lock-chip .material-icons:hover {
+  color: var(--danger);
+}
+/* no controller on its address: kept, not sent */
+.lock-chip.dormant {
+  opacity: 0.5;
+  border-style: dashed;
+}
+.step-locks:not(.has-locks) .seq-step-slide {
   display: none;
 }
 
-.seqprogress {
-  position: relative;
+.seq.multi-selection .seq-step-advance,
+.seq.multi-selection .seq-step-add-notes {
   display: none;
-  overflow: hidden;
-  height: 5px;
-  margin: 0 8px;
-  border-radius: 2px;
-  background-color: rgba(0, 0, 0, 0.2);
-}
-.seqprogress .step-row {
-  position: absolute;
-  left: 0;
-  right: 0;
-}
-.seqprogress .step-block {
-  position: absolute;
-  top: 1px;
-  bottom: 1px;
-  /* 1px right gap between steps */
-  box-sizing: border-box;
-  border-right: 1px solid transparent;
-}
-.seqprogress .step-block.has-notes {
-  background-color: var(--brighter-2);
-  opacity: 0.3;
-}
-.show-seq .seqprogress .step-block.has-notes {
-  background-color: var(--zone-color);
-  opacity: 0.4;
-}
-.seqprogress .inner,
-.seqprogress .lane-cursor {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  background-color: transparent;
-  border: 1px solid var(--zone-color);
-  box-sizing: border-box;
-  z-index: 1;
-  display: none;
-}
-.seqprogress .inner {
-  width: 2px;
-}
-.disabled .seqprogress .inner,
-.disabled .seqprogress .lane-cursor {
-  border-color: var(--brighter-1);
-}
-.disabled:not(.show-seq) .seqprogress .inner,
-.disabled:not(.show-seq) .seqprogress .lane-cursor {
-  border-color: var(--brighter-0);
-}
-body.running .seqprogress .inner {
-  display: block;
-}
-body.running .seqprogress.drum .lane-cursor {
-  display: block;
-}
-.seqprogress.drum .inner {
-  display: none !important;
 }
 
 /* =============================================================
    OVERLAYS & CHROME  (port windows, toast, context menu, toolbar)
    ============================================================= */
 
+/* Overlays share one look: the top bar's surface, a thin border, 6px corners,
+   one shadow; panels with a title start with .kshelp-header (see below). */
 #clockOutPortWindow,
 #inputPortWindow {
   position: fixed;
-  background: var(--bg-select-window);
+  background: var(--bg-topbar);
+  border: 1px solid var(--border-topbar);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 24px var(--shadow-overlay);
   color: var(--brighter-3);
-  padding: 5px;
+  padding: 6px 14px 10px;
   top: 50px;
   right: calc(50% - 210px);
-  z-index: 2;
-  font-size: 12px;
+  z-index: var(--z-window);
+  font-size: var(--fs-md);
   display: none;
   width: 250px;
-  box-shadow: 0 0 10px var(--shadow-zone);
   max-height: 90vh;
   overflow-y: auto;
+}
+
+/* a block below the list, set apart by a ruler */
+.panel-section {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--brighter-1);
 }
 
 #clockOutPortWindow input {
@@ -2190,7 +3037,7 @@ body.running .seqprogress.drum .lane-cursor {
 }
 
 .selectWindowHint {
-  font-size: 0.85em;
+  font-size: var(--fs-sm);
   margin: 1em 0;
 }
 
@@ -2198,6 +3045,32 @@ body.running .seqprogress.drum .lane-cursor {
   top: 25px;
   right: calc(50% - 206px);
   width: 380px;
+  label {
+    display: inline-block;
+    min-width: 30px;
+  }
+  small {
+    color: var(--brighter-2);
+  }
+}
+
+#portVisibilityList .portGroupTitle {
+  margin: 6px 0 2px;
+  color: var(--brighter-3);
+}
+
+#portVisibilityList .portVis {
+  cursor: pointer;
+  .material-icons {
+    font-size: var(--icon-md);
+  }
+  &.hiddenPort {
+    opacity: 0.75;
+  }
+  &.locked {
+    cursor: not-allowed;
+    opacity: 0.85;
+  }
 }
 
 #clockOutPortList,
@@ -2212,9 +3085,9 @@ body.running .seqprogress.drum .lane-cursor {
 .clockOutOption {
   display: flex;
   align-items: center;
-  color: var(--brighter-2);
+  color: var(--brighter-3);
   margin-bottom: 3px;
-  font-size: 11px;
+  font-size: var(--fs-sm);
   justify-content: space-between;
 }
 
@@ -2247,53 +3120,138 @@ body.running .seqprogress.drum .lane-cursor {
   flex-grow: 1;
 }
 
-.sendCancel {
-  position: absolute;
-  top: 3px;
-  right: 5px;
+.clockSuppressBtn {
+  font-size: var(--icon-sm);
+  opacity: 0;
+  pointer-events: none;
   cursor: pointer;
+  color: var(--brighter-3);
+}
+
+.clockOutOption.selected .clockSuppressBtn {
+  opacity: 0.8;
+  pointer-events: all;
+}
+
+.clockOutOption.selected .clockSuppressBtn:hover {
+  opacity: 1;
+}
+
+.clockOutOption.selected .clockSuppressBtn.active {
+  opacity: 1;
+  color: var(--brighter-4);
 }
 
 #clockOutPortsCount {
-  font-family: monospace;
-  padding-right: 6px;
-  margin-left: 5px;
+  padding: 0 4px;
 }
 
 #toast {
   position: fixed;
-  width: 300px;
-  left: 50%;
-  top: -100px;
-  margin-left: -150px;
-  color: var(--text-toast-color);
-  background-color: var(--bg-toast);
-  font-size: 12px;
-  box-shadow: 1px 1px 4px var(--shadow-toast);
-  z-index: 2;
+  width: 280px;
+  bottom: 36px;
+  right: 16px;
+  left: auto;
+  margin-left: 0;
+  /* neutral, like the menus; a warning gets a red edge */
+  color: var(--text-base-color);
+  background-color: var(--bg-color-popup);
+  border: 1px solid var(--slate-edge);
+  border-radius: var(--radius-lg);
+  font-size: var(--fs-md);
+  box-shadow: 0 4px 14px var(--shadow-overlay);
+  z-index: var(--z-menu);
   opacity: 0;
+  transform: translateX(120%);
   transition:
     opacity 200ms,
-    top 200ms;
-}
-
-#toast:hover {
-  opacity: 0.5 !important;
+    transform 200ms;
 }
 
 #toast.fade {
   opacity: 1;
-  top: 50px;
+  transform: translateX(0);
 }
 
 #toast.warning {
-  background-color: var(--bg-toast-warning);
+  box-shadow:
+    inset 3px 0 0 var(--danger),
+    0 4px 14px var(--shadow-overlay);
+}
+
+@keyframes toast-bump {
+  0% {
+    transform: translateX(0) scale(1);
+  }
+  40% {
+    transform: translateX(0) scale(1.06);
+  }
+  100% {
+    transform: translateX(0) scale(1);
+  }
+}
+
+#toast.bump {
+  animation: toast-bump 220ms ease-out;
 }
 
 #toast .toastinner {
-  padding: 10px;
-  text-align: center;
+  padding: 10px 12px;
+  text-align: left;
+  line-height: 1.35;
   word-wrap: break-word;
+}
+
+/* structured toasts (MIDI devices): a dim title over one row per device */
+#toast .toast-title {
+  margin-bottom: 6px;
+  color: var(--slate-dim);
+  font-size: var(--fs-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+#toast .toast-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+#toast .toast-row::before {
+  content: '';
+  flex: none;
+  align-self: center;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--live);
+}
+
+#toast .toast-row.off::before {
+  background: var(--danger);
+}
+
+#toast .toast-row.off .toast-name {
+  color: var(--slate-dim);
+}
+
+#toast .toast-name {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+#toast .toast-meta {
+  flex: none;
+  color: var(--slate-dim);
+  font-size: var(--fs-sm);
+}
+
+#toast .toast-note {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--slate-line);
 }
 
 .popupsettings,
@@ -2313,66 +3271,47 @@ body.running .seqprogress.drum .lane-cursor {
   align-items: center;
 }
 .action.sustain_on.selected {
-  background-color: var(--brighter-2);
-  color: var(--brighter-4);
+  background-color: var(--on);
+  box-shadow: none;
+  color: var(--on-text);
 }
 
 .popup {
   background-color: var(--bg-color);
-  box-shadow: 1px 1px 4px var(--shadow-topbar);
+  border: 1px solid var(--slate-edge);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 12px var(--shadow-overlay);
   padding: 8px;
   color: var(--text-base-color);
   cursor: default;
 }
 
-#tools {
-  position: fixed;
-  display: flex;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  justify-content: center;
-  align-items: center;
-  background-color: var(--bg-topbar-transparent);
-  padding: 4px 6px;
-  font-size: 12px;
-  gap: 5px;
-  color: var(--brighter-3);
-  box-shadow: 0 2px 5px var(--shadow-topbar);
-  border: 1px solid var(--border-topbar);
-  border-bottom: none;
-  border-radius: 4px 4px 0 0;
-}
-
-#tools > * {
-  text-wrap: nowrap;
-}
-
 .selectSeq {
   width: 48px;
   text-align: center;
-  background-color: var(--bg-topbar-button);
+  color: var(--slate-dim);
+  border-radius: var(--radius);
   padding: 2px;
   cursor: pointer;
 }
 
-.selectSeq.selected {
-  background-color: var(--white-highlight);
-  color: #000;
+/* an arrangement's meter, when it isn't 4/4 */
+.selectSeq[data-meter]::after {
+  content: attr(data-meter);
+  margin-left: 2px;
+  font-size: 9px;
+  font-weight: 400;
+  vertical-align: super;
+  color: var(--slate-dim);
 }
 
-.selectSeq.sqlA.selected {
-  background-color: #2a9d8f;
+.selectSeq.selected {
+  background-color: var(--slate-raise);
+  box-shadow: inset 0 0 0 1px var(--select);
+  color: var(--text-base-color);
+  font-weight: 600;
 }
-.selectSeq.sqlB.selected {
-  background-color: #e9c46a;
-}
-.selectSeq.sqlC.selected {
-  background-color: #f4a261;
-}
-.selectSeq.sqlD.selected {
-  background-color: #e76f51;
-}
+
 
 .selectSeq.pending {
   animation: seqLayerPending 100ms infinite alternate ease-out;
@@ -2380,31 +3319,18 @@ body.running .seqprogress.drum .lane-cursor {
 
 @keyframes seqLayerPending {
   0% {
-    background-color: var(--bg-topbar-button);
+    background-color: transparent;
   }
   100% {
     background-color: var(--brighter-1);
   }
 }
 
-.tb-button {
-  background-color: var(--bg-topbar-button);
-  display: block;
-  text-align: center;
-  cursor: pointer;
-  padding: 2px 4px;
-  border-radius: 4px;
-}
-
-.tb-button:hover,
 .selectSeq:not(.selected):hover {
-  background-color: var(--brighter-1);
-  color: var(--brighter-2);
+  background-color: var(--brighter-0);
+  color: var(--brighter-4);
 }
 
-#deleteallzones.tb-button:hover {
-  background-color: var(--red-highlight);
-}
 
 .tb-label {
   display: flex;
@@ -2412,7 +3338,7 @@ body.running .seqprogress.drum .lane-cursor {
   gap: 4px;
   cursor: pointer;
   padding: 2px 4px;
-  border-radius: 4px;
+  border-radius: var(--radius);
   margin-left: 4px;
 }
 
@@ -2432,45 +3358,41 @@ body.running .seqprogress.drum .lane-cursor {
   background-color: var(--brighter-1);
 }
 
-/* Key switch help button */
+/* Key switch help button: a quiet hint next to its checkbox */
 .ks-help-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  background: var(--brighter-1);
-  border: 1px solid var(--brighter-2);
-  border-radius: 50%;
-  color: var(--brighter-3);
-  font-size: 10px;
-  font-weight: 700;
+  width: 14px;
+  height: 14px;
+  background: none;
+  border: 1px solid var(--brighter-1);
+  color: var(--brighter-2);
+  font-size: var(--fs-sm);
+  font-weight: 600;
   line-height: 1;
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
   transition:
-    background 80ms,
+    border-color 80ms,
     color 80ms;
 }
 
 .ks-help-btn:hover {
-  background: var(--brighter-2);
+  border-color: var(--brighter-2);
   color: var(--brighter-4);
 }
 
-/* Key switch help overlay */
+/* Key switch help overlay; the inline script in index.html places it below #keySwitchHelp. */
 #keySwitchHelpOverlay {
   position: fixed;
-  bottom: 36px;
-  right: 12px;
-  z-index: 200;
+  top: 0;
+  left: 0;
+  z-index: var(--z-overlay);
   background-color: var(--bg-topbar);
   border: 1px solid var(--border-topbar);
-  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.7);
-  border-radius: 4px;
-  padding: 8px 10px 10px;
-  font-size: 11px;
+  box-shadow: 0 4px 24px var(--shadow-overlay);
+  border-radius: var(--radius-lg);
+  padding: 10px 14px 12px;
+  font-size: var(--fs-sm);
   color: var(--text-base-color);
   display: none;
   min-width: 400px;
@@ -2480,40 +3402,48 @@ body.running .seqprogress.drum .lane-cursor {
   display: block;
 }
 
+/* the title bar of a panel: edge to edge like the editors' bar, sentence case */
 .kshelp-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid var(--brighter-1);
+  margin: -10px -14px 10px;
+  padding: 6px 8px 6px 14px;
+  min-height: 34px;
+  box-sizing: border-box;
+  background-color: var(--bg-topbar-button);
+  border-bottom: 1px solid var(--darker-3);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 
 .kshelp-title {
-  font-size: 11px;
+  font-size: var(--fs-md);
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--brighter-3);
+  color: var(--text-base-color);
 }
 
 .kshelp-close {
   background: none;
   border: none;
+  border-radius: var(--radius);
   color: var(--brighter-2);
   cursor: pointer;
   padding: 0;
+  width: 22px;
+  height: 22px;
   display: flex;
   align-items: center;
+  justify-content: center;
   line-height: 1;
 }
 
 .kshelp-close:hover {
   color: var(--brighter-4);
+  background-color: var(--brighter-1);
 }
 
 .kshelp-close .material-icons {
-  font-size: 14px;
+  font-size: var(--icon-md);
 }
 
 .kshelp-grid {
@@ -2525,29 +3455,18 @@ body.running .seqprogress.drum .lane-cursor {
   flex: 1;
 }
 
+/* column headings like the Mackie help's; mute in its red, as on the M chips */
 .kshelp-group {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  padding: 2px 4px;
-  border-radius: 2px;
-  margin-bottom: 4px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--brighter-3);
+  margin-bottom: 3px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid var(--brighter-1);
 }
 
 .kshelp-mute {
-  background: rgba(196, 0, 0, 0.35);
-  color: #ff9999;
-}
-
-.kshelp-seq {
-  background: rgba(0, 140, 130, 0.35);
-  color: #7de8e0;
-}
-
-.kshelp-arr {
-  background: rgba(180, 130, 0, 0.35);
-  color: #f0c84a;
+  color: var(--mute-highlight);
 }
 
 .kshelp-row {
@@ -2563,8 +3482,8 @@ body.running .seqprogress.drum .lane-cursor {
 }
 
 .kshelp-num {
-  font-family: monospace;
-  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-sm);
   color: var(--brighter-2);
   min-width: 16px;
   flex-shrink: 0;
@@ -2572,8 +3491,8 @@ body.running .seqprogress.drum .lane-cursor {
 }
 
 .kshelp-note {
-  font-family: monospace;
-  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-sm);
   color: var(--brighter-3);
   min-width: 38px;
   flex-shrink: 0;
@@ -2581,7 +3500,197 @@ body.running .seqprogress.drum .lane-cursor {
 
 .kshelp-action {
   color: var(--brighter-2);
-  font-size: 10px;
+  font-size: var(--fs-sm);
+}
+
+#presetSaveDialog,
+#presetManageDialog {
+  background-color: var(--bg-topbar);
+  border: 1px solid var(--border-topbar);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 24px var(--shadow-overlay);
+  color: var(--text-base-color);
+  font-size: var(--fs-md);
+  padding: 10px 14px 12px;
+  width: min(360px, calc(100vw - 32px));
+}
+#presetManageDialog {
+  width: min(480px, calc(100vw - 32px));
+}
+#presetSaveDialog::backdrop,
+#presetManageDialog::backdrop {
+  background: var(--darker-3);
+}
+#presetSaveDialog form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+#presetSaveDialog label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--brighter-3);
+  font-size: var(--fs-sm);
+}
+#presetSaveDialog input,
+#presetSaveDialog textarea {
+  font: inherit;
+  font-size: var(--fs-md);
+  color: var(--text-base-color);
+  background-color: var(--bg-select-window);
+  border: 1px solid var(--brighter-1);
+  border-radius: var(--radius);
+  padding: 3px 5px;
+  text-align: left;
+  width: auto;
+}
+#presetSaveDialog textarea {
+  resize: vertical;
+}
+.preset-manager-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: min(60vh, 480px);
+  overflow-y: auto;
+  margin: 8px 0;
+}
+.preset-manager-list .mckhelp-heading {
+  margin-top: 8px;
+}
+.preset-manager-list .mckhelp-heading:first-child {
+  margin-top: 0;
+}
+.preset-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 0 1px 4px;
+  border-radius: var(--radius);
+}
+.preset-row:hover {
+  background-color: var(--brighter-0);
+}
+.preset-row-name {
+  flex-grow: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.preset-row-badge {
+  font-size: var(--fs-sm);
+  color: var(--brighter-2);
+  border: 1px solid var(--brighter-1);
+  border-radius: var(--radius);
+  padding: 0 4px;
+}
+.preset-row-info {
+  font-size: var(--fs-sm);
+  color: var(--brighter-2);
+  white-space: nowrap;
+}
+.preset-row-action {
+  display: inline-flex;
+  color: var(--brighter-3);
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  padding: 2px;
+  cursor: pointer;
+}
+.preset-row-action:hover {
+  color: var(--brighter-4);
+  background-color: var(--brighter-1);
+}
+.preset-row-action.warn:hover {
+  background-color: var(--danger-soft);
+  color: var(--brighter-4);
+}
+.preset-row-action .material-icons {
+  font-size: var(--icon-md);
+}
+.preset-dialog-buttons button:disabled {
+  opacity: 0.4;
+}
+.preset-dialog-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 4px;
+}
+.preset-dialog-buttons button {
+  font: inherit;
+  color: var(--fg-topbar-button);
+  background-color: var(--bg-topbar-button);
+  border: none;
+  border-radius: var(--radius);
+  padding: 3px 12px;
+}
+.preset-dialog-buttons button.primary {
+  color: var(--fg-topbar-button-active);
+  background-color: var(--bg-topbar-button-active);
+}
+
+#mackieHelpOverlay {
+  position: fixed;
+  bottom: 36px;
+  left: 12px;
+  z-index: var(--z-overlay);
+  background-color: var(--bg-topbar);
+  border: 1px solid var(--border-topbar);
+  box-shadow: 0 4px 24px var(--shadow-overlay);
+  border-radius: var(--radius-lg);
+  padding: 10px 14px 12px;
+  font-size: var(--fs-sm);
+  color: var(--text-base-color);
+  display: none;
+  min-width: 340px;
+}
+
+#mackieHelpOverlay.open {
+  display: block;
+}
+
+.mckhelp-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mckhelp-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mckhelp-heading {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--brighter-3);
+  margin-bottom: 3px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid var(--brighter-1);
+}
+
+.mckhelp-row {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 1px 0;
+}
+
+.mckhelp-ctrl {
+  min-width: 80px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--brighter-4);
+  flex-shrink: 0;
+}
+
+.mckhelp-action {
+  color: var(--brighter-2);
+  font-size: var(--fs-sm);
 }
 
 #contextmenu {
@@ -2589,15 +3698,26 @@ body.running .seqprogress.drum .lane-cursor {
   display: none;
   padding: 2px;
   background-color: var(--bg-contextmenu);
+  border: 1px solid var(--slate-edge);
+  border-radius: var(--radius-lg);
   color: var(--text-contextmenu-color);
-  font-size: 12px;
+  font-size: var(--fs-md);
   margin: 0;
-  z-index: 2;
+  z-index: var(--z-menu);
   width: 200px;
+  /* long menus (Transpose) scroll instead of running off a short window */
+  max-height: calc(100vh - 8px);
+  overflow-y: auto;
 }
 #contextmenu li {
   margin: 2px 0;
   padding: 2px;
+}
+
+/* an icon's room on every entry, so a ✓ (meters, selector values) doesn't push its entry out of line */
+#contextmenu li > .material-icons:first-child {
+  display: inline-block;
+  width: 1em;
 }
 
 #contextmenu li.disabled,
@@ -2617,6 +3737,96 @@ body.running .seqprogress.drum .lane-cursor {
   border-top: 1px solid var(--darker-2);
 }
 
+/* device presets: maker headings, then a row per device with its presets as chips */
+#contextmenu.cc-presets-menu {
+  width: 450px;
+}
+#contextmenu.cc-presets-menu li.label {
+  font-style: normal;
+  font-size: var(--fs-sm);
+  color: var(--brighter-2);
+  padding: 4px 6px 0;
+}
+#contextmenu li.meter-other {
+  padding: 4px 2px;
+}
+#contextmenu li.meter-other:hover {
+  background: none;
+}
+#contextmenu .meter-input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 24px;
+  padding: 0 6px;
+  background-color: var(--slate-raise);
+  border: 1px solid var(--slate-line);
+  border-radius: var(--radius);
+  color: var(--text-base-color);
+  font: inherit;
+}
+#contextmenu .meter-input::placeholder {
+  color: var(--slate-dim);
+}
+
+#contextmenu li.heading {
+  font-size: var(--fs-sm);
+  color: var(--brighter-2);
+  padding: 8px 6px 2px;
+  border-bottom: 1px solid var(--brighter-1);
+  pointer-events: none;
+}
+#contextmenu li.cc-preset-device {
+  display: grid;
+  grid-template-columns: 104px 1fr;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 6px;
+  pointer-events: none;
+}
+#contextmenu li.cc-preset-device:hover {
+  background: none;
+  color: inherit;
+}
+.cc-preset-device-name {
+  font-weight: 600;
+}
+.cc-preset-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+.cc-preset-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: var(--brighter-1);
+  font-size: var(--fs-sm);
+  line-height: 18px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.cc-preset-chip i.material-icons {
+  font-size: 12px;
+}
+/* your own presets: dashed edge */
+.cc-preset-chip.user {
+  border: 1px dashed var(--brighter-2);
+}
+/* "Add all": an outline, not a preset */
+.cc-preset-chip.all {
+  background: none;
+  border-color: var(--brighter-1);
+  color: var(--brighter-3);
+}
+.cc-preset-chip:hover,
+.cc-preset-chip.linked {
+  background: var(--text-contextmenu-color);
+  color: var(--bg-contextmenu);
+}
+
 .contextMenuTrigger {
   outline: 2px solid var(--brighter-2);
   outline-offset: 2px;
@@ -2631,18 +3841,29 @@ body.running .seqprogress.drum .lane-cursor {
    DRUM SEQUENCER
    ============================================================= */
 
-.seq_drum_tracks::after {
-  content: 'Notes';
+/* mode switch: both modes are named, the current one lit like the octave's segment
+   (a setting, so the on fill, not amber) */
+.seq_drum_tracks {
+  display: inline-flex;
+  padding: 0;
+  overflow: hidden;
+  font-size: var(--fs-sm);
+}
+.seq_drum_tracks span {
+  padding: 2px 5px;
+  color: var(--brighter-2);
+  cursor: pointer;
+}
+.seq_drum_tracks span + span {
+  border-left: 1px solid var(--slate-line);
+}
+.zone:not(.drumSequencer) .seq_drum_tracks .mode-notes,
+.drumSequencer .seq_drum_tracks .mode-drums {
+  background-color: var(--on);
+  color: var(--on-text);
 }
 
 .drumSequencer {
-  .seq_drum_tracks {
-    background-color: var(--brighter-1);
-    color: var(--text-base-color);
-  }
-  .seq_drum_tracks::after {
-    content: 'Drums';
-  }
   .step-container {
     display: none;
   }
@@ -2718,7 +3939,7 @@ body.running .seqprogress.drum .lane-cursor {
     top: 0;
     width: 10px;
     height: calc(var(--drum-lanes, 12) * 100%);
-    font-size: 24px;
+    font-size: var(--icon-lg);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2748,14 +3969,14 @@ body.running .seqprogress.drum .lane-cursor {
     line-height: 18px;
     border: none;
     color: inherit;
-    font-size: 10px;
+    font-size: var(--fs-sm);
     padding: 0 2px;
     outline: none;
     font-family: inherit;
   }
 
   .lane-ctrl-label {
-    font-size: 10px;
+    font-size: var(--fs-sm);
   }
   .lane-len-wrap input {
     width: 34px;
@@ -2770,7 +3991,7 @@ body.running .seqprogress.drum .lane-cursor {
     align-items: center;
     gap: 2px;
     margin-left: 4px;
-    font-size: 12px;
+    font-size: var(--fs-md);
     flex-shrink: 0;
   }
   .lane-toolbar .action {
@@ -2781,7 +4002,7 @@ body.running .seqprogress.drum .lane-cursor {
     height: 18px;
     min-width: 18px;
     padding: 0;
-    font-size: 12px;
+    font-size: var(--fs-md);
     cursor: pointer;
   }
   .lane-toolbar .action:hover {
@@ -2814,7 +4035,7 @@ body.running .seqprogress.drum .lane-cursor {
     display: none;
   }
   .seq .step-info .note {
-    border-radius: 4px;
+    border-radius: var(--radius);
   }
   .seq .step-info .note.black {
     background-color: inherit;
@@ -2853,25 +4074,6 @@ body.running .seqprogress.drum .lane-cursor {
   display: none;
 }
 
-.drumSequencer .seq .grid .step.active {
-  position: relative;
-  overflow: hidden;
-}
-.drumSequencer .seq .grid .step.active::before {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: calc(var(--velo, 0.75) * 100%);
-  background: rgba(255, 255, 255, 0.22);
-  pointer-events: none;
-}
-
-.seq .grid .step.active[data-rc] {
-  outline: 1.5px dashed var(--brighter-3);
-  outline-offset: -1.5px;
-}
 
 .step-controls.ratchet-off .ratchet-param {
   opacity: 0.3;
@@ -2884,11 +4086,6 @@ body.running .drumSequencer .lane-expand-toggle {
   opacity: 0.2;
 }
 
-.drum-lane .seq_toggle_lane_enabled .sel,
-.drum-lane .seq_toggle_lane_enabled .unsel {
-  margin-right: 0;
-  font-size: 14px;
-}
 .drum-lane.soloed-out {
   opacity: 0.2;
 }
@@ -2901,9 +4098,9 @@ body.running .drumSequencer .lane-expand-toggle {
   align-items: center;
   gap: 6px;
   padding: 3px 8px;
-  background: #1a2a2a;
-  border: 1px solid #3a5a5a;
-  border-radius: 4px;
+  background: var(--slate-raise);
+  border: 1px solid var(--slate-edge);
+  border-radius: var(--radius-lg);
   z-index: 10;
   white-space: nowrap;
 }
@@ -2917,8 +4114,2286 @@ body.running .drumSequencer .lane-expand-toggle {
   width: 80px;
 }
 .euc-panel .euc-val {
-  font-size: 11px;
+  font-size: var(--fs-sm);
   min-width: 16px;
   text-align: right;
   opacity: 0.7;
+}
+
+/* =============================================================
+   EDITOR SHEETS: the full-window panels (piano roll, controller
+   editor) and their shared header (viewcontroller/editor-sheet.ts)
+   ============================================================= */
+
+.editor-sheet {
+  position: fixed;
+  inset: 24px;
+  z-index: var(--z-overlay-top);
+  display: none;
+  flex-direction: column;
+  background-color: var(--bg-topbar);
+  border: 1px solid var(--zone-color);
+  /* the second shadow dims the app: a click there closes the panel like Done */
+  box-shadow: 0 4px 24px var(--shadow-overlay), 0 0 0 100vmax rgba(0, 0, 0, 0.55);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  color: var(--text-base-color);
+  font-size: var(--fs-md);
+}
+.editor-sheet.open {
+  display: flex;
+}
+
+.es-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 6px 8px 6px 14px;
+  background-color: var(--zone-surface);
+  border-bottom: 1px solid var(--darker-3);
+}
+.es-title {
+  font-weight: 600;
+  white-space: nowrap;
+}
+.es-zone {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  min-width: 0;
+  max-width: 20rem;
+  padding: 0 10px 0 8px;
+  border-radius: var(--radius);
+  background-color: var(--darker-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.es-zone::before {
+  content: '';
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--zone-color);
+}
+.es-sep {
+  width: 1px;
+  align-self: stretch;
+  margin: 4px 4px;
+  background-color: var(--brighter-1);
+}
+.es-grow {
+  flex: 1;
+}
+
+/* :is() with the ids, so these beat the panels' own `#ccEditor button` rules */
+:is(#ccEditor, #pianoRollOverlay) .es-bar :is(button, .es-button) {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  margin: 0;
+  padding: 0 8px;
+  border: none;
+  border-radius: var(--radius);
+  background-color: transparent;
+  color: var(--text-base-color);
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+:is(#ccEditor, #pianoRollOverlay) .es-bar :is(button, .es-button):hover:not(:disabled) {
+  background-color: var(--darker-1);
+}
+:is(#ccEditor, #pianoRollOverlay) .es-bar button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+:is(#ccEditor, #pianoRollOverlay) .es-bar .material-icons {
+  font-size: var(--icon-md);
+}
+.es-bar .cc-preset-name {
+  max-width: 24rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.es-undo .es-step {
+  max-width: 18ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--brighter-3);
+}
+
+/* Play / stop mirrors the toolbar's Start button; hidden while an external clock leads */
+:is(#ccEditor, #pianoRollOverlay) .es-bar .es-play {
+  background-color: var(--darker-1);
+}
+.es-play::before {
+  content: 'play_arrow';
+  font-family: 'Material Icons';
+  font-size: var(--icon-md);
+  font-feature-settings: 'liga';
+}
+.es-play::after {
+  content: 'Play';
+}
+body.running .es-play::before {
+  content: 'stop';
+}
+body.running .es-play::after {
+  content: 'Stop';
+}
+body.running :is(#ccEditor, #pianoRollOverlay) .es-bar .es-play {
+  background-color: color-mix(in srgb, var(--live) 30%, var(--darker-1));
+}
+body:has(.clocksettings.isExternal) .es-play,
+body:has(.clocksettings.isExternal) .es-play + .es-sep {
+  display: none;
+}
+
+/* Done is the one outlined control: the way back, edits are already applied */
+:is(#ccEditor, #pianoRollOverlay) .es-bar .es-done {
+  height: 26px; /* the bar's button size; the outline sets it apart */
+  margin-left: 2px;
+  padding: 0 12px;
+  border-radius: var(--radius);
+  /* like xr18's Close: outlined in the text colour, raised on hover */
+  background-color: transparent;
+  box-shadow: inset 0 0 0 1px var(--text-base-color);
+  color: var(--text-base-color);
+  font-weight: 600;
+}
+/* as specific as the bar's shared hover, which would otherwise win; a light
+   tint, since the bar's zone tint is as dark as raised slate */
+:is(#ccEditor, #pianoRollOverlay) .es-bar .es-done:hover:not(:disabled) {
+  background-color: var(--hover-tint);
+}
+:is(#ccEditor, #pianoRollOverlay) .es-bar .es-done:active:not(:disabled) {
+  background-color: var(--brighter-1);
+}
+:is(#ccEditor, #pianoRollOverlay) .es-bar button:focus-visible {
+  outline: 1px solid var(--brighter-4);
+}
+
+/* Piano roll editor */
+#pianoRollOverlay {
+  --zone-color: var(--zone-2);
+  --zone-surface: var(--zone-surface-2);
+}
+
+.pr-main-scroll {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+}
+.pr-main-scroll::-webkit-scrollbar-corner {
+  background-color: var(--darker-3);
+}
+
+.pr-rows {
+  display: flex;
+  align-items: flex-start;
+}
+
+.pr-keys {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  width: 56px;
+  flex-shrink: 0;
+  background-color: var(--bg-topbar);
+  border-right: 1px solid var(--darker-4);
+}
+
+.pr-key {
+  position: absolute;
+  left: 0;
+  right: 0;
+  box-sizing: border-box;
+  /* dark enough that neighbouring white keys (E/F, B/C) stay two keys */
+  border-bottom: 1px solid var(--darker-4);
+  background-color: var(--brighter-1);
+  font-size: var(--fs-sm);
+  color: var(--darker-4);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 4px;
+  cursor: pointer;
+}
+
+.pr-key.black {
+  background-color: var(--darker-4);
+}
+
+.pr-key.labeled {
+  color: var(--brighter-3);
+  font-weight: 600;
+}
+
+.pr-key:hover,
+.pr-key.cursor-row {
+  background-color: var(--zone-color);
+  color: var(--darker-4);
+}
+
+.pr-grid {
+  position: relative;
+  flex-shrink: 0;
+  background-color: var(--darker-3);
+  /* Row lines sit on the bottom pixel of each row, like .pr-key's border.
+     C line: 168px tiles (12 rows) offset so a tile ends at the bottom of C9
+     (row 8 from the top, 8 * 14px = 112px). */
+  background-image:
+    linear-gradient(to bottom, transparent calc(12 * 14px - 1px), var(--brighter-2) 0),
+    repeating-linear-gradient(
+      to right,
+      var(--brighter-1) 0 1px,
+      transparent 1px calc(4 * var(--pr-cell-w, 24px))
+    ),
+    repeating-linear-gradient(
+      to right,
+      var(--darker-1) 0 1px,
+      transparent 1px var(--pr-cell-w, 24px)
+    ),
+    linear-gradient(to bottom, transparent calc(14px - 1px), var(--brighter-0) 0),
+    /* black-key rows a shade darker; the tile runs B…C from the top, like the C line's */
+    linear-gradient(
+      to bottom,
+      transparent 0 14px,
+      var(--darker-2) 14px 28px,
+      transparent 28px 42px,
+      var(--darker-2) 42px 56px,
+      transparent 56px 70px,
+      var(--darker-2) 70px 84px,
+      transparent 84px 112px,
+      var(--darker-2) 112px 126px,
+      transparent 126px 140px,
+      var(--darker-2) 140px 154px,
+      transparent 154px
+    );
+  background-size:
+    100% calc(12 * 14px),
+    auto,
+    auto,
+    100% 14px,
+    100% calc(12 * 14px);
+  background-position:
+    0 calc(8 * 14px),
+    0 0,
+    0 0,
+    0 0,
+    0 calc(8 * 14px);
+  cursor: copy;
+}
+
+.pr-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background-color: var(--zone-color);
+  opacity: 0.18;
+  pointer-events: none;
+  display: none;
+}
+
+.pr-notes {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* Selection box: drag on empty grid */
+.pr-box {
+  display: none;
+  position: absolute;
+  z-index: 3;
+  border: 1px solid var(--zone-color);
+  background-color: color-mix(in srgb, var(--zone-color) 14%, transparent);
+  pointer-events: none;
+}
+
+/* Notes are shaded by velocity and carry the step grid's marks: a die at the
+   right end for chance < 100%, a corner triangle for a play condition, ticks for
+   ratchet. */
+.pr-note {
+  position: absolute;
+  height: 12px;
+  border-radius: var(--radius-sm);
+  background-color: color-mix(
+    in srgb,
+    var(--zone-color) calc(30% + var(--velo, 0.78) * 70%),
+    var(--bg-topbar)
+  );
+  border: 1px solid var(--darker-4);
+  cursor: move;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.pr-note .chance-mark {
+  display: none;
+  position: absolute;
+  top: 0;
+  right: 2px;
+  font-size: 10px;
+  line-height: 10px;
+  width: 10px;
+  height: 10px;
+  color: var(--ink);
+  pointer-events: none;
+}
+.pr-note[data-chance] .chance-mark {
+  display: block;
+}
+/* in front of the condition triangle */
+.pr-note[data-chance][data-cond] .chance-mark {
+  right: 8px;
+}
+
+.pr-note[data-cond]::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 7px;
+  height: 7px;
+  background: var(--ink);
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+  pointer-events: none;
+}
+
+.pr-note[data-rc]::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  bottom: 1px;
+  width: calc(var(--rc) * var(--rc-pitch, 3px) - 1px);
+  height: 2px;
+  background: repeating-linear-gradient(
+    to right,
+    var(--ink) 0 calc(var(--rc-pitch) - 1px),
+    transparent 0 var(--rc-pitch)
+  );
+  pointer-events: none;
+}
+
+.pr-note.cond-skips {
+  opacity: 0.45;
+}
+.pr-note[data-cond].cond-plays::after {
+  background: var(--live);
+}
+
+/* step numbers above the grid, sticky while scrolling vertically */
+.pr-step-header {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  width: max-content;
+  min-width: 100%;
+  height: 18px;
+  background-color: var(--bg-topbar);
+  border-bottom: 1px solid var(--darker-4);
+}
+
+.pr-corner {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  width: 56px;
+  flex-shrink: 0;
+  background-color: var(--bg-topbar);
+  border-right: 1px solid var(--darker-4);
+}
+
+.pr-step-numbers {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.pr-step {
+  position: relative;
+  width: var(--pr-cell-w, 24px);
+  padding-left: 3px;
+  font-size: 9px;
+  line-height: 18px;
+  color: var(--brighter-1);
+}
+
+.pr-step.beat {
+  color: var(--brighter-3);
+  border-left: 1px solid var(--brighter-1);
+}
+
+.pr-step.playhead {
+  box-shadow: inset 0 3px 0 var(--live);
+}
+
+/* sounding while the sequence runs */
+.pr-note.sounding {
+  border-color: var(--live);
+  box-shadow: 0 0 6px 1px var(--live);
+}
+
+.pr-note.selected {
+  outline: 2px solid var(--multiselect-highlight);
+}
+
+.pr-note-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: ew-resize;
+}
+
+.pr-velocity-scroll {
+  display: flex;
+  height: 80px;
+  flex-shrink: 0;
+  border-top: 1px solid var(--brighter-0);
+  background-color: var(--darker-3);
+}
+
+.pr-velocity-gutter {
+  width: 56px;
+  flex-shrink: 0;
+  padding: 4px 4px 0 0;
+  text-align: right;
+  font-size: var(--fs-sm);
+  color: var(--brighter-2);
+  background-color: var(--bg-topbar);
+  border-right: 1px solid var(--darker-4);
+}
+
+.pr-velocity-scroll-inner {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.pr-velocity-lane {
+  position: relative;
+  height: 100%;
+}
+
+.pr-vbar {
+  position: absolute;
+  bottom: 0;
+  background-color: var(--zone-color);
+  border-radius: 1px 1px 0 0;
+  cursor: ns-resize;
+}
+
+/* The zone's step editor for the steps of the selected notes: moved in from the
+   zone (piano-roll.ts) and shown as there, on the zone's surface at the zone's width */
+.pr-steps.zone {
+  flex-shrink: 0;
+  width: auto;
+  min-width: 0;
+  padding: 2px 8px 8px;
+  border-top: 1px solid var(--darker-3);
+  border-radius: 0;
+  box-shadow: none;
+}
+.pr-steps.zone[hidden] {
+  display: none;
+}
+.pr-steps .step-info {
+  width: calc(560px - 16px);
+  max-width: 100%;
+}
+/* tighter than in the zone, to leave the grid its height: rows closer together, and
+   Apply to all (alone in its row once the zone-only buttons are hidden) moves up
+   beside the ratchet settings; the Locks row, when shown, goes last */
+.pr-steps .seq.has-selection .step-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  padding-top: 3px;
+  padding-bottom: 3px;
+}
+.pr-steps .step-info > .step-controls {
+  flex: 1 0 100%;
+  margin-bottom: 2px;
+  padding-bottom: 2px;
+}
+.pr-steps .step-info > .step-controls:has(.seq_step_ratchet_count) {
+  flex: 1 1 auto;
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+.pr-steps .step-info > .step-controls:last-child {
+  flex: 0 0 auto;
+}
+.pr-steps .step-info > .step-locks {
+  order: 1;
+  margin: 2px 0 0;
+  padding: 2px 0 0;
+  border-top: 1px solid var(--brighter-1);
+  border-bottom: none;
+}
+.pr-steps .step-notes {
+  min-height: 22px;
+  padding: 0 2px;
+}
+/* step navigation, clearing and note input belong to the zone's grid; the piano roll
+   has its own arrows, Delete and mouse input */
+.pr-steps.zone [data-action*=':seq_step_move:'],
+.pr-steps.zone [data-action$=':seq_clear_selected_step'],
+.pr-steps.zone .seq-step-add-notes,
+.pr-steps.zone .seq-step-advance {
+  display: none;
+}
+/* the knobs that set locks are behind the panel: the row only lists existing ones */
+.pr-steps.zone .step-locks:not(.has-locks) {
+  display: none;
+}
+
+/* =============================================================
+   MINIMIZED VIEW  (body.minimized)
+   2-column grid of compact blocks: mute/solo/seq/arp toggles + label
+   ============================================================= */
+
+body.minimized #midisettings > :is(#setupToggle, .global-resets, #setupDrawer),
+body.minimized #midisettings .strip-end > :is(#midiPanic, .history, .zoom, .viewmode),
+body.minimized #midisettings .transport > :is(#metroClick, #metroCountIn),
+body.minimized .zone > :not(.channels),
+body.minimized .zone .channels > :not(.state):not(.solo):not(.showseq):not(.showarp):not(.zone-label):not(.midi-led),
+body.minimized .zone.placeholder,
+body.minimized .zone.addnewzone {
+  /* !important: mini view hides these over any zone state rule (e.g. .zone.disabled.show-seq .seq) */
+  display: none !important;
+}
+
+body.minimized #midisettings {
+  position: static;
+  height: auto;
+  justify-content: space-between;
+}
+
+
+body.minimized .padded {
+  padding: 4px;
+}
+
+body.minimized #zones {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 4px;
+  min-height: 0;
+  margin-bottom: 8px;
+}
+
+body.minimized .zone {
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  margin: 0;
+  padding: 4px;
+  gap: 0;
+}
+
+body.minimized .channels {
+  margin-bottom: 0;
+  gap: 4px;
+}
+
+body.minimized #arrangementSelector .selectSeq {
+  width: 32px;
+}
+
+body.minimized {
+  min-width: 0;
+  margin: 0;
+}
+
+body.minimized #toast {
+  left: calc(50% - 140px);
+  right: auto;
+  transform: translateY(150%);
+}
+
+body.minimized #toast.fade {
+  transform: translateY(0);
+}
+
+body.minimized #toast.bump {
+  animation-name: toast-bump-centered;
+}
+
+@keyframes toast-bump-centered {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  40% {
+    transform: translateY(0) scale(1.06);
+  }
+}
+
+.midi-led {
+  display: none;
+}
+
+body.minimized .midi-led {
+  display: block;
+  flex: 0 0 8px;
+  align-self: center;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #0a2a14;
+  box-shadow: inset 0 0 2px #00000080;
+}
+
+body.minimized .midi-led.on {
+  background-color: var(--live);
+  box-shadow: 0 0 6px 1px var(--live);
+}
+
+/* =============================================================
+   CONTRAST: "ON" CHIPS
+   An "on" chip is a light fill, so it carries a dark glyph; "off"
+   chips keep a dark fill with light glyphs. Holds on every zone color.
+   ============================================================= */
+
+.zone:not(.disabled) .ch.selected,
+.zone.show-cc .channels .ch.showccs,
+.zone:not(.disabled).show-seq .ch.showseq {
+  color: var(--ink);
+}
+
+
+/* =============================================================
+   CONTRAST: BOUNDARIES THAT IDENTIFY A CONTROL (>= 3:1)
+   ============================================================= */
+
+#midisettings input#bpm {
+  border-color: var(--brighter-2);
+}
+
+/* =============================================================
+   NARROW WINDOWS: TOP BAR IN TWO ROWS
+   Row 1: setup chip (takes the free space), mini view, Panic.
+   Row 2: resets, A-D, start/BPM. Panic is always reachable.
+   ============================================================= */
+
+@media (max-width: 1040px) {
+  body:not(.minimized) #midisettings {
+    height: auto;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    row-gap: 6px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+
+  body:not(.minimized) #midisettings::after {
+    content: '';
+    order: 2;
+    flex: 0 0 100%;
+    height: 0;
+  }
+
+  /* what you play with first (M S H, A–D, Start), then Setup and the tools,
+     right above the drawer Setup opens */
+  body:not(.minimized) #midisettings .global-resets,
+  body:not(.minimized) #midisettings #arrangementSelector,
+  body:not(.minimized) #midisettings .transport {
+    order: 1;
+  }
+
+  body:not(.minimized) #setupToggle {
+    order: 3;
+  }
+
+  body:not(.minimized) #midisettings .strip-end {
+    order: 3;
+    margin-left: auto;
+  }
+}
+
+/* a button that opens a menu of actions (Transpose, Adjust, Apply to all) */
+.menu-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 2px 0 6px;
+}
+.menu-button .material-icons {
+  font-size: var(--icon-md);
+}
+
+/* arp rows stay on one line: the sliders give up width before anything wraps */
+.arp-settings:has(.percent-holder) {
+  flex-wrap: nowrap;
+}
+.arp-settings .percent-holder {
+  flex: 0 1 96px;
+  min-width: 64px;
+}
+.arp-settings .percent-holder input.percent {
+  width: 100%;
+  min-width: 0;
+}
+
+.seq_record_live .material-icons {
+  color: var(--danger);
+}
+.liveRecording .seq_record_live .material-icons {
+  color: var(--brighter-4);
+}
+
+/* =============================================================
+   CONTROLLER EDITOR  (full-window panel, like the piano roll)
+   ============================================================= */
+
+#ccEditor {
+  --cce-accent: var(--zone-color);
+  --cce-row-h: 26px;
+  outline: none;
+}
+#ccEditor [hidden] {
+  display: none !important;
+}
+#ccEditor input,
+#ccEditor select {
+  height: 24px;
+  margin: 0;
+  padding: 0 6px;
+  border: 1px solid var(--darker-3);
+  border-radius: var(--radius);
+  background-color: var(--darker-2);
+  color: var(--text-base-color);
+  font: inherit;
+  user-select: text;
+}
+#ccEditor select {
+  padding-right: 20px;
+}
+#ccEditor input:focus,
+#ccEditor select:focus {
+  outline: 1px solid var(--cce-accent);
+  outline-offset: -1px;
+}
+#ccEditor input[type='number'] {
+  width: 64px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+#ccEditor button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 8px;
+  border: none;
+  border-radius: var(--radius);
+  background-color: var(--darker-1);
+  color: var(--text-base-color);
+  font: inherit;
+  cursor: pointer;
+}
+#ccEditor button:hover:not(:disabled) {
+  background-color: var(--brighter-0);
+}
+#ccEditor button:focus-visible,
+#ccEditor .cce-row:focus-visible {
+  outline: 1px solid var(--cce-accent);
+}
+#ccEditor button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+#ccEditor button .material-icons {
+  font-size: var(--icon-md);
+}
+#ccEditor button.warn:hover:not(:disabled) {
+  background-color: var(--red-highlight);
+}
+.cce-spacer {
+  flex: 1;
+}
+
+.cce-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 420px);
+}
+
+/* ---- controller list ---- */
+.cce-list-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--darker-3);
+}
+.cce-table {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+.cce-row {
+  display: grid;
+  grid-template-columns: 10px minmax(6em, 1.3fr) minmax(4.5em, 0.7fr) minmax(7em, 1fr) minmax(5em, 0.7fr) minmax(4.5em, 0.6fr);
+  gap: 10px;
+  align-items: center;
+  height: var(--cce-row-h);
+  padding: 0 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--darker-1);
+}
+.cce-rows .cce-row {
+  /* scrolled into view below the sticky column header */
+  scroll-margin-top: 24px;
+}
+.cce-row > span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.cce-row.cce-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  cursor: default;
+  height: 24px;
+  background-color: var(--bg-topbar);
+  color: var(--brighter-2);
+  font-size: var(--fs-sm);
+  border-bottom: 1px solid var(--darker-3);
+}
+.cce-rows .cce-row:hover {
+  background-color: var(--brighter-0);
+}
+.cce-rows .cce-row.selected {
+  background-color: var(--zone-surface);
+  box-shadow: inset 3px 0 0 var(--cce-accent);
+}
+.cce-row.spacer .cce-row-name {
+  color: var(--brighter-2);
+  font-style: italic;
+}
+.cce-row-type,
+.cce-row-range {
+  color: var(--brighter-3);
+}
+.cce-row-sends,
+.cce-row-range,
+.cce-row-in {
+  font-variant-numeric: tabular-nums;
+}
+.cce-row.dragging {
+  opacity: 0.4;
+}
+.cce-row.drop-before {
+  box-shadow: inset 0 2px 0 var(--cce-accent);
+}
+.cce-row.drop-after {
+  box-shadow: inset 0 -2px 0 var(--cce-accent);
+}
+.cce-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background-color: var(--cce-group, var(--darker-2));
+  box-shadow: 0 0 0 1px var(--brighter-0);
+}
+.cce-row.spacer .cce-swatch {
+  visibility: hidden;
+}
+#ccEditor [data-group='1'] { --cce-group: var(--group-surface-1); }
+#ccEditor [data-group='2'] { --cce-group: var(--group-surface-2); }
+#ccEditor [data-group='3'] { --cce-group: var(--group-surface-3); }
+#ccEditor [data-group='4'] { --cce-group: var(--group-surface-4); }
+.cce-empty {
+  padding: 24px 12px;
+  color: var(--brighter-2);
+}
+.cce-list-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--darker-3);
+}
+
+/* the zone's layout at 3/8 scale: 8 knobs per row, spacers half as wide */
+.cce-layout {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  width: 201px;
+  margin: 0 12px 12px;
+}
+.cce-mini {
+  width: 22px;
+  height: 26px;
+  margin: 1px;
+  border-radius: 2px;
+  background-color: var(--cce-group, var(--darker-2));
+  cursor: pointer;
+}
+.cce-mini[data-type='2'] {
+  width: 10px;
+  background-color: transparent;
+}
+.cce-mini.selected {
+  outline: 2px solid var(--cce-accent);
+  outline-offset: -1px;
+}
+
+/* ---- inspector ---- */
+.cce-inspector {
+  overflow-y: auto;
+  padding: 16px;
+  background-color: var(--bg-color-popup);
+}
+.cce-none {
+  display: none;
+  color: var(--brighter-2);
+}
+#ccEditor.cce-no-selection .cce-none {
+  display: block;
+}
+#ccEditor.cce-no-selection .cce-detail {
+  display: none;
+}
+.cce-hero {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.cce-hero-fields {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cce-hero-fields input,
+.cce-hero-fields select {
+  width: 100%;
+}
+.cce-knob {
+  position: relative;
+  flex-shrink: 0;
+  width: 128px;
+  height: 128px;
+  border-radius: var(--radius-lg);
+  background-color: var(--darker-2);
+  cursor: ns-resize;
+}
+#ccEditor .cce-knob {
+  --cce-accent: var(--brighter-4);
+}
+#ccEditor .cce-knob[data-group='1'] { --cce-accent: var(--group-1); }
+#ccEditor .cce-knob[data-group='2'] { --cce-accent: var(--group-2); }
+#ccEditor .cce-knob[data-group='3'] { --cce-accent: var(--group-3); }
+#ccEditor .cce-knob[data-group='4'] { --cce-accent: var(--group-4); }
+.cce-knob svg {
+  position: absolute;
+  left: 8px;
+  top: 4px;
+}
+.cce-knob-value-text {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 52px;
+  text-align: center;
+  font-size: var(--fs-lg);
+  font-variant-numeric: tabular-nums;
+}
+.cce-knob-name {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: 8px;
+  text-align: center;
+  font-size: var(--fs-sm);
+  color: var(--brighter-3);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.cce-button-preview {
+  flex-shrink: 0;
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(var(--button-rows, 3), 1fr);
+  grid-auto-columns: 1fr;
+  gap: 2px;
+  width: 128px;
+  height: 128px;
+  padding: 4px;
+  border-radius: var(--radius-lg);
+  background-color: var(--darker-2);
+}
+.cce-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.cce-field > span {
+  font-size: var(--fs-sm);
+  color: var(--brighter-2);
+}
+.cce-colours {
+  display: flex;
+  gap: 6px;
+}
+#ccEditor .cce-colour {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  background-color: var(--cce-group, var(--darker-2));
+  box-shadow: 0 0 0 1px var(--brighter-0);
+}
+#ccEditor .cce-colour:hover {
+  background-color: var(--cce-group, var(--darker-2));
+  box-shadow: 0 0 0 1px var(--brighter-2);
+}
+#ccEditor .cce-colour.selected {
+  box-shadow: 0 0 0 2px var(--brighter-4);
+}
+.cce-section {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--darker-3);
+}
+.cce-section h3 {
+  margin: 0 0 10px;
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+.cce-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 12px;
+}
+.cce-wide select,
+.cce-wide input {
+  width: 15rem;
+}
+.cce-hint {
+  margin: 8px 0 0;
+  font-size: var(--fs-sm);
+  color: var(--brighter-2);
+  max-width: 34rem;
+}
+#ccEditor .cce-check {
+  background-color: transparent;
+  padding: 0 4px;
+}
+#ccEditor .cce-learn.armed {
+  background-color: var(--cce-accent);
+  color: var(--darker-4);
+  animation: cceListening 1.2s ease-in-out infinite alternate;
+}
+@keyframes cceListening {
+  to {
+    filter: brightness(1.25);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #ccEditor .cce-learn.armed {
+    animation: none;
+  }
+}
+#ccEditor .cce-in.midi-learn-flash {
+  animation: midiLearnFlash 0.3s ease-out;
+}
+.cce-values-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+.cce-spread {
+  display: inline-flex;
+  gap: 6px;
+}
+#ccEditor .cce-spread input {
+  width: 48px;
+}
+.cce-values {
+  margin: 8px 0;
+}
+.cce-value-row {
+  display: grid;
+  grid-template-columns: 64px auto minmax(0, 1fr) 24px;
+  gap: 6px;
+  align-items: center;
+  padding: 2px 0 2px 6px;
+  box-shadow: inset 2px 0 0 transparent;
+}
+.cce-value-row.cce-current {
+  box-shadow: inset 2px 0 0 var(--cce-accent);
+}
+.cce-value-fixed {
+  text-align: right;
+  padding-right: 7px;
+  font-variant-numeric: tabular-nums;
+  color: var(--brighter-3);
+}
+.cce-value-sends {
+  font-size: var(--fs-sm);
+  color: var(--brighter-2);
+  white-space: nowrap;
+}
+#ccEditor .cce-value-row .cce-icon-button {
+  padding: 0;
+  justify-content: center;
+  background-color: transparent;
+}
+.cce-buttons-edit {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-flow: column;
+  grid-template-rows: repeat(4, auto);
+  gap: 4px 16px;
+  margin-top: 8px;
+}
+.cce-button-row {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) 56px;
+  gap: 6px;
+  align-items: center;
+}
+.cce-button-row input[type='text'] {
+  min-width: 0;
+}
+#ccEditor .cce-button-row input[type='number'] {
+  width: 56px;
+}
+.cce-button-number {
+  font-size: var(--fs-sm);
+  color: var(--brighter-2);
+  text-align: right;
+}
+
+@media (max-width: 820px) {
+  .editor-sheet {
+    inset: 8px;
+  }
+  .es-undo .es-step {
+    display: none;
+  }
+  .cce-body {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(160px, 40%) 1fr;
+  }
+  .cce-list-pane {
+    border-right: none;
+    border-bottom: 1px solid var(--darker-3);
+  }
+  .cce-layout {
+    display: none;
+  }
+}
+
+/* controller editor: sections */
+.cce-rows .cce-row.cce-section-row {
+  height: calc(var(--cce-row-h) + 6px);
+  padding-top: 6px;
+  font-weight: 600;
+  border-bottom-color: var(--darker-3);
+}
+.cce-section-row .cce-swatch {
+  height: 4px;
+  border-radius: 2px;
+}
+.cce-section-row .cce-row-range {
+  font-weight: normal;
+  color: var(--brighter-2);
+}
+.cce-row.in-section .cce-row-name {
+  padding-left: 16px;
+}
+/* collapsing pages and sections */
+#ccEditor .cce-fold {
+  width: 16px;
+  margin: 0 2px 0 -2px;
+  vertical-align: -3px;
+  font-size: 16px;
+  color: var(--brighter-2);
+  border-radius: var(--radius);
+  transition: transform 0.12s;
+}
+#ccEditor .cce-fold:hover {
+  color: var(--text-base-color);
+  background-color: var(--brighter-1);
+}
+.cce-row.collapsed .cce-fold {
+  transform: rotate(-90deg);
+}
+.cce-page-row .cce-fold {
+  vertical-align: -2px;
+}
+.cce-mini-break {
+  flex-basis: 100%;
+  height: 0;
+}
+.cce-mini-section {
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+}
+.cce-mini-section.inline {
+  margin-left: 1px;
+  padding-left: 1px;
+  border-left: 1px solid var(--brighter-1);
+}
+.cce-mini-pots {
+  display: flex;
+  flex-wrap: wrap;
+}
+.cce-mini-head {
+  height: 3px;
+  margin: 4px 1px 1px;
+  border-radius: 2px;
+  background-color: var(--cce-group, var(--brighter-1));
+  cursor: pointer;
+}
+.cce-mini-head.unnamed {
+  opacity: 0.35;
+}
+.cce-mini-head.selected {
+  outline: 2px solid var(--cce-accent);
+  outline-offset: 1px;
+}
+#ccEditor .cce-colour-default {
+  justify-content: center;
+}
+.cce-colour-default .material-icons {
+  display: none;
+}
+#ccEditor .cce-colour-default.inherit .material-icons {
+  display: inline;
+  font-size: var(--icon-sm);
+  color: var(--brighter-3);
+}
+
+/* controller editor: test selector */
+.cce-selector-preview {
+  --sel-accent: var(--brighter-4);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  width: 128px;
+  height: 128px;
+  padding: 12px 12px 6px;
+  border-radius: var(--radius-lg);
+  background-color: var(--darker-2);
+}
+#ccEditor .cce-selector-preview[data-group='1'] { --sel-accent: var(--group-1); }
+#ccEditor .cce-selector-preview[data-group='2'] { --sel-accent: var(--group-2); }
+#ccEditor .cce-selector-preview[data-group='3'] { --sel-accent: var(--group-3); }
+#ccEditor .cce-selector-preview[data-group='4'] { --sel-accent: var(--group-4); }
+.cce-sel-name {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: auto 0;
+  padding: 2px 0 4px;
+  text-align: center;
+  font-size: var(--fs-lg);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  box-shadow: inset 0 -2px 0 var(--sel-accent);
+  cursor: ns-resize;
+}
+.cce-sel-name[data-empty='1'] {
+  color: var(--brighter-2);
+  box-shadow: none;
+}
+.cce-sel-steps {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+  color: var(--brighter-2);
+  font-variant-numeric: tabular-nums;
+}
+#ccEditor .cce-sel-step {
+  padding: 0 4px;
+  background-color: transparent;
+}
+
+/* controller pages: tabs in the zone's CC toolbar, separate chips like the arrangements A–D */
+.cc-pages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.cc-page {
+  display: flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 6px;
+  font-size: var(--fs-sm);
+  color: var(--brighter-2);
+  background-color: var(--darker-1);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.cc-page:hover {
+  color: var(--brighter-3);
+}
+/* where you are: amber as the arrangements A–D, not the "on" fill */
+.cc-page.selected {
+  background-color: var(--slate-raise);
+  box-shadow: inset 0 0 0 1px var(--select);
+  color: var(--text-base-color);
+  font-weight: 600;
+}
+
+/* controller editor: pages */
+.cce-rows .cce-row.cce-page-row {
+  height: calc(var(--cce-row-h) + 10px);
+  padding-top: 10px;
+  font-weight: 600;
+  font-size: var(--fs-lg);
+  border-bottom: 1px solid var(--brighter-1);
+}
+.cce-page-row .cce-swatch {
+  visibility: hidden;
+}
+.cce-page-row .cce-row-type,
+.cce-page-row .cce-row-range {
+  font-size: var(--fs-md);
+  font-weight: normal;
+}
+.cce-layout-caption {
+  flex-basis: 100%;
+  margin: 0 1px 4px;
+  font-size: var(--fs-sm);
+  color: var(--brighter-2);
+}
+
+/* =============================================================
+   TRACK VIEW  (body.track-view, viewcontroller/track-view.ts)
+   Each zone is a row: its header on the left, a lane scrolling under a fixed
+   playhead on the right. The selected track's sequencer, arp, controllers or
+   zone settings stay in the zone element and are placed into the dock below.
+   ============================================================= */
+
+.strip-end .viewmode {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+#trackRuler,
+#trackDock,
+.track-lane {
+  display: none;
+}
+
+body.track-view:not(.minimized) {
+  --track-hdr-w: 272px;
+  /* --dock-open-h: the height dragged at the top edge (track-view.ts) */
+  --dock-h: min(var(--dock-open-h, 290px), calc(100vh - var(--topbar-h, 44px) - 120px));
+  --dock-bar-h: 32px;
+  --strip-h: 28px; /* STRIP_H in track-view.ts */
+  --track-settings-w: 540px;
+  /* as xr18: tracks are cards on the dark ground, lanes and the ruler inset wells */
+  --track-gap: 10px; /* round the tracks and the dock */
+  --lane-pad: 6px; /* between a track's card and its lane */
+
+  /* folded by the user (the chevron or a double-click on the bar): just the tabs */
+  &.dock-closed {
+    --dock-h: calc(var(--dock-bar-h) + var(--track-gap));
+  }
+
+  /* right below the fixed top bar (body has a 30px top margin), so the ruler sticks
+     where it starts and covers no track */
+  .padded {
+    padding: calc(var(--topbar-h, 44px) - 30px) var(--track-gap) calc(var(--dock-h) + var(--track-gap));
+  }
+
+  #zones {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 6px;
+    margin: 0;
+    padding-top: 2px;
+  }
+
+  /* a track is a card like a zone (and an xr18 strip): the zone's wash, lighter top edge */
+  #zones > .zone {
+    display: grid;
+    grid-template-columns: var(--track-hdr-w) 1fr;
+    grid-template-rows: calc(var(--track-h, 56px) + 2 * var(--lane-pad));
+    width: auto;
+    min-width: 0;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    gap: 0;
+  }
+
+  #zones > .zone:not(.addnewzone) > :not(.channels, .track-lane) {
+    display: none !important;
+  }
+
+  #zones > .zone.placeholder {
+    display: none;
+  }
+
+  #zones > .zone.addnewzone {
+    display: block;
+    padding: 4px 0 16px;
+    border: none;
+    box-shadow: none;
+    background: none;
+    a {
+      width: calc(var(--track-hdr-w) - 16px);
+      height: 32px;
+      justify-content: center;
+      padding-left: 0;
+      border-color: var(--slate-line);
+      color: var(--slate-dim);
+    }
+    a:hover {
+      border-color: var(--slate-dim);
+    }
+  }
+
+  /* header, two rows laid out each on its own (a break after the name row):
+     [M S] name ⋯ ⠿ over [Seq Arp Trk] | [CC output] activity */
+  #zones > .zone > .channels {
+    grid-column: 1;
+    grid-row: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: center;
+    align-items: center;
+    gap: 6px 4px;
+    margin: 0;
+    padding: 0 8px 0 12px;
+    background: none;
+  }
+  #zones > .zone > .channels::after {
+    content: '';
+    flex-basis: 100%;
+    order: 10;
+  }
+  #zones > .zone > .channels > * {
+    margin: 0;
+  }
+  /* the selected track (the one the dock shows): an amber card edge, "where you are",
+     as a selected strip in xr18; an overlay, so the card gets no stacking context
+     (the dock's blocks inside it are fixed) */
+  #zones > .zone.track-selected::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    z-index: 1;
+    pointer-events: none;
+    border-radius: var(--radius-lg);
+    box-shadow: inset 0 0 0 2px var(--select);
+  }
+  .channels > .ch.state { order: 1; }
+  .channels > .ch.solo { order: 2; }
+  #zones > .zone > .channels > .zone-label {
+    order: 3;
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+    margin-left: 8px;
+  }
+  #zones > .zone > .channels > .zonetools {
+    order: 4;
+    margin-left: 2px;
+  }
+  .channels > .ch.showseq { order: 11; }
+  .channels > .ch.showarp { order: 12; }
+  .channels > .ch.showtakes { order: 13; }
+  /* the features, then what is sent: CC and the output after a line */
+  #zones > .zone > .channels > .ch.showccs {
+    order: 14;
+    margin-left: 13px;
+  }
+  #zones > .zone > .channels > .ch.showseq::before {
+    display: none;
+  }
+  #zones > .zone > .channels > .ch.showccs::before {
+    left: -7.5px;
+  }
+  /* the routing sits at the window's left edge here: open its popup to the right */
+  .channels .iorouting-popup {
+    left: 0;
+    right: auto;
+  }
+  .channels > .iorouting {
+    order: 15;
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .channels .iorouting-display {
+    height: 22px;
+  }
+  #zones > .zone > .channels > .midi-led {
+    order: 16;
+    margin-left: 4px;
+    display: block;
+    align-self: center;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--slate-line);
+  }
+  .channels > .midi-led.on {
+    background-color: var(--live);
+    box-shadow: 0 0 5px 1px var(--live);
+  }
+  .channels > .sendClock {
+    display: none;
+  }
+  /* drag: the row takes the target's place, the others shift */
+  #zones > .zone.dragged {
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+  }
+  #zones > .zone.droptarget {
+    outline: none;
+  }
+  #zones > .zone.droptarget::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    z-index: 1;
+    pointer-events: none;
+    border-radius: var(--radius-lg);
+    box-shadow: inset 0 0 0 2px var(--text-base-color);
+  }
+  /* CC shows the controllers below, so it lights only while they show there */
+  #zones > .zone.show-cc .channels > .ch.showccs {
+    background-color: var(--slate-raise);
+    color: var(--text-base-color);
+  }
+  &[data-dock='cc']:not(.dock-closed) #zones > .zone.track-selected .channels > .ch.showccs {
+    background-color: var(--on);
+    color: var(--on-text);
+  }
+
+  .track-lane {
+    display: block;
+    grid-column: 2;
+    grid-row: 1;
+    position: relative;
+    overflow: hidden;
+    margin: var(--lane-pad) var(--lane-pad) var(--lane-pad) 0;
+    border-radius: var(--radius);
+    background-color: var(--slate-inset);
+    cursor: default;
+    canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+  }
+  /* the selected track's strip over its notes: one chip at a time, at the take it is for
+     (a picked stretch: Keep · 2 bars; a selected kept take: Quantize, To steps; else the
+     last run's takes: ‹ Take 3/5 › Keep), or a hint */
+  .track-lane .track-strip {
+    display: none;
+  }
+  #zones > .zone.track-selected > .track-lane {
+    canvas {
+      top: var(--strip-h);
+      height: calc(100% - var(--strip-h));
+    }
+    .track-strip {
+      display: flex;
+      align-items: center;
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: var(--strip-h);
+      box-sizing: border-box;
+      background-color: var(--slate-panel);
+      border-bottom: 1px solid var(--slate-line);
+    }
+    .track-hint {
+      padding: 0 8px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      color: var(--slate-dim);
+    }
+  }
+  .track-strip .track-chip {
+    position: absolute;
+    top: 2px;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    white-space: nowrap;
+    font-size: var(--fs-md);
+    .tc-label {
+      padding: 0 6px;
+      color: var(--text-base-color);
+    }
+    .lightButton {
+      box-sizing: border-box;
+      height: 22px;
+      min-width: 24px;
+      padding: 0 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: var(--slate-raise);
+      border: 1px solid var(--slate-line);
+      border-radius: var(--radius);
+      color: var(--text-base-color);
+      cursor: pointer;
+    }
+    .lightButton.off {
+      opacity: 0.3;
+      pointer-events: none;
+    }
+    .lightButton:not(.tc-prev, .tc-next):hover {
+      background-color: var(--on);
+      color: var(--on-text);
+    }
+  }
+
+  /* over the lanes, edge to edge with them: the cards' border before the well, the lane's pad after */
+  #trackRuler {
+    display: grid;
+    grid-template-columns: calc(var(--track-hdr-w) + 1px) 1fr;
+    position: sticky;
+    top: var(--topbar-h, 44px);
+    /* tracks scroll under it: above the selected card's edge and the strip's chips (1);
+       the port windows (also 2, later in the page) still open over it */
+    z-index: 2;
+    height: 26px;
+    margin: 0 calc(-1 * var(--track-gap));
+    padding: 6px calc(var(--track-gap) + var(--lane-pad) + 1px) 6px var(--track-gap);
+    background-color: var(--slate-bg);
+    canvas {
+      width: 100%;
+      height: 26px;
+      border-radius: var(--radius);
+      background-color: var(--slate-inset);
+      box-shadow: inset 0 0 0 1px var(--slate-line);
+    }
+  }
+  #trackRuler .tr-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 6px 0 4px;
+    font-size: var(--fs-sm);
+    font-variant-numeric: tabular-nums;
+    color: var(--slate-dim);
+  }
+  #trackRuler :is(.tr-loop, .tr-follow) {
+    height: 20px;
+    padding: 0 6px;
+    font-size: var(--fs-sm);
+  }
+  #trackRuler .tr-loop {
+    margin-left: auto;
+  }
+  #trackRuler .tr-follow {
+    margin: 0 6px 0 2px;
+  }
+  /* Follow lit while the lanes follow the playhead, Loop while the range repeats */
+  #trackRuler :is(.tr-loop, .tr-follow).active {
+    background-color: var(--on);
+    border-color: var(--on);
+    color: var(--on-text);
+  }
+  #trackRuler .tr-zoom {
+    display: flex;
+    gap: 2px;
+    .lightButton {
+      height: 20px;
+      min-width: 22px;
+      padding: 0;
+    }
+    .material-icons {
+      font-size: var(--icon-sm, 16px);
+    }
+  }
+
+  /* the dock: a bar of tabs over the selected track's block */
+  /* as xr18's lower panel: the tabs in an inset frame led by the track's name, its
+     content a card of its own (::before, behind the grid's second row) */
+  #trackDock {
+    display: grid;
+    grid-template-rows: var(--dock-bar-h) 1fr;
+    row-gap: 6px;
+    position: fixed;
+    left: var(--track-gap);
+    right: var(--track-gap);
+    bottom: var(--track-gap);
+    z-index: 2;
+    height: calc(var(--dock-h) - var(--track-gap));
+  }
+  #trackDock::before {
+    content: '';
+    position: absolute;
+    inset: calc(var(--dock-bar-h) + 6px) 0 0 0;
+    z-index: -1;
+    border: 1px solid var(--slate-edge);
+    border-top-color: var(--slate-edge-top);
+    border-radius: var(--radius-lg);
+    background-color: var(--zone-surface);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  }
+  &.dock-closed #trackDock::before {
+    display: none;
+  }
+  &.no-tracks #trackDock {
+    display: none;
+  }
+  #trackDock .td-resize {
+    position: absolute;
+    top: -8px;
+    left: 0;
+    right: 0;
+    height: 8px;
+    z-index: 4;
+    cursor: ns-resize;
+  }
+  #trackDock .td-resize:hover,
+  &.dock-resizing #trackDock .td-resize {
+    background: linear-gradient(transparent 3px, var(--slate-dim) 3px, var(--slate-dim) 5px, transparent 5px);
+  }
+  &.dock-resizing {
+    cursor: ns-resize;
+    user-select: none;
+  }
+  #trackDock .td-bar {
+    display: flex;
+    align-items: center;
+    justify-self: start;
+    gap: 2px;
+    box-sizing: border-box;
+    padding: 2px;
+    background-color: var(--slate-inset);
+    border: 1px solid color-mix(in srgb, var(--zone-color) 55%, var(--slate-line));
+    border-radius: var(--radius-lg);
+    font-size: var(--fs-md);
+  }
+  #trackDock .td-name {
+    max-width: 200px;
+    margin-right: 6px;
+    padding: 1px 8px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    border-radius: var(--radius);
+    background-color: var(--zone-color);
+    color: var(--on-text);
+    font-weight: 600;
+  }
+  #trackDock .td-tab {
+    padding: 2px 10px;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    color: var(--slate-dim);
+    cursor: pointer;
+  }
+  #trackDock .td-tab:hover {
+    color: var(--text-base-color);
+  }
+  /* its feature is off for this track */
+  #trackDock .td-tab.off:not(.active) {
+    opacity: 0.5;
+  }
+  /* as the active arrangement */
+  #trackDock .td-tab.active {
+    background-color: var(--slate-raise);
+    border-color: var(--select);
+    color: var(--text-base-color);
+    font-weight: 600;
+  }
+  #trackDock .td-collapse {
+    position: absolute;
+    top: 4px;
+    right: 0;
+  }
+  &.dock-closed #trackDock .td-collapse .material-icons {
+    transform: rotate(180deg);
+  }
+  /* converting a take into steps: its panel takes the dock's place */
+  #trackDock .td-convert {
+    display: none;
+    align-self: start;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 16px;
+    max-width: 640px;
+    .tdc-head {
+      color: var(--slate-dim);
+      b {
+        color: var(--text-base-color);
+        font-weight: 600;
+      }
+    }
+    .tdc-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .label {
+      width: 58px;
+      color: var(--slate-dim);
+    }
+    /* the zone's controls: raised, 22px, the chosen segment and a switched-on chip lit */
+    .tdc-grid {
+      box-sizing: border-box;
+      height: 22px;
+      padding: 0 6px;
+      font-size: var(--fs-md);
+      background-color: var(--slate-raise);
+      border: 1px solid var(--slate-line);
+      border-radius: var(--radius);
+      color: var(--text-base-color);
+    }
+    .tdc-segments {
+      display: inline-flex;
+      span {
+        box-sizing: border-box;
+        display: inline-flex;
+        align-items: center;
+        height: 22px;
+        padding: 0 10px;
+        font-size: var(--fs-md);
+        background-color: var(--slate-raise);
+        border: 1px solid var(--slate-line);
+        border-right: none;
+        color: var(--slate-dim);
+        cursor: pointer;
+      }
+      span:first-child {
+        border-radius: var(--radius) 0 0 var(--radius);
+      }
+      span:last-child {
+        border-right: 1px solid var(--slate-line);
+        border-radius: 0 var(--radius) var(--radius) 0;
+      }
+      span.on {
+        background-color: var(--on);
+        border-color: var(--on);
+        color: var(--on-text);
+      }
+    }
+    .tdc-swing-chip {
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      height: 22px;
+      padding: 0 9px;
+      font-size: var(--fs-md);
+      border-radius: var(--radius);
+      background-color: var(--slate-raise);
+      box-shadow: inset 0 0 0 1px var(--slate-line);
+      color: var(--slate-dim);
+      cursor: pointer;
+      input {
+        display: none;
+      }
+    }
+    .tdc-swing-chip:has(input:checked) {
+      background-color: var(--on);
+      box-shadow: none;
+      color: var(--on-text);
+    }
+    .tdc-swing-note {
+      color: var(--slate-dim);
+    }
+    .tdc-fit {
+      color: var(--slate-dim);
+      font-size: var(--fs-sm);
+    }
+    .tdc-strength {
+      width: 160px;
+    }
+    .tdc-result {
+      color: var(--text-base-color);
+    }
+    .tdc-result.warn {
+      color: var(--danger);
+    }
+    .tdc-actions {
+      display: flex;
+      gap: 6px;
+      .lightButton {
+        display: inline-flex;
+        align-items: center;
+        height: 24px;
+        padding: 0 12px;
+        cursor: pointer;
+      }
+      .tdc-convert {
+        background-color: var(--on);
+        color: var(--on-text);
+      }
+      .tdc-convert.off {
+        opacity: 0.35;
+        pointer-events: none;
+      }
+    }
+  }
+  &.converting:not(.dock-closed) #trackDock .td-convert {
+    display: flex;
+  }
+  &.converting #trackDock .td-empty {
+    display: none !important;
+  }
+  &.converting[data-dock] #zones > .zone.track-selected.track-selected > :is(.seq, .arp-settings-block, .ccpots, .settings, .rangeholder) {
+    display: none !important;
+  }
+  /* in the dock's place while its tab has nothing for this track */
+  #trackDock .td-empty {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-size: var(--fs-md);
+    color: var(--slate-dim);
+  }
+  #trackDock .td-turn-on {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    height: 22px;
+    padding: 0 9px;
+    background-color: var(--slate-raise);
+    border: 1px solid var(--slate-line);
+    border-radius: var(--radius);
+    color: var(--text-base-color);
+    cursor: pointer;
+  }
+  &:not(.dock-closed) #trackDock.empty .td-empty {
+    display: flex;
+  }
+
+  /* the +/- buttons of number fields: above the dock's blocks (z-index 3) */
+  .valuebtn {
+    z-index: 4;
+  }
+
+  /* the selected track's block, placed in the dock */
+  #zones > .zone.track-selected > :is(.seq, .arp-settings-block, .ccpots, .settings, .rangeholder) {
+    position: fixed;
+    left: calc(var(--track-gap) + 1px);
+    right: calc(var(--track-gap) + 1px);
+    z-index: 3;
+    margin: 0;
+  }
+  #zones > .zone.track-selected > :is(.seq, .arp-settings-block, .ccpots) {
+    bottom: calc(var(--track-gap) + 1px);
+    height: calc(var(--dock-h) - var(--track-gap) - var(--dock-bar-h) - 6px - 2px);
+    box-sizing: border-box;
+    overflow: auto;
+    padding: 10px 12px;
+  }
+  &[data-dock='seq']:not(.dock-closed) #zones > .zone.track-selected.show-seq > .seq {
+    /* the dock is wide: tools over the steps, the step editor beside them */
+    display: grid !important;
+    grid-template-columns: fit-content(calc(100% - 396px)) minmax(380px, 560px);
+    grid-template-areas:
+      'tools info'
+      'steps info';
+    grid-template-rows: auto 1fr;
+    align-items: start;
+    gap: 6px 20px;
+    > .seqtools { grid-area: tools; }
+    > .grid { grid-area: steps; min-width: 0; }
+    > .step-info {
+      grid-area: info;
+      margin-top: 0;
+    }
+  }
+  &[data-dock='arp']:not(.dock-closed) #zones > .zone.track-selected.arp-enabled > .arp-settings-block {
+    display: block !important;
+  }
+  &[data-dock='cc']:not(.dock-closed) #zones > .zone.track-selected > .ccpots {
+    display: block !important;
+  }
+  &[data-dock='zone']:not(.dock-closed) #zones > .zone.track-selected > :is(.settings, .rangeholder) {
+    display: flex !important;
+  }
+  /* the Track tab: the zone's settings and key range on the left (--track-settings-w),
+     its takes in the rest */
+  #zones > .zone.track-selected > .settings {
+    top: calc(100vh - var(--dock-h) + var(--dock-bar-h) + 18px);
+    right: auto;
+    box-sizing: border-box;
+    width: var(--track-settings-w);
+    padding: 0 12px;
+  }
+  #zones > .zone.track-selected > .rangeholder {
+    top: calc(100vh - var(--dock-h) + var(--dock-bar-h) + 58px);
+    right: auto;
+    width: calc(var(--track-settings-w) - 24px);
+    margin: 0 12px;
+  }
+  #trackDock .td-track {
+    display: none;
+    grid-row: 2;
+    grid-template-columns: var(--track-settings-w) 1fr;
+    min-height: 0;
+  }
+  &[data-dock='zone']:not(.dock-closed, .converting) #trackDock .td-track {
+    display: grid;
+  }
+  #trackDock .tdt-takes {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    border-left: 1px solid var(--slate-line);
+    font-size: var(--fs-md);
+  }
+  #trackDock .tdt-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 9px 14px 4px;
+    b {
+      font-weight: 600;
+    }
+  }
+  #trackDock .tdt-summary,
+  #trackDock .tdt-none {
+    color: var(--slate-dim);
+  }
+  #trackDock .tdt-none {
+    margin: 6px 14px;
+  }
+  #trackDock .tdt-list {
+    overflow: auto;
+    padding: 0 8px 10px;
+  }
+  #trackDock .tdt-group {
+    padding: 8px 6px 3px;
+    color: var(--slate-dim);
+    font-size: var(--fs-sm);
+  }
+  #trackDock .tdt-row {
+    display: grid;
+    grid-template-columns: 56px 52px minmax(120px, 1fr) 96px 70px 300px;
+    align-items: center;
+    gap: 10px;
+    height: 30px;
+    padding: 0 6px;
+    border-radius: var(--radius);
+    cursor: pointer;
+  }
+  #trackDock .tdt-row:hover {
+    background-color: var(--brighter-1);
+  }
+  /* the take selected in the lane: "where you are" */
+  #trackDock .tdt-row.selected {
+    background-color: var(--slate-raise);
+    box-shadow: inset 0 0 0 1px var(--select);
+  }
+  #trackDock .tdt-row.kept .tdt-name {
+    font-weight: 600;
+  }
+  #trackDock :is(.tdt-where, .tdt-len, .tdt-count) {
+    color: var(--slate-dim);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  #trackDock .tdt-preview {
+    width: 100%;
+    height: 20px;
+  }
+  #trackDock .tdt-acts {
+    display: flex;
+    gap: 4px;
+    a {
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      height: 22px;
+      padding: 0 9px;
+      background-color: var(--slate-raise);
+      border: 1px solid var(--slate-line);
+      border-radius: var(--radius);
+      color: var(--text-base-color);
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    a:has(.material-icons) {
+      padding: 0 4px;
+    }
+    .material-icons {
+      font-size: 15px;
+    }
+    a.disabled {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+  }
+  /* Keep always shows; the rest on the row under the mouse and the selected one */
+  #trackDock .tdt-row:not(:hover, .selected) .tdt-acts a:not([data-take-act='keep']) {
+    visibility: hidden;
+  }
+  /* the Notes tab: a piano roll for the chosen take */
+  #trackDock .td-notes {
+    display: none;
+    grid-row: 2;
+    grid-template-rows: auto minmax(0, 1fr);
+    min-height: 0;
+    font-size: var(--fs-md);
+  }
+  &[data-dock='notes']:not(.dock-closed, .converting) #trackDock:not(.empty) .td-notes {
+    display: grid;
+  }
+  #trackDock .tdn-tools {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    white-space: nowrap;
+    b {
+      font-weight: 600;
+    }
+    .label {
+      margin-left: 8px;
+    }
+    a {
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      height: 22px;
+      padding: 0 9px;
+      background-color: var(--slate-raise);
+      border: 1px solid var(--slate-line);
+      border-radius: var(--radius);
+      color: var(--text-base-color);
+      cursor: pointer;
+    }
+    a:has(.material-icons) {
+      padding: 0 3px;
+    }
+    .material-icons {
+      font-size: 15px;
+    }
+    a.disabled {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+    select {
+      height: 22px;
+    }
+  }
+  #trackDock .tdn-what {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--slate-dim);
+  }
+  #trackDock .tdn-gap {
+    flex: 1;
+  }
+  #trackDock .tdn-zoom {
+    display: flex;
+    gap: 2px;
+    margin-left: 8px;
+  }
+  #trackDock .td-notes canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+  }
+  #trackDock .td-turn-on:empty {
+    display: none;
+  }
+  /* a muted track stays editable in the dock */
+  #zones > .zone.track-selected.disabled .seqtools {
+    display: flex;
+  }
+  #zones > .zone.track-selected.disabled.arp-enabled .arp-settings-block .arp-settings:nth-of-type(n + 2) {
+    display: flex;
+  }
+}
+
+/* =============================================================
+   WAITING TOGGLES
+   With Q on, M, S, Seq, Arp and Trk wait for the next boundary while the clock runs
+   (pending-toggles.ts); every other blink phase (`data-flip`) the chip shows the look
+   it will have.
+   ============================================================= */
+
+.zone .channels .ch.pending[data-flip='on'] {
+  background-color: var(--on);
+  border-color: var(--on);
+  color: var(--ink);
+}
+
+.zone .channels .ch.state.pending[data-flip='on'] {
+  background-color: var(--mute-fill);
+  border-color: var(--mute-fill);
+  color: var(--brighter-4);
+}
+
+.zone .channels .ch.solo.pending[data-flip='on'] {
+  background-color: var(--live);
+  border-color: var(--live);
+  color: var(--ink);
+}
+
+.zone .channels .ch.pending[data-flip='off'] {
+  background-color: var(--slate-raise);
+  border-color: var(--slate-line);
+  box-shadow: none;
+  color: var(--brighter-4);
+}
+
+/* =============================================================
+   MINI LANE (cards)
+   Under the header, what the zone plays: the track view's lane drawn small
+   (track-view.ts drawCards()), on zones with something to play.
+   ============================================================= */
+
+.zone .mini-lane {
+  display: none;
+  height: 40px;
+  margin: 6px 0 2px;
+}
+
+.zone.has-mini-lane .mini-lane {
+  display: block;
+}
+
+.zone .mini-lane canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius);
+  background-color: var(--slate-inset);
+  box-shadow: inset 0 0 0 1px var(--slate-line);
+}
+
+body.track-view .zone .mini-lane,
+body.minimized .zone .mini-lane {
+  display: none !important;
 }

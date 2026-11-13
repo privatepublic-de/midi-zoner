@@ -4,16 +4,60 @@ import { Note } from './note';
 import { ZoneElements } from './zone-elements';
 import { Sequence } from './sequence';
 import { SeqStep } from './seq-step';
-import { CCController, ArpState, ZoneJSON, ZoneArrangementJSON, SeqStepJSON, UPDATE_ZONE_VIEW_EVENT } from './interfaces';
+import { DrumLane } from './drum-lane';
+import { Take } from './take';
+import { barTicks } from '../meter';
+import { TakePlayer } from './take-player';
+import { MpeInput, MpeMode, MPE_SLIDE_CC, PressureGlide, DEFAULT_PRESSURE_FROM, mpeSetupMessages, rescaleBend } from './mpe';
+import type { MpeDot } from './mpe';
+import {
+  CCController,
+  ArpState,
+  ZoneJSON,
+  ZoneArrangementJSON,
+  SeqStepJSON,
+  ArpDirection,
+  CCControllerType,
+  isHiResCC,
+  isSevenBitCC,
+  isLayoutEntry,
+  UPDATE_ZONE_VIEW_EVENT,
+  CC_LOCK_VALUES_EVENT
+} from './interfaces';
 import { NoteDisplay } from './note-display';
-import { DIV_TICKS, DivTick } from './seq-layer';
+import { NoteHistory, timeline, songNow, songEnd, passAt, nowTick } from '../timeline';
+import { TakeNoteJSON } from './interfaces';
+import { DIV_TICKS, DivTick, PPQ, swingOffsetMs } from './seq-layer';
+import {
+  ParamLocks,
+  controllerAddress,
+  hiResValue,
+  knobValueFor,
+  nrpnValue,
+  remapCCValue,
+  snappedKnobValue,
+  transmittedValue
+} from './param-locks';
+
+// All MIDI notes 0-127 sorted white-first so black keys are drawn on top
+const ALL_NOTES_WHITE_FIRST = Array.from({ length: 128 }, (_, i) => i).sort(
+  (a, b) => {
+    const ba = Note.isBlackKey(a),
+      bb = Note.isBlackKey(b);
+    return ba === bb ? 0 : ba ? 1 : -1;
+  }
+);
 
 export class Zone {
   static solocount = 0;
   static seqClipboardStep: Map<number, SeqStep> | null = null;
   static seqClipboardSequence: string | null = null;
-  static seqClipboardDrumLane: { steps: (SeqStepJSON | null)[], length: number } | null = null;
+  static seqClipboardDrumLane: {
+    steps: (SeqStepJSON | null)[];
+    length: number;
+  } | null = null;
   static updateZoneViewEventName = UPDATE_ZONE_VIEW_EVENT;
+  static lockValuesEventName = CC_LOCK_VALUES_EVENT;
 
   private static _canvasSizeCache = new WeakMap<HTMLCanvasElement, DOMRect>();
   private static _resizeObserver = new ResizeObserver((entries) => {
@@ -49,6 +93,21 @@ export class Zone {
   outputPortId = MIDI.INTERNAL_PORT_ID;
   inputPortId: string | null = null;
   inputChannel: number | null = null;
+  /** MPE input handling, see zone/mpe.ts (zone-global: it describes the synth) */
+  mpe = MpeMode.OFF;
+  mpe_bend_in = 48;
+  /** Collapse: the synth's bend range */
+  mpe_bend_out = 2;
+  /** Pass through: the MPE synth's member bend range (48 = as the keyboard sends it) */
+  mpe_pass_bend_out = 48;
+  /** Collapse: pressure below this counts as none */
+  mpe_at_from = DEFAULT_PRESSURE_FROM;
+  /** Collapse: each key's pressure as poly aftertouch instead of merged channel pressure */
+  mpe_poly_at = false;
+  /** The input's MPE master channel, set by app.ts with every message */
+  mpeMaster = 0;
+  private mpeIn = new MpeInput();
+  private mpePressure = new PressureGlide((value) => this.sendPressure(value));
   label = '';
   enabled = true;
   _solo = false;
@@ -89,16 +148,22 @@ export class Zone {
     }
   ];
   show_cc = false;
-  editCC = false;
+  devicePreset: { id: string; name: string } | null = null;
+  /** The controller page shown (pages: PAGE entries in cc_controllers) */
+  ccPage = 0;
   selectedCCIndex = 0;
   at2mod = false;
   pitchbend = true;
   euclid_hits = 5;
   euclid_length = 8;
   midiLearnDrumLaneIndex: number | null = null;
+  /** Armed by the controller editor's Learn button: the next incoming CC is learned */
+  midiLearnCC = false;
   swingAmount: number = 0; // 0 to 1 (0% to 100%)
   private _arp_enabled = false;
-  get arp_enabled(): boolean { return this._arp_enabled; }
+  get arp_enabled(): boolean {
+    return this._arp_enabled;
+  }
   set arp_enabled(v: boolean) {
     this._arp_enabled = v;
     if (v) this.notesChanged();
@@ -106,7 +171,7 @@ export class Zone {
   arp_direction = 0;
   _arp_octaves = 0;
   _arp_division = 11;
-  arp_ticks: DivTick = DIV_TICKS[8];
+  arp_ticks: DivTick = DIV_TICKS[11]; // matches _arp_division (1/8)
   arp_gatelength = 0.5;
   arp_repeat = 0;
   arp_probability = 1;
@@ -133,24 +198,52 @@ export class Zone {
     lastStrumNotes: []
   };
   // Arpeggiator swing pending pattern positions (fireAtMs is a performance.now() timestamp)
+  // scheduled via setTimeout; `timer` allows cancellation on stop/dismiss.
   private arpSwingPending: {
     patternPos: number;
     fireAtMs: number;
     probable: boolean;
+    timer: ReturnType<typeof setTimeout>;
   }[] = [];
-  // Strum pending note-ons and per-note note-offs for equal gate lengths
-  private arpStrumPending: { note: Note; fireAtMs: number; gateMs: number }[] = [];
-  private arpStrumOffPending: { note: Note; fireAtMs: number }[] = [];
-  private _lastTickIntervalMs = 60 / 120 / 24 * 1000;
+  // Strum pending note-ons and per-note note-offs for equal gate lengths, scheduled via setTimeout
+  private arpStrumPending: {
+    note: Note;
+    fireAtMs: number;
+    gateMs: number;
+    timer: ReturnType<typeof setTimeout>;
+  }[] = [];
+  private arpStrumOffPending: {
+    note: Note;
+    fireAtMs: number;
+    timer: ReturnType<typeof setTimeout>;
+  }[] = [];
+  private _lastTickIntervalMs = (60 / 120 / PPQ) * 1000;
+  // When the last ring-out note-off is due (performance.now() time)
+  private _ringOutUntil = 0;
+  private _lockRedrawPending = false;
+  // Clock position and time of the last processed tick, used to time ring-outs on stop
+  private _lastPos = 0;
+  private _lastTickAt = 0;
+  // Note-offs scheduled by time after a transport stop so notes finish their gate,
+  // keyed by output note number. A new note-on of the same pitch releases it first.
+  private ringOuts = new Map<
+    number,
+    { timer: ReturnType<typeof setTimeout>; release: () => void }
+  >();
+  static readonly MAX_RING_OUT_MS = 4000;
   private _strumGraceTimer: ReturnType<typeof setTimeout> | null = null;
   activeNotes: Note[] = [];
+  // Held notes that were sent straight to the output (arp not running). Their
+  // note-off must go out even if the arp has started meanwhile, on the channel the
+  // note-on went out on (an MPE member channel in pass-through, else the note's).
+  private passedThrough = new Map<Note, number>();
   midiActiveNotes: (Note | null)[] = [];
+  seqActiveNotes: (Note | null)[] = [];
   holdList: Note[] = [];
   midi: MIDI;
   elements = new ZoneElements();
   private readonly _midiMsgBuf = new Uint8Array(3);
   _colorIndex: number | null = null;
-  private _cachedZoneColor: string | null = null;
   pgm_no: number | null = null;
   bank_msb: number | null = null;
   bank_lsb: number | null = null;
@@ -158,6 +251,26 @@ export class Zone {
   rngArpOct: BagShuffle;
   rngProb: () => number;
   sequence: Sequence;
+  /** Plays the sequencer's parameter locks; kept across arrangement switches */
+  readonly paramLocks = new ParamLocks(this);
+  /** What this zone sent during the current run, for the track view */
+  noteHistory = new NoteHistory();
+  /** Set while the take player feeds a note in, so the note history knows where it came from */
+  playingTake = false;
+  /** The notes its arp played from during the current run, for the track view */
+  heldHistory = new NoteHistory();
+  /** Kept takes of the current arrangement: its song for this zone (saved with it) */
+  takes: Take[] = [];
+  /** Whether the kept takes play (per arrangement); recording goes on either way */
+  takes_on = false;
+  /** Takes recorded this session and not kept, newest last, with their arrangement */
+  takeList: { arrangement: number; take: Take }[] = [];
+  /** Which of them the track view shows: 0 the latest, 1 the one before… */
+  shownTake = 0;
+  /** The take being recorded: what is played into the zone while the clock runs */
+  private recording: { arrangement: number; pass: number; notes: (TakeNoteJSON & { open: boolean })[] } | null = null;
+  readonly takePlayer = new TakePlayer(this);
+  static MAX_TAKES = 64;
   arrangements: ZoneArrangementJSON[] = [];
   currentArrangementIndex = 0;
   lastTouchedRangePoint = 0;
@@ -173,7 +286,9 @@ export class Zone {
     this.colorIndex = colorIndex || 0;
     this.sequence = new Sequence(this);
     const defaultArr = this.captureArrangement();
-    this.arrangements = [0, 1, 2, 3].map(() => JSON.parse(JSON.stringify(defaultArr)));
+    this.arrangements = [0, 1, 2, 3].map(() =>
+      JSON.parse(JSON.stringify(defaultArr))
+    );
   }
 
   toJSON(): ZoneJSON {
@@ -183,6 +298,12 @@ export class Zone {
       preferredOutputPortId: this.preferredOutputPortId,
       inputPortId: this.inputPortId,
       inputChannel: this.inputChannel,
+      mpe: this.mpe,
+      mpe_bend_in: this.mpe_bend_in,
+      mpe_bend_out: this.mpe_bend_out,
+      mpe_pass_bend_out: this.mpe_pass_bend_out,
+      mpe_at_from: this.mpe_at_from,
+      mpe_poly_at: this.mpe_poly_at,
       label: this.label,
       colorIndex: this._colorIndex,
       low: this.low,
@@ -192,6 +313,8 @@ export class Zone {
       bank_msb: this.bank_msb,
       bank_lsb: this.bank_lsb,
       cc_controllers: this.cc_controllers,
+      devicePreset: this.devicePreset,
+      cc_page: this.ccPage,
       arrangements: this.arrangements
     };
   }
@@ -229,7 +352,9 @@ export class Zone {
       euclid_hits: this.euclid_hits,
       euclid_length: this.euclid_length,
       sequence: this.sequence.toJSON(),
-      swingAmount: this.swingAmount
+      swingAmount: this.swingAmount,
+      takes: this.takes.map((t) => t.toJSON()),
+      takes_on: this.takes_on
     };
   }
 
@@ -239,7 +364,8 @@ export class Zone {
     this.octave = data.octave ?? 0;
     this.fixedvel = data.fixedvel ?? false;
     this.fixedvel_value = data.fixedvel_value ?? 127;
-    this.velocity_scaling = data.velocity_scaling ?? 1;
+    this.velocity_scaling =
+      typeof data.velocity_scaling === 'number' ? data.velocity_scaling : 1;
     this.mod = data.mod ?? true;
     this.sustain = data.sustain ?? true;
     this.cc = data.cc ?? false;
@@ -256,7 +382,16 @@ export class Zone {
     this.arp_probability = data.arp_probability ?? 1;
     this.arp_transpose = data.arp_transpose ?? false;
     this.arp_transpose_amount = data.arp_transpose_amount ?? 0;
-    this.arp_pattern = data.arp_pattern ?? [true, true, true, true, true, true, true, true];
+    this.arp_pattern = data.arp_pattern ?? [
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ];
     this.arp_holdlist = data.arp_holdlist ?? [];
     this.arp_sortedHoldList = data.arp_sortedHoldList ?? [];
     this.arp_strum_taper = data.arp_strum_taper ?? 0;
@@ -264,33 +399,104 @@ export class Zone {
     this.arp_ratchet_count = data.arp_ratchet_count ?? 0;
     this.euclid_hits = data.euclid_hits ?? 5;
     this.euclid_length = data.euclid_length ?? 8;
+    const euclid = Zone.euclidianPattern(this.euclid_length, this.euclid_hits);
+    if (euclid.some((hit, i) => hit !== !!this.arp_pattern[i]) || euclid.length !== this.arp_pattern.length) {
+      // pattern was edited by hand: show its real hits/length, not the last euclid values
+      this.euclid_hits = this.arp_pattern.filter(Boolean).length;
+      this.euclid_length = this.arp_pattern.length;
+    }
     this.swingAmount = data.swingAmount ?? 0;
+    this.takes = Take.listFrom(data.takes);
+    // arrangements from before the switch: their kept takes played
+    this.takes_on = data.takes_on ?? this.takes.length > 0;
 
     const seq = new Sequence(this);
     const sd = data.sequence || {};
-    seq._steps = (sd as any).steps || [];
+    // Real SeqStep instances: fields missing from older scenes (gateLength,
+    // probability, condition, ratchet*) get the class defaults
+    seq._steps = ((sd as any).steps || []).map((st: any) => (st ? SeqStep.from(st) : null));
     seq.division = (sd as any).division ?? 14;
     seq._length = (sd as any).length ?? 16;
-    seq.drum_lanes = (sd as any).drum_lanes || [];
     seq.isDrumSequence = (sd as any).isDrumSequence ?? false;
     seq.drumLanes = (sd as any).drumLanes ?? 4;
     seq.active = (sd as any).active ?? false;
-    seq._steps.forEach((st: any) => { if (st) st.lastPlayedArray = []; });
-    seq.drum_lanes.forEach((lane: any, i: number) => {
-      if (lane?.steps) {
-        lane.steps.forEach((st: any) => { if (st) st.lastPlayedArray = []; });
-      }
-      if (lane) {
-        lane.length = lane.length ?? seq._length;
-        lane.label = lane.label ?? '';
-        lane.currentStep = -1;
-        lane.previousStep = -1;
-        lane.cycleCount = -1;
-        lane.isFirstCycle = true;
-        lane.previousStepPlayed = false;
-      }
-    });
+    // map() keeps the holes of the sparse lane array
+    seq.drum_lanes = ((sd as any).drum_lanes || []).map((lane: any) =>
+      lane ? DrumLane.from(lane, seq._length) : lane
+    );
     this.sequence = seq;
+    // Switched while playing: the new arrangement's locks start from the controllers' values
+    if (this.midi.isClockRunning && seq.active) this.paramLocks.start(seq.lockedAddresses());
+  }
+
+  /** The sequencer was switched on or off */
+  sequenceActiveChanged(seq: Sequence, active: boolean): void {
+    // Ignores sequences being built (arrangement load) and changes while stopped
+    if (seq !== this.sequence || !this.midi.isClockRunning) return;
+    if (active) this.paramLocks.start(seq.lockedAddresses());
+    else this.paramLocks.stop(seq.lockedAddresses());
+  }
+
+  /** The step selection ended: while stopped, auditioned locks give way to the controllers' values */
+  lockEditEnded(): void {
+    if (!this.midi.isClockRunning) this.paramLocks.stop(this.sequence.lockedAddresses());
+  }
+
+  /**
+   * Starts editing a controller. With sequencer steps selected, `ctrl` is a copy showing
+   * their lock and `commit()` writes its value as a lock on them (and auditions it);
+   * otherwise `ctrl` is the controller itself and `commit()` sends it. Returns the
+   * controllers that followed (same address).
+   */
+  beginControllerEdit(ix: number): { ctrl: CCController; commit: () => number[] } {
+    const real = this.cc_controllers[ix];
+    const address = controllerAddress(real);
+    if (!this.sequence.hasSelection || !address) return { ctrl: real, commit: () => this.sendCC(ix) };
+    const view = this.lockedView(real);
+    // Unlocked: start from the controller's own value
+    const copy = view.locked ? view.ctrl : { ...real };
+    return {
+      ctrl: copy,
+      commit: () => {
+        const value = transmittedValue(copy);
+        this.sequence.setLockOnSelected(address, value);
+        this.paramLocks.audition(real, value);
+        return [];
+      }
+    };
+  }
+
+  /**
+   * A controller as its knob shows it: with steps selected, their lock on it (`mixed`
+   * when they differ, the first is shown); otherwise the controller itself.
+   */
+  lockedView(c: CCController): { ctrl: CCController; locked: boolean; mixed: boolean; live: boolean } {
+    const address = controllerAddress(c);
+    if (!address) return { ctrl: c, locked: false, mixed: false, live: false };
+    if (!this.sequence.hasSelection) {
+      // Playing: the value a lock or slide sent last, which the device has now
+      const live = this.paramLocks.liveValue(address);
+      if (live === undefined) return { ctrl: c, locked: false, mixed: false, live: false };
+      return { ctrl: { ...c, val: knobValueFor(c, live) }, locked: false, mixed: false, live: true };
+    }
+    const values = this.sequence.selectedLockValues(address);
+    if (values.length === 0) return { ctrl: c, locked: false, mixed: false, live: false };
+    return {
+      ctrl: { ...c, val: knobValueFor(c, values[0]) },
+      locked: true,
+      mixed: values.some((v) => v !== values[0]),
+      live: false
+    };
+  }
+
+  /** Redraws the knobs following parameter locks, at most once per frame */
+  lockValuesChanged(): void {
+    if (this._lockRedrawPending) return;
+    this._lockRedrawPending = true;
+    requestAnimationFrame(() => {
+      this._lockRedrawPending = false;
+      window.dispatchEvent(new CustomEvent(CC_LOCK_VALUES_EVENT, { detail: this }));
+    });
   }
 
   saveArrangement(index: number): void {
@@ -300,6 +506,19 @@ export class Zone {
   loadArrangement(index: number): void {
     this.currentArrangementIndex = index;
     this.applyArrangement(this.arrangements[index]);
+  }
+
+  copyArrangementFromTo(sourceIndex: number, targetIndex: number): void {
+    if (sourceIndex === targetIndex) return;
+    const data =
+      sourceIndex === this.currentArrangementIndex
+        ? this.captureArrangement()
+        : this.arrangements[sourceIndex];
+    this.arrangements[targetIndex] = JSON.parse(JSON.stringify(data));
+  }
+
+  copyArrangementTo(targetIndex: number): void {
+    this.copyArrangementFromTo(this.currentArrangementIndex, targetIndex);
   }
 
   _$(selector: string): Element | null {
@@ -319,7 +538,6 @@ export class Zone {
   set colorIndex(i: number) {
     i = i % 5;
     this._colorIndex = i;
-    this._cachedZoneColor = null;
   }
 
   get colorIndex(): number {
@@ -363,6 +581,49 @@ export class Zone {
     }
   }
 
+  private ledTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /**
+   * Note-on/off through the shared message buffer. Code that sendOut itself can reach
+   * (releaseSoundingArpPitch, ring-out callbacks) builds its own Uint8Array instead.
+   */
+  private sendNote(status: number, channel: number, number: number, velo: number, portId: string): void {
+    this._midiMsgBuf[0] = status + channel;
+    this._midiMsgBuf[1] = number;
+    this._midiMsgBuf[2] = velo;
+    this.sendOut(this._midiMsgBuf, portId);
+  }
+
+  /**
+   * Sends a MIDI message; note-ons flash the activity LED (visible in the mini and track views).
+   * live: a note played through from the input, marked so in the note history
+   */
+  private sendOut(msg: Uint8Array, portId: string, timestamp?: number, live = false): void {
+    const status = msg[0] & 0xf0;
+    const noteOn = status === MIDI.MESSAGE.NOTE_ON && msg[2] > 0;
+    // A still-sounding note of the same pitch is released before it is struck again,
+    // so its late note-off cannot cut the new note
+    if (noteOn) {
+      if (this.ringOuts.size > 0) this.fireRingOut(msg[1]);
+      if (this.arp.lastStrumNotes.length > 0) {
+        this.releaseSoundingArpPitch(msg[1], msg[0] & 0x0f, portId);
+      }
+    }
+    this.midi.send(msg, portId, timestamp);
+    if (noteOn) this.noteHistory.noteOn(msg[1], msg[2], live, this.playingTake);
+    else if (status === MIDI.MESSAGE.NOTE_ON || status === MIDI.MESSAGE.NOTE_OFF) this.noteHistory.noteOff(msg[1]);
+    if (!noteOn || this.ledTimer !== null) return;
+    const body = document.body.classList;
+    if (!body.contains('minimized') && !body.contains('track-view')) return;
+    const led = this.elements.zoneElement?.querySelector('.midi-led');
+    if (!led) return;
+    led.classList.add('on');
+    this.ledTimer = setTimeout(() => {
+      led.classList.remove('on');
+      this.ledTimer = null;
+    }, 70);
+  }
+
   get sustain_on(): boolean {
     return this._sustain_on;
   }
@@ -370,7 +631,7 @@ export class Zone {
   set sustain_on(v: boolean) {
     this._sustain_on = v;
     this.sustain_state = v;
-    this.midi.send(
+    this.sendOut(
       Uint8Array.from([
         MIDI.MESSAGE.CONTROLLER + this.channel,
         64,
@@ -395,8 +656,13 @@ export class Zone {
     }
   }
 
-  removeNote(number: number): void {
-    this.activeNotes = this.activeNotes.filter((n) => n.number !== number);
+  removeNote(note: Note | number): void {
+    if (typeof note === 'number') {
+      this.activeNotes = this.activeNotes.filter((n) => n.number !== note);
+    } else {
+      const idx = this.activeNotes.indexOf(note);
+      if (idx !== -1) this.activeNotes.splice(idx, 1);
+    }
   }
 
   shouldHandleMidi(message: number, fromSequencer?: boolean): boolean {
@@ -407,23 +673,60 @@ export class Zone {
     );
   }
 
+  /**
+   * An incoming message (or a note from the sequencer/takes). Returns what the view
+   * must do: 'updateCC[:index]', 'midiLearn:index', 'lockCC' or 'updateDrumLaneNote'
+   */
   handleMidi(
     message: number,
     data: Uint8Array,
     fromSequencer?: boolean,
     timestamp?: number
   ): string | void {
+    const result = this.handleMessage(message, data, fromSequencer, timestamp);
+    // Merged MPE slide may have played the zone's controllers on the way
+    const slid = this.slideResult;
+    this.slideResult = undefined;
+    return result || slid;
+  }
+
+  /** What playing the controllers from MPE slide needs the view to do (see handleMidi) */
+  private slideResult: string | undefined;
+
+  private handleMessage(
+    message: number,
+    data: Uint8Array,
+    fromSequencer?: boolean,
+    timestamp?: number
+  ): string | void {
+    // MPE: the input channel of a message from the keyboard (-1: not MPE)
+    const mpeCh = this.mpe !== MpeMode.OFF && !fromSequencer ? data[0] & 0x0f : -1;
+    const mpeMember = mpeCh >= 0 && mpeCh !== this.mpeMaster;
+    if (mpeMember) {
+      // Expression is kept even while muted, so a note after unmuting starts from it
+      this.mpeIn.store(mpeCh, message, data);
+      this.requestRender(); // the keyboard strip's dots follow
+      // A channel's new note is not this zone's until it plays it (see the note-on below)
+      if (message === MIDI.MESSAGE.NOTE_ON) this.mpeIn.noteStarted(mpeCh, data[1]);
+      else if (message === MIDI.MESSAGE.NOTE_OFF && this.mpeIn.noteEnded(mpeCh, data[1])) {
+        if (this.mpe === MpeMode.COLLAPSE) this.sendCollapsed(); // follows the previous key
+      }
+    }
     // Pass note-off through for actively sounding keyboard notes even when zone is disabled,
     // so held notes are not stuck when the arrangement switches and disables this zone.
-    if (message === MIDI.MESSAGE.NOTE_OFF && !this.shouldHandleMidi(message, fromSequencer)) {
+    if (
+      message === MIDI.MESSAGE.NOTE_OFF &&
+      !this.shouldHandleMidi(message, fromSequencer)
+    ) {
       const srcNote = this.midiActiveNotes[data[1]];
       if (srcNote?.fromInput) {
         this.midiActiveNotes[data[1]] = null;
-        this.removeNote(srcNote.number);
+        this.removeNote(srcNote);
         const outevent = new Uint8Array(3);
-        outevent[0] = MIDI.MESSAGE.NOTE_OFF + srcNote.channel;
+        outevent[0] = MIDI.MESSAGE.NOTE_OFF + (this.passedThrough.get(srcNote) ?? srcNote.channel);
         outevent[1] = srcNote.number;
-        this.midi.send(outevent, srcNote.portId);
+        this.passedThrough.delete(srcNote);
+        this.sendOut(outevent, srcNote.portId);
         this.notesChanged();
       }
       return;
@@ -431,13 +734,17 @@ export class Zone {
     if (this.shouldHandleMidi(message, fromSequencer)) {
       const fromMidiInput = !fromSequencer;
       const isArpActive = this.arp_enabled && this.midi.isClockRunning;
+      if (mpeCh >= 0 && this.handleMpeExpression(message, data, mpeCh, mpeMember)) return;
       switch (message) {
         case MIDI.MESSAGE.NOTE_OFF:
         case MIDI.MESSAGE.NOTE_ON:
           // Handle drum lane MIDI learn - capture note number when input has focus
-          if (message === MIDI.MESSAGE.NOTE_ON && data[2] > 0 && 
-              this.midiLearnDrumLaneIndex !== null && 
-              this.sequence.isDrumSequence) {
+          if (
+            message === MIDI.MESSAGE.NOTE_ON &&
+            data[2] > 0 &&
+            this.midiLearnDrumLaneIndex !== null &&
+            this.sequence.isDrumSequence
+          ) {
             const lane = this.sequence.getDrumLane(this.midiLearnDrumLaneIndex);
             if (lane) {
               lane.note = data[1];
@@ -447,7 +754,9 @@ export class Zone {
           }
           let key = data[1];
           const srcKey = key;
-          let velo = this.scaledVelocity(data[2]);
+          // Vel% and Fixed Vel shape the strike; a note-off's (release) velocity, e.g. a
+          // Seaboard's lift, passes as it came
+          let velo = message === MIDI.MESSAGE.NOTE_ON ? this.scaledVelocity(data[2]) : data[2];
           if (key >= this.low && key <= this.high) {
             if (isArpActive && this.arp_hold && this.arp_transpose) {
               this.arp_transpose_amount = ((key + 12) % 24) - 12;
@@ -456,18 +765,35 @@ export class Zone {
             }
             key = key + (isArpActive || fromSequencer ? 0 : this.octave * 12);
             if (key >= 0 && key <= 127) {
-              if (this.fixedvel && velo > 0) {
+              if (this.fixedvel && message === MIDI.MESSAGE.NOTE_ON && velo > 0) {
                 velo = this.fixedvel_value || 127;
               }
               const outevent = new Uint8Array(data);
               if (message == MIDI.MESSAGE.NOTE_ON) {
                 this.convertNote2CC(key, velo);
-                if (!isArpActive) {
-                  outevent[0] = message + this.channel;
+                // Don't let the sequencer retrigger a note the user is already
+                // holding live; their held note keeps sounding uninterrupted.
+                const heldByLiveInput =
+                  fromSequencer && this.midiActiveNotes[srcKey] != null;
+                const passThrough = !isArpActive && !heldByLiveInput;
+                // MPE pass-through keeps the key's channel; notes the arp plays don't
+                // own it, so the arp drops their expression
+                const outChannel =
+                  mpeMember && this.mpe === MpeMode.PASS && passThrough ? mpeCh : this.channel;
+                if (mpeMember && (passThrough || this.mpe === MpeMode.COLLAPSE)) {
+                  this.mpeIn.claim(mpeCh, key);
+                  // The expression sent before the note-on goes out ahead of it
+                  if (this.mpe === MpeMode.PASS) this.sendMpeVoice(mpeCh);
+                  else this.sendCollapsed();
+                }
+                if (passThrough) {
+                  outevent[0] = message + outChannel;
                   outevent[1] = key;
                   outevent[2] = velo;
-                  this.midi.send(outevent, this.outputPortId, timestamp);
+                  this.sendOut(outevent, this.outputPortId, timestamp, fromMidiInput);
                 }
+                // The zone channel even for an MPE key: the arp, step recording and
+                // the hold list play from held notes
                 const playNote = new Note(
                   key,
                   velo,
@@ -475,9 +801,21 @@ export class Zone {
                   this.outputPortId
                 );
                 playNote.fromInput = fromMidiInput;
-                this.midiActiveNotes[srcKey] = playNote;
+                if (passThrough) this.passedThrough.set(playNote, outChannel);
+                const activeNoteSlots = fromSequencer
+                  ? this.seqActiveNotes
+                  : this.midiActiveNotes;
+                // A still-open previous note in this slot (e.g. an overlapping
+                // sequencer step retriggering the same pitch) would otherwise be
+                // orphaned in activeNotes and drawn forever as a stuck ghost note.
+                const previousNote = activeNoteSlots[srcKey];
+                if (previousNote) {
+                  this.removeNote(previousNote);
+                }
+                activeNoteSlots[srcKey] = playNote;
                 this.addNote(playNote);
                 if (fromMidiInput) {
+                  if (velo > 0) this.recordTakeNote(key, velo);
                   let filteredActiveNotes = [...this.activeNotes];
                   this.sequence.activeNotes().forEach((seqNote) => {
                     filteredActiveNotes = filteredActiveNotes.filter(
@@ -490,47 +828,46 @@ export class Zone {
                   );
                 }
               } else {
-                const srcNote = this.midiActiveNotes[srcKey];
+                const sourceActiveNotes = fromSequencer
+                  ? this.seqActiveNotes
+                  : this.midiActiveNotes;
+                const srcNote = sourceActiveNotes[srcKey];
+                // The sequencer defers to a note the user is holding live: it
+                // retires its own bookkeeping but never physically cuts it. A
+                // live key release always cuts the note regardless of what the
+                // sequencer is doing, since that's the user's direct action.
+                const heldByLiveInput =
+                  fromSequencer && this.midiActiveNotes[srcKey] != null;
                 if (srcNote) {
-                  this.midiActiveNotes[srcKey] = null;
-                  this.removeNote(srcNote.number);
-                  if (!isArpActive) {
-                    outevent[0] = message + srcNote.channel;
+                  sourceActiveNotes[srcKey] = null;
+                  this.removeNote(srcNote);
+                  // Decided by whether the note-on went out, not by the current
+                  // transport state: a key held across Start would otherwise stick
+                  const sentOn = this.passedThrough.get(srcNote);
+                  if (this.passedThrough.delete(srcNote) && !heldByLiveInput) {
+                    outevent[0] = message + (sentOn ?? srcNote.channel);
                     outevent[1] = srcNote.number;
                     outevent[2] = velo;
-                    this.midi.send(outevent, this.outputPortId);
+                    this.sendOut(outevent, this.outputPortId);
                   }
                 } else {
                   this.removeNote(key);
                 }
                 if (!fromSequencer) {
-                  this.sequence.noteReleased(srcNote ? srcNote.number : key, this.activeNotes.length);
+                  this.recordTakeNoteOff(srcNote ? srcNote.number : key);
+                  this.sequence.noteReleased(
+                    srcNote ? srcNote.number : key,
+                    this.activeNotes.length
+                  );
                 }
               }
             }
             this.notesChanged(fromSequencer);
           }
           break;
-        case MIDI.MESSAGE.CONTROLLER:
-          if (this.editCC && this.selectedCCIndex > -1) {
-            this.cc_controllers[this.selectedCCIndex].number_in = data[1];
-            return `midiLearn:${this.selectedCCIndex}`;
-          }
-          let firstMatchedCC = -1;
-          let matchCount = 0;
-          for (let i = 0; i < this.cc_controllers.length; i++) {
-            const ctrl = this.cc_controllers[i];
-            if (ctrl.type != 2 && ctrl.number_in == data[1]) {
-              const is14bit = ctrl.type == 5 || ctrl.type == 6;
-              ctrl.val = is14bit ? Math.round(data[2] * 16383 / 127) : data[2];
-              this.sendCC(i);
-              if (firstMatchedCC === -1) firstMatchedCC = i;
-              matchCount++;
-            }
-          }
-          if (matchCount > 0) {
-            return matchCount === 1 ? `updateCC:${firstMatchedCC}` : 'updateCC';
-          }
+        case MIDI.MESSAGE.CONTROLLER: {
+          const played = this.playControllers(data[1], data[2]);
+          if (played) return played;
           if (data[1] == 0x40 && !this.sustain) return;
           if (data[1] == 0x01 && !this.mod) return;
           if (data[1] == 0x40) {
@@ -540,57 +877,201 @@ export class Zone {
           if (!this.cc && data[1] != 0x40 && data[1] != 0x01) return;
           const ccOutevent = new Uint8Array(data);
           ccOutevent[0] = message + this.channel;
-          this.midi.send(ccOutevent, this.outputPortId);
+          this.sendOut(ccOutevent, this.outputPortId);
           break;
+        }
         case MIDI.MESSAGE.PITCH_BEND:
           if (this.pitchbend) {
             const pbOutevent = new Uint8Array(data);
             pbOutevent[0] = message + this.channel;
-            this.midi.send(pbOutevent, this.outputPortId);
+            this.sendOut(pbOutevent, this.outputPortId);
           }
           break;
         case MIDI.MESSAGE.PGM_CHANGE:
           if (this.programchange) {
             const pgmOutevent = new Uint8Array(data);
             pgmOutevent[0] = message + this.channel;
-            this.midi.send(pgmOutevent, this.outputPortId);
+            this.sendOut(pgmOutevent, this.outputPortId);
           }
           break;
         case MIDI.MESSAGE.CHANNEL_PRESSURE:
-          if (this.at2mod) {
-            const atOutevent = new Uint8Array(3);
-            atOutevent[0] = MIDI.MESSAGE.CONTROLLER + this.channel;
-            atOutevent[1] = 1;
-            atOutevent[2] = data[1];
-            this.midi.send(atOutevent, this.outputPortId);
-            break;
-          }
-        // fallthrough
+          this.sendPressure(data[1]);
+          break;
         default: {
           const defaultOutevent = new Uint8Array(data);
           defaultOutevent[0] = message + this.channel;
-          this.midi.send(defaultOutevent, this.outputPortId);
+          this.sendOut(defaultOutevent, this.outputPortId);
         }
       }
     }
     return;
   }
 
+  /** Channel pressure on the zone channel, or as mod wheel with Aftertouch > MW */
+  private sendPressure(value: number): void {
+    if (this.at2mod) {
+      this.sendOut(new Uint8Array([MIDI.MESSAGE.CONTROLLER + this.channel, 1, value]), this.outputPortId);
+    } else {
+      this.sendOut(new Uint8Array([MIDI.MESSAGE.CHANNEL_PRESSURE + this.channel, value]), this.outputPortId);
+    }
+  }
+
+  setMpe(mode: MpeMode): void {
+    this.mpe = mode;
+    this.mpeIn.reset();
+    this.mpePressure.reset();
+  }
+
+  /**
+   * MPE messages other than notes. Member channels' bend, slide and pressure are kept
+   * per channel and acted on only while the zone plays the channel's note: passed on as
+   * they are, or merged into the zone channel. Returns true when the message is done.
+   */
+  private handleMpeExpression(message: number, data: Uint8Array, ch: number, member: boolean): boolean {
+    if (message === MIDI.MESSAGE.NOTE_ON || message === MIDI.MESSAGE.NOTE_OFF) return false;
+    if (!member) {
+      // Master channel: normal path, except that a merged bend adds the master's
+      if (this.mpe !== MpeMode.COLLAPSE || message !== MIDI.MESSAGE.PITCH_BEND) return false;
+      this.mpeIn.setMasterBend(data);
+      this.sendCollapsed();
+      return true;
+    }
+    const expression = MpeInput.isExpression(message, data);
+    const owned = this.mpeIn.owns(ch);
+    if (this.mpe === MpeMode.COLLAPSE) {
+      if (!expression) return false; // anything else merges into the zone channel as before
+      if (!owned) return true;
+      if (this.mpe_poly_at && message === MIDI.MESSAGE.CHANNEL_PRESSURE) this.sendPolyPressure(ch);
+      else this.sendCollapsed();
+      return true;
+    }
+    if (!owned) return true;
+    if (message === MIDI.MESSAGE.PITCH_BEND) {
+      if (this.pitchbend) this.sendPassBend(ch, this.mpeIn.voice(ch).bend);
+      return true;
+    }
+    const out = new Uint8Array(data);
+    out[0] = message + ch;
+    this.sendOut(out, this.outputPortId);
+    return true;
+  }
+
+  /**
+   * An incoming controller value (a hardware knob, or merged MPE slide as CC 74) plays
+   * the controllers learned to its number, or is learned by the armed one. Returns what
+   * the view must do (see handleMidi), undefined when no controller took it.
+   */
+  private playControllers(number: number, value: number): string | undefined {
+    if (this.midiLearnCC && this.cc_controllers[this.selectedCCIndex]) {
+      this.cc_controllers[this.selectedCCIndex].number_in = number;
+      this.midiLearnCC = false;
+      return `midiLearn:${this.selectedCCIndex}`;
+    }
+    let firstMatchedCC = -1;
+    let matchCount = 0;
+    let lockEdited = false;
+    for (let i = 0; i < this.cc_controllers.length; i++) {
+      const ctrl = this.cc_controllers[i];
+      if (ctrl.number_in == number && !isLayoutEntry(ctrl.type)) {
+        // With sequencer steps selected the knob sets their lock instead
+        const edit = this.beginControllerEdit(i);
+        if (edit.ctrl !== ctrl) lockEdited = true;
+        if (isHiResCC(ctrl.type)) {
+          edit.ctrl.val = Math.round((value * 16383) / 127);
+        } else if (ctrl.type == CCControllerType.SELECTOR) {
+          // A hardware knob sweeps the entries evenly
+          const entries = ctrl.discreteValues ?? [];
+          if (entries.length > 0) edit.ctrl.val = entries[Math.round((value * (entries.length - 1)) / 127)];
+        } else {
+          this.snap2DiscreteValue(value, i, edit.ctrl);
+        }
+        if (edit.commit().length > 0) matchCount++; // others changed too: redraw all
+        if (firstMatchedCC === -1) firstMatchedCC = i;
+        matchCount++;
+      }
+    }
+    if (lockEdited) return 'lockCC'; // the steps' marks and inspector change too
+    if (matchCount > 0) return matchCount === 1 ? `updateCC:${firstMatchedCC}` : 'updateCC';
+    return undefined;
+  }
+
+  /** Pass-through: a key's bend on its channel, rescaled to the synth's range */
+  private sendPassBend(ch: number, bend: number): void {
+    const out = rescaleBend(bend, this.mpe_bend_in, this.mpe_pass_bend_out);
+    this.sendOut(new Uint8Array([MIDI.MESSAGE.PITCH_BEND + ch, out & 0x7f, out >> 7]), this.outputPortId);
+  }
+
+  /** Pass-through: a channel's bend, slide and pressure, sent ahead of its note-on */
+  private sendMpeVoice(ch: number): void {
+    const v = this.mpeIn.voice(ch);
+    if (this.pitchbend) this.sendPassBend(ch, v.bend);
+    if (v.slide !== null) {
+      this.sendOut(new Uint8Array([MIDI.MESSAGE.CONTROLLER + ch, MPE_SLIDE_CC, v.slide]), this.outputPortId);
+    }
+    this.sendOut(new Uint8Array([MIDI.MESSAGE.CHANNEL_PRESSURE + ch, v.pressure]), this.outputPortId);
+  }
+
+  /** Collapse: the merged bend, slide and pressure on the zone channel, where they changed */
+  private sendCollapsed(): void {
+    const out = this.mpeIn.collapsed({
+      bendIn: this.mpe_bend_in,
+      bendOut: this.mpe_bend_out,
+      withBend: this.pitchbend,
+      pressureFrom: this.mpe_at_from
+    });
+    if (out.bend !== undefined) {
+      this.sendOut(
+        new Uint8Array([MIDI.MESSAGE.PITCH_BEND + this.channel, out.bend & 0x7f, out.bend >> 7]),
+        this.outputPortId
+      );
+    }
+    // Slide plays the controllers learned to CC 74, like a hardware knob; nothing else
+    if (out.slide !== undefined) this.slideResult = this.playControllers(MPE_SLIDE_CC, out.slide) || this.slideResult;
+    if (!this.mpe_poly_at) this.mpePressure.to(out.pressure, out.handover);
+  }
+
+  /** Collapse with poly aftertouch: a held key's pressure on its own note */
+  private sendPolyPressure(ch: number): void {
+    const poly = this.mpeIn.polyPressure(ch, this.mpe_at_from);
+    if (poly) {
+      this.sendOut(
+        new Uint8Array([MIDI.MESSAGE.NOTE_PRESSURE + this.channel, poly.note, poly.value]),
+        this.outputPortId
+      );
+    }
+  }
+
+  /**
+   * Pass-through: the MPE setup for the synth (zone layout and bend ranges), sent on
+   * startup, when its port connects, on switching to Pass and from the popup's button
+   */
+  sendMpeSetup(): boolean {
+    if (this.mpe !== MpeMode.PASS || this.outputPortId === MIDI.INTERNAL_PORT_ID) return false;
+    const master = this.inputPortId !== null ? this.inputChannel ?? 0 : this.mpeMaster;
+    mpeSetupMessages(master, this.mpe_pass_bend_out).forEach((m) => this.sendOut(Uint8Array.from(m), this.outputPortId));
+    return true;
+  }
+
+  setMpePolyAT(on: boolean): void {
+    this.mpe_poly_at = on;
+    this.mpePressure.reset();
+  }
+
   convertNote2CC(key: number, velo: number): void {
-    if (!this.cc_controllers.some((ctrl) => ctrl.type == 4)) return;
+    if (!this.cc_controllers.some((ctrl) => ctrl.type == CCControllerType.NOTE_TO_CC)) return;
     this.cc_controllers.forEach((ctrl) => {
-      if (ctrl.type == 4) {
+      if (ctrl.type == CCControllerType.NOTE_TO_CC) {
         const outevent = new Uint8Array(3);
         outevent[0] = MIDI.MESSAGE.CONTROLLER + this.channel;
         if (ctrl.note_cc != null) {
           outevent[1] = ctrl.note_cc;
           outevent[2] = key;
-          this.midi.send(outevent, this.outputPortId);
+          this.sendOut(outevent, this.outputPortId);
         }
         if (ctrl.velocity_cc != null) {
           outevent[1] = ctrl.velocity_cc;
           outevent[2] = velo;
-          this.midi.send(outevent, this.outputPortId);
+          this.sendOut(outevent, this.outputPortId);
         }
       }
     });
@@ -601,14 +1082,18 @@ export class Zone {
       this.arp.orderlist = Array.from(this.activeNotes);
       this.arp_holdlist = Array.from(this.holdList);
       if (this.arp_enabled) {
-        this.arp.sortedlist = this.arp.orderlist.slice().sort((a, b) => a.number - b.number);
-        this.arp_sortedHoldList = this.arp_holdlist.slice().sort((a, b) => a.number - b.number);
+        this.arp.sortedlist = this.arp.orderlist
+          .slice()
+          .sort((a, b) => a.number - b.number);
+        this.arp_sortedHoldList = this.arp_holdlist
+          .slice()
+          .sort((a, b) => a.number - b.number);
       }
     }
     // Grace period on key release: defer strum cancellation by one arp step so a
     // quick chord change feels seamless (guitar-like). If new notes arrive within
     // the window the timer is cleared and the strum continues uninterrupted.
-    if (this.arp_enabled && this.arp_direction >= 5 && !this.arp_hold) {
+    if (this.arp_enabled && this.arp_direction >= ArpDirection.STRUM_DOWN && !this.arp_hold) {
       if (this.activeNotes.length === 0) {
         const graceMs = this.arp_ticks * this._lastTickIntervalMs;
         this._strumGraceTimer = setTimeout(() => {
@@ -623,23 +1108,38 @@ export class Zone {
     requestAnimationFrame(this._renderNotesBound);
   }
 
-  renderNotes(): void {
+  renderTransposeAmount(): void {
     const transposeEl = this._$('.arp_transpose_value') as HTMLElement | null;
     if (transposeEl) {
-      transposeEl.textContent = this.arp_transpose
-        ? (this.arp_transpose_amount > 0 ? '+' : '') + this.arp_transpose_amount
-        : '';
+      transposeEl.textContent =
+        (this.arp_transpose_amount > 0 ? '+' : '') + this.arp_transpose_amount;
     }
+  }
+
+  private _renderQueued = false;
+
+  /** renderNotes() on the next frame, once however many requests come in (MPE floods) */
+  requestRender(): void {
+    if (this._renderQueued) return;
+    this._renderQueued = true;
+    requestAnimationFrame(() => {
+      this._renderQueued = false;
+      this.renderNotes();
+    });
+  }
+
+  renderNotes(): void {
+    this.renderTransposeAmount();
     if (this.elements.isReady && this.elements.canvasElement) {
       const { context, rect } = Zone.scaledCanvasContext(
         this.elements.canvasElement
       );
       const cwidth = rect.width;
-      const numberWhiteKeys = 10 * 7 + 4;
+      const numberWhiteKeys = 10 * 7 + 5;
       const notewidth = cwidth / numberWhiteKeys;
       const whitekeywidth = notewidth * 0.75;
-      const blackkeywidth = notewidth * 0.67;
-      const blackkeyoffset = notewidth * 0.67;
+      const blackkeywidth = notewidth * 0.5;
+      const blackkeyoffset = notewidth * 0.75;
       const whitekeyoffset = (notewidth - whitekeywidth) * 0.5;
 
       context.clearRect(0, 0, cwidth, rect.height);
@@ -647,6 +1147,50 @@ export class Zone {
       if (this.sustain_state) {
         context.fillStyle = NoteDisplay.fillSustain;
         context.fillRect(0, rect.height - 2, cwidth, 2);
+      }
+
+      // Draw faint outlines for all 128 keys as a background reference
+      ALL_NOTES_WHITE_FIRST.forEach((n) => {
+        const isBlack = Note.isBlackKey(n);
+        const wkIndex = Note.nearestWhiteKeyIndex(n);
+        context.fillStyle = isBlack
+          ? NoteDisplay.fillHintBlack
+          : NoteDisplay.fillHintWhite;
+        context.beginPath();
+        if (isBlack) {
+          context.roundRect(
+            notewidth * wkIndex + blackkeyoffset,
+            NoteDisplay.top,
+            blackkeywidth,
+            NoteDisplay.heightBlack,
+            [0, 0, 1, 1]
+          );
+        } else {
+          context.roundRect(
+            whitekeyoffset + notewidth * wkIndex,
+            NoteDisplay.top,
+            whitekeywidth,
+            NoteDisplay.height,
+            [0, 0, 2, 2]
+          );
+        }
+        context.fill();
+      });
+
+      // Octave number labels at the bottom of each C note
+      if (this.enabled) {
+        context.save();
+        context.font = '6px sans-serif';
+        context.textBaseline = 'bottom';
+        context.textAlign = 'center';
+        context.fillStyle = NoteDisplay.fillOctaveLabel;
+        for (let oct = -1; oct <= 9; oct++) {
+          const note = (oct + 1) * 12;
+          const wkIndex = Note.nearestWhiteKeyIndex(note);
+          const x = whitekeyoffset + notewidth * wkIndex + whitekeywidth / 2;
+          context.fillText(String(oct), x, NoteDisplay.height);
+        }
+        context.restore();
       }
 
       const drawNote = (
@@ -698,9 +1242,9 @@ export class Zone {
         this.arp_hold && this.arp_enabled
           ? this.arp_holdlist
           : this.activeNotes;
-      const drawNumbers: number[] = [];
-      for (let i = 0; i < noteList.length; i++) {
-        if (this.arp_enabled) {
+      if (this.arp_enabled) {
+        const drawNumbers: number[] = [];
+        for (let i = 0; i < noteList.length; i++) {
           for (let ao = 0; ao < this.arp_octaves + 1; ao++) {
             const number =
               noteList[i].number +
@@ -708,15 +1252,21 @@ export class Zone {
               (this.octave + ao) * 12;
             drawNumbers.push(number);
           }
-        } else {
-          drawNumbers.push(noteList[i].number);
         }
+        drawNoteList(drawNumbers, NoteDisplay.fillArp, NoteDisplay.fillArpBlack);
+      } else {
+        // Dim sequencer-triggered notes so notes the user is actually
+        // holding on the keyboard stand out from ones the sequencer is playing.
+        const seqNumbers = noteList
+          .filter((n) => !n.fromInput)
+          .map((n) => n.number);
+        const liveNumbers = noteList
+          .filter((n) => n.fromInput)
+          .map((n) => n.number);
+        drawNoteList(seqNumbers, NoteDisplay.fillSeq, NoteDisplay.fillSeqBlack);
+        const liveFill = this.mpe !== MpeMode.OFF ? NoteDisplay.fillMpeKey : NoteDisplay.fill;
+        drawNoteList(liveNumbers, liveFill, this.mpe !== MpeMode.OFF ? NoteDisplay.fillMpeKey : NoteDisplay.fillBlack);
       }
-      drawNoteList(
-        drawNumbers,
-        this.arp_enabled ? NoteDisplay.fillArp : NoteDisplay.fill,
-        this.arp_enabled ? NoteDisplay.fillArpBlack : NoteDisplay.fillBlack
-      );
       if (this.arp_enabled) {
         const note = this.arp.lastnote;
         if (note)
@@ -727,74 +1277,92 @@ export class Zone {
           );
         if (this.arp.lastStrumNotes.length > 0) {
           const n = this.arp.lastStrumNotes[this.arp.lastStrumNotes.length - 1];
-          drawNote(n.number, NoteDisplay.fillArpPlayed, NoteDisplay.fillArpPlayed);
+          drawNote(
+            n.number,
+            NoteDisplay.fillArpPlayed,
+            NoteDisplay.fillArpPlayed
+          );
         }
+      }
+      if (this.mpe !== MpeMode.OFF) {
+        const keyX = (n: number): number =>
+          Note.isBlackKey(n)
+            ? notewidth * Note.nearestWhiteKeyIndex(n) + blackkeyoffset + blackkeywidth / 2
+            : whitekeyoffset + notewidth * Note.nearestWhiteKeyIndex(n) + whitekeywidth / 2;
+        const dots = this.mpeIn.dots(this.mpe_bend_in);
+        this.drawMpeDots(context, rect.height, dots, keyX);
+        if (dots.some((d) => d.alpha < 1)) this.requestRender(); // a release still fading
       }
     }
   }
 
+  /**
+   * MPE keys as dots in the zone colour, as ROLI's Dashboard draws them: x = the pitch
+   * sounding (key + bend, so a glide runs across the keys), y = slide (top = high), size
+   * and brightness = pressure. With To one channel the key bend, slide and pressure
+   * follow is a filled dot, the others rings.
+   */
+  private drawMpeDots(
+    context: CanvasRenderingContext2D,
+    height: number,
+    dots: MpeDot[],
+    keyX: (note: number) => number
+  ): void {
+    if (dots.length === 0) return;
+    const colour = this.elements.zoneElement
+      ? getComputedStyle(this.elements.zoneElement).getPropertyValue('--zone-color').trim() || NoteDisplay.fillMpeDot
+      : NoteDisplay.fillMpeDot;
+    context.save();
+    for (const d of dots) {
+      const pitch = Math.max(0, Math.min(127, d.note + d.semis));
+      const low = Math.floor(pitch);
+      const x = keyX(low) + (keyX(Math.min(127, low + 1)) - keyX(low)) * (pitch - low);
+      const press = d.pressure / 127;
+      const r = 1.5 + press * 6;
+      const y = d.slide === null ? height / 2 : r + (1 - d.slide / 127) * (height - 2 * r);
+      const filled = this.mpe !== MpeMode.COLLAPSE || d.followed;
+      context.beginPath();
+      context.arc(x, y, r, 0, Math.PI * 2);
+      // a dark rim keeps the dot apart from the keys under it
+      context.globalAlpha = d.alpha;
+      context.lineWidth = filled ? 1 : 3;
+      context.strokeStyle = NoteDisplay.strokeMpeDot;
+      context.stroke();
+      // light touch: the zone colour muted on the dark strip; pressed hard: full colour
+      context.globalAlpha = d.alpha * (0.35 + 0.65 * press);
+      if (filled) {
+        context.fillStyle = colour;
+        context.fill();
+      } else {
+        context.lineWidth = 1.5;
+        context.strokeStyle = colour;
+        context.stroke();
+      }
+    }
+    context.restore();
+  }
+
   renderPattern(): void {
-    if (this.elements.isReady && this.elements.patternCanvas) {
-      const { context, rect } = Zone.scaledCanvasContext(
-        this.elements.patternCanvas
-      );
-      const plen = this.arp_pattern.length;
-      const cellW = rect.width / plen;
-      const h = rect.height;
-
-      context.clearRect(0, 0, rect.width, rect.height);
-
-      // Subtle group separators every 8 steps for long patterns
-      if (plen > 8) {
-        context.fillStyle = 'rgba(255, 255, 255, 0.07)';
-        for (let g = 8; g < plen; g += 8) {
-          context.fillRect(Math.round(cellW * g) - 1, 0, 1, h);
-        }
-      }
-
-      const gap = cellW > 3 ? Math.min(1.5, cellW * 0.12) : 0;
-      const barW = Math.max(1, cellW - gap * 2);
-      const barH = h * 0.6;
-      const barY = (h - barH) / 2;
-      const radius = cellW >= 6 ? Math.min(2, barW / 2, barH / 2) : 0;
-
-      for (let i = 0; i < plen; i++) {
-        const x = cellW * i + gap;
-        if (this.arp_pattern[i]) {
-          context.fillStyle = 'rgba(255, 255, 255, 0.65)';
-          if (radius > 0 && typeof context.roundRect === 'function') {
-            context.beginPath();
-            context.roundRect(x, barY, barW, barH, radius);
-            context.fill();
-          } else {
-            context.fillRect(x, barY, barW, barH);
-          }
-        } else {
-          context.fillStyle = 'rgba(255, 255, 255, 0.13)';
-          context.fillRect(x, h / 2 - 0.5, barW, 1);
-        }
-      }
-
-      // Playhead: zone-color tinted vertical bar with glow
-      const playX = cellW * this.arp.patternPos + cellW / 2;
-      if (!this._cachedZoneColor) {
-        this._cachedZoneColor = getComputedStyle(this.elements.patternCanvas).getPropertyValue('--zone-color').trim() || '#e9c46a';
-      }
-      const zoneColor = this._cachedZoneColor;
-      context.filter = 'brightness(2.4) saturate(2)';
-      context.shadowColor = zoneColor;
-      context.shadowBlur = 6;
-      context.fillStyle = zoneColor;
-      context.fillRect(Math.round(playX) - 1, 0, 3, h);
-      context.shadowBlur = 0;
-      context.filter = 'none';
+    const el = this.elements.patternElement;
+    if (!this.elements.isReady || !el) return;
+    const plen = this.arp_pattern.length;
+    if (el.childElementCount !== plen) {
+      el.innerHTML = '<i></i>'.repeat(plen);
+    }
+    for (let i = 0; i < plen; i++) {
+      const cell = el.children[i];
+      cell.classList.toggle('on', !!this.arp_pattern[i]);
+      cell.classList.toggle('playhead', i === this.arp.patternPos);
     }
   }
 
   renderSequence(): void {
     if (this.sequence.active && this.elements.isReady) {
       if (this.sequence.isDrumSequence) {
-        if (this.sequence.previousStepNumber == -1 && this.sequence.currentStepNumber == -1) {
+        if (
+          this.sequence.previousStepNumber == -1 &&
+          this.sequence.currentStepNumber == -1
+        ) {
           this.elements.sequencerDrumStepElements.forEach((e) => {
             (e as HTMLElement).classList.remove('playhead');
           });
@@ -817,7 +1385,9 @@ export class Zone {
             const lane = this.sequence.drum_lanes[laneIndex];
             if (!lane) return;
             if (lane.previousStep > -1) {
-              (dl[lane.previousStep] as HTMLElement)?.classList.remove('playhead');
+              (dl[lane.previousStep] as HTMLElement)?.classList.remove(
+                'playhead'
+              );
             }
             if (lane.currentStep > -1) {
               (dl[lane.currentStep] as HTMLElement)?.classList.add('playhead');
@@ -848,32 +1418,41 @@ export class Zone {
         }
       }
     }
+    this.renderConditionOutcomes();
+  }
+
+  /** Marks conditional steps that play (`cond-plays`) or skip (`cond-skips`) this cycle. */
+  private renderConditionOutcomes(): void {
+    if (!this.elements.isReady || !this.sequence.active) return;
+    const mark = (el: Element | undefined, outcome: boolean | null): void => {
+      el?.classList.toggle('cond-plays', outcome === true);
+      el?.classList.toggle('cond-skips', outcome === false);
+    };
     if (this.sequence.isDrumSequence) {
-      this.elements.sequencerDrumLaneCursors.forEach((cursor, ln) => {
+      this.elements.sequencerDrumLanes?.forEach((cells, ln) => {
         const lane = this.sequence.drum_lanes[ln];
-        if (!lane) return;
-        const pos = lane.currentStep;
-        cursor.style.left = pos > -1 && lane.length > 0
-          ? `${(pos / lane.length) * 100}%`
-          : '-100%';
+        for (let i = 0; i < cells.length; i++) {
+          mark(cells[i], lane && i < lane.length ? this.sequence.conditionOutcome(i, lane) : null);
+        }
       });
-    } else if (this.elements.sequencerProgressElementInner) {
-      const pos = this.sequence.currentStepNumber;
-      this.elements.sequencerProgressElementInner.style.left =
-        pos > -1 && this.sequence.length > 0
-          ? `${(pos / this.sequence.length) * 100}%`
-          : '-100%';
+    } else {
+      this.elements.sequencerGridStepElements?.forEach((el, i) => {
+        mark(el, i < this.sequence.length ? this.sequence.conditionOutcome(i) : null);
+      });
     }
   }
 
   clock(pos: number, tickIntervalMs: number): void {
+    this._lastPos = pos;
+    this._lastTickAt = performance.now();
+    // Slides first: one ending on this tick reaches its value before a new step starts
+    this.paramLocks.tick(pos);
     this.sequence.clock(pos, tickIntervalMs);
+    const elapsed = pos - timeline.sectionStart;
+    // the loop jumped back: the pass just played is a take
+    if (this.recording && passAt(elapsed) !== this.recording.pass) this.endTake(true);
+    this.takePlayer.clock(elapsed, tickIntervalMs, this.takes);
     if (tickIntervalMs > 0) this._lastTickIntervalMs = tickIntervalMs;
-
-    // Drain pending swung and strummed arpeggiator notes
-    this.processArpSwingPending();
-    this.processArpStrumPending();
-    this.processArpStrumOffPending();
 
     const tickn = pos % this.arp_ticks;
     const offtick = Math.min(
@@ -885,14 +1464,36 @@ export class Zone {
       this.arp.patternPos = (this.arp.patternPos + 1) % this.arp_pattern.length;
 
       // Check if this arp pattern position should swing
-      if (this.swingAmount > 0 && this.arp_enabled && this.arp_pattern[this.arp.patternPos]) {
-        const swingOffsetMs = this.calculateArpSwingOffsetMs(this.arp.patternPos, tickIntervalMs);
-        if (swingOffsetMs > 0) {
-          this.arpSwingPending.push({
-            patternPos: this.arp.patternPos,
-            fireAtMs: performance.now() + swingOffsetMs,
-            probable
-          });
+      if (
+        this.swingAmount > 0 &&
+        this.arp_enabled &&
+        this.arp_pattern[this.arp.patternPos]
+      ) {
+        const swingOffset = swingOffsetMs(
+          this.arp.patternPos,
+          this.swingAmount,
+          this.arp_ticks,
+          tickIntervalMs
+        );
+        if (swingOffset > 0) {
+          const patternPos = this.arp.patternPos;
+          const fireAtMs = performance.now() + swingOffset;
+          const pending = { patternPos, fireAtMs, probable } as {
+            patternPos: number;
+            fireAtMs: number;
+            probable: boolean;
+            timer: ReturnType<typeof setTimeout>;
+          };
+          // Timer provides the real delay; dispatch always sends immediately when it
+          // fires (no MIDI-level timestamp) since Web MIDI scheduled sends aren't
+          // reliably honored by all output drivers.
+          pending.timer = setTimeout(() => {
+            this.arpSwingPending = this.arpSwingPending.filter(
+              (p) => p !== pending
+            );
+            this.triggerArpAtPatternPos(pending.probable);
+          }, swingOffset);
+          this.arpSwingPending.push(pending);
           requestAnimationFrame(this._renderPatternBound);
           return;
         }
@@ -906,121 +1507,182 @@ export class Zone {
     } else if (tickn >= offtick) {
       this.arp.beat = false;
       // Strum modes and active ratchet use per-note timers; off-tick only silences plain arp
-      if (this.arp_direction < 5 && this.arpStrumPending.length === 0 && this.arpStrumOffPending.length === 0) {
+      if (
+        this.arp_direction < ArpDirection.STRUM_DOWN &&
+        this.arpStrumPending.length === 0 &&
+        this.arpStrumOffPending.length === 0
+      ) {
         this.arpNoteOff();
       }
     }
   }
 
   /**
-   * Calculate swing delay in milliseconds for an arpeggiator pattern position.
-   * Off-beat positions (1, 3, 5...) are delayed; on-beat positions return 0.
+   * Schedule a strum/ratchet sub-hit note-on via setTimeout. Dispatch always sends
+   * immediately when the timer fires (no MIDI-level timestamp) since Web MIDI
+   * scheduled sends aren't reliably honored by all output drivers.
    */
-  private calculateArpSwingOffsetMs(patternPos: number, tickIntervalMs: number): number {
-    if (patternPos % 2 === 0) return 0;
-    return this.swingAmount * this.arp_ticks * 0.5 * tickIntervalMs;
+  private scheduleArpNoteOn(
+    note: Note,
+    delayMs: number,
+    fireAtMs: number,
+    gateMs: number
+  ): void {
+    const pending = { note, fireAtMs, gateMs } as {
+      note: Note;
+      fireAtMs: number;
+      gateMs: number;
+      timer: ReturnType<typeof setTimeout>;
+    };
+    pending.timer = setTimeout(() => {
+      this.arpStrumPending = this.arpStrumPending.filter((p) => p !== pending);
+      this.convertNote2CC(note.number, note.velo);
+      this.sendNote(MIDI.MESSAGE.NOTE_ON, note.channel, note.number, note.velo, note.portId);
+      this.arp.lastStrumNotes.push(note);
+      requestAnimationFrame(this._renderNotesBound);
+    }, delayMs);
+    this.arpStrumPending.push(pending);
   }
 
   /**
-   * Fire any pending swung arpeggiator notes whose scheduled wall-clock time has arrived.
+   * Schedule a strum/ratchet sub-hit note-off via setTimeout (see scheduleArpNoteOn).
    */
-  private processArpSwingPending(): void {
-    const now = performance.now();
-    for (let i = this.arpSwingPending.length - 1; i >= 0; i--) {
-      const pending = this.arpSwingPending[i];
-      if (now >= pending.fireAtMs) {
-        this.triggerArpAtPatternPos(pending.probable, pending.fireAtMs);
-        this.arpSwingPending.splice(i, 1);
-      }
-    }
+  private scheduleArpNoteOff(note: Note, delayMs: number, fireAtMs: number): void {
+    const pending = { note, fireAtMs } as {
+      note: Note;
+      fireAtMs: number;
+      timer: ReturnType<typeof setTimeout>;
+    };
+    pending.timer = setTimeout(() => {
+      this.arpStrumOffPending = this.arpStrumOffPending.filter(
+        (p) => p !== pending
+      );
+      this.sendNote(MIDI.MESSAGE.NOTE_OFF, note.channel, note.number, note.velo, note.portId);
+      this.arp.lastStrumNotes = this.arp.lastStrumNotes.filter(
+        (s) => s !== note
+      );
+      requestAnimationFrame(this._renderNotesBound);
+    }, delayMs);
+    this.arpStrumOffPending.push(pending);
   }
 
-  private processArpStrumPending(): void {
-    const now = performance.now();
-    for (let i = this.arpStrumPending.length - 1; i >= 0; i--) {
-      const pending = this.arpStrumPending[i];
-      if (now >= pending.fireAtMs) {
-        const n = pending.note;
-        this.convertNote2CC(n.number, n.velo);
-        this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + n.channel;
-        this._midiMsgBuf[1] = n.number;
-        this._midiMsgBuf[2] = n.velo;
-        this.midi.send(this._midiMsgBuf, n.portId);
-        this.arp.lastStrumNotes.push(n);
-        this.arpStrumPending.splice(i, 1);
-        requestAnimationFrame(this._renderNotesBound);
-      }
-    }
+  /**
+   * Drop scheduled strum/ratchet note-ons that have not fired yet, together with their
+   * note-offs. Notes already sounding keep their scheduled note-off.
+   */
+  private cancelUnsoundedArpNotes(): void {
+    if (this.arpStrumPending.length === 0) return;
+    const unsounded = new Set(this.arpStrumPending.map((p) => p.note));
+    this.arpStrumPending.forEach((p) => clearTimeout(p.timer));
+    this.arpStrumPending.length = 0;
+    this.arpStrumOffPending = this.arpStrumOffPending.filter((p) => {
+      if (!unsounded.has(p.note)) return true;
+      clearTimeout(p.timer);
+      return false;
+    });
   }
 
-  private processArpStrumOffPending(): void {
-    const now = performance.now();
-    for (let i = this.arpStrumOffPending.length - 1; i >= 0; i--) {
-      const pending = this.arpStrumOffPending[i];
-      if (now >= pending.fireAtMs) {
-        const n = pending.note;
-        this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_OFF + n.channel;
-        this._midiMsgBuf[1] = n.number;
-        this._midiMsgBuf[2] = n.velo;
-        this.midi.send(this._midiMsgBuf, n.portId);
-        this.arp.lastStrumNotes = this.arp.lastStrumNotes.filter(s => s !== n);
-        this.arpStrumOffPending.splice(i, 1);
-        requestAnimationFrame(this._renderNotesBound);
+  /**
+   * Release a still-sounding strum/ratchet note of the given pitch (called from sendOut
+   * before a note-on, hence its own message buffer).
+   */
+  private releaseSoundingArpPitch(number: number, channel: number, portId: string): void {
+    const sounding = this.arp.lastStrumNotes;
+    this.arpStrumOffPending = this.arpStrumOffPending.filter((p) => {
+      const n = p.note;
+      if (
+        n.number !== number ||
+        n.channel !== channel ||
+        n.portId !== portId ||
+        !sounding.includes(n)
+      ) {
+        return true;
       }
-    }
+      clearTimeout(p.timer);
+      this.sendOut(
+        Uint8Array.from([MIDI.MESSAGE.NOTE_OFF + n.channel, n.number, n.velo]),
+        n.portId
+      );
+      this.arp.lastStrumNotes = this.arp.lastStrumNotes.filter((s) => s !== n);
+      return false;
+    });
   }
 
   /**
    * Trigger arpeggiator note at a specific pattern position.
-   * timestamp, when provided, is forwarded to Web MIDI for hardware-precise scheduling.
    */
-  private triggerArpAtPatternPos(probable: boolean, timestamp?: number): void {
+  private triggerArpAtPatternPos(probable: boolean): void {
     this.arp.beat = true;
     const notes: Note[] = this.arp_hold
-      ? (this.arp_direction > 2 ? this.arp_holdlist : this.arp_sortedHoldList)
-      : (this.arp_direction > 2 ? this.arp.orderlist : this.arp.sortedlist);
+      ? this.arp_direction > ArpDirection.UP_DOWN
+        ? this.arp_holdlist
+        : this.arp_sortedHoldList
+      : this.arp_direction > ArpDirection.UP_DOWN
+        ? this.arp.orderlist
+        : this.arp.sortedlist;
     if (notes.length > 0) {
       // Strum modes: play entire chord (across all octaves) staggered across the gate window
-      if (this.arp_direction === 5 || this.arp_direction === 6 || this.arp_direction === 7) {
+      if (
+        this.arp_direction === ArpDirection.STRUM_DOWN ||
+        this.arp_direction === ArpDirection.STRUM_UP ||
+        this.arp_direction === ArpDirection.STRUM_ALT
+      ) {
         if (probable) {
           const base = notes.slice().sort((a, b) => a.number - b.number);
           const chord: Note[] = [];
           for (let oct = 0; oct <= this.arp_octaves; oct++) {
             for (const n of base) {
-              let number = n.number + (this.octave + oct) * 12 +
+              let number =
+                n.number +
+                (this.octave + oct) * 12 +
                 (this.arp_transpose ? this.arp_transpose_amount : 0);
               while (number > 127) number -= 12;
               while (number < 0) number += 12;
-              chord.push(new Note(number, n.velo, this.channel, this.outputPortId));
+              chord.push(
+                new Note(number, n.velo, this.channel, this.outputPortId)
+              );
             }
           }
-          const strumUp = this.arp_direction === 6 || (this.arp_direction === 7 && this.arp.inc < 0);
+          const strumUp =
+            this.arp_direction === ArpDirection.STRUM_UP ||
+            (this.arp_direction === ArpDirection.STRUM_ALT && this.arp.inc < 0);
           if (strumUp) chord.reverse();
-          if (this.arp_direction === 7) this.arp.inc = -this.arp.inc;
-          const gateMs = this.arp_ticks * this._lastTickIntervalMs * this.arp_gatelength;
+          if (this.arp_direction === ArpDirection.STRUM_ALT) this.arp.inc = -this.arp.inc;
+          const gateMs =
+            this.arp_ticks * this._lastTickIntervalMs * this.arp_gatelength;
           const gap = chord.length > 1 ? gateMs / chord.length : 0;
-          this.arp.lastStrumNotes = [];
-          this.arpStrumPending.length = 0;
-          this.arpStrumOffPending.length = 0;
+          // Notes of the previous strum keep ringing until their own note-off or until
+          // this strum re-strikes the same pitch; only its unsounded notes are dropped.
+          this.cancelUnsoundedArpNotes();
           const now = performance.now();
           chord.forEach((note, i) => {
-            const taperFactor = chord.length > 1
-              ? 1 - this.arp_strum_taper * (i / (chord.length - 1)) * 0.9
-              : 1;
-            const baseVelo = this.fixedvel ? this.fixedvel_value || 127 : note.velo;
+            const taperFactor =
+              chord.length > 1
+                ? 1 - this.arp_strum_taper * (i / (chord.length - 1)) * 0.9
+                : 1;
+            const baseVelo = this.fixedvel
+              ? this.fixedvel_value || 127
+              : note.velo;
             const velo = Math.max(1, Math.round(baseVelo * taperFactor));
             const fireAtMs = now + i * gap;
-            const taperedNote = new Note(note.number, velo, note.channel, note.portId);
-            this.arpStrumOffPending.push({ note: taperedNote, fireAtMs: fireAtMs + gateMs });
+            const taperedNote = new Note(
+              note.number,
+              velo,
+              note.channel,
+              note.portId
+            );
             if (i === 0) {
               this.convertNote2CC(note.number, velo);
-              this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + this.channel;
-              this._midiMsgBuf[1] = note.number;
-              this._midiMsgBuf[2] = velo;
-              this.midi.send(this._midiMsgBuf, this.outputPortId, timestamp);
+              this.sendNote(MIDI.MESSAGE.NOTE_ON, this.channel, note.number, velo, this.outputPortId);
               this.arp.lastStrumNotes.push(taperedNote);
+              this.scheduleArpNoteOff(taperedNote, gateMs, fireAtMs + gateMs);
             } else {
-              this.arpStrumPending.push({ note: taperedNote, fireAtMs, gateMs });
+              this.scheduleArpNoteOn(taperedNote, i * gap, fireAtMs, gateMs);
+              this.scheduleArpNoteOff(
+                taperedNote,
+                i * gap + gateMs,
+                fireAtMs + gateMs
+              );
             }
           });
         }
@@ -1038,22 +1700,22 @@ export class Zone {
           this.arp.octave = noct;
         };
         switch (this.arp_direction) {
-          case 0:
-          case 4:
+          case ArpDirection.UP:
+          case ArpDirection.ORDER:
             this.arp.noteindex++;
             if (this.arp.noteindex >= notes.length) {
               this.arp.noteindex = 0;
               nextArpOctave(1);
             }
             break;
-          case 1:
+          case ArpDirection.DOWN:
             this.arp.noteindex--;
             if (this.arp.noteindex < 0) {
               this.arp.noteindex = notes.length - 1;
               nextArpOctave(-1);
             }
             break;
-          case 2:
+          case ArpDirection.UP_DOWN:
             this.arp.noteindex += this.arp.inc;
             if (this.arp.noteindex >= notes.length) {
               this.arp.noteindex = this.arp.noteindex % notes.length;
@@ -1076,7 +1738,7 @@ export class Zone {
             }
             if (notes.length == 1) this.arp.noteindex = 0;
             break;
-          case 3:
+          case ArpDirection.RANDOM:
             this.arp.noteindex = this.rngArp.next(notes.length);
             this.arp.octave = this.rngArpOct.next(this.arp_octaves + 1);
             break;
@@ -1085,7 +1747,9 @@ export class Zone {
       if (
         probable &&
         this.arp.noteindex > -1 &&
-        this.arp.noteindex < notes.length
+        this.arp.noteindex < notes.length &&
+        // nothing to repeat if the previous beat was skipped or ratcheted
+        (!repetition || this.arp.repeatnote !== null)
       ) {
         const activeNote = repetition
           ? this.arp.repeatnote!
@@ -1104,36 +1768,47 @@ export class Zone {
           this.outputPortId
         );
         const baseVelo = this.fixedvel ? this.fixedvel_value || 127 : note.velo;
-        const ratchetCount = this.arp_ratchet_probability > 0 &&
+        const ratchetCount =
+          this.arp_ratchet_probability > 0 &&
           this.rngProb() < this.arp_ratchet_probability
-          ? [2, 3, 4][this.arp_ratchet_count]
-          : 1;
+            ? [2, 3, 4][this.arp_ratchet_count]
+            : 1;
         if (ratchetCount > 1) {
-          const subIntervalMs = this.arp_ticks * this._lastTickIntervalMs / ratchetCount;
+          const subIntervalMs =
+            (this.arp_ticks * this._lastTickIntervalMs) / ratchetCount;
           const hitGateMs = subIntervalMs * this.arp_gatelength;
           const now = performance.now();
           for (let i = 0; i < ratchetCount; i++) {
             const fireAtMs = now + i * subIntervalMs;
             const velo = Math.max(1, Math.round(baseVelo * Math.pow(0.8, i)));
-            const ratchetNote = new Note(note.number, velo, note.channel, note.portId);
+            const ratchetNote = new Note(
+              note.number,
+              velo,
+              note.channel,
+              note.portId
+            );
             if (i === 0) {
               this.convertNote2CC(ratchetNote.number, ratchetNote.velo);
-              this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + this.channel;
-              this._midiMsgBuf[1] = ratchetNote.number;
-              this._midiMsgBuf[2] = ratchetNote.velo;
-              this.midi.send(this._midiMsgBuf, this.outputPortId, timestamp);
+              this.sendNote(MIDI.MESSAGE.NOTE_ON, this.channel, ratchetNote.number, ratchetNote.velo, this.outputPortId);
+              this.arp.lastStrumNotes.push(ratchetNote);
             } else {
-              this.arpStrumPending.push({ note: ratchetNote, fireAtMs, gateMs: hitGateMs });
+              this.scheduleArpNoteOn(
+                ratchetNote,
+                i * subIntervalMs,
+                fireAtMs,
+                hitGateMs
+              );
             }
-            this.arpStrumOffPending.push({ note: ratchetNote, fireAtMs: fireAtMs + hitGateMs });
+            this.scheduleArpNoteOff(
+              ratchetNote,
+              i * subIntervalMs + hitGateMs,
+              fireAtMs + hitGateMs
+            );
           }
         } else {
           this.arp.lastnote = note;
           this.convertNote2CC(note.number, baseVelo);
-          this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + this.channel;
-          this._midiMsgBuf[1] = note.number;
-          this._midiMsgBuf[2] = baseVelo;
-          this.midi.send(this._midiMsgBuf, this.outputPortId, timestamp);
+          this.sendNote(MIDI.MESSAGE.NOTE_ON, this.channel, note.number, baseVelo, this.outputPortId);
         }
       }
     }
@@ -1144,67 +1819,296 @@ export class Zone {
   arpNoteOff(): void {
     if (this.arp.lastnote) {
       const note = this.arp.lastnote;
-      this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_OFF + note.channel;
-      this._midiMsgBuf[1] = note.number;
-      this._midiMsgBuf[2] = note.velo;
-      this.midi.send(this._midiMsgBuf, note.portId);
+      this.sendNote(MIDI.MESSAGE.NOTE_OFF, note.channel, note.number, note.velo, note.portId);
       this.arp.lastnote = null;
       this.arp.repeatnote = note;
       requestAnimationFrame(this._renderNotesBound);
     }
     if (this.arpStrumPending.length > 0 || this.arpStrumOffPending.length > 0) {
+      this.arpStrumPending.forEach((p) => clearTimeout(p.timer));
       this.arpStrumPending.length = 0;
-      this.arpStrumOffPending.forEach(({ note: n }) => {
-        this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_OFF + n.channel;
-        this._midiMsgBuf[1] = n.number;
-        this._midiMsgBuf[2] = n.velo;
-        this.midi.send(this._midiMsgBuf, n.portId);
+      this.arpStrumOffPending.forEach(({ note: n, timer }) => {
+        clearTimeout(timer);
+        if (!this.arp.lastStrumNotes.includes(n)) return; // never sounded
+        this.sendNote(MIDI.MESSAGE.NOTE_OFF, n.channel, n.number, n.velo, n.portId);
       });
       this.arpStrumOffPending.length = 0;
       this.arp.lastStrumNotes = [];
     }
   }
 
-  stopped(): void {
+  /**
+   * Schedule a note-off `ticks` clock ticks after the last processed tick, timed with
+   * the last measured tick interval (the clock itself is no longer running).
+   */
+  ringOutAfterTicks(noteNumber: number, ticks: number, release: () => void): void {
+    this.fireRingOut(noteNumber);
+    const elapsedMs = performance.now() - this._lastTickAt;
+    const delayMs = Math.min(
+      ticks * this._lastTickIntervalMs - elapsedMs,
+      Zone.MAX_RING_OUT_MS
+    );
+    if (delayMs <= 0) {
+      release();
+      return;
+    }
+    this._ringOutUntil = Math.max(this._ringOutUntil, performance.now() + delayMs);
+    const timer = setTimeout(() => {
+      this.ringOuts.delete(noteNumber);
+      release();
+    }, delayMs);
+    this.ringOuts.set(noteNumber, { timer, release });
+  }
+
+  private fireRingOut(noteNumber: number): void {
+    const pending = this.ringOuts.get(noteNumber);
+    if (!pending) return;
+    this.ringOuts.delete(noteNumber);
+    clearTimeout(pending.timer);
+    pending.release();
+  }
+
+  /** Send all pending ring-out note-offs now. */
+  flushRingOuts(): void {
+    for (const noteNumber of [...this.ringOuts.keys()]) {
+      this.fireRingOut(noteNumber);
+    }
+  }
+
+  /**
+   * Transport started: the arp takes over held notes, so release the ones that were
+   * passed straight through while stopped (a mono synth would otherwise hold them
+   * and play the arp legato).
+   */
+  started(): void {
+    // A Continue after a clock dropout keeps the playhead and the locks it holds
+    if (this.sequence.active && this.sequence.currentStepNumber < 0) {
+      this.paramLocks.start(this.sequence.lockedAddresses());
+    }
+    if (!this.arp_enabled || this.passedThrough.size === 0) return;
+    this.passedThrough.forEach((channel, n) => {
+      this.sendOut(
+        Uint8Array.from([MIDI.MESSAGE.NOTE_OFF + channel, n.number, 0]),
+        n.portId
+      );
+    });
+    this.passedThrough.clear();
+  }
+
+  /**
+   * Stop arp and sequencer. With `ringOut` (transport stop) sounding notes finish their
+   * gate on a timer; otherwise (arrangement switch, delete) they are cut immediately.
+   */
+  stopped(ringOut = false): void {
+    if (!ringOut) this.flushRingOuts();
     this.arp.noteindex = -1;
     this.arp.patternPos = -1;
     this.arp.repeattrig = false;
     this.arp.inc = 1;
     this.arp.octave = 0;
+    this.arpSwingPending.forEach((p) => clearTimeout(p.timer));
     this.arpSwingPending.length = 0;
-    this.arpStrumOffPending.length = 0;
-    if (this._strumGraceTimer !== null) { clearTimeout(this._strumGraceTimer); this._strumGraceTimer = null; }
-    this.arpNoteOff();
-    this.sequence.stopped();
+    if (ringOut) {
+      // Strum/ratchet note-offs already run on timers; only drop unsounded hits
+      this.cancelUnsoundedArpNotes();
+      this.ringOutArpNote();
+    } else {
+      this.arpNoteOff();
+    }
+    this.arp.repeatnote = null;
+    this.sequence.stopped(ringOut);
+    this.takePlayer.release(ringOut);
+    // a stop or an arrangement switch ends the section, and so the take
+    this.endTake();
+    // Controllers go back to their own values once ringing notes have ended (a little
+    // after the last note-off, whose timer is due at the same moment)
+    const ringingMs = ringOut && this.ringOuts.size > 0 ? Math.max(0, this._ringOutUntil - performance.now()) + 20 : 0;
+    this.paramLocks.stop(this.sequence.lockedAddresses(), ringingMs);
+    // Released sequencer notes may have armed the strum grace timer, which would
+    // cut the strum's ring-out early
+    if (this._strumGraceTimer !== null) {
+      clearTimeout(this._strumGraceTimer);
+      this._strumGraceTimer = null;
+    }
     requestAnimationFrame(this._renderPatternBound);
     requestAnimationFrame(this._renderSequenceBound);
+  }
+
+  /**
+   * External clock ticks halted without Stop: sounding notes ring out like on stop,
+   * but arp and sequencer positions are kept so playback continues with the next tick.
+   */
+  paused(): void {
+    this.arpSwingPending.forEach((p) => clearTimeout(p.timer));
+    this.arpSwingPending.length = 0;
+    this.cancelUnsoundedArpNotes();
+    this.ringOutArpNote();
+    this.sequence.paused();
+    this.takePlayer.release(true);
+    if (this._strumGraceTimer !== null) {
+      clearTimeout(this._strumGraceTimer);
+      this._strumGraceTimer = null;
+    }
+  }
+
+  /** Let the plain arp note finish its gate after a transport stop. */
+  private ringOutArpNote(): void {
+    const note = this.arp.lastnote;
+    if (!note) return;
+    this.arp.lastnote = null;
+    this.arp.repeatnote = note;
+    const offTick = Math.ceil(
+      Math.min(this.arp_ticks * this.arp_gatelength, this.arp_ticks - 1)
+    );
+    const remaining = offTick - (this._lastPos % this.arp_ticks);
+    this.ringOutAfterTicks(note.number, remaining, () => {
+      this.sendOut(
+        Uint8Array.from([MIDI.MESSAGE.NOTE_OFF + note.channel, note.number, note.velo]),
+        note.portId
+      );
+      requestAnimationFrame(this._renderNotesBound);
+    });
+  }
+
+  private recordTakeNote(pitch: number, velo: number): void {
+    if (!timeline.running) return;
+    // a pass of the loop is a take of its own
+    const pass = passAt(nowTick() - timeline.sectionStart);
+    if (this.recording && this.recording.pass !== pass) this.endTake(true);
+    if (!this.recording) this.recording = { arrangement: this.currentArrangementIndex, pass, notes: [] };
+    if (this.recording.notes.length >= Take.MAX_NOTES) return;
+    this.recordTakeNoteOff(pitch);
+    this.recording.notes.push({ t: songNow(), d: 0, n: pitch, v: velo, open: true });
+  }
+
+  private recordTakeNoteOff(pitch: number): void {
+    const notes = this.recording?.notes;
+    if (!notes) return;
+    for (let i = notes.length - 1; i >= 0; i--) {
+      if (notes[i].open && notes[i].n === pitch) {
+        notes[i].open = false;
+        notes[i].d = Math.max(0.25, (timeline.running ? songNow() : songEnd()) - notes[i].t);
+        return;
+      }
+    }
+  }
+
+  /** Whether something was recorded into this arrangement this session (kept or not), or is being now */
+  get hasRecorded(): boolean {
+    return (
+      (this.recording?.notes.length ?? 0) > 0 ||
+      this.takeList.some((e) => e.arrangement === this.currentArrangementIndex)
+    );
+  }
+
+  /** The notes being recorded, at song positions, still open ones up to now (for drawing) */
+  get recordingNotes(): TakeNoteJSON[] {
+    const now = songNow();
+    return (this.recording?.notes ?? []).map((n) => (n.open ? { ...n, d: Math.max(0.25, now - n.t) } : n));
+  }
+
+  /**
+   * The section ended (Stop or an arrangement switch) or a pass of the loop did
+   * (`atLoopEnd`): what was played becomes the latest take, from the bar of its first
+   * note to the bar the section ended in; within the loop, the loop's range.
+   */
+  endTake(atLoopEnd = false): void {
+    const rec = this.recording;
+    this.recording = null;
+    if (!rec || rec.notes.length === 0) return;
+    const loop = timeline.loop;
+    const end = atLoopEnd && loop ? loop.to : Math.max(songEnd(), ...rec.notes.map((n) => (n.open ? 0 : n.t + n.d)));
+    const take = new Take();
+    if (loop && rec.notes.every((n) => n.t >= loop.from && n.t < loop.to)) {
+      take.start = loop.from;
+      take.length = loop.to - loop.from;
+    } else {
+      // whole bars of the arrangement's meter
+      const bar = barTicks(timeline.meter);
+      take.start = Math.max(0, Math.floor(rec.notes[0].t / bar) * bar);
+      take.length = Math.min(Take.MAX_LENGTH, Math.max(bar, Math.ceil(end / bar) * bar - take.start));
+    }
+    take.notes = rec.notes.map((n) => ({
+      t: n.t - take.start,
+      d: n.open ? Math.max(0.25, end - n.t) : n.d,
+      n: n.n,
+      v: n.v
+    }));
+    take.sort();
+    this.takeList.push({ arrangement: rec.arrangement, take });
+    if (this.takeList.length > Zone.MAX_TAKES) this.takeList.shift();
+    this.shownTake = 0;
+    window.dispatchEvent(new CustomEvent(UPDATE_ZONE_VIEW_EVENT, { detail: this }));
+  }
+
+  /** The session's unkept takes of the current arrangement, newest last (kept ones hidden, so undoing a Keep shows them again) */
+  get arrangementTakes(): Take[] {
+    const kept = new Set(this.takes.map((t) => t.id));
+    return this.takeList
+      .filter((e) => e.arrangement === this.currentArrangementIndex && !kept.has(e.take.id))
+      .map((e) => e.take);
+  }
+
+  /** Keep a take (or a stretch of it, a take of its own): a copy joins this arrangement's song */
+  keepTake(take: Take, part?: Take): void {
+    const kept = part ?? take.copy();
+    // over other kept takes it's a layer: they all play (an overdub)
+    this.takes.push(kept);
+    this.shownTake = 0;
+    // keeping something means wanting to hear it
+    this.takes_on = true;
+  }
+
+  /** Undo replaces the zone objects: the replacement keeps showing what was played */
+  adoptHistory(previous: Zone): void {
+    this.noteHistory = previous.noteHistory;
+    this.heldHistory = previous.heldHistory;
+    this.takeList = previous.takeList;
+    this.shownTake = previous.shownTake;
+    this.recording = previous.recording;
   }
 
   dismiss(): void {
     this.solo = false;
     this.arp_enabled = false;
     this.enabled = false;
-    if (this._strumGraceTimer !== null) { clearTimeout(this._strumGraceTimer); this._strumGraceTimer = null; }
+    if (this._strumGraceTimer !== null) {
+      clearTimeout(this._strumGraceTimer);
+      this._strumGraceTimer = null;
+    }
+    // A swung arp hit still waiting would send a note-on after the zone is gone
+    this.arpSwingPending.forEach((p) => clearTimeout(p.timer));
+    this.arpSwingPending.length = 0;
+    this.flushRingOuts();
     this.arpNoteOff();
     const outevent = new Uint8Array([0, 0, 0]);
     this.activeNotes.forEach((n) => {
       outevent[0] = MIDI.MESSAGE.NOTE_OFF + n.channel;
       outevent[1] = n.number;
-      this.midi.send(outevent, this.outputPortId);
+      this.sendOut(outevent, this.outputPortId);
     });
+    this.passedThrough.clear();
     this.sequence.stopped();
+    this.paramLocks.stop(this.sequence.lockedAddresses());
   }
 
   panic(): void {
+    // Global all-notes-off follows; just drop pending ring-outs
+    this.paramLocks.cancelPending();
+    this.noteHistory.closeAll();
+    this.ringOuts.forEach((p) => clearTimeout(p.timer));
+    this.ringOuts.clear();
     this.activeNotes = [];
     this.midiActiveNotes = [];
+    this.seqActiveNotes = [];
+    this.passedThrough.clear();
     this.holdList = [];
+    this.mpeIn.reset();
+    this.mpePressure.reset();
     this.notesChanged();
   }
 
-  createEuclidianPattern(length: number, hits: number): void {
-    this.euclid_length = length;
-    this.euclid_hits = hits;
+  static euclidianPattern(length: number, hits: number): boolean[] {
     const s = hits / length;
     const result: boolean[] = [];
     let previous = -1;
@@ -1213,84 +2117,166 @@ export class Zone {
       result.push(current != previous);
       previous = current;
     }
-    this.arp_pattern = result;
+    return result;
+  }
+
+  createEuclidianPattern(length: number, hits: number): void {
+    this.euclid_length = length;
+    this.euclid_hits = hits;
+    this.arp_pattern = Zone.euclidianPattern(length, hits);
     this.renderPattern();
   }
 
-  sendCC(index: number): void {
-    const is14bit =
-      this.cc_controllers[index].type == 5 ||
-      this.cc_controllers[index].type == 6;
-    if (is14bit) {
-      this.midi.send(
-        Uint8Array.from([
-          MIDI.MESSAGE.CONTROLLER + this.channel,
-          this.cc_controllers[index].number_lsb || 0,
-          this.cc_controllers[index].val & 0x7f
-        ]),
-        this.outputPortId
-      );
-      this.midi.send(
-        Uint8Array.from([
-          MIDI.MESSAGE.CONTROLLER + this.channel,
-          this.cc_controllers[index].number,
-          this.cc_controllers[index].val >> 7
-        ]),
-        this.outputPortId
-      );
+  /** After a hand edit the euclid fields show the pattern's actual hits and length. */
+  syncEuclidToPattern(): void {
+    this.euclid_hits = this.arp_pattern.filter(Boolean).length;
+    this.euclid_length = this.arp_pattern.length;
+    const hitsEl = this._$('.euchits') as HTMLInputElement | null;
+    const lenEl = this._$('.euclen') as HTMLInputElement | null;
+    if (hitsEl) hitsEl.value = String(this.euclid_hits);
+    if (lenEl) lenEl.value = String(this.euclid_length);
+  }
+
+  /** Sends a controller's value; returns the other controllers that followed it (same address) */
+  sendCC(index: number): number[] {
+    const ctrl = this.cc_controllers[index];
+    this.sendTransmitted(ctrl, transmittedValue(ctrl));
+    return this.syncSameAddress(index);
+  }
+
+  /**
+   * Sends `value` (as transmittedValue() returns it) for a controller without changing
+   * the controller: its own value, a parameter lock or a step of a lock's slide.
+   */
+  sendTransmitted(ctrl: CCController, value: number): void {
+    const status = MIDI.MESSAGE.CONTROLLER + this.channel;
+    if (ctrl.type == CCControllerType.NRPN) {
+      this.sendNRPN(ctrl, Math.max(0, Math.min(16383, value)));
+    } else if (isHiResCC(ctrl.type)) {
+      const lsbBits = ctrl.lsb_bits ?? 7;
+      value = Math.max(0, Math.min((1 << (7 + lsbBits)) - 1, value));
+      const lsb = Uint8Array.from([status, (ctrl.number_lsb || 0) & 0x7f, value & ((1 << lsbBits) - 1)]);
+      const msb = Uint8Array.from([status, ctrl.number & 0x7f, (value >> lsbBits) & 0x7f]);
+      if (ctrl.msb_first) {
+        this.sendOut(msb, this.outputPortId);
+        this.sendOut(lsb, this.outputPortId);
+      } else {
+        this.sendOut(lsb, this.outputPortId);
+        this.sendOut(msb, this.outputPortId);
+      }
     } else {
-      this.midi.send(
-        Uint8Array.from([
-          MIDI.MESSAGE.CONTROLLER + this.channel,
-          this.cc_controllers[index].number,
-          this.remapCCValue(this.cc_controllers[index].val, index)
-        ]),
-        this.outputPortId
-      );
+      value = Math.max(0, Math.min(127, value));
+      this.sendOut(Uint8Array.from([status, ctrl.number & 0x7f, value]), this.outputPortId);
     }
+    const address = controllerAddress(ctrl);
+    if (address) this.paramLocks.noteTransmitted(address, value);
+  }
+
+  /**
+   * Controllers that address the same parameter as `index` take over the value it just
+   * sent, so they all show what the device has. Returns the ones that changed.
+   */
+  syncSameAddress(index: number): number[] {
+    const source = this.cc_controllers[index];
+    const changed: number[] = [];
+    const sent = this.ccOutputValue(index);
+    this.cc_controllers.forEach((c, j) => {
+      if (j == index) return;
+      const before = c.val;
+      if (isSevenBitCC(source.type) && isSevenBitCC(c.type) && c.number == source.number) {
+        c.val = knobValueFor(c, sent);
+      } else if (
+        source.type == CCControllerType.NRPN &&
+        c.type == CCControllerType.NRPN &&
+        (c.nrpn_msb || 0) == (source.nrpn_msb || 0) &&
+        (c.nrpn_lsb || 0) == (source.nrpn_lsb || 0)
+      ) {
+        c.val = knobValueFor(c, sent);
+      } else if (
+        (source.type == CCControllerType.UNIPOLAR_14BIT || source.type == CCControllerType.BIPOLAR_14BIT) &&
+        (c.type == CCControllerType.UNIPOLAR_14BIT || c.type == CCControllerType.BIPOLAR_14BIT) &&
+        c.number == source.number &&
+        (c.number_lsb ?? 0) == (source.number_lsb ?? 0)
+      ) {
+        c.val = source.val;
+      }
+      if (c.val !== before) changed.push(j);
+    });
+    return changed;
+  }
+
+  /** 14-bit type value at its resolution: 0–16383, or 0–1023 at 10 bit */
+  hiResValue(ctrl: CCController): number {
+    return hiResValue(ctrl);
+  }
+
+  /** NRPN value in device units: the knob's 0–16383 mapped onto min–max */
+  nrpnValue(ctrl: CCController): number {
+    return nrpnValue(ctrl);
+  }
+
+  private sendNRPN(ctrl: CCController, value: number): void {
+    const status = MIDI.MESSAGE.CONTROLLER + this.channel;
+    const lsbCC = ctrl.nrpn_data_lsb_cc;
+    const lsbBits = lsbCC != null ? ctrl.nrpn_data_lsb_bits ?? 7 : 0;
+    const send = (cc: number, v: number): void =>
+      this.sendOut(Uint8Array.from([status, cc, v & 0x7f]), this.outputPortId);
+    send(99, ctrl.nrpn_msb || 0);
+    send(98, ctrl.nrpn_lsb || 0);
+    // Low bits first: receivers latch the value on Data Entry MSB
+    if (lsbCC != null && lsbBits > 0) send(lsbCC, value & ((1 << lsbBits) - 1));
+    send(6, value >> lsbBits);
   }
 
   sendProgramChange(): void {
     if (!this.pgm_no) return;
     if (this.bank_msb != null) {
-      this.midi.send(
-        Uint8Array.from([MIDI.MESSAGE.CONTROLLER + this.channel, 0, this.bank_msb]),
+      this.sendOut(
+        Uint8Array.from([
+          MIDI.MESSAGE.CONTROLLER + this.channel,
+          0,
+          this.bank_msb
+        ]),
         this.outputPortId
       );
     }
     if (this.bank_lsb != null) {
-      this.midi.send(
-        Uint8Array.from([MIDI.MESSAGE.CONTROLLER + this.channel, 32, this.bank_lsb]),
+      this.sendOut(
+        Uint8Array.from([
+          MIDI.MESSAGE.CONTROLLER + this.channel,
+          32,
+          this.bank_lsb
+        ]),
         this.outputPortId
       );
     }
-    this.midi.sendProgramChange(this.outputPortId, this.channel, this.pgm_no - 1);
+    this.midi.sendProgramChange(
+      this.outputPortId,
+      this.channel,
+      this.pgm_no - 1
+    );
   }
 
   sendAllCC(): void {
     for (let i = 0; i < this.cc_controllers.length; i++) {
+      // Gaps, sections and note-to-CC have no value of their own
+      const type = this.cc_controllers[i].type;
+      if (isLayoutEntry(type) || type == CCControllerType.NOTE_TO_CC) continue;
       this.sendCC(i);
     }
   }
 
   remapCCValue(valueIn: number, ccIndex: number): number {
-    const ctrl = this.cc_controllers[ccIndex];
-    return Math.floor(ctrl.min + (ctrl.max - ctrl.min) * (valueIn / 127.0));
+    return remapCCValue(this.cc_controllers[ccIndex], valueIn);
   }
 
-  snap2DiscreteValue(value: number, ccIndex: number): void {
-    const ctrl = this.cc_controllers[ccIndex];
-    if (
-      ctrl.type == 0 &&
-      ctrl.discreteValues != null &&
-      ctrl.discreteValues.length > 0
-    ) {
-      const closest = ctrl.discreteValues.reduce((prev, curr) => {
-        return Math.abs(curr - value) < Math.abs(prev - value) ? curr : prev;
-      });
-      ctrl.val = closest;
-    } else {
-      ctrl.val = value;
-    }
+  /** The value sendCC() transmits for a controller, to skip sends that wouldn't change it */
+  ccOutputValue(index: number): number {
+    return transmittedValue(this.cc_controllers[index]);
+  }
+
+  /** Sets a controller's value, snapped to its discreteValues; `target` edits a copy of it instead */
+  snap2DiscreteValue(value: number, ccIndex: number, target = this.cc_controllers[ccIndex]): void {
+    target.val = snappedKnobValue(target, value);
   }
 }

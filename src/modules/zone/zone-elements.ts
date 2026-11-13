@@ -3,23 +3,21 @@ export class ZoneElements {
   zoneElement: HTMLElement | null = null;
   actionElements: NodeListOf<HTMLElement> | null = null;
   canvasElement: HTMLCanvasElement | null = null;
-  patternCanvas: HTMLCanvasElement | null = null;
+  patternElement: HTMLElement | null = null;
   sequencerElement: HTMLElement | null = null;
   sequencerGridElement: HTMLElement | null = null;
   sequencerGridStepElements: NodeListOf<HTMLElement> | HTMLElement[] = [];
   sequencerDrumStepElements: NodeListOf<HTMLElement> | HTMLElement[] = [];
   sequencerDrumLanes: (NodeListOf<HTMLElement> | HTMLElement[])[] = [];
-  sequencerProgressElement: HTMLElement | null = null;
-  sequencerProgressElementInner: HTMLElement | null = null;
-  sequencerDrumLaneCursors: HTMLElement[] = [];
   rangeContainer: HTMLElement | null = null;
-  rangeOctaveElements: NodeListOf<HTMLElement> | null = null;
   rangeMarkerLow: HTMLElement | null = null;
   rangeMarkerHigh: HTMLElement | null = null;
   rangeJoin: HTMLElement | null = null;
   rangeCurrent: HTMLElement | null = null;
   octaveSelectors: NodeListOf<HTMLElement> | null = null;
   ccPots: NodeListOf<HTMLElement> | null = null;
+  // The step editor while the piano roll shows it, outside the zone element
+  stepInfoHost: HTMLElement | null = null;
   private cachedElements: Record<string, HTMLElement | null> = {};
 
   init(index: number): void {
@@ -29,11 +27,9 @@ export class ZoneElements {
 
     this.actionElements = this.zoneElement.querySelectorAll('*[data-action]');
     this.canvasElement = this.zoneElement.querySelector(`#canvas${index}`);
-    this.patternCanvas = this.zoneElement.querySelector(`#canvasPattern${index}`);
+    this.patternElement = this.zoneElement.querySelector('.pattern');
     this.sequencerElement = this.zoneElement.querySelector('.seq');
     this.sequencerGridElement = this.zoneElement.querySelector('.grid');
-    this.sequencerProgressElement = this.zoneElement.querySelector('.seqprogress');
-    this.sequencerProgressElementInner = this.zoneElement.querySelector('.seqprogress .inner');
     this.sequencerGridStepElements = this.zoneElement.querySelectorAll('.seq .grid .step-container .step');
     this.sequencerDrumStepElements = this.zoneElement.querySelectorAll('.seq .grid .drum-step-container .step');
     this.sequencerDrumLanes = [];
@@ -41,7 +37,6 @@ export class ZoneElements {
       this.sequencerDrumLanes.push(dl.querySelectorAll('.step'));
     });
     this.rangeContainer = this.zoneElement.querySelector('.range');
-    this.rangeOctaveElements = this.zoneElement.querySelectorAll('.range .oct');
     this.rangeMarkerLow = this.zoneElement.querySelector('.marker.low');
     this.rangeMarkerHigh = this.zoneElement.querySelector('.marker.high');
     this.rangeJoin = this.zoneElement.querySelector('.join');
@@ -54,6 +49,7 @@ export class ZoneElements {
   reset(): void {
     this.isReady = false;
     this.cachedElements = {};
+    this.stepInfoHost = null;
   }
 
   emptyCache(): void {
@@ -62,7 +58,8 @@ export class ZoneElements {
 
   private getCachedElement(selector: string): HTMLElement | null {
     if (!this.cachedElements[selector]) {
-      this.cachedElements[selector] = this.zoneElement?.querySelector(selector) || null;
+      this.cachedElements[selector] =
+        this.zoneElement?.querySelector(selector) || this.stepInfoHost?.querySelector(selector) || null;
     }
     return this.cachedElements[selector];
   }

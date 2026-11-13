@@ -1,0 +1,197 @@
+{
+  "format": "midi-zoner-device-preset",
+  "version": 1,
+  "name": "Filter/Amp",
+  "device": "KORG microKORG XL",
+  "portMatch": "microKORG XL",
+  "notes": "Needs MIDI FLT > CTRL CHG = ENABLE. CC numbers are the factory CC MAP (GLOBAL > CC MAP can change them). CCs act on the timbre of their channel: timbre 1 on the global channel, timbre 2 on T2MIDI.CH in MULTI mode. NRPNs (arp, voice mode, vocoder, virtual patch) go to the global channel and use only the Data Entry MSB. Values from the German manual's MIDI chapter, untested. Filter 1 type morphs: 0 LPF24, 32 LPF12, 64 HPF, 96 BPF, 127 Thru. Key track is centred (0–127 = −2…+2). Filter 2 has no effect with routing Single.",
+  "controllers": [
+    {
+      "type": 8,
+      "label": "Filter 1",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 1
+    },
+    {
+      "type": 0,
+      "label": "Cutoff",
+      "number": 74,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Resonance",
+      "number": 71,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Type bal",
+      "number": 27,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 3,
+      "label": "Routing",
+      "number": 26,
+      "val": 16,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "buttonlabel0": "Sngl",
+      "buttonvalue0": 16,
+      "buttonlabel1": "Ser",
+      "buttonvalue1": 48,
+      "buttonlabel2": "Par",
+      "buttonvalue2": 80,
+      "buttonlabel3": "Indv",
+      "buttonvalue3": 112
+    },
+    {
+      "type": 1,
+      "label": "EG1 int",
+      "number": 79,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 1,
+      "label": "Key track",
+      "number": 28,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 8,
+      "label": "Filter 2",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 2
+    },
+    {
+      "type": 0,
+      "label": "Cutoff",
+      "number": 30,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Resonance",
+      "number": 68,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 3,
+      "label": "Type",
+      "number": 29,
+      "val": 21,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "buttonlabel0": "LPF",
+      "buttonvalue0": 21,
+      "buttonlabel1": "HPF",
+      "buttonvalue1": 63,
+      "buttonlabel2": "BPF",
+      "buttonvalue2": 106
+    },
+    {
+      "type": 1,
+      "label": "EG1 int",
+      "number": 69,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 1,
+      "label": "Key track",
+      "number": 82,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 8,
+      "label": "Amp",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 3
+    },
+    {
+      "type": 0,
+      "label": "Level",
+      "number": 7,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 1,
+      "label": "Pan",
+      "number": 10,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "WS depth",
+      "number": 83,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    }
+  ]
+}

@@ -1,16 +1,47 @@
 import { Zone } from '../../zone/zone-class';
 import { Sequence } from '../../zone/sequence';
 import { SeqStep } from '../../zone/seq-step';
+import { DrumLane } from '../../zone/drum-lane';
+import { SeqStepJSON } from '../../zone/interfaces';
 import { ActionContext, ActionHelpers, ActionMap } from '../types';
+import { openPianoRoll } from '../piano-roll';
 
-const RATCHET_RES_LABELS: Record<number, string> = {
-  48: '1/2', 36: '1/4.', 32: '1/2T', 24: '1/4', 18: '1/8.',
-  16: '1/4T', 12: '1/8', 9: '1/16.', 8: '1/8T', 6: '1/16',
-  4: '1/16T', 3: '1/32', 2: '1/32T', 1: '1tk'
-};
+/** Parse a number field, clamped to [min, max]; empty or invalid input keeps `current`. */
+function clampedInput(element: HTMLElement, min: number, max: number, current: number): number {
+  const v = parseInt((element as HTMLInputElement).value);
+  return isNaN(v) ? current : Math.max(min, Math.min(max, v));
+}
 
-export function ratchetResToLabel(ticks: number): string {
-  return RATCHET_RES_LABELS[ticks] ?? `${ticks}tk`;
+const laneTrimTimers = new WeakMap<Sequence, ReturnType<typeof setTimeout>>();
+
+// Ascending ticks (24ppq), fastest first. Rates slower than 1/8 are omitted:
+// they rarely fit inside a step's gate window as an audible ratchet.
+export const RATCHET_RES_STEPS = [1, 2, 3, 4, 6, 8, 9, 12];
+
+export function ratchetIndexToTicks(index: number): number {
+  const i = Math.max(0, Math.min(RATCHET_RES_STEPS.length - 1, index));
+  return RATCHET_RES_STEPS[i];
+}
+
+export function ticksToRatchetIndex(ticks: number): number {
+  let closest = 0;
+  let closestDiff = Infinity;
+  RATCHET_RES_STEPS.forEach((t, i) => {
+    const diff = Math.abs(t - ticks);
+    if (diff < closestDiff) {
+      closestDiff = diff;
+      closest = i;
+    }
+  });
+  return closest;
+}
+
+export function percentToVelocityDelta(percent: number): number {
+  return Math.round((percent * 127) / 100);
+}
+
+export function velocityDeltaToPercent(delta: number): number {
+  return Math.round((delta * 100) / 127);
 }
 
 export function createSeqActions(
@@ -26,9 +57,21 @@ export function createSeqActions(
     actionParam2,
     ev,
     updateValuesForZone,
-    toast
+    toast,
+    triggerSave
   } = ctx;
   const { calcAndDisplayPercentage } = helpers;
+
+  const MODE_NAMES = { notes: 'Note sequence', drums: 'Drum sequence' };
+  /** A melodic sequence or drum lanes */
+  function setMode(mode: 'notes' | 'drums'): void {
+    const current = sequence.isDrumSequence ? 'drums' : 'notes';
+    if (mode === current) return;
+    sequence.clearSelection();
+    sequence.isDrumSequence = mode === 'drums';
+    updateValuesForZone(zoneindex);
+    toast(`${MODE_NAMES[mode]} mode`);
+  }
 
   const actions: ActionMap = {
     toggle_seq: () => {
@@ -37,7 +80,7 @@ export function createSeqActions(
       if (sequence.active) {
         zone.renderNotes();
       } else {
-        sequence.isLiveRecoding = false;
+        sequence.isLiveRecording = false;
       }
       updateValuesForZone(zoneindex);
     },
@@ -45,14 +88,28 @@ export function createSeqActions(
       sequence.division = (element as HTMLSelectElement).selectedIndex;
       updateValuesForZone(zoneindex);
     },
+    seq_mode_notes: () => setMode('notes'),
+    seq_mode_drums: () => setMode('drums'),
     seq_steps: () => {
-      const v = parseInt((element as HTMLInputElement).value);
-      sequence.length = v;
+      sequence.length = clampedInput(element, 1, Sequence.MAX_STEPS, sequence.length);
       updateValuesForZone(zoneindex);
     },
     seq_drum_lanes: () => {
-      sequence.drumLanes = parseInt((element as HTMLInputElement).value);
+      sequence.drumLanes = clampedInput(element, 1, Sequence.MAX_LANES_DRUMS, sequence.drumLanes);
       updateValuesForZone(zoneindex);
+      // Hidden lanes are cleared once the count settles, so typing "10" can pass
+      // through "1" without losing lanes; before the field's 1s undo commit.
+      clearTimeout(laneTrimTimers.get(sequence));
+      laneTrimTimers.set(
+        sequence,
+        setTimeout(() => {
+          laneTrimTimers.delete(sequence);
+          if (sequence.drum_lanes.length > sequence.drumLanes) {
+            sequence.drum_lanes.length = sequence.drumLanes;
+            triggerSave();
+          }
+        }, 900)
+      );
     },
     seq_drumlane_note: () => {
       const laneNo = parseInt(actionParam1);
@@ -70,8 +127,8 @@ export function createSeqActions(
     },
     seq_drum_lane_steps: () => {
       const laneNo = parseInt(actionParam1);
-      const v = Math.max(1, Math.min(Sequence.MAX_STEPS_DRUMS, parseInt((element as HTMLInputElement).value)));
       const lane = sequence.getDrumLane(laneNo);
+      const v = clampedInput(element, 1, Sequence.MAX_STEPS_DRUMS, lane.length);
       lane.length = v;
       lane.currentStep = -1;
       lane.previousStep = -1;
@@ -81,7 +138,8 @@ export function createSeqActions(
     seq_drumstep_select: () => {
       if (ev.shiftKey) {
         actions.seq_clear_step();
-      } else {
+      } else if (!ev.altKey) {
+        // ⌥-click only selects: for parameter locks on a step without a hit
         sequence.turnOnDrumStep(
           ...Sequence.getLaneAndStepIndexForDrumStepId(parseInt(actionParam1))
         );
@@ -148,7 +206,7 @@ export function createSeqActions(
     },
     seq_paste_lane: () => {
       if (!Zone.seqClipboardDrumLane) {
-        toast('Clipboard is empty, nothing to paste');
+        toast('Nothing to paste: clipboard is empty');
         return;
       }
       const laneNo = parseInt(actionParam1);
@@ -157,9 +215,7 @@ export function createSeqActions(
       for (let i = 0; i < lane.length; i++) {
         const srcStep = src.steps[i % src.length];
         if (srcStep) {
-          const copied = JSON.parse(JSON.stringify(srcStep));
-          copied.lastPlayedArray = [];
-          lane.steps[i] = copied;
+          lane.steps[i] = SeqStep.from(JSON.parse(JSON.stringify(srcStep)));
         } else {
           lane.steps[i] = null;
         }
@@ -200,10 +256,7 @@ export function createSeqActions(
       }
     },
     seq_transpose: () => {
-      const selectElement = element as HTMLSelectElement;
-      const semitones = parseInt(
-        selectElement.options[selectElement.selectedIndex].value
-      );
+      const semitones = parseInt(actionParam1);
       sequence.transpose(semitones);
       toast(
         (sequence.hasSelection ? 'Selected steps' : 'Sequence') +
@@ -211,13 +264,10 @@ export function createSeqActions(
           semitones +
           ' semitones'
       );
-      selectElement.selectedIndex = 0;
       updateValuesForZone(zoneindex);
     },
     seq_adjust: () => {
-      const selectElement = element as HTMLSelectElement;
-      const adjustment =
-        selectElement.options[selectElement.selectedIndex].value;
+      const adjustment = actionParam1;
       const seq = sequence;
       const srcLength = seq.length;
       if (seq.isDrumSequence) {
@@ -232,7 +282,7 @@ export function createSeqActions(
               const newLen = Math.min(Sequence.MAX_STEPS_DRUMS, laneLen * multiplier);
               const copy: (SeqStep | null)[] = [];
               for (let i = 0; i < laneLen; i++) {
-                copy[i] = lane.steps[i] ? JSON.parse(JSON.stringify(lane.steps[i])) : null;
+                copy[i] = lane.steps[i] ? SeqStep.from(JSON.parse(JSON.stringify(lane.steps[i]))) : null;
               }
               if (adjustment === 'double') {
                 for (let i = 0; i < laneLen && laneLen + i < newLen; i++) {
@@ -281,7 +331,9 @@ export function createSeqActions(
         for (let i = 0; i < srcLength; i++) {
           steps[i] = seq.steps[i];
         }
-        const stepsCopy = JSON.parse(JSON.stringify(steps));
+        const stepsCopy = (JSON.parse(JSON.stringify(steps)) as (SeqStepJSON | null)[]).map((st) =>
+          st ? SeqStep.from(st) : null
+        );
         switch (adjustment) {
           case 'double':
             seq.length = seq.length * 2;
@@ -294,26 +346,22 @@ export function createSeqActions(
           case 'halftime':
             seq.length = seq.length * 2;
             for (let i = 0; i < srcLength; i++) {
-              seq.steps[i * 2] = stepsCopy[i];
-              if (seq.steps[i * 2]) {
-                seq.steps[i * 2].length = seq.steps[i * 2].length * 2;
-              }
+              const step = (seq.steps[i * 2] = stepsCopy[i]);
+              if (step) step.length = step.length * 2;
               seq.steps[i * 2 + 1] = null;
             }
             updateValuesForZone(zoneindex);
-            toast('Sequence made half time slower');
+            toast('Sequence slowed to half time');
             break;
           case 'thirdtime':
             seq.length = seq.length * 3;
             for (let i = 0; i < srcLength; i++) {
-              seq.steps[i * 3] = stepsCopy[i];
-              if (seq.steps[i * 3]) {
-                seq.steps[i * 3].length = seq.steps[i * 3].length * 3;
-              }
+              const step = (seq.steps[i * 3] = stepsCopy[i]);
+              if (step) step.length = step.length * 3;
               seq.steps[i * 3 + 1] = seq.steps[i * 3 + 2] = null;
             }
             updateValuesForZone(zoneindex);
-            toast('Sequence made one-third time slower');
+            toast('Sequence slowed to one-third time');
             break;
           case 'veloup':
           case 'velodown': {
@@ -327,6 +375,48 @@ export function createSeqActions(
               }
             });
             toast('All steps changed velocity by ' + parseInt(String(factor * 100)) + '%');
+            updateValuesForZone(zoneindex);
+            break;
+          }
+          case 'seq_legato': {
+            const activeIndices: number[] = [];
+            for (let i = 0; i < srcLength; i++) {
+              if (seq.steps[i]?.notesArray.length) activeIndices.push(i);
+            }
+            const targetIndices = seq.hasSelection
+              ? Array.from(seq.selectedStepNumbers)
+              : activeIndices;
+            targetIndices.forEach((idx) => {
+              const step = seq.steps[idx];
+              if (step?.notesArray.length) {
+                const pos = activeIndices.indexOf(idx);
+                if (pos > -1) {
+                  const nextIdx = activeIndices[(pos + 1) % activeIndices.length];
+                  step.length =
+                    nextIdx > idx ? nextIdx - idx : srcLength - idx + nextIdx;
+                }
+                step.gateLength = 1;
+              }
+            });
+            toast(
+              (seq.hasSelection ? 'Selected steps' : 'Sequence') + ' set to legato'
+            );
+            updateValuesForZone(zoneindex);
+            break;
+          }
+          case 'seq_staccato': {
+            const steplist = seq.hasSelection
+              ? Array.from(seq.selectedStepNumbers).map((n) => seq.steps[n])
+              : seq.steps;
+            steplist.forEach((step) => {
+              if (step) {
+                step.length = 1;
+                step.gateLength = 0.5;
+              }
+            });
+            toast(
+              (seq.hasSelection ? 'Selected steps' : 'Sequence') + ' set to staccato'
+            );
             updateValuesForZone(zoneindex);
             break;
           }
@@ -349,18 +439,20 @@ export function createSeqActions(
               const span = lastPos - firstPos + 1;
               const hitSteps = sortedSelected
                 .map(i => seq.steps[i])
-                .filter((s): s is SeqStep => s != null && s.notesArray.length > 0);
+                .filter((s): s is SeqStep => s != null && !s.isBlank());
               if (hitSteps.length > 0) {
                 const positions = euclidPositions(hitSteps.length, span);
                 for (let i = firstPos; i <= lastPos; i++) seq.steps[i] = null;
                 hitSteps.forEach((step, h) => { seq.steps[firstPos + positions[h]] = step; });
-                updateValuesForZone(zoneindex);
+                seq.selectedStepNumbers.clear();
+                positions.forEach(p => seq.selectedStepNumbers.add(firstPos + p));
                 toast('Selected steps euclidean distributed');
+                updateValuesForZone(zoneindex);
               }
             } else {
               const hitSteps: SeqStep[] = [];
               for (let i = 0; i < srcLength; i++) {
-                if (seq.steps[i] != null && seq.steps[i]!.notesArray.length > 0) {
+                if (seq.steps[i] != null && !seq.steps[i]!.isBlank()) {
                   hitSteps.push(seq.steps[i]!);
                 }
               }
@@ -368,17 +460,14 @@ export function createSeqActions(
                 const positions = euclidPositions(hitSteps.length, srcLength);
                 for (let i = 0; i < srcLength; i++) seq.steps[i] = null;
                 hitSteps.forEach((step, h) => { seq.steps[positions[h]] = step; });
-                updateValuesForZone(zoneindex);
                 toast('Sequence euclidean distributed');
+                updateValuesForZone(zoneindex);
               }
             }
             break;
           }
         }
       }
-      setTimeout(() => {
-        selectElement.selectedIndex = 0;
-      }, 100);
     },
     seq_clear_step: () => {
       if (actionParam1 != 'undefined') {
@@ -387,21 +476,43 @@ export function createSeqActions(
           const [laneIndex, stepIndex] =
             Sequence.getLaneAndStepIndexForDrumStepId(stepno);
           sequence.getDrumLane(laneIndex).steps[stepIndex] = null;
+          toast('Step cleared');
         } else {
           if (sequence.selectedStepNumbers.has(stepno)) {
+            const count = sequence.selectedStepNumbers.size;
             sequence.selectedStepNumbers.forEach((n) => {
               sequence.steps[n] = null;
             });
+            toast(count === 1 ? 'Step cleared' : `${count} steps cleared`);
           } else {
             sequence.steps[stepno] = null;
+            toast('Step cleared');
           }
         }
         sequence.clearSelection();
         updateValuesForZone(zoneindex);
       }
     },
+    seq_clear_locks: () => {
+      // The step pressed, or the whole selection when it is part of it
+      const stepno = parseInt(actionParam1);
+      sequence.clearLocks(sequence.selectedStepNumbers.has(stepno) ? [...sequence.selectedStepNumbers] : [stepno]);
+      updateValuesForZone(zoneindex);
+      toast('Parameter locks cleared');
+    },
+    seq_lock_remove: () => {
+      // The address comes with dots: colons separate the action's parameters
+      sequence.removeLockFromSelected(actionParam1.replace(/\./g, ':'));
+      updateValuesForZone(zoneindex);
+    },
+    seq_step_slide: () => {
+      const slide = !sequence.selectedSteps.some((st) => st?.slide);
+      sequence.setSlideOnSelected(slide);
+      updateValuesForZone(zoneindex);
+    },
     seq_clear_selected_step: () => {
       if (sequence.selectedStepNumbers.size > 0) {
+        const count = sequence.selectedStepNumbers.size;
         sequence.selectedStepNumbers.forEach((n) => {
           if (sequence.isDrumSequence) {
             const [laneIndex, stepIndex] =
@@ -411,6 +522,7 @@ export function createSeqActions(
             sequence.steps[n] = null;
           }
         });
+        toast(count === 1 ? 'Step cleared' : `${count} steps cleared`);
         updateValuesForZone(zoneindex);
       }
     },
@@ -423,12 +535,14 @@ export function createSeqActions(
       updateValuesForZone(zoneindex);
     },
     seq_step_velocity: () => {
-      const velo = calcAndDisplayPercentage() * 127;
+      const velo = Math.round(calcAndDisplayPercentage() * 127);
       sequence.selectedSteps.forEach((step) => {
         step?.notesArray.forEach((note) => {
           note.velo = Math.max(1, Math.min(127, velo));
         });
       });
+      // redraw, so the steps' velocity fill and tooltip follow while dragging
+      updateValuesForZone(zoneindex);
     },
     _seq_step_apply_to_all: (actionIndex?: number) => {
       const idx =
@@ -493,20 +607,21 @@ export function createSeqActions(
       updateValuesForZone(zoneindex);
     },
     seq_step_ratchet_res: () => {
-      const v = parseInt((element as HTMLInputElement).value);
-      const out = (element as HTMLInputElement).parentElement?.querySelector(
-        `output[for="${(element as HTMLInputElement).id}"]`
-      ) as HTMLOutputElement | null;
-      if (out) out.value = ratchetResToLabel(v);
+      const ticks = ratchetIndexToTicks(parseInt((element as HTMLSelectElement).value));
       sequence.selectedSteps.forEach((step) => {
-        if (step) step.ratchetResolution = v;
+        if (step) step.ratchetResolution = ticks;
       });
       updateValuesForZone(zoneindex);
     },
     seq_step_ratchet_delta: () => {
-      const v = parseInt((element as HTMLInputElement).value) || 0;
+      const pct = parseInt((element as HTMLInputElement).value) || 0;
+      const delta = percentToVelocityDelta(pct);
+      const out = (element as HTMLInputElement).parentElement?.querySelector(
+        `output[for="${(element as HTMLInputElement).id}"]`
+      ) as HTMLOutputElement | null;
+      if (out) out.value = (pct > 0 ? '+' : '') + pct + '%';
       sequence.selectedSteps.forEach((step) => {
-        if (step) step.ratchetVelocityDelta = v;
+        if (step) step.ratchetVelocityDelta = delta;
       });
       updateValuesForZone(zoneindex);
     },
@@ -543,19 +658,23 @@ export function createSeqActions(
           }
         }
         Zone.seqClipboardStep = stepsMap;
+        if (stepsMap.size > 0) {
+          toast(stepsMap.size === 1 ? 'Step copied' : `${stepsMap.size} steps copied`);
+        }
       }
     },
     seq_paste_step: () => {
       if (actionParam1 != 'undefined' && Zone.seqClipboardStep) {
         sequence.clearSelection();
         const targetStep = parseInt(actionParam1);
+        const count = Zone.seqClipboardStep.size;
         if (sequence.isDrumSequence) {
           const [targetLaneIndex, targetStepIndex] = Sequence.getLaneAndStepIndexForDrumStepId(targetStep);
           const targetLane = sequence.getDrumLane(targetLaneIndex);
           Array.from(Zone.seqClipboardStep.keys()).forEach(
             (stepindex: number) => {
               const newStepIndex = (targetStepIndex + stepindex) % targetLane.length;
-              targetLane.steps[newStepIndex] = Sequence.cloneStep(Zone.seqClipboardStep!.get(stepindex));
+              targetLane.steps[newStepIndex] = Sequence.cloneStep(Zone.seqClipboardStep!.get(stepindex) ?? null);
             }
           );
         } else {
@@ -563,13 +682,14 @@ export function createSeqActions(
           Array.from(Zone.seqClipboardStep.keys()).forEach(
             (stepindex: number) => {
               targetSteps[(targetStep + stepindex) % sequence.length] =
-                Sequence.cloneStep(Zone.seqClipboardStep!.get(stepindex));
+                Sequence.cloneStep(Zone.seqClipboardStep!.get(stepindex) ?? null);
             }
           );
         }
         updateValuesForZone(zoneindex);
+        toast(count === 1 ? 'Step pasted' : `${count} steps pasted`);
       } else {
-        toast('Nothing to paste, clipboard is empty.');
+        toast('Nothing to paste: clipboard is empty');
       }
     },
     seq_step_move: () => {
@@ -648,6 +768,7 @@ export function createSeqActions(
         }
         sequence.steps = newSeq;
       }
+      toast('Sequence shifted');
       updateValuesForZone(zoneindex);
     },
     seq_copy: () => {
@@ -678,26 +799,24 @@ export function createSeqActions(
       if (Zone.seqClipboardSequence) {
         const copyData = JSON.parse(Zone.seqClipboardSequence);
         if (copyData.isDrumSequence && sequence.isDrumSequence) {
-          sequence.drum_lanes = copyData.drum_lanes || [];
+          const playing = sequence.drum_lanes;
+          sequence.drum_lanes = (copyData.drum_lanes || []).map((lane: any, i: number) =>
+            lane ? DrumLane.from(lane, copyData.length ?? sequence.length, playing[i]) : lane
+          );
           sequence.drumLanes = copyData.drumLanes ?? sequence.drumLanes;
           sequence.length = copyData.length;
           sequence.division = copyData.division;
-          sequence.drum_lanes.forEach((lane: any) => {
-            if (lane?.steps) {
-              lane.steps.forEach((st: any) => { if (st) st.lastPlayedArray = []; });
-            }
-            lane.previousStepPlayed = false;
-          });
         } else if (!copyData.isDrumSequence && !sequence.isDrumSequence) {
           Object.assign(sequence, copyData);
+          sequence.steps = (copyData.steps || []).map((st: SeqStepJSON | null) => (st ? SeqStep.from(st) : null));
         } else {
-          toast('Cannot paste: clipboard contains a different sequence type');
+          toast('Can\'t paste: clipboard holds a different sequence type');
           return;
         }
         updateValuesForZone(zoneindex);
         toast('Sequence pasted from clipboard');
       } else {
-        toast('Clipboard is empty, nothing to paste');
+        toast('Nothing to paste: clipboard is empty');
       }
     },
     seq_step_condition: () => {
@@ -718,13 +837,16 @@ export function createSeqActions(
     },
     seq_record_live: () => {
       sequence.clearSelection();
-      sequence.isLiveRecoding = !sequence.isLiveRecoding;
+      sequence.isLiveRecording = !sequence.isLiveRecording;
       updateValuesForZone(zoneindex);
       toast(
-        sequence.isLiveRecoding
-          ? 'Live recording enabled!'
-          : 'Stopped live recording'
+        sequence.isLiveRecording
+          ? 'Live recording on'
+          : 'Live recording off'
       );
+    },
+    seq_open_piano_roll: () => {
+      openPianoRoll(ctx);
     },
     seq_drum_tracks: () => {
       sequence.clearSelection();
@@ -748,6 +870,7 @@ export function createSeqActions(
       
       lane.steps = newSteps;
       sequence.clearSelection();
+      toast('Lane shifted');
       updateValuesForZone(zoneindex);
     }
   };

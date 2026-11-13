@@ -2,7 +2,9 @@ import { Zone } from './zone/zone-class';
 import { Sequence } from './zone/sequence';
 
 import fs from 'fs';
+import { escapeHTML } from './domutils';
 import path from 'path';
+import { pageBlocks, sectionBlocks } from './zone/cc-layout';
 
 // Type alias for the Zone class type
 type ZoneType = Zone;
@@ -16,10 +18,6 @@ const templateController = fs.readFileSync(
   path.join(__dirname, '../../res/template-controller.html'),
   'utf8'
 );
-
-function stripTooltips(s: string): string {
-  return s.replace(/title=\".+?\"/g, '');
-}
 
 const interpolateTemplate = function (
   templateString: string,
@@ -61,21 +59,37 @@ const noteLengthOptions = (function (): string {
   return s;
 })();
 
-const octavemarkers = '<span class="oct"></span>'.repeat(10);
-
 const checkboxIcons =
   '<span class="material-icons sel">check_box</span><span class="material-icons unsel">check_box_outline_blank</span>';
 
 export function getControllerHTML(zone: ZoneType, zoneindex: number): string {
-  let controllers = '';
-  zone.cc_controllers.forEach((cc: any, ix: number) => {
-    controllers += interpolateTemplate(templateController, {
-      cc: cc,
+  const pot = (ix: number): string =>
+    interpolateTemplate(templateController, {
+      cc: zone.cc_controllers[ix],
       ix: ix,
-      zoneindex: zoneindex
+      zoneindex: zoneindex,
+      esc: escapeHTML
     });
-  });
-  return controllers;
+  // Only the page shown; one block per section, a section starts a new row unless new_row is false
+  const pages = pageBlocks(zone.cc_controllers);
+  const page = pages[Math.min(zone.ccPage, pages.length - 1)];
+  const blocks = sectionBlocks(zone.cc_controllers, page.start, page.end);
+  const continuesRow = (n: number): boolean =>
+    n > 0 && n < blocks.length && zone.cc_controllers[blocks[n].section]?.new_row === false;
+  return blocks
+    .map((block, n) => {
+      const section = block.section >= 0 ? zone.cc_controllers[block.section] : null;
+      const inline = continuesRow(n);
+      // The last section on a row takes the rest of it, so its ruler runs to the edge
+      const last = !continuesRow(n + 1);
+      const head = section?.label.trim() ? `<div class="ccsection-head">${escapeHTML(section.label)}</div>` : '';
+      return (
+        (n > 0 && !inline ? '<div class="ccsection-break"></div>' : '') +
+        `<div class="ccsection${inline ? ' inline' : ''}${last ? ' last' : ''}" data-group="${section?.group || 0}">` +
+        `${head}<div class="ccsection-pots">${block.items.map(pot).join('')}</div></div>`
+      );
+    })
+    .join('');
 }
 
 export function getHTML(zone: ZoneType, zoneindex: number): string {
@@ -87,9 +101,9 @@ export function getHTML(zone: ZoneType, zoneindex: number): string {
 
   let sequencerGrid = '';
   for (let i = 0; i < Sequence.MAX_STEPS; i++) {
-    sequencerGrid += `<div class="step" data-dragselect="${i}" data-contextmenu="${index}:seq_copy_step:${i},${index}:seq_paste_step:${i},-,${index}:seq_clear_step:${i},${index}:seq_clear_all">${
-      i + 1
-    }</div>`;
+    sequencerGrid += `<div class="step" data-dragselect="${i}" data-contextmenu="${index}:seq_copy_step:${i},${index}:seq_paste_step:${i},-,${index}:seq_clear_step:${i},${index}:seq_clear_locks:${i},${index}:seq_clear_all">${
+      i % 4 === 0 ? `<span class="beat-num">${i + 1}</span>` : ''
+    }<span class="material-icons chance-mark">casino</span><span class="lock-dot"></span></div>`;
   }
 
   let drumLanes = '';
@@ -97,10 +111,7 @@ export function getHTML(zone: ZoneType, zoneindex: number): string {
     drumLanes += `
       <div class="drum-lane lane${ln}" data-contextmenu="${index}:seq_copy_lane:${ln},${index}:seq_paste_lane:${ln},-,${index}:seq_clear_lane:${ln}">
         <div class="lane-header">
-          <div class="action ch enabled seq_toggle_lane_enabled" data-action="${index}:seq_toggle_lane_enabled:${ln}" title="Enable lane">
-            <span class="material-icons sel"> check </span>
-            <span class="material-icons unsel"> close </span>
-          </div>
+          <div class="action ch enabled seq_toggle_lane_enabled" data-action="${index}:seq_toggle_lane_enabled:${ln}" title="Mute lane">M</div>
           <div class="action ch solo seq_toggle_lane_solo" data-action="${index}:seq_toggle_lane_solo:${ln}" title="Solo lane">S</div>
           <input class="lane-label" type="text" maxlength="5" placeholder="${ln + 1}" title="Lane label" data-change="${index}:seq_drum_lane_label:${ln}" tabindex="-1"/>
           <div class="lane-controls-ext">
@@ -127,12 +138,38 @@ export function getHTML(zone: ZoneType, zoneindex: number): string {
 
     for (let i = 0; i < Sequence.MAX_STEPS_DRUMS; i++) {
       const stepId = Sequence.getIdForDrumStep(ln, i);
-      drumLanes += `<div class="step" data-action="${index}:seq_drumstep_select:${stepId}" data-dblclickaction="${index}:seq_clear_step:${stepId}" data-dragselect="${stepId}" data-contextmenu="${index}:seq_copy_step:${stepId},${index}:seq_paste_step:${stepId},-,${index}:seq_clear_step:${stepId}">${
-        i + 1
-      }</div>`;
+      drumLanes += `<div class="step" data-action="${index}:seq_drumstep_select:${stepId}" data-dblclickaction="${index}:seq_clear_step:${stepId}" data-dragselect="${stepId}" data-contextmenu="${index}:seq_copy_step:${stepId},${index}:seq_paste_step:${stepId},-,${index}:seq_clear_step:${stepId},${index}:seq_clear_locks:${stepId}">${
+        i % 4 === 0 ? `<span class="beat-num">${i + 1}</span>` : ''
+      }<span class="material-icons chance-mark">casino</span><span class="lock-dot"></span></div>`;
     }
     drumLanes += '</div>';
   }
+
+  const transposeMenu = [
+    'label:Transpose by semitones',
+    '-',
+    ...[12, -12].map((n) => `${index}:seq_transpose:${n}`),
+    '-',
+    ...[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((n) => `${index}:seq_transpose:${n}`),
+    '-',
+    ...[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((n) => `${index}:seq_transpose:${-n}`)
+  ].join(',');
+  const adjustMenu = [
+    'label:Adjust sequence',
+    '-',
+    `${index}:seq_adjust:double`,
+    '-',
+    `${index}:seq_adjust:halftime`,
+    `${index}:seq_adjust:thirdtime`,
+    '-',
+    `${index}:seq_adjust:veloup`,
+    `${index}:seq_adjust:velodown`,
+    '-',
+    `${index}:seq_adjust:seq_legato`,
+    `${index}:seq_adjust:seq_staccato`,
+    '-',
+    `${index}:seq_adjust:euclid-distrib`
+  ].join(',');
 
   const zoneMuteKeyboardHint =
     index < 10 ? `('${(index + 1) % 10}' on computer keyboard)` : '';
@@ -148,6 +185,7 @@ export function getHTML(zone: ZoneType, zoneindex: number): string {
     cycleConditions: cycleConditions,
     checkboxIcons: checkboxIcons,
     noteLengthOptions: noteLengthOptions,
-    octavemarkers: octavemarkers
+    transposeMenu: transposeMenu,
+    adjustMenu: adjustMenu
   });
 }

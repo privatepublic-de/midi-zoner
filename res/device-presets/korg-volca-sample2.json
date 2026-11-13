@@ -1,0 +1,760 @@
+{
+  "format": "midi-zoner-device-preset",
+  "version": 1,
+  "name": "Single ch",
+  "device": "KORG volca sample2",
+  "notes": "For the single channel mode (set a MIDI channel in the global parameters; the default is one channel per part). CC numbers from the KORG chart, untested. The chart lists only five CCs for part 1 (7, 10, 43, 63, 42): 63 is taken as Attack and part 1 has no Decay. Speed and Pan are centred.",
+  "controllers": [
+    {
+      "type": 10,
+      "label": "Parts 1–4",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 8,
+      "label": "Part 1",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 1
+    },
+    {
+      "type": 0,
+      "label": "Level",
+      "number": 7,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 1,
+      "label": "Pan",
+      "number": 10,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 1,
+      "label": "Speed",
+      "number": 43,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Attack",
+      "number": 63,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Hi cut",
+      "number": 42,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 8,
+      "label": "Part 2",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 1
+    },
+    {
+      "type": 0,
+      "label": "Level",
+      "number": 14,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 1,
+      "label": "Pan",
+      "number": 15,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 1,
+      "label": "Speed",
+      "number": 16,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Attack",
+      "number": 17,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Decay",
+      "number": 18,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Hi cut",
+      "number": 19,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 8,
+      "label": "Part 3",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 1
+    },
+    {
+      "type": 0,
+      "label": "Level",
+      "number": 20,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 1,
+      "label": "Pan",
+      "number": 21,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 1,
+      "label": "Speed",
+      "number": 22,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Attack",
+      "number": 23,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Decay",
+      "number": 24,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Hi cut",
+      "number": 25,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 8,
+      "label": "Part 4",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 1
+    },
+    {
+      "type": 0,
+      "label": "Level",
+      "number": 26,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 1,
+      "label": "Pan",
+      "number": 27,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 1,
+      "label": "Speed",
+      "number": 28,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Attack",
+      "number": 29,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Decay",
+      "number": 30,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Hi cut",
+      "number": 31,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 10,
+      "label": "Parts 5–8",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 8,
+      "label": "Part 5",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 1
+    },
+    {
+      "type": 0,
+      "label": "Level",
+      "number": 50,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 1,
+      "label": "Pan",
+      "number": 51,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 1,
+      "label": "Speed",
+      "number": 52,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Attack",
+      "number": 53,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Decay",
+      "number": 54,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Hi cut",
+      "number": 55,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 8,
+      "label": "Part 6",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 1
+    },
+    {
+      "type": 0,
+      "label": "Level",
+      "number": 56,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 1,
+      "label": "Pan",
+      "number": 57,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 1,
+      "label": "Speed",
+      "number": 58,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Attack",
+      "number": 59,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Decay",
+      "number": 60,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Hi cut",
+      "number": 61,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 8,
+      "label": "Part 7",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 1
+    },
+    {
+      "type": 0,
+      "label": "Level",
+      "number": 76,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 1,
+      "label": "Pan",
+      "number": 77,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 1,
+      "label": "Speed",
+      "number": 78,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Attack",
+      "number": 79,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Decay",
+      "number": 80,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Hi cut",
+      "number": 81,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 8,
+      "label": "Part 8",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 1
+    },
+    {
+      "type": 0,
+      "label": "Level",
+      "number": 82,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 1,
+      "label": "Pan",
+      "number": 83,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 1,
+      "label": "Speed",
+      "number": 84,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Attack",
+      "number": 85,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Decay",
+      "number": 86,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Hi cut",
+      "number": 87,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 10,
+      "label": "Parts 9–10",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 8,
+      "label": "Part 9",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 1
+    },
+    {
+      "type": 0,
+      "label": "Level",
+      "number": 102,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 1,
+      "label": "Pan",
+      "number": 103,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 1,
+      "label": "Speed",
+      "number": 104,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Attack",
+      "number": 105,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Decay",
+      "number": 106,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Hi cut",
+      "number": 107,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 8,
+      "label": "Part 10",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 1
+    },
+    {
+      "type": 0,
+      "label": "Level",
+      "number": 108,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 1,
+      "label": "Pan",
+      "number": 109,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 1,
+      "label": "Speed",
+      "number": 110,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Attack",
+      "number": 111,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Decay",
+      "number": 112,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Hi cut",
+      "number": 113,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 8,
+      "label": "Reverb",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 2
+    },
+    {
+      "type": 0,
+      "label": "Reverb mix",
+      "number": 91,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    }
+  ]
+}

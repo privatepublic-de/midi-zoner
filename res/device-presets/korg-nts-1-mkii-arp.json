@@ -1,0 +1,111 @@
+{
+  "format": "midi-zoner-device-preset",
+  "version": 1,
+  "name": "Arp",
+  "device": "KORG NTS-1 mkII",
+  "portMatch": "NTS-1",
+  "notes": "Needs GLOBAL > MIDI Short Message = On. Knobs send the MSB CC first, then the LSB CC; if they move in coarse steps, switch Format to LSB first.",
+  "controllers": [
+    {
+      "type": 8,
+      "label": "Arp",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 1
+    },
+    {
+      "type": 9,
+      "label": "Arp pattern",
+      "number": 117,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "discreteValues": [
+        0,
+        12,
+        24,
+        36,
+        48,
+        60,
+        72,
+        84,
+        96,
+        127
+      ],
+      "valueNames": [
+        "Up",
+        "Down",
+        "Up-Down",
+        "Down-Up",
+        "Converge",
+        "Diverge",
+        "Conv-Div",
+        "Div-Conv",
+        "Random",
+        "Stochastic"
+      ]
+    },
+    {
+      "type": 3,
+      "label": "Intervals",
+      "number": 118,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "buttonlabel0": "Oct",
+      "buttonvalue0": 0,
+      "buttonlabel1": "Maj",
+      "buttonvalue1": 21,
+      "buttonlabel2": "Sus",
+      "buttonvalue2": 42,
+      "buttonlabel3": "Aug",
+      "buttonvalue3": 63,
+      "buttonlabel4": "Min",
+      "buttonvalue4": 84,
+      "buttonlabel5": "Dim",
+      "buttonvalue5": 127
+    },
+    {
+      "type": 0,
+      "label": "Arp length",
+      "number": 119,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 8,
+      "label": "Volume",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "new_row": false
+    },
+    {
+      "type": 5,
+      "label": "Volume",
+      "number": 7,
+      "val": 12800,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "number_lsb": 39,
+      "lsb_bits": 7,
+      "msb_first": true
+    }
+  ]
+}

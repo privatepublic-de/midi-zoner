@@ -1,0 +1,191 @@
+{
+  "format": "midi-zoner-device-preset",
+  "version": 1,
+  "name": "Panel",
+  "device": "KORG volca bass",
+  "notes": "Needs the global parameter MIDI Rx ShortMessage = On. All knobs are 7 bit. The volcas have no USB MIDI, so connect them through a MIDI interface. Slide time, Expression and Gate time are MIDI only. There is no cutoff CC. Octave values guessed like the volca keys (6 even ranges).",
+  "controllers": [
+    {
+      "type": 8,
+      "label": "VCO",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 1
+    },
+    {
+      "type": 0,
+      "label": "Octave",
+      "number": 40,
+      "val": 53,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "discreteValues": [
+        10,
+        32,
+        53,
+        74,
+        96,
+        117
+      ],
+      "valueNames": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6"
+      ]
+    },
+    {
+      "type": 1,
+      "label": "VCO1 pitch",
+      "number": 43,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 1,
+      "label": "VCO2 pitch",
+      "number": 44,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 1,
+      "label": "VCO3 pitch",
+      "number": 45,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 8,
+      "label": "LFO",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 2,
+      "new_row": false
+    },
+    {
+      "type": 0,
+      "label": "LFO rate",
+      "number": 41,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "LFO int",
+      "number": 42,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 8,
+      "label": "EG",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 3
+    },
+    {
+      "type": 0,
+      "label": "Attack",
+      "number": 46,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Decay/rel",
+      "number": 47,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Cutoff EG",
+      "number": 48,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 8,
+      "label": "Play",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 4,
+      "new_row": false
+    },
+    {
+      "type": 0,
+      "label": "Slide time",
+      "number": 5,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Gate time",
+      "number": 49,
+      "val": 100,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Expression",
+      "number": 11,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    }
+  ]
+}

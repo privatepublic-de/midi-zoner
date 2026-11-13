@@ -1,0 +1,254 @@
+{
+  "format": "midi-zoner-device-preset",
+  "version": 1,
+  "name": "Panel",
+  "device": "KORG volca keys",
+  "notes": "Needs the global parameter MIDI Rx ShortMessage = On. All knobs are 7 bit. The volcas have no USB MIDI, so connect them through a MIDI interface. Voice and Octave values from midi.guide. Expression is MIDI only.",
+  "controllers": [
+    {
+      "type": 8,
+      "label": "Voice",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 1
+    },
+    {
+      "type": 9,
+      "label": "Voice",
+      "number": 40,
+      "val": 6,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "discreteValues": [
+        6,
+        25,
+        50,
+        75,
+        100,
+        120
+      ],
+      "valueNames": [
+        "Poly",
+        "Unison",
+        "Octave",
+        "Fifth",
+        "Unison ring",
+        "Poly ring"
+      ]
+    },
+    {
+      "type": 3,
+      "label": "Octave",
+      "number": 41,
+      "val": 54,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "buttonlabel0": "32'",
+      "buttonvalue0": 10,
+      "buttonlabel1": "16'",
+      "buttonvalue1": 32,
+      "buttonlabel2": "8'",
+      "buttonvalue2": 54,
+      "buttonlabel3": "4'",
+      "buttonvalue3": 76,
+      "buttonlabel4": "2'",
+      "buttonvalue4": 98,
+      "buttonlabel5": "1'",
+      "buttonvalue5": 118
+    },
+    {
+      "type": 0,
+      "label": "Detune",
+      "number": 42,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Portamento",
+      "number": 5,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "VCO EG int",
+      "number": 43,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 8,
+      "label": "Filter",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 2,
+      "new_row": false
+    },
+    {
+      "type": 0,
+      "label": "Cutoff",
+      "number": 44,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "VCF EG int",
+      "number": 45,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 8,
+      "label": "LFO",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 3
+    },
+    {
+      "type": 0,
+      "label": "LFO rate",
+      "number": 46,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Pitch int",
+      "number": 47,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Cutoff int",
+      "number": 48,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 8,
+      "label": "EG",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 4,
+      "new_row": false
+    },
+    {
+      "type": 0,
+      "label": "Attack",
+      "number": 49,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Decay/rel",
+      "number": 50,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Sustain",
+      "number": 51,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 8,
+      "label": "Delay",
+      "number": 0,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null,
+      "group": 5
+    },
+    {
+      "type": 0,
+      "label": "Delay time",
+      "number": 52,
+      "val": 64,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Feedback",
+      "number": 53,
+      "val": 0,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    },
+    {
+      "type": 0,
+      "label": "Expression",
+      "number": 11,
+      "val": 127,
+      "min": 0,
+      "max": 127,
+      "note_cc": null,
+      "velocity_cc": null
+    }
+  ]
+}

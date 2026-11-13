@@ -1,10 +1,9 @@
 <div
   class="ccpot ${ cc.type == 2 ? 'spacer' : '' }"
   id="pot_${zoneindex}_${ix}"
-  data-action="${zoneindex}:cc_select:${ix}"
-  data-contextmenu="${zoneindex}:cc_edit:${ix},${zoneindex}:cc_send_all"
+  title="Double-click to edit"
 >
-  <div class="cclabel">${cc.label}</div>
+  <div class="cclabel">${esc(cc.label)}</div>
   <div class="rotary ccpotcontroller">
     <svg
       width="56"
@@ -12,37 +11,13 @@
       viewBox="0 0 56 56"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <path
-        id="pot_${zoneindex}_${ix}_range"
-        d=""
-        stroke="var(--darker-1)"
-        stroke-width="6"
-        fill="none"
-      />
-      <path
-        id="pot_${zoneindex}_${ix}_value"
-        d=""
-        stroke="var(--brighter-3)"
-        stroke-width="6"
-        fill="none"
-      />
-      <path
-        id="pot_${zoneindex}_${ix}_discrete"
-        d=""
-        stroke="var(--bg-color)"
-        stroke-width="1"
-        fill="none"
-      />
-      <rect
-        id="pot_${zoneindex}_${ix}_zero"
-        x="27"
-        y="8"
-        width="2"
-        height="8"
-        fill="var(--brighter-2)"
-      />
+      <path id="pot_${zoneindex}_${ix}_range" class="knob-track" d="" fill="none" />
+      <path id="pot_${zoneindex}_${ix}_value" class="knob-value" d="" fill="none" />
+      <path id="pot_${zoneindex}_${ix}_discrete" class="knob-ticks" d="" fill="none" />
+      <rect id="pot_${zoneindex}_${ix}_zero" class="knob-zero" x="27" y="9" width="2" height="7" />
     </svg>
     <span class="value">127</span>
+    <span class="valuename"></span>
   </div>
   <div class="buttons ccpotcontroller">
     <div class="ccbtn ccbtn0" data-action="${zoneindex}:cc_button_trig:${ix}:0">
@@ -68,6 +43,14 @@
     </div>
     <div class="ccbtn ccbtn7" data-action="${zoneindex}:cc_button_trig:${ix}:7">
       8
+    </div>
+  </div>
+  <div class="selector ccpotcontroller">
+    <div class="selector-name" title="Click for the list, drag or scroll to step through it"><span></span></div>
+    <div class="selector-steps">
+      <span class="selector-step material-icons" data-action="${zoneindex}:cc_step:${ix}:-1" title="Previous">chevron_left</span>
+      <span class="selector-pos"></span>
+      <span class="selector-step material-icons" data-action="${zoneindex}:cc_step:${ix}:1" title="Next">chevron_right</span>
     </div>
   </div>
   <div class="info ccpotcontroller"></div>

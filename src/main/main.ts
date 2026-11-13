@@ -3,6 +3,7 @@ import { app, BrowserWindow, Menu, powerSaveBlocker, ipcMain, dialog } from 'ele
 import settings from 'electron-settings';
 import path from 'path';
 import fs from 'fs';
+import { registerDevicePresetHandlers } from './device-presets';
 import { SourceMapConsumer, RawSourceMap, NullableMappedPosition } from 'source-map';
 
 interface WindowRect {
@@ -79,22 +80,41 @@ async function resolveSourceLocation(
 }
 
 const defaultWidth = 1000;
+// Narrowest normal-view window, in points. The renderer keeps this at (CSS floor x zoom) so zoom never forces a horizontal scrollbar.
+let normalMinWidth = 540;
 const defaultHeight = 730;
 const projectRoot = path.join(__dirname, '../..');
 const iconPath = path.join(projectRoot, 'res/zoner.png');
 
 let win: BrowserWindow | null;
+// full-size bounds to restore when leaving mini view; non-null while in mini view
+let fullBounds: electron.Rectangle | null = null;
 
 function createWindow(): void {
   const rect = storedWindowPos();
+  const miniSize = settings.get('miniWindowSize') as { width: number; height: number } | undefined;
+  const miniPos = onScreenPos(settings.get('miniWindowPos') as WindowRect | undefined);
+  const startMini = settings.get('miniMode') === true && !!miniSize;
+  if (startMini) {
+    // full-size bounds are kept aside and restored when leaving mini view
+    const wa = electron.screen.getPrimaryDisplay().workArea;
+    fullBounds = rect ?? {
+      x: Math.round(wa.x + (wa.width - defaultWidth) / 2),
+      y: Math.round(wa.y + (wa.height - defaultHeight) / 2),
+      width: defaultWidth,
+      height: defaultHeight
+    };
+  }
   win = new BrowserWindow({
-    x: rect ? rect.x : undefined,
-    y: rect ? rect.y : undefined,
+    x: startMini ? miniPos?.x : rect ? rect.x : undefined,
+    y: startMini ? miniPos?.y : rect ? rect.y : undefined,
     title: 'midi-zoner',
-    width: rect ? rect.width : defaultWidth,
-    height: rect ? rect.height : defaultHeight,
-    minWidth: defaultWidth,
-    minHeight: 200,
+    useContentSize: startMini,
+    width: startMini ? miniSize!.width : rect ? rect.width : defaultWidth,
+    height: startMini ? miniSize!.height : rect ? rect.height : defaultHeight,
+    minWidth: startMini ? 1 : normalMinWidth,
+    minHeight: startMini ? 1 : 200,
+    alwaysOnTop: startMini,
     autoHideMenuBar: true,
     backgroundColor: '#000000',
     icon: iconPath,
@@ -112,15 +132,15 @@ function createWindow(): void {
   win.loadFile(path.join(__dirname, '../../index.html'));
 
   // Forward renderer console messages to main process terminal
-  win.webContents.on('console-message', async (_event, level, message, line, sourceId) => {
-    const levelNames = ['DEBUG', 'INFO', 'WARN', 'ERROR'];
-    const original = await resolveSourceLocation(sourceId, line);
+  win.webContents.on('console-message', async (e) => {
+    const { level, message, lineNumber, sourceId } = e;
+    const original = await resolveSourceLocation(sourceId, lineNumber);
     const source = original
       ? `${path.relative(projectRoot, original.file)}:${original.line}`
       : sourceId
-        ? `${sourceId}:${line}`
+        ? `${sourceId}:${lineNumber}`
         : '';
-    console.log(`[${levelNames[level] || 'LOG'}] ${message}${source ? ` (${source})` : ''}`);
+    console.log(`[${level.toUpperCase()}] ${message}${source ? ` (${source})` : ''}`);
   });
 
   win.webContents.on('before-input-event', (event, input) => {
@@ -131,6 +151,22 @@ function createWindow(): void {
       win!.webContents.toggleDevTools();
     }
   });
+  // Mini view: dragging the window edge sets its zoom. The renderer turns the width into
+  // a zoom factor and sends the fitting size back (so its own resizes change nothing).
+  // 'resized' fires once a drag ends (macOS, Windows); Linux only has 'resize', so wait for it to settle.
+  let resizeSettle: NodeJS.Timeout | null = null;
+  const reportMiniWidth = (): void => {
+    if (win && fullBounds) win.webContents.send('mini-resized', win.getContentSize()[0]);
+  };
+  if (process.platform === 'linux') {
+    win.on('resize', () => {
+      if (!fullBounds) return;
+      if (resizeSettle) clearTimeout(resizeSettle);
+      resizeSettle = setTimeout(reportMiniWidth, 300);
+    });
+  } else {
+    win.on('resized', reportMiniWidth);
+  }
   win.on('close', () => {
     saveWindowPos(win!);
   });
@@ -138,7 +174,22 @@ function createWindow(): void {
     win = null;
   });
   if (process.platform === 'darwin') {
-    Menu.setApplicationMenu(Menu.buildFromTemplate([{ role: 'appMenu' as const }]));
+    // Text fields only get ⌘X/C/V/A through menu roles on macOS. No undo/redo roles:
+    // ⌘Z is the app's undo (app.ts), not the text field's.
+    Menu.setApplicationMenu(
+      Menu.buildFromTemplate([
+        { role: 'appMenu' as const },
+        {
+          label: 'Edit',
+          submenu: [
+            { role: 'cut' as const },
+            { role: 'copy' as const },
+            { role: 'paste' as const },
+            { role: 'selectAll' as const }
+          ]
+        }
+      ])
+    );
   } else {
     Menu.setApplicationMenu(null);
   }
@@ -186,6 +237,40 @@ function createWindow(): void {
       });
     return content;
   });
+  ipcMain.handle('set-view-mode', (event, mini: boolean, width: number, height: number) => {
+    if (!win) return;
+    if (mini) {
+      if (!fullBounds) {
+        fullBounds = win.getBounds();
+        const miniPos = onScreenPos(settings.get('miniWindowPos') as WindowRect | undefined);
+        win.setMinimumSize(1, 1);
+        if (miniPos) win.setPosition(miniPos.x, miniPos.y);
+      }
+      win.setAlwaysOnTop(true, 'floating');
+      win.setContentSize(Math.round(width), Math.round(height));
+      settings.set('miniMode', true);
+      settings.set('miniWindowSize', { width: Math.round(width), height: Math.round(height) });
+    } else if (fullBounds) {
+      settings.set('miniMode', false);
+      saveMiniPos(win);
+      const restore = fullBounds;
+      fullBounds = null;
+      win.setAlwaysOnTop(false);
+      win.setMinimumSize(normalMinWidth, 200);
+      win.setBounds(restore);
+    }
+  });
+  ipcMain.handle('set-min-width', (event, width: number) => {
+    normalMinWidth = Math.max(320, Math.round(width));
+    // in mini view the window may be tiny; the new minimum applies when leaving it
+    if (win && !fullBounds) {
+      win.setMinimumSize(normalMinWidth, 200);
+      // the OS does not grow an existing window to a new minimum (e.g. after zooming in), so do it here
+      const [currentWidth, currentHeight] = win.getSize();
+      if (currentWidth < normalMinWidth) win.setSize(normalMinWidth, currentHeight);
+    }
+    return win ? win.getMinimumSize() : [normalMinWidth, 200];
+  });
   ipcMain.handle('open-about', () => openAboutWindow());
   ipcMain.handle('open-confirm', async (event, ...args): Promise<boolean> => {
     let confirmed = false;
@@ -205,7 +290,23 @@ function createWindow(): void {
   });
 }
 
-app.on('ready', createWindow);
+// One instance per profile: a second one would get no localStorage (locked by the
+// first, so it shows an empty scene) and open the same MIDI ports. It brings the
+// running window to the front instead. (--user-data-dir gives a profile of its own.)
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (!win) return;
+    if (win.isMinimized()) win.restore();
+    win.show();
+    win.focus();
+  });
+  app.on('ready', () => {
+    registerDevicePresetHandlers();
+    createWindow();
+  });
+}
 
 app.on('window-all-closed', () => {
   app.quit();
@@ -213,38 +314,39 @@ app.on('window-all-closed', () => {
 
 function saveWindowPos(win: BrowserWindow): void {
   if (!win.isMinimized()) {
-    let rect = win.getBounds();
-    settings.set('windowPos', rect);
+    if (fullBounds) saveMiniPos(win);
+    settings.set('windowPos', fullBounds ?? win.getBounds());
   }
 }
 
+function saveMiniPos(win: BrowserWindow): void {
+  const { x, y } = win.getBounds();
+  settings.set('miniWindowPos', { x, y });
+}
+
 function storedWindowPos(): WindowRect | undefined {
-  let rect = settings.get('windowPos') as WindowRect | undefined;
+  const rect = settings.get('windowPos') as WindowRect | undefined;
   if (rect) {
-    // check if stored window pos is within screen
     if (rect.width < defaultWidth) rect.width = defaultWidth;
     if (rect.height < defaultHeight) rect.height = defaultHeight;
-    let displays = electron.screen.getAllDisplays();
-    let isVisible = false;
-    const max_thresh = 100;
-    displays.forEach((display) => {
-      let bounds = display.bounds;
-      if (
-        rect!.x >= bounds.x &&
-        rect!.x < bounds.x + bounds.width - max_thresh &&
-        rect!.y >= bounds.y &&
-        rect!.y < bounds.y + bounds.height - max_thresh
-      ) {
-        isVisible = true;
-      }
-    });
-    if (isVisible) {
-      return rect;
-    } else {
-      return undefined;
-    }
   }
-  return rect;
+  return onScreenPos(rect);
+}
+
+/** Returns the rect only if its top-left corner is within some display. */
+function onScreenPos<T extends { x: number; y: number }>(rect: T | undefined): T | undefined {
+  if (!rect) return rect;
+  const max_thresh = 100;
+  const isVisible = electron.screen.getAllDisplays().some((display) => {
+    const bounds = display.bounds;
+    return (
+      rect.x >= bounds.x &&
+      rect.x < bounds.x + bounds.width - max_thresh &&
+      rect.y >= bounds.y &&
+      rect.y < bounds.y + bounds.height - max_thresh
+    );
+  });
+  return isVisible ? rect : undefined;
 }
 
 function openAboutWindow(): void {

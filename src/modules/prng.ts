@@ -8,6 +8,20 @@ export function mulberry32(seed?: number): () => number {
   };
 }
 
+/** A random seed for hashRoll() */
+export function randomSeed(): number {
+  return (Math.random() * 0xffffffff) | 0;
+}
+
+/** A fixed number in [0, 1) for a seed and three integers: the same inputs, the same roll */
+export function hashRoll(seed: number, a: number, b: number, c: number): number {
+  let h = seed ^ Math.imul(a + 1, 0x9e3779b1) ^ Math.imul(b + 1, 0x85ebca77) ^ Math.imul(c + 2, 0xc2b2ae3d);
+  h = Math.imul(h ^ (h >>> 16), 0x7feb352d);
+  h = Math.imul(h ^ (h >>> 15), 0x846ca68b);
+  h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
+
 export class BagShuffle {
   private bag: number[] = [];
   private size = 0;

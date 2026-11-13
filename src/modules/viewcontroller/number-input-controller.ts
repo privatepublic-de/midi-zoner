@@ -101,8 +101,8 @@ export class NumberInputController {
 
   attachValueButtons(inputelement: HTMLInputElement): void {
     if (inputelement.disabled) return;
-    this.onAttach?.();
     this.elValueBtnAttachedInput = inputelement;
+    this.onAttach?.();
     this.elValueUp!.style.display = this.elValueDown!.style.display = 'block';
     const valueUpRect = this.elValueUp!.getBoundingClientRect();
     const inputElementOffsets = DOM.clientOffsets(inputelement);

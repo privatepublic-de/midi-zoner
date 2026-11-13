@@ -1,10 +1,10 @@
-import { mulberry32 } from '../prng';
+import { hashRoll, randomSeed } from '../prng';
 import MIDI from '../midi';
 import { Note } from './note';
 import { SeqStep } from './seq-step';
 import { DrumLane } from './drum-lane';
-import { DIV_TICKS, DivTick } from './seq-layer';
-import { SequenceJSON, UPDATE_ZONE_VIEW_EVENT } from './interfaces';
+import { DIV_TICKS, DivTick, swingOffsetMs } from './seq-layer';
+import { SequenceJSON, StepCondition, UPDATE_ZONE_VIEW_EVENT } from './interfaces';
 import type { Zone } from './zone-class';
 
 export class Sequence {
@@ -12,8 +12,6 @@ export class Sequence {
   static MAX_STEPS_DRUMS = 64;
   static MAX_LANES_DRUMS = 12;
   static CYCLE_CONDITIONS: [number, number][] = [];
-  static QUANT_TICK_N = 0;
-  static QUANT_TICKS: DivTick = DIV_TICKS[2];
 
   static {
     for (let cycles = 2; cycles < 9; cycles++) {
@@ -21,10 +19,6 @@ export class Sequence {
         Sequence.CYCLE_CONDITIONS.push([cycles, b + 1]);
       }
     }
-  }
-
-  static setQuantDiv(index: number): void {
-    Sequence.QUANT_TICKS = DIV_TICKS[index] as DivTick;
   }
 
   static getIdForDrumStep(laneIndex: number, stepIndex: number): number {
@@ -53,31 +47,26 @@ export class Sequence {
   zone: Zone;
   _selectedStep = -1;
   isHotRecordingNotes = false;
-  isLiveRecoding = false;
+  isLiveRecording = false;
   isDrumSequence = false;
   drumLanes = 4;
   activeSteps: SeqStep[] = [];
   private ratchetQueue: { note: Note; noteOnPos: number; noteOffPos: number }[] = [];
   private readonly _midiMsgBuf = new Uint8Array(3);
-  private rngProb = mulberry32();
+  // Chance is decided per run, cycle and step (chanceRoll), so the track view can
+  // show ahead which steps will play; renewed on stop
+  private chanceSeed = randomSeed();
   currentPos = 0; // Track current clock position for swing timing
-  // Swing pending steps (fireAtMs is a performance.now() timestamp)
-  private swingPendingDrumSteps: {
-    laneIndex: number;
-    stepIndex: number;
-    fireAtMs: number;
-  }[] = [];
-  private swingPendingRegularSteps: {
-    stepIndex: number;
-    fireAtMs: number;
-  }[] = [];
+  // Outstanding setTimeout handles for swung note-on dispatch; cancelled on stopped().
+  private swingTimers: Set<ReturnType<typeof setTimeout>> = new Set();
   cycleCount = -1;
   previousStepPlayed = false;
   isFirstCycle = true;
+  // Condition result per step as [cycleCount, met], for the live display; not saved
+  conditionResults: [number, boolean][] = [];
   stepAdvance = false;
   stepAddNotes = false;
   liveTargetStep: SeqStep | null = null;
-  liveTargetLength = 0;
   liveTargetStepNumber = -1;
   liveNoteSteps = new Map<number, { stepIndex: number; startPos: number }>();
   liveTargetStepStartPos = 0;
@@ -101,7 +90,9 @@ export class Sequence {
   }
 
   set active(v: boolean) {
+    const changed = v !== this._active;
     this._active = v;
+    if (changed) this.zone.sequenceActiveChanged(this, v);
     if (v && this.zone.elements) {
       requestAnimationFrame(() => {
         this.zone.elements.sequencerGridStepElements.forEach((e: Element) => {
@@ -149,7 +140,7 @@ export class Sequence {
   }
 
   get drumSteps(): (SeqStep | null)[] {
-    const result = [];
+    const result: (SeqStep | null)[] = [];
     this.drum_lanes.forEach((drumlane) => {
       if (drumlane.steps?.length > 0) result.push(...drumlane.steps);
     });
@@ -159,11 +150,12 @@ export class Sequence {
   clearSelection(): void {
     this.selectedStepNumbers.clear();
     this.isHotRecordingNotes = false;
+    this.zone.lockEditEnded();
   }
 
   get selectedStepNumber(): number {
     return this.selectedStepNumbers.size == 1
-      ? this.selectedStepNumbers.values().next().value
+      ? this.selectedStepNumbers.values().next().value!
       : -1;
   }
 
@@ -171,7 +163,7 @@ export class Sequence {
     this.selectedStepNumbers.clear();
     if (v > -1) {
       this.selectedStepNumbers.add(v);
-      this.isLiveRecoding = false;
+      this.isLiveRecording = false;
       this.isHotRecordingNotes = true;
     } else {
       this.isHotRecordingNotes = false;
@@ -208,6 +200,13 @@ export class Sequence {
     return result;
   }
 
+  /** A step by its number in the grid (a drum step id in drum mode) */
+  stepAt(n: number): SeqStep | null {
+    if (!this.isDrumSequence) return this.steps[n] ?? null;
+    const [laneIndex, stepIndex] = Sequence.getLaneAndStepIndexForDrumStepId(n);
+    return this.getDrumLane(laneIndex).steps[stepIndex] ?? null;
+  }
+
   get hasSelection(): boolean {
     return this.selectedStepNumbers.size > 0;
   }
@@ -217,9 +216,7 @@ export class Sequence {
       const [lindex, sindex] = Sequence.getLaneAndStepIndexForDrumStepId(index);
       return this.getDrumLane(lindex)?.steps[sindex] == null;
     } else {
-      return (
-        this.steps[index] == null || this.steps[index]?.notesArray.length === 0
-      );
+      return this.steps[index] == null || this.steps[index]!.isBlank();
     }
   }
 
@@ -230,7 +227,7 @@ export class Sequence {
   recordNote(note: Note, inCount: number): void {
     if (
       !this.isHotRecordingNotes &&
-      this.isLiveRecoding &&
+      this.isLiveRecording &&
       this.currentStepNumber > -1
     ) {
       let isSequentialAdvance = false;
@@ -244,7 +241,6 @@ export class Sequence {
           });
         }
         this.liveTargetStep = null;
-        this.liveTargetLength = 0;
         this.liveTargetStepNumber = -1;
         isSequentialAdvance = true;
       }
@@ -259,7 +255,6 @@ export class Sequence {
           this.liveTargetStep.notesArray.length = 0;
         }
         this.liveTargetStepStartPos = this.currentPos;
-        this.liveTargetLength = 1;
       }
       if (SeqStep.addNote(this.liveTargetStep.notesArray, note)) {
         this.updateZoneView();
@@ -288,12 +283,12 @@ export class Sequence {
       this.liveNoteSteps.delete(noteNumber);
       this.updateZoneView();
     }
-    if (this.isLiveRecoding && this.liveTargetStep) {
+    if (this.isLiveRecording && this.liveTargetStep) {
       if (count === 0) {
-        this.liveTargetStep.length = this.liveTargetLength;
+        // by duration, like a note released after its step was committed (noteReleased above)
+        this.liveTargetStep.length = Math.max(1, Math.round((this.currentPos - this.liveTargetStepStartPos) / this.ticks));
         this.steps[this.liveTargetStepNumber] = this.liveTargetStep;
         this.liveTargetStep = null;
-        this.liveTargetLength = 0;
         this.liveTargetStepNumber = -1;
         this.updateRecordingState();
         this.updateZoneView();
@@ -359,8 +354,7 @@ export class Sequence {
               infoText += '<i>Empty step. Play some notes ...</i>';
             }
           }
-          const stepNotes =
-            this.zone.elements.sequencerElement?.querySelector('.step-notes');
+          const stepNotes = this.zone._$('.step-notes');
           if (stepNotes) stepNotes.innerHTML = infoText;
 
           if (this.isHotRecordingNotes) {
@@ -383,31 +377,18 @@ export class Sequence {
     this.currentPos = pos;
     this.tickn = pos % this.ticks;
 
-    // Process pending swung steps first (before ratchet processing)
-    if (this.isDrumSequence) {
-      this.processPendingSwingDrumSteps();
-    } else {
-      this.processPendingSwingRegularSteps();
-    }
-    
     if (this.ratchetQueue.length > 0) {
       // note-offs first so same-tick transitions are clean
       for (let i = this.ratchetQueue.length - 1; i >= 0; i--) {
         const ev = this.ratchetQueue[i];
         if (ev.noteOnPos === -1 && pos >= ev.noteOffPos) {
-          this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_OFF + ev.note.channel;
-          this._midiMsgBuf[1] = ev.note.number;
-          this._midiMsgBuf[2] = 0;
-          this.zone.handleMidi(MIDI.MESSAGE.NOTE_OFF, this._midiMsgBuf, true);
+          this.feedNote(MIDI.MESSAGE.NOTE_OFF, ev.note.channel, ev.note.number, 0);
           this.ratchetQueue.splice(i, 1);
         }
       }
       for (const ev of this.ratchetQueue) {
         if (ev.noteOnPos !== -1 && pos >= ev.noteOnPos) {
-          this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + ev.note.channel;
-          this._midiMsgBuf[1] = ev.note.number;
-          this._midiMsgBuf[2] = ev.note.velo;
-          this.zone.handleMidi(MIDI.MESSAGE.NOTE_ON, this._midiMsgBuf, true);
+          this.feedNote(MIDI.MESSAGE.NOTE_ON, ev.note.channel, ev.note.number, ev.note.velo);
           ev.noteOnPos = -1;
         }
       }
@@ -420,10 +401,7 @@ export class Sequence {
         if (astep.length - 1 - astep.played === 0 && this.tickn >= offtick) {
           clearSteps.push(astep);
           for (const note of (astep.lastPlayedArray ?? [])) {
-            this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_OFF + note.channel;
-            this._midiMsgBuf[1] = note.number;
-            this._midiMsgBuf[2] = note.velo;
-            this.zone.handleMidi(MIDI.MESSAGE.NOTE_OFF, this._midiMsgBuf, true);
+            this.feedNote(MIDI.MESSAGE.NOTE_OFF, note.channel, note.number, note.velo);
           }
           if (astep.lastPlayedArray) astep.lastPlayedArray.length = 0;
         }
@@ -432,24 +410,34 @@ export class Sequence {
         (item) => !clearSteps.includes(item)
       );
     }
-    if (this.tickn == this.ticks - 1) {
-      this.liveTargetLength++;
-    }
     if (this.tickn === 0) {
       this.previousStepNumber = this.currentStepNumber;
       this.currentStepNumber = (this.currentStepNumber + 1) % this.length;
+      // Commit a held live-recording step as soon as the playhead exits it so
+      // it plays back on subsequent passes and length tracking continues.
+      if (this.isLiveRecording && this.liveTargetStep !== null &&
+          this.currentStepNumber === (this.liveTargetStepNumber + 1) % this.length) {
+        this.steps[this.liveTargetStepNumber] = this.liveTargetStep;
+        for (const n of this.liveTargetStep.notesArray) {
+          this.liveNoteSteps.set(n.number, {
+            stepIndex: this.liveTargetStepNumber,
+            startPos: this.liveTargetStepStartPos,
+          });
+        }
+        this.liveTargetStep = null;
+        this.liveTargetStepNumber = -1;
+        this.updateZoneView();
+      }
       if (this.currentStepNumber === 0) {
         this.cycleCount++;
         if (this.cycleCount === 1) {
           this.isFirstCycle = false;
         }
       }
-      if (this.active) {
-        if (this.isDrumSequence) {
-          this.processDrumSequenceStep(tickIntervalMs);
-        } else {
-          this.processRegularSequenceStep(tickIntervalMs);
-        }
+      if (this.isDrumSequence) {
+        this.processDrumSequenceStep(tickIntervalMs);
+      } else if (this.active) {
+        this.processRegularSequenceStep(tickIntervalMs);
       }
       requestAnimationFrame(this.zone._renderSequenceBound);
     }
@@ -461,6 +449,7 @@ export class Sequence {
       const lane = this.getDrumLane(ln);
       lane.previousStep = lane.currentStep;
       lane.currentStep = (lane.currentStep + 1) % lane.length;
+      if (!this.active) continue;
       if (lane.currentStep === 0) {
         lane.cycleCount++;
         if (lane.cycleCount === 1) lane.isFirstCycle = false;
@@ -470,27 +459,32 @@ export class Sequence {
         continue;
       }
       const step = lane.steps[lane.currentStep];
-      if (step == null || step.notesArray.length === 0) {
+      if (step == null || step.isBlank()) {
         // Don't update previousStepPlayed for empty steps
         continue;
       }
 
       // Evaluate condition and probability exactly once at step boundary
-      const shouldPlay =
-        this.checkCondition(step, lane.cycleCount, lane.isFirstCycle, lane.previousStepPlayed) &&
-        this.rngProb() < step.probability;
+      const conditionMet = this.checkCondition(step, lane.cycleCount, lane.isFirstCycle, lane.previousStepPlayed);
+      lane.conditionResults[lane.currentStep] = [lane.cycleCount, conditionMet];
+      const shouldPlay = conditionMet && this.chanceRoll(lane.cycleCount, lane.currentStep, ln) < step.probability;
       lane.previousStepPlayed = shouldPlay;
 
       if (!shouldPlay) continue;
 
       if (this.zone.swingAmount > 0 && !this.zone.arp_enabled) {
-        const swingOffsetMs = this.calculateSwingOffsetMs(lane.currentStep, tickIntervalMs);
-        if (swingOffsetMs > 0) {
-          this.swingPendingDrumSteps.push({
-            laneIndex: ln,
-            stepIndex: lane.currentStep,
-            fireAtMs: performance.now() + swingOffsetMs
-          });
+        const swingOffset = swingOffsetMs(lane.currentStep, this.zone.swingAmount, this.ticks, tickIntervalMs);
+        if (swingOffset > 0) {
+          const laneIndex = ln;
+          const stepIndex = lane.currentStep;
+          // Timer provides the real delay; dispatch always sends immediately when it
+          // fires (no MIDI-level timestamp) since Web MIDI scheduled sends aren't
+          // reliably honored by all output drivers.
+          const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
+            this.swingTimers.delete(timer);
+            this.playDrumStep(laneIndex, stepIndex);
+          }, swingOffset);
+          this.swingTimers.add(timer);
           continue;
         }
       }
@@ -506,18 +500,22 @@ export class Sequence {
     if (!currentStep) return;
 
     // Evaluate condition and probability exactly once at step boundary
-    const shouldPlay = this.checkCondition(currentStep) && this.rngProb() < currentStep.probability;
+    const conditionMet = this.checkCondition(currentStep);
+    this.conditionResults[this.currentStepNumber] = [this.cycleCount, conditionMet];
+    const shouldPlay = conditionMet && this.chanceRoll(this.cycleCount, this.currentStepNumber) < currentStep.probability;
     this.previousStepPlayed = shouldPlay;
 
     if (!shouldPlay) return;
 
     if (this.zone.swingAmount > 0 && !this.zone.arp_enabled) {
-      const swingOffsetMs = this.calculateSwingOffsetMs(this.currentStepNumber, tickIntervalMs);
-      if (swingOffsetMs > 0) {
-        this.swingPendingRegularSteps.push({
-          stepIndex: this.currentStepNumber,
-          fireAtMs: performance.now() + swingOffsetMs
-        });
+      const swingOffset = swingOffsetMs(this.currentStepNumber, this.zone.swingAmount, this.ticks, tickIntervalMs);
+      if (swingOffset > 0) {
+        const stepIndex = this.currentStepNumber;
+        const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
+          this.swingTimers.delete(timer);
+          this.playRegularStep(stepIndex);
+        }, swingOffset);
+        this.swingTimers.add(timer);
         return;
       }
     }
@@ -525,28 +523,13 @@ export class Sequence {
     this.playRegularStep(this.currentStepNumber);
   }
 
-  stopped(): void {
-    this.activeSteps.forEach((astep) => {
-      for (const note of (astep.lastPlayedArray ?? [])) {
-        this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_OFF + note.channel;
-        this._midiMsgBuf[1] = note.number;
-        this._midiMsgBuf[2] = 0;
-        this.zone.handleMidi(MIDI.MESSAGE.NOTE_OFF, this._midiMsgBuf, true);
-      }
-      if (astep.lastPlayedArray) astep.lastPlayedArray.length = 0;
-    });
-    this.activeSteps.length = 0;
-    for (const ev of this.ratchetQueue) {
-      if (ev.noteOnPos === -1) {
-        this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_OFF + ev.note.channel;
-        this._midiMsgBuf[1] = ev.note.number;
-        this._midiMsgBuf[2] = 0;
-        this.zone.handleMidi(MIDI.MESSAGE.NOTE_OFF, this._midiMsgBuf, true);
-      }
-    }
-    this.ratchetQueue.length = 0;
-    this.swingPendingDrumSteps.length = 0;
-    this.swingPendingRegularSteps.length = 0;
+  /**
+   * With `ringOut` (transport stop) sounding notes finish their remaining gate on a
+   * timer; otherwise they are released immediately.
+   */
+  stopped(ringOut = false): void {
+    this.releaseSoundingNotes(ringOut);
+    this.chanceSeed = randomSeed();
     this.currentStepNumber = this.previousStepNumber = -1;
     this.drum_lanes.forEach((lane) => {
       if (lane) {
@@ -560,13 +543,29 @@ export class Sequence {
     this.cycleCount = -1;
     this.previousStepPlayed = false;
     this.isFirstCycle = true;
-    this.liveTargetLength = 0;
     this.liveTargetStep = null;
-    this.isLiveRecoding = false;
+    this.isLiveRecording = false;
     this.updateRecordingState();
     requestAnimationFrame(this.zone._renderSequenceBound);
     requestAnimationFrame(this.zone._renderNotesBound);
     this.updateZoneView();
+  }
+
+  /** Steps whose notes sound right now (over their length and gate; ratchet hits of the current step) */
+  soundingSteps(): Set<number> {
+    const result = new Set<number>();
+    for (const astep of this.activeSteps) {
+      const i = this.steps.indexOf(astep);
+      if (i > -1 && astep.lastPlayedArray?.length) result.add(i);
+    }
+    const current = this.steps[this.currentStepNumber];
+    if (current && (current.ratchetCount ?? 1) > 1) {
+      const pitches = new Set(current.notesArray.map((n) => n.number));
+      if (this.ratchetQueue.some((ev) => ev.noteOnPos === -1 && pitches.has(ev.note.number))) {
+        result.add(this.currentStepNumber);
+      }
+    }
+    return result;
   }
 
   activeNotes(): Note[] {
@@ -595,21 +594,117 @@ export class Sequence {
     });
   }
 
+  /** Feeds a sequencer note into the zone as if it came from an input (arp, routing). */
+  private feedNote(status: number, channel: number, number: number, velo: number, timestamp?: number): void {
+    this._midiMsgBuf[0] = status + channel;
+    this._midiMsgBuf[1] = number;
+    this._midiMsgBuf[2] = velo;
+    this.zone.handleMidi(status, this._midiMsgBuf, true, timestamp);
+  }
+
+  /** The chance roll of a step in a cycle of this run (lane -1: the melodic sequence) */
+  private chanceRoll(cycle: number, stepIndex: number, lane = -1): number {
+    return hashRoll(this.chanceSeed, cycle, stepIndex, lane);
+  }
+
+  /**
+   * The steps after the current one, each with whether it will play: conditions and
+   * chance as playback evaluates them, so exact as long as nothing is edited. Endless,
+   * the caller stops. `laneIndex` -1: the melodic sequence, else a drum lane. `asOn`:
+   * as if the sequence were on (what switching it on would play).
+   */
+  *upcoming(laneIndex = -1, asOn = false): Generator<{ step: number; plays: boolean }> {
+    const on = this.active || asOn;
+    if (laneIndex < 0) {
+      const len = this.length;
+      if (len < 1) return;
+      let cur = this.currentStepNumber;
+      let cycle = this.cycleCount;
+      let first = this.isFirstCycle;
+      let previous = this.previousStepPlayed;
+      for (;;) {
+        cur = (cur + 1) % len;
+        if (cur === 0 && ++cycle === 1) first = false;
+        const step = this.steps[cur];
+        let plays = false;
+        if (step && on && !this.isDrumSequence) {
+          plays = this.checkCondition(step, cycle, first, previous) && this.chanceRoll(cycle, cur) < step.probability;
+          previous = plays;
+        }
+        yield { step: cur, plays };
+      }
+    }
+    const lane = this.drum_lanes[laneIndex];
+    if (!lane || lane.length < 1) return;
+    const quiet = !lane.enabled || (this.getDrumLaneSoloCount() > 0 && !lane.solo);
+    let cur = lane.currentStep;
+    let cycle = lane.cycleCount;
+    let first = lane.isFirstCycle;
+    let previous = lane.previousStepPlayed;
+    for (;;) {
+      cur = (cur + 1) % lane.length;
+      let plays = false;
+      if (on) {
+        if (cur === 0 && ++cycle === 1) first = false;
+        const step = lane.steps[cur];
+        if (quiet) {
+          previous = false;
+        } else if (step && !step.isBlank()) {
+          plays =
+            this.checkCondition(step, cycle, first, previous) &&
+            this.chanceRoll(cycle, cur, laneIndex) < step.probability;
+          previous = plays;
+        }
+      }
+      yield { step: cur, plays };
+    }
+  }
+
   checkCondition(step: SeqStep, cycleCnt = this.cycleCount, firstCycle = this.isFirstCycle, previousStepPlayed = this.previousStepPlayed): boolean {
     switch (step.condition) {
-      case 0:
+      case StepCondition.ALWAYS:
         return true;
-      case 1:
+      case StepCondition.PREVIOUS:
         return previousStepPlayed;
-      case 2:
+      case StepCondition.NOT_PREVIOUS:
         return !previousStepPlayed;
-      case 3:
+      case StepCondition.FIRST_CYCLE:
         return firstCycle;
-      case 4:
+      case StepCondition.NOT_FIRST_CYCLE:
         return !firstCycle;
     }
-    const condition = Sequence.CYCLE_CONDITIONS[step.condition - 5];
+    const condition = Sequence.CYCLE_CONDITIONS[step.condition - StepCondition.CYCLES];
     return cycleCnt % condition[0] === condition[1] - 1;
+  }
+
+  /**
+   * Whether a step's play condition is met in the current cycle (chance aside), for
+   * the live display: the evaluated result for steps the playhead has passed, a
+   * prediction for later ones when it is certain (cycle conditions always, "previous"
+   * ones only with no step in between), otherwise null. Null while stopped and for
+   * steps without a condition. Pass `lane` for a drum lane.
+   */
+  conditionOutcome(stepIndex: number, lane?: DrumLane): boolean | null {
+    const steps = lane ? lane.steps : this.steps;
+    const step = steps[stepIndex];
+    if (!step || step.isBlank() || step.condition === StepCondition.ALWAYS) return null;
+    const current = lane ? lane.currentStep : this.currentStepNumber;
+    const cycle = lane ? lane.cycleCount : this.cycleCount;
+    if (current < 0 || cycle < 0) return null;
+    if (stepIndex <= current) {
+      const result = (lane ? lane.conditionResults : this.conditionResults)[stepIndex];
+      return result && result[0] === cycle ? result[1] : null;
+    }
+    if (step.condition === StepCondition.PREVIOUS || step.condition === StepCondition.NOT_PREVIOUS) {
+      // empty drum steps leave "previous" alone, melodic ones only when absent
+      const counts = (st: SeqStep | null): boolean => (lane ? !!st && !st.isBlank() : !!st);
+      for (let k = current + 1; k < stepIndex; k++) {
+        if (counts(steps[k])) return null;
+      }
+    }
+    return lane
+      ? this.checkCondition(step, cycle, lane.isFirstCycle, lane.previousStepPlayed)
+      : this.checkCondition(step);
   }
 
   velocityMediumSelectedStep(): number {
@@ -649,7 +744,10 @@ export class Sequence {
     hits = Math.max(0, Math.min(hits, length));
     offset = ((offset % length) + length) % length;
     for (let i = 0; i < length; i++) {
-      lane.steps[i] = null;
+      // Locks stay where they are; only the hits move
+      const step = lane.steps[i];
+      if (step?.hasLocks()) step.notesArray = [];
+      else lane.steps[i] = null;
     }
     if (hits === 0) return;
     const s = hits / length;
@@ -665,54 +763,122 @@ export class Sequence {
 
   turnOnDrumStep(lane: number, stepNo: number): void {
     const drumLane = this.getDrumLane(lane);
-    if (drumLane.steps[stepNo] == null) {
-      const step = new SeqStep();
-      step.notesArray.push(new Note(drumLane.note, 96));
-      drumLane.steps[stepNo] = step;
-    }
-  }
-
-  hasDrumStep(lane: number, stepNo: number): boolean {
-    return this.getDrumLane(lane).steps[stepNo] != null;
+    const step = drumLane.steps[stepNo] ?? new SeqStep();
+    // A step with locks only gets its note
+    if (step.notesArray.length === 0) step.notesArray.push(new Note(drumLane.note, 96));
+    drumLane.steps[stepNo] = step;
   }
 
   // ========== SWING METHODS ==========
 
   /**
-   * Calculate swing delay in milliseconds for a given step index.
-   * Off-beat steps (1, 3, 5...) are delayed; on-beat steps return 0.
+   * Clock paused (ticks halted without Stop): sounding notes ring out, but the
+   * playhead is kept so playback continues when ticks resume.
    */
-  private calculateSwingOffsetMs(stepIndex: number, tickIntervalMs: number): number {
-    if (stepIndex % 2 === 0) return 0;
-    return this.zone.swingAmount * this.ticks * 0.5 * tickIntervalMs;
+  paused(): void {
+    this.releaseSoundingNotes(true);
+  }
+
+  /** Release sounding notes (by timer with `ringOut`) and drop unsounded swung/ratchet hits. */
+  private releaseSoundingNotes(ringOut: boolean): void {
+    // Notes feeding the arpeggiator are not audible themselves; release them at once
+    const ringOutNotes = ringOut && !this.zone.arp_enabled;
+    this.activeSteps.forEach((astep) => {
+      const offTick = Math.ceil(Math.min(this.ticks * astep.gateLength, this.ticks - 1));
+      const remaining = (astep.length - 1 - astep.played) * this.ticks + offTick - this.tickn;
+      for (const note of (astep.lastPlayedArray ?? [])) {
+        if (ringOutNotes) {
+          this.zone.ringOutAfterTicks(note.number, remaining, () => this.releaseNote(note));
+        } else {
+          this.releaseNote(note);
+        }
+      }
+      if (astep.lastPlayedArray) astep.lastPlayedArray.length = 0;
+    });
+    this.activeSteps.length = 0;
+    for (const ev of this.ratchetQueue) {
+      if (ev.noteOnPos !== -1) continue; // not sounded yet
+      if (ringOutNotes) {
+        const note = ev.note;
+        this.zone.ringOutAfterTicks(note.number, ev.noteOffPos - this.currentPos, () => this.releaseNote(note));
+      } else {
+        this.releaseNote(ev.note);
+      }
+    }
+    this.ratchetQueue.length = 0;
+    this.swingTimers.forEach((t) => clearTimeout(t));
+    this.swingTimers.clear();
+  }
+
+  /** Send a note-off for a sequencer note through the zone (own buffer: may run inside another send). */
+  private releaseNote(note: Note): void {
+    const msg = Uint8Array.from([MIDI.MESSAGE.NOTE_OFF + note.channel, note.number, 0]);
+    this.zone.handleMidi(MIDI.MESSAGE.NOTE_OFF, msg, true);
+  }
+
+  /** Sends a played step's locks (once per step, with its swing; lane -1 = melodic) */
+  private playLocks(step: SeqStep, lane: number): void {
+    this.zone.paramLocks.stepPlayed(lane, step.locks, step.slide, this.currentPos, step.length * this.ticks);
+  }
+
+  /** Every address locked on a step of this sequence (all drum lanes included) */
+  lockedAddresses(): Set<string> {
+    const addresses = new Set<string>();
+    const collect = (steps: (SeqStep | null)[]): void =>
+      steps.forEach((st) => st?.locks.forEach((l) => addresses.add(l.a)));
+    collect(this.steps);
+    this.drum_lanes.forEach((lane) => lane && collect(lane.steps));
+    return addresses;
   }
 
   /**
-   * Fire any pending drum steps whose scheduled wall-clock time has arrived.
+   * Runs `edit` on the given steps (default: the selected ones; drum step ids in drum
+   * mode). With `create`, empty slots get a new step (a step with locks only); steps
+   * left with neither notes nor locks are removed.
    */
-  private processPendingSwingDrumSteps(): void {
-    const now = performance.now();
-    for (let i = this.swingPendingDrumSteps.length - 1; i >= 0; i--) {
-      const pending = this.swingPendingDrumSteps[i];
-      if (now >= pending.fireAtMs) {
-        this.playDrumStep(pending.laneIndex, pending.stepIndex, pending.fireAtMs);
-        this.swingPendingDrumSteps.splice(i, 1);
+  private editSteps(edit: (step: SeqStep) => void, create = false, stepNumbers: Iterable<number> = this.selectedStepNumbers): void {
+    for (const n of stepNumbers) {
+      let steps = this.steps;
+      let index = n;
+      if (this.isDrumSequence) {
+        const [laneIndex, stepIndex] = Sequence.getLaneAndStepIndexForDrumStepId(n);
+        steps = this.getDrumLane(laneIndex).steps;
+        index = stepIndex;
       }
+      const step = steps[index] ?? (create ? new SeqStep() : null);
+      if (!step) continue;
+      edit(step);
+      steps[index] = step.isBlank() ? null : step;
     }
   }
 
-  /**
-   * Fire any pending regular steps whose scheduled wall-clock time has arrived.
-   */
-  private processPendingSwingRegularSteps(): void {
-    const now = performance.now();
-    for (let i = this.swingPendingRegularSteps.length - 1; i >= 0; i--) {
-      const pending = this.swingPendingRegularSteps[i];
-      if (now >= pending.fireAtMs) {
-        this.playRegularStep(pending.stepIndex, pending.fireAtMs);
-        this.swingPendingRegularSteps.splice(i, 1);
-      }
-    }
+  /** The selected steps' locks on an address */
+  selectedLockValues(address: string): number[] {
+    const values: number[] = [];
+    this.selectedSteps.forEach((st) => {
+      const v = st?.lockValue(address);
+      if (v !== undefined) values.push(v);
+    });
+    return values;
+  }
+
+  setLockOnSelected(address: string, value: number): void {
+    this.editSteps((st) => st.setLock(address, value), true);
+  }
+
+  removeLockFromSelected(address: string): void {
+    this.editSteps((st) => st.removeLock(address));
+  }
+
+  clearLocks(stepNumbers: Iterable<number>): void {
+    this.editSteps((st) => {
+      st.locks = [];
+      st.slide = false;
+    }, false, stepNumbers);
+  }
+
+  setSlideOnSelected(slide: boolean): void {
+    this.editSteps((st) => (st.slide = slide));
   }
 
   /**
@@ -727,7 +893,9 @@ export class Sequence {
     if (soloCount > 0 && !lane.solo) return;
 
     const step = lane.steps[stepIndex];
-    if (step == null || step.notesArray.length === 0) return;
+    if (step == null || step.isBlank()) return;
+    this.playLocks(step, laneIndex);
+    if (step.notesArray.length === 0) return;
 
     const ratchetCount = step.ratchetCount ?? 1;
     if (ratchetCount > 1) {
@@ -741,10 +909,7 @@ export class Sequence {
         hitNote.channel = this.zone.channel;
         hitNote.portId = this.zone.outputPortId;
         if (hitIdx === 0) {
-          this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + hitNote.channel;
-          this._midiMsgBuf[1] = hitNote.number;
-          this._midiMsgBuf[2] = hitNote.velo;
-          this.zone.handleMidi(MIDI.MESSAGE.NOTE_ON, this._midiMsgBuf, true, timestamp);
+          this.feedNote(MIDI.MESSAGE.NOTE_ON, hitNote.channel, hitNote.number, hitNote.velo, timestamp);
           this.ratchetQueue.push({ note: hitNote, noteOnPos: -1, noteOffPos: this.currentPos + gateLen });
         } else {
           const firePos = this.currentPos + hitIdx * ratchetRes;
@@ -758,10 +923,7 @@ export class Sequence {
       const note = new Note(lane.note, velo);
       note.channel = this.zone.channel;
       note.portId = this.zone.outputPortId;
-      this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + note.channel;
-      this._midiMsgBuf[1] = note.number;
-      this._midiMsgBuf[2] = note.velo;
-      this.zone.handleMidi(MIDI.MESSAGE.NOTE_ON, this._midiMsgBuf, true, timestamp);
+      this.feedNote(MIDI.MESSAGE.NOTE_ON, note.channel, note.number, note.velo, timestamp);
       (step.lastPlayedArray ??= []).push(note);
     }
   }
@@ -772,7 +934,9 @@ export class Sequence {
    */
   private playRegularStep(stepIndex: number, timestamp?: number): void {
     const step = this.steps[stepIndex];
-    if (!step) return;
+    if (!step || step.isBlank()) return;
+    this.playLocks(step, -1);
+    if (step.notesArray.length === 0) return;
     const ratchetCount = step.ratchetCount ?? 1;
     if (ratchetCount > 1) {
       const ratchetRes = step.ratchetResolution ?? 6;
@@ -785,10 +949,7 @@ export class Sequence {
           note.portId = this.zone.outputPortId;
           note.velo = Math.max(1, Math.min(127, inote.velo + hitIdx * ratchetDelta));
           if (hitIdx === 0) {
-            this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + note.channel;
-            this._midiMsgBuf[1] = note.number;
-            this._midiMsgBuf[2] = note.velo;
-            this.zone.handleMidi(MIDI.MESSAGE.NOTE_ON, this._midiMsgBuf, true, timestamp);
+            this.feedNote(MIDI.MESSAGE.NOTE_ON, note.channel, note.number, note.velo, timestamp);
             this.ratchetQueue.push({ note, noteOnPos: -1, noteOffPos: this.currentPos + gateLen });
           } else {
             const firePos = this.currentPos + hitIdx * ratchetRes;
@@ -804,10 +965,7 @@ export class Sequence {
         const note = Note.clone(inote);
         note.channel = this.zone.channel;
         note.portId = this.zone.outputPortId;
-        this._midiMsgBuf[0] = MIDI.MESSAGE.NOTE_ON + note.channel;
-        this._midiMsgBuf[1] = note.number;
-        this._midiMsgBuf[2] = note.velo;
-        this.zone.handleMidi(MIDI.MESSAGE.NOTE_ON, this._midiMsgBuf, true, timestamp);
+        this.feedNote(MIDI.MESSAGE.NOTE_ON, note.channel, note.number, note.velo, timestamp);
         step.lastPlayedArray.push(note);
       }
     }

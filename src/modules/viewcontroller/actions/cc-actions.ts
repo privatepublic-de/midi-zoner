@@ -1,5 +1,18 @@
 import { ActionContext, ActionHelpers, ActionMap } from '../types';
 import { ipcRenderer } from 'electron';
+import { CCController, CCControllerType, isHiResCC, isLayoutEntry } from '../../zone/interfaces';
+import { escapeHTML } from '../../domutils';
+import { labelForZone } from '../action-labels';
+import {
+  controllersFromPreset,
+  findDevicePreset,
+  getDevicePresets,
+  saveDevicePreset
+} from '../../device-presets';
+import { askDevicePresetMeta } from '../device-preset-dialog';
+import { openDevicePresetManager } from '../device-preset-manager';
+import { openCCEditor } from '../cc-editor';
+import { isPage, isSection, newPage, newSection, pageNumberOf } from '../../zone/cc-layout';
 
 export function createCCActions(
   ctx: ActionContext,
@@ -8,9 +21,80 @@ export function createCCActions(
 ): ActionMap {
   const {
     zone, zoneindex, element, actionParam1, actionParam2, ev,
-    zones, pushHistory, triggerSave,
+    zones, triggerSave, pushHistory,
     updateValuesForZone, updateControllerValues, toast
   } = ctx;
+
+  // Digits only, clamped to 0–max; null while the field is empty
+  const numberField = (max: number): number | null => {
+    const input = element as HTMLInputElement;
+    input.value = input.value.replace(/[^0-9]/g, '');
+    if (input.value == '') return null;
+    const value = Math.min(max, parseInt(input.value));
+    if (String(value) !== input.value) input.value = String(value);
+    return value;
+  };
+  const selected = (): CCController => zone.cc_controllers[zone.selectedCCIndex];
+  // Min/Max are device units for NRPN, CC values otherwise
+  const rangeMax = (): number => (selected().type == CCControllerType.NRPN ? 16383 : 127);
+
+  // A preset's controllers as a page of its own, unless they start with a page
+  const asPage = (preset: { name: string }, controllers: CCController[]): CCController[] =>
+    isPage(controllers[0]) ? controllers : [newPage(preset.name), ...controllers];
+  // Appended pages follow the existing controllers; without pages so far, the existing
+  // controllers become the first page
+  const appendPages = (pages: CCController[]): void => {
+    const current = zone.cc_controllers.some(isPage)
+      ? zone.cc_controllers
+      : [newPage(zone.devicePreset?.name ?? 'Main'), ...zone.cc_controllers];
+    const firstNew = current.length;
+    zone.cc_controllers = [...current, ...pages];
+    zone.ccPage = pageNumberOf(zone.cc_controllers, firstNew);
+    zone.selectedCCIndex = firstNew;
+  };
+  const showPresetResult = (message: string): void => {
+    zone.selectedCCIndex = Math.min(zone.selectedCCIndex, zone.cc_controllers.length - 1);
+    zone.show_cc = true;
+    renderControllersForZone(zone, zoneindex);
+    updateValuesForZone(zoneindex);
+    triggerSave();
+    toast(message);
+  };
+
+  // Knob positions of n evenly spread snap steps
+  const evenSteps = (n: number): number[] => Array.from({ length: n }, (_, i) => Math.round((i * 127) / (n - 1)));
+
+  // Entries for a controller that becomes a selector: its buttons, snap steps or named values
+  const toSelector = (c: CCController): void => {
+    const sentNow = zone.ccOutputValue(zone.cc_controllers.indexOf(c));
+    let values: number[] = [];
+    let names: string[] = [];
+    if (c.type == CCControllerType.BUTTON_BANK) {
+      for (let i = 0; i < 8; i++) {
+        const label = ((c as any)[`buttonlabel${i}`] ?? '').trim();
+        const value = (c as any)[`buttonvalue${i}`];
+        if (label != '' && value !== undefined) {
+          values.push(Math.min(127, value));
+          names.push(label);
+        }
+      }
+    } else if (c.type == CCControllerType.UNIPOLAR_ROTARY && c.discreteValues?.length) {
+      const ix = zone.cc_controllers.indexOf(c);
+      values = c.discreteValues.map((v) => zone.remapCCValue(v, ix));
+      names = c.valueNames ?? [];
+    } else if (c.valueNames?.length) {
+      values = c.valueNames.map((_, i) => (c.min || 0) + i).filter((v) => v <= 127);
+      names = c.valueNames.slice(0, values.length);
+    }
+    if (values.length == 0) {
+      values = [0, 127];
+      names = ['Off', 'On'];
+    }
+    c.discreteValues = values;
+    c.valueNames = names;
+    // The entry closest to what was sent so far
+    c.val = values.reduce((a, b) => (Math.abs(b - sentNow) < Math.abs(a - sentNow) ? b : a));
+  };
 
   const actions: ActionMap = {
     cc_toggle: () => {
@@ -18,109 +102,197 @@ export function createCCActions(
       updateValuesForZone(zoneindex);
       triggerSave();
       if (zone.show_cc) {
-        toast('Right click to edit CC controllers.');
+        toast('Double-click a controller to edit it');
       }
     },
     cc_send_all: () => {
       zone.sendAllCC();
-      toast('All CC values sent!');
+      toast('All CC values sent');
     },
     cc_edit: () => {
-      zone.editCC = !zone.editCC;
-      if (actionParam1 != null) {
-        zone.selectedCCIndex = parseInt(actionParam1);
-      }
-      updateControllerValues(zone, zoneindex);
-    },
-    cc_select: () => {
-      if (actionParam1 == '-1' || zone.selectedCCIndex == parseInt(actionParam1)) {
-        zone.editCC = false;
-        updateControllerValues(zone, zoneindex);
-      } else {
-        zone.selectedCCIndex = parseInt(actionParam1);
-        if (zone.editCC) {
-          updateControllerValues(zone, zoneindex);
-        }
-      }
+      openCCEditor(zoneindex, actionParam1 != null ? parseInt(actionParam1) : undefined);
     },
     cc_label: () => {
-      zone.cc_controllers[zone.selectedCCIndex].label = (element as HTMLInputElement).value;
-      updateControllerValues(zone, zoneindex);
+      const c = selected();
+      c.label = (element as HTMLInputElement).value;
+      // A section's name is its heading in the zone, a page's its tab
+      if (isSection(c) || isPage(c)) renderControllersForZone(zone, zoneindex);
+      else updateControllerValues(zone, zoneindex);
+      triggerSave();
+    },
+    cc_add_section: () => {
+      // After the selected controller; each new section gets the next colour
+      const insertAt = zone.cc_controllers[zone.selectedCCIndex] ? zone.selectedCCIndex + 1 : zone.cc_controllers.length;
+      const sections = zone.cc_controllers.filter(isSection).length;
+      zone.cc_controllers.splice(insertAt, 0, newSection('Section', (sections % 4) + 1));
+      zone.selectedCCIndex = insertAt;
+      renderControllersForZone(zone, zoneindex);
+      triggerSave();
+    },
+    cc_add_page: () => {
+      // After the selected entry; the zone shows the new page
+      const insertAt = zone.cc_controllers[zone.selectedCCIndex] ? zone.selectedCCIndex + 1 : zone.cc_controllers.length;
+      const pages = zone.cc_controllers.filter(isPage).length;
+      zone.cc_controllers.splice(insertAt, 0, newPage(`Page ${pages + 2}`));
+      zone.selectedCCIndex = insertAt;
+      zone.ccPage = pageNumberOf(zone.cc_controllers, insertAt);
+      renderControllersForZone(zone, zoneindex);
+      triggerSave();
+    },
+    cc_section_new_row: () => {
+      const c = selected();
+      if (c.new_row === false) delete c.new_row;
+      else c.new_row = false;
+      renderControllersForZone(zone, zoneindex);
       triggerSave();
     },
     cc_number: () => {
-      const inputElement = element as HTMLInputElement;
-      inputElement.value = inputElement.value.replace(/[^0-9]/, '');
-      if (inputElement.value != '') {
-        zone.cc_controllers[zone.selectedCCIndex].number = parseInt(inputElement.value);
+      const value = numberField(127);
+      if (value != null) {
+        selected().number = value;
         triggerSave();
       }
     },
     cc_number_lsb: () => {
-      const inputElement = element as HTMLInputElement;
-      inputElement.value = inputElement.value.replace(/[^0-9]/, '');
-      if (inputElement.value != '') {
-        zone.cc_controllers[zone.selectedCCIndex].number_lsb = parseInt(inputElement.value);
+      const value = numberField(127);
+      if (value != null) {
+        selected().number_lsb = value;
         triggerSave();
       }
+    },
+    cc_14bit_format: () => {
+      const c = zone.cc_controllers[zone.selectedCCIndex];
+      const [bits, order] = (element as HTMLSelectElement).value.split(':');
+      c.lsb_bits = parseInt(bits);
+      c.msb_first = order == 'msb';
+      updateControllerValues(zone, zoneindex);
+      triggerSave();
+    },
+    cc_nrpn_msb: () => {
+      const value = numberField(127);
+      if (value != null) {
+        selected().nrpn_msb = value;
+        triggerSave();
+      }
+    },
+    cc_nrpn_lsb: () => {
+      const value = numberField(127);
+      if (value != null) {
+        selected().nrpn_lsb = value;
+        triggerSave();
+      }
+    },
+    cc_nrpn_data_lsb: () => {
+      const c = zone.cc_controllers[zone.selectedCCIndex];
+      const [cc, bits] = (element as HTMLSelectElement).value.split(':');
+      c.nrpn_data_lsb_cc = bits ? parseInt(cc) : null;
+      c.nrpn_data_lsb_bits = bits ? parseInt(bits) : 0;
+      triggerSave();
     },
     cc_number_in: () => {
-      const inputElement = element as HTMLInputElement;
-      inputElement.value = inputElement.value.replace(/[^0-9]/, '');
-      if (inputElement.value != '') {
-        zone.cc_controllers[zone.selectedCCIndex].number_in = parseInt(inputElement.value);
-        triggerSave();
-      }
+      // Empty removes the hardware mapping
+      selected().number_in = numberField(127);
+      updateControllerValues(zone, zoneindex);
+      triggerSave();
     },
     cc_min: () => {
-      const inputElement = element as HTMLInputElement;
-      inputElement.value = inputElement.value.replace(/[^0-9]/, '');
-      if (inputElement.value != '') {
-        zone.cc_controllers[zone.selectedCCIndex].min = parseInt(inputElement.value);
+      const value = numberField(rangeMax());
+      if (value != null) {
+        selected().min = value;
         updateControllerValues(zone, zoneindex);
         triggerSave();
       }
     },
     cc_max: () => {
-      const inputElement = element as HTMLInputElement;
-      inputElement.value = inputElement.value.replace(/[^0-9]/, '');
-      if (inputElement.value != '') {
-        zone.cc_controllers[zone.selectedCCIndex].max = parseInt(inputElement.value);
+      const value = numberField(rangeMax());
+      if (value != null) {
+        selected().max = value;
         updateControllerValues(zone, zoneindex);
         triggerSave();
       }
     },
-    cc_discrete_values: () => {
-      const inputElement = element as HTMLInputElement;
-      inputElement.value = inputElement.value.replace(/[^0-9,]/g, '');
-      const raw = inputElement.value.trim();
-      let discreteValues: number[];
-      if (raw === '') {
-        discreteValues = [];
-      } else if (/^\d+$/.test(raw)) {
-        // Single integer 2–64: auto-expand to N equal steps
-        const n = parseInt(raw);
-        if (n >= 2 && n <= 64) {
-          const c = zone.cc_controllers[zone.selectedCCIndex];
-          const maxVal = (c.type === 5 || c.type === 6) ? 16383 : 127;
-          discreteValues = Array.from({ length: n }, (_, i) =>
-            Math.round(i * maxVal / (n - 1))
-          );
-        } else {
-          discreteValues = [n].filter(v => !isNaN(v) && v >= 0);
-        }
+    cc_snap: () => {
+      // On: even steps (as many as there are names, or 8); off: a continuous knob
+      const c = selected();
+      if (c.discreteValues?.length) delete c.discreteValues;
+      else c.discreteValues = evenSteps(Math.max(2, Math.min(64, c.valueNames?.length || 8)));
+      updateControllerValues(zone, zoneindex);
+      triggerSave();
+    },
+    cc_step_spread: () => {
+      const n = parseInt(actionParam1);
+      if (isNaN(n)) return;
+      selected().discreteValues = evenSteps(Math.max(2, Math.min(64, n)));
+      updateControllerValues(zone, zoneindex);
+      triggerSave();
+    },
+    cc_step_value: () => {
+      const value = numberField(127);
+      const steps = selected().discreteValues;
+      if (value == null || !steps) return;
+      steps[parseInt(actionParam1)] = value;
+      updateControllerValues(zone, zoneindex);
+      triggerSave();
+    },
+    cc_step_remove: () => {
+      const c = selected();
+      const i = parseInt(actionParam1);
+      c.discreteValues?.splice(i, 1);
+      c.valueNames?.splice(i, 1);
+      if (!c.discreteValues?.length) delete c.discreteValues;
+      if (!c.valueNames?.length) delete c.valueNames;
+      updateControllerValues(zone, zoneindex);
+      triggerSave();
+    },
+    cc_value_add: () => {
+      // A step after the last one (snapping knobs), or the name of the next value
+      const c = selected();
+      const steps = c.discreteValues;
+      if ((c.type == CCControllerType.UNIPOLAR_ROTARY || c.type == CCControllerType.SELECTOR) && steps?.length) {
+        const last = steps[steps.length - 1];
+        const gap = steps.length > 1 ? last - steps[steps.length - 2] : 16;
+        steps.push(Math.max(0, Math.min(127, last + Math.max(1, gap))));
+        c.valueNames = c.valueNames ?? [];
+        while (c.valueNames.length < steps.length - 1) c.valueNames.push('');
+        c.valueNames.push('');
       } else {
-        discreteValues = raw.split(',')
-          .map(v => parseInt(v))
-          .filter(v => !isNaN(v) && v >= 0);
+        c.valueNames = [...(c.valueNames ?? []), ''];
       }
-      zone.cc_controllers[zone.selectedCCIndex].discreteValues = discreteValues;
+      updateControllerValues(zone, zoneindex);
+      triggerSave();
+    },
+    cc_value_name: () => {
+      const c = selected();
+      const i = parseInt(actionParam1);
+      const names = c.valueNames ?? [];
+      while (names.length <= i) names.push('');
+      names[i] = (element as HTMLInputElement).value.slice(0, 24);
+      // Clearing the last name removes it (and other empty ones before it)
+      if (i == names.length - 1) while (names.length > 0 && names[names.length - 1].trim() === '') names.pop();
+      if (names.length > 0) c.valueNames = names;
+      else delete c.valueNames;
+      updateControllerValues(zone, zoneindex);
+      triggerSave();
+    },
+    cc_learn: () => {
+      zone.midiLearnCC = !zone.midiLearnCC;
+      updateControllerValues(zone, zoneindex);
+    },
+    cc_clear_input: () => {
+      selected().number_in = null;
+      zone.midiLearnCC = false;
+      updateControllerValues(zone, zoneindex);
+      triggerSave();
+    },
+    cc_nrpn_bipolar: () => {
+      const c = zone.cc_controllers[zone.selectedCCIndex];
+      c.bipolar = !c.bipolar;
       updateControllerValues(zone, zoneindex);
       triggerSave();
     },
     cc_notenum2cc: () => {
       const inputElement = element as HTMLInputElement;
-      inputElement.value = inputElement.value.replace(/[^0-9]/, '');
+      inputElement.value = inputElement.value.replace(/[^0-9]/g, '');
       if (inputElement.value != '') {
         zone.cc_controllers[zone.selectedCCIndex].note_cc = parseInt(inputElement.value);
       } else {
@@ -131,7 +303,7 @@ export function createCCActions(
     },
     cc_notevelocity2cc: () => {
       const inputElement = element as HTMLInputElement;
-      inputElement.value = inputElement.value.replace(/[^0-9]/, '');
+      inputElement.value = inputElement.value.replace(/[^0-9]/g, '');
       if (inputElement.value != '') {
         zone.cc_controllers[zone.selectedCCIndex].velocity_cc = parseInt(inputElement.value);
       } else {
@@ -147,77 +319,275 @@ export function createCCActions(
       triggerSave();
     },
     cc_button_value: () => {
-      const inputElement = element as HTMLInputElement;
-      inputElement.value = inputElement.value.replace(/[^0-9]/, '');
-      if (inputElement.value != '') {
-        (zone.cc_controllers[zone.selectedCCIndex] as any)[`buttonvalue${actionParam1}`] =
-          parseInt(inputElement.value);
+      const value = numberField(127);
+      if (value != null) {
+        (selected() as any)[`buttonvalue${actionParam1}`] = value;
         updateControllerValues(zone, zoneindex);
         triggerSave();
       }
     },
     cc_button_trig: () => {
       const ccindex = parseInt(actionParam1);
-      const btnindex = actionParam2;
-      zone.cc_controllers[ccindex].val =
-        (zone.cc_controllers[ccindex] as any)[`buttonvalue${btnindex}`];
-      zone.sendCC(ccindex);
-      updateControllerValues(zone, zoneindex);
+      const edit = zone.beginControllerEdit(ccindex);
+      edit.ctrl.val = (edit.ctrl as any)[`buttonvalue${actionParam2}`];
+      edit.commit();
+      updateValuesForZone(zoneindex);
       triggerSave();
     },
+    cc_step: () => {
+      // Selector: the previous / next entry
+      const ccindex = parseInt(actionParam1);
+      if (!zone.cc_controllers[ccindex]) return;
+      const edit = zone.beginControllerEdit(ccindex);
+      const c = edit.ctrl;
+      const entries = c.discreteValues ?? [];
+      if (entries.length == 0) return;
+      const current = entries.indexOf(c.val);
+      const next = Math.max(0, Math.min(entries.length - 1, current < 0 ? 0 : current + parseInt(actionParam2)));
+      if (entries[next] === c.val) return;
+      c.val = entries[next];
+      edit.commit();
+      updateValuesForZone(zoneindex);
+      triggerSave();
+    },
+    cc_select_value: () => {
+      // Selector: an entry chosen from its list
+      const ccindex = parseInt(actionParam1);
+      const value = zone.cc_controllers[ccindex]?.discreteValues?.[parseInt(actionParam2)];
+      if (value === undefined) return;
+      const edit = zone.beginControllerEdit(ccindex);
+      edit.ctrl.val = value;
+      edit.commit();
+      updateValuesForZone(zoneindex);
+      triggerSave();
+    },
+    cc_preset_apply: () => {
+      const preset = findDevicePreset(actionParam1);
+      if (!preset) return;
+      // Shift-click appends to the existing controllers instead of replacing them
+      const append = ev.shiftKey && zone.cc_controllers.length > 0;
+      if (append) {
+        appendPages(asPage(preset, controllersFromPreset(preset, [], false)));
+      } else {
+        zone.cc_controllers = controllersFromPreset(preset, zone.cc_controllers, false);
+        zone.devicePreset = { id: preset.id, name: preset.name };
+        zone.ccPage = 0;
+      }
+      showPresetResult(
+        append
+          ? `Added "${escapeHTML(preset.name)}" as a new page`
+          : `Applied preset "${escapeHTML(preset.name)}" (⇧-click appends instead)`
+      );
+    },
+    cc_preset_apply_all: () => {
+      // All presets of the preset's device, each on a page of its own
+      const first = findDevicePreset(actionParam1);
+      if (!first) return;
+      const presets = getDevicePresets().filter((p) => p.device === first.device);
+      const append = ev.shiftKey && zone.cc_controllers.length > 0;
+      const pages = presets.flatMap((p) => asPage(p, controllersFromPreset(p, append ? [] : zone.cc_controllers, false)));
+      if (append) {
+        appendPages(pages);
+      } else {
+        zone.cc_controllers = pages;
+        zone.devicePreset = null;
+        zone.ccPage = 0;
+      }
+      showPresetResult(
+        `${append ? 'Added' : 'Applied'} all ${presets.length} presets of ${escapeHTML(first.device)} as pages` +
+          (append ? '' : ' (⇧-click appends instead)')
+      );
+    },
+    cc_preset_save: async () => {
+      const linked = findDevicePreset(zone.devicePreset?.id);
+      const portName = zones.knownPortNames?.[zone.outputPortId];
+      const meta = await askDevicePresetMeta(
+        {
+          name: linked?.name ?? zone.label ?? '',
+          device: linked?.device ?? portName ?? '',
+          portMatch: linked?.portMatch ?? portName ?? '',
+          notes: linked?.notes ?? ''
+        },
+        [...new Set(getDevicePresets().map((p) => p.device))]
+      );
+      if (!meta) return;
+      try {
+        const saved = await saveDevicePreset(meta, zone.cc_controllers, null);
+        if (!saved) return;
+        zone.devicePreset = { id: saved.id, name: saved.name };
+        updateControllerValues(zone, zoneindex);
+        triggerSave();
+        toast(`Saved device preset "${escapeHTML(saved.name)}"`);
+      } catch (e) {
+        toast(`Could not save the preset: ${escapeHTML(String(e))}`, { warning: true });
+      }
+    },
+    cc_preset_update: async () => {
+      const linked = findDevicePreset(zone.devicePreset?.id);
+      if (!linked || linked.source != 'user') return;
+      const confirmed: boolean = await ipcRenderer.invoke(
+        'open-confirm',
+        'Update device preset',
+        `Overwrite preset "${linked.name}" with the controllers of this zone?`
+      );
+      if (!confirmed) return;
+      try {
+        await saveDevicePreset(linked, zone.cc_controllers, linked.id);
+        updateControllerValues(zone, zoneindex);
+        toast(`Updated device preset "${escapeHTML(linked.name)}"`);
+      } catch (e) {
+        toast(`Could not save the preset: ${escapeHTML(String(e))}`, { warning: true });
+      }
+    },
+    cc_presets_manage: () => {
+      openDevicePresetManager({
+        usage: (id) => zones.list.filter((z) => z.devicePreset?.id === id).length,
+        changed: () => {
+          // Linked zones show the preset's current name (deleted presets keep the last one)
+          zones.list.forEach((z, i) => {
+            const preset = findDevicePreset(z.devicePreset?.id);
+            if (preset && z.devicePreset) z.devicePreset.name = preset.name;
+            updateControllerValues(z, i);
+          });
+          triggerSave();
+        }
+      });
+    },
     cc_add: () => {
-      pushHistory(JSON.stringify(zones));
-      zone.cc_controllers.splice(zone.selectedCCIndex + 1, 0, {
+      // After the selected controller, or at the end when none is selected
+      const current = zone.cc_controllers[zone.selectedCCIndex];
+      const insertAt = current ? zone.selectedCCIndex + 1 : zone.cc_controllers.length;
+      // Same type as the selected controller; after a section, page or gap a knob
+      const type =
+        current && !isLayoutEntry(current.type) ? current.type
+          : CCControllerType.UNIPOLAR_ROTARY;
+      const labels = new Set(zone.cc_controllers.map((c) => c.label));
+      let n = zone.cc_controllers.length + 1;
+      while (labels.has(`Ctrl #${n}`)) n++;
+      const controller: any = {
         number: 1,
         number_in: null,
         min: 0,
-        max: 127,
-        type:
-          zone.selectedCCIndex > -1
-            ? zone.cc_controllers[zone.selectedCCIndex].type
-            : 0,
-        label: `Ctrl #${zone.selectedCCIndex + 1}`,
+        max: type == CCControllerType.NRPN ? 16383 : 127,
+        type,
+        label: `Ctrl #${n}`,
         val: 0,
         note_cc: null,
-        velocity_cc: null
-      } as any);
+        velocity_cc: null,
+        group: current && !isSection(current) && !isPage(current) ? current.group ?? 0 : 0
+      };
+      if (type == CCControllerType.NRPN) {
+        controller.nrpn_data_lsb_cc = 38;
+        controller.nrpn_data_lsb_bits = 7;
+      }
+      zone.cc_controllers.splice(insertAt, 0, controller);
+      zone.selectedCCIndex = insertAt;
+      renderControllersForZone(zone, zoneindex);
+      triggerSave();
+      openCCEditor(zoneindex, insertAt);
+    },
+    cc_duplicate: () => {
+      const current = zone.cc_controllers[zone.selectedCCIndex];
+      if (!current) return;
+      // A copy is not played by the same hardware control
+      const copy = { ...JSON.parse(JSON.stringify(current)), number_in: null };
+      zone.cc_controllers.splice(zone.selectedCCIndex + 1, 0, copy);
       zone.selectedCCIndex++;
       renderControllersForZone(zone, zoneindex);
       triggerSave();
     },
-    cc_remove: async () => {
-      const snapshotBeforeRemove = JSON.stringify(zones);
-      let description =
-        '#' +
-        (zone.selectedCCIndex + 1) +
-        ' "' +
-        zone.cc_controllers[zone.selectedCCIndex].label +
-        '"';
-      await ipcRenderer
-        .invoke(
-          'open-confirm',
-          'CC' + description,
-          'Do you really want to delete controller ' + description + '?'
-        )
-        .then((result: boolean) => {
-          if (result == true) {
-            pushHistory(snapshotBeforeRemove);
-            zone.cc_controllers.splice(zone.selectedCCIndex, 1);
-            zone.selectedCCIndex--;
-            renderControllersForZone(zone, zoneindex);
-            triggerSave();
-          }
-        });
+    cc_remove: () => {
+      const current = zone.cc_controllers[zone.selectedCCIndex];
+      if (!current) return;
+      // Where a deleted page's controllers go: the page before, or "Main" for the first page
+      const joins = zone.cc_controllers.slice(0, zone.selectedCCIndex).some(isPage) ? 'the page before' : 'Main';
+      zone.cc_controllers.splice(zone.selectedCCIndex, 1);
+      // The next controller moves into place
+      zone.selectedCCIndex = Math.min(zone.selectedCCIndex, zone.cc_controllers.length - 1);
+      zone.midiLearnCC = false;
+      renderControllersForZone(zone, zoneindex);
+      triggerSave();
+      toast(
+        isPage(current)
+          ? `Deleted page "${escapeHTML(current.label || 'page')}": its controllers joined ${joins} (undo brings it back)`
+          : isSection(current)
+          ? `Deleted section "${escapeHTML(current.label || 'row break')}": its controllers joined the one before (undo brings it back)`
+          : `Deleted "${escapeHTML(current.label || 'controller')}" (undo brings it back)`
+      );
+    },
+    cc_remove_all: async () => {
+      // Start anew: no controllers, no linked preset
+      if (zone.cc_controllers.length === 0) return;
+      const snapshot = JSON.stringify(zones);
+      const confirmed: boolean = await ipcRenderer.invoke(
+        'open-confirm',
+        'Delete all controllers',
+        `Do you really want to delete all ${zone.cc_controllers.length} controllers of zone #${zoneindex + 1}?`
+      );
+      if (!confirmed) return;
+      pushHistory(snapshot, labelForZone(zone, zoneindex, 'Delete All CC Controllers'));
+      zone.cc_controllers = [];
+      zone.devicePreset = null;
+      zone.ccPage = 0;
+      zone.selectedCCIndex = -1;
+      zone.midiLearnCC = false;
+      renderControllersForZone(zone, zoneindex);
+      updateControllerValues(zone, zoneindex);
+      triggerSave();
+      toast('Deleted all controllers (undo brings them back)');
     },
     cc_change_type: () => {
-      pushHistory(JSON.stringify(zones));
-      zone.cc_controllers[zone.selectedCCIndex].type = parseInt((element as HTMLSelectElement).value);
+      const c = zone.cc_controllers[zone.selectedCCIndex];
+      const newType = parseInt((element as HTMLSelectElement).value);
+      // Keep the knob position when the value range changes between 0–127 and 0–16383
+      if (isHiResCC(newType) && !isHiResCC(c.type)) {
+        c.val = c.val << 7;
+      } else if (!isHiResCC(newType) && isHiResCC(c.type)) {
+        c.val = c.val >> 7;
+      }
+      if (newType == CCControllerType.NRPN && c.type != CCControllerType.NRPN) {
+        if ((c.max ?? 127) <= 127) c.max = 16383;
+        if (c.nrpn_data_lsb_cc === undefined) {
+          c.nrpn_data_lsb_cc = 38;
+          c.nrpn_data_lsb_bits = 7;
+        }
+      } else if (newType != CCControllerType.NRPN && c.type == CCControllerType.NRPN) {
+        c.min = Math.min(c.min || 0, 127);
+        c.max = Math.min(c.max ?? 127, 127);
+      }
+      if (newType == CCControllerType.SELECTOR && c.type != CCControllerType.SELECTOR) {
+        toSelector(c);
+      } else if (c.type == CCControllerType.SELECTOR && newType == CCControllerType.BUTTON_BANK) {
+        // The first 8 entries become buttons
+        (c.discreteValues ?? []).slice(0, 8).forEach((v, i) => {
+          (c as any)[`buttonvalue${i}`] = v;
+          (c as any)[`buttonlabel${i}`] = c.valueNames?.[i] || String(v);
+        });
+      } else if (c.type == CCControllerType.SELECTOR && newType == CCControllerType.UNIPOLAR_ROTARY) {
+        // Entries stay as snap steps, at the knob positions of their values
+        c.min = 0;
+        c.max = 127;
+      }
+      c.type = newType;
       renderControllersForZone(zone, zoneindex);
       triggerSave();
     },
-    cc_change_group: () => {
-      pushHistory(JSON.stringify(zones));
-      zone.cc_controllers[zone.selectedCCIndex].group = (element as HTMLSelectElement).selectedIndex;
+    cc_group_set: () => {
+      selected().group = parseInt(actionParam1);
+      renderControllersForZone(zone, zoneindex);
+      triggerSave();
+    },
+    cc_move_range: () => {
+      // A section / page with its controllers, or one controller: [from, from + count) to insertAt
+      const from = parseInt(actionParam1);
+      const count = parseInt(actionParam2);
+      let insertAt = parseInt(ctx.actionParam3 ?? '');
+      if (isNaN(from) || isNaN(count) || isNaN(insertAt) || count < 1) return;
+      if (insertAt >= from && insertAt <= from + count) return; // inside itself: stays
+      const moved = zone.cc_controllers.splice(from, count);
+      if (insertAt > from) insertAt -= count;
+      zone.cc_controllers.splice(insertAt, 0, ...moved);
+      zone.selectedCCIndex = insertAt;
       renderControllersForZone(zone, zoneindex);
       triggerSave();
     },
@@ -241,10 +611,8 @@ export function createCCActions(
         }
       }
       if (pos != targetPos) {
-        pushHistory(JSON.stringify(zones));
-        const v2 = zone.cc_controllers[targetPos];
-        zone.cc_controllers[targetPos] = zone.cc_controllers[pos];
-        zone.cc_controllers[pos] = v2;
+        const [moved] = zone.cc_controllers.splice(pos, 1);
+        zone.cc_controllers.splice(targetPos, 0, moved);
         zone.selectedCCIndex = targetPos;
         renderControllersForZone(zone, zoneindex);
         triggerSave();
