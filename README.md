@@ -8,17 +8,24 @@ This is an [Electron](https://www.electronjs.org/) application built with TypeSc
 
 ## Features
 
-- **Multiple independent zones** — each with its own note range, output port, MIDI channel, label, and color
-- **Arpeggiator** — up/down/random/order modes, euclidean rhythm patterns, strum modes (down/up/alternating) with velocity taper, ratchet, gate, chance, and hold with keyboard transposition
-- **Step sequencer** — melodic (up to 256 steps) and drum modes (up to 64 steps), per-step velocity/gate/length/chance/conditions, ratchet, live recording, copy/paste, transpose
-- **4 global arrangements (A/B/C/D)** — snapshot and switch entire zone configurations for live performance; switching is quantized
-- **CC controllers** — unipolar and bipolar rotary knobs, 14-bit precision, button banks, note-to-CC converters, and spacers
-- **Per-zone input routing** — assign a specific MIDI input port and channel per zone (in addition to global multi-input selection)
-- **Internal and external MIDI clock** — internal clock via Web Audio API for accurate timing; external clock from any MIDI input; configurable clock output routing per port
-- **Key switches** — MIDI notes 0–19 (C-1 to G0) mute zones, toggle sequencers, and switch arrangements from a hardware controller
-- **Swing** — per-zone swing amount (0–100%) applied to arpeggiator and sequencer timing
-- **Scene save/load** — export and import complete configurations as JSON files; auto-save to localStorage; undo/redo (20 levels)
-- **Panic** — send All Notes Off to all outputs instantly
+![midi-zoner](https://github.com/privatepublic-de/midi-zoner/wiki/images/scr/mz-full-dark.png)
+
+- **Zones**: split your keyboard into zones, each with its own key range, output port and channel, octave, filters, velocity and program change. Mute, solo and named output configurations
+- **Arpeggiator**: up/down/random/order and strum directions with velocity taper, 1–4 octaves, ratchet, chance, gate, hold with transpose, euclidean patterns
+- **Step sequencer**: melodic (up to 256 steps) and drum mode (up to 12 lanes, 64 steps each); per-step velocity, length, gate, chance, conditions and ratchet; live recording, piano roll, transpose and adjust tools
+- **Parameter locks**: per-step controller values, optionally sliding, Elektron style
+- **Takes**: everything you play while the clock runs is recorded. Keep a take or a part of it afterwards, edit its notes, quantize it, or turn it into a sequence
+- **Track view**: all zones on a timeline, what was played behind the playhead and what comes ahead, with a loop range per arrangement
+- **4 arrangements (A/B/C/D)**: snapshots of all zone settings, switched at the next bar, beat or 16th; each with its own meter (any n/4 or n/8 with grouping)
+- **Quantized switching**: mute, solo and feature switches can wait for the next bar while playing
+- **CC controllers**: knobs (7-bit, 14-bit, 10-bit KORG logue, NRPN), buttons, selectors, note-to-CC; sections and pages; MIDI learn; a full-window editor
+- **Device presets**: factory controller sets for KORG (minilogue xd, monologue, NTS-1 mkII, microKORG XL, volcas), Moog (Little Phatty, Minitaur) and the Waldorf Streichfett; save and share your own
+- **MPE**: pass an MPE keyboard (such as the Seaboard) through to an MPE synth, or merge it onto one channel with bend, slide and pressure
+- **Clock**: internal clock or external MIDI clock, clock outputs per port, metronome (audio and MIDI) with count-in
+- **Hardware control**: key switches (notes C-1 to G0) and Mackie Control for mutes, solos, sequencers, arrangements and transport
+- **Views**: cards, tracks, or a small floating mini view
+- **Scenes**: auto-save, scene and zone files, undo/redo (20 steps)
+- **Panic**: All Notes Off to all outputs
 
 ## Quick Start
 
@@ -50,7 +57,7 @@ The complete user manual is on the wiki: [midi-zoner User Manual](https://github
 
 ## Download
 
-Pre-built releases for macOS, Windows, and Linux (64-bit) are available under [releases](https://github.com/privatepublic-de/midi-zoner/releases).
+Pre-built releases for macOS, Windows, and Linux (64-bit) are available under [releases](https://github.com/privatepublic-de/midi-zoner/releases). The latest release (1.2.0) is from 2020 and lacks most of the features above; build from source for the current version.
 
 ## License
 
