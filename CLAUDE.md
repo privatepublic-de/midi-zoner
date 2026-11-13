@@ -138,7 +138,7 @@ UI controller split into focused modules:
 4. **Arpeggiator**: Triggered by internal-clock.ts or external MIDI clock, processes held notes
 5. **Sequencer**: Triggered by clock, reads the flat `Sequence` steps for the active arrangement and triggers notes
 6. **MIDI Output**: Zone sends processed notes/CC → midi.ts → Web MIDI API output ports
-7. **Persistence**: Zones serialized to localStorage on every change (debounced 500ms). Scene files are JSON exports of the zones object. Every mutation is also pushed to `UndoHistory`.
+7. **Persistence**: Zones serialized to localStorage on every change (debounced 500ms). Scene files are JSON exports of the zones object. Load (`#load`): a file with only `list` (a zone file from ⋯ → Save zone to file…, `isZoneFile()`) adds its zones; any other file replaces the scene, settings included (`sceneFromFile()` keeps only known, checked keys with defaults for the rest, port names merge with the file's winning, then `remapChangedPortIds()` re-links ports from another machine; `showScene()` redraws the scene-wide controls, shared with undo/redo). Every mutation is also pushed to `UndoHistory`.
 
 ### HTML Templates
 - **res/template-zone.html**: Zone UI template with placeholders for dynamic content
