@@ -225,9 +225,9 @@ function createWindow(): void {
     let content: string | undefined;
     await dialog
       .showOpenDialog(win!, {
-        title: 'Add zones',
-        message: 'Add zones from file',
-        buttonLabel: 'Add zones from file',
+        title: 'Load scene',
+        message: 'Load a scene (replaces the current one) or a zone file (adds its zone)',
+        buttonLabel: 'Load',
         filters: [{ name: 'midi-zoner Scene', extensions: ['json'] }]
       })
       .then((result) => {

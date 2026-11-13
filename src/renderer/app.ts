@@ -4,7 +4,7 @@ import { migrateSpacers } from '../modules/zone/cc-layout';
 import { MpeMode, sanitizeMpeMode, sanitizeBendRange, sanitizePressureFrom, DEFAULT_PRESSURE_FROM, zoneInputClaims } from '../modules/zone/mpe';
 import { Sequence } from '../modules/zone/sequence';
 import { DIV_TICKS } from '../modules/zone/seq-layer';
-import MIDI, { PortDescriptor, MIDIMessage } from '../modules/midi';
+import MIDI, { PortDescriptor, MIDIMessage, InputPortDef } from '../modules/midi';
 import * as view from '../modules/viewcontroller';
 import { ZonesData } from '../modules/viewcontroller/types';
 import { ipcRenderer, webFrame } from 'electron';
@@ -257,6 +257,62 @@ function sanitizeLoops(data: unknown): ZonesData['loops'] {
     if (!(from >= 0 && to > from && to <= 96 * 1024)) return null;
     return { on: (l as any).on === true, from, to };
   });
+}
+
+/** A file with nothing but zones: from ⋯ → Save zone to file… (added, not replacing the scene) */
+function isZoneFile(data: Record<string, unknown>): boolean {
+  return Object.keys(data).every((key) => key === 'list');
+}
+
+/**
+ * A scene file (untrusted) as stored scene data: only the known settings, each checked;
+ * missing or invalid ones get their defaults, so a loaded scene never keeps any of the
+ * one it replaces. Port names merge, the file's winning (ports present here are renamed
+ * right after), so ports from another machine can be re-linked by name.
+ */
+function sceneFromFile(data: Record<string, any>): Partial<ZonesData> & { list: object[] } {
+  const bool = (v: unknown, fallback: boolean): boolean => (typeof v === 'boolean' ? v : fallback);
+  const int = (v: unknown, allowed: number[], fallback: number): number =>
+    allowed.includes(v as number) ? (v as number) : fallback;
+  const record = <T>(v: unknown, valid: (x: unknown) => x is T): Record<string, T> => {
+    const out: Record<string, T> = {};
+    if (v && typeof v === 'object' && !Array.isArray(v)) {
+      Object.entries(v).forEach(([k, x]) => { if (valid(x)) out[k] = x; });
+    }
+    return out;
+  };
+  const isBool = (x: unknown): x is boolean => typeof x === 'boolean';
+  const isString = (x: unknown): x is string => typeof x === 'string';
+  const isInput = (x: unknown): x is InputPortDef =>
+    !!x && typeof x === 'object' && typeof (x as any).id === 'string' &&
+    Number.isInteger((x as any).ch) && (x as any).ch >= 0 && (x as any).ch <= 15;
+  const tempo = Number(data.tempo);
+  const arrangementIndex = int(data.arrangementIndex, [0, 1, 2, 3], 0);
+  const selectedInputPorts = record(data.selectedInputPorts, isInput);
+  Object.values(selectedInputPorts).forEach((p) => {
+    p.isSelected = p.isSelected === true;
+    if (p.allChannels !== undefined) p.allChannels = p.allChannels === true;
+  });
+  return {
+    list: data.list.filter((z: unknown) => z && typeof z === 'object' && !Array.isArray(z)),
+    inChannel: int(data.inChannel, [...Array(16).keys()], 0),
+    clockOutputPorts: record(data.clockOutputPorts, isBool),
+    clockSuppressTransportPorts: record(data.clockSuppressTransportPorts, isBool),
+    selectedInputPorts,
+    tempo: isFinite(tempo) ? Math.min(Math.max(tempo, 30), 240) : 120,
+    sendInternalClockIfPlaying: bool(data.sendInternalClockIfPlaying, false),
+    outputConfigNames: record(data.outputConfigNames, isString),
+    arrangementIndex,
+    nextArrangementIndex: arrangementIndex,
+    arrangementQuantIndex: int(data.arrangementQuantIndex, [2, 3, 8, 14], 2),
+    toggleQuantOn: bool(data.toggleQuantOn, true),
+    toggleQuantIndex: int(data.toggleQuantIndex, [2, 8, 14], 2),
+    keySwitchEnabled: bool(data.keySwitchEnabled, true),
+    mackieOutlineEnabled: bool(data.mackieOutlineEnabled, true),
+    knownPortNames: { ...zones.knownPortNames, ...record(data.knownPortNames, isString) },
+    loops: data.loops,
+    meters: data.meters
+  };
 }
 
 /** Meters per arrangement from a scene file (untrusted); null: 4/4 */
@@ -1286,13 +1342,25 @@ document.addEventListener('DOMContentLoaded', function () {
           const previous = zones.list.slice();
           applyStoredZones(JSON.parse(snapshot), midi);
           carryOverNoteHistory(previous, zones.list);
+          showScene();
+          updateUndoRedoButtons();
+        }
+
+        /** After the scene data was replaced (undo, redo, Load): zones and scene-wide settings */
+        function showScene(): void {
           syncZoneInputPorts(midi);
           view.renderZones();
           view.selectArrangement(zones.arrangementIndex);
           updateBpmInput();
           midi.setInternalBPM(zones.tempo);
+          (DOM.get('#seqquant') as HTMLSelectElement).value = String(zones.arrangementQuantIndex);
+          (DOM.get('#keySwitchEnabled') as HTMLInputElement).checked = zones.keySwitchEnabled !== false;
+          (DOM.get('#mackieOutlineEnabled') as HTMLInputElement).checked = zones.mackieOutlineEnabled !== false;
+          updateClockOutputCount();
+          refreshPortLists();
+          timelineMeter(activeMeter());
+          timelineLoop(activeLoop());
           saveZones();
-          updateUndoRedoButtons();
           sendMackieLeds();
         }
 
@@ -1478,11 +1546,29 @@ document.addEventListener('DOMContentLoaded', function () {
             .then((result: string | null) => {
               if (result) {
                 try {
-                  undoHistory.push(JSON.stringify(zones), 'Load Scene File');
-                  applyStoredZones(JSON.parse(result), midi, true);
-                  syncZoneInputPorts(midi);
-                  view.renderZones();
-                  saveZones();
+                  const data = JSON.parse(result);
+                  if (!data || typeof data !== 'object' || !Array.isArray(data.list)) {
+                    throw new Error('no zone list');
+                  }
+                  const before = JSON.stringify(zones);
+                  if (isZoneFile(data)) {
+                    // a zone file adds its zones to the scene
+                    undoHistory.push(before, 'Add Zones from File');
+                    applyStoredZones(sceneFromFile(data), midi, true);
+                    syncZoneInputPorts(midi);
+                    view.renderZones();
+                    refreshPortLists();
+                    saveZones();
+                  } else {
+                    // a scene file replaces the scene
+                    undoHistory.push(before, 'Load Scene');
+                    applyStoredZones(sceneFromFile(data), midi);
+                    // ports present here keep their own names; ids from another machine re-link by name
+                    allPorts.outputs.forEach((p) => { zones.knownPortNames[p.id] = p.fullName; });
+                    allPorts.inputs.forEach((p) => { zones.knownPortNames[p.id] = p.fullName; });
+                    remapChangedPortIds(allPorts.inputs, allPorts.outputs);
+                    showScene();
+                  }
                   updateUndoRedoButtons();
                   zones.list.forEach((zone) => {
                     zone.sendProgramChange();
