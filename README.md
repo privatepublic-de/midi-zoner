@@ -15,6 +15,7 @@ This is an [Electron](https://www.electronjs.org/) application built with TypeSc
 - **Step sequencer**: melodic (up to 256 steps) and drum mode (up to 12 lanes, 64 steps each); per-step velocity, length, gate, chance, conditions and ratchet; live recording, piano roll, transpose and adjust tools
 - **Parameter locks**: per-step controller values, optionally sliding, Elektron style
 - **Takes**: everything you play while the clock runs is recorded. Keep a take or a part of it afterwards, edit its notes, quantize it, or turn it into a sequence
+- **Looper**: a loop per zone and arrangement, each its own length. Press Loop (or Rec on a Mackie) on a 1 to record (a little late is fine), on a later 1 to close it: it plays at once, with the pick-up you played before the first 1 at its end. Press again to overdub, twice quickly to clear; mute silences it
 - **Track view**: all zones on a timeline, what was played behind the playhead and what comes ahead, with a loop range per arrangement
 - **4 arrangements (A/B/C/D)**: snapshots of all zone settings, switched at the next bar, beat or 16th; each with its own meter (any n/4 or n/8 with grouping)
 - **Quantized switching**: mute, solo and feature switches can wait for the next bar while playing
@@ -22,7 +23,7 @@ This is an [Electron](https://www.electronjs.org/) application built with TypeSc
 - **Device presets**: factory controller sets for KORG (minilogue xd, monologue, NTS-1 mkII, microKORG XL, volcas), Moog (Little Phatty, Minitaur) and the Waldorf Streichfett; save and share your own
 - **MPE**: pass an MPE keyboard (such as the Seaboard) through to an MPE synth, or merge it onto one channel with bend, slide and pressure
 - **Clock**: internal clock or external MIDI clock, clock outputs per port, metronome (audio and MIDI) with count-in
-- **Hardware control**: key switches (notes C-1 to G0) and Mackie Control for mutes, solos, sequencers, arrangements and transport
+- **Hardware control**: key switches (notes C-1 to G0) and Mackie Control for mutes, solos, sequencers, arrangements, transport and the looper (Rec)
 - **Views**: cards, tracks, or a small floating mini view
 - **Scenes**: auto-save, scene and zone files, undo/redo (20 steps)
 - **Panic**: All Notes Off to all outputs

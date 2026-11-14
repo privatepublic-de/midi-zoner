@@ -210,6 +210,8 @@ export interface ZoneArrangementJSON {
   takes?: TakeJSON[];
   /** Whether they play */
   takes_on?: boolean;
+  /** The zone's loop in this arrangement (the looper's, played from bar 1) */
+  loop?: TakeJSON;
 }
 
 export interface ZoneJSON {

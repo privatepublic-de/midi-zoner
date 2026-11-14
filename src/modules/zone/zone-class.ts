@@ -8,6 +8,7 @@ import { DrumLane } from './drum-lane';
 import { Take } from './take';
 import { barTicks } from '../meter';
 import { TakePlayer } from './take-player';
+import { Looper, PressResult } from './looper';
 import { MpeInput, MpeMode, MPE_SLIDE_CC, PressureGlide, DEFAULT_PRESSURE_FROM, mpeSetupMessages, rescaleBend } from './mpe';
 import type { MpeDot } from './mpe';
 import {
@@ -270,6 +271,11 @@ export class Zone {
   /** The take being recorded: what is played into the zone while the clock runs */
   private recording: { arrangement: number; pass: number; notes: (TakeNoteJSON & { open: boolean })[] } | null = null;
   readonly takePlayer = new TakePlayer(this);
+  /** The loop of the current arrangement (saved with it), played by the looper's own player */
+  loop: Take | null = null;
+  /** Recording and overdubbing the loop: a live gesture, handed on across undo */
+  looper = new Looper();
+  readonly loopPlayer = new TakePlayer(this, false);
   static MAX_TAKES = 64;
   arrangements: ZoneArrangementJSON[] = [];
   currentArrangementIndex = 0;
@@ -354,7 +360,8 @@ export class Zone {
       sequence: this.sequence.toJSON(),
       swingAmount: this.swingAmount,
       takes: this.takes.map((t) => t.toJSON()),
-      takes_on: this.takes_on
+      takes_on: this.takes_on,
+      ...(this.loop ? { loop: this.loop.toJSON() } : {})
     };
   }
 
@@ -409,6 +416,8 @@ export class Zone {
     this.takes = Take.listFrom(data.takes);
     // arrangements from before the switch: their kept takes played
     this.takes_on = data.takes_on ?? this.takes.length > 0;
+    this.loop = data.loop ? Take.from(data.loop) : null;
+    if (this.loop) this.loop.start = 0;
 
     const seq = new Sequence(this);
     const sd = data.sequence || {};
@@ -854,7 +863,7 @@ export class Zone {
                   this.removeNote(key);
                 }
                 if (!fromSequencer) {
-                  this.recordTakeNoteOff(srcNote ? srcNote.number : key);
+                  this.recordNoteOff(srcNote ? srcNote.number : key);
                   this.sequence.noteReleased(
                     srcNote ? srcNote.number : key,
                     this.activeNotes.length
@@ -1452,6 +1461,12 @@ export class Zone {
     // the loop jumped back: the pass just played is a take
     if (this.recording && passAt(elapsed) !== this.recording.pass) this.endTake(true);
     this.takePlayer.clock(elapsed, tickIntervalMs, this.takes);
+    const bar = barTicks(timeline.meter);
+    this.looper.prune(elapsed, bar);
+    if (this.loop) {
+      const layer = this.looper.dubLayer(this.loop, elapsed, bar);
+      this.loopPlayer.clockLoop(elapsed, tickIntervalMs, this.loop, layer, this.looper.anchor, !this.audible);
+    }
     if (tickIntervalMs > 0) this._lastTickIntervalMs = tickIntervalMs;
 
     const tickn = pos % this.arp_ticks;
@@ -1918,6 +1933,9 @@ export class Zone {
     this.arp.repeatnote = null;
     this.sequence.stopped(ringOut);
     this.takePlayer.release(ringOut);
+    this.loopPlayer.release(ringOut);
+    // the loop starts over at bar 1 (a recording was finished before, see finishLoop())
+    this.looper.reset();
     // a stop or an arrangement switch ends the section, and so the take
     this.endTake();
     // Controllers go back to their own values once ringing notes have ended (a little
@@ -1945,6 +1963,7 @@ export class Zone {
     this.ringOutArpNote();
     this.sequence.paused();
     this.takePlayer.release(true);
+    this.loopPlayer.release(true);
     if (this._strumGraceTimer !== null) {
       clearTimeout(this._strumGraceTimer);
       this._strumGraceTimer = null;
@@ -1972,6 +1991,7 @@ export class Zone {
 
   private recordTakeNote(pitch: number, velo: number): void {
     if (!timeline.running) return;
+    this.looper.noteOn(nowTick() - timeline.sectionStart, pitch, velo);
     // a pass of the loop is a take of its own
     const pass = passAt(nowTick() - timeline.sectionStart);
     if (this.recording && this.recording.pass !== pass) this.endTake(true);
@@ -1981,6 +2001,13 @@ export class Zone {
     this.recording.notes.push({ t: songNow(), d: 0, n: pitch, v: velo, open: true });
   }
 
+  /** A key released: its note ends in the take and in the looper's input */
+  private recordNoteOff(pitch: number): void {
+    if (timeline.running) this.looper.noteOff(nowTick() - timeline.sectionStart, pitch);
+    this.recordTakeNoteOff(pitch);
+  }
+
+  /** (The take only: a note-on also ends a still-open note of its pitch here, not in the looper, which does that itself) */
   private recordTakeNoteOff(pitch: number): void {
     const notes = this.recording?.notes;
     if (!notes) return;
@@ -2049,6 +2076,100 @@ export class Zone {
       .map((e) => e.take);
   }
 
+  /**
+   * Keep while running: what was played up to the bar line `cut` becomes a kept take
+   * (notes held across it end there); recording goes on from there as a new take.
+   */
+  keepRecording(cut: number): Take | null {
+    const rec = this.recording;
+    if (!rec || rec.arrangement !== this.currentArrangementIndex) return null;
+    const before = rec.notes.filter((n) => n.t < cut);
+    if (before.length === 0) return null;
+    rec.notes = rec.notes.filter((n) => n.t >= cut);
+    const bar = barTicks(timeline.meter);
+    const take = new Take();
+    take.start = Math.max(0, Math.floor(before[0].t / bar) * bar);
+    take.length = Math.min(Take.MAX_LENGTH, Math.max(bar, cut - take.start));
+    take.notes = before.map((n) => ({
+      t: n.t - take.start,
+      d: n.open ? Math.max(0.25, cut - n.t) : Math.min(n.d, cut - n.t),
+      n: n.n,
+      v: n.v
+    }));
+    take.sort();
+    this.takeList.push({ arrangement: rec.arrangement, take });
+    if (this.takeList.length > Zone.MAX_TAKES) this.takeList.shift();
+    this.keepTake(take);
+    return take;
+  }
+
+  /** Whether what the zone plays by itself is heard: not muted, not silenced by a solo */
+  get audible(): boolean {
+    return this.enabled && (Zone.solocount === 0 || this.solo);
+  }
+
+  /** The looper's position: ticks since the section began (-1 while stopped: a press waits for bar 1) */
+  private loopNow(): number {
+    return timeline.running ? nowTick() - timeline.sectionStart : -1;
+  }
+
+  /** The loop button (chip, Mackie Rec) at `ms` (performance.now(), for the double press) */
+  loopPress(ms: number): PressResult {
+    const result = this.looper.press(this.loopNow(), barTicks(timeline.meter), this.loop, ms, (to) =>
+      this.closeLoop(to, this.loopNow())
+    );
+    if (result.kind === 'cleared') {
+      this.loop = null;
+      this.loopPlayer.release(true);
+    }
+    return result;
+  }
+
+  /** Where a recording or overdub ends on the tick at `elapsed` (null: none ends) */
+  loopDueAt(elapsed: number): number | null {
+    return this.looper.dueAt(elapsed, barTicks(timeline.meter));
+  }
+
+  /** A recording or overdub ends at `to` (elapsed ticks, now or passed) */
+  closeLoop(to: number, now: number): PressResult {
+    const bar = barTicks(timeline.meter);
+    if (this.looper.mode === 'rec') {
+      const loop = this.looper.closeRecording(to, bar, now);
+      if (!loop) return { kind: 'empty' };
+      this.loopPlayer.release(true);
+      this.loop = loop;
+      return { kind: 'recorded', loop };
+    }
+    if (this.looper.mode === 'dub' && this.loop) {
+      return { kind: 'dubbed', added: this.looper.closeDub(this.loop, to, bar, now) };
+    }
+    this.looper.mode = 'idle';
+    return { kind: 'none' };
+  }
+
+  /** Stop or an arrangement switch: a recording or overdub under way ends at its nearest 1 */
+  finishLoop(): PressResult | null {
+    const now = this.loopNow();
+    const to = this.looper.finishAt(now, barTicks(timeline.meter));
+    return to === null ? null : this.closeLoop(to, now);
+  }
+
+  /** The loop chip: what it says and how it looks */
+  get loopChip(): { label: string; state: 'off' | 'on' | 'wait' | 'rec' | 'closing' } {
+    const bar = barTicks(timeline.meter);
+    const lp = this.looper;
+    const now = this.loopNow();
+    const bars = (ticks: number): string => `${Math.round((ticks / bar) * 10) / 10}`;
+    const word = lp.mode === 'dub' ? 'Dub' : 'Rec';
+    if (lp.mode !== 'idle') {
+      if (lp.from > now) return { label: word, state: 'wait' };
+      if (lp.to !== null) return { label: `${word} ${bars(lp.mode === 'dub' && this.loop ? this.loop.length : lp.to - lp.from)}`, state: 'closing' };
+      const length = lp.mode === 'dub' && this.loop ? this.loop.length : Math.max(bar, Math.ceil((now - lp.from) / bar) * bar);
+      return { label: `${word} ${bars(length)}`, state: 'rec' };
+    }
+    return this.loop ? { label: `Loop ${bars(this.loop.length)}`, state: 'on' } : { label: 'Loop', state: 'off' };
+  }
+
   /** Keep a take (or a stretch of it, a take of its own): a copy joins this arrangement's song */
   keepTake(take: Take, part?: Take): void {
     const kept = part ?? take.copy();
@@ -2066,6 +2187,10 @@ export class Zone {
     this.takeList = previous.takeList;
     this.shownTake = previous.shownTake;
     this.recording = previous.recording;
+    this.looper = previous.looper;
+    // the old players aren't clocked any more: what they still sound rings out on timers
+    previous.takePlayer.release(true);
+    previous.loopPlayer.release(true);
     // A held Pedal is a live gesture, not scene data: it stays down across undo,
     // without an up/down blip that would cut sustained notes. On another
     // output or channel the old one lets go (releasePedal() after the carry-over).

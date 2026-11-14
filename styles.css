@@ -2653,7 +2653,8 @@ input[type='range'] {
 
 .showseq,
 .showarp,
-.showtakes {
+.showtakes,
+.showloop {
   letter-spacing: -0.5px;
 }
 
@@ -5663,6 +5664,7 @@ body.track-view:not(.minimized) {
   .channels > .ch.showseq { order: 11; }
   .channels > .ch.showarp { order: 12; }
   .channels > .ch.showtakes { order: 13; }
+  .channels > .ch.showloop { order: 13; }
   /* the features, then what is sent: CC and the output after a line */
   #zones > .zone > .channels > .ch.showccs {
     order: 14;
@@ -6405,6 +6407,57 @@ body.track-view:not(.minimized) {
   border-color: var(--slate-line);
   box-shadow: none;
   color: var(--brighter-4);
+}
+
+/* =============================================================
+   LOOP CHIP
+   The zone's looper (zone/looper.ts, track-view.ts updateLoopChips()): "Loop" while
+   there is none, lit "Loop 4" while one plays, red "Rec 2" / "Dub 4" while recording or
+   overdubbing; blinking while it waits for its 1 (off ↔ red) or its end (red ↔ lit).
+   ============================================================= */
+
+.zone .channels .ch.showloop {
+  min-width: 50px;
+  justify-content: center;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.zone .channels .ch.showloop.loop-on {
+  background-color: var(--on);
+  border-color: var(--on);
+  color: var(--ink);
+}
+
+.zone.disabled .channels .ch.showloop.loop-on,
+.zone.soloed-out .channels .ch.showloop.loop-on {
+  background-color: color-mix(in srgb, var(--on) 35%, var(--slate-panel));
+  border-color: transparent;
+  color: var(--brighter-4);
+}
+
+.zone .channels .ch.showloop.loop-rec {
+  background-color: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+
+.zone .channels .ch.showloop.loop-wait {
+  animation: loop-wait 0.5s steps(1) infinite;
+}
+
+.zone .channels .ch.showloop.loop-closing {
+  animation: loop-closing 0.5s steps(1) infinite;
+}
+
+@keyframes loop-wait {
+  0% { background-color: var(--danger); border-color: var(--danger); color: #fff; }
+  50% { background-color: var(--slate-raise); border-color: var(--danger); color: var(--brighter-4); }
+}
+
+@keyframes loop-closing {
+  0% { background-color: var(--danger); border-color: var(--danger); color: #fff; }
+  50% { background-color: var(--on); border-color: var(--on); color: var(--ink); }
 }
 
 /* =============================================================

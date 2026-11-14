@@ -1055,6 +1055,13 @@ document.addEventListener('DOMContentLoaded', function () {
   let initialized = false;
   let mackieSelectedZone: number | null = null;
   let sendMackieLeds: () => void = () => {};
+  /** Mackie Rec's LED: lit while the selected zone records or overdubs its loop, flashing while it waits for a 1 */
+  const recLed = (): number => {
+    const zone = mackieSelectedZone !== null ? zones.list[mackieSelectedZone] : undefined;
+    const state = zone?.loopChip.state;
+    return state === 'rec' ? 127 : state === 'wait' || state === 'closing' ? 1 : 0;
+  };
+  let lastRecLed = 0;
   const midi = new MIDI({
     eventHandler: (event: MIDIMessage) => {
       const data = event.data;
@@ -1141,6 +1148,10 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
               mackieSelectedZone = zoneIndex;
             }
+          }
+          // Rec → the loop button of the selected strip's zone
+          if (note === 95 && mackieSelectedZone !== null) {
+            view.loopZone(mackieSelectedZone);
           }
           // F1–F4 → arrangements A–D
           if (note >= 54 && note <= 57) {
@@ -1251,6 +1262,8 @@ document.addEventListener('DOMContentLoaded', function () {
       if (zones.nextArrangementIndex !== zones.arrangementIndex) {
         if (isSwitchPoint(pos)) {
           const newIndex = zones.nextArrangementIndex;
+          // a loop being recorded ends here, in the outgoing arrangement (an undo step of its own)
+          view.finishLoops();
           view.switchZonesToArrangement(newIndex);
           // after the outgoing section's takes ended (in stopped(), in its meter), before
           // this tick plays; the new arrangement's song starts at bar 1 or its loop's start
@@ -1267,12 +1280,21 @@ document.addEventListener('DOMContentLoaded', function () {
         view.applyPendingToggles();
         sendMackieLeds();
       }
+      // loop recordings and overdubs ending here: the loop plays from this tick
+      view.landLoops(pos - timeline.sectionStart);
       for (let i = 0; i < zones.list.length; i++) {
         zones.list[i].clock(pos, tickIntervalMs);
       }
       metronomeTick(pos, atMs, tickIntervalMs, (p) => metronomeBeatAt(p, pos, true), () => metronomeSettings.click);
+      // Rec's LED follows the loop (a recording starts on its 1 by itself)
+      if (recLed() !== lastRecLed) {
+        lastRecLed = recLed();
+        sendMackieLeds();
+      }
     },
     transportHandler: (started: boolean) => {
+      // loops being recorded end at their nearest 1 (while the run's position is still known)
+      if (!started) view.finishLoops();
       timelineMeter(activeMeter());
       timelineTransport(started);
       // after a count-in the first beats are already scheduled
@@ -1604,6 +1626,8 @@ document.addEventListener('DOMContentLoaded', function () {
           for (let a = 0; a < 4; a++) {
             midi.sendMackie(54 + a, zones.arrangementIndex === a ? 127 : 0);
           }
+          lastRecLed = recLed();
+          midi.sendMackie(95, lastRecLed);
           midi.sendMackie(94, midi.isClockRunning ? 127 : 0);
           midi.sendMackie(93, midi.isClockRunning ? 0 : 127);
         };

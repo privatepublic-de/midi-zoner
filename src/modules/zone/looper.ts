@@ -1,0 +1,255 @@
+import { PPQ } from './seq-layer';
+import { Take } from './take';
+import type { TakeNoteJSON } from './interfaces';
+
+/**
+ * The zone's looper: one button records a loop, closes it, overdubs it.
+ *
+ * - A press counts for the nearest 1: in a bar's first half the 1 just passed (what was
+ *   played since is in the buffer), in its second half the coming one (it waits).
+ * - No loop: the press starts recording, the next press closes it at its nearest 1 (at
+ *   least a bar), the loop plays from there on. A loop: the press starts an overdub,
+ *   the next one ends it (merged into the loop then; until then its notes play as a layer).
+ * - A press while waiting for the 1 cancels. Two presses in quick succession on a playing
+ *   loop clear it.
+ * - Pick-ups: notes in the bar before a recording's first 1 go at the loop's end (unless
+ *   it has them there already), so they sound before every repeat.
+ *
+ * Positions are ticks since the section began (Start, or an arrangement's entry), so the
+ * ruler's loop range doesn't move them. The loop's cycle starts at `anchor`: where it was
+ * recorded, 0 after Start or an arrangement's entry (the loop starts over at bar 1).
+ */
+
+// a note this close before a 1 is that 1's downbeat, played early (3 ticks, ~60 ms at 120 BPM)
+export const EARLY = PPQ / 8;
+// onsets of the same pitch this close are the same note: played again over the loop, or on
+// a later cycle of an overdub (4 ticks, ~80 ms at 120 BPM; same-pitch 16ths are 6 apart)
+const SAME = PPQ / 6;
+// a pick-up played again at the loop's end, a little off: under a 16th
+const MIRROR = PPQ / 4 - 1;
+export const DOUBLE_PRESS_MS = 400;
+export const MAX_LOOP_BARS = 64;
+
+interface Played {
+  s: number;
+  d: number;
+  n: number;
+  v: number;
+  open: boolean;
+}
+
+export type LooperMode = 'idle' | 'rec' | 'dub';
+
+/** What a press did; `changed`: the loop itself changed (an undo step) */
+export type PressResult =
+  | { kind: 'none' | 'armed' | 'started' | 'cancelled' | 'closing' }
+  | { kind: 'recorded'; loop: Take }
+  | { kind: 'dubbed'; added: number }
+  | { kind: 'cleared' }
+  | { kind: 'empty' };
+
+const posMod = (a: number, m: number): number => ((a % m) + m) % m;
+
+export class Looper {
+  mode: LooperMode = 'idle';
+  /** Where the recording or overdub begins (a 1); ahead of now while it waits for it */
+  from = 0;
+  /** Where it ends, once the closing press came */
+  to: number | null = null;
+  /** Where the loop's cycle starts */
+  anchor = 0;
+  private played: Played[] = [];
+  // counts changes to `played`, so the overdub layer is rebuilt only when it changed
+  private version = 0;
+  private layerCache: { key: string; notes: TakeNoteJSON[] } | null = null;
+  private lastPressMs = -Infinity;
+  private lastPressDubbed = false;
+
+  /** Ticks since the section began → bar line nearest to it */
+  static nearestOne(now: number, bar: number): number {
+    return Math.round(now / bar) * bar;
+  }
+
+  /** Waiting for its first 1 */
+  isArmed(now: number): boolean {
+    return this.mode !== 'idle' && this.from > now;
+  }
+
+  /** Recording or overdubbing now */
+  isActive(now: number): boolean {
+    return this.mode !== 'idle' && this.from <= now;
+  }
+
+  noteOn(at: number, n: number, v: number): void {
+    this.noteOff(at, n);
+    if (this.played.length >= Take.MAX_NOTES) return;
+    this.version++;
+    this.played.push({ s: at, d: 0, n, v, open: true });
+  }
+
+  noteOff(at: number, n: number): void {
+    for (let i = this.played.length - 1; i >= 0; i--) {
+      const p = this.played[i];
+      if (p.open && p.n === n) {
+        this.version++;
+        p.open = false;
+        p.d = Math.max(0.25, at - p.s);
+        return;
+      }
+    }
+  }
+
+  /** Forget what can't be needed any more: before the bar before now, or before the recording's pick-ups */
+  prune(now: number, bar: number): void {
+    const keepFrom = (this.mode === 'idle' ? now : Math.min(now, this.from)) - 2 * bar;
+    if (this.played.length === 0 || this.played[0].s >= keepFrom) return;
+    this.version++;
+    this.played = this.played.filter((p) => p.open || p.s + p.d >= keepFrom || p.s >= keepFrom);
+  }
+
+  /** Start over: Stop or another arrangement (the loop's cycle restarts at bar 1) */
+  reset(): void {
+    this.mode = 'idle';
+    this.to = null;
+    this.anchor = 0;
+    this.played = [];
+    this.version++;
+  }
+
+  /**
+   * A press at `now` (ticks since the section began; 0 while stopped: it then waits for
+   * bar 1). `close` finishes a recording or overdub at its end (it changes the loop).
+   */
+  press(now: number, bar: number, loop: Take | null, ms: number, close: (to: number) => PressResult): PressResult {
+    const quick = ms - this.lastPressMs < DOUBLE_PRESS_MS;
+    const afterDubPress = quick && this.lastPressDubbed;
+    this.lastPressMs = ms;
+    this.lastPressDubbed = false;
+    // a second quick press on a playing loop: the first one started an overdub, this clears
+    if (afterDubPress && loop) {
+      this.mode = 'idle';
+      this.to = null;
+      return { kind: 'cleared' };
+    }
+    const one = Looper.nearestOne(now, bar);
+    if (this.mode === 'idle') {
+      this.mode = loop ? 'dub' : 'rec';
+      this.from = one;
+      this.to = null;
+      this.lastPressDubbed = !!loop;
+      return { kind: one > now ? 'armed' : 'started' };
+    }
+    // still waiting for its 1: never mind
+    if (this.from > now) {
+      this.mode = 'idle';
+      return { kind: 'cancelled' };
+    }
+    // already closing
+    if (this.to !== null) return { kind: 'none' };
+    // at least a bar (a press just after the start means the bar after it)
+    const to = Math.max(one, this.from + bar);
+    if (to > now) {
+      this.to = to;
+      return { kind: 'closing' };
+    }
+    return close(to);
+  }
+
+  /** Whether the recording or overdub ends at elapsed `now` (its end reached, or the longest loop) */
+  dueAt(now: number, bar: number): number | null {
+    if (this.mode === 'idle' || this.from > now) return null;
+    if (this.to !== null && now >= this.to) return this.to;
+    if (this.mode === 'rec' && now >= this.from + MAX_LOOP_BARS * bar) return this.from + MAX_LOOP_BARS * bar;
+    return null;
+  }
+
+  /** Where Stop or a switch ends a recording: its nearest 1 so far, at least a bar (null: nothing to finish) */
+  finishAt(now: number, bar: number): number | null {
+    if (this.mode === 'idle') return null;
+    if (this.from > now) {
+      this.mode = 'idle';
+      return null;
+    }
+    return this.to ?? Math.max(Looper.nearestOne(now, bar), this.from + bar);
+  }
+
+  /** What was played, positions as played, held notes up to `until` */
+  private notesBetween(from: number, to: number, until: number): Played[] {
+    return this.played
+      .filter((p) => p.s >= from && p.s < to)
+      .map((p) => (p.open ? { ...p, d: Math.max(0.25, until - p.s) } : p));
+  }
+
+  /** The recording from `from` to `to` becomes the loop (null when nothing was played) */
+  closeRecording(to: number, bar: number, now: number): Take | null {
+    const from = this.from;
+    const len = to - from;
+    this.mode = 'idle';
+    this.to = null;
+    const notes: TakeNoteJSON[] = this.notesBetween(from - EARLY, to - EARLY, now).map((p) => {
+      const t = Math.max(0, p.s - from);
+      return { t, d: Math.min(p.d, len), n: p.n, v: p.v };
+    });
+    // the pick-up: the bar before the first 1, at the loop's end, unless played there already
+    for (const p of this.notesBetween(from - bar, from - EARLY, now)) {
+      const t = p.s - from + len;
+      if (t < 0) continue;
+      if (notes.some((n) => n.n === p.n && Math.abs(n.t - t) <= MIRROR)) continue;
+      notes.push({ t, d: Math.max(0.25, Math.min(p.d, len)), n: p.n, v: p.v });
+    }
+    if (notes.length === 0) return null;
+    const loop = new Take();
+    loop.start = 0;
+    loop.length = len;
+    loop.notes = notes;
+    loop.sort();
+    this.anchor = from;
+    return loop;
+  }
+
+  /**
+   * The overdub's notes from its first 1 (a pick-up up to half a bar before it lands just
+   * before it, as played) up to `to`, at places in the loop (held ones up to `now`, or left
+   * out with `finished`). Not twice: a note the loop has already (played along with it),
+   * or one played again at the same place on a later cycle of the overdub; same-pitch
+   * notes close together on one cycle are all kept.
+   */
+  private dubNotes(loop: Take, to: number, bar: number, now: number, finished = false): TakeNoteJSON[] {
+    const len = loop.length;
+    const near = (a: number, b: number): boolean => Math.min(posMod(a - b, len), posMod(b - a, len)) <= SAME;
+    const kept: { note: TakeNoteJSON; cycle: number }[] = [];
+    for (const p of this.notesBetween(this.from - bar / 2, to - EARLY, now)) {
+      if (finished && p.open) continue;
+      const note = { t: posMod(p.s - this.anchor, len), d: Math.min(p.d, len), n: p.n, v: p.v };
+      const cycle = Math.floor((p.s - this.anchor) / len);
+      if (loop.notes.some((m) => m.n === note.n && near(m.t, note.t))) continue;
+      if (kept.some((k) => k.cycle !== cycle && k.note.n === note.n && near(k.note.t, note.t))) continue;
+      kept.push({ note, cycle });
+    }
+    return kept.map((k) => k.note);
+  }
+
+  /** While overdubbing: its finished notes so far, to play along on later cycles */
+  dubLayer(loop: Take, now: number, bar: number): TakeNoteJSON[] {
+    if (this.mode !== 'dub' || this.from > now) return [];
+    const key = `${this.version}|${this.from}|${loop.length}|${loop.notes.length}`;
+    if (this.layerCache?.key !== key) this.layerCache = { key, notes: this.dubNotes(loop, Infinity, bar, now, true) };
+    return this.layerCache.notes;
+  }
+
+  /** The overdub ends at `to`: its notes join the loop */
+  closeDub(loop: Take, to: number, bar: number, now: number): number {
+    const added = this.dubNotes(loop, to, bar, now);
+    this.mode = 'idle';
+    this.to = null;
+    this.layerCache = null;
+    let count = 0;
+    for (const n of added) {
+      if (loop.notes.length >= Take.MAX_NOTES) break;
+      loop.notes.push(n);
+      count++;
+    }
+    loop.sort();
+    return count;
+  }
+}

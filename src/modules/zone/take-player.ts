@@ -1,6 +1,7 @@
 import MIDI from '../midi';
 import { Note } from './note';
 import { Take } from './take';
+import type { TakeNoteJSON } from './interfaces';
 import { songAt } from '../timeline';
 import type { Zone } from './zone-class';
 
@@ -23,13 +24,37 @@ export class TakePlayer {
   private queue: Scheduled[] = [];
   private timers = new Set<ReturnType<typeof setTimeout>>();
   private elapsed = 0;
+  // a kept take's notes are marked in the note history (the lanes draw them in its band)
+  private readonly marksTake: boolean;
 
-  constructor(zone: Zone) {
+  constructor(zone: Zone, marksTake = true) {
     this.zone = zone;
+    this.marksTake = marksTake;
   }
 
-  /** `elapsed`: ticks since the section began; the song position follows from it (loop) */
-  clock(elapsed: number, tickIntervalMs: number, takes: Take[]): void {
+  /**
+   * The zone's loop: its notes (and an overdub's layer) every cycle from `anchor` on,
+   * `elapsed` ticks since the section began. Silent (muted, soloed out): sounding notes
+   * end, nothing new starts.
+   */
+  clockLoop(elapsed: number, tickIntervalMs: number, loop: Take, layer: TakeNoteJSON[], anchor: number, silent: boolean): void {
+    const later = this.advance(elapsed, tickIntervalMs);
+    if (silent) {
+      if (this.queue.length > 0) this.release(true);
+      return;
+    }
+    const len = loop.length;
+    // whole ticks: a tick never spans the loop's end
+    const local = (((elapsed - anchor) % len) + len) % len;
+    for (const notes of [loop.notes, layer]) {
+      for (const tn of notes) {
+        if (tn.t >= local && tn.t < local + 1) this.schedule(tn, tn.t - local, tn.d, later);
+      }
+    }
+  }
+
+  /** Releases the notes due before the next tick; returns the timer helper for this tick */
+  private advance(elapsed: number, tickIntervalMs: number): (ticks: number, fn: () => void) => void {
     this.elapsed = elapsed;
     const later = (ticks: number, fn: () => void): void => {
       const ms = ticks * tickIntervalMs;
@@ -48,8 +73,34 @@ export class TakePlayer {
       ev.releasing = true;
       later(Math.max(0, ev.offAt - elapsed), () => this.end(ev));
     }
+    return later;
+  }
+
+  /** A note `ahead` ticks after this tick, `length` long */
+  private schedule(tn: TakeNoteJSON, ahead: number, length: number, later: (ticks: number, fn: () => void) => void): void {
     const zone = this.zone;
-    if (!zone.takes_on) return;
+    const elapsed = this.elapsed;
+    const note = new Note(tn.n, tn.v);
+    note.channel = zone.channel;
+    note.portId = zone.outputPortId;
+    const onAt = elapsed + ahead;
+    const ev: Scheduled = { note, onAt, offAt: onAt + length, sounding: false, releasing: false };
+    this.queue.push(ev);
+    later(ahead, () => {
+      ev.sounding = true;
+      this.send(MIDI.MESSAGE.NOTE_ON, note);
+      // a note shorter than the rest of this tick ends before the next one
+      if (ev.offAt < elapsed + 1 && !ev.releasing) {
+        ev.releasing = true;
+        later(ev.offAt - ev.onAt, () => this.end(ev));
+      }
+    });
+  }
+
+  /** `elapsed`: ticks since the section began; the song position follows from it (loop) */
+  clock(elapsed: number, tickIntervalMs: number, takes: Take[]): void {
+    const later = this.advance(elapsed, tickIntervalMs);
+    if (!this.zone.takes_on) return;
     // a loop's bounds are whole ticks, so a tick never spans its jump
     const songPos = songAt(elapsed);
     for (const take of takes) {
@@ -61,22 +112,8 @@ export class TakePlayer {
       const notes = take.notes;
       for (let i = take.firstAtOrAfter(at); i < notes.length && notes[i].t < at + 1 && notes[i].t < last; i++) {
         const tn = notes[i];
-        const note = new Note(tn.n, tn.v);
-        note.channel = zone.channel;
-        note.portId = zone.outputPortId;
-        const onAt = elapsed + (tn.t - at);
         // a note is cut where the take ends
-        const ev: Scheduled = { note, onAt, offAt: onAt + Math.min(tn.d, last - tn.t), sounding: false, releasing: false };
-        this.queue.push(ev);
-        later(tn.t - at, () => {
-          ev.sounding = true;
-          this.send(MIDI.MESSAGE.NOTE_ON, note);
-          // a note shorter than the rest of this tick ends before the next one
-          if (ev.offAt < elapsed + 1 && !ev.releasing) {
-            ev.releasing = true;
-            later(ev.offAt - ev.onAt, () => this.end(ev));
-          }
-        });
+        this.schedule(tn, tn.t - at, Math.min(tn.d, last - tn.t), later);
       }
     }
   }
@@ -111,7 +148,7 @@ export class TakePlayer {
 
   private send(status: number, note: Note): void {
     const msg = Uint8Array.from([status + note.channel, note.number, status === MIDI.MESSAGE.NOTE_ON ? note.velo : 0]);
-    this.zone.playingTake = true;
+    this.zone.playingTake = this.marksTake;
     try {
       this.zone.handleMidi(status, msg, true);
     } finally {

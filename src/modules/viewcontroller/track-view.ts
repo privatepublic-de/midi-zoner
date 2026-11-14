@@ -40,6 +40,8 @@ const TAKE_LANE_H = 48; // the last run above the song: the shown take, while ru
 const TAKE_PAD = 4;
 const DIM_TEXT = '#8b95a3';
 const STOPPED_REDRAW_MS = 500;
+// a recording loop's wash
+const LOOP_REC = '#e5484d';
 
 let getZones: () => Zone[] = () => [];
 let trackView = localStorage.getItem(VIEW_KEY) === 'tracks';
@@ -118,6 +120,8 @@ let takeDrag: {
 } | null = null;
 const EDGE_PX = 6;
 let keptChip: HTMLElement;
+// while running: keep what the selected track recorded so far
+let recChip: HTMLElement;
 // Turning a take (or a stretch of it) into steps: the preview, set in the dock panel
 let conv: {
   zone: Zone;
@@ -186,11 +190,23 @@ function loop(now: number): void {
   const tracks = isActive();
   if (!tracks && !cardsActive()) return;
   if (timeline.running || timeline.countIn !== null || dirty || now - lastDraw > STOPPED_REDRAW_MS) {
+    updateLoopChips();
     if (tracks) draw();
     else drawCards();
     lastDraw = now;
   }
   frame = requestAnimationFrame(loop);
+}
+
+/** The Loop chips: "Loop 4", "Rec 2" (recording), "Dub 4" (overdubbing), blinking while they wait */
+function updateLoopChips(): void {
+  for (const zone of getZones()) {
+    const chip = zone.elements.zoneElement?.querySelector('.showloop');
+    if (!chip) continue;
+    const { label, state } = zone.loopChip;
+    if (chip.textContent !== label) chip.textContent = label;
+    for (const s of ['on', 'wait', 'rec', 'closing']) chip.classList.toggle(`loop-${s}`, s === state);
+  }
 }
 
 /** Whether a sequence has notes to show, even while it's off */
@@ -225,7 +241,14 @@ function drawCards(): void {
     const el = z.elements.zoneElement;
     if (!el) return;
     const show =
-      (z.enabled && z.sequence.active) || seqHasNotes(z.sequence) || z.takes.length > 0 || z.arp_enabled;
+      (z.enabled && z.sequence.active) ||
+      seqHasNotes(z.sequence) ||
+      z.takes.length > 0 ||
+      z.arp_enabled ||
+      // played into while running: what was played shows behind the playhead
+      z.hasRecorded ||
+      z.loop !== null ||
+      z.looper.mode !== 'idle';
     if (el.classList.contains('has-mini-lane') !== show) el.classList.toggle('has-mini-lane', show);
     const canvas = el.querySelector('.mini-lane canvas') as HTMLCanvasElement | null;
     if (show && canvas) drawLane(z, false, songHead, runToSong, 0, 0, canvas);
@@ -233,8 +256,7 @@ function drawCards(): void {
 }
 
 /** Song position where a waiting toggle lands: the next bar, beat or 16th after `head` */
-function landingAt(head: number): number {
-  const quant = toggleBoundary();
+function landingAt(head: number, quant = toggleBoundary()): number {
   if (quant === 14) return (Math.floor(head / 6) + 1) * 6;
   for (const { t, bar } of beatLines(timeline.meter, head + 0.001, head + 2 * barLen() + 1)) {
     if (t > head && (quant === 8 || bar)) return t;
@@ -645,6 +667,8 @@ function drawLane(
   // waiting toggles (mini lanes): where they land; a waiting Seq switch flips the sequence there
   const waiting = mini && running ? pendingOf(zone) : [];
   const landAt = waiting.length > 0 ? landingAt(songHead) : Infinity;
+  const marks = new Map<number, string[]>();
+  if (waiting.length > 0) marks.set(landAt, waiting.map((p) => p.tag));
   const seqFlips = waiting.some((p) => p.action === 'toggle_seq');
   const seqSounds = (s: number): boolean => seq.active !== (seqFlips && s >= landAt);
 
@@ -706,6 +730,7 @@ function drawLane(
       for (let s = 0; s < seq.length; s++) seq.steps[s]?.notesArray.forEach((n) => take(n.number));
     }
     for (const t of zone.takes) t.notes.forEach((n) => take(n.n));
+    zone.loop?.notes.forEach((n) => take(n.n));
     latest?.notes.forEach((n) => take(n.n));
     if (takeDrag?.target === zone) takeDrag.take.notes.forEach((n) => take(n.n));
     // the span of everything played this session, so rows don't jump while scrolling
@@ -857,7 +882,50 @@ function drawLane(
   for (const t of zone.takes) {
     drawTake(t, true, mini ? 'normal' : takeDrag?.take === t ? 'ghost' : takeSel?.take === t ? 'selected' : 'normal');
   }
+  // the loop, cycle by cycle from the playhead on (ticks since the section began → song);
+  // dashed while the zone is silent (muted or soloed out: the loop doesn't sound)
+  const toSong = (e: number): number => songHead + (e - elapsedNow);
+  const loopTake = zone.loop;
+  if (loopTake) {
+    const len = loopTake.length;
+    const anchor = zone.looper.anchor;
+    const until = elapsedNow + (w - headX) / ppt;
+    for (let c = anchor + Math.floor((elapsedNow - anchor) / len) * len; c < until; c += len) {
+      const cx = Math.round(x(toSong(c)));
+      if (c > elapsedNow && cx >= 0 && cx <= w) {
+        g.globalAlpha = 0.5;
+        g.fillStyle = colour;
+        g.fillRect(cx, songY + 1, 1, h - 2);
+      }
+      for (const n of loopTake.notes) {
+        if (c + n.t + n.d < elapsedNow) continue;
+        note(toSong(c + n.t), toSong(c + n.t + n.d), rowOf(n.n), n.v, silent);
+      }
+    }
+  }
   feedsArp = false;
+  // recording or overdubbing: a red wash from its first 1 to the playhead; waiting for
+  // its 1 or its end, a mark there
+  const lp = zone.looper;
+  if (lp.mode !== 'idle') {
+    const word = lp.mode === 'dub' ? 'Dub' : 'Rec';
+    if (lp.from > elapsedNow) {
+      marks.set(toSong(lp.from), [...(marks.get(toSong(lp.from)) ?? []), word]);
+    } else {
+      const rx0 = Math.max(0, x(toSong(lp.from)));
+      if (rx0 < headX) {
+        g.globalAlpha = 0.14;
+        g.fillStyle = LOOP_REC;
+        g.fillRect(rx0, songY, headX - rx0, h);
+        g.globalAlpha = 0.9;
+        g.fillRect(rx0, songY, headX - rx0, 2);
+      }
+      if (lp.to !== null) {
+        const tag = lp.mode === 'dub' ? 'Dub end' : `Loop ${Take.lengthLabel(lp.to - lp.from, timeline.meter)}`;
+        marks.set(toSong(lp.to), [...(marks.get(toSong(lp.to)) ?? []), tag]);
+      }
+    }
+  }
   if (latest && !running && takeLane) drawTake(latest, false);
   if (!mini && takeDrag?.target === zone) drawTake(dragPreview(takeDrag), true, 'selected');
   // while running, the last-run lane shows the take being recorded
@@ -982,9 +1050,9 @@ function drawLane(
   if (headX >= 0 && headX <= w) g.fillRect(headX, 0, 1, fullH);
 
   // waiting toggles: a light line where they land, tagged with what they'll do
-  if (waiting.length > 0) {
-    const lx = Math.round(x(landAt));
-    const tag = waiting.map((p) => p.tag).join(' · ');
+  for (const [at, tags] of marks) {
+    const lx = Math.round(x(at));
+    const tag = tags.join(' · ');
     g.globalAlpha = 1;
     g.fillStyle = '#cfd6df';
     g.fillRect(lx, 0, 2, fullH);
@@ -1010,6 +1078,14 @@ function drawLane(
     const stretch = capture?.zone === zone;
     placeChip(keptChip, el, kept ? x(kept.start) + 4 : null, w);
     placeTakeChip(el, shown, latest && !running && !conv && !kept && !stretch ? x(latest.start) : null, w);
+    const recorded = running ? zone.recordingNotes : [];
+    if (recorded.length > 0) {
+      const from = Math.floor(recorded[0].t / barLen()) * barLen();
+      const label = `Recording · ${Take.lengthLabel(Math.ceil((songHead - from) / barLen()) * barLen(), timeline.meter)}`;
+      const labelEl = recChip.querySelector('.tc-label')!;
+      if (labelEl.textContent !== label) labelEl.textContent = label;
+    }
+    placeChip(recChip, el, recorded.length > 0 ? Math.max(4, Math.min(headX - recChip.offsetWidth - 8, x(recorded[0].t) + 4)) : null, w);
     let hint = '';
     if (!running && !conv && !kept && !stretch && !latest) {
       hint = zone.takes.length > 0
@@ -1751,6 +1827,23 @@ function keepShownTake(): void {
   toast(`Take kept: ${Take.lengthLabel(take.length, timeline.meter)} from bar ${barNumber(take.start)}`);
 }
 
+/** While running: keep what the selected track played up to the bar line just passed */
+function keepRecording(): void {
+  const zone = getZones()[selected];
+  if (!zone || !timeline.running) return;
+  const cut = Math.floor(songNow() / barLen()) * barLen();
+  let kept: Take | null = null;
+  commit(selected, 'Keep Take', () => {
+    kept = zone.keepRecording(cut);
+  });
+  if (!kept) {
+    toast('Nothing played before this bar yet');
+    return;
+  }
+  const take: Take = kept;
+  toast(`Kept ${Take.lengthLabel(take.length, timeline.meter)} from bar ${barNumber(take.start)}; recording goes on`);
+}
+
 /** Keep the picked stretch of the shown take */
 function keepStretch(): void {
   if (!capture) return;
@@ -1857,6 +1950,13 @@ function initTrackView(
   });
   panel.querySelector('.tdc-convert')!.addEventListener('click', convert);
   panel.querySelector('.tdc-cancel')!.addEventListener('click', endConvert);
+  recChip = document.createElement('div');
+  recChip.className = 'track-takes track-chip';
+  recChip.innerHTML =
+    '<span class="tc-label"></span>' +
+    '<a class="rc-keep lightButton" title="Keep what you played up to the last bar line: it joins the song; recording goes on">Keep so far</a>';
+  recChip.addEventListener('mousedown', (ev) => ev.stopPropagation());
+  recChip.querySelector('.rc-keep')!.addEventListener('click', keepRecording);
   takeChip = document.createElement('div');
   takeChip.className = 'track-takes track-chip';
   takeChip.innerHTML =
@@ -2061,4 +2161,4 @@ function initTrackView(
   applyBodyState();
 }
 
-export { initTrackView, isTrackView, setTrackView, followTrack, invalidate as invalidateTrackView };
+export { initTrackView, isTrackView, setTrackView, followTrack, invalidate as invalidateTrackView, updateLoopChips };

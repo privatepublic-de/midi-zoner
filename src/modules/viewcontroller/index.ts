@@ -9,7 +9,7 @@ import { Zone } from '../zone/zone-class';
 import { showThruAndProgram } from './actions/filter-actions';
 import { MpeMode } from '../zone/mpe';
 import { Sequence } from '../zone/sequence';
-import { ZONES_CHANGED_EVENT } from '../zone/interfaces';
+import { ZONES_CHANGED_EVENT, UPDATE_ZONE_VIEW_EVENT } from '../zone/interfaces';
 import { Note } from '../zone/note';
 import { showStepProperties } from './step-marks';
 
@@ -23,11 +23,12 @@ import {
 } from './actions';
 import { closeCCEditor, initCCEditor, isCCEditorOpen, refreshCCEditor } from './cc-editor';
 import { initPianoRoll } from './piano-roll';
-import { initTrackView, isTrackView, setTrackView, followTrack } from './track-view';
+import { initTrackView, isTrackView, setTrackView, followTrack, updateLoopChips } from './track-view';
 import { renderStepLocks } from './step-locks';
 import { isQuantizable, requestToggle, isPending, hasPendingToggles, takePendingToggles, markPending, setToggleBoundary } from './pending-toggles';
 import { describeAction, labelForZone, zonePrefix, ARRANGEMENT_LETTERS } from './action-labels';
 import { Meter, DEFAULT_METER, METER_CHOICES, meterLabel, sameMeter, parseMeter } from '../meter';
+import type { PressResult } from '../zone/looper';
 import {
   updateControllerValues,
   setMenuHandler,
@@ -324,6 +325,61 @@ function applyPendingToggles(): void {
   }
 }
 
+/**
+ * The loop button (the zone's Loop chip, Mackie Rec): records a loop, closes it, overdubs
+ * it, at the nearest 1 (see zone/looper.ts); two quick presses clear it
+ */
+function loopZone(index: number): void {
+  const zone = zones.list[index];
+  if (!zone) return;
+  // the undo snapshot is taken before, but only handed over when the loop changed
+  const before = JSON.stringify(zones);
+  afterLoop(index, before, zone.loopPress(performance.now()));
+}
+
+/** Recordings and overdubs that end on this tick (`elapsed`: ticks since the section began) */
+function landLoops(elapsed: number): boolean {
+  let landed = false;
+  zones.list.forEach((zone, index) => {
+    const to = zone.loopDueAt(elapsed);
+    if (to === null) return;
+    const before = JSON.stringify(zones);
+    afterLoop(index, before, zone.closeLoop(to, elapsed));
+    landed = true;
+  });
+  return landed;
+}
+
+/** Stop or an arrangement switch: recordings and overdubs under way end at their nearest 1 */
+function finishLoops(): void {
+  zones.list.forEach((zone, index) => {
+    if (zone.looper.mode === 'idle') return;
+    const before = JSON.stringify(zones);
+    const result = zone.finishLoop();
+    if (result) afterLoop(index, before, result);
+  });
+}
+
+/** One undo step when the loop changed */
+function afterLoop(index: number, before: string, result: PressResult): void {
+  const zone = zones.list[index];
+  const name = zone.label || `Zone ${index + 1}`;
+  let label = '';
+  if (result.kind === 'recorded') label = 'Record Loop';
+  else if (result.kind === 'dubbed' && result.added > 0) label = 'Overdub Loop';
+  else if (result.kind === 'cleared') label = 'Clear Loop';
+  else if (result.kind === 'empty') toast(`${name}: nothing played, no loop`);
+  if (label) {
+    undoHistory.beforeAction(before, labelForZone(zone, index, label));
+    updateValuesForZone(index);
+    triggerSave();
+    window.dispatchEvent(new CustomEvent(UPDATE_ZONE_VIEW_EVENT, { detail: zone }));
+    if (result.kind === 'cleared') toast(`${name}: loop cleared`);
+  }
+  updateLoopChips();
+  onStateChange?.();
+}
+
 /** A zone toggle from a key switch or a Mackie button: like a click on its chip */
 function zoneToggle(index: number, action: string): void {
   if (!zones.list[index]) return;
@@ -344,6 +400,10 @@ function actionHandler(ev: MouseEvent, overrideaction?: string): void {
   ) {
     actionString = element.getAttribute('data-focus-change');
     actionString += ':' + (ev.type == 'focus' ? 1 : 0);
+  }
+  if (actionString!.endsWith(':zone_loop')) {
+    loopZone(parseInt(actionString!));
+    return;
   }
   if (waitsForBoundary(ev, actionString!)) return;
   undoHistory.beforeAction(JSON.stringify(zones), describeAction(actionString!, zones));
@@ -1840,6 +1900,9 @@ export {
   toggleZoneSolo,
   applyPendingToggles,
   hasPendingToggles,
+  loopZone,
+  landLoops,
+  finishLoops,
   setToggleBoundary,
   selectArrangement,
   switchZonesToArrangement,
