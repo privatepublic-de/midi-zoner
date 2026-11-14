@@ -1795,6 +1795,7 @@ function showContextMenuFor(ev: MouseEvent): void {
 function deleteAllZones(): void {
   undoHistory.beforeAction(JSON.stringify(zones), 'Delete All Zones');
   zones.list.forEach((zone) => {
+    zone.releasePedal();
     zone.dismiss();
   });
   zones.list.length = 0;

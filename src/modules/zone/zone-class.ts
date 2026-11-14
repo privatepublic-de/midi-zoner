@@ -2066,6 +2066,23 @@ export class Zone {
     this.takeList = previous.takeList;
     this.shownTake = previous.shownTake;
     this.recording = previous.recording;
+    // A held Pedal is a live gesture, not scene data: it stays down across undo,
+    // without an up/down blip that would cut sustained notes. On another
+    // output or channel the old one lets go (releasePedal() after the carry-over).
+    if (
+      previous._sustain_on &&
+      previous.outputPortId === this.outputPortId &&
+      previous.channel === this.channel
+    ) {
+      this._sustain_on = true;
+      this.sustain_state = true;
+      previous._sustain_on = false;
+    }
+  }
+
+  /** Lets go of a pedal held with Pedal (zone deleted, scene replaced) */
+  releasePedal(): void {
+    if (this._sustain_on) this.sustain_on = false;
   }
 
   dismiss(): void {
@@ -2105,6 +2122,9 @@ export class Zone {
     this.holdList = [];
     this.mpeIn.reset();
     this.mpePressure.reset();
+    // CC 121 (reset controllers) has already let go of the pedal
+    this._sustain_on = false;
+    this.sustain_state = false;
     this.notesChanged();
   }
 
