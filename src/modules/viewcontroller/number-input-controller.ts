@@ -46,6 +46,8 @@ export class NumberInputController {
       ) {
         this.elValueBtnAttachedInput.value = String(nv);
         this.elValueBtnAttachedInput.dispatchEvent(new CustomEvent('input'));
+        // a step is a committed value, as with the arrow keys (program fields send on it)
+        this.elValueBtnAttachedInput.dispatchEvent(new Event('change'));
       }
       this.elValueBtnAttachedInput.focus({ preventScroll: true });
     }
