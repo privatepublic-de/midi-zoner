@@ -3269,6 +3269,45 @@ input[type='range'] {
 }
 .programsettings {
   align-items: center;
+  column-gap: 8px;
+}
+.programsettings input::placeholder {
+  color: var(--slate-dim);
+}
+/* Thru: a line each for what passes and for velocity, led by its label */
+.popupsettings {
+  flex-direction: column;
+  row-gap: 8px;
+}
+.thru-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.thru-line > .label:first-child {
+  flex: none;
+  width: 56px;
+}
+.thru-gap {
+  width: 10px;
+}
+/* a dot when Thru is set apart from a new zone, the program number when one is set */
+.thru-dot {
+  display: none;
+  width: 5px;
+  height: 5px;
+  margin: 0 0 2px 5px;
+  border-radius: 50%;
+  background: currentColor;
+  vertical-align: middle;
+}
+.toggle_filters.changed .thru-dot {
+  display: inline-block;
+}
+.program-num:not(:empty) {
+  margin-left: 4px;
+  font-weight: 600;
 }
 .action.sustain_on.selected {
   background-color: var(--on);
