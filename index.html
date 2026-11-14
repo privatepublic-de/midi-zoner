@@ -265,7 +265,6 @@
       <div id="trackRuler">
         <div class="tr-head">
           <span class="tr-pos"></span>
-          <a class="tr-loop lightButton" title="Loop: repeat the range set by dragging on the ruler (this arrangement)">Loop</a>
           <a class="tr-follow lightButton" title="Follow the playhead (scroll the lanes sideways to look back)">Follow</a>
           <span class="tr-zoom" role="group" aria-label="Timeline zoom">
             <a class="lightButton" data-zoom="-1" title="Zoom out the timeline"><i class="material-icons">remove</i></a>
@@ -286,7 +285,7 @@
         <a class="td-tab" data-tab="arp">Arp</a>
         <a class="td-tab" data-tab="cc">Controllers</a>
         <a class="td-tab" data-tab="zone">Track</a>
-        <a class="td-tab" data-tab="notes" title="Edit the notes of the chosen take (double-click a take)">Notes</a>
+        <a class="td-tab" data-tab="notes" title="Edit the notes of the loop or a take (double-click it)">Notes</a>
         <a class="td-collapse lightButton" title="Hide the panel (or double-click the bar)"><i class="material-icons">expand_more</i></a>
       </div>
       <!-- the Track tab: the zone's settings and range (placed on the left) and its takes -->
@@ -297,9 +296,10 @@
           <div class="tdt-list"></div>
         </div>
       </div>
-      <!-- the Notes tab: a piano roll for the chosen take (take-editor.ts) -->
+      <!-- the Notes tab: a piano roll for the loop or a take (take-editor.ts) -->
       <div class="td-notes">
         <div class="tdn-tools">
+          <span class="tdn-show tdc-segments"><span data-tdn-show="loop" title="The zone's loop in this arrangement">Loop</span><span data-tdn-show="take" title="The take shown in the lane">Take</span></span>
           <b class="tdn-title"></b><span class="tdn-what"></span>
           <span class="tdn-gap"></span>
           <span class="label">Grid</span>
@@ -312,7 +312,7 @@
             <option value="25">25 %</option>
           </select>
           <a class="lightButton tdn-delete" title="Delete the selected notes (⌫)">Delete</a>
-          <a class="lightButton tdn-loop" title="Set the loop range to this take and switch it on">Loop take</a>
+          <a class="lightButton tdn-loop" title="The bars around the selected notes become the zone's loop (with the pick-up before them)">Loop these bars</a>
           <span class="tdn-zoom" role="group" aria-label="Zoom">
             <a class="lightButton" data-tdn-zoom="-1" title="Zoom out (⌘ + wheel)"><i class="material-icons">remove</i></a>
             <a class="lightButton" data-tdn-zoom="1" title="Zoom in (⌘ + wheel)"><i class="material-icons">add</i></a>

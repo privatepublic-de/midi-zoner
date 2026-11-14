@@ -160,6 +160,12 @@ export interface TakeJSON {
   /** where in the recording the take's start lies (trimming moves it) */
   offset?: number;
   notes: TakeNoteJSON[];
+  /** when it was recorded (ms since 1970) */
+  at?: number;
+  /** recording order across the session (undo tells takes recorded after a snapshot by it) */
+  seq?: number;
+  /** where each arrangement's section of the run began (take ticks) and its meter: its bars */
+  sections?: { t: number; meter: unknown }[];
 }
 
 export interface SequenceJSON {
@@ -206,15 +212,19 @@ export interface ZoneArrangementJSON {
   euclid_length: number;
   sequence: SequenceJSON;
   swingAmount?: number;
-  /** Kept takes: this arrangement's song for the zone */
+  /** Before Nov 2026: kept takes, this arrangement's song for the zone (migrated on load) */
   takes?: TakeJSON[];
-  /** Whether they play */
+  /** Before Nov 2026: whether they played */
   takes_on?: boolean;
   /** The zone's loop in this arrangement (the looper's, played from bar 1) */
   loop?: TakeJSON;
 }
 
 export interface ZoneJSON {
+  /** Stable id (the take store keys the zone's takes by it) */
+  id?: string;
+  /** Its takes, in scene and zone files only (not in undo snapshots or localStorage) */
+  takes?: TakeJSON[];
   channel: number;
   preferredOutputPortId: string;
   inputPortId?: string | null;

@@ -1,4 +1,5 @@
 import MIDI from '../../midi';
+import { takeStore } from '../../take-store';
 import { ActionContext, ActionHelpers, ActionMap } from '../types';
 import { ipcRenderer } from 'electron';
 import { MpeMode, sanitizeBendRange, sanitizePressureFrom, zoneInputClaims } from '../../zone/mpe';
@@ -41,12 +42,6 @@ export function createZoneActions(
         sequence.isLiveRecording = false;
         updateValuesForZone(zoneindex);
       }
-    },
-    zone_takes: () => {
-      zone.takes_on = !zone.takes_on;
-      // switched off while playing: what sounds now ends
-      if (!zone.takes_on) zone.takePlayer.release(false);
-      updateValuesForZone(zoneindex);
     },
     zone_solo: () => {
       zone.solo = !zone.solo;
@@ -192,7 +187,9 @@ export function createZoneActions(
       updateValuesForZone(zoneindex);
     },
     zone_export: async () => {
-      const payload = JSON.stringify({ list: [zone.toJSON()] });
+      // with its takes (they aren't part of the scene data)
+      const takes = takeStore.toJSON(zone.id);
+      const payload = JSON.stringify({ list: [{ ...zone.toJSON(), ...(takes.length ? { takes } : {}) }] });
       await ipcRenderer
         .invoke('open-save', payload)
         .then((result: { canceled: boolean; message: string; warning?: boolean }) => {

@@ -13,7 +13,10 @@ import { UndoHistory } from '../modules/undo-history';
 import { labelForZone } from '../modules/viewcontroller/action-labels';
 import { updateSheetHistory } from '../modules/viewcontroller/editor-sheet';
 import { loadDevicePresets } from '../modules/device-presets';
-import { timeline, timelineClock, timelineTransport, timelineSection, timelineLoop, timelineCountIn, timelineMeter, songAt, LoopRange } from '../modules/timeline';
+import { timeline, timelineClock, timelineTransport, timelineSection, timelineCountIn, timelineMeter } from '../modules/timeline';
+import { takeStore } from '../modules/take-store';
+import { initTakeFiles, loadSavedTakes, takesNeedSaving } from '../modules/take-files';
+import { Take } from '../modules/zone/take';
 import { Meter, DEFAULT_METER, barTicks, beatIndexAt, beatNumberAt, parseMeter } from '../modules/meter';
 import { metronomeSettings, metronomeTick, resetMetronome, initMetronome, updateMetronome, Beat } from '../modules/metronome';
 import { initMetronomeControls, updateMetronomePorts, setMetronomeClockExternal, flashBeat } from '../modules/viewcontroller/metronome-controls';
@@ -138,8 +141,38 @@ function migrateFromLegacyZone(zoneData: any): ZoneArrangementJSON[] {
   });
 }
 
-function createZone(midi: MIDIInstance, zoneData: any): Zone {
+/**
+ * Kept takes from before Nov 2026 (each arrangement's song): they go to the zone's takes;
+ * where an arrangement has no loop and its kept takes played (Trk on), its first take of
+ * up to 16 bars becomes its loop
+ */
+function migrateKeptTakes(zone: Zone): Take[] {
+  const archived: Take[] = [];
+  zone.arrangements.forEach((arr, a) => {
+    if (!arr || !Array.isArray(arr.takes)) return;
+    const meter = zones.meters?.[a] ?? DEFAULT_METER;
+    const kept = Take.listFrom(arr.takes).sort((x, y) => x.start - y.start);
+    const played = arr.takes_on ?? kept.length > 0;
+    for (const k of kept) {
+      // the window it showed, from its own start
+      const part = k.slice(k.start, k.end);
+      part.start = 0;
+      if (played && !arr.loop && k.length <= 16 * barTicks(meter)) arr.loop = part.toJSON();
+      part.seq = ++Take.counter;
+      part.sections = [{ t: 0, meter }];
+      archived.push(part);
+    }
+    delete arr.takes;
+    delete arr.takes_on;
+  });
+  return archived;
+}
+
+/** A zone from stored data; `freshId`: a zone file's zone (it may already be in the scene) */
+function createZone(midi: MIDIInstance, zoneData: any, freshId = false): Zone {
   const zone = new Zone(midi);
+  const id = typeof zoneData.id === 'string' && /^[a-z0-9]{1,16}$/.test(zoneData.id) ? zoneData.id : null;
+  if (id && !freshId && !zones.list.some((z) => z.id === id)) zone.id = id;
 
   zone.channel = zoneData.channel ?? 0;
   // String(): output presets used to store the port id as a number
@@ -176,6 +209,10 @@ function createZone(midi: MIDIInstance, zoneData: any): Zone {
     zone.arrangements = migrateFromLegacyZone(zoneData);
   }
 
+  const migrated = migrateKeptTakes(zone);
+  // takes come with scene and zone files (never with localStorage or undo snapshots)
+  const fromFile = Take.listFrom(zoneData.takes);
+  if (fromFile.length || migrated.length) takeStore.merge(zone.id, [...migrated, ...fromFile]);
   zone.loadArrangement(zones.arrangementIndex || 0);
   return zone;
 }
@@ -189,7 +226,7 @@ function applyStoredZones(
     if (append) {
       // add storedZones to existing zones, but don't overwrite any settings
       for (let i = 0; i < (storedZones.list?.length ?? 0); i++) {
-        zones.list.push(createZone(midi, storedZones.list![i]));
+        zones.list.push(createZone(midi, storedZones.list![i], true));
       }
     } else {
       // overwrite existing zones with stored zones
@@ -204,7 +241,8 @@ function applyStoredZones(
           }
         }
       }
-      zones.loops = sanitizeLoops(storedZones.loops);
+      // before Nov 2026: loop ranges on the ruler (the looper replaced them)
+      delete (zones as any).loops;
       zones.meters = sanitizeMeters(storedZones.meters);
       // "3/4 bar" became "bar" (of the arrangement's meter)
       if (zones.arrangementQuantIndex === 3) zones.arrangementQuantIndex = 2;
@@ -215,6 +253,7 @@ function applyStoredZones(
       for (let i = 0; i < (storedZones.list?.length ?? 0); i++) {
         zones.list.push(createZone(midi, storedZones.list![i]));
       }
+      takesNeedSaving();
     }
     midi.clockOutputPorts = zones.clockOutputPorts;
     midi.suppressTransportPorts = zones.clockSuppressTransportPorts ?? {};
@@ -247,16 +286,14 @@ function carryOverNoteHistory(previous: Zone[], current: Zone[]): void {
   });
 }
 
-/** Loop ranges per arrangement from a scene file (untrusted): whole ticks, at most 1024 bars */
-function sanitizeLoops(data: unknown): ZonesData['loops'] {
-  if (!Array.isArray(data)) return [];
-  return data.slice(0, 4).map((l) => {
-    if (!l || typeof l !== 'object') return null;
-    const from = Math.round(Number((l as any).from));
-    const to = Math.round(Number((l as any).to));
-    if (!(from >= 0 && to > from && to <= 96 * 1024)) return null;
-    return { on: (l as any).on === true, from, to };
+/** The scene for a file: with each zone's takes (they aren't part of the scene data) */
+function sceneWithTakes(): string {
+  const data = JSON.parse(JSON.stringify(zones));
+  data.list.forEach((z: { id: string; takes?: unknown[] }) => {
+    const takes = takeStore.toJSON(z.id);
+    if (takes.length) z.takes = takes;
   });
+  return JSON.stringify(data);
 }
 
 /** A file with nothing but zones: from ⋯ → Save zone to file… (added, not replacing the scene) */
@@ -310,7 +347,6 @@ function sceneFromFile(data: Record<string, any>): Partial<ZonesData> & { list: 
     keySwitchEnabled: bool(data.keySwitchEnabled, true),
     mackieOutlineEnabled: bool(data.mackieOutlineEnabled, true),
     knownPortNames: { ...zones.knownPortNames, ...record(data.knownPortNames, isString) },
-    loops: data.loops,
     meters: data.meters
   };
 }
@@ -323,12 +359,6 @@ function sanitizeMeters(data: unknown): ZonesData['meters'] {
 
 function activeMeter(index = zones.arrangementIndex): Meter {
   return zones.meters?.[index] ?? DEFAULT_METER;
-}
-
-/** The current arrangement's loop range while it's on */
-function activeLoop(index = zones.arrangementIndex): LoopRange | null {
-  const loop = zones.loops?.[index];
-  return loop && loop.on ? { from: loop.from, to: loop.to } : null;
 }
 
 function beatOfSong(meter: Meter, song: number): Beat {
@@ -344,7 +374,7 @@ const SIXTEENTH = 6;
  * (Setup → Switching → A–D), in its meter.
  */
 function isSwitchPoint(p: number, quant = zones.arrangementQuantIndex): boolean {
-  const song = songAt(p - timeline.sectionStart);
+  const song = p - timeline.sectionStart;
   if (quant === 14) return song % SIXTEENTH === 0;
   const beat = beatIndexAt(timeline.meter, song);
   return quant === 8 ? beat >= 0 : beat === 0;
@@ -376,7 +406,7 @@ function metronomeBeatAt(p: number, now: number, running: boolean): Beat {
       return beatOfSong(activeMeter(next), p - at);
     }
   }
-  return beatOfSong(timeline.meter, songAt(p - timeline.sectionStart));
+  return beatOfSong(timeline.meter, p - timeline.sectionStart);
 }
 
 interface Dismissable {
@@ -1256,7 +1286,6 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     },
     clockHandler: (pos: number, tickIntervalMs: number, atMs: number) => {
-      timelineLoop(activeLoop());
       timelineMeter(activeMeter());
       timelineClock(pos, tickIntervalMs);
       if (zones.nextArrangementIndex !== zones.arrangementIndex) {
@@ -1265,11 +1294,11 @@ document.addEventListener('DOMContentLoaded', function () {
           // a loop being recorded ends here, in the outgoing arrangement (an undo step of its own)
           view.finishLoops();
           view.switchZonesToArrangement(newIndex);
-          // after the outgoing section's takes ended (in stopped(), in its meter), before
-          // this tick plays; the new arrangement's song starts at bar 1 or its loop's start
-          timelineLoop(activeLoop());
+          // before this tick plays: the new arrangement's song starts at bar 1, and the
+          // take being recorded gets a section in its meter
           timelineMeter(activeMeter());
           timelineSection(pos);
+          takeStore.section(pos, activeMeter());
           view.selectArrangement(newIndex);
           sendMackieLeds();
           saveZones();
@@ -1297,6 +1326,9 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!started) view.finishLoops();
       timelineMeter(activeMeter());
       timelineTransport(started);
+      // a run is a take: from Start to Stop (stopPos is where it stopped)
+      if (started) takeStore.startRun(activeMeter());
+      else takeStore.endRun(timeline.stopPos);
       // after a count-in the first beats are already scheduled
       if (!countingIn) resetMetronome();
       showCountIn(null);
@@ -1346,6 +1378,12 @@ document.addEventListener('DOMContentLoaded', function () {
             midi.panic();
           });
           loadZones(midi);
+          loadSavedTakes(zones.list.map((z) => z.id));
+          initTakeFiles(() => zones.list.map((z) => z.id));
+          // ids given and kept takes migrated on this load are saved with the scene, and
+          // the takes with them (the scene no longer holds kept takes once saved)
+          takesNeedSaving();
+          saveZones();
           view.renderZones();
         function updateUndoRedoButtons(): void {
           const undoBtn = DOM.get('#undoBtn') as HTMLButtonElement | null;
@@ -1384,7 +1422,6 @@ document.addEventListener('DOMContentLoaded', function () {
           updateClockOutputCount();
           refreshPortLists();
           timelineMeter(activeMeter());
-          timelineLoop(activeLoop());
           saveZones();
           sendMackieLeds();
         }
@@ -1552,7 +1589,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         DOM.get('#save')!.addEventListener('click', async (e) => {
           await ipcRenderer
-            .invoke('open-save', JSON.stringify(zones))
+            .invoke('open-save', sceneWithTakes())
             .then(
               (result: {
                 canceled: boolean;

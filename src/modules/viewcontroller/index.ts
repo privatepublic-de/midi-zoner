@@ -23,7 +23,8 @@ import {
 } from './actions';
 import { closeCCEditor, initCCEditor, isCCEditorOpen, refreshCCEditor } from './cc-editor';
 import { initPianoRoll } from './piano-roll';
-import { initTrackView, isTrackView, setTrackView, followTrack, updateLoopChips } from './track-view';
+import { initTrackView, isTrackView, setTrackView, followTrack, updateLoopChips, invalidateTrackView } from './track-view';
+import { takeStore } from '../take-store';
 import { renderStepLocks } from './step-locks';
 import { isQuantizable, requestToggle, isPending, hasPendingToggles, takePendingToggles, markPending, setToggleBoundary } from './pending-toggles';
 import { describeAction, labelForZone, zonePrefix, ARRANGEMENT_LETTERS } from './action-labels';
@@ -176,13 +177,44 @@ function initController({
       triggerSave();
     },
     {
-      get: () => zones.loops?.[zones.arrangementIndex] ?? null,
-      set: (loop, label) => {
-        undoHistory.beforeAction(JSON.stringify(zones), label);
-        const loops = (zones.loops ??= []);
-        while (loops.length < 4) loops.push(null);
-        loops[zones.arrangementIndex] = loop;
-        triggerSave();
+      // takes aren't scene data: an edit is an undo step that patches the take back
+      commit: (zoneindex, take, label, change) => {
+        const before = take.toJSON();
+        change();
+        const after = take.toJSON();
+        if (JSON.stringify(before) === JSON.stringify(after)) return;
+        takeStore.touched();
+        const refresh = (): void => {
+          takeStore.touched();
+          invalidateTrackView();
+        };
+        undoHistory.pushPatch(labelForZone(zones.list[zoneindex], zoneindex, label), {
+          undo: () => {
+            take.restore(before);
+            refresh();
+          },
+          redo: () => {
+            take.restore(after);
+            refresh();
+          }
+        });
+        invalidateTrackView();
+      },
+      remove: (zoneindex, take) => {
+        const zoneId = zones.list[zoneindex].id;
+        const at = takeStore.remove(zoneId, take);
+        if (at < 0) return;
+        undoHistory.pushPatch(labelForZone(zones.list[zoneindex], zoneindex, 'Delete Take'), {
+          undo: () => {
+            takeStore.add(zoneId, take, at);
+            invalidateTrackView();
+          },
+          redo: () => {
+            takeStore.remove(zoneId, take);
+            invalidateTrackView();
+          }
+        });
+        invalidateTrackView();
       }
     },
     () => meterOf(zones.arrangementIndex)
@@ -1548,7 +1580,6 @@ function updateValuesForZone(index: number): void {
       'solo',
       'programchange',
       'arp_enabled',
-      'takes_on',
       'arp_hold',
       'arp_transpose',
       'sustain_on',
@@ -1578,7 +1609,6 @@ function updateValuesForZone(index: number): void {
       );
     });
     DOM.switchClass(zoneElement, zone.arp_enabled, 'arp-enabled');
-    DOM.switchClass(zoneElement, zone.takes_on, 'takes-on');
     DOM.switchClass(zoneElement, zone.arp_direction >= 5, 'strum-mode');
     zone.renderTransposeAmount();
 

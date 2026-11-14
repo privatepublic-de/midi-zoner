@@ -4,41 +4,40 @@ import { Take } from '../zone/take';
 import type { TakeNoteJSON } from '../zone/interfaces';
 import { DIV_TICKS } from '../zone/seq-layer';
 import { DIV_NAMES, quantizeStarts } from '../zone/take-quantize';
-import { timeline, songNow } from '../timeline';
-import { barTicks, beatLines, unitTicks } from '../meter';
+import { timeline } from '../timeline';
+import { Meter, barTicks, beatLines, unitTicks } from '../meter';
 import { toast } from './toast';
 
 /**
- * The dock's Notes tab: a piano roll for the chosen take (the selected kept take, else
- * the last run's shown take). It shows the whole recording, the parts trimmed away
- * shaded; the take's edges drag in the ruler. Note times stay free: moves snap by whole
- * grid steps (a note keeps its distance to the grid), new notes and lengths snap to it.
- * Every gesture is one undo step; the first edit of an unkept take keeps it.
+ * The dock's Notes tab: a piano roll for the zone's loop or one of its takes. Note
+ * times stay free: moves snap by whole grid steps (a note keeps its distance to the
+ * grid), new notes and lengths snap to it; the length stays (notes stay inside). Every
+ * gesture is one undo step (a loop's with the scene, a take's as a take patch).
  */
 
 export interface TakeTarget {
   zone: Zone;
   take: Take;
-  kept: boolean;
+  kind: 'loop' | 'take';
   label: string;
-}
-
-interface SnapKeys {
-  shiftKey: boolean;
-  altKey: boolean;
+  /** Its bars and beats */
+  meter: Meter;
+  /** Where it's playing now (positions in it), null: not playing */
+  playhead(): number | null;
 }
 
 export interface TakeEditorHooks {
   zones(): Zone[];
   /** The take the tab shows, null: none */
   target(): TakeTarget | null;
+  /** A change to the loop: an undo step of the scene */
   commit(zoneIndex: number, label: string, change: () => void): void;
-  /** An unkept take was kept by an edit: select the kept one in the lanes */
-  keptAs(zone: Zone, take: Take): void;
-  loop(from: number, to: number): void;
-  /** Take edges snap as in the lanes: beats, Shift bars, ⌥ free */
-  snap(t: number, e: SnapKeys): number;
-  snapMin(e: SnapKeys): number;
+  /** A change to a take: an undo step of its own (takes aren't scene data) */
+  commitTake(zoneIndex: number, take: Take, label: string, change: () => void): void;
+  /** The bars from…to of a take become the zone's loop */
+  loopFrom(zone: Zone, take: Take, from: number, to: number): void;
+  /** Show the zone's loop or its shown take */
+  show(kind: 'loop' | 'take'): void;
   invalidate(): void;
 }
 
@@ -103,6 +102,8 @@ const view = { left: 0, ppt: 1, top: 72, rowH: 10 };
 let fittedId = '';
 let sel = new Set<TakeNoteJSON>();
 let selTake: Take | null = null;
+// the notes array the selection was made in (undo replaces it)
+let selNotes: TakeNoteJSON[] | null = null;
 let drag: Drag | null = null;
 let focused = false;
 let grid = Number(localStorage.getItem(GRID_KEY) ?? 14);
@@ -163,33 +164,23 @@ function preview(zone: Zone, n: number, v: number): void {
 // ---------------------------------------------------------------------------
 // Edits
 
-/**
- * One undo step on the shown take. An unkept take is kept first and the change made
- * on the kept copy (`mine` maps a note of the shown take to the copy's).
- */
+/** The meter of what's shown */
+function meter(): Meter {
+  return hooks.target()?.meter ?? timeline.meter;
+}
+
+/** One undo step on what's shown (`mine` maps a note to itself: kept for the callers) */
 function apply(label: string, change: (take: Take, mine: (n: TakeNoteJSON) => TakeNoteJSON) => void): void {
   const target = hooks.target();
   if (!target) return;
   const index = hooks.zones().indexOf(target.zone);
   if (index < 0) return;
-  let take = target.take;
-  hooks.commit(index, label, () => {
-    let mine = (n: TakeNoteJSON): TakeNoteJSON => n;
-    if (!target.kept) {
-      const original = take;
-      target.zone.keepTake(original);
-      const copy = target.zone.takes.find((t) => t.id === original.id) ?? original;
-      mine = (n) => copy.notes[original.notes.indexOf(n)];
-      sel = new Set([...sel].map(mine).filter(Boolean));
-      take = copy;
-    }
-    change(take, mine);
-  });
-  if (!target.kept) {
-    hooks.keptAs(target.zone, take);
-    toast('Take kept: edits change the song from now on');
-  }
+  const take = target.take;
+  const mine = (n: TakeNoteJSON): TakeNoteJSON => n;
+  if (target.kind === 'loop') hooks.commit(index, label, () => change(take, mine));
+  else hooks.commitTake(index, take, label, () => change(take, mine));
   selTake = take;
+  selNotes = take.notes;
   hooks.invalidate();
 }
 
@@ -236,7 +227,7 @@ function deleteSelected(label = 'Delete Notes'): void {
 function addNote(s: number, n: number): void {
   const target = hooks.target();
   if (!target) return;
-  const g = gridTicks() || unitTicks(timeline.meter) / 4;
+  const g = gridTicks() || unitTicks(meter()) / 4;
   const at = gridTicks() ? Math.floor(s / g) * g : s;
   if (at < target.take.floor || at >= target.take.end) return;
   if (target.take.notes.length >= Take.MAX_NOTES) {
@@ -258,7 +249,7 @@ function copySelection(): boolean {
   const notes = selectedOrdered(take);
   const base = take.songOf(notes[0]);
   const end = Math.max(...notes.map((n) => take.songOf(n) + n.d));
-  const step = gridTicks() || unitTicks(timeline.meter);
+  const step = gridTicks() || unitTicks(meter());
   clipboard = {
     notes: notes.map((n) => ({
       s: take.songOf(n) - base,
@@ -272,7 +263,7 @@ function copySelection(): boolean {
   return true;
 }
 
-/** Paste the clipboard at a song position; the take grows to hold it */
+/** Paste the clipboard at a position (notes past the end are left out: the length stays) */
 function paste(at: number, label: string): void {
   const target = hooks.target();
   if (!target || !clipboard) return;
@@ -280,12 +271,12 @@ function paste(at: number, label: string): void {
   at = Math.max(target.take.floor, at);
   let added: TakeNoteJSON[] = [];
   apply(label, (take) => {
-    const end = at + Math.max(...clip.notes.map((n) => n.s + n.d));
-    if (end > take.end) take.length = Math.min(Take.MAX_LENGTH, Math.ceil(end - take.start));
-    added = take.addNotes(clip.notes.map((n) => ({ ...n, s: at + n.s })).filter((n) => n.s < take.end));
+    added = take.addNotes(
+      clip.notes.map((n) => ({ ...n, s: at + n.s, d: Math.min(n.d, take.end - at - n.s) })).filter((n) => n.s < take.end)
+    );
   });
   sel = new Set(added);
-  if (added.length < clip.notes.length) toast('This take is full');
+  if (added.length < clip.notes.length) toast(`${clip.notes.length - added.length} notes didn’t fit before the end`);
 }
 
 function quantizeSelection(): void {
@@ -313,6 +304,22 @@ function quantizeSelection(): void {
     });
     t.sort();
   });
+}
+
+/** The bars around the selected notes of a take become the zone's loop */
+function loopSelection(): void {
+  const target = hooks.target();
+  if (!target || target.kind !== 'take') return;
+  const take = target.take;
+  const notes = selectedOrdered(take);
+  if (notes.length === 0) {
+    toast('Select the notes to loop first (⌘A: all)');
+    return;
+  }
+  const from = take.barLine(Math.min(...notes.map((n) => take.songOf(n))), 'floor');
+  let to = take.barLine(Math.max(...notes.map((n) => take.songOf(n) + Math.min(n.d, 1))), 'ceil');
+  if (to <= from) to = from + barTicks(take.sectionAt(from).meter);
+  hooks.loopFrom(target.zone, take, from, to);
 }
 
 function selectAll(): void {
@@ -366,15 +373,17 @@ function sizeCanvas(): CanvasRenderingContext2D | null {
 
 /** Keep the note selection on the take across undo (same id: notes by index) */
 function followTake(take: Take | null): void {
-  if (take === selTake) return;
-  if (take && selTake && take.id === selTake.id && take.notes.length === selTake.notes.length) {
-    const old = selTake;
-    sel = new Set([...sel].map((n) => take.notes[old.notes.indexOf(n)]).filter(Boolean));
+  // the same take with its notes replaced (undo of a take edit restores them) counts as another
+  if (take === selTake && take?.notes === selNotes) return;
+  const oldNotes = selNotes;
+  if (take && selTake && take.id === selTake.id && oldNotes && take.notes.length === oldNotes.length) {
+    sel = new Set([...sel].map((n) => take.notes[oldNotes.indexOf(n)]).filter(Boolean));
   } else {
     sel.clear();
     nextPaste = null;
   }
   selTake = take;
+  selNotes = take?.notes ?? null;
 }
 
 function updateTools(target: TakeTarget | null): void {
@@ -389,16 +398,22 @@ function updateTools(target: TakeTarget | null): void {
   const count = take.visibleNotes().length;
   title.textContent = target.label;
   what.textContent = [
-    `from bar ${Math.floor(take.start / barTicks(timeline.meter)) + 1}`,
-    Take.lengthLabel(take.length, timeline.meter),
+    Take.lengthLabel(take.length, target.meter),
     `${count} note${count === 1 ? '' : 's'}`,
-    sel.size ? `${sel.size} selected` : '',
-    target.kept ? '' : 'not kept: an edit keeps it'
+    sel.size ? `${sel.size} selected` : ''
   ]
     .filter(Boolean)
     .join(' · ');
   root.querySelector('.tdn-delete')!.classList.toggle('disabled', sel.size === 0);
-  root.querySelector('.tdn-quantize')!.textContent = sel.size ? 'Quantize selection' : 'Quantize take';
+  root.querySelector('.tdn-quantize')!.textContent = sel.size ? 'Quantize selection' : `Quantize ${target.kind}`;
+  // a take's bars can become the loop; the loop is already one
+  const loop = root.querySelector('.tdn-loop') as HTMLElement;
+  loop.style.display = target.kind === 'take' ? '' : 'none';
+  loop.classList.toggle('disabled', sel.size === 0);
+  root.querySelectorAll('[data-tdn-show]').forEach((b) => {
+    const kind = (b as HTMLElement).dataset['tdnShow'];
+    b.classList.toggle('on', kind === target.kind);
+  });
 }
 
 /** Called by the track view's draw loop while the Notes tab is open */
@@ -446,7 +461,7 @@ function drawTakeEditor(): void {
     for (let t = Math.ceil(from / gt) * gt; t <= to; t += gt)
       g.fillRect(Math.round(sx(t)), RULER_H, 1, bottom - RULER_H);
   }
-  for (const { t, bar } of beatLines(timeline.meter, Math.max(0, from), to)) {
+  for (const { t, bar } of beatLines(meter(), Math.max(0, from), to)) {
     g.fillStyle = bar ? '#ffffff26' : '#ffffff12';
     g.fillRect(Math.round(sx(t)), RULER_H, 1, bottom - RULER_H);
   }
@@ -478,10 +493,9 @@ function drawTakeEditor(): void {
     }
   }
   g.globalAlpha = 1;
-  // outside the take's window: shaded
-  const edge = d?.kind === 'edge' ? d : null;
-  const winStart = edge ? edge.start : take.start;
-  const winEnd = edge ? edge.start + edge.length : take.end;
+  // past its end: shaded
+  const winStart = take.start;
+  const winEnd = take.end;
   g.fillStyle = '#000000a0';
   g.fillRect(KEYS_W, RULER_H, Math.max(0, sx(winStart) - KEYS_W), bottom - RULER_H);
   g.fillRect(sx(winEnd), RULER_H, Math.max(0, w - sx(winEnd)), bottom - RULER_H);
@@ -515,14 +529,14 @@ function drawTakeEditor(): void {
     }
   }
 
-  // ruler: bars, the take's edges as handles
+  // ruler: bars, its start and end marked
   g.fillStyle = '#1c1f23';
   g.fillRect(0, 0, w, RULER_H);
   g.font = '11px "Barlow Semi Condensed", sans-serif';
   g.textBaseline = 'alphabetic';
-  const barLen = barTicks(timeline.meter);
+  const barLen = barTicks(meter());
   const every = Math.max(1, Math.ceil(50 / (barLen * view.ppt)));
-  beatLines(timeline.meter, Math.max(0, from), to).forEach((l) => {
+  beatLines(meter(), Math.max(0, from), to).forEach((l) => {
     if (!l.bar) return;
     const x = Math.round(sx(l.t));
     if (x < KEYS_W) return;
@@ -575,8 +589,9 @@ function drawTakeEditor(): void {
   g.globalAlpha = 1;
 
   // playhead
-  if (timeline.running) {
-    const x = sx(songNow());
+  const head = target.playhead();
+  if (head !== null) {
+    const x = sx(head);
     if (x >= KEYS_W && x <= w) {
       g.fillStyle = '#e7eaee';
       g.fillRect(Math.round(x), RULER_H, 1, h - RULER_H);
@@ -619,10 +634,8 @@ function velocityNoteAt(take: Take, x: number): TakeNoteJSON | null {
   return best;
 }
 
-function edgeAt(take: Take, x: number, y: number): 'start' | 'end' | null {
-  if (y >= RULER_H) return null;
-  if (Math.abs(x - sx(take.start)) <= EDGE_PX + 1) return 'start';
-  if (Math.abs(x - sx(take.end)) <= EDGE_PX + 1) return 'end';
+/** (Edges don't drag: a loop's or take's length stays) */
+function edgeAt(_take: Take, _x: number, _y: number): 'start' | 'end' | null {
   return null;
 }
 
@@ -735,18 +748,6 @@ function onMouseMove(ev: MouseEvent): void {
     if (!drag.moved && Math.abs(y - drag.y0) < 1) return;
     drag.moved = true;
     drag.dv = Math.round((-(y - drag.y0) / (VEL_H - 6)) * 127);
-  } else if (drag.kind === 'edge') {
-    drag.moved = true;
-    const s = hooks.snap(tickAt(x), ev);
-    const min = hooks.snapMin(ev);
-    if (drag.edge === 'start') {
-      const start = Math.max(0, Math.min(take.end - min, s));
-      drag.start = start;
-      drag.offset = take.offset + (start - take.start);
-      drag.length = take.end - start;
-    } else {
-      drag.length = Math.max(min, Math.min(Take.MAX_LENGTH, s - take.start));
-    }
   }
   hooks.invalidate();
 }
@@ -778,12 +779,6 @@ function onMouseUp(): void {
       for (const n of d.notes.map(mine)) n.v = Math.max(1, Math.min(127, n.v + dv));
     });
     lastVelo = Math.max(1, Math.min(127, d.notes[0].v + dv));
-  } else if (d.kind === 'edge' && d.moved && (d.start !== take.start || d.length !== take.length)) {
-    apply('Trim Take', (t) => {
-      t.start = d.start;
-      t.length = d.length;
-      t.offset = d.offset;
-    });
   }
   hooks.invalidate();
 }
@@ -818,8 +813,8 @@ function onKeyDown(ev: KeyboardEvent): void {
   if (ev.code === 'Space') return; // play / stop
   const target = hooks.target();
   if (!target) return;
-  const step = gridTicks() || unitTicks(timeline.meter) / 4;
-  const beat = unitTicks(timeline.meter);
+  const step = gridTicks() || unitTicks(meter()) / 4;
+  const beat = unitTicks(meter());
   const arrows: Record<string, [number, number]> = {
     ArrowLeft: [-(ev.shiftKey ? beat : step), 0],
     ArrowRight: [ev.shiftKey ? beat : step, 0],
@@ -881,10 +876,13 @@ function initTakeEditor(h: TakeEditorHooks): void {
   });
   root.querySelector('.tdn-quantize')!.addEventListener('click', quantizeSelection);
   root.querySelector('.tdn-delete')!.addEventListener('click', () => deleteSelected());
-  root.querySelector('.tdn-loop')!.addEventListener('click', () => {
-    const target = hooks.target();
-    if (target) hooks.loop(target.take.start, target.take.end);
-  });
+  root.querySelector('.tdn-loop')!.addEventListener('click', loopSelection);
+  root.querySelectorAll('[data-tdn-show]').forEach((b) =>
+    b.addEventListener('click', () => {
+      hooks.show((b as HTMLElement).dataset['tdnShow'] as 'loop' | 'take');
+      fittedId = '';
+    })
+  );
   root.querySelector('.tdn-fit')!.addEventListener('click', () => {
     const target = hooks.target();
     if (target) fit(target.take);

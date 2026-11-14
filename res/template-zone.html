@@ -29,13 +29,6 @@
       Arp
     </div>
     <div
-      class="ch showtakes takes_on"
-      data-action="${index}:zone_takes"
-      title="Play the kept takes (what you play is recorded either way)"
-    >
-      Trk
-    </div>
-    <div
       class="ch showloop"
       data-action="${index}:zone_loop"
       title="Loop: press on a 1 to record (a little late is fine, the bar before is its pick-up), press on a later 1 to close it: it plays at once. Press again to overdub, once more to end it. Two quick presses clear the loop. Mute silences it"
@@ -230,6 +223,11 @@
     </div>
   </div>
   <div class="mini-lane" title="What this zone plays: behind the playhead what it sent, ahead what comes (dashed: won't sound, e.g. Seq off or a step skipped by its condition). A waiting switch shows where it lands"><canvas></canvas></div>
+  <div class="card-takes" title="What was played in the last runs: Keep makes a take the zone’s loop in this arrangement">
+    <a class="lightButton" data-ct="prev" title="An earlier take">‹</a><span class="ct-label"></span><a class="lightButton" data-ct="next" title="A later take">›</a>
+    <span class="ct-len"></span><canvas class="ct-preview"></canvas>
+    <a class="lightButton" data-ct="keep" title="Keep: this take becomes the zone’s loop in this arrangement, replacing its loop">Keep</a>
+  </div>
   <div
     class="seq shadowed-zone-block"
     data-contextmenu="${index}:seq_copy,${index}:seq_paste,-,${index}:seq_clear_all"

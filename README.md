@@ -14,9 +14,9 @@ This is an [Electron](https://www.electronjs.org/) application built with TypeSc
 - **Arpeggiator**: up/down/random/order and strum directions with velocity taper, 1–4 octaves, ratchet, chance, gate, hold with transpose, euclidean patterns
 - **Step sequencer**: melodic (up to 256 steps) and drum mode (up to 12 lanes, 64 steps each); per-step velocity, length, gate, chance, conditions and ratchet; live recording, piano roll, transpose and adjust tools
 - **Parameter locks**: per-step controller values, optionally sliding, Elektron style
-- **Takes**: everything you play while the clock runs is recorded. Keep a take or a part of it afterwards, edit its notes, quantize it, or turn it into a sequence
+- **Takes**: every run from Start to Stop is recorded into each zone you play, and kept (the last 16 per zone, also in scene files). Keep a take (on the card after Stop, or in the track view) and it becomes the zone's loop, pick-up included; or drag over bars of it to loop just those, edit its notes, quantize it, or turn it into a sequence
 - **Looper**: a loop per zone and arrangement, each its own length. Press Loop (or Rec on a Mackie) on a 1 to record (a little late is fine), on a later 1 to close it: it plays at once, with the pick-up you played before the first 1 at its end. Press again to overdub, twice quickly to clear; mute silences it
-- **Track view**: all zones on a timeline, what was played behind the playhead and what comes ahead, with a loop range per arrangement
+- **Track view**: all zones on a timeline, what was played behind the playhead and what comes ahead (sequence and loop), each zone's takes above its lane
 - **4 arrangements (A/B/C/D)**: snapshots of all zone settings, switched at the next bar, beat or 16th; each with its own meter (any n/4 or n/8 with grouping)
 - **Quantized switching**: mute, solo and feature switches can wait for the next bar while playing
 - **CC controllers**: knobs (7-bit, 14-bit, 10-bit KORG logue, NRPN), buttons, selectors, note-to-CC; sections and pages; MIDI learn; a full-window editor

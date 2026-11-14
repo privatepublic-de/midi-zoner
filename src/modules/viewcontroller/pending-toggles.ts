@@ -1,5 +1,5 @@
 /**
- * Zone toggles (M, S, Seq, Arp, Trk) that wait for the next bar, beat or 16th while
+ * Zone toggles (M, S, Seq, Arp) that wait for the next bar, beat or 16th while
  * the clock runs (Setup → Switching → Zone switches), so they land in time. The topbar's Quantize chip
  * decides whether they wait; Shift does the opposite of the chip. A waiting chip
  * blinks between its look now and the one it will have; clicking it again cancels.
@@ -13,8 +13,7 @@ const LIT_AFTER: Record<string, (zone: ZoneType) => boolean> = {
   zone_enabled: (zone) => zone.enabled,
   zone_solo: (zone) => !zone.solo,
   toggle_seq: (zone) => !zone.sequence.active,
-  zone_arp_enabled: (zone) => !zone.arp_enabled,
-  zone_takes: (zone) => !zone.takes_on
+  zone_arp_enabled: (zone) => !zone.arp_enabled
 };
 
 /** What a waiting toggle will do, for the mini lane's marker */
@@ -22,8 +21,7 @@ const TAG: Record<string, (zone: ZoneType) => string> = {
   zone_enabled: (zone) => (zone.enabled ? 'Mute' : 'Unmute'),
   zone_solo: (zone) => (zone.solo ? 'Solo off' : 'Solo'),
   toggle_seq: (zone) => (zone.sequence.active ? 'Seq off' : 'Seq on'),
-  zone_arp_enabled: (zone) => (zone.arp_enabled ? 'Arp off' : 'Arp on'),
-  zone_takes: (zone) => (zone.takes_on ? 'Trk off' : 'Trk on')
+  zone_arp_enabled: (zone) => (zone.arp_enabled ? 'Arp off' : 'Arp on')
 };
 
 const BLINK_MS = 120;

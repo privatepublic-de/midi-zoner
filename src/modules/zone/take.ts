@@ -1,6 +1,6 @@
 import { TakeJSON, TakeNoteJSON } from './interfaces';
 import { PPQ } from './seq-layer';
-import { Meter, DEFAULT_METER, barTicks, unitTicks } from '../meter';
+import { Meter, DEFAULT_METER, barTicks, unitTicks, parseMeter } from '../meter';
 
 /**
  * A take: what was played into a zone during one run of an arrangement, at free
@@ -18,6 +18,28 @@ export class Take {
   length = PPQ * 4;
   offset = 0; // where in the recording the take's start lies
   notes: TakeNoteJSON[] = []; // sorted by t
+  /** When it was recorded (ms since 1970; 0: unknown) */
+  at = 0;
+  /** Recording order (Take.counter when it was recorded) */
+  seq = 0;
+  /** Sections of the run it was recorded in: where each began (take ticks, the first at 0) and its meter */
+  sections: { t: number; meter: Meter }[] = [];
+  /** Counts recordings (the last seq handed out) */
+  static counter = 0;
+
+  /** The section a position (take ticks) lies in: its start and meter, so bars line up as played */
+  sectionAt(t: number): { t: number; meter: Meter } {
+    let found = this.sections[0] ?? { t: 0, meter: DEFAULT_METER };
+    for (const s of this.sections) if (s.t <= t) found = s;
+    return found;
+  }
+
+  /** The bar line at or before (floor), nearest to (round) or after (ceil) a position, in its section's bars */
+  barLine(t: number, how: 'floor' | 'round' | 'ceil' = 'round'): number {
+    const sec = this.sectionAt(t);
+    const bar = barTicks(sec.meter);
+    return sec.t + Math[how]((t - sec.t) / bar) * bar;
+  }
 
   /** The notes inside the window, at song positions, lengths clipped to the take's end */
   visibleNotes(): { s: number; d: number; n: number; v: number }[] {
@@ -146,6 +168,9 @@ export class Take {
       start: this.start,
       length: this.length,
       offset: this.offset,
+      ...(this.at ? { at: this.at } : {}),
+      ...(this.seq ? { seq: this.seq } : {}),
+      ...(this.sections.length ? { sections: this.sections.map((s) => ({ t: s.t, meter: s.meter })) } : {}),
       notes: this.notes.map((n) => ({ t: round(n.t), d: round(n.d), n: n.n, v: n.v }))
     };
   }
@@ -163,6 +188,21 @@ export class Take {
     if (typeof d.id === 'string' && /^[a-z0-9]{1,16}$/.test(d.id)) take.id = d.id;
     const offset = Number(d.offset ?? 0);
     if (isFinite(offset) && Math.abs(offset) <= Take.MAX_LENGTH) take.offset = offset;
+    const at = Number(d.at);
+    if (at > 0 && at < 1e14) take.at = at;
+    const seq = Math.round(Number(d.seq));
+    if (seq > 0 && seq < 1e9) {
+      take.seq = seq;
+      Take.counter = Math.max(Take.counter, seq);
+    }
+    if (Array.isArray(d.sections)) {
+      for (const sec of d.sections.slice(0, 256)) {
+        const t = Number(sec?.t);
+        const meter = parseMeter(sec?.meter);
+        if (isFinite(t) && t >= 0 && t <= Take.MAX_LENGTH && meter) take.sections.push({ t, meter });
+      }
+      take.sections.sort((a, b) => a.t - b.t);
+    }
     if (Array.isArray(d.notes)) {
       for (const raw of d.notes.slice(0, Take.MAX_NOTES)) {
         if (!raw || typeof raw !== 'object') continue;
@@ -177,6 +217,16 @@ export class Take {
     }
     take.sort();
     return take;
+  }
+
+  /** Back to what it was (undo of an edit): from its own JSON, in place */
+  restore(json: TakeJSON): void {
+    const from = Take.from(json);
+    if (!from) return;
+    this.start = from.start;
+    this.length = from.length;
+    this.offset = from.offset;
+    this.notes = from.notes;
   }
 
   copy(): Take {

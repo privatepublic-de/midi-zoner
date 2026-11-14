@@ -1,6 +1,17 @@
+/**
+ * A step that changes something outside the scene data (the takes, which undo snapshots
+ * don't carry): it undoes and redoes itself
+ */
+export interface UndoPatch {
+  undo: () => void;
+  redo: () => void;
+}
+
 interface HistoryEntry {
+  /** The scene before the step (or, on the redo stack, after it) */
   snapshot: string;
   label: string;
+  patch?: UndoPatch;
 }
 
 export class UndoHistory {
@@ -90,19 +101,41 @@ export class UndoHistory {
     this.onChange?.();
   }
 
-  // Returns snapshot to restore; pushes current state onto redo stack
+  // A step outside the scene data (takes): undone and redone by its patch
+  pushPatch(label: string, patch: UndoPatch): void {
+    this.undoStack.push({ snapshot: '', label, patch });
+    if (this.undoStack.length > this.maxSize) {
+      this.undoStack.shift();
+    }
+    this.redoStack = [];
+    this.onChange?.();
+  }
+
+  // Returns snapshot to restore (null: nothing, or a patch that undid itself); pushes current state onto redo stack
   undo(currentZonesJSON: string): string | null {
     if (this.undoStack.length === 0) return null;
     const entry = this.undoStack.pop()!;
+    if (entry.patch) {
+      entry.patch.undo();
+      this.redoStack.push(entry);
+      this.onChange?.();
+      return null;
+    }
     this.redoStack.push({ snapshot: currentZonesJSON, label: entry.label });
     this.onChange?.();
     return entry.snapshot;
   }
 
-  // Returns snapshot to restore; pushes current state onto undo stack
+  // Returns snapshot to restore (null: nothing, or a patch that redid itself); pushes current state onto undo stack
   redo(currentZonesJSON: string): string | null {
     if (this.redoStack.length === 0) return null;
     const entry = this.redoStack.pop()!;
+    if (entry.patch) {
+      entry.patch.redo();
+      this.undoStack.push(entry);
+      this.onChange?.();
+      return null;
+    }
     this.undoStack.push({ snapshot: currentZonesJSON, label: entry.label });
     this.onChange?.();
     return entry.snapshot;

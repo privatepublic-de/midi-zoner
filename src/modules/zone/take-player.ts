@@ -2,7 +2,6 @@ import MIDI from '../midi';
 import { Note } from './note';
 import { Take } from './take';
 import type { TakeNoteJSON } from './interfaces';
-import { songAt } from '../timeline';
 import type { Zone } from './zone-class';
 
 interface Scheduled {
@@ -14,22 +13,16 @@ interface Scheduled {
 }
 
 /**
- * Plays a zone's kept takes at their song positions, every tick: notes between two
- * ticks go out on timers for their place. They are fed through the zone like step
- * notes (arp, octave and range rules apply), while its Trk switch is on. Like the
- * sequencer, they play in a muted or soloed-out zone (mute and solo are for the input).
+ * Plays a zone's loop every tick: notes between two ticks go out on timers for their
+ * place. They are fed through the zone like step notes (arp, octave and range rules apply).
  */
 export class TakePlayer {
   private zone: Zone;
   private queue: Scheduled[] = [];
   private timers = new Set<ReturnType<typeof setTimeout>>();
   private elapsed = 0;
-  // a kept take's notes are marked in the note history (the lanes draw them in its band)
-  private readonly marksTake: boolean;
-
-  constructor(zone: Zone, marksTake = true) {
+  constructor(zone: Zone) {
     this.zone = zone;
-    this.marksTake = marksTake;
   }
 
   /**
@@ -98,26 +91,6 @@ export class TakePlayer {
   }
 
   /** `elapsed`: ticks since the section began; the song position follows from it (loop) */
-  clock(elapsed: number, tickIntervalMs: number, takes: Take[]): void {
-    const later = this.advance(elapsed, tickIntervalMs);
-    if (!this.zone.takes_on) return;
-    // a loop's bounds are whole ticks, so a tick never spans its jump
-    const songPos = songAt(elapsed);
-    for (const take of takes) {
-      const local = songPos - take.start;
-      if (local < 0 || local >= take.length) continue;
-      // the window of the recording the take shows (trimming moves it)
-      const at = take.offset + local;
-      const last = take.offset + take.length;
-      const notes = take.notes;
-      for (let i = take.firstAtOrAfter(at); i < notes.length && notes[i].t < at + 1 && notes[i].t < last; i++) {
-        const tn = notes[i];
-        // a note is cut where the take ends
-        this.schedule(tn, tn.t - at, Math.min(tn.d, last - tn.t), later);
-      }
-    }
-  }
-
   /** Sounding notes end (or ring out their length); unsent ones are dropped */
   release(ringOut: boolean): void {
     const ringOutNotes = ringOut && !this.zone.arp_enabled;
@@ -148,11 +121,6 @@ export class TakePlayer {
 
   private send(status: number, note: Note): void {
     const msg = Uint8Array.from([status + note.channel, note.number, status === MIDI.MESSAGE.NOTE_ON ? note.velo : 0]);
-    this.zone.playingTake = this.marksTake;
-    try {
-      this.zone.handleMidi(status, msg, true);
-    } finally {
-      this.zone.playingTake = false;
-    }
+    this.zone.handleMidi(status, msg, true);
   }
 }

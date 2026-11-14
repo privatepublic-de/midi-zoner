@@ -12,8 +12,9 @@ import type { TakeNoteJSON } from './interfaces';
  *   the next one ends it (merged into the loop then; until then its notes play as a layer).
  * - A press while waiting for the 1 cancels. Two presses in quick succession on a playing
  *   loop clear it.
- * - Pick-ups: notes in the bar before a recording's first 1 go at the loop's end (unless
- *   it has them there already), so they sound before every repeat.
+ * - Pick-ups: the phrase leading into a recording's first 1 (in the bar before it, after
+ *   a rest of a beat or more) goes at the loop's end, unless it has it there already, so
+ *   it sounds before every repeat.
  *
  * Positions are ticks since the section began (Start, or an arrangement's entry), so the
  * ruler's loop range doesn't move them. The loop's cycle starts at `anchor`: where it was
@@ -49,6 +50,55 @@ export type PressResult =
   | { kind: 'empty' };
 
 const posMod = (a: number, m: number): number => ((a % m) + m) % m;
+
+/**
+ * A loop of the bars from `from` to `to` of what was played (positions as played): the
+ * notes in it from its first 1 (one up to EARLY before it is that 1's downbeat), and the
+ * pick-up at its end unless played there already. The pick-up is the phrase leading into
+ * the first 1: in the bar before it, the notes after the last rest of a beat or more,
+ * starting after that bar's 1 (playing straight through has no such rest, so nothing of
+ * it is wrapped round)
+ */
+/**
+ * Where the pick-up into the 1 at `from` begins: in the bar before it, the first note after
+ * the last rest of a beat or more, unless that phrase starts on the bar's own 1 (then it's a
+ * bar of the line, not a pick-up). Infinity: no pick-up.
+ */
+export function pickupStart(played: { s: number; d: number }[], from: number, bar: number): number {
+  let phrase = -Infinity;
+  for (const o of played) {
+    if (o.s <= from - bar + EARLY || o.s >= from - EARLY || o.s <= phrase) continue;
+    if (!played.some((p) => p.s < o.s && p.s + p.d > o.s - PPQ + EARLY)) phrase = o.s;
+  }
+  return phrase === -Infinity ? Infinity : phrase;
+}
+
+export function loopFromNotes(played: { s: number; d: number; n: number; v: number }[], from: number, to: number, bar: number): Take | null {
+  const len = to - from;
+  if (len <= 0) return null;
+  const notes: TakeNoteJSON[] = played
+    .filter((p) => p.s >= from - EARLY && p.s < to - EARLY)
+    .map((p) => {
+      const t = Math.max(0, p.s - from);
+      return { t, d: Math.min(p.d, len), n: p.n, v: p.v };
+    });
+  const before = played.filter((p) => p.s >= from - bar && p.s < from - EARLY).sort((a, b) => a.s - b.s);
+  const phrase = pickupStart(played, from, bar);
+  for (const p of before) {
+    if (p.s < phrase) continue;
+    const t = p.s - from + len;
+    if (t < 0) continue;
+    if (notes.some((n) => n.n === p.n && Math.abs(n.t - t) <= MIRROR)) continue;
+    notes.push({ t, d: Math.max(0.25, Math.min(p.d, len)), n: p.n, v: p.v });
+  }
+  if (notes.length === 0 || notes.length > Take.MAX_NOTES) return null;
+  const loop = new Take();
+  loop.start = 0;
+  loop.length = len;
+  loop.notes = notes;
+  loop.sort();
+  return loop;
+}
 
 export class Looper {
   mode: LooperMode = 'idle';
@@ -183,27 +233,10 @@ export class Looper {
   /** The recording from `from` to `to` becomes the loop (null when nothing was played) */
   closeRecording(to: number, bar: number, now: number): Take | null {
     const from = this.from;
-    const len = to - from;
     this.mode = 'idle';
     this.to = null;
-    const notes: TakeNoteJSON[] = this.notesBetween(from - EARLY, to - EARLY, now).map((p) => {
-      const t = Math.max(0, p.s - from);
-      return { t, d: Math.min(p.d, len), n: p.n, v: p.v };
-    });
-    // the pick-up: the bar before the first 1, at the loop's end, unless played there already
-    for (const p of this.notesBetween(from - bar, from - EARLY, now)) {
-      const t = p.s - from + len;
-      if (t < 0) continue;
-      if (notes.some((n) => n.n === p.n && Math.abs(n.t - t) <= MIRROR)) continue;
-      notes.push({ t, d: Math.max(0.25, Math.min(p.d, len)), n: p.n, v: p.v });
-    }
-    if (notes.length === 0) return null;
-    const loop = new Take();
-    loop.start = 0;
-    loop.length = len;
-    loop.notes = notes;
-    loop.sort();
-    this.anchor = from;
+    const loop = loopFromNotes(this.notesBetween(from - bar, to - EARLY, now), from, to, bar);
+    if (loop) this.anchor = from;
     return loop;
   }
 

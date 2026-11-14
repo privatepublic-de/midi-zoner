@@ -1575,7 +1575,7 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
   background: var(--slate-line);
 }
 
-/* cards: the name sits between [M S] and [Seq Arp Trk | CC], set apart from both by the
+/* cards: the name sits between [M S] and [Seq Arp Loop | CC], set apart from both by the
    same group gap as the divider before CC (6px + 8px), so it needs no divider of its own */
 body:not(.track-view):not(.minimized) .zone .channels {
   > .ch.state { order: -3; }
@@ -2653,7 +2653,6 @@ input[type='range'] {
 
 .showseq,
 .showarp,
-.showtakes,
 .showloop {
   letter-spacing: -0.5px;
 }
@@ -2668,7 +2667,6 @@ input[type='range'] {
 /* muted zone: a switched-on feature stays lit, dimmed; a coloured outline would
    read as a selection */
 .zone.disabled.arp-enabled .showarp,
-.zone.disabled.takes-on .showtakes,
 .zone.disabled.show-seq .showseq {
   background-color: color-mix(in srgb, var(--on) 35%, var(--slate-panel));
   border-color: transparent;
@@ -5615,7 +5613,7 @@ body.track-view:not(.minimized) {
   }
 
   /* header, two rows laid out each on its own (a break after the name row):
-     [M S] name ⋯ ⠿ over [Seq Arp Trk] | [CC output] activity */
+     [M S] name ⋯ ⠿ over [Seq Arp Loop] | [CC output] activity */
   #zones > .zone > .channels {
     grid-column: 1;
     grid-row: 1;
@@ -5663,7 +5661,6 @@ body.track-view:not(.minimized) {
   }
   .channels > .ch.showseq { order: 11; }
   .channels > .ch.showarp { order: 12; }
-  .channels > .ch.showtakes { order: 13; }
   .channels > .ch.showloop { order: 13; }
   /* the features, then what is sent: CC and the output after a line */
   #zones > .zone > .channels > .ch.showccs {
@@ -5750,8 +5747,8 @@ body.track-view:not(.minimized) {
     }
   }
   /* the selected track's strip over its notes: one chip at a time, at the take it is for
-     (a picked stretch: Keep · 2 bars; a selected kept take: Quantize, To steps; else the
-     last run's takes: ‹ Take 3/5 › Keep), or a hint */
+     (picked bars: Loop · 2 bars, Quantize, To steps; else the shown take: ‹ Take 3/5 ›
+     Edit, Quantize, To steps), or a hint */
   .track-lane .track-strip {
     display: none;
   }
@@ -5847,19 +5844,14 @@ body.track-view:not(.minimized) {
     font-variant-numeric: tabular-nums;
     color: var(--slate-dim);
   }
-  #trackRuler :is(.tr-loop, .tr-follow) {
+  #trackRuler .tr-follow {
     height: 20px;
     padding: 0 6px;
     font-size: var(--fs-sm);
+    margin: 0 6px 0 auto;
   }
-  #trackRuler .tr-loop {
-    margin-left: auto;
-  }
-  #trackRuler .tr-follow {
-    margin: 0 6px 0 2px;
-  }
-  /* Follow lit while the lanes follow the playhead, Loop while the range repeats */
-  #trackRuler :is(.tr-loop, .tr-follow).active {
+  /* Follow lit while the lanes follow the playhead */
+  #trackRuler .tr-follow.active {
     background-color: var(--on);
     border-color: var(--on);
     color: var(--on-text);
@@ -6230,15 +6222,26 @@ body.track-view:not(.minimized) {
   #trackDock .tdt-list {
     overflow: auto;
     padding: 0 8px 10px;
+    container-type: inline-size;
   }
-  #trackDock .tdt-group {
-    padding: 8px 6px 3px;
-    color: var(--slate-dim);
-    font-size: var(--fs-sm);
+  /* a narrow list: no date or note count, the preview gives way, tighter buttons */
+  @container (max-width: 640px) {
+    #trackDock .tdt-row {
+      grid-template-columns: 48px minmax(24px, 1fr) 52px auto;
+      gap: 8px;
+    }
+    #trackDock .tdt-where,
+    #trackDock .tdt-count {
+      display: none;
+    }
+    #trackDock .tdt-preview {
+      width: 100%;
+      min-width: 0;
+    }
   }
   #trackDock .tdt-row {
     display: grid;
-    grid-template-columns: 56px 52px minmax(120px, 1fr) 96px 70px 300px;
+    grid-template-columns: 52px 44px minmax(80px, 1fr) 60px 64px auto;
     align-items: center;
     gap: 10px;
     height: 30px;
@@ -6253,9 +6256,6 @@ body.track-view:not(.minimized) {
   #trackDock .tdt-row.selected {
     background-color: var(--slate-raise);
     box-shadow: inset 0 0 0 1px var(--select);
-  }
-  #trackDock .tdt-row.kept .tdt-name {
-    font-weight: 600;
   }
   #trackDock :is(.tdt-where, .tdt-len, .tdt-count) {
     color: var(--slate-dim);
@@ -6281,6 +6281,9 @@ body.track-view:not(.minimized) {
       color: var(--text-base-color);
       white-space: nowrap;
       cursor: pointer;
+      flex: none;
+      width: auto;
+      min-width: 0;
     }
     a:has(.material-icons) {
       padding: 0 4px;
@@ -6345,6 +6348,35 @@ body.track-view:not(.minimized) {
     select {
       height: 22px;
     }
+    /* Loop | Take: what the tab edits, as the convert panel's segments */
+    .tdn-show {
+      display: inline-flex;
+      margin-right: 4px;
+      span {
+        box-sizing: border-box;
+        display: inline-flex;
+        align-items: center;
+        height: 22px;
+        padding: 0 10px;
+        background-color: var(--slate-raise);
+        border: 1px solid var(--slate-line);
+        border-right: none;
+        color: var(--slate-dim);
+        cursor: pointer;
+      }
+      span:first-child {
+        border-radius: var(--radius) 0 0 var(--radius);
+      }
+      span:last-child {
+        border-right: 1px solid var(--slate-line);
+        border-radius: 0 var(--radius) var(--radius) 0;
+      }
+      span.on {
+        background-color: var(--on);
+        border-color: var(--on);
+        color: var(--on-text);
+      }
+    }
   }
   #trackDock .tdn-what {
     overflow: hidden;
@@ -6379,7 +6411,7 @@ body.track-view:not(.minimized) {
 
 /* =============================================================
    WAITING TOGGLES
-   With Q on, M, S, Seq, Arp and Trk wait for the next boundary while the clock runs
+   With Q on, M, S, Seq and Arp wait for the next boundary while the clock runs
    (pending-toggles.ts); every other blink phase (`data-flip`) the chip shows the look
    it will have.
    ============================================================= */
@@ -6487,5 +6519,47 @@ body.track-view:not(.minimized) {
 
 body.track-view .zone .mini-lane,
 body.minimized .zone .mini-lane {
+  display: none !important;
+}
+
+/* Takes strip (cards, stopped, zones with takes): ‹ Take n/m › length, preview, Keep */
+.zone .card-takes {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 2px;
+  font-size: var(--fs-md);
+  color: var(--slate-dim);
+}
+
+.zone.has-card-takes .card-takes {
+  display: flex;
+}
+
+.zone .card-takes .lightButton {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 8px;
+  justify-content: center;
+}
+
+.zone .card-takes .ct-label {
+  color: var(--text-base-color);
+  min-width: 64px;
+  text-align: center;
+}
+
+.zone .card-takes .ct-len {
+  min-width: 44px;
+}
+
+.zone .card-takes .ct-preview {
+  flex: 1;
+  min-width: 40px;
+  height: 18px;
+}
+
+body.track-view .zone .card-takes,
+body.minimized .zone .card-takes {
   display: none !important;
 }

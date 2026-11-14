@@ -22,26 +22,16 @@ const timeline = {
   // Run position where the current arrangement's song began: 0 at Start, the switch
   // position when an arrangement is entered while running (its song starts at bar 1)
   sectionStart: 0,
-  // Song position at sectionStart: bar 1 (the song runs into a loop); set elsewhere when a loop changes while running
-  songStart: 0,
-  // The current arrangement's loop range while it's on (song positions, whole ticks)
-  loop: null as LoopRange | null,
   // Counting in before Start: the last count-in tick (negative, -1 just before Start), else null
   countIn: null as number | null,
   // The current arrangement's meter (its song's bars and beats)
   meter: DEFAULT_METER as Meter
 };
 
-export interface LoopRange {
-  from: number;
-  to: number;
-}
-
 function timelineClock(pos: number, tickIntervalMs: number): void {
   if (pos === 0) {
     timeline.run++;
     timeline.sectionStart = 0;
-    timeline.songStart = 0;
     timeline.runStart = timeline.nextRunStart;
     timeline.runStarts.push(timeline.runStart);
   }
@@ -95,52 +85,16 @@ function sessionNow(): number {
 /** An arrangement was entered at this run position: its song starts there at bar 1 */
 function timelineSection(pos: number): void {
   timeline.sectionStart = pos;
-  timeline.songStart = 0;
-}
-
-/**
- * The current arrangement's loop range (null: off). Changed while running, the song
- * goes on from where it is (from the next tick); past the new loop's end it jumps
- * to its start.
- */
-function timelineLoop(loop: LoopRange | null): void {
-  const valid = loop && loop.to > loop.from ? loop : null;
-  const same = valid === timeline.loop || (!!valid && !!timeline.loop && valid.from === timeline.loop.from && valid.to === timeline.loop.to);
-  if (same) return;
-  if (timeline.running) {
-    const next = timeline.pos + 1;
-    let song = Math.round(songAt(next - timeline.sectionStart));
-    if (valid && song >= valid.to) song = valid.from;
-    timeline.sectionStart = next;
-    timeline.songStart = song;
-  }
-  timeline.loop = valid ? { from: valid.from, to: valid.to } : null;
-}
-
-/** Song position after `elapsed` ticks of the section: on from songStart, wrapping in the loop */
-function songAt(elapsed: number): number {
-  const linear = timeline.songStart + elapsed;
-  const loop = timeline.loop;
-  if (!loop || timeline.songStart >= loop.to || linear < loop.to) return linear;
-  return loop.from + ((linear - loop.from) % (loop.to - loop.from));
-}
-
-/** Which pass of the loop `elapsed` falls in (0 before the first jump) */
-function passAt(elapsed: number): number {
-  const linear = timeline.songStart + elapsed;
-  const loop = timeline.loop;
-  if (!loop || timeline.songStart >= loop.to || linear < loop.to) return 0;
-  return 1 + Math.floor((linear - loop.to) / (loop.to - loop.from));
 }
 
 /** Position in the current arrangement's song (ticks from its bar 1); stopped: where Start begins (bar 1) */
 function songNow(): number {
-  return timeline.running ? songAt(nowTick() - timeline.sectionStart) : 0;
+  return timeline.running ? nowTick() - timeline.sectionStart : 0;
 }
 
 /** Song position where the last section ended or is now (stopped: where it stopped) */
 function songEnd(): number {
-  return songAt((timeline.running ? nowTick() : timeline.stopPos) - timeline.sectionStart);
+  return (timeline.running ? nowTick() : timeline.stopPos) - timeline.sectionStart;
 }
 
 /** Where notes released now end: stopped, where the last run ended (ring-outs) */
@@ -154,7 +108,6 @@ interface HistoryNote {
   start: number;
   end: number | null; // null while sounding
   live?: boolean; // played through from the input (it also shows in the take being recorded)
-  take?: boolean; // played by a kept take (layered takes show it in their band)
 }
 
 /**
@@ -185,10 +138,10 @@ class NoteHistory {
     return notes.slice(lo, end);
   }
 
-  noteOn(pitch: number, velo: number, live = false, take = false): void {
+  noteOn(pitch: number, velo: number, live = false): void {
     if (!timeline.running) return;
     this.noteOff(pitch);
-    this.notes.push({ pitch, velo, start: sessionNow(), end: null, live, take });
+    this.notes.push({ pitch, velo, start: sessionNow(), end: null, live });
     if (pitch < this.low) this.low = pitch;
     if (pitch > this.high) this.high = pitch;
     if (this.notes.length > NoteHistory.MAX) this.notes.splice(0, this.notes.length - NoteHistory.MAX);
@@ -210,4 +163,4 @@ class NoteHistory {
   }
 }
 
-export { timeline, timelineClock, timelineTransport, timelineSection, timelineLoop, timelineCountIn, timelineMeter, countInNow, nowTick, sessionNow, songNow, songEnd, songAt, passAt, NoteHistory, HistoryNote };
+export { timeline, timelineClock, timelineTransport, timelineSection, timelineCountIn, timelineMeter, countInNow, nowTick, sessionNow, songNow, songEnd, NoteHistory, HistoryNote };

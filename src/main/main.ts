@@ -193,6 +193,10 @@ function createWindow(): void {
   } else {
     Menu.setApplicationMenu(null);
   }
+  // where the renderer keeps files of its own (the takes)
+  ipcMain.on('user-data-path', (event) => {
+    event.returnValue = app.getPath('userData');
+  });
   ipcMain.handle('open-save', async (event, ...args): Promise<SaveResult> => {
     let eventResult: SaveResult = {
       canceled: true,
