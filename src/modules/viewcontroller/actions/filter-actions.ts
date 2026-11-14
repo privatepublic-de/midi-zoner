@@ -1,4 +1,27 @@
 import { ActionContext, ActionHelpers, ActionMap } from '../types';
+import { Zone } from '../../zone/zone-class';
+
+/** Thru as a new zone has it: everything passes but CC and program changes, velocity as played */
+const NEW_ZONE_THRU = {
+  pitchbend: true,
+  mod: true,
+  sustain: true,
+  cc: false,
+  programchange: false,
+  at2mod: false,
+  fixedvel: false,
+  velocity_scaling: 1,
+} as const;
+
+/** The Thru chip's dot (set apart from a new zone) and the program number on the Program chip */
+export function showThruAndProgram(zone: Zone): void {
+  const changed = (Object.keys(NEW_ZONE_THRU) as (keyof typeof NEW_ZONE_THRU)[]).some(
+    (k) => zone[k] !== NEW_ZONE_THRU[k]
+  );
+  zone._$('.toggle_filters.thru')?.classList.toggle('changed', changed);
+  const num = zone._$('.program-num') as HTMLElement | null;
+  if (num) num.textContent = zone.pgm_no ? String(zone.pgm_no) : '';
+}
 
 export function createFilterActions(
   ctx: ActionContext,
@@ -41,15 +64,27 @@ export function createFilterActions(
     filters_at2mod: applyParamToggle,
     filters_pitchbend: applyParamToggle,
     filters_programchange: applyParamToggle,
+    // Typing only sets the numbers; filters_sendprogram sends them once committed
     filters_changeprogram: () => {
       const v = parseInt((element as HTMLInputElement).value);
       if (v > 0 && v < 129) {
         zone.pgm_no = v;
-        zone.sendProgramChange();
-        toast(`Program change ${v} sent`);
       } else if (isNaN(v)) {
         zone.pgm_no = null;
       }
+      showThruAndProgram(zone);
+    },
+    filters_sendprogram: () => {
+      if (!zone.pgm_no) {
+        // only the Send button gets here without a number (a cleared field just sends none)
+        if (element.classList.contains('program-send')) toast('Set a program number first');
+        return;
+      }
+      zone.sendProgramChange();
+      const bank = [zone.bank_msb, zone.bank_lsb].some((b) => b != null)
+        ? `, bank ${zone.bank_msb ?? '–'}/${zone.bank_lsb ?? '–'}`
+        : '';
+      toast(`Program ${zone.pgm_no}${bank} sent`);
     },
     filters_changebank_msb: () => {
       const v = parseInt((element as HTMLInputElement).value);

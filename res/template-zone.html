@@ -749,128 +749,155 @@
       <a class="octselect" data-action="${index}:zone_octave:2">+2</a>
       <a class="octselect" data-action="${index}:zone_octave:3">+3</a>
     </div>
-    <div class="action toggle_filters" data-action="${index}:filters_toggle">
-      Filters
+    <div
+      class="action toggle_filters thru"
+      data-action="${index}:filters_toggle"
+      title="What passes from your keyboard to the synth, and velocity"
+    >
+      Thru<span class="thru-dot" title="Set apart from a new zone"></span>
     </div>
     <div class="popupsettings popup hideonleave">
-      <div
-        class="check pitchbend"
-        data-action="${index}:filters_pitchbend"
-        title="Transmit pitch bend messages"
-      >
-        ${checkboxIcons}Pitch Bend
+      <div class="thru-line">
+        <div class="label">Pass</div>
+        <div
+          class="check pitchbend"
+          data-action="${index}:filters_pitchbend"
+          title="Pass pitch bend"
+        >
+          ${checkboxIcons}Bend
+        </div>
+        <div
+          class="check mod"
+          data-action="${index}:filters_mod"
+          title="Pass the mod wheel (CC 1)"
+        >
+          ${checkboxIcons}Wheel
+        </div>
+        <div
+          class="check sustain"
+          data-action="${index}:filters_sustain"
+          title="Pass the sustain pedal (CC 64)"
+        >
+          ${checkboxIcons}Sustain
+        </div>
+        <div
+          class="check cc"
+          data-action="${index}:filters_cc"
+          title="Pass all other control changes"
+        >
+          ${checkboxIcons}CC
+        </div>
+        <div
+          class="check programchange"
+          data-action="${index}:filters_programchange"
+          title="Pass program changes"
+        >
+          ${checkboxIcons}Program
+        </div>
+        <div class="thru-gap"></div>
+        <div
+          class="check at2mod"
+          data-action="${index}:filters_at2mod"
+          title="Turn channel pressure (aftertouch) into the mod wheel (CC 1)"
+        >
+          ${checkboxIcons}AT→MW
+        </div>
       </div>
-      <div
-        class="check mod"
-        data-action="${index}:filters_mod"
-        title="Transmit mod wheel messages (CC 1)"
-      >
-        ${checkboxIcons}Wheel
-      </div>
-      <div
-        class="check sustain"
-        data-action="${index}:filters_sustain"
-        title="Transmit sustain pedal messages (CC 64)"
-      >
-        ${checkboxIcons}Sustain
-      </div>
-      <div
-        class="check cc"
-        data-action="${index}:filters_cc"
-        title="Transmit control change messages"
-      >
-        ${checkboxIcons}CC
-      </div>
-      <div
-        class="check at2mod"
-        data-action="${index}:filters_at2mod"
-        title="Convert channel pressure (aftertouch) to mod (CC 1)"
-      >
-        ${checkboxIcons}Aftertouch &gt; MW
-      </div>
-      <div
-        class="check programchange"
-        data-action="${index}:filters_programchange"
-        title="Transmit program change messages"
-      >
-        ${checkboxIcons}Program
-      </div>
-      <div style="width: 100%"></div>
-      <div
-        class="check fixedvel"
-        data-action="${index}:filters_fixedvel"
-        title="Use fixed velocity"
-      >
-        ${checkboxIcons}Fixed Vel
-        <input
-          type="number"
-          class="fixedvel_value"
-          onclick="event.stopPropagation()"
-          data-change="${index}:filters_fixedvel_value"
-          value="127"
-          min="1"
-          max="127"
-          tabindex="-1"
-        />
-      </div>
-      <div class="label">Vel%</div>
-      <div class="percent-holder">
-        <input
-          type="range"
-          class="percent velocity_scaling"
-          data-change="${index}:filters_velocity_scaling"
-          id="velocity_scaling${index}"
-          min="0"
-          max="200"
-          tabindex="-1"
-        />
-        <output for="velocity_scaling${index}">---</output>
+      <div class="thru-line">
+        <div class="label">Velocity</div>
+        <div
+          class="check fixedvel"
+          data-action="${index}:filters_fixedvel"
+          title="Play every note at this velocity"
+        >
+          ${checkboxIcons}Fixed
+          <input
+            type="number"
+            class="fixedvel_value"
+            onclick="event.stopPropagation()"
+            data-change="${index}:filters_fixedvel_value"
+            value="127"
+            min="1"
+            max="127"
+            tabindex="-1"
+          />
+        </div>
+        <div class="thru-gap"></div>
+        <div class="label">Scale</div>
+        <div class="percent-holder">
+          <input
+            type="range"
+            class="percent velocity_scaling"
+            data-change="${index}:filters_velocity_scaling"
+            id="velocity_scaling${index}"
+            min="0"
+            max="200"
+            tabindex="-1"
+          />
+          <output for="velocity_scaling${index}">---</output>
+        </div>
       </div>
     </div>
-    <div class="action toggle_filters" data-action="${index}:program_toggle">
-      Program
+    <div
+      class="action toggle_filters"
+      data-action="${index}:program_toggle"
+      title="Program and bank sent to the synth"
+    >
+      Program<span class="program-num"></span>
     </div>
     <div class="programsettings popup hideonleave">
       <div class="label">Program</div>
       <input
-        title="Send a program change message (1–128). Clear to disable."
+        title="Program change (1–128), sent on Enter or when you leave the field. Clear to send none."
         class="programnumber"
         type="number"
         value=""
+        placeholder="off"
         min="1"
         max="128"
         data-change="${index}:filters_changeprogram"
         tabindex="-1"
       />
-      <div class="label">Bank MSB:</div>
+      <div class="thru-gap"></div>
+      <div class="label">Bank MSB</div>
       <input
-        title="Bank MSB — CC 0 (0–127). Clear to disable."
+        title="Bank MSB, CC 0 (0–127), sent before the program. Clear to send none."
         class="banknumber bank_msb"
         type="number"
         value=""
+        placeholder="off"
         min="0"
         max="127"
         data-change="${index}:filters_changebank_msb"
         tabindex="-1"
       />
-      <div class="label">LSB:</div>
+      <div class="label">LSB</div>
       <input
-        title="Bank LSB — CC 32 (0–127). Clear to disable."
+        title="Bank LSB, CC 32 (0–127), sent before the program. Clear to send none."
         class="banknumber bank_lsb"
         type="number"
         value=""
+        placeholder="off"
         min="0"
         max="127"
         data-change="${index}:filters_changebank_lsb"
         tabindex="-1"
       />
+      <div style="flex-grow: 1"></div>
+      <div
+        class="action program-send"
+        data-action="${index}:filters_sendprogram"
+        title="Send program and bank again, e.g. after changing the sound on the synth"
+      >
+        Send
+      </div>
     </div>
     <div
       class="action sustain_on"
       data-action="${index}:filters_sustain_on"
-      title="Send sustain pedal on to output"
+      title="Hold the sustain pedal down on the synth (CC 64) until pressed again"
     >
-      Sustain
+      Pedal
     </div>
     <div class="swing-in-settings">
       <div class="label">Swing</div>

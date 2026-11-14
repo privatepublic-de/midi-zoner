@@ -68,6 +68,7 @@ export function createZoneActions(
           if (result == true) {
             pushHistory(snapshotBeforeDelete, labelForZone(zone, zoneindex, 'Delete'));
             const scrollPos = window.scrollY;
+            zone.releasePedal();
             zone.dismiss();
             zones.list.splice(zoneindex, 1);
             midiController.updateUsedPorts(listUsedPorts());

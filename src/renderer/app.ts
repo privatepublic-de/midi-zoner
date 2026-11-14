@@ -1307,6 +1307,7 @@ document.addEventListener('DOMContentLoaded', function () {
     },
     panicHandler: () => {
       zones.list.forEach((z) => z.panic());
+      view.updateValuesForAllZones(); // held Pedal buttons go dark
       console.log('app: distributed panic to all zones');
       setTimeout(() => {
         view.toast(
@@ -1342,6 +1343,8 @@ document.addEventListener('DOMContentLoaded', function () {
           const previous = zones.list.slice();
           applyStoredZones(JSON.parse(snapshot), midi);
           carryOverNoteHistory(previous, zones.list);
+          // pedals no zone took over (zone gone, other output) let go
+          previous.forEach((z) => z.releasePedal());
           showScene();
           updateUndoRedoButtons();
         }
@@ -1562,6 +1565,7 @@ document.addEventListener('DOMContentLoaded', function () {
                   } else {
                     // a scene file replaces the scene
                     undoHistory.push(before, 'Load Scene');
+                    zones.list.forEach((z) => z.releasePedal());
                     applyStoredZones(sceneFromFile(data), midi);
                     // ports present here keep their own names; ids from another machine re-link by name
                     allPorts.outputs.forEach((p) => { zones.knownPortNames[p.id] = p.fullName; });

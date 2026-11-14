@@ -10,7 +10,7 @@ This is an [Electron](https://www.electronjs.org/) application built with TypeSc
 
 ![midi-zoner](https://github.com/privatepublic-de/midi-zoner/wiki/images/scr/mz-full-dark.png)
 
-- **Zones**: split your keyboard into zones, each with its own key range, output port and channel, octave, filters, velocity and program change. Mute, solo and named output configurations
+- **Zones**: split your keyboard into zones, each with its own key range, output port and channel, octave, what passes (Thru), velocity, program change and a sustain pedal latch. Mute, solo and named output configurations
 - **Arpeggiator**: up/down/random/order and strum directions with velocity taper, 1–4 octaves, ratchet, chance, gate, hold with transpose, euclidean patterns
 - **Step sequencer**: melodic (up to 256 steps) and drum mode (up to 12 lanes, 64 steps each); per-step velocity, length, gate, chance, conditions and ratchet; live recording, piano roll, transpose and adjust tools
 - **Parameter locks**: per-step controller values, optionally sliding, Elektron style

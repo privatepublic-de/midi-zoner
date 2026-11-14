@@ -6,6 +6,7 @@ import DragZone from '../dragzone';
 import potDragHandler from '../potdraghandler';
 import * as zoneTemplate from '../zone-template';
 import { Zone } from '../zone/zone-class';
+import { showThruAndProgram } from './actions/filter-actions';
 import { MpeMode } from '../zone/mpe';
 import { Sequence } from '../zone/sequence';
 import { ZONES_CHANGED_EVENT } from '../zone/interfaces';
@@ -890,6 +891,11 @@ function appendZone(zone: ZoneType, index: number): void {
   DOM.all(`#zone${index} *[data-change]`).forEach((e) => {
     e.addEventListener('input', actionHandler as EventListener);
   });
+  // Program and bank go out once a value is committed (Enter, leaving the field,
+  // an arrow step), not per keystroke: typing 112 would send 1 and 11 first
+  DOM.all(`#zone${index} .programsettings input`).forEach((e) => {
+    e.addEventListener('change', (ev) => actionHandler(ev as MouseEvent, `${index}:filters_sendprogram`));
+  });
   DOM.all(`#zone${index} *[data-focus-change]`).forEach((e) => {
     e.addEventListener('focus', actionHandler as EventListener);
     e.addEventListener('blur', actionHandler as EventListener);
@@ -1554,6 +1560,7 @@ function updateValuesForZone(index: number): void {
       zone.bank_msb != null ? String(zone.bank_msb) : '';
     (zone._$('input.bank_lsb') as HTMLInputElement).value =
       zone.bank_lsb != null ? String(zone.bank_lsb) : '';
+    showThruAndProgram(zone);
     (zone._$('input.fixedvel_value') as HTMLInputElement).value = String(
       zone.fixedvel_value
     );
@@ -1795,6 +1802,7 @@ function showContextMenuFor(ev: MouseEvent): void {
 function deleteAllZones(): void {
   undoHistory.beforeAction(JSON.stringify(zones), 'Delete All Zones');
   zones.list.forEach((zone) => {
+    zone.releasePedal();
     zone.dismiss();
   });
   zones.list.length = 0;
