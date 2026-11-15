@@ -487,7 +487,9 @@ function actionHandler(ev: MouseEvent, overrideaction?: string): void {
     if (output) {
       output.value = inputElement.value + '%';
     }
-    element.title = inputElement.value + '%';
+    // its description (from the labelled block around it) with the value
+    const tip = element.parentElement?.closest('[title]:not(input)')?.getAttribute('title');
+    element.title = tip ? `${tip}: ${inputElement.value}%` : inputElement.value + '%';
     return parseInt(inputElement.value) / 100;
   };
   const applyPercentage = (): void => {
@@ -894,7 +896,7 @@ function addPlaceholder(): void {
   DOM.addHTML(
     '#zones',
     'beforeend',
-    '<div class="zone addnewzone"><a class="action" title="Add new zone">+ Add zone</a>' +
+    '<div class="zone addnewzone"><a class="action" title="Add a zone">+ Add zone</a>' +
       '<p class="addzone-hint">A zone sends one key range of your keyboard to one MIDI output, with its own arpeggiator, sequencer and controls.</p></div>'
   );
   DOM.all('#zones .zone.placeholder', (e) => e.remove());
@@ -1380,7 +1382,7 @@ function updateValuesForZone(index: number): void {
             `input[data-change="${index}:seq_drumlane_note:${laneIndex}"]`
           ) as HTMLInputElement;
           numberElement.value = String(lane.note);
-          numberElement.title = 'Trigger note: ' + Note.display(lane.note);
+          numberElement.title = 'The lane plays ' + Note.display(lane.note);
           const laneStepsEl = zone.elements.get(
             `input[data-change="${index}:seq_drum_lane_steps:${laneIndex}"]`
           ) as HTMLInputElement | null;

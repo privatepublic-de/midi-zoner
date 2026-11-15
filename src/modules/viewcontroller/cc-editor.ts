@@ -517,7 +517,7 @@ function renderValues(zone: ZoneType, c: CCController, ix: number): void {
       if (snap) {
         const remove = document.createElement('button');
         remove.className = 'cce-icon-button';
-        remove.title = selector ? 'Remove this entry' : 'Remove this step';
+        remove.title = selector ? 'Delete this entry' : 'Delete this step';
         remove.innerHTML = '<i class="material-icons">close</i>';
         remove.addEventListener('click', (ev) => act(ev, `cc_step_remove:${i}`));
         row.append(remove);

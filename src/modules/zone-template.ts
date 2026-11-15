@@ -111,18 +111,18 @@ export function getHTML(zone: ZoneType, zoneindex: number): string {
     drumLanes += `
       <div class="drum-lane lane${ln}" data-contextmenu="${index}:seq_copy_lane:${ln},${index}:seq_paste_lane:${ln},-,${index}:seq_clear_lane:${ln}">
         <div class="lane-header">
-          <div class="action ch enabled seq_toggle_lane_enabled" data-action="${index}:seq_toggle_lane_enabled:${ln}" title="Mute lane">M</div>
-          <div class="action ch solo seq_toggle_lane_solo" data-action="${index}:seq_toggle_lane_solo:${ln}" title="Solo lane">S</div>
-          <input class="lane-label" type="text" maxlength="5" placeholder="${ln + 1}" title="Lane label" data-change="${index}:seq_drum_lane_label:${ln}" tabindex="-1"/>
+          <div class="action ch enabled seq_toggle_lane_enabled" data-action="${index}:seq_toggle_lane_enabled:${ln}" title="Mute this lane">M</div>
+          <div class="action ch solo seq_toggle_lane_solo" data-action="${index}:seq_toggle_lane_solo:${ln}" title="Solo this lane">S</div>
+          <input class="lane-label" type="text" maxlength="5" placeholder="${ln + 1}" title="Name this lane" data-change="${index}:seq_drum_lane_label:${ln}" tabindex="-1"/>
           <div class="lane-controls-ext">
             <div class="lane-ctrl-label">Note</div>
-            <div class="val"><input type="number" min="0" max="127" title="Note number" value="${36 + ln}" data-change="${index}:seq_drumlane_note:${ln}"/></div>
+            <div class="val"><input type="number" min="0" max="127" title="The note this lane plays (0–127)" value="${36 + ln}" data-change="${index}:seq_drumlane_note:${ln}"/></div>
             <div class="lane-ctrl-label">Len</div>
-            <div class="val lane-len-wrap"><input type="number" class="lane-steps" min="1" max="${Sequence.MAX_STEPS_DRUMS}" value="16" title="Steps in lane" data-change="${index}:seq_drum_lane_steps:${ln}" tabindex="-1"/></div>
+            <div class="val lane-len-wrap"><input type="number" class="lane-steps" min="1" max="${Sequence.MAX_STEPS_DRUMS}" value="16" title="Steps in this lane" data-change="${index}:seq_drum_lane_steps:${ln}" tabindex="-1"/></div>
             <div class="lane-toolbar">
-              <span class="action lane-shift-left" data-action="${index}:seq_drumlane_move:${ln}:-1" title="Shift lane left">‹</span>
-              <span class="action lane-shift-right" data-action="${index}:seq_drumlane_move:${ln}:1" title="Shift lane right">›</span>
-              <span class="action lane-euc-btn" data-action="${index}:seq_toggle_lane_euclid:${ln}" title="Euclidean fill">E</span>
+              <span class="action lane-shift-left" data-action="${index}:seq_drumlane_move:${ln}:-1" title="Shift the lane to the left">‹</span>
+              <span class="action lane-shift-right" data-action="${index}:seq_drumlane_move:${ln}:1" title="Shift the lane to the right">›</span>
+              <span class="action lane-euc-btn" data-action="${index}:seq_toggle_lane_euclid:${ln}" title="Euclidean: spread its hits evenly over the lane">E</span>
               <div class="euc-panel hideonleave">
                 <input class="euc-hits" type="range" min="1" max="32" value="4" data-change="${index}:seq_euclid_lane:${ln}"/>
                 <span class="euc-val">4</span>
@@ -130,7 +130,7 @@ export function getHTML(zone: ZoneType, zoneindex: number): string {
             </div>
           </div>
         </div>
-        <div class="lane-expand-toggle" data-action="${index}:seq_toggle_lanes_expand" title="Expand/collapse lane controls">${
+        <div class="lane-expand-toggle" data-action="${index}:seq_toggle_lanes_expand" title="Show or hide the lanes' settings">${
           ln === 0
             ? '<span class="lane-expand-chevron"><i class="material-icons">arrow_right</i></span>'
             : ''
@@ -172,7 +172,7 @@ export function getHTML(zone: ZoneType, zoneindex: number): string {
   ].join(',');
 
   const zoneMuteKeyboardHint =
-    index < 10 ? `('${(index + 1) % 10}' on computer keyboard)` : '';
+    index < 10 ? `(key ${(index + 1) % 10})` : '';
 
   return interpolateTemplate(templateZone, {
     index: index,

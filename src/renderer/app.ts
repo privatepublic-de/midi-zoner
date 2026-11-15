@@ -529,7 +529,7 @@ function setMiniView(on: boolean, refresh = true): void {
   document.body.classList.toggle('minimized', on);
   DOM.get('#miniViewBtn')!.classList.toggle('active', on);
   const miniBtn = DOM.get('#miniViewBtn') as HTMLElement;
-  miniBtn.title = `${on ? 'Back to full view' : 'Switch to mini view'} (Cmd/Ctrl+Shift+M)`;
+  miniBtn.title = `${on ? 'Back to the full view' : 'Mini view'} (⌘⇧M)`;
   miniBtn.querySelector('i')!.textContent = on ? 'open_in_full' : 'close_fullscreen';
   if (refresh) view.updateValuesForAllZones();
   // each view keeps its own zoom
@@ -969,7 +969,7 @@ document.addEventListener('DOMContentLoaded', function () {
           container,
           'beforeend',
           `<div class="clockOutOption portVis${hidden ? ' hiddenPort' : ''}${locked ? ' locked' : ''}" data-portid="${esc(port.id)}" data-dir="${dir}"
-            title="${locked ? 'In use – cannot be hidden' : hidden ? 'Show this port' : 'Hide this port'}">
+            title="${locked ? 'In use: can’t be hidden' : hidden ? 'Show this port' : 'Hide this port'}">
             <span>${esc(port.fullName)}</span>
             <span class="material-icons">${hidden ? 'visibility_off' : 'visibility'}</span>
           </div>`

@@ -201,15 +201,15 @@ function loopChipTitle(zone: Zone, state: string): string {
   const length = zone.loop ? Take.lengthLabel(zone.loop.length, currentMeter()) : '';
   switch (state) {
     case 'on':
-      return `A ${length} loop plays. Press to overdub, two quick presses clear it. Mute silences it`;
+      return `Loop · ${length}: press on a 1 to overdub, twice quickly to clear. Mute silences it`;
     case 'wait':
-      return `${mode} starts on the next 1. Press again to cancel`;
+      return `${mode} starts on the next 1 (press again: cancel)`;
     case 'rec':
-      return `${mode}: press on a 1 to close it`;
+      return `${mode}: press on a 1 to end it`;
     case 'closing':
       return `${mode} ends on the next 1`;
     default:
-      return 'Rec: press on a 1 to record a loop (a little late is fine, the bar before is its pick-up), press on a later 1 to close it: it plays at once. Press again to overdub, once more to end it. Two quick presses clear the loop. Mute silences it';
+      return 'Rec: press on a 1 to record a loop, on a later 1 to close it; it plays at once. A little late is fine: the bar before counts as its pick-up. Press again to overdub, twice quickly to clear. Mute silences it';
   }
 }
 
@@ -1330,7 +1330,7 @@ function drawLoopBlock(
     g.fillStyle = amber;
     g.fillRect(Math.round(at) - 1, top + 2, 2, h - 4);
     const bars = Math.round(loop.length / barLen()) + (drag.edge === 'end' ? drag.bars : -drag.bars);
-    const tip = `${bars} bar${bars === 1 ? '' : 's'}${leaving ? ' · the rest kept aside' : ''}`;
+    const tip = `${bars} bar${bars === 1 ? '' : 's'}${leaving ? ' · the rest set aside' : ''}`;
     g.font = '600 10px "Barlow Semi Condensed", sans-serif';
     const tw = g.measureText(tip).width + 10;
     const tx = Math.max(2, Math.min(w - tw - 2, at + 6));
@@ -1446,7 +1446,7 @@ function drawCapture(
     invalidate(); // placed by its width, known from the next frame
   }
   const take = shownTake(capture!.zone)?.take;
-  const text = `Loop · ${Take.lengthLabel(capture!.to - capture!.from, take ? takeMeter(take) : timeline.meter)}`;
+  const text = `Loop ${Take.lengthLabel(capture!.to - capture!.from, take ? takeMeter(take) : timeline.meter)}`;
   const keepLink = captureButton.querySelector('.cb-loop')!;
   if (keepLink.textContent !== text) keepLink.textContent = text;
   captureButton.style.left = `${Math.max(4, Math.min(w - captureButton.offsetWidth - 4, x1 - captureButton.offsetWidth - 4))}px`;
@@ -1467,7 +1467,7 @@ function laneTick(lane: Element, clientX: number): number {
 
 /**
  * The loop's bars from `a` to `b` (ticks from its start: an edge dragged out reaches into
- * what it was cut from, dragged in the bars are kept aside); one undo step
+ * what it was cut from, dragged in the bars are set aside); one undo step
  */
 function setLoopBars(zone: Zone, a: number, b: number, label: string): void {
   const index = getZones().indexOf(zone);
@@ -1531,7 +1531,7 @@ function startLoopEdgeDrag(ev: MouseEvent, zone: Zone, edge: 'start' | 'end', ba
       invalidate();
       return;
     }
-    if (edge === 'end') setLoopBars(zone, 0, len + bars * bar, 'Loop End');
+    if (edge === 'end') setLoopBars(zone, 0, len + bars * bar, 'Loop Length');
     else setLoopBars(zone, bars * bar, len, 'Loop Start');
   };
   window.addEventListener('mousemove', move);
@@ -1855,7 +1855,7 @@ function loopFromTake(zone: Zone, take: Take, from: number, to: number, label = 
     zone.looper.anchor = timeline.running ? Math.ceil(elapsed / zoneBar) * zoneBar : 0;
   });
   clearCapture();
-  toast(`${zone.label || `Zone ${index + 1}`}: ${Take.lengthLabel(loop.length, takeMeter(take))} loop`);
+  toast(`${zone.label || `Zone ${index + 1}`}: looping ${Take.lengthLabel(loop.length, takeMeter(take))}`);
   return true;
 }
 
@@ -1899,7 +1899,7 @@ function keepTake(zone: Zone, take: Take): boolean {
   }
   const bar = barTicks(take.sectionAt(range.from).meter);
   if (range.to - range.from > MAX_LOOP_BARS * bar) {
-    toast(`Longer than ${MAX_LOOP_BARS} bars: drag over the bars to loop in the track view`);
+    toast(`Longer than ${MAX_LOOP_BARS} bars: in the Tracks view, drag over the bars to loop`);
     return false;
   }
   return loopFromTake(zone, take, range.from, range.to);
@@ -1952,7 +1952,7 @@ function initTrackView(
   captureButton = document.createElement('div');
   captureButton.className = 'track-capture track-chip';
   captureButton.innerHTML =
-    '<a class="cb-loop lightButton" title="These bars become the zone’s loop in this arrangement, with the pick-up before them (Esc cancels)"></a>' +
+    '<a class="cb-loop lightButton" title="These bars become the zone’s loop in this arrangement, with the pick-up before them (Esc: let go)"></a>' +
     '<a class="cb-quantize lightButton" title="Quantize these bars of the take">Quantize</a>' +
     '<a class="cb-steps lightButton" title="Turn these bars into steps">To steps</a>';
   captureButton.addEventListener('mousedown', (ev) => ev.stopPropagation());
@@ -2002,7 +2002,7 @@ function initTrackView(
   takeChip.title = 'Drag over bars of the take to loop them or turn them into steps';
   takeChip.innerHTML =
     '<a class="tc-prev lightButton" title="An earlier take">‹</a>' +
-    '<a class="tc-label lightButton" title="All takes"></a>' +
+    '<a class="tc-label lightButton" title="Choose from all takes"></a>' +
     '<a class="tc-next lightButton" title="A later take">›</a>' +
     '<a class="tc-keep lightButton" title="This take becomes the zone’s loop in this arrangement, replacing its loop">Loop</a>' +
     '<a class="tc-quantize lightButton" title="Quantize this take">Quantize</a>' +
@@ -2040,16 +2040,16 @@ function initTrackView(
   loopChip.className = 'track-loop track-chip';
   loopChip.innerHTML =
     '<span class="lc-label"></span>' +
-    '<a class="lc-less lightButton" title="One bar shorter (the last bar is kept aside, + bar brings it back)">− bar</a>' +
-    '<a class="lc-more lightButton" title="One bar longer">+ bar</a>' +
-    '<a class="lc-clear lightButton" title="Clear the loop">Clear</a>';
+    '<a class="lc-less lightButton" title="One bar shorter: the last bar is set aside (+ bar brings it back)">− bar</a>' +
+    '<a class="lc-more lightButton" title="One bar longer: brings back a bar set aside, else an empty one">+ bar</a>' +
+    '<a class="lc-clear lightButton" title="Clear the loop (⌘Z brings it back)">Clear</a>';
   loopChip.addEventListener('mousedown', (ev) => ev.stopPropagation());
   const onLoop = (f: (zone: Zone, loop: Take) => void) => (): void => {
     const zone = getZones()[selected];
     if (zone?.loop) f(zone, zone.loop);
   };
-  loopChip.querySelector('.lc-less')!.addEventListener('click', onLoop((z, l) => setLoopBars(z, 0, l.length - barLen(), 'Loop End')));
-  loopChip.querySelector('.lc-more')!.addEventListener('click', onLoop((z, l) => setLoopBars(z, 0, l.length + barLen(), 'Loop End')));
+  loopChip.querySelector('.lc-less')!.addEventListener('click', onLoop((z, l) => setLoopBars(z, 0, l.length - barLen(), 'Loop Length')));
+  loopChip.querySelector('.lc-more')!.addEventListener('click', onLoop((z, l) => setLoopBars(z, 0, l.length + barLen(), 'Loop Length')));
   loopChip.querySelector('.lc-clear')!.addEventListener('click', onLoop((z) => clearLoop(z)));
   // the cards' takes strips
   zonesEl.addEventListener('click', (ev) => {
@@ -2217,7 +2217,7 @@ function initTrackView(
       if (!zone) return;
       if (kind === 'loop') {
         if (zone.loop) editing = { zoneId: zone.id, kind: 'loop' };
-        else toast('No loop in this arrangement yet: record one with Loop, or drag over bars of a take');
+        else toast('No loop in this arrangement yet: record one with Rec, or loop a take');
       } else {
         const shown = takeStore.shownTake(zone.id);
         if (shown) editing = { zoneId: zone.id, kind: 'take', take: shown };

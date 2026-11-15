@@ -3,59 +3,60 @@
     <div
       class="ch state enabled"
       data-action="${index}:zone_enabled"
-      title="Mute zone ${zoneMuteKeyboardHint}"
+      title="Mute this zone ${zoneMuteKeyboardHint}"
     >
       M
     </div>
     <div
       class="ch solo"
       data-action="${index}:zone_solo"
-      title="Solo Zone\n(Double click for this zone only)"
+      title="Solo this zone (double-click: only this zone)"
     >
       S
     </div>
     <div
       class="ch showseq"
       data-action="${index}:toggle_seq"
-      title="Enable step sequencer"
+      title="Step sequencer on/off"
     >
       Seq
     </div>
     <div
       class="ch showarp arp_enabled"
       data-action="${index}:zone_arp_enabled"
-      title="Enable arpeggiator"
+      title="Arpeggiator on/off"
     >
       Arp
     </div>
     <div
       class="ch showloop"
       data-action="${index}:zone_loop"
-      title="Rec: press on a 1 to record a loop (a little late is fine, the bar before is its pick-up), press on a later 1 to close it: it plays at once. Press again to overdub, once more to end it. Two quick presses clear the loop. Mute silences it"
+      title="Rec: press on a 1 to record a loop, on a later 1 to close it; it plays at once. A little late is fine: the bar before counts as its pick-up. Press again to overdub, twice quickly to clear. Mute silences it"
     >
       Rec
     </div>
     <div
       class="ch showccs"
       data-action="${index}:cc_toggle"
-      title="Show CC controllers"
+      title="Show this zone's controllers"
     >
       CC
     </div>
     <input
       type="text"
       class="zone-label"
+      title="Name this zone"
       placeholder="Zone ${zoneNumber}"
       onKeyUp="event.stopPropagation();"
       data-change="${index}:zone_label"
       tabindex="-1"
     />
-    <div class="midi-led" title="Sending MIDI"></div>
+    <div class="midi-led" title="Lights while this zone sends MIDI"></div>
     <div class="iorouting">
       <div
         class="iorouting-display"
         data-action="${index}:iorouting_toggle"
-        title="Configure input/output routing"
+        title="This zone's input, MPE and output"
       >
         <span class="iorouting-text"
           ><span class="iorouting-portname"></span
@@ -67,6 +68,7 @@
           <span class="ior-label">In</span>
           <select
             class="inport"
+            title="Where this zone takes its notes from: the global inputs (Setup), or an input of its own"
             data-change="${index}:zone_input_port"
             tabindex="-1"
           >
@@ -178,6 +180,7 @@
           <span class="ior-label">Out</span>
           <select
             class="outport"
+            title="The synth this zone plays: an output port, or a named output config"
             data-change="${index}:zone_outport"
             tabindex="-1"
           >
@@ -185,6 +188,7 @@
           </select>
           <select
             class="channel"
+            title="MIDI channel of the output"
             data-change="${index}:zone_channel"
             tabindex="-1"
           >
@@ -194,6 +198,7 @@
         <input
           type="text"
           class="output-config-name"
+          title="Name this port and channel to pick them again in any zone"
           placeholder="Name this output config…"
           onKeyUp="event.stopPropagation();"
           data-change="${index}:zone_output_config_name"
@@ -204,7 +209,7 @@
     <div
       class="sendClock"
       data-action="${index}:zone_send_clock"
-      title="Transmit clock to this device"
+      title="Send MIDI clock to this output"
     >
       <i class="material-icons sel">watch_later</i
       ><i class="material-icons unsel">query_builder</i>
@@ -217,17 +222,17 @@
       >
         <i class="material-icons">more_horiz</i>
       </div>
-      <div class="dragzone rtool" title="Drag zone">
+      <div class="dragzone rtool" title="Drag to move this zone">
         <i class="material-icons">drag_indicator</i>
       </div>
     </div>
   </div>
   <div class="mini-lane" title="What this zone plays: behind the playhead what it sent, ahead what comes (dashed: won't sound, e.g. Seq off or a step skipped by its condition). A waiting switch shows where it lands"><canvas></canvas></div>
-  <div class="card-takes" title="What you played in the last runs (a take per Start → Stop)">
+  <div class="card-takes" title="Takes: what you played, one per Start → Stop">
     <a class="lightButton" data-ct="prev" title="An earlier take">‹</a><span class="ct-label"></span><a class="lightButton" data-ct="next" title="A later take">›</a>
     <canvas class="ct-preview"></canvas>
     <a class="lightButton" data-ct="keep" title="This take becomes the zone’s loop in this arrangement, replacing its loop">Loop</a>
-    <a class="lightButton" data-ct="discard" title="Put this away until the next take (the take stays in the track view’s Takes list)">Discard</a>
+    <a class="lightButton" data-ct="discard" title="Hide this until the next take (the take stays, see the Tracks view)">Discard</a>
   </div>
   <div
     class="seq shadowed-zone-block"
@@ -245,7 +250,7 @@
       <div class="label dismiss-for-drumsequence">Steps</div>
       <div class="val dismiss-for-drumsequence">
         <input
-          title="Number of steps in sequence"
+          title="Steps in the sequence"
           class="seq_steps"
           type="number"
           min="1"
@@ -258,7 +263,7 @@
       <div class="label only-for-drumsequence">Lanes</div>
       <div class="val only-for-drumsequence">
         <input
-          title="Number of lanes in sequence"
+          title="Drum lanes"
           class="seq_lanes"
           type="number"
           min="1"
@@ -268,7 +273,7 @@
           tabindex="-1"
         />
       </div>
-      <div class="drop-down" title="Step resolution">
+      <div class="drop-down" title="Length of a step">
         <select
           class="seq_division"
           data-change="${index}:seq_division"
@@ -279,14 +284,14 @@
       </div>
       <div
         class="action"
-        title="Move whole sequence 1 step left"
+        title="Move the whole sequence a step to the left"
         data-action="${index}:seq_move:-1"
       >
         <i class="material-icons">chevron_left</i>
       </div>
       <div
         class="action"
-        title="Move whole sequence 1 step right"
+        title="Move the whole sequence a step to the right"
         data-action="${index}:seq_move:1"
       >
         <i class="material-icons">chevron_right</i>
@@ -301,7 +306,7 @@
       </div>
       <div
         class="action menu-button"
-        title="Change the whole sequence"
+        title="Change the whole sequence: double, halve, velocities…"
         data-contextclick
         data-contextmenu="${adjustMenu}"
       >
@@ -309,7 +314,7 @@
       </div>
       <div
         class="action"
-        title="Clear complete sequence"
+        title="Clear the whole sequence"
         data-action="${index}:seq_clear_all"
       >
         <i class="material-icons">playlist_remove</i>
@@ -323,7 +328,7 @@
       </div>
       <div
         class="action dismiss-for-drumsequence"
-        title="Open piano roll editor"
+        title="Edit in the piano roll"
         data-action="${index}:seq_open_piano_roll"
       >
         <i class="material-icons">piano</i>
@@ -343,7 +348,7 @@
             max="100"
             data-change="${index}:seq_step_velocity"
             id="seq_step_velocity${index}"
-            title="Velocity"
+            title="Velocity of the step's notes"
             tabindex="-1"
           />
           <output for="seq_step_velocity${index}">(unset)</output>
@@ -353,6 +358,7 @@
         <div class="label">Length</div>
         <input
           class="seq_step_length"
+          title="How many steps the notes last"
           type="number"
           min="1"
           max="${seqMaxSteps}"
@@ -369,7 +375,7 @@
             max="100"
             data-change="${index}:seq_gatelength"
             id="seq_gatelength${index}"
-            title="Step gate length"
+            title="How long the step's notes sound"
             tabindex="-1"
           />
           <output for="seq_gatelength${index}">(unset)</output>
@@ -383,23 +389,23 @@
             max="100"
             data-change="${index}:seq_step_probability"
             id="seq_step_probability${index}"
-            title="Chance step is triggered"
+            title="Chance the step plays"
             tabindex="-1"
           />
           <output for="seq_step_probability${index}">(unset)</output>
         </div>
         <div class="label">Condition</div>
-        <div class="drop-down" title="Select step play condition">
+        <div class="drop-down" title="When the step plays">
           <select
             class="seq_step_condition"
             data-change="${index}:seq_step_condition"
             tabindex="-1"
           >
             <option>always</option>
-            <option title="Previous was played">Prev.</option>
-            <option title="Previous was not played">Not prev.</option>
-            <option title="Only in first cycle">1st</option>
-            <option title="Not in first cycle">Not 1st</option>
+            <option title="If the step before played">Prev.</option>
+            <option title="If the step before didn't play">Not prev.</option>
+            <option title="Only in the first cycle">1st</option>
+            <option title="In every cycle but the first">Not 1st</option>
             ${cycleConditions}
           </select>
         </div>
@@ -409,7 +415,7 @@
         <select
           class="seq_step_ratchet_count"
           data-change="${index}:seq_step_ratchet_count"
-          title="Number of note repeats"
+          title="Ratchet: how often the step repeats"
           tabindex="-1"
         >
           <option value="1">—</option>
@@ -426,7 +432,7 @@
           <select
             class="seq_step_ratchet_res"
             data-change="${index}:seq_step_ratchet_res"
-            title="Time between repeats"
+            title="Time between the repeats"
             tabindex="-1"
           >
             <option value="7">1/8</option>
@@ -449,7 +455,7 @@
             value="0"
             data-change="${index}:seq_step_ratchet_delta"
             id="seq_step_ratchet_delta${index}"
-            title="Velocity change per repeat"
+            title="Velocity change on each repeat"
             tabindex="-1"
           />
           <output for="seq_step_ratchet_delta${index}">0%</output>
@@ -469,21 +475,21 @@
       <div class="step-controls">
         <div
           class="action"
-          title="Move step left (if free space)"
+          title="Move this step to the left (if there's room)"
           data-action="${index}:seq_step_move:-1"
         >
           <i class="material-icons">arrow_back</i>
         </div>
         <div
           class="action"
-          title="Move step right (if free space)"
+          title="Move this step to the right (if there's room)"
           data-action="${index}:seq_step_move:1"
         >
           <i class="material-icons">arrow_forward</i>
         </div>
         <div
           class="action warn"
-          title="Clear step"
+          title="Clear this step"
           data-action="${index}:seq_clear_selected_step"
         >
           <i class="material-icons">clear</i>
@@ -491,7 +497,7 @@
         <div style="flex-grow: 1"></div>
         <div
           class="action menu-button"
-          title="Copy a property of this step to all active steps"
+          title="Copy one of this step's settings to every step with notes"
           data-contextclick
           data-contextmenu="label:Apply to all steps:,-,${index}:step_copy_length,${index}:step_copy_gate,${index}:step_copy_condition,${index}:step_copy_chance"
         >
@@ -500,14 +506,14 @@
         <div
           class="check seq-step-add-notes hide-for-drumsequence"
           data-action="${index}:seq_step_add_notes"
-          title="New notes are added (no overwrite)"
+          title="Notes you play are added to the step instead of replacing its notes"
         >
           ${checkboxIcons}Add new notes
         </div>
         <div
           class="check seq-step-advance hide-for-drumsequence"
           data-action="${index}:seq_step_advance"
-          title="Advance step after note input"
+          title="Go on to the next step after a note is played in"
         >
           ${checkboxIcons}Advance
         </div>
@@ -521,7 +527,7 @@
         <select
           class="arp_direction"
           data-change="${index}:zone_arp_direction"
-          title="Arp play direction"
+          title="The order the arp plays the notes in"
           tabindex="-1"
         >
           <option>Up</option>
@@ -538,7 +544,7 @@
       <div class="drop-down">
         <select
           class="arp_division"
-          title="Arp step length"
+          title="Length of an arp step"
           data-change="${index}:zone_arp_division"
           tabindex="-1"
         >
@@ -546,7 +552,7 @@
         </select>
       </div>
       <div class="label">Octaves</div>
-      <div class="drop-down">
+      <div class="drop-down" title="How many octaves the arp spans">
         <select
           class="arp_octaves"
           data-change="${index}:zone_arp_octaves"
@@ -568,7 +574,7 @@
       <div
         class="check arp_hold"
         data-action="${index}:zone_arp_hold"
-        title="Hold notes after key release"
+        title="Keep playing after you let go of the keys"
       >
         ${checkboxIcons}Hold
       </div>
@@ -586,7 +592,7 @@
     </div>
     <div class="arp-settings">
       <div class="label">Gate</div>
-      <div class="percent-holder">
+      <div class="percent-holder" title="How long each arp note sounds">
         <input
           type="range"
           class="percent arp_gatelength"
@@ -601,7 +607,7 @@
       <div class="label">Chance</div>
       <div
         class="percent-holder"
-        title="Chance arpeggiator notes are triggered"
+        title="Chance an arp note plays"
       >
         <input
           type="range"
@@ -615,7 +621,7 @@
         <output for="arp_probability${index}">---</output>
       </div>
       <div class="strum-taper-holder label">Taper</div>
-      <div class="strum-taper-holder percent-holder">
+      <div class="strum-taper-holder percent-holder" title="Strum: how much quieter each note of the sweep gets">
         <input
           type="range"
           class="percent arp_strum_taper"
@@ -630,7 +636,7 @@
       <div class="ratchet-holder label">Ratchet</div>
       <div
         class="ratchet-holder percent-holder"
-        title="Probability a step is ratcheted"
+        title="Chance an arp step repeats (ratchet)"
       >
         <input
           type="range"
@@ -647,7 +653,7 @@
         <select
           class="arp_ratchet_count"
           data-change="${index}:zone_arp_ratchet_count"
-          title="Ratchet repeat count"
+          title="How often a ratcheted step repeats"
           tabindex="-1"
         >
           <option>2×</option>
@@ -658,7 +664,7 @@
     </div>
     <div class="arp-settings arp-pattern-row">
       <div class="label">Pattern</div>
-      <div class="euclid" title="Spread hits evenly over the pattern length">
+      <div class="euclid" title="Euclidean: spread the hits evenly over the pattern">
         <input
           class="euchits"
           type="number"
@@ -666,7 +672,7 @@
           max="32"
           value="5"
           data-change="${index}:zone_arp_euclid"
-          title="Hits"
+          title="Hits in the pattern"
           tabindex="-1"
         />
         <div class="label">in</div>
@@ -683,7 +689,7 @@
       </div>
       <div
         class="action"
-        title="Shift pattern left"
+        title="Shift the pattern to the left"
         data-action="${index}:zone_arp_pattern_shift:-1"
       >
         <i class="material-icons">chevron_left</i>
@@ -691,11 +697,11 @@
       <div
         class="pattern"
         data-dblclickaction="${index}:zone_arp_pattern"
-        title="Click or drag over steps to switch them on or off. Double-click to reset."
+        title="Click or drag over steps to switch them on or off (double-click: reset)"
       ></div>
       <div
         class="action"
-        title="Shift pattern right"
+        title="Shift the pattern to the right"
         data-action="${index}:zone_arp_pattern_shift:1"
       >
         <i class="material-icons">chevron_right</i>
@@ -730,8 +736,7 @@
       class="range"
       data-hover="${index}:zone_range"
       data-action="${index}:zone_range"
-      title="Select start and end note
-(hold 'shift' for octave note stepping)"
+      title="Lowest and highest key this zone plays (⇧: in octaves)"
     >
       <span class="join"></span>
       <span class="current"></span>
@@ -742,7 +747,7 @@
   </div>
   <div class="settings">
     <div class="val label">Oct</div>
-    <div class="val octaves" title="Transpose octave">
+    <div class="val octaves" title="Octave shift of what you play">
       <a class="octselect" data-action="${index}:zone_octave:-3">−3</a>
       <a class="octselect" data-action="${index}:zone_octave:-2">−2</a>
       <a class="octselect" data-action="${index}:zone_octave:-1">−1</a>
@@ -760,7 +765,7 @@
       data-action="${index}:filters_toggle"
       title="What passes from your keyboard to the synth, and velocity"
     >
-      Thru<span class="thru-dot" title="Set apart from a new zone"></span>
+      Thru<span class="thru-dot" title="Differs from a new zone's settings"></span>
     </div>
     <div class="popupsettings popup hideonleave">
       <div class="thru-line">
@@ -830,7 +835,7 @@
         </div>
         <div class="thru-gap"></div>
         <div class="label">Scale</div>
-        <div class="percent-holder">
+        <div class="percent-holder" title="Scale how hard you play: 100% as played">
           <input
             type="range"
             class="percent velocity_scaling"
@@ -854,7 +859,7 @@
     <div class="programsettings popup hideonleave">
       <div class="label">Program</div>
       <input
-        title="Program change (1–128), sent on Enter or when you leave the field. Clear to send none."
+        title="Program change (1–128), sent on Enter or when you leave the field; empty: none"
         class="programnumber"
         type="number"
         value=""
@@ -867,7 +872,7 @@
       <div class="thru-gap"></div>
       <div class="label">Bank MSB</div>
       <input
-        title="Bank MSB, CC 0 (0–127), sent before the program. Clear to send none."
+        title="Bank MSB, CC 0 (0–127), sent before the program; empty: none"
         class="banknumber bank_msb"
         type="number"
         value=""
@@ -879,7 +884,7 @@
       />
       <div class="label">LSB</div>
       <input
-        title="Bank LSB, CC 32 (0–127), sent before the program. Clear to send none."
+        title="Bank LSB, CC 32 (0–127), sent before the program; empty: none"
         class="banknumber bank_lsb"
         type="number"
         value=""
@@ -901,13 +906,13 @@
     <div
       class="action sustain_on"
       data-action="${index}:filters_sustain_on"
-      title="Hold the sustain pedal down on the synth (CC 64) until pressed again"
+      title="Hold the sustain pedal down on the synth (CC 64) until you press this again"
     >
       Pedal
     </div>
     <div class="swing-in-settings">
       <div class="label">Swing</div>
-      <div class="percent-holder">
+      <div class="percent-holder" title="Swing: every other step of the sequence and the arp comes later">
         <input
           type="range"
           class="percent swing-amount"
@@ -923,5 +928,5 @@
     </div>
   </div>
   <div class="zonenumber">${zoneNumber}</div>
-  <div class="track-lane" title="Above: the take, what you play while the clock runs. After Stop, drag over bars of it to loop just those (Option: beats). Below: what the zone plays, the sequence and the loop ahead of the playhead. Scroll sideways to move through the song. Double-click: edit"><div class="track-strip"><span class="track-hint"></span></div><canvas></canvas></div>
+  <div class="track-lane" title="Above: takes, what you played. Below: the loop and the sequence. Click a take or the loop to pick it and edit its notes in the panel; drag over bars of a take to loop just those (⌥: beats); drag the loop's edges to change its length. Scroll sideways to move through the song"><div class="track-strip"><span class="track-hint"></span></div><canvas></canvas></div>
 </div>
