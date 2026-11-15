@@ -91,6 +91,7 @@ const contextMenuActionLabel: Record<string, string> = {
   seq_clear_lane: '<i class="material-icons">clear</i> Clear lane',
   zone_change_color: '<i class="material-icons">palette</i> Change colour',
   zone_export: '<i class="material-icons">save_alt</i> Save zone to file…',
+  zone_loop_mpe_clear: '<i class="material-icons">clear</i> Clear the loop’s MPE',
   zone_delete: '<i class="material-icons">delete_outline</i> Delete zone…',
   cc_preset_save: '<i class="material-icons">save</i> Save as new preset…',
   cc_presets_manage: '<i class="material-icons">library_books</i> Manage presets…',
@@ -627,6 +628,11 @@ function updateArrangementMeters(): void {
 }
 
 /** The meter entries of an arrangement's menu ("meters:<arrangement>") */
+/** The zone menu's entry for its loop's MPE expression, when it has some */
+function loopMpeMenu(zoneindex: number): string[] {
+  return zones.list[zoneindex]?.loop?.hasExpression ? [`${zoneindex}:zone_loop_mpe_clear`] : [];
+}
+
 function meterMenu(spec: string): string[] {
   const arr = parseInt(spec.split(':')[1]);
   return [
@@ -651,7 +657,9 @@ function contextHandler(ev: MouseEvent): void {
           ? selectorMenu(act)
           : act.startsWith('meters:')
             ? meterMenu(act)
-            : [act]
+            : act.startsWith('loopmpe:')
+              ? loopMpeMenu(parseInt(act.slice(8)))
+              : [act]
     );
   // (a menu doesn't start with a divider: the meter chip has only the meter entries)
   while (menuActions[0] === '-') menuActions.shift();
@@ -1801,7 +1809,7 @@ function updateZoneHeaderContextMenus(currentArrIndex: number): void {
     const copyItems = others.map(t => `${i}:zone_arr_copy_to:${t}`).join(',');
     // the header's right-click menu and its ⋯ button show the same entries
     z.elements.zoneElement?.querySelectorAll<HTMLElement>('.channels, .zonemenu').forEach((el) => {
-      el.dataset.contextmenu = `${i}:zone_change_color,${i}:zone_export,-,${copyItems},-,${i}:zone_delete`;
+      el.dataset.contextmenu = `${i}:zone_change_color,${i}:zone_export,loopmpe:${i},-,${copyItems},-,${i}:zone_delete`;
     });
   });
 }

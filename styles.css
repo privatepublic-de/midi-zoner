@@ -5872,6 +5872,14 @@ body.track-view:not(.minimized) {
       opacity: 0.3;
       pointer-events: none;
     }
+    .lightButton[hidden] {
+      display: none;
+    }
+    /* a switch that is on (the loop's MPE) */
+    .lightButton.lit {
+      background-color: var(--on);
+      color: var(--on-text);
+    }
     .lightButton:not(.tc-prev, .tc-next):hover {
       background-color: var(--on);
       color: var(--on-text);

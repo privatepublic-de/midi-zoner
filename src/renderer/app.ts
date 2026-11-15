@@ -60,6 +60,8 @@ const debounce = function <T extends (...args: any[]) => void>(
 const saveZones = debounce(() => {
   localStorage.setItem('zones', JSON.stringify(zones));
 }, 500);
+// a loop closed over a held MPE key gets the rest of its expression afterwards
+Zone.loopCurvesChanged = saveZones;
 
 const undoHistory = new UndoHistory();
 let hardwareLockTimer: ReturnType<typeof setTimeout> | null = null;
@@ -1322,6 +1324,8 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     },
     transportHandler: (started: boolean) => {
+      // MPE expression still coming in goes into the takes and loops first (zone/note-curve.ts)
+      zones.list.forEach((z) => z.finishExpression());
       // loops being recorded end at their nearest 1 (while the run's position is still known)
       if (!started) view.finishLoops();
       timelineMeter(activeMeter());

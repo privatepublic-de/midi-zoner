@@ -1,6 +1,42 @@
-import { TakeJSON, TakeNoteJSON } from './interfaces';
+import { TakeJSON, TakeNoteJSON, NoteCurveJSON } from './interfaces';
 import { PPQ } from './seq-layer';
 import { Meter, DEFAULT_METER, barTicks, unitTicks, parseMeter } from '../meter';
+import { sanitizeCurve, trimCurve, countPoints } from './note-curve';
+
+/** A note at a position of its own (a song position, or as played): what loops are cut from */
+export interface SongNote {
+  s: number;
+  d: number;
+  n: number;
+  v: number;
+  x?: NoteCurveJSON;
+}
+
+type NoteBody = { d: number; n: number; v: number; x?: NoteCurveJSON };
+
+/**
+ * A take note at `t`, `d` long, from any note: its pitch, velocity and expression come
+ * along (the curve trimmed to the new length). Every copy of a note goes through here or
+ * songNote(), so nothing drops its expression.
+ */
+export function takeNote(from: NoteBody, t: number, d = from.d, pickup = false): TakeNoteJSON {
+  const x = d < from.d ? trimCurve(from.x, d) : from.x;
+  return { t, d, n: from.n, v: from.v, ...(pickup ? { p: 1 as const } : {}), ...(x ? { x } : {}) };
+}
+
+/** A note at song position `s`, `d` long, from any note (see takeNote) */
+export function songNote(from: NoteBody, s: number, d = from.d): SongNote {
+  const x = d < from.d ? trimCurve(from.x, d) : from.x;
+  return { s, d, n: from.n, v: from.v, ...(x ? { x } : {}) };
+}
+
+/** A note's length changed in place: its curve follows */
+export function setNoteLength(note: TakeNoteJSON, d: number): void {
+  note.d = d;
+  const x = trimCurve(note.x, d);
+  if (x) note.x = x;
+  else delete note.x;
+}
 
 /**
  * A take: what was played into a zone during one run of an arrangement, at free
@@ -14,6 +50,8 @@ export class Take {
   static MAX_NOTES = 16384;
   /** A loop's spare notes at most (they're in the scene and every undo step) */
   static MAX_SPARE = 4096;
+  /** Expression points a take or loop keeps at most (files are untrusted); later notes lose theirs */
+  static MAX_FILE_CURVE_POINTS = 200000;
   // identifies a recorded take, so the session's list can hide it while it's kept
   id = Math.random().toString(36).slice(2, 10);
   start = 0;
@@ -53,18 +91,28 @@ export class Take {
   }
 
   /** The notes inside the window, at song positions, lengths clipped to the take's end */
-  visibleNotes(): { s: number; d: number; n: number; v: number }[] {
-    const result: { s: number; d: number; n: number; v: number }[] = [];
+  visibleNotes(): SongNote[] {
+    const result: SongNote[] = [];
     const last = this.offset + this.length;
     for (let i = this.firstAtOrAfter(this.offset); i < this.notes.length && this.notes[i].t < last; i++) {
       const n = this.notes[i];
-      result.push({ s: this.start + n.t - this.offset, d: Math.min(n.d, last - n.t), n: n.n, v: n.v });
+      result.push(songNote(n, this.start + n.t - this.offset, Math.min(n.d, last - n.t)));
     }
     return result;
   }
 
   get end(): number {
     return this.start + this.length;
+  }
+
+  /** Whether any of its notes (spare ones included) carries MPE expression */
+  get hasExpression(): boolean {
+    return this.notes.some((n) => n.x) || this.spare.some((n) => n.x);
+  }
+
+  /** Its notes without their MPE expression (in place; a loop keeps playing them plain) */
+  clearExpression(): void {
+    for (const n of [...this.notes, ...this.spare]) delete n.x;
   }
 
   /** Song position of a note of the recording */
@@ -78,17 +126,16 @@ export class Take {
   }
 
   /** Add notes at song positions (none before `floor`, up to MAX_NOTES); returns the added ones */
-  addNotes(notes: { s: number; d: number; n: number; v: number }[]): TakeNoteJSON[] {
+  addNotes(notes: SongNote[]): TakeNoteJSON[] {
     const added: TakeNoteJSON[] = [];
     for (const n of notes) {
       if (this.notes.length >= Take.MAX_NOTES) break;
       const s = Math.max(this.floor, n.s);
-      const note = {
-        t: s - this.start + this.offset,
-        d: Math.max(0.01, n.d),
-        n: Math.max(0, Math.min(127, Math.round(n.n))),
-        v: Math.max(1, Math.min(127, Math.round(n.v)))
-      };
+      const note = takeNote(
+        { ...n, n: Math.max(0, Math.min(127, Math.round(n.n))), v: Math.max(1, Math.min(127, Math.round(n.v))) },
+        s - this.start + this.offset,
+        Math.max(0.01, n.d)
+      );
       this.notes.push(note);
       added.push(note);
     }
@@ -123,7 +170,7 @@ export class Take {
     part.length = Math.max(1, Math.round(to - from));
     part.notes = this.visibleNotes()
       .filter((n) => n.s >= from && n.s < to)
-      .map((n) => ({ t: n.s - from, d: Math.min(n.d, to - n.s), n: n.n, v: n.v }));
+      .map((n) => takeNote(n, n.s - from, Math.min(n.d, to - n.s)));
     return part;
   }
 
@@ -174,6 +221,14 @@ export class Take {
 
   toJSON(): TakeJSON {
     const round = (v: number): number => Math.round(v * 1000) / 1000;
+    const note = (n: TakeNoteJSON): TakeNoteJSON => ({
+      t: round(n.t),
+      d: round(n.d),
+      n: n.n,
+      v: n.v,
+      ...(n.p ? { p: 1 as const } : {}),
+      ...(n.x ? { x: n.x } : {})
+    });
     return {
       id: this.id,
       start: this.start,
@@ -182,11 +237,11 @@ export class Take {
       ...(this.at ? { at: this.at } : {}),
       ...(this.seq ? { seq: this.seq } : {}),
       ...(this.sections.length ? { sections: this.sections.map((s) => ({ t: s.t, meter: s.meter })) } : {}),
-      notes: this.notes.map((n) => ({ t: round(n.t), d: round(n.d), n: n.n, v: n.v, ...(n.p ? { p: 1 as const } : {}) })),
+      notes: this.notes.map(note),
       ...(this.runOffset ? { runOffset: this.runOffset } : {}),
       ...(this.origin ? { origin: { at: this.origin.at, run: this.origin.run } } : {}),
       ...(this.spare.length
-        ? { spare: this.spare.map((n) => ({ t: round(n.t), d: round(n.d), n: n.n, v: n.v, ...(n.p ? { p: 1 as const } : {}) })) }
+        ? { spare: this.spare.map(note) }
         : {})
     };
   }
@@ -219,6 +274,8 @@ export class Take {
       }
       take.sections.sort((a, b) => a.t - b.t);
     }
+    // expression points left for the take (its notes first, then its spare ones)
+    let points = Take.MAX_FILE_CURVE_POINTS;
     const note = (raw: unknown, lo: number, hi: number): TakeNoteJSON | null => {
       if (!raw || typeof raw !== 'object') return null;
       const r = raw as Partial<TakeNoteJSON>;
@@ -228,7 +285,11 @@ export class Take {
       const v = Math.round(Number(r.v));
       if (!isFinite(t) || t < lo || t >= hi || !isFinite(dur) || dur <= 0) return null;
       if (!(n >= 0 && n <= 127) || !(v >= 1 && v <= 127)) return null;
-      return { t, d: Math.min(dur, Take.MAX_LENGTH), n, v, ...(r.p === 1 ? { p: 1 as const } : {}) };
+      const d = Math.min(dur, Take.MAX_LENGTH);
+      let x = trimCurve(sanitizeCurve(r.x), d);
+      if (countPoints(x) > points) x = undefined;
+      points -= countPoints(x);
+      return { t, d, n, v, ...(r.p === 1 ? { p: 1 as const } : {}), ...(x ? { x } : {}) };
     };
     if (Array.isArray(d.notes)) {
       for (const raw of d.notes.slice(0, Take.MAX_NOTES)) {

@@ -36,6 +36,13 @@ export function createZoneActions(
       if (!zone.loopOn) zone.loopPlayer.release(true);
       updateValuesForZone(zoneindex);
     },
+    // the loop's recorded MPE expression cleared (its notes stay; the switch is on its chip)
+    zone_loop_mpe_clear: () => {
+      if (!zone.loop) return;
+      zone.loop.clearExpression();
+      zone.loopPlayer.endVoices();
+      updateValuesForZone(zoneindex);
+    },
     zone_enabled: () => {
       zone.enabled = !zone.enabled;
       if (zone.solo && !zone.enabled) {

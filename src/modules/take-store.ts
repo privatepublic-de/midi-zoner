@@ -1,6 +1,8 @@
-import { Take } from './zone/take';
+import { Take, takeNote } from './zone/take';
 import { Meter, DEFAULT_METER, barTicks } from './meter';
-import type { TakeNoteJSON } from './zone/interfaces';
+import type { TakeNoteJSON, NoteCurveJSON } from './zone/interfaces';
+import { updateCurves } from './zone/note-curve';
+import type { CurveBuilder } from './zone/note-curve';
 
 /**
  * Takes: every run (Start → Stop) records what is played into each zone; when it ends,
@@ -16,7 +18,8 @@ import type { TakeNoteJSON } from './zone/interfaces';
 export const MAX_TAKES = 16;
 
 interface Recording {
-  notes: (TakeNoteJSON & { open: boolean })[];
+  /** cb: the key's expression while it's still coming in (MPE) */
+  notes: (TakeNoteJSON & { open: boolean; cb?: CurveBuilder })[];
 }
 
 // a take rolls over into a new one before it would reach a take's limits (notes, length)
@@ -58,8 +61,9 @@ class TakeStore {
     else this.sections.push({ t, meter });
   }
 
-  noteOn(zoneId: string, t: number, n: number, v: number): void {
-    if (!this.running) return;
+  /** Returns the recorded note (null while not running), so its expression can follow */
+  noteOn(zoneId: string, t: number, n: number, v: number): { x?: NoteCurveJSON; cb?: CurveBuilder } | null {
+    if (!this.running) return null;
     this.lastAt = Math.max(this.lastAt, t);
     let rec = this.recording.get(zoneId);
     // a very long run: what was played so far becomes a take, recording goes on in a new one
@@ -73,7 +77,15 @@ class TakeStore {
       this.recording.set(zoneId, rec);
     }
     this.noteOff(zoneId, t, n);
-    rec.notes.push({ t, d: 0, n, v, open: true });
+    const note: Recording['notes'][number] = { t, d: 0, n, v, open: true };
+    rec.notes.push(note);
+    return note;
+  }
+
+  /** A key's expression is finished: the zone's newest take (if it got the note before) catches up */
+  updateCurves(zoneId: string, builder: CurveBuilder, curve: NoteCurveJSON): void {
+    const take = this.byZone.get(zoneId)?.at(-1);
+    if (take && updateCurves(take.notes, builder, curve) > 0) this.changed();
   }
 
   noteOff(zoneId: string, t: number, n: number): void {
@@ -121,7 +133,9 @@ class TakeStore {
     // the sections from the one the take starts in, counted from its start
     const first = run.sectionAt(from);
     take.sections = [{ t: 0, meter: first.meter }, ...run.sections.filter((s) => s.t > from).map((s) => ({ t: s.t - from, meter: s.meter }))];
-    take.notes = rec.notes.map((n) => ({ t: n.t - from, d: n.open ? Math.max(0.25, end - n.t) : n.d, n: n.n, v: n.v }));
+    take.notes = rec.notes.map((n) =>
+      takeNote({ ...n, x: n.cb?.curve() ?? n.x }, n.t - from, n.open ? Math.max(0.25, end - n.t) : n.d)
+    );
     // up to the bar line after its end (at least past the last note)
     const last = Math.max(end - from, ...take.notes.map((n) => n.t + n.d));
     take.length = Math.min(Take.MAX_LENGTH, Math.max(take.barLine(last, 'ceil'), barTicks(first.meter)));
@@ -144,7 +158,7 @@ class TakeStore {
       const n = rec.notes[i];
       if (n.t < from - 16 * 96) break;
       const d = n.open ? Math.max(0.25, now - n.t) : n.d;
-      if (n.t + d >= from) out.push({ t: n.t, d, n: n.n, v: n.v });
+      if (n.t + d >= from) out.push(takeNote(n, n.t, d));
     }
     return out.reverse();
   }

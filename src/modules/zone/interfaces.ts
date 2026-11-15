@@ -152,6 +152,18 @@ export interface TakeNoteJSON {
   v: number;
   /** a loop's pick-up: played before its first 1, at its end so it leads into every repeat */
   p?: 1;
+  /** the note's MPE expression as played (zone/note-curve.ts) */
+  x?: NoteCurveJSON;
+}
+
+/** Flat [dt, value, …], dt in 1/8 ticks since the previous point (see zone/note-curve.ts) */
+export type CurveSeries = number[];
+
+/** A note's MPE expression: bend (1/100 semitone of the keyboard), slide (CC 74), pressure (before the threshold) */
+export interface NoteCurveJSON {
+  bend?: CurveSeries;
+  slide?: CurveSeries;
+  press?: CurveSeries;
 }
 
 /** A kept take: its place in the arrangement's song (ticks from bar 1), length, notes */
@@ -228,6 +240,8 @@ export interface ZoneArrangementJSON {
   loop?: TakeJSON;
   /** false: the loop is switched off (kept, silent); missing: on */
   loop_on?: boolean;
+  /** the loop plays its notes' recorded MPE expression (missing = yes) */
+  loop_mpe?: boolean;
 }
 
 export interface ZoneJSON {

@@ -1488,6 +1488,10 @@ function placeLoopChip(zoneEl: HTMLElement, zone: Zone, loopX: number | null, w:
   loopChip.querySelector('.lc-less')!.classList.toggle('off', busy || loop.length <= bar);
   loopChip.querySelector('.lc-more')!.classList.toggle('off', busy || loop.length + bar > MAX_LOOP_BARS * bar);
   loopChip.querySelector('.lc-clear')!.classList.toggle('off', busy);
+  // only for a loop played with MPE expression; lit while it plays it
+  const mpe = loopChip.querySelector('.lc-mpe') as HTMLElement;
+  mpe.hidden = !loop.hasExpression;
+  mpe.classList.toggle('lit', zone.loopMpe);
   loopChip.style.left = `${Math.max(4, Math.min(w - loopChip.offsetWidth - 4, loopX + 4))}px`;
 }
 
@@ -1922,6 +1926,7 @@ function loopFromTake(zone: Zone, take: Take, from: number, to: number, label = 
   commit(index, label, () => {
     zone.loop = loop;
     zone.loopOn = true;
+    zone.loopMpe = true;
     zone.loopPlayer.release(true);
     const elapsed = timeline.running ? nowTick() - timeline.sectionStart : 0;
     const zoneBar = barLen();
@@ -2115,6 +2120,7 @@ function initTrackView(
     '<span class="lc-label"></span>' +
     '<a class="lc-less lightButton" title="One bar shorter: the last bar is set aside (+ bar brings it back)">− bar</a>' +
     '<a class="lc-more lightButton" title="One bar longer: brings back a bar set aside, else an empty one">+ bar</a>' +
+    '<a class="lc-mpe lightButton" title="Play the MPE recorded with the loop (each note\'s bend, slide and pressure) on/off">MPE</a>' +
     '<a class="lc-clear lightButton" title="Clear the loop (⌘Z brings it back)">Clear</a>';
   loopChip.addEventListener('mousedown', (ev) => ev.stopPropagation());
   const onLoop = (f: (zone: Zone, loop: Take) => void) => (): void => {
@@ -2124,6 +2130,14 @@ function initTrackView(
   loopChip.querySelector('.lc-less')!.addEventListener('click', onLoop((z, l) => setLoopBars(z, 0, l.length - barLen(), 'Loop Length')));
   loopChip.querySelector('.lc-more')!.addEventListener('click', onLoop((z, l) => setLoopBars(z, 0, l.length + barLen(), 'Loop Length')));
   loopChip.querySelector('.lc-clear')!.addEventListener('click', onLoop((z) => clearLoop(z)));
+  loopChip.querySelector('.lc-mpe')!.addEventListener(
+    'click',
+    onLoop((z) => {
+      const index = getZones().indexOf(z);
+      if (index >= 0) commit(index, 'Loop MPE On/Off', () => (z.loopMpe = !z.loopMpe));
+      invalidate();
+    })
+  );
   // the cards' loop strips
   zonesEl.addEventListener('click', (ev) => {
     const button = (ev.target as Element).closest('.card-loop [data-cl]') as HTMLElement | null;

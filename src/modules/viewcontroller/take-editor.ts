@@ -1,6 +1,7 @@
 import MIDI from '../midi';
 import type { Zone } from '../zone/zone-class';
-import { Take } from '../zone/take';
+import { Take, songNote, setNoteLength } from '../zone/take';
+import type { SongNote } from '../zone/take';
 import type { TakeNoteJSON } from '../zone/interfaces';
 import { DIV_TICKS } from '../zone/seq-layer';
 import { DIV_NAMES, quantizeStarts } from '../zone/take-quantize';
@@ -111,7 +112,7 @@ if (grid !== -1 && !GRIDS.includes(grid)) grid = 14;
 let strength = 1;
 let lastVelo = 100;
 let clipboard: {
-  notes: { s: number; d: number; n: number; v: number }[];
+  notes: SongNote[];
   span: number;
 } | null = null;
 let nextPaste: number | null = null;
@@ -251,12 +252,7 @@ function copySelection(): boolean {
   const end = Math.max(...notes.map((n) => take.songOf(n) + n.d));
   const step = gridTicks() || unitTicks(meter());
   clipboard = {
-    notes: notes.map((n) => ({
-      s: take.songOf(n) - base,
-      d: n.d,
-      n: n.n,
-      v: n.v
-    })),
+    notes: notes.map((n) => songNote(n, take.songOf(n) - base)),
     span: Math.max(step, Math.ceil((end - base) / step - 0.001) * step)
   };
   nextPaste = base + clipboard.span;
@@ -787,7 +783,7 @@ function onMouseUp(): void {
     const notes = selectedOrdered(take);
     const dd = d.dd;
     apply('Change Note Length', (_t, mine) => {
-      for (const n of notes.map(mine)) n.d = Math.max(0.5, n.d + dd);
+      for (const n of notes.map(mine)) setNoteLength(n, Math.max(0.5, n.d + dd));
     });
   } else if (d.kind === 'box' && !d.moved && !d.additive) {
     addNote(tickAt(d.x0), pitchAt(d.y0));

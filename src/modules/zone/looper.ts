@@ -1,6 +1,9 @@
 import { PPQ } from './seq-layer';
-import { Take } from './take';
+import { Take, takeNote, songNote } from './take';
+import type { SongNote } from './take';
 import type { TakeNoteJSON } from './interfaces';
+import { fitCurves } from './note-curve';
+import type { CurveBuilder } from './note-curve';
 
 /**
  * The zone's looper: one button records a loop, closes it, overdubs it.
@@ -33,12 +36,10 @@ export const MAX_LOOP_BARS = 64;
 // a loop keeps what lies this many bars either side of it, so its edges can be dragged out
 export const SPARE_BARS = 16;
 
-interface Played {
-  s: number;
-  d: number;
-  n: number;
-  v: number;
+interface Played extends SongNote {
   open: boolean;
+  /** The key's expression while it's still coming in (MPE) */
+  cb?: CurveBuilder;
 }
 
 export type LooperMode = 'idle' | 'rec' | 'dub';
@@ -76,7 +77,7 @@ export function pickupStart(played: { s: number; d: number }[], from: number, ba
 }
 
 export function loopFromNotes(
-  played: { s: number; d: number; n: number; v: number }[],
+  played: SongNote[],
   from: number,
   to: number,
   bar: number,
@@ -88,7 +89,7 @@ export function loopFromNotes(
   const notes: TakeNoteJSON[] = [];
   for (const p of played) {
     if (p.s < from - EARLY || p.s >= to - EARLY) continue;
-    notes.push({ t: Math.max(0, p.s - from), d: Math.min(p.d, len), n: p.n, v: p.v });
+    notes.push(takeNote(p, Math.max(0, p.s - from), Math.min(p.d, len)));
     used.add(p);
   }
   const before = played.filter((p) => p.s >= from - bar && p.s < from - EARLY).sort((a, b) => a.s - b.s);
@@ -98,7 +99,7 @@ export function loopFromNotes(
     const t = p.s - from + len;
     if (t < 0) continue;
     if (notes.some((n) => n.n === p.n && Math.abs(n.t - t) <= MIRROR)) continue;
-    notes.push({ t, d: Math.max(0.25, Math.min(p.d, len)), n: p.n, v: p.v, p: 1 });
+    notes.push(takeNote(p, t, Math.max(0.25, Math.min(p.d, len)), true));
     used.add(p);
   }
   if ((notes.length === 0 && !empty) || notes.length > Take.MAX_NOTES) return null;
@@ -108,16 +109,17 @@ export function loopFromNotes(
   loop.notes = notes;
   loop.spare = spareOf(played.filter((p) => !used.has(p)), from, to, bar);
   loop.sort();
+  fitCurves([...loop.notes, ...loop.spare]);
   return loop;
 }
 
 /** What lies outside a loop's bars, up to SPARE_BARS on either side (ticks from its start) */
-function spareOf(rest: { s: number; d: number; n: number; v: number }[], from: number, to: number, bar: number): TakeNoteJSON[] {
+function spareOf(rest: SongNote[], from: number, to: number, bar: number): TakeNoteJSON[] {
   return rest
     .filter((p) => p.s >= from - SPARE_BARS * bar && p.s < to + SPARE_BARS * bar)
     .sort((a, b) => Math.abs(a.s - (from + to) / 2) - Math.abs(b.s - (from + to) / 2))
     .slice(0, Take.MAX_SPARE)
-    .map((p) => ({ t: p.s - from, d: p.d, n: p.n, v: p.v }))
+    .map((p) => takeNote(p, p.s - from))
     .sort((a, b) => a.t - b.t);
 }
 
@@ -132,7 +134,7 @@ export function recutLoop(loop: Take, a: number, b: number, bar: number): Take |
   const len = loop.length;
   // a pick-up counts as one only while it's still in the last bar (an edit may have moved it)
   const isPickup = (n: TakeNoteJSON): boolean => n.p === 1 && n.t >= len - bar;
-  const asPlayed = (n: TakeNoteJSON, s: number): { s: number; d: number; n: number; v: number } => ({ s, d: n.d, n: n.n, v: n.v });
+  const asPlayed = (n: TakeNoteJSON, s: number): SongNote => songNote(n, s);
   let next: Take | null;
   if (a === 0) {
     // the pick-up (flagged, before the start: in the last bar, or set aside as played there already)
@@ -149,15 +151,15 @@ export function recutLoop(loop: Take, a: number, b: number, bar: number): Take |
     const used = new Set<object>();
     for (const p of regular) {
       if (p.s < -EARLY || p.s >= b - EARLY) continue;
-      next.notes.push({ t: Math.max(0, p.s), d: Math.min(p.d, b), n: p.n, v: p.v });
+      next.notes.push(takeNote(p, Math.max(0, p.s), Math.min(p.d, b)));
       used.add(p);
     }
     // carried along with the end, unless the loop has it there already (then aside, flagged)
     const parked: TakeNoteJSON[] = [];
     for (const n of pickups) {
       const t = n.t + b;
-      if (next.notes.some((m) => !m.p && m.n === n.n && Math.abs(m.t - t) <= MIRROR)) parked.push({ t: n.t, d: n.d, n: n.n, v: n.v, p: 1 });
-      else next.notes.push({ t, d: n.d, n: n.n, v: n.v, p: 1 });
+      if (next.notes.some((m) => !m.p && m.n === n.n && Math.abs(m.t - t) <= MIRROR)) parked.push(takeNote(n, n.t, n.d, true));
+      else next.notes.push(takeNote(n, t, n.d, true));
     }
     next.spare = [...spareOf(regular.filter((p) => !used.has(p)), 0, b, bar), ...parked].sort((x, y) => x.t - y.t);
   } else {
@@ -207,11 +209,19 @@ export class Looper {
     return this.mode !== 'idle' && this.from <= now;
   }
 
-  noteOn(at: number, n: number, v: number): void {
+  /** Returns the note in the input buffer (null when it's full), so its expression can follow */
+  noteOn(at: number, n: number, v: number): Played | null {
     this.noteOff(at, n);
-    if (this.played.length >= Take.MAX_NOTES) return;
+    if (this.played.length >= Take.MAX_NOTES) return null;
     this.version++;
-    this.played.push({ s: at, d: 0, n, v, open: true });
+    const note: Played = { s: at, d: 0, n, v, open: true };
+    this.played.push(note);
+    return note;
+  }
+
+  /** A note's expression came in completely (the overdub layer is built again) */
+  touch(): void {
+    this.version++;
   }
 
   noteOff(at: number, n: number): void {
@@ -310,7 +320,10 @@ export class Looper {
   private notesBetween(from: number, to: number, until: number): Played[] {
     return this.played
       .filter((p) => p.s >= from && p.s < to)
-      .map((p) => (p.open ? { ...p, d: Math.max(0.25, until - p.s) } : p));
+      .map((p) => {
+        const x = p.cb?.curve() ?? p.x;
+        return p.open || x !== p.x ? { ...p, d: p.open ? Math.max(0.25, until - p.s) : p.d, x } : p;
+      });
   }
 
   /** The recording from `from` to `to` becomes the loop (null when nothing was played) */
@@ -336,7 +349,7 @@ export class Looper {
     const kept: { note: TakeNoteJSON; cycle: number }[] = [];
     for (const p of this.notesBetween(this.from - bar / 2, to - EARLY, now)) {
       if (finished && p.open) continue;
-      const note = { t: posMod(p.s - this.anchor, len), d: Math.min(p.d, len), n: p.n, v: p.v };
+      const note = takeNote(p, posMod(p.s - this.anchor, len), Math.min(p.d, len));
       const cycle = Math.floor((p.s - this.anchor) / len);
       if (loop.notes.some((m) => m.n === note.n && near(m.t, note.t))) continue;
       if (kept.some((k) => k.cycle !== cycle && k.note.n === note.n && near(k.note.t, note.t))) continue;
@@ -366,6 +379,7 @@ export class Looper {
       count++;
     }
     loop.sort();
+    if (count > 0) fitCurves([...loop.notes, ...loop.spare]);
     return count;
   }
 }
