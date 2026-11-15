@@ -1992,6 +1992,12 @@ input[type='range'] {
   background-color: var(--darker-2);
 }
 
+/* cards: the keyboard strip and the settings row under it (Oct, Thru, Program, Pedal,
+   Swing) sit at the card's bottom, level across a row of cards; spare height goes above */
+body:not(.track-view):not(.minimized) #zones > .zone > .rangeholder {
+  margin-top: auto;
+}
+
 .disabled .rangeholder {
   background-color: var(--darker-3);
 }
