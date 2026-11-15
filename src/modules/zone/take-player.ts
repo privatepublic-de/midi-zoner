@@ -156,6 +156,12 @@ export class TakePlayer {
     }
     this.queue.push(ev);
     later(ahead, () => {
+      // The same pitch still sounding (a chord held over the loop's end into its first note):
+      // it ends here, so this note starts afresh instead of a second note-on that many synths
+      // don't retrigger on
+      for (const other of [...this.queue]) {
+        if (other !== ev && other.sounding && other.note.number === note.number) this.end(other);
+      }
       ev.sounding = true;
       // its expression goes out ahead of its note-on, as from an MPE keyboard
       const voice = ev.voice;
