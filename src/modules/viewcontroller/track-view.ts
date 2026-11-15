@@ -183,6 +183,26 @@ function updateLoopChips(): void {
     const { label, state } = zone.loopChip;
     if (chip.textContent !== label) chip.textContent = label;
     for (const s of ['on', 'wait', 'rec', 'closing']) chip.classList.toggle(`loop-${s}`, s === state);
+    const title = loopChipTitle(zone, state);
+    if ((chip as HTMLElement).title !== title) (chip as HTMLElement).title = title;
+  }
+}
+
+/** What the Loop chip does next, in its tooltip */
+function loopChipTitle(zone: Zone, state: string): string {
+  const mode = zone.looper.mode === 'dub' ? 'Overdubbing' : 'Recording';
+  const length = zone.loop ? Take.lengthLabel(zone.loop.length, currentMeter()) : '';
+  switch (state) {
+    case 'on':
+      return `A ${length} loop plays. Press to overdub, two quick presses clear it. Mute silences it`;
+    case 'wait':
+      return `${mode} starts on the next 1. Press again to cancel`;
+    case 'rec':
+      return `${mode}: press on a 1 to close it`;
+    case 'closing':
+      return `${mode} ends on the next 1`;
+    default:
+      return 'Rec: press on a 1 to record a loop (a little late is fine, the bar before is its pick-up), press on a later 1 to close it: it plays at once. Press again to overdub, once more to end it. Two quick presses clear the loop. Mute silences it';
   }
 }
 
@@ -233,10 +253,34 @@ function drawCards(): void {
 // what each card's takes strip shows, so it's rebuilt only when that changes
 const cardTakesKeys = new WeakMap<HTMLElement, string>();
 
-/** The card's takes strip (stopped, with takes): ‹ Take n/m ›, its length, a preview, Keep */
+// Discard on a card's strip puts it away until the zone's next take (zone id → its newest
+// take's id then; per machine, so a restart doesn't bring it back)
+const DISMISSED_KEY = 'dismissedTakes';
+const dismissedTakes: Record<string, string> = (() => {
+  try {
+    const v = JSON.parse(localStorage.getItem(DISMISSED_KEY) || '{}');
+    return v && typeof v === 'object' ? v : {};
+  } catch {
+    return {};
+  }
+})();
+
+function dismissCardTakes(zone: Zone): void {
+  const takes = takeStore.of(zone.id);
+  if (takes.length === 0) return;
+  dismissedTakes[zone.id] = takes[takes.length - 1].id;
+  try {
+    localStorage.setItem(DISMISSED_KEY, JSON.stringify(dismissedTakes));
+  } catch {
+    // (not kept: it shows again after a restart)
+  }
+  invalidate();
+}
+
+/** The card's takes strip (stopped, with takes): ‹ Take n/m ›, a preview, Loop n bars */
 function updateCardTakes(zone: Zone, el: HTMLElement): void {
   const takes = takeStore.of(zone.id);
-  const show = !timeline.running && takes.length > 0;
+  const show = !timeline.running && takes.length > 0 && dismissedTakes[zone.id] !== takes[takes.length - 1].id;
   if (el.classList.contains('has-card-takes') !== show) el.classList.toggle('has-card-takes', show);
   const take = show ? takeStore.shownTake(zone.id) : null;
   const strip = el.querySelector('.card-takes') as HTMLElement | null;
@@ -247,7 +291,7 @@ function updateCardTakes(zone: Zone, el: HTMLElement): void {
   if (cardTakesKeys.get(el) === key) return;
   cardTakesKeys.set(el, key);
   strip.querySelector('.ct-label')!.textContent = `Take ${index}/${takes.length}`;
-  strip.querySelector('.ct-len')!.textContent = Take.lengthLabel(take.length, takeMeter(take));
+  strip.querySelector('[data-ct=keep]')!.textContent = keepLabel(take);
   strip.querySelector('[data-ct=prev]')!.classList.toggle('disabled', index <= 1);
   strip.querySelector('[data-ct=next]')!.classList.toggle('disabled', index >= takes.length);
   drawTakePreview(preview, take, 1, zoneColours.get(el) || '#8fa3b8');
@@ -768,6 +812,10 @@ function drawLane(
   // with the arp on, the sequence and the loop only feed it: they show as the band of
   // the notes it plays from (as held keys do), what it sends shows behind the playhead
   let feedsArp = false;
+  // the loop's notes: a light fill with an edge, so they read apart from the sequence's
+  let asLoop = false;
+  // where the loop and the sequence begin their next cycle: a tag at the line ("Loop 4 bars", "Seq")
+  const lineTags: { x: number; text: string; row: number }[] = [];
   const bandH = Math.max(noteH + 2, Math.min(rowH, noteH + 4));
   const inputBand = (x0: number, x1: number, y: number, ghost: boolean, nh: number): void => {
     const bh = nh === noteH ? bandH : nh + 2;
@@ -816,6 +864,15 @@ function drawLane(
       g.setLineDash([2, 2]);
       g.strokeRect(x0 + 0.5, y + 0.5, width - 1, noteH - 1);
       g.setLineDash([]);
+    } else if (asLoop) {
+      const a = g.globalAlpha;
+      g.globalAlpha = a * 0.4;
+      g.fillStyle = colour;
+      g.fillRect(x0, y, width, noteH);
+      g.globalAlpha = a;
+      g.strokeStyle = colour;
+      g.lineWidth = 1;
+      g.strokeRect(x0 + 0.5, y + 0.5, width - 1, noteH - 1);
     } else {
       g.fillStyle = colour;
       g.fillRect(x0, y, width, noteH);
@@ -855,6 +912,7 @@ function drawLane(
     const len = loopTake.length;
     const anchor = zone.looper.anchor;
     const until = elapsedNow + (w - headX) / ppt;
+    asLoop = true;
     for (let c = anchor + Math.floor((elapsedNow - anchor) / len) * len; c < until; c += len) {
       const cx = Math.round(x(elapsedToSong(c)));
       if (c > elapsedNow && cx >= 0 && cx <= w) {
@@ -862,11 +920,16 @@ function drawLane(
         g.fillStyle = colour;
         g.fillRect(cx, songY + 1, 1, h - 2);
       }
+      // tagged at its next start in view, else at the playhead (the cycle playing now)
+      if (!lineTags.some((t) => t.row === 0) && (c > elapsedNow ? cx <= w : c + len > until)) {
+        lineTags.push({ x: c > elapsedNow ? cx : headX, text: `Loop ${Take.lengthLabel(len, currentMeter())}`, row: 0 });
+      }
       for (const n of loopTake.notes) {
         if (c + n.t + n.d < elapsedNow) continue;
         note(elapsedToSong(c + n.t), elapsedToSong(c + n.t + n.d), rowOf(n.n), n.v, silent);
       }
     }
+    asLoop = false;
   }
   feedsArp = false;
   // recording or overdubbing: a red wash from its first 1 to the playhead; waiting for
@@ -957,10 +1020,13 @@ function drawLane(
     } else if (seq.length > 0) {
       ahead(-1, seq.currentStepNumber, (s, st, plays) => {
         if (st === 0) {
-          // where each repeat begins
+          // where each repeat begins (tagged when a loop plays too, so the two read apart)
           g.globalAlpha = silent ? 0.2 : 0.45;
           g.fillStyle = colour;
           g.fillRect(Math.round(x(s)), songY, 1, h);
+          if (loopTake && s >= songHead - 0.5 && !lineTags.some((t) => t.row === 1)) {
+            lineTags.push({ x: Math.round(x(s)), text: 'Seq', row: 1 });
+          }
         }
         const step = seq.steps[st];
         if (!step || step.notesArray.length === 0) return;
@@ -1001,6 +1067,20 @@ function drawLane(
   if (headX >= 0 && headX <= w) g.fillRect(headX, 0, 1, fullH);
 
   // waiting toggles: a light line where they land, tagged with what they'll do
+  g.font = '9px "Barlow Semi Condensed", sans-serif';
+  for (const t of lineTags) {
+    if (t.x < headX || t.x > w) continue;
+    const tw = Math.ceil(g.measureText(t.text).width) + 6;
+    const ty = songY + h - 13 - t.row * 12;
+    // right of its line, or left of it where it would run off the lane
+    const tx = t.x + 1 + tw > w - 2 ? t.x - tw - 1 : t.x + 1;
+    g.globalAlpha = 0.85;
+    g.fillStyle = '#15171a';
+    g.fillRect(tx, ty, tw, 11);
+    g.globalAlpha = 1;
+    g.fillStyle = colour;
+    g.fillText(t.text, tx + 3, ty + 9);
+  }
   for (const [at, tags] of marks) {
     const lx = Math.round(x(at));
     const tag = tags.join(' · ');
@@ -1120,6 +1200,9 @@ function placeTakeChip(
   const label = `Take ${shown.number}/${shown.count} · ${Take.lengthLabel(shown.take.length, takeMeter(shown.take))}`;
   const labelEl = takeChip.querySelector('.tc-label')!;
   if (labelEl.textContent !== label) labelEl.textContent = label;
+  const loopEl = takeChip.querySelector('.tc-keep')!;
+  const loopText = keepLabel(shown.take);
+  if (loopEl.textContent !== loopText) loopEl.textContent = loopText;
   takeChip.querySelector('.tc-prev')!.classList.toggle('off', shown.number <= 1);
   takeChip.querySelector('.tc-next')!.classList.toggle('off', shown.number >= shown.count);
   takeChip.style.left = `${Math.max(4, Math.min(w - takeChip.offsetWidth - 4, takeX + 4))}px`;
@@ -1406,7 +1489,7 @@ function updateTakeList(zones: Zone[]): void {
   takeListRows = { zoneId: zone.id, rows };
   panel.querySelector('.tdt-title')!.textContent = 'Takes';
   panel.querySelector('.tdt-summary')!.textContent = rows.length
-    ? `${rows.length} of the last ${MAX_TAKES_SHOWN} runs · drag over bars in the lane to loop them`
+    ? `${rows.length} of the last ${MAX_TAKES_SHOWN} runs`
     : '';
   const list = panel.querySelector('.tdt-list')!;
   if (rows.length === 0) {
@@ -1427,7 +1510,7 @@ function updateTakeList(zones: Zone[]): void {
       `<span class="tdt-len">${Take.lengthLabel(r.take.length, takeMeter(r.take))}</span>` +
       `<span class="tdt-count">${notes} note${notes === 1 ? '' : 's'}</span>` +
       '<span class="tdt-acts">' +
-      `<a class="lightButton" data-take-act="keep" title="Keep: it becomes the zone’s loop in this arrangement, replacing its loop">Keep</a>` +
+      `<a class="lightButton" data-take-act="keep" title="This take becomes the zone’s loop in this arrangement, replacing its loop">${keepLabel(r.take)}</a>` +
       `<a class="lightButton" data-take-act="edit" title="Edit its notes">Edit</a>` +
       button('delete', '<i class="material-icons">delete_outline</i>', 'Delete this take') +
       '</span></div>';
@@ -1498,7 +1581,7 @@ function takeRowAction(act: string, zone: Zone, take: Take): void {
     editTake(zone, take);
     return;
   }
-  // so does keeping it: the loop comes in at the next bar line
+  // so does looping it: the loop comes in at the next bar line
   if (act === 'keep') {
     keepTake(zone, take);
     return;
@@ -1521,18 +1604,18 @@ function takeRowAction(act: string, zone: Zone, take: Take): void {
  * bar before them at its end). While running it lines up with the bars: its first 1 is the
  * next bar line.
  */
-function loopFromTake(zone: Zone, take: Take, from: number, to: number, label = 'Loop from Take'): void {
+function loopFromTake(zone: Zone, take: Take, from: number, to: number, label = 'Loop from Take'): boolean {
   const index = getZones().indexOf(zone);
-  if (index < 0) return;
+  if (index < 0) return false;
   if (zone.looper.mode !== 'idle') {
     toast('The loop is being recorded or overdubbed: finish that first');
-    return;
+    return false;
   }
   const bar = barTicks(take.sectionAt(from).meter);
   const loop = loopFromNotes(take.visibleNotes(), from, to, bar);
   if (!loop) {
     toast('Nothing was played there');
-    return;
+    return false;
   }
   commit(index, label, () => {
     zone.loop = loop;
@@ -1543,6 +1626,7 @@ function loopFromTake(zone: Zone, take: Take, from: number, to: number, label = 
   });
   clearCapture();
   toast(`${zone.label || `Zone ${index + 1}`}: ${Take.lengthLabel(loop.length, takeMeter(take))} loop`);
+  return true;
 }
 
 /**
@@ -1564,19 +1648,31 @@ function keepRange(take: Take): { from: number; to: number } | null {
   return { from, to };
 }
 
-/** Keep: a whole take becomes the zone's loop in this arrangement (replacing the loop there) */
-function keepTake(zone: Zone, take: Take): void {
+/** The button that loops a whole take says how long the loop will be: "Loop 4 bars" */
+function keepLabel(take: Take): string {
+  // (asked every frame for the shown take: worked out again only when takes change)
+  const cached = keepLabels.get(take);
+  if (cached && cached.version === takeStore.version) return cached.label;
+  const range = keepRange(take);
+  const label = range ? `Loop ${Take.lengthLabel(range.to - range.from, take.sectionAt(range.from).meter)}` : 'Loop';
+  keepLabels.set(take, { version: takeStore.version, label });
+  return label;
+}
+const keepLabels = new WeakMap<Take, { version: number; label: string }>();
+
+/** A whole take becomes the zone's loop in this arrangement (replacing the loop there) */
+function keepTake(zone: Zone, take: Take): boolean {
   const range = keepRange(take);
   if (!range) {
     toast('This take has no notes');
-    return;
+    return false;
   }
   const bar = barTicks(take.sectionAt(range.from).meter);
   if (range.to - range.from > MAX_LOOP_BARS * bar) {
     toast(`Longer than ${MAX_LOOP_BARS} bars: drag over the bars to loop in the track view`);
-    return;
+    return false;
   }
-  loopFromTake(zone, take, range.from, range.to, 'Keep Take');
+  return loopFromTake(zone, take, range.from, range.to);
 }
 
 /** Loop the picked bars of the shown take */
@@ -1667,7 +1763,7 @@ function initTrackView(
   takeChip.innerHTML =
     '<a class="tc-prev lightButton" title="An earlier take">‹</a><span class="tc-label"></span>' +
     '<a class="tc-next lightButton" title="A later take">›</a>' +
-    '<a class="tc-keep lightButton" title="Keep: this take becomes the zone’s loop in this arrangement, replacing its loop">Keep</a>' +
+    '<a class="tc-keep lightButton" title="This take becomes the zone’s loop in this arrangement, replacing its loop">Loop</a>' +
     '<a class="tc-edit lightButton" title="Edit the notes of this take">Edit</a>' +
     '<a class="tc-quantize lightButton" title="Quantize this take">Quantize</a>' +
     '<a class="tc-steps lightButton" title="Turn this take into steps">To steps</a>';
@@ -1699,7 +1795,10 @@ function initTrackView(
     const act = button.dataset['ct'];
     if (act === 'keep') {
       const take = takeStore.shownTake(zone.id);
-      if (take) keepTake(zone, take);
+      // done with it: the strip goes until the next take
+      if (take && keepTake(zone, take)) dismissCardTakes(zone);
+    } else if (act === 'discard') {
+      dismissCardTakes(zone);
     } else {
       takeStore.browse(zone.id, act === 'prev' ? 1 : -1);
       clearCapture();

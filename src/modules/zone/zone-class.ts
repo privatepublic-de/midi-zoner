@@ -2055,7 +2055,7 @@ export class Zone {
       const length = lp.mode === 'dub' && this.loop ? this.loop.length : Math.max(bar, Math.ceil((now - lp.from) / bar) * bar);
       return { label: `${word} ${bars(length)}`, state: 'rec' };
     }
-    return this.loop ? { label: `Loop ${bars(this.loop.length)}`, state: 'on' } : { label: 'Loop', state: 'off' };
+    return this.loop ? { label: `Loop ${bars(this.loop.length)}`, state: 'on' } : { label: 'Rec', state: 'off' };
   }
 
   /** Undo replaces the zone objects: the replacement keeps showing what was played */

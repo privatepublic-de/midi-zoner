@@ -1560,11 +1560,13 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
 }
 
 .channels .ch.showseq,
+.channels .ch.showloop,
 .channels .ch.showccs {
   margin-left: 8px;
 }
 
 .channels .ch.showseq::before,
+.channels .ch.showloop::before,
 .channels .ch.showccs::before {
   content: '';
   position: absolute;
@@ -5661,7 +5663,14 @@ body.track-view:not(.minimized) {
   }
   .channels > .ch.showseq { order: 11; }
   .channels > .ch.showarp { order: 12; }
-  .channels > .ch.showloop { order: 13; }
+  /* the looper in a group of its own: it records, it isn't a switch like Seq and Arp */
+  #zones > .zone > .channels > .ch.showloop {
+    order: 13;
+    margin-left: 13px;
+  }
+  #zones > .zone > .channels > .ch.showloop::before {
+    left: -7.5px;
+  }
   /* the features, then what is sent: CC and the output after a line */
   #zones > .zone > .channels > .ch.showccs {
     order: 14;
@@ -6226,7 +6235,7 @@ body.track-view:not(.minimized) {
   }
   /* a narrow list: no date or note count, the preview gives way, tighter buttons */
   @container (max-width: 640px) {
-    #trackDock .tdt-row {
+    #trackDock .tdt-list .tdt-row {
       grid-template-columns: 48px minmax(24px, 1fr) 52px auto;
       gap: 8px;
     }
@@ -6234,7 +6243,7 @@ body.track-view:not(.minimized) {
     #trackDock .tdt-count {
       display: none;
     }
-    #trackDock .tdt-preview {
+    #trackDock .tdt-list .tdt-preview {
       width: 100%;
       min-width: 0;
     }
@@ -6296,7 +6305,7 @@ body.track-view:not(.minimized) {
       pointer-events: none;
     }
   }
-  /* Keep always shows; the rest on the row under the mouse and the selected one */
+  /* Loop n bars always shows; the rest on the row under the mouse and the selected one */
   #trackDock .tdt-row:not(:hover, .selected) .tdt-acts a:not([data-take-act='keep']) {
     visibility: hidden;
   }
@@ -6443,9 +6452,11 @@ body.track-view:not(.minimized) {
 
 /* =============================================================
    LOOP CHIP
-   The zone's looper (zone/looper.ts, track-view.ts updateLoopChips()): "Loop" while
-   there is none, lit "Loop 4" while one plays, red "Rec 2" / "Dub 4" while recording or
-   overdubbing; blinking while it waits for its 1 (off ↔ red) or its end (red ↔ lit).
+   The zone's looper (zone/looper.ts, track-view.ts updateLoopChips()), a group of its
+   own: "Rec" while there is none, "Loop 4" outlined in the on colour while one plays (a
+   press overdubs, so it must not look like a lit Seq or Arp you'd switch off), red
+   "Rec 2" / "Dub 4" while recording or overdubbing; blinking while it waits for its 1
+   (off ↔ red) or its end (red ↔ outlined).
    ============================================================= */
 
 .zone .channels .ch.showloop {
@@ -6456,15 +6467,16 @@ body.track-view:not(.minimized) {
 }
 
 .zone .channels .ch.showloop.loop-on {
-  background-color: var(--on);
+  background-color: var(--slate-raise);
   border-color: var(--on);
-  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--on);
+  color: var(--text-base-color);
 }
 
 .zone.disabled .channels .ch.showloop.loop-on,
 .zone.soloed-out .channels .ch.showloop.loop-on {
-  background-color: color-mix(in srgb, var(--on) 35%, var(--slate-panel));
-  border-color: transparent;
+  border-color: color-mix(in srgb, var(--on) 40%, var(--slate-line));
+  box-shadow: none;
   color: var(--brighter-4);
 }
 
@@ -6489,7 +6501,7 @@ body.track-view:not(.minimized) {
 
 @keyframes loop-closing {
   0% { background-color: var(--danger); border-color: var(--danger); color: #fff; }
-  50% { background-color: var(--on); border-color: var(--on); color: var(--ink); }
+  50% { background-color: var(--slate-raise); border-color: var(--on); color: var(--text-base-color); }
 }
 
 /* =============================================================
@@ -6522,7 +6534,7 @@ body.minimized .zone .mini-lane {
   display: none !important;
 }
 
-/* Takes strip (cards, stopped, zones with takes): ‹ Take n/m › length, preview, Keep */
+/* Takes strip (cards, stopped, zones with takes): ‹ Take n/m ›, preview, Loop n bars */
 .zone .card-takes {
   display: none;
   align-items: center;
@@ -6547,10 +6559,6 @@ body.minimized .zone .mini-lane {
   color: var(--text-base-color);
   min-width: 64px;
   text-align: center;
-}
-
-.zone .card-takes .ct-len {
-  min-width: 44px;
 }
 
 .zone .card-takes .ct-preview {

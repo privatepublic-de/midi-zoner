@@ -31,9 +31,9 @@
     <div
       class="ch showloop"
       data-action="${index}:zone_loop"
-      title="Loop: press on a 1 to record (a little late is fine, the bar before is its pick-up), press on a later 1 to close it: it plays at once. Press again to overdub, once more to end it. Two quick presses clear the loop. Mute silences it"
+      title="Rec: press on a 1 to record a loop (a little late is fine, the bar before is its pick-up), press on a later 1 to close it: it plays at once. Press again to overdub, once more to end it. Two quick presses clear the loop. Mute silences it"
     >
-      Loop
+      Rec
     </div>
     <div
       class="ch showccs"
@@ -223,10 +223,11 @@
     </div>
   </div>
   <div class="mini-lane" title="What this zone plays: behind the playhead what it sent, ahead what comes (dashed: won't sound, e.g. Seq off or a step skipped by its condition). A waiting switch shows where it lands"><canvas></canvas></div>
-  <div class="card-takes" title="What was played in the last runs: Keep makes a take the zone’s loop in this arrangement">
+  <div class="card-takes" title="What you played in the last runs (a take per Start → Stop)">
     <a class="lightButton" data-ct="prev" title="An earlier take">‹</a><span class="ct-label"></span><a class="lightButton" data-ct="next" title="A later take">›</a>
-    <span class="ct-len"></span><canvas class="ct-preview"></canvas>
-    <a class="lightButton" data-ct="keep" title="Keep: this take becomes the zone’s loop in this arrangement, replacing its loop">Keep</a>
+    <canvas class="ct-preview"></canvas>
+    <a class="lightButton" data-ct="keep" title="This take becomes the zone’s loop in this arrangement, replacing its loop">Loop</a>
+    <a class="lightButton" data-ct="discard" title="Put this away until the next take (the take stays in the track view’s Takes list)">Discard</a>
   </div>
   <div
     class="seq shadowed-zone-block"
@@ -922,5 +923,5 @@
     </div>
   </div>
   <div class="zonenumber">${zoneNumber}</div>
-  <div class="track-lane" title="Takes: what you play is recorded while the clock runs and shows in the upper lane. After Stop, drag over it there to keep a stretch (snaps to beats, Shift: bars, Option: free); kept takes, below, move by dragging, trim at their edges. Scroll sideways to move through the song. Double-click: piano roll"><div class="track-strip"><span class="track-hint"></span></div><canvas></canvas></div>
+  <div class="track-lane" title="Above: the take, what you play while the clock runs. After Stop, drag over bars of it to loop just those (Option: beats). Below: what the zone plays, the sequence and the loop ahead of the playhead. Scroll sideways to move through the song. Double-click: edit"><div class="track-strip"><span class="track-hint"></span></div><canvas></canvas></div>
 </div>
