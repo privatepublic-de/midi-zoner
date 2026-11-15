@@ -28,12 +28,21 @@
     >
       Arp
     </div>
-    <div
-      class="ch showloop"
-      data-action="${index}:zone_loop"
-      title="Rec: press on a 1 to record a loop, on a later 1 to close it; it plays at once. A little late is fine: the bar before counts as its pick-up. Press again to overdub, twice quickly to clear. Mute silences it"
-    >
-      Rec
+    <div class="loopgroup">
+      <div
+        class="ch showloopsw"
+        data-action="${index}:zone_loop_on"
+        title="No loop yet: record one with Rec"
+      >
+        Loop
+      </div>
+      <div
+        class="ch showloop"
+        data-action="${index}:zone_loop"
+        title="Rec: press on a 1 to record a loop, on a later 1 to close it; it plays at once. A little late is fine: the bar before counts as its pick-up"
+      >
+        Rec
+      </div>
     </div>
     <div
       class="ch showccs"

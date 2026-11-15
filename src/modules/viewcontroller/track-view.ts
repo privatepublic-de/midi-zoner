@@ -189,9 +189,24 @@ function updateLoopChips(): void {
     if (!chip) continue;
     const { label, state } = zone.loopChip;
     if (chip.textContent !== label) chip.textContent = label;
-    for (const s of ['on', 'wait', 'rec', 'closing']) chip.classList.toggle(`loop-${s}`, s === state);
+    for (const s of ['wait', 'rec', 'closing']) chip.classList.toggle(`loop-${s}`, s === state);
     const title = loopChipTitle(zone, state);
     if ((chip as HTMLElement).title !== title) (chip as HTMLElement).title = title;
+    // the loop's switch beside it: its length, lit while it plays
+    const sw = zone.elements.zoneElement?.querySelector('.showloopsw') as HTMLElement | null;
+    if (!sw) continue;
+    const loop = zone.loop;
+    const length = loop ? Take.lengthLabel(loop.length, currentMeter()) : '';
+    const swLabel = loop ? `Loop ${length.split(' ')[0]}` : 'Loop';
+    if (sw.textContent !== swLabel) sw.textContent = swLabel;
+    sw.classList.toggle('loop-none', !loop);
+    sw.classList.toggle('loop-on', !!loop && zone.loopOn);
+    const swTitle = !loop
+      ? 'No loop yet: record one with Rec'
+      : zone.loopOn
+        ? `Loop (${length}) on: it plays, also on a muted zone. Click: off, kept`
+        : `Loop (${length}) off: kept, silent. Click: on`;
+    if (sw.title !== swTitle) sw.title = swTitle;
   }
 }
 
@@ -200,8 +215,6 @@ function loopChipTitle(zone: Zone, state: string): string {
   const mode = zone.looper.mode === 'dub' ? 'Overdubbing' : 'Recording';
   const length = zone.loop ? Take.lengthLabel(zone.loop.length, currentMeter()) : '';
   switch (state) {
-    case 'on':
-      return `Loop · ${length}: press on a 1 to overdub, twice quickly to clear. Mute silences it`;
     case 'wait':
       return `${mode} starts on the next 1 (press again: cancel)`;
     case 'rec':
@@ -211,7 +224,9 @@ function loopChipTitle(zone: Zone, state: string): string {
     case 'closing':
       return `${mode} ends on the next 1 (pressed too late? Press again: it ends at the 1 just passed)`;
     default:
-      return 'Rec: press on a 1 to record a loop, on a later 1 to close it; it plays at once. A little late is fine: the bar before counts as its pick-up. Press again to overdub, twice quickly to clear. Mute silences it';
+      return zone.loop
+        ? `Dub: press on a 1 to overdub the ${length} loop, on a later 1 to end it; twice quickly clears the loop`
+        : 'Rec: press on a 1 to record a loop, on a later 1 to close it; it plays at once. A little late is fine: the bar before counts as its pick-up';
   }
 }
 
@@ -978,6 +993,8 @@ function drawLane(
   // dashed while the zone is silent (muted or soloed out: the loop doesn't sound)
   const elapsedToSong = (e: number): number => songHead + (e - elapsedNow);
   const loopTake = zone.loop;
+  // the loop sounds while its switch is on (mute is for what you play): dashed when off
+  const loopOff = !zone.loopOn;
   let block: { x0: number; x1: number } | null = null;
   if (loopTake) {
     const len = loopTake.length;
@@ -1002,7 +1019,7 @@ function drawLane(
         const cx1 = Math.round(x(elapsedToSong(c + len)));
         if (c === first) {
           block = { x0: cx, x1: cx1 };
-          g.globalAlpha = silent ? 0.05 : 0.1;
+          g.globalAlpha = loopOff ? 0.05 : 0.1;
           g.fillStyle = colour;
           g.fillRect(cx, songY + 2, cx1 - cx, h - 4);
         } else {
@@ -1022,7 +1039,7 @@ function drawLane(
       }
       for (const n of loopTake.notes) {
         if (c + n.t + n.d < elapsedNow) continue;
-        note(elapsedToSong(c + n.t), elapsedToSong(c + n.t + n.d), rowOf(n.n), n.v, silent);
+        note(elapsedToSong(c + n.t), elapsedToSong(c + n.t + n.d), rowOf(n.n), n.v, loopOff);
       }
     }
     asLoop = false;
@@ -1031,7 +1048,7 @@ function drawLane(
     if (block) loopBlocks.set(zone, { x0: block.x0, x1: block.x1, top: songY, barPx: barLen() * ppt });
     else loopBlocks.delete(zone);
   }
-  if (block && loopTake) drawLoopBlock(g, zone, loopTake, block.x0, block.x1, songY, h, colour, silent, isSelected && picked(zone) === 'loop', w);
+  if (block && loopTake) drawLoopBlock(g, zone, loopTake, block.x0, block.x1, songY, h, colour, loopOff, isSelected && picked(zone) === 'loop', w);
   feedsArp = false;
   // recording or overdubbing: a red wash from its first 1 to the playhead; waiting for
   // its 1 or its end, a mark there
@@ -1904,6 +1921,7 @@ function loopFromTake(zone: Zone, take: Take, from: number, to: number, label = 
   if (take.at) loop.origin = { at: take.at, run: from + take.runOffset };
   commit(index, label, () => {
     zone.loop = loop;
+    zone.loopOn = true;
     zone.loopPlayer.release(true);
     const elapsed = timeline.running ? nowTick() - timeline.sectionStart : 0;
     const zoneBar = barLen();

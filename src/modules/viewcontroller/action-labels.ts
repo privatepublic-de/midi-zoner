@@ -123,7 +123,8 @@ const ACTION_LABEL_OVERRIDES: Record<string, string | OverrideFn> = {
 
   iorouting_toggle: 'I/O Routing',
   program_toggle: 'Program Change',
-  toggle_seq: 'Sequencer On/Off'
+  toggle_seq: 'Sequencer On/Off',
+  zone_loop_on: 'Loop On/Off'
 };
 
 // The property/action description, without any zone prefix.

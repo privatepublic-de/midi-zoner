@@ -226,6 +226,8 @@ export interface ZoneArrangementJSON {
   takes_on?: boolean;
   /** The zone's loop in this arrangement (the looper's, played from bar 1) */
   loop?: TakeJSON;
+  /** false: the loop is switched off (kept, silent); missing: on */
+  loop_on?: boolean;
 }
 
 export interface ZoneJSON {

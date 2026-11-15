@@ -262,6 +262,8 @@ export class Zone {
   id = Zone.newId();
   /** The loop of the current arrangement (saved with it), played by the looper's own player */
   loop: Take | null = null;
+  /** The loop's switch (per arrangement): off keeps it silent. Mute doesn't silence it (like the sequencer) */
+  loopOn = true;
   /** Recording and overdubbing the loop: a live gesture, handed on across undo */
   looper = new Looper();
   readonly loopPlayer = new TakePlayer(this);
@@ -352,7 +354,7 @@ export class Zone {
       euclid_length: this.euclid_length,
       sequence: this.sequence.toJSON(),
       swingAmount: this.swingAmount,
-      ...(this.loop ? { loop: this.loop.toJSON() } : {})
+      ...(this.loop ? { loop: this.loop.toJSON(), ...(this.loopOn ? {} : { loop_on: false }) } : {})
     };
   }
 
@@ -406,6 +408,7 @@ export class Zone {
     this.swingAmount = data.swingAmount ?? 0;
     this.loop = data.loop ? Take.from(data.loop) : null;
     if (this.loop) this.loop.start = 0;
+    this.loopOn = data.loop_on !== false;
 
     const seq = new Sequence(this);
     const sd = data.sequence || {};
@@ -1450,7 +1453,8 @@ export class Zone {
     this.looper.prune(elapsed, bar);
     if (this.loop) {
       const layer = this.looper.dubLayer(this.loop, elapsed, bar);
-      this.loopPlayer.clockLoop(elapsed, tickIntervalMs, this.loop, layer, this.looper.anchor, !this.audible);
+      // its own switch silences it, not mute (that's for what you play), as with the sequencer
+      this.loopPlayer.clockLoop(elapsed, tickIntervalMs, this.loop, layer, this.looper.anchor, !this.loopOn);
     }
     if (tickIntervalMs > 0) this._lastTickIntervalMs = tickIntervalMs;
 
@@ -2027,6 +2031,7 @@ export class Zone {
       this.loopPlayer.release(true);
       loop.origin = { at: takeStore.runAt, run: this.looper.anchor + timeline.sectionStart };
       this.loop = loop;
+      this.loopOn = true;
       this.looper.lastRun = 'rec';
       return { kind: 'recorded', loop };
     }
@@ -2053,7 +2058,7 @@ export class Zone {
   }
 
   /** The loop chip: what it says and how it looks */
-  get loopChip(): { label: string; state: 'off' | 'on' | 'wait' | 'rec' | 'closing' } {
+  get loopChip(): { label: string; state: 'off' | 'wait' | 'rec' | 'closing' } {
     const bar = barTicks(timeline.meter);
     const lp = this.looper;
     const now = this.loopNow();
@@ -2066,7 +2071,8 @@ export class Zone {
       const length = lp.mode === 'dub' && this.loop ? this.loop.length : this.loopPressLength();
       return { label: `${word} ${bars(length)}`, state: 'rec' };
     }
-    return this.loop ? { label: `Loop ${bars(this.loop.length)}`, state: 'on' } : { label: 'Rec', state: 'off' };
+    // the recorder says what a press does: record a loop, or overdub the one there is
+    return { label: this.loop ? 'Dub' : 'Rec', state: 'off' };
   }
 
   /** Undo replaces the zone objects: the replacement keeps showing what was played */

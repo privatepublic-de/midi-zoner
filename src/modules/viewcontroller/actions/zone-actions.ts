@@ -29,6 +29,13 @@ export function createZoneActions(
   };
 
   return {
+    // the loop's switch: off keeps it, silent
+    zone_loop_on: () => {
+      if (!zone.loop) return;
+      zone.loopOn = !zone.loopOn;
+      if (!zone.loopOn) zone.loopPlayer.release(true);
+      updateValuesForZone(zoneindex);
+    },
     zone_enabled: () => {
       zone.enabled = !zone.enabled;
       if (zone.solo && !zone.enabled) {
