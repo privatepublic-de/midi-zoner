@@ -5898,6 +5898,10 @@ body.track-view:not(.minimized) {
     bottom: var(--track-gap);
     z-index: 2;
     height: calc(var(--dock-h) - var(--track-gap));
+    /* tracks scroll under it: the page's background behind the tab bar, its gaps and its
+       margin, so nothing shows through around the tabs */
+    background-color: var(--slate-bg);
+    box-shadow: 0 0 0 var(--track-gap) var(--slate-bg);
   }
   #trackDock::before {
     content: '';

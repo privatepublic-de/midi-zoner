@@ -170,6 +170,7 @@ export function recutLoop(loop: Take, a: number, b: number, bar: number): Take |
   if (!next) return null;
   next.id = loop.id;
   next.sections = loop.sections.map((s) => ({ t: s.t, meter: s.meter }));
+  next.origin = loop.origin ? { at: loop.origin.at, run: loop.origin.run + a } : null;
   next.sort();
   return next;
 }

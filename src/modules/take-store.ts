@@ -116,6 +116,7 @@ class TakeStore {
     take.start = 0;
     take.offset = 0;
     take.at = this.startedAt;
+    take.runOffset = from;
     take.seq = ++Take.counter;
     // the sections from the one the take starts in, counted from its start
     const first = run.sectionAt(from);
@@ -146,6 +147,11 @@ class TakeStore {
       if (n.t + d >= from) out.push({ t: n.t, d, n: n.n, v: n.v });
     }
     return out.reverse();
+  }
+
+  /** When the run under way began (as its takes' `at`) */
+  get runAt(): number {
+    return this.startedAt;
   }
 
   /** The run's sections so far (while running) */

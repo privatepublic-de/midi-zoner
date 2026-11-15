@@ -340,7 +340,8 @@ function fit(take: Take): void {
   const notes = take.visibleNotes();
   const lo = notes.length ? Math.min(...notes.map((n) => n.n)) : 60;
   const hi = notes.length ? Math.max(...notes.map((n) => n.n)) : 60;
-  view.rowH = Math.max(6, Math.min(14, Math.floor(h / (hi - lo + 5))));
+  // every note in view, even in a low dock (thin rows then), with a little room around them
+  view.rowH = Math.max(3, Math.min(14, Math.floor(h / (hi - lo + 3))));
   view.top = Math.round((hi + lo) / 2 + rows() / 2);
   clampView();
 }
@@ -467,6 +468,8 @@ function drawTakeEditor(): void {
   }
   // notes: the recording's, those trimmed away dim; a move or resize shows where they go
   const d = drag;
+  // a loop's pick-up (the notes before its first 1, at its end): tagged above the first of them
+  const pickups: { x: number; y: number }[] = [];
   for (const note of take.notes) {
     let s = take.songOf(note);
     let len = note.d;
@@ -484,15 +487,30 @@ function drawTakeEditor(): void {
     const inside = inWindow(take, note);
     g.globalAlpha = inside ? 0.5 + (0.5 * note.v) / 127 : 0.25;
     g.fillStyle = colour;
-    g.fillRect(x0, py(n) + 1, x1 - x0 - 1, view.rowH - 2);
+    g.fillRect(x0, py(n) + (view.rowH > 4 ? 1 : 0), x1 - x0 - 1, Math.max(2, view.rowH - 2));
     if (chosen) {
       g.globalAlpha = 1;
       g.strokeStyle = '#ffffff';
       g.lineWidth = 1.5;
-      g.strokeRect(x0 + 0.75, py(n) + 1.75, x1 - x0 - 2.5, view.rowH - 3.5);
+      g.strokeRect(x0 + 0.75, py(n) + 0.75, x1 - x0 - 2.5, Math.max(2, view.rowH - 1.5));
     }
+    if (target.kind === 'loop' && note.p) pickups.push({ x: x0, y: py(n) });
   }
   g.globalAlpha = 1;
+  if (pickups.length) {
+    const pickup = { x: Math.min(...pickups.map((p) => p.x)), y: Math.min(...pickups.map((p) => p.y)) };
+    g.font = '600 9px "Barlow Semi Condensed", sans-serif';
+    const label = 'pick-up';
+    const lw = g.measureText(label).width + 6;
+    const tx = Math.min(w - lw - 2, pickup.x);
+    const ty = Math.max(RULER_H + 1, pickup.y - 13);
+    g.fillStyle = '#e7eaee';
+    g.globalAlpha = 0.85;
+    g.fillRect(tx, ty, lw, 11);
+    g.globalAlpha = 1;
+    g.fillStyle = '#15171a';
+    g.fillText(label, tx + 3, ty + 8.5);
+  }
   // past its end: shaded
   const winStart = take.start;
   const winEnd = take.end;

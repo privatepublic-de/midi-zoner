@@ -170,6 +170,10 @@ export interface TakeJSON {
   sections?: { t: number; meter: unknown }[];
   /** a loop's notes outside its bars (ticks from its start, before it negative), for dragging its edges out again */
   spare?: TakeNoteJSON[];
+  /** a take: where it starts in its run (run ticks; its lead before the first bar was cut) */
+  runOffset?: number;
+  /** a loop: the run it was cut from (its start time, as a take's `at`) and where its first bar was (run ticks) */
+  origin?: { at: number; run: number };
 }
 
 export interface SequenceJSON {

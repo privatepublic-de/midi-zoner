@@ -588,7 +588,8 @@ function takeMeter(take: Take): Meter {
 
 /**
  * What is picked on a track: the loop or a take (amber; the strip's chip and the dock's
- * editor follow it). Unless one was clicked: stopped the shown take, else the loop.
+ * editor follow it). Unless one was clicked: the loop after a run that recorded or
+ * overdubbed it, else (stopped) the shown take, else the loop.
  */
 function picked(zone: Zone): 'loop' | 'take' | null {
   if (editing?.zoneId === zone.id) {
@@ -596,6 +597,8 @@ function picked(zone: Zone): 'loop' | 'take' | null {
     if (editing.kind === 'take' && takeStore.of(zone.id).includes(editing.take)) return 'take';
   }
   if (timeline.running) return zone.loop ? 'loop' : null;
+  // after a run that recorded or overdubbed the loop, that's what to look at
+  if (zone.loop && zone.looper.lastRun) return 'loop';
   return takeStore.shownTake(zone.id) ? 'take' : zone.loop ? 'loop' : null;
 }
 
@@ -1057,7 +1060,31 @@ function drawLane(
       }
     }
   }
-  if (latest && !running && takeLane) drawTake(latest);
+  if (latest && !running && takeLane) {
+    drawTake(latest);
+    // the bars the loop was cut from, when it came from this take's run
+    const origin = zone.loop?.origin;
+    const from = origin && origin.at === latest.at ? origin.run - latest.runOffset : NaN;
+    if (zone.loop && from >= 0 && from < latest.length) {
+      const bx0 = Math.round(x(toSong(latest.start + from)));
+      const bx1 = Math.round(x(toSong(latest.start + Math.min(latest.length, from + zone.loop.length))));
+      if (bx1 > 0 && bx0 < w) {
+        g.globalAlpha = 1;
+        g.fillStyle = colour;
+        g.fillRect(bx0, takeY + 2, bx1 - bx0, 2);
+        g.fillRect(bx0, takeY + 2, 2, 7);
+        g.fillRect(bx1 - 2, takeY + 2, 2, 7);
+        g.font = '600 9px "Barlow Semi Condensed", sans-serif';
+        const label = 'Loop';
+        const lw = g.measureText(label).width + 6;
+        if (bx1 - bx0 > lw + 6) {
+          g.fillRect(bx0 + 4, takeY + 4, lw, 11);
+          g.fillStyle = '#15171a';
+          g.fillText(label, bx0 + 7, takeY + 12.5);
+        }
+      }
+    }
+  }
   // while running, the take lane shows the take being recorded
   if (recording) {
     for (const n of recording) note(toSong(n.t), toSong(n.t + n.d), rowOf(n.n), n.v, false, 0.85, takeRows);
@@ -1874,6 +1901,7 @@ function loopFromTake(zone: Zone, take: Take, from: number, to: number, label = 
     toast('Nothing was played there');
     return false;
   }
+  if (take.at) loop.origin = { at: take.at, run: from + take.runOffset };
   commit(index, label, () => {
     zone.loop = loop;
     zone.loopPlayer.release(true);

@@ -2025,6 +2025,7 @@ export class Zone {
       const loop = this.looper.closeRecording(to, bar, now);
       if (!loop) return { kind: 'empty' };
       this.loopPlayer.release(true);
+      loop.origin = { at: takeStore.runAt, run: this.looper.anchor + timeline.sectionStart };
       this.loop = loop;
       this.looper.lastRun = 'rec';
       return { kind: 'recorded', loop };

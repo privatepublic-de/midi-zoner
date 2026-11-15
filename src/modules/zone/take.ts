@@ -31,6 +31,10 @@ export class Take {
    * it negative, after it from its length on), so its edges can be dragged out again
    */
   spare: TakeNoteJSON[] = [];
+  /** A take: where it starts in its run (run ticks; the lead before its first bar was cut) */
+  runOffset = 0;
+  /** A loop: the run it was cut from (as a take's `at`) and where its first bar was in it (run ticks) */
+  origin: { at: number; run: number } | null = null;
   /** Counts recordings (the last seq handed out) */
   static counter = 0;
 
@@ -179,6 +183,8 @@ export class Take {
       ...(this.seq ? { seq: this.seq } : {}),
       ...(this.sections.length ? { sections: this.sections.map((s) => ({ t: s.t, meter: s.meter })) } : {}),
       notes: this.notes.map((n) => ({ t: round(n.t), d: round(n.d), n: n.n, v: n.v, ...(n.p ? { p: 1 as const } : {}) })),
+      ...(this.runOffset ? { runOffset: this.runOffset } : {}),
+      ...(this.origin ? { origin: { at: this.origin.at, run: this.origin.run } } : {}),
       ...(this.spare.length
         ? { spare: this.spare.map((n) => ({ t: round(n.t), d: round(n.d), n: n.n, v: n.v, ...(n.p ? { p: 1 as const } : {}) })) }
         : {})
@@ -230,6 +236,11 @@ export class Take {
         if (n) take.notes.push(n);
       }
     }
+    const runOffset = Number(d.runOffset);
+    if (runOffset > 0 && runOffset <= Take.MAX_LENGTH) take.runOffset = runOffset;
+    const oAt = Number(d.origin?.at);
+    const oRun = Number(d.origin?.run);
+    if (oAt > 0 && oAt < 1e14 && isFinite(oRun) && Math.abs(oRun) <= 4 * Take.MAX_LENGTH) take.origin = { at: oAt, run: oRun };
     if (Array.isArray(d.spare)) {
       for (const raw of d.spare.slice(0, Take.MAX_SPARE)) {
         const n = note(raw, -Take.MAX_LENGTH, 2 * Take.MAX_LENGTH);
