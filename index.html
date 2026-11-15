@@ -282,14 +282,14 @@
       <div class="td-resize" title="Drag to resize (double-click: default height)"></div>
       <div class="td-bar">
         <span class="td-name"></span>
+        <a class="td-tab" data-tab="zone" title="The zone's settings: octave, thru, program, pedal, key range">Zone</a>
         <a class="td-tab" data-tab="seq" title="The zone's step sequencer">Sequencer</a>
         <a class="td-tab" data-tab="arp" title="The zone's arpeggiator">Arp</a>
         <a class="td-tab" data-tab="cc" title="The zone's knobs and buttons for the synth">Controllers</a>
-        <a class="td-tab" data-tab="zone" title="The zone's settings: octave, thru, program, key range">Track</a>
         <a class="td-tab" data-tab="notes" title="Edit the notes of what is picked in the lanes: the loop or a take">Loop</a>
         <a class="td-collapse lightButton" title="Hide the panel (or double-click its bar)"><i class="material-icons">expand_more</i></a>
       </div>
-      <!-- the Track tab: the zone's settings and range (placed on the left) -->
+      <!-- the Zone tab: the zone's settings and range (placed on the left) -->
       <div class="td-track">
         <div class="tdt-settings"></div>
       </div>
@@ -310,9 +310,10 @@
           <a class="lightButton tdn-delete" title="Delete the selected notes (⌫)">Delete</a>
           <a class="lightButton tdn-loop" title="The bars around the selected notes become the zone's loop, with the pick-up before them">Loop these bars</a>
           <span class="tdn-zoom" role="group" aria-label="Zoom">
-            <a class="lightButton" data-tdn-zoom="-1" title="Zoom out (⌘ + wheel)"><i class="material-icons">remove</i></a>
-            <a class="lightButton" data-tdn-zoom="1" title="Zoom in (⌘ + wheel)"><i class="material-icons">add</i></a>
-            <a class="lightButton tdn-fit" title="Show all of it">Fit</a>
+            <span class="label">Zoom</span>
+            <a class="lightButton" data-tdn-zoom="-1" title="Zoom out: more bars in view (⌘ + wheel)"><i class="material-icons">remove</i></a>
+            <a class="lightButton" data-tdn-zoom="1" title="Zoom in: fewer bars, more detail (⌘ + wheel)"><i class="material-icons">add</i></a>
+            <a class="lightButton tdn-fit" title="All bars and every note in view">Show all</a>
           </span>
         </div>
         <canvas></canvas>
@@ -544,7 +545,7 @@
               <i class="material-icons">delete</i>Delete
             </button>
             <button class="cce-tool warn" data-cce-action="cc_remove_all" data-needs-controllers title="Delete all controllers and start anew">
-              <i class="material-icons">delete_sweep</i>
+              <i class="material-icons">delete_sweep</i>Delete all
             </button>
           </div>
           <div class="cce-layout" title="How the controllers are laid out in the zone"></div>

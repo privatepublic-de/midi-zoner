@@ -11,7 +11,7 @@ import { toast } from './toast';
 import { pendingOf, toggleBoundary } from './pending-toggles';
 import { initTakeEditor, drawTakeEditor, refitTakeEditor, TakeTarget } from './take-editor';
 
-/** The one sentence on how takes come about (lane strip, Track tab, Notes tab) */
+/** The one sentence on how takes come about (lane strip, the notes editor's tab) */
 const TAKE_HINT = 'Everything you play from Start to Stop becomes a take';
 
 /**
@@ -427,14 +427,14 @@ function updateDock(zones: Zone[]): void {
   let empty = '';
   let turnOn = '';
   if (tab === 'seq' && !zone.sequence.active) {
-    empty = 'The sequencer of this track is off.';
+    empty = 'The sequencer of this zone is off.';
     turnOn = 'Turn on';
   } else if (tab === 'arp' && !zone.arp_enabled) {
-    empty = 'The arpeggiator of this track is off.';
+    empty = 'The arpeggiator of this zone is off.';
     turnOn = 'Turn on';
   } else if (tab === 'notes' && !editedTake()) {
     empty = zone.hasRecorded
-      ? 'Double-click a take in the lane or in the Track tab to edit its notes.'
+      ? 'Click a take or the loop in the lanes to edit its notes here.'
       : `No loop and no takes yet. ${TAKE_HINT}.`;
   }
   // nothing to show: the dock keeps its height and says so in its place
@@ -2062,7 +2062,7 @@ function initTrackView(
     '<a class="tc-keep lightButton" title="This take becomes the zone’s loop in this arrangement, replacing its loop">Loop</a>' +
     '<a class="tc-quantize lightButton" title="Quantize this take">Quantize</a>' +
     '<a class="tc-steps lightButton" title="Turn this take into steps">To steps</a>' +
-    '<a class="tc-delete lightButton" title="Delete this take"><i class="material-icons">delete_outline</i></a>';
+    '<a class="tc-delete lightButton" title="Delete this take (⌘Z brings it back)">Delete</a>';
   const fromShown = (target: 'steps' | 'take') => (): void => {
     const zone = getZones()[selected];
     const take = zone && shownTake(zone)?.take;

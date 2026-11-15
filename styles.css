@@ -5818,9 +5818,6 @@ body.track-view:not(.minimized) {
       opacity: 0.3;
       pointer-events: none;
     }
-    .tc-delete .material-icons {
-      font-size: 15px;
-    }
     .lightButton:not(.tc-prev, .tc-next):hover {
       background-color: var(--on);
       color: var(--on-text);
@@ -6302,8 +6299,13 @@ body.track-view:not(.minimized) {
   }
   #trackDock .tdn-zoom {
     display: flex;
+    align-items: center;
     gap: 2px;
     margin-left: 8px;
+    .label {
+      margin-right: 4px;
+      color: var(--slate-dim);
+    }
   }
   #trackDock .td-notes canvas {
     display: block;
