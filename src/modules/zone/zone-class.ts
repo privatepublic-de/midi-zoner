@@ -791,10 +791,14 @@ export class Zone {
                 const heldByLiveInput =
                   fromSequencer && this.midiActiveNotes[srcKey] != null;
                 const passThrough = !isArpActive && !heldByLiveInput;
-                // MPE pass-through keeps the key's channel; notes the arp plays don't
-                // own it, so the arp drops their expression
+                // MPE pass-through keeps the key's channel unless a loop note plays on it
+                // (routeLive); notes the arp plays don't own it, so the arp drops their expression
                 const outChannel =
-                  loopChannel >= 0 ? loopChannel : mpeMember && this.mpe === MpeMode.PASS && passThrough ? mpeCh : this.channel;
+                  loopChannel >= 0
+                    ? loopChannel
+                    : mpeMember && this.mpe === MpeMode.PASS && passThrough
+                      ? this.mpeIn.routeLive(mpeCh, memberChannels(this.mpeMasterChannel))
+                      : this.channel;
                 if (mpeMember && (passThrough || this.mpe === MpeMode.COLLAPSE)) {
                   this.mpeIn.claim(mpeCh, key);
                   // The expression sent before the note-on goes out ahead of it
@@ -975,12 +979,14 @@ export class Zone {
       return true;
     }
     if (!owned) return true;
+    // on the channel its note went out on (moved off a loop note's, see routeLive)
+    const outCh = this.mpeIn.liveOut(ch);
     if (message === MIDI.MESSAGE.PITCH_BEND) {
-      if (this.pitchbend) this.sendPassBend(ch, this.mpeIn.voice(ch).bend);
+      if (this.pitchbend) this.sendPassBend(outCh, this.mpeIn.voice(ch).bend);
       return true;
     }
     const out = new Uint8Array(data);
-    out[0] = message + ch;
+    out[0] = message + outCh;
     this.sendOut(out, this.outputPortId);
     return true;
   }
@@ -1033,7 +1039,7 @@ export class Zone {
   /** Pass-through: a channel's bend, slide and pressure, sent ahead of its note-on */
   private sendMpeVoice(ch: number): void {
     const v = this.mpeIn.voice(ch);
-    this.sendPassVoice(ch, { bend: -1, slide: -1, press: -1 }, { bend: v.bend, slide: v.slide, press: v.pressure });
+    this.sendPassVoice(this.mpeIn.liveOut(ch), { bend: -1, slide: -1, press: -1 }, { bend: v.bend, slide: v.slide, press: v.pressure });
   }
 
   /** Collapse: the merged bend, slide and pressure on the zone channel, where they changed (`fromLoop`: a loop note's) */

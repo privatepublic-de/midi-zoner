@@ -60,9 +60,12 @@ interface Voice {
   outNote: number;
   /** Poly aftertouch sent last for that note, -1 = none yet */
   sentPoly: number;
-  /** A loop voice in Pass through: the member channel it plays on (-1: none) */
+  /**
+   * Pass through, the member channel the voice's note goes out on: a loop voice's own (-1:
+   * none); a key's when it can't keep its own (-1: its own, see routeLive)
+   */
   outCh: number;
-  /** A live key took that channel: the loop voice sends nothing more there */
+  /** A live key took a loop voice's channel (none was free): the loop voice sends nothing more there */
   yielded: boolean;
   /** Pass through: bend, slide and pressure sent last on that channel (-1: none yet) */
   sent: { bend: number; slide: number; press: number };
@@ -181,6 +184,48 @@ export class MpeInput {
     const v = this.voices[ch];
     v.note = note;
     v.owned = false;
+    v.outCh = -1;
+  }
+
+  /** Pass through: the member channel a key's note and expression go out on */
+  liveOut(ch: number): number {
+    const out = this.voices[ch].outCh;
+    return out >= 0 ? out : ch;
+  }
+
+  /**
+   * Pass through: the output channels taken by notes the zone plays (held or in their
+   * release tail), but not `except`'s; a loop voice keeps its channel until it ends
+   */
+  private busyChannels(except = -1): Set<number> {
+    const busy = new Set<number>();
+    this.voices.forEach((v, i) => {
+      if (i === except) return;
+      if (i < 16) {
+        if (this.owns(i)) busy.add(this.liveOut(i));
+      } else if (v.owned && v.outCh >= 0) busy.add(v.outCh);
+    });
+    return busy;
+  }
+
+  /** Of `members`, the channel free of `busy` that was let go longest ago, -1 when none */
+  private freeChannel(members: number[], busy: Set<number>): number {
+    const freedAt = (ch: number): number => Math.max(this.channelFreedAt[ch], this.voices[ch].releasedAt);
+    let out = -1;
+    for (const ch of members) if (!busy.has(ch) && (out < 0 || freedAt(ch) < freedAt(out))) out = ch;
+    return out;
+  }
+
+  /**
+   * Pass through, before a key's note-on: it keeps its channel unless a loop note (or
+   * another key moved there) plays on it; then it goes out on a free member channel, so
+   * neither bends the other's note. None free: it shares the channel (the loop note yields)
+   */
+  routeLive(ch: number, members: number[]): number {
+    const busy = this.busyChannels(ch);
+    const v = this.voices[ch];
+    v.outCh = busy.has(ch) ? this.freeChannel(members, busy) : -1;
+    return this.liveOut(ch);
   }
 
   /** The zone plays the channel's note, sent as outNote */
@@ -193,7 +238,10 @@ export class MpeInput {
     this.held.push(ch);
     this.source = this.pickSource();
     // a live key on a channel a loop note plays on: the channel's expression is the key's now
-    if (ch < 16) for (const loop of this.voices) if (loop.outCh === ch) loop.yielded = true;
+    if (ch < 16) {
+      const out = this.liveOut(ch);
+      for (let i = 16; i < this.voices.length; i++) if (this.voices[i].outCh === out) this.voices[i].yielded = true;
+    }
   }
 
   /**
@@ -214,12 +262,7 @@ export class MpeInput {
     // is on (nor in its release tail), the one let go longest ago
     let outCh = -1;
     if (members) {
-      const busy = new Set<number>();
-      this.voices.forEach((v, i) => {
-        if (i < 16 ? this.owns(i) : v.owned) busy.add(i < 16 ? i : v.outCh);
-      });
-      const freedAt = (ch: number): number => Math.max(this.channelFreedAt[ch], this.voices[ch].releasedAt);
-      for (const ch of members) if (!busy.has(ch) && (outCh < 0 || freedAt(ch) < freedAt(outCh))) outCh = ch;
+      outCh = this.freeChannel(members, this.busyChannels());
       if (outCh < 0) return -1;
     }
     let slot = -1;
@@ -318,7 +361,10 @@ export class MpeInput {
     const i = this.held.indexOf(ch);
     if (i === -1) return false;
     this.held.splice(i, 1);
-    this.voices[ch].releasedAt = performance.now();
+    const now = performance.now();
+    this.voices[ch].releasedAt = now;
+    // a key moved to another channel lets that one go (a loop voice's: endLoop)
+    if (ch < 16 && this.voices[ch].outCh >= 0) this.channelFreedAt[this.voices[ch].outCh] = now;
     if (this.held.length > 0) this.source = this.pickSource();
     return true;
   }
