@@ -205,9 +205,11 @@ function loopChipTitle(zone: Zone, state: string): string {
     case 'wait':
       return `${mode} starts on the next 1 (press again: cancel)`;
     case 'rec':
-      return `${mode}: press on a 1 to end it`;
+      return zone.looper.mode === 'dub'
+        ? 'Overdubbing: press on a 1 to end it'
+        : `Recording: a press now makes a loop of ${Take.lengthLabel(zone.loopPressLength(), currentMeter())} (it counts for the nearest 1)`;
     case 'closing':
-      return `${mode} ends on the next 1`;
+      return `${mode} ends on the next 1 (pressed too late? Press again: it ends at the 1 just passed)`;
     default:
       return 'Rec: press on a 1 to record a loop, on a later 1 to close it; it plays at once. A little late is fine: the bar before counts as its pick-up. Press again to overdub, twice quickly to clear. Mute silences it';
   }
@@ -284,10 +286,30 @@ function dismissCardTakes(zone: Zone): void {
   invalidate();
 }
 
+/** The card's loop strip: its length, a bar less or more, Clear; the take one click away */
+function updateCardLoop(zone: Zone, el: HTMLElement): void {
+  const strip = el.querySelector('.card-loop');
+  const loop = zone.loop;
+  if (!strip || !loop) return;
+  const label = `Loop · ${Take.lengthLabel(loop.length, currentMeter())}`;
+  const labelEl = strip.querySelector('.cl-label')!;
+  if (labelEl.textContent !== label) labelEl.textContent = label;
+  const note = zone.looper.lastRun === 'dub' ? 'overdubbed in this run' : 'recorded in this run';
+  const noteEl = strip.querySelector('.cl-note')!;
+  if (noteEl.textContent !== note) noteEl.textContent = note;
+  const bar = barLen();
+  strip.querySelector('[data-cl=less]')!.classList.toggle('disabled', loop.length <= bar);
+  strip.querySelector('[data-cl=more]')!.classList.toggle('disabled', loop.length + bar > MAX_LOOP_BARS * bar);
+}
+
 /** The card's takes strip (stopped, with takes): ‹ Take n/m ›, a preview, Loop n bars */
 function updateCardTakes(zone: Zone, el: HTMLElement): void {
+  // after a run that recorded or overdubbed the zone's loop: the loop's bars, not the take
+  const loopShown = !timeline.running && zone.loop !== null && zone.looper.lastRun !== null;
+  if (el.classList.contains('has-card-loop') !== loopShown) el.classList.toggle('has-card-loop', loopShown);
+  if (loopShown) updateCardLoop(zone, el);
   const takes = takeStore.of(zone.id);
-  const show = !timeline.running && takes.length > 0 && dismissedTakes[zone.id] !== takes[takes.length - 1].id;
+  const show = !loopShown && !timeline.running && takes.length > 0 && dismissedTakes[zone.id] !== takes[takes.length - 1].id;
   if (el.classList.contains('has-card-takes') !== show) el.classList.toggle('has-card-takes', show);
   const take = show ? takeStore.shownTake(zone.id) : null;
   const strip = el.querySelector('.card-takes') as HTMLElement | null;
@@ -1027,6 +1049,11 @@ function drawLane(
       if (lp.to !== null) {
         const tag = lp.mode === 'dub' ? 'Dub end' : `Loop ${Take.lengthLabel(lp.to - lp.from, timeline.meter)}`;
         marks.set(elapsedToSong(lp.to), [...(marks.get(elapsedToSong(lp.to)) ?? []), tag]);
+      } else if (lp.mode === 'rec') {
+        // where a press now would close it (the nearest 1), and how long the loop would be
+        const length = zone.loopPressLength();
+        const at = elapsedToSong(lp.from + length);
+        marks.set(at, [...(marks.get(at) ?? []), `Press: ${Take.lengthLabel(length, timeline.meter)}`]);
       }
     }
   }
@@ -2051,6 +2078,19 @@ function initTrackView(
   loopChip.querySelector('.lc-less')!.addEventListener('click', onLoop((z, l) => setLoopBars(z, 0, l.length - barLen(), 'Loop Length')));
   loopChip.querySelector('.lc-more')!.addEventListener('click', onLoop((z, l) => setLoopBars(z, 0, l.length + barLen(), 'Loop Length')));
   loopChip.querySelector('.lc-clear')!.addEventListener('click', onLoop((z) => clearLoop(z)));
+  // the cards' loop strips
+  zonesEl.addEventListener('click', (ev) => {
+    const button = (ev.target as Element).closest('.card-loop [data-cl]') as HTMLElement | null;
+    const zone = button && getZones()[zoneIndexOf(button)];
+    if (!button || !zone?.loop || button.classList.contains('disabled')) return;
+    const act = button.dataset['cl'];
+    const len = zone.loop.length;
+    if (act === 'less') setLoopBars(zone, 0, len - barLen(), 'Loop Length');
+    else if (act === 'more') setLoopBars(zone, 0, len + barLen(), 'Loop Length');
+    else if (act === 'clear') clearLoop(zone);
+    else if (act === 'takes') zone.looper.lastRun = null;
+    invalidate();
+  });
   // the cards' takes strips
   zonesEl.addEventListener('click', (ev) => {
     const button = (ev.target as Element).closest('.card-takes [data-ct]') as HTMLElement | null;

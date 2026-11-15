@@ -2026,10 +2026,13 @@ export class Zone {
       if (!loop) return { kind: 'empty' };
       this.loopPlayer.release(true);
       this.loop = loop;
+      this.looper.lastRun = 'rec';
       return { kind: 'recorded', loop };
     }
     if (this.looper.mode === 'dub' && this.loop) {
-      return { kind: 'dubbed', added: this.looper.closeDub(this.loop, to, bar, now) };
+      const added = this.looper.closeDub(this.loop, to, bar, now);
+      if (added > 0 && this.looper.lastRun !== 'rec') this.looper.lastRun = 'dub';
+      return { kind: 'dubbed', added };
     }
     this.looper.mode = 'idle';
     return { kind: 'none' };
@@ -2042,6 +2045,12 @@ export class Zone {
     return to === null ? null : this.closeLoop(to, now);
   }
 
+  /** While recording: how long the loop gets when the press comes now (ticks) */
+  loopPressLength(): number {
+    const bar = barTicks(timeline.meter);
+    return Math.max(bar, Looper.nearestOne(this.loopNow(), bar) - this.looper.from);
+  }
+
   /** The loop chip: what it says and how it looks */
   get loopChip(): { label: string; state: 'off' | 'on' | 'wait' | 'rec' | 'closing' } {
     const bar = barTicks(timeline.meter);
@@ -2052,7 +2061,8 @@ export class Zone {
     if (lp.mode !== 'idle') {
       if (lp.from > now) return { label: word, state: 'wait' };
       if (lp.to !== null) return { label: `${word} ${bars(lp.mode === 'dub' && this.loop ? this.loop.length : lp.to - lp.from)}`, state: 'closing' };
-      const length = lp.mode === 'dub' && this.loop ? this.loop.length : Math.max(bar, Math.ceil((now - lp.from) / bar) * bar);
+      // recording: the length a press now makes (it counts for the nearest 1, at least a bar)
+      const length = lp.mode === 'dub' && this.loop ? this.loop.length : this.loopPressLength();
       return { label: `${word} ${bars(length)}`, state: 'rec' };
     }
     return this.loop ? { label: `Loop ${bars(this.loop.length)}`, state: 'on' } : { label: 'Rec', state: 'off' };

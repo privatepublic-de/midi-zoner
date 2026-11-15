@@ -6435,7 +6435,9 @@ body.minimized .zone .mini-lane {
   display: none !important;
 }
 
-/* Takes strip (cards, stopped, zones with takes): ‹ Take n/m ›, preview, Loop n bars */
+/* Takes strip (cards, stopped, zones with takes): ‹ Take n/m ›, preview, Loop n bars;
+   the loop strip instead after a run that recorded or overdubbed the zone's loop */
+.zone .card-loop,
 .zone .card-takes {
   display: none;
   align-items: center;
@@ -6445,11 +6447,21 @@ body.minimized .zone .mini-lane {
   color: var(--slate-dim);
 }
 
-.zone.has-card-takes .card-takes {
+.zone.has-card-takes .card-takes,
+.zone.has-card-loop .card-loop {
   display: flex;
 }
 
-.zone .card-takes .lightButton {
+.zone .card-loop .cl-label {
+  color: var(--text-base-color);
+  padding: 0 4px;
+}
+
+.zone .card-loop .cl-gap {
+  flex: 1;
+}
+
+.zone :is(.card-takes, .card-loop) .lightButton {
   min-width: 22px;
   height: 22px;
   padding: 0 8px;
@@ -6468,8 +6480,8 @@ body.minimized .zone .mini-lane {
   height: 18px;
 }
 
-body.track-view .zone .card-takes,
-body.minimized .zone .card-takes {
+body.track-view .zone :is(.card-takes, .card-loop),
+body.minimized .zone :is(.card-takes, .card-loop) {
   display: none !important;
 }
 

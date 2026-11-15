@@ -1327,8 +1327,11 @@ document.addEventListener('DOMContentLoaded', function () {
       timelineMeter(activeMeter());
       timelineTransport(started);
       // a run is a take: from Start to Stop (stopPos is where it stopped)
-      if (started) takeStore.startRun(activeMeter());
-      else takeStore.endRun(timeline.stopPos);
+      if (started) {
+        takeStore.startRun(activeMeter());
+        // the cards offer a loop's bars after the run it was recorded in
+        for (const z of zones.list) z.looper.lastRun = null;
+      } else takeStore.endRun(timeline.stopPos);
       // after a count-in the first beats are already scheduled
       if (!countingIn) resetMetronome();
       showCountIn(null);

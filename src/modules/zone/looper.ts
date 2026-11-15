@@ -182,6 +182,8 @@ export class Looper {
   to: number | null = null;
   /** Where the loop's cycle starts */
   anchor = 0;
+  /** What happened to the loop in this run (recorded or overdubbed), so the card offers its bars after Stop */
+  lastRun: 'rec' | 'dub' | null = null;
   private played: Played[] = [];
   // counts changes to `played`, so the overdub layer is rebuilt only when it changed
   private version = 0;
@@ -268,8 +270,14 @@ export class Looper {
       this.mode = 'idle';
       return { kind: 'cancelled' };
     }
-    // already closing
-    if (this.to !== null) return { kind: 'none' };
+    // already waiting for its end: pressed too late, so a second press ends it at the 1 just
+    // passed (as long as that leaves at least a bar)
+    if (this.to !== null) {
+      const back = this.to - bar;
+      if (back < this.from + bar || back > now) return { kind: 'none' };
+      this.to = null;
+      return close(back);
+    }
     // at least a bar (a press just after the start means the bar after it)
     const to = Math.max(one, this.from + bar);
     if (to > now) {
