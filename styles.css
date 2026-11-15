@@ -5621,11 +5621,12 @@ body.track-view:not(.minimized) {
     grid-row: 1;
     display: flex;
     flex-wrap: wrap;
-    align-content: center;
+    /* at the top of the row, level with the top of its lanes */
+    align-content: flex-start;
     align-items: center;
     gap: 6px 4px;
     margin: 0;
-    padding: 0 8px 0 12px;
+    padding: calc(var(--lane-pad) + 4px) 8px 0 12px;
     background: none;
   }
   #zones > .zone > .channels::after {
@@ -5835,6 +5836,9 @@ body.track-view:not(.minimized) {
     /* tracks scroll under it: above the selected card's edge and the strip's chips (1);
        the port windows (also 2, later in the page) still open over it */
     z-index: 2;
+    /* its canvas (26px) inside its padding: a ruler that spills over would cover the first
+       track's top edge (the amber of a selected track) */
+    box-sizing: content-box;
     height: 26px;
     margin: 0 calc(-1 * var(--track-gap));
     padding: 6px calc(var(--track-gap) + var(--lane-pad) + 1px) 6px var(--track-gap);
