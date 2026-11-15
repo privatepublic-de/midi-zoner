@@ -1,4 +1,5 @@
 import MIDI from '../midi';
+import { TAIL_MS } from './note-curve';
 
 /**
  * MPE input (MIDI Polyphonic Expression, e.g. a ROLI Seaboard): every key plays on a
@@ -28,7 +29,7 @@ const MASTER_BEND_RANGE = 2;
  * After that the channel's next key, which may land in another zone of a key split,
  * can't move this zone's fading note: its expression arrives before its note-on.
  */
-const RELEASE_KEEP_MS = 500;
+const RELEASE_KEEP_MS = TAIL_MS;
 /** How long a released key's dot fades on the zone's keyboard strip, in ms */
 const DOT_FADE_MS = 300;
 /** Member channels of a full MPE zone, as a Seaboard uses them */

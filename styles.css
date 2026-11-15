@@ -5880,7 +5880,11 @@ body.track-view:not(.minimized) {
       background-color: var(--on);
       color: var(--on-text);
     }
-    .lightButton:not(.tc-prev, .tc-next):hover {
+    /* a switch's hover is an outline: the fill says it's on */
+    .lc-mpe:hover {
+      border-color: var(--on);
+    }
+    .lightButton:not(.tc-prev, .tc-next, .lc-mpe):hover {
       background-color: var(--on);
       color: var(--on-text);
     }

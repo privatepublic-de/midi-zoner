@@ -26,9 +26,11 @@ export const CURVE_STEPS_PER_TICK = 8;
 /** Points one series keeps at most */
 export const MAX_CURVE_POINTS = 2048;
 /**
- * How far a release tail reaches past the note's end at most, in ticks (500 ms of tail,
- * RELEASE_KEEP_MS in mpe.ts, is 60 ticks at 300 BPM)
+ * How long a released key's expression goes on (its release tail), in ms: recorded for that
+ * long, and the time a zone keeps acting on its channel (mpe.ts)
  */
+export const TAIL_MS = 500;
+/** How far a release tail reaches past the note's end at most, in ticks (TAIL_MS at fast tempos) */
 export const MAX_TAIL_TICKS = 64;
 
 /** Value range of each series */
@@ -37,34 +39,6 @@ const RANGE: Record<CurveName, [number, number]> = {
   slide: [0, 127],
   press: [0, 127]
 };
-
-/** The points of a series, at ticks from the note's start */
-export function curvePoints(series: CurveSeries): { t: number; v: number }[] {
-  const points: { t: number; v: number }[] = [];
-  let at = 0;
-  for (let i = 0; i + 1 < series.length; i += 2) {
-    at += series[i];
-    points.push({ t: at / CURVE_STEPS_PER_TICK, v: series[i + 1] });
-  }
-  return points;
-}
-
-/** A series' value at a tick from the note's start: straight lines between points, held after the last */
-export function sampleSeries(series: CurveSeries, t: number): number | null {
-  if (series.length < 2) return null;
-  const at = t * CURVE_STEPS_PER_TICK;
-  let prevT = series[0];
-  let prevV = series[1];
-  if (at <= prevT) return prevV;
-  for (let i = 2; i + 1 < series.length; i += 2) {
-    const nextT = prevT + series[i];
-    const nextV = series[i + 1];
-    if (at < nextT) return prevV + ((nextV - prevV) * (at - prevT)) / Math.max(1, nextT - prevT);
-    prevT = nextT;
-    prevV = nextV;
-  }
-  return prevV;
-}
 
 /** Where a curve's last point lies, in ticks from the note's start (0 for none) */
 export function curveEnd(curve: NoteCurveJSON | undefined): number {
@@ -145,8 +119,6 @@ const TOLERANCE: Record<CurveName, number> = { bend: 1, slide: 0.5, press: 1 };
 const NEXT_KEY_MS = 2;
 /** A loop's expression points at most (it's in the scene and every undo step): beyond, it's thinned harder */
 export const LOOP_CURVE_BUDGET = 20000;
-/** How long a released key's expression is recorded (its release tail), in ms; RELEASE_KEEP_MS in mpe.ts */
-export const TAIL_MS = 500;
 
 /**
  * One series as it comes in, thinned on the way (swing door): a point is kept only where a
@@ -324,9 +296,12 @@ export class CurveBuilder {
     const curve: NoteCurveJSON = {};
     for (const name of CURVE_NAMES) {
       const series = this.series[name]?.series();
-      // bend at the centre and no pressure throughout say nothing
-      if (!series || (name !== 'slide' && series.length === 2 && series[1] === 0)) continue;
-      curve[name] = series;
+      if (!series) continue;
+      // a value that never moves is one point; bend at the centre and no pressure throughout
+      // say nothing (a loop note without any expression plays plain)
+      const steady = series.every((v, i) => i % 2 === 0 || v === series[1]);
+      if (steady && name !== 'slide' && series[1] === 0) continue;
+      curve[name] = steady ? series.slice(0, 2) : series;
     }
     this.cached = CURVE_NAMES.some((name) => curve[name]) ? curve : undefined;
     if (this.cached) this.handedOut.add(this.cached);

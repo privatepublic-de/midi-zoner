@@ -3,7 +3,6 @@ import { Note } from './note';
 import { Take } from './take';
 import type { TakeNoteJSON } from './interfaces';
 import type { Zone } from './zone-class';
-import { Zone as ZoneClass } from './zone-class';
 import { CurveCursor, curveEnd, TAIL_MS } from './note-curve';
 
 /** Expression is sent about this often while a loop note plays it, in ms */
@@ -171,7 +170,6 @@ export class TakePlayer {
     });
   }
 
-  /** `elapsed`: ticks since the section began; the song position follows from it (loop) */
   /** Sounding notes end (or ring out their length); unsent ones are dropped */
   release(ringOut: boolean): void {
     const ringOutNotes = ringOut && !this.zone.arp_enabled;
@@ -195,8 +193,7 @@ export class TakePlayer {
       if (v.slot < 0 || !ringOutNotes) this.endVoice(v);
       else if (!v.frozen) {
         v.frozen = true;
-        const ms = Math.min(ZoneClass.MAX_RING_OUT_MS, Math.max(0, v.endAt - this.elapsed) * this.tickMs);
-        setTimeout(() => this.endVoice(v), ms);
+        setTimeout(() => this.endVoice(v), Math.max(0, this.zone.ringOutMs(v.endAt - this.elapsed)));
       }
     }
     this.voices = this.voices.filter((v) => !v.ended);

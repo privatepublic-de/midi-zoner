@@ -627,12 +627,12 @@ function updateArrangementMeters(): void {
   }
 }
 
-/** The meter entries of an arrangement's menu ("meters:<arrangement>") */
 /** The zone menu's entry for its loop's MPE expression, when it has some */
 function loopMpeMenu(zoneindex: number): string[] {
   return zones.list[zoneindex]?.loop?.hasExpression ? [`${zoneindex}:zone_loop_mpe_clear`] : [];
 }
 
+/** The meter entries of an arrangement's menu ("meters:<arrangement>") */
 function meterMenu(spec: string): string[] {
   const arr = parseInt(spec.split(':')[1]);
   return [

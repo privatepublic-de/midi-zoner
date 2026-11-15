@@ -1,7 +1,7 @@
 import { TakeJSON, TakeNoteJSON, NoteCurveJSON } from './interfaces';
 import { PPQ } from './seq-layer';
 import { Meter, DEFAULT_METER, barTicks, unitTicks, parseMeter } from '../meter';
-import { sanitizeCurve, trimCurve, countPoints } from './note-curve';
+import { sanitizeCurve, trimCurve, countPoints, fitCurves } from './note-curve';
 
 /** A note at a position of its own (a song position, or as played): what loops are cut from */
 export interface SongNote {
@@ -50,8 +50,12 @@ export class Take {
   static MAX_NOTES = 16384;
   /** A loop's spare notes at most (they're in the scene and every undo step) */
   static MAX_SPARE = 4096;
-  /** Expression points a take or loop keeps at most (files are untrusted); later notes lose theirs */
-  static MAX_FILE_CURVE_POINTS = 200000;
+  /**
+   * Expression points a take or loop from a file keeps: beyond, its curves are thinned harder
+   * (an hour or more of MPE playing in one run); files are untrusted, so past four times that,
+   * later notes lose theirs
+   */
+  static MAX_FILE_CURVE_POINTS = 1000000;
   // identifies a recorded take, so the session's list can hide it while it's kept
   id = Math.random().toString(36).slice(2, 10);
   start = 0;
@@ -275,7 +279,7 @@ export class Take {
       take.sections.sort((a, b) => a.t - b.t);
     }
     // expression points left for the take (its notes first, then its spare ones)
-    let points = Take.MAX_FILE_CURVE_POINTS;
+    let points = 4 * Take.MAX_FILE_CURVE_POINTS;
     const note = (raw: unknown, lo: number, hi: number): TakeNoteJSON | null => {
       if (!raw || typeof raw !== 'object') return null;
       const r = raw as Partial<TakeNoteJSON>;
@@ -309,6 +313,7 @@ export class Take {
       }
       take.spare.sort((a, b) => a.t - b.t);
     }
+    if (points < 3 * Take.MAX_FILE_CURVE_POINTS) fitCurves([...take.notes, ...take.spare], Take.MAX_FILE_CURVE_POINTS);
     take.sort();
     return take;
   }

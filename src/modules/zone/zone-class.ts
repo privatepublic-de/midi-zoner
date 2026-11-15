@@ -825,6 +825,17 @@ export class Zone {
                 // orphaned in activeNotes and drawn forever as a stuck ghost note.
                 const previousNote = activeNoteSlots[srcKey];
                 if (previousNote) {
+                  // Sounding on another channel (MPE Pass through: two loop notes of one
+                  // pitch on member channels of their own), it ends here: the slot's later
+                  // note-off only reaches the new note's channel
+                  const previousChannel = this.passedThrough.get(previousNote);
+                  if (passThrough && previousChannel !== undefined && previousChannel !== outChannel) {
+                    this.passedThrough.delete(previousNote);
+                    this.sendOut(
+                      new Uint8Array([MIDI.MESSAGE.NOTE_OFF + previousChannel, previousNote.number, 0]),
+                      this.outputPortId
+                    );
+                  }
                   this.removeNote(previousNote);
                 }
                 activeNoteSlots[srcKey] = playNote;
@@ -1022,11 +1033,7 @@ export class Zone {
   /** Pass-through: a channel's bend, slide and pressure, sent ahead of its note-on */
   private sendMpeVoice(ch: number): void {
     const v = this.mpeIn.voice(ch);
-    if (this.pitchbend) this.sendPassBend(ch, v.bend);
-    if (v.slide !== null) {
-      this.sendOut(new Uint8Array([MIDI.MESSAGE.CONTROLLER + ch, MPE_SLIDE_CC, v.slide]), this.outputPortId);
-    }
-    this.sendOut(new Uint8Array([MIDI.MESSAGE.CHANNEL_PRESSURE + ch, v.pressure]), this.outputPortId);
+    this.sendPassVoice(ch, { bend: -1, slide: -1, press: -1 }, { bend: v.bend, slide: v.slide, press: v.pressure });
   }
 
   /** Collapse: the merged bend, slide and pressure on the zone channel, where they changed (`fromLoop`: a loop note's) */
@@ -1957,13 +1964,15 @@ export class Zone {
    * Schedule a note-off `ticks` clock ticks after the last processed tick, timed with
    * the last measured tick interval (the clock itself is no longer running).
    */
+  /** How long `ticks` from the last tick still last, in ms (at the last tick interval, at most MAX_RING_OUT_MS) */
+  ringOutMs(ticks: number): number {
+    const elapsedMs = performance.now() - this._lastTickAt;
+    return Math.min(ticks * this._lastTickIntervalMs - elapsedMs, Zone.MAX_RING_OUT_MS);
+  }
+
   ringOutAfterTicks(noteNumber: number, ticks: number, release: () => void): void {
     this.fireRingOut(noteNumber);
-    const elapsedMs = performance.now() - this._lastTickAt;
-    const delayMs = Math.min(
-      ticks * this._lastTickIntervalMs - elapsedMs,
-      Zone.MAX_RING_OUT_MS
-    );
+    const delayMs = this.ringOutMs(ticks);
     if (delayMs <= 0) {
       release();
       return;
