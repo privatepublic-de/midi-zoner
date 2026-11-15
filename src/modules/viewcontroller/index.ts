@@ -617,6 +617,13 @@ function updateArrangementMeters(): void {
     else el.setAttribute('data-meter', meterLabel(meter).split(' ')[0]);
     el.title = `Arrangement ${ARRANGEMENT_LETTERS[i]} · ${meterLabel(meter)} (right-click: meter, copy)`;
   });
+  // the transport's meter chip: the active arrangement's, its menu for that one
+  const chip = DOM.get('#meterChip') as HTMLElement | null;
+  if (chip) {
+    const [meter, grouping] = meterLabel(meterOf(zones.arrangementIndex)).split(' ');
+    chip.innerHTML = `${meter}${grouping ? ` <span class="dim">${grouping}</span>` : ''} <i class="material-icons">expand_more</i>`;
+    chip.setAttribute('data-contextmenu', `meters:${zones.arrangementIndex}`);
+  }
 }
 
 /** The meter entries of an arrangement's menu ("meters:<arrangement>") */
@@ -646,6 +653,8 @@ function contextHandler(ev: MouseEvent): void {
             ? meterMenu(act)
             : [act]
     );
+  // (a menu doesn't start with a divider: the meter chip has only the meter entries)
+  while (menuActions[0] === '-') menuActions.shift();
   const contextMenuElement = DOM.get('#contextmenu') as HTMLElement;
 
   DOM.empty(contextMenuElement);

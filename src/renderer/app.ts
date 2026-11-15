@@ -1791,6 +1791,10 @@ document.addEventListener('DOMContentLoaded', function () {
   DOM.on('*[data-select-arrangement][data-contextmenu]', 'contextmenu', (ev) => {
     view.showContextMenuFor(ev as MouseEvent);
   });
+  // the meter chip after the tempo: the active arrangement's meter menu
+  DOM.on('#meterChip', 'click', (ev) => {
+    view.showContextMenuFor(ev as MouseEvent);
+  });
   DOM.on('#seqquant', 'change', (ev) => {
     const quantDiv = parseInt((ev.target as HTMLSelectElement).value);
     zones.arrangementQuantIndex = quantDiv;

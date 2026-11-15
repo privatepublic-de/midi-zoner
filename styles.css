@@ -808,6 +808,38 @@ body:not(.minimized) #midisettings > .transport > .bpm-field {
   border-left: 1px solid var(--slate-line);
 }
 
+/* the meter chip after the tempo: a value like it (framed), its menu below it */
+#meterChip {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 22px;
+  margin-left: 6px;
+  padding: 0 4px 0 8px;
+  border: 1px solid var(--slate-line);
+  border-radius: var(--radius);
+  background-color: var(--slate-inset);
+  color: var(--text-base-color);
+  white-space: nowrap;
+  cursor: pointer;
+  .dim {
+    color: var(--slate-dim);
+  }
+  .material-icons {
+    font-size: 16px;
+    color: var(--slate-dim);
+  }
+}
+
+#meterChip:hover {
+  border-color: var(--slate-dim);
+}
+
+body.minimized #meterChip {
+  display: none;
+}
+
 /* the beat light in the Click chip: flashes on every beat (the bar's first in live green) */
 .beat-led {
   width: 6px;
