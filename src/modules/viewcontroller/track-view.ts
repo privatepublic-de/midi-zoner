@@ -5,6 +5,8 @@ import { CurveCursor } from '../zone/note-curve';
 import { timeline, sessionNow, songNow, nowTick, timelineMeter, countInNow, NoteHistory } from '../timeline';
 import { Meter, DEFAULT_METER, barTicks, beatLines, snapToBeat, positionLabel, meterLabel, sameMeter } from '../meter';
 import { Take } from '../zone/take';
+import { shiftGestures, pedalSpans, SUSTAIN } from '../zone/gestures';
+import type { GesturesJSON } from '../zone/gestures';
 import { loopFromNotes, pickupStart, recutLoop, EARLY, MAX_LOOP_BARS } from '../zone/looper';
 import { takeStore } from '../take-store';
 import { DIV_TICKS, PPQ } from '../zone/seq-layer';
@@ -45,6 +47,7 @@ const DIM_TEXT = '#8b95a3';
 const STOPPED_REDRAW_MS = 500;
 // a recording loop's wash
 const LOOP_REC = '#e5484d';
+const PEDAL_PAD = 4; // room under the notes for the pedal's bar
 
 let getZones: () => Zone[] = () => [];
 let trackView = localStorage.getItem(VIEW_KEY) === 'tracks';
@@ -867,11 +870,14 @@ function drawLane(
     rows = hi - lo + 1;
     rowOf = (pitch) => hi - pitch;
   }
-  const rowH = (h - 2 * LANE_PAD) / rows;
+  // room at the bottom for the pedal's bar, so notes don't cover it
+  const songGest = zone.loop?.g?.[SUSTAIN] ? PEDAL_PAD : 0;
+  const takeGest = takeLane && latest?.g?.[SUSTAIN] ? PEDAL_PAD : 0;
+  const rowH = (h - 2 * LANE_PAD - songGest) / rows;
   const noteH = Math.max(3, Math.min(drums ? 8 : 6, rowH - (drums ? 2 : 0)));
   const rowY = (row: number): number => songY + LANE_PAD + row * rowH + (rowH - noteH) / 2;
   // the take lane's rows: the same pitches, pressed into it
-  const takeRowH = (TAKE_LANE_H - 2 * TAKE_PAD) / rows;
+  const takeRowH = (TAKE_LANE_H - 2 * TAKE_PAD - takeGest) / rows;
   const takeNoteH = Math.max(2, Math.min(4, takeRowH));
   const songRows = { y: rowY, h: noteH };
   const takeRows = {
@@ -998,6 +1004,9 @@ function drawLane(
     g.strokeRect(Math.round(x0) + 0.75, takeY + 1.75, Math.round(x1 - x0) - 1.5, TAKE_LANE_H - 3.5);
     g.setLineDash([]);
     g.lineWidth = 1;
+    if (take.g) {
+      drawLanePedal(g, take.g, (t) => x(toSong(take.start + t - take.offset)), take.offset, take.offset + take.length, takeY, TAKE_LANE_H, colour);
+    }
     for (const n of take.visibleNotes()) {
       if (x(toSong(n.s)) > w) break;
       note(toSong(n.s), toSong(n.s + n.d), rowOf(n.n), n.v, false, 0.7, takeRows, n.x);
@@ -1052,6 +1061,9 @@ function drawLane(
             g.fillText('again', cx + 4, songY + 13);
           }
         }
+      }
+      if (loopTake.g) {
+        drawLanePedal(g, loopTake.g, (t) => x(elapsedToSong(c + t)), 0, len, songY, h, colour);
       }
       for (const n of loopTake.notes) {
         if (c + n.t + n.d < elapsedNow) continue;
@@ -1293,6 +1305,27 @@ function drawLane(
     const hintEl = el.querySelector('.track-hint')!;
     if (hintEl.textContent !== hint) hintEl.textContent = hint;
   }
+}
+
+/** Where a take's or loop's pedal is down: a bar along the lane's bottom (its wheels show in the Notes editor) */
+function drawLanePedal(
+  g: CanvasRenderingContext2D,
+  gs: GesturesJSON,
+  X: (t: number) => number,
+  from: number,
+  to: number,
+  top: number,
+  h: number,
+  colour: string
+): void {
+  if (!gs[SUSTAIN]) return;
+  const a = g.globalAlpha;
+  g.fillStyle = colour;
+  g.globalAlpha = 0.85;
+  for (const [s0, s1] of pedalSpans(SUSTAIN, gs[SUSTAIN], from, to)) {
+    g.fillRect(X(s0), top + h - 4, Math.max(1, X(s1) - X(s0) - 1), 2);
+  }
+  g.globalAlpha = a;
 }
 
 /** The steps a conversion would make: boxes on the grid, a line from each played note to its step */
@@ -1957,7 +1990,8 @@ function loopFromTake(zone: Zone, take: Take, from: number, to: number, label = 
     return false;
   }
   const bar = barTicks(take.sectionAt(from).meter);
-  const loop = loopFromNotes(take.visibleNotes(), from, to, bar);
+  // the take's gestures at song positions, as its visible notes
+  const loop = loopFromNotes(take.visibleNotes(), from, to, bar, false, shiftGestures(take.g, take.start - take.offset));
   if (!loop) {
     toast('Nothing was played there');
     return false;

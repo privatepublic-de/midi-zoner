@@ -4,6 +4,8 @@ import { Take } from './take';
 import type { TakeNoteJSON } from './interfaces';
 import type { Zone } from './zone-class';
 import { CurveCursor, curveEnd, TAIL_MS } from './note-curve';
+import { GesturesJSON, firstPointAtOrAfter, isStepped, sendValue, springsBackTo, valueAt } from './gestures';
+import { EARLY } from './looper';
 
 /** Expression is sent about this often while a loop note plays it, in ms */
 const SAMPLE_MS = 8;
@@ -43,6 +45,10 @@ export class TakePlayer {
   private tickMs = 20;
   /** Loop notes playing their expression (they outlive the note: release tails) */
   private voices: Voice[] = [];
+  /** The gestures it plays (null: start afresh from where the loop is), their controls, what it sent */
+  private gestures: { g: GesturesJSON | undefined; length: number } | null = null;
+  private gestureKeys: string[] = [];
+  private sampled = new Map<string, number>();
   constructor(zone: Zone) {
     this.zone = zone;
   }
@@ -63,9 +69,62 @@ export class TakePlayer {
     const len = loop.length;
     // whole ticks: a tick never spans the loop's end
     const local = (((elapsed - anchor) % len) + len) % len;
+    this.playGestures(loop, local, later);
     for (const notes of [loop.notes, layer]) {
       for (const tn of notes) {
         if (tn.t >= local && tn.t < local + 1) this.schedule(tn, tn.t - local, tn.d, later);
+      }
+    }
+  }
+
+  /**
+   * The loop's channel gestures within this tick (zone/gestures.ts), mixed with yours by the
+   * zone: each cycle starts from what was held at its 1 (a change up to EARLY before the 1
+   * belongs to it, as notes do, so it isn't played at the end); pedals change where they were
+   * played, wheels are sampled about every SAMPLE_MS along their lines
+   */
+  private playGestures(loop: Take, local: number, later: (ticks: number, fn: () => void) => void): void {
+    const g = loop.g;
+    const keys = g ? Object.keys(g) : [];
+    let fresh = local < 1;
+    if (!this.gestures || this.gestures.g !== g || this.gestures.length !== loop.length) {
+      // another loop, or this one changed: controls it no longer plays go back to yours
+      const gone = this.gestureKeys.filter((k) => !keys.includes(k));
+      if (gone.length > 0) this.zone.loopGesturesGone(gone);
+      this.gestures = { g, length: loop.length };
+      this.gestureKeys = keys;
+      this.sampled.clear();
+      fresh = true;
+    }
+    if (!g) return;
+    const end = loop.length - EARLY;
+    const step = Math.min(1, SAMPLE_MS / Math.max(1, this.tickMs));
+    for (const key of keys) {
+      const s = g[key];
+      const at = (t: number): number | undefined => valueAt(key, s, t) ?? springsBackTo(key);
+      if (fresh) {
+        const v = at(Math.min(local, end));
+        if (v !== undefined) {
+          this.sampled.set(key, sendValue(key, v));
+          this.zone.loopGesture(key, v);
+        }
+      }
+      if (isStepped(key)) {
+        for (let i = firstPointAtOrAfter(s, local); i < s.length && s[i] < local + 1; i += 2) {
+          const t = s[i];
+          if (t <= 0 || t >= end || (fresh && t <= local)) continue;
+          const v = s[i + 1];
+          later(t - local, () => this.zone.loopGesture(key, v));
+        }
+        continue;
+      }
+      for (let t = local + (fresh ? step : 0); t < local + 1 && t < end; t += step) {
+        const v = at(t);
+        if (v === undefined) continue;
+        const out = sendValue(key, v);
+        if (this.sampled.get(key) === out) continue;
+        this.sampled.set(key, out);
+        later(t - local, () => this.zone.loopGesture(key, out));
       }
     }
   }
@@ -203,6 +262,11 @@ export class TakePlayer {
     this.queue.length = 0;
     this.timers.forEach((t) => clearTimeout(t));
     this.timers.clear();
+    // its pedal lifts and wheels rest (after the ringing notes); played again, it starts afresh
+    this.zone.loopGesturesEnd(ringOutNotes);
+    this.gestures = null;
+    this.gestureKeys = [];
+    this.sampled.clear();
     // the others (in their release tail, or not started) rest now; ringing ones stay listed
     // until their note-off, so a panic or undo meanwhile still reaches them
     for (const v of this.voices) if (!ringing.has(v)) this.endVoice(v);

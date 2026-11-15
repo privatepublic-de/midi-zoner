@@ -6,6 +6,7 @@ import { Sequence } from './sequence';
 import { SeqStep } from './seq-step';
 import { DrumLane } from './drum-lane';
 import { Take } from './take';
+import { BEND, PRESSURE, SUSTAIN, GestureMix, gestureOf } from './gestures';
 import { CurveBuilder, updateCurves } from './note-curve';
 import type { CurveName } from './note-curve';
 import { barTicks } from '../meter';
@@ -639,15 +640,9 @@ export class Zone {
 
   set sustain_on(v: boolean) {
     this._sustain_on = v;
-    this.sustain_state = v;
-    this.sendOut(
-      Uint8Array.from([
-        MIDI.MESSAGE.CONTROLLER + this.channel,
-        64,
-        v ? 127 : 0
-      ]),
-      this.outputPortId
-    );
+    // down as far as the Pedal button, your pedal or the loop's hold it (zone/gestures.ts)
+    this.gestureMix.pedal = v;
+    this.gestureMix.update(SUSTAIN, true);
   }
 
   addNote(note: Note): void {
@@ -905,6 +900,12 @@ export class Zone {
             requestAnimationFrame(this._renderNotesBound);
           }
           if (!this.cc && data[1] != 0x40 && data[1] != 0x01) return;
+          // played: mixed with the loop's (gestureMix) and recorded
+          const key = fromMidiInput ? gestureOf(message, data[1]) : null;
+          if (key) {
+            this.playedGesture(key, data[2]);
+            break;
+          }
           const ccOutevent = new Uint8Array(data);
           ccOutevent[0] = message + this.channel;
           this.sendOut(ccOutevent, this.outputPortId);
@@ -912,6 +913,10 @@ export class Zone {
         }
         case MIDI.MESSAGE.PITCH_BEND:
           if (this.pitchbend) {
+            if (fromMidiInput) {
+              this.playedGesture(BEND, data[1] | (data[2] << 7));
+              break;
+            }
             const pbOutevent = new Uint8Array(data);
             pbOutevent[0] = message + this.channel;
             this.sendOut(pbOutevent, this.outputPortId);
@@ -925,7 +930,8 @@ export class Zone {
           }
           break;
         case MIDI.MESSAGE.CHANNEL_PRESSURE:
-          this.sendPressure(data[1]);
+          if (fromMidiInput) this.playedGesture(PRESSURE, data[1]);
+          else this.sendPressure(data[1]);
           break;
         default: {
           const defaultOutevent = new Uint8Array(data);
@@ -965,6 +971,11 @@ export class Zone {
     if (!member) {
       // Master channel: normal path, except that a merged bend adds the master's
       if (this.mpe !== MpeMode.COLLAPSE || message !== MIDI.MESSAGE.PITCH_BEND) return false;
+      if (this.pitchbend) {
+        // into the merge (gestureMix → emitGesture), mixed with the loop's
+        this.playedGesture(BEND, data[1] | (data[2] << 7));
+        return true;
+      }
       this.mpeIn.setMasterBend(data);
       this.sendCollapsed();
       return true;
@@ -2012,6 +2023,7 @@ export class Zone {
    * and play the arp legato).
    */
   started(): void {
+    this.holdGestures();
     // A Continue after a clock dropout keeps the playhead and the locks it holds
     if (this.sequence.active && this.sequence.currentStepNumber < 0) {
       this.paramLocks.start(this.sequence.lockedAddresses());
@@ -2119,6 +2131,86 @@ export class Zone {
       builder.owners.push(owner);
     }
     this.curves.set(mpeCh, builder);
+  }
+
+  /**
+   * The zone channel's controls: what you play (`live`, also where a take's or loop's
+   * gestures begin at Start), what the loop plays, and what goes out (zone/gestures.ts)
+   */
+  gestureMix = new GestureMix((key, value) => this.emitGesture(key, value));
+  private gestureRestTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /** A control's value on the zone channel (bend into the merge To one channel; aftertouch maybe as mod wheel) */
+  private emitGesture(key: string, value: number): void {
+    if (key === BEND) {
+      const data = Uint8Array.from([MIDI.MESSAGE.PITCH_BEND + this.channel, value & 0x7f, value >> 7]);
+      if (this.mpe === MpeMode.COLLAPSE) {
+        this.mpeIn.setMasterBend(data);
+        this.sendCollapsed();
+      } else {
+        this.sendOut(data, this.outputPortId);
+      }
+      return;
+    }
+    if (key === PRESSURE) {
+      this.sendPressure(value);
+      return;
+    }
+    const cc = Number(key.slice(1));
+    if (cc === 64) {
+      this.sustain_state = value > 0;
+      requestAnimationFrame(this._renderNotesBound);
+    }
+    this.sendOut(Uint8Array.from([MIDI.MESSAGE.CONTROLLER + this.channel, cc, value]), this.outputPortId);
+  }
+
+  /** The loop plays a control's value */
+  loopGesture(key: string, value: number): void {
+    if (this.gestureRestTimer !== null) {
+      clearTimeout(this.gestureRestTimer);
+      this.gestureRestTimer = null;
+    }
+    this.gestureMix.fromLoop(key, value);
+  }
+
+  /** The loop no longer plays these controls (it changed): yours go out again, or they rest */
+  loopGesturesGone(keys: string[]): void {
+    this.gestureMix.loopEnded(keys);
+  }
+
+  /**
+   * The loop stops (Stop, switched off, cleared, an arrangement switch): its pedal lifts and
+   * its wheels rest, after ringing notes have ended when `ringOut` (a lift would cut them)
+   */
+  loopGesturesEnd(ringOut: boolean): void {
+    if (this.gestureRestTimer !== null) clearTimeout(this.gestureRestTimer);
+    this.gestureRestTimer = null;
+    if (!this.gestureMix.loopPlaying) return;
+    const now = performance.now();
+    if (!ringOut || this._ringOutUntil <= now) {
+      this.gestureMix.loopEnded();
+      return;
+    }
+    this.gestureRestTimer = setTimeout(() => {
+      this.gestureRestTimer = null;
+      this.gestureMix.loopEnded();
+    }, this._ringOutUntil - now + 20);
+  }
+
+  /** A channel gesture passed on from the input: out (mixed with the loop's), into the take being recorded and the looper's input */
+  private playedGesture(key: string, value: number): void {
+    this.gestureMix.played(key, value);
+    if (!timeline.running) return;
+    const now = nowTick();
+    this.looper.gesture(now - timeline.sectionStart, key, value);
+    takeStore.gesture(this.id, now, key, value);
+  }
+
+  /** Start: a pedal held down (or a wheel off rest) then is where the run's gestures begin */
+  private holdGestures(): void {
+    const now = nowTick();
+    this.looper.restartGestures(now - timeline.sectionStart, this.gestureMix.live);
+    takeStore.holdGestures(this.id, now, this.gestureMix.live);
   }
 
   /** A key released: its note ends in the take and in the looper's input */
@@ -2298,6 +2390,12 @@ export class Zone {
     this.noteHistory = previous.noteHistory;
     this.heldHistory = previous.heldHistory;
     this.looper = previous.looper;
+    // what you hold (a pedal, a wheel) and what the loop holds goes on, without a lift and
+    // press that would cut sustained notes (the old zone sends nothing more); on another
+    // output or channel the old one lets go
+    if (previous.outputPortId === this.outputPortId && previous.channel === this.channel) {
+      previous.gestureMix.handOver(this.gestureMix);
+    }
     // keys still held or in their release tail go on into the curves they started
     this.curves = previous.curves;
     // the old player isn't clocked any more: what it still sounds rings out on timers; its
@@ -2347,6 +2445,9 @@ export class Zone {
     this.passedThrough.clear();
     this.sequence.stopped();
     this.paramLocks.stop(this.sequence.lockedAddresses());
+    // the loop's pedal and wheels rest (a moment later: undo hands them to the new zone first)
+    if (this.gestureRestTimer !== null) clearTimeout(this.gestureRestTimer);
+    this.gestureRestTimer = setTimeout(() => this.gestureMix.loopEnded(), 0);
   }
 
   panic(): void {
@@ -2368,6 +2469,8 @@ export class Zone {
     // CC 121 (reset controllers) has already let go of the pedal
     this._sustain_on = false;
     this.sustain_state = false;
+    this.gestureMix.pedal = false;
+    this.gestureMix.forget();
     this.notesChanged();
   }
 

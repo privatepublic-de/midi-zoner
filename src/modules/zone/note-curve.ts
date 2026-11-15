@@ -125,7 +125,7 @@ export const LOOP_CURVE_BUDGET = 20000;
  * straight line from the last kept one would miss what was played by more than the tolerance.
  * Times are whole 1/8 ticks from the note's start and never go back.
  */
-class SeriesBuilder {
+export class SeriesBuilder {
   /** Encoded kept points */
   private kept: number[] = [];
   private keptT = 0;

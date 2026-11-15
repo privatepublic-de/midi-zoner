@@ -5,6 +5,7 @@ import type { SongNote } from '../zone/take';
 import type { TakeNoteJSON } from '../zone/interfaces';
 import { DIV_TICKS } from '../zone/seq-layer';
 import { CurveCursor } from '../zone/note-curve';
+import { SUSTAIN, MOD, BEND, PRESSURE, isStepped, pedalSpans, valueAt } from '../zone/gestures';
 import { DIV_NAMES, quantizeStarts } from '../zone/take-quantize';
 import { timeline } from '../timeline';
 import { Meter, barTicks, beatLines, unitTicks } from '../meter';
@@ -131,7 +132,9 @@ const py = (n: number): number => RULER_H + (view.top - n) * view.rowH;
 const pitchAt = (y: number): number => view.top - Math.floor((y - RULER_H) / view.rowH);
 // whether the loop or take being edited has MPE (its notes' curves): it gets the MPE lane
 let mpeLane = false;
-const gridBottom = (): number => size.h - VEL_H - VEL_GAP - (mpeLane ? MPE_H + VEL_GAP : 0);
+// the gestures' lane (pedal, wheels) over Velocity, its height (0: none)
+let gestH = 0;
+const gridBottom = (): number => size.h - VEL_H - VEL_GAP - (mpeLane ? MPE_H + VEL_GAP : 0) - (gestH ? gestH + VEL_GAP : 0);
 const rows = (): number => Math.max(1, Math.floor((gridBottom() - RULER_H) / view.rowH));
 
 function inWindow(take: Take, note: TakeNoteJSON): boolean {
@@ -483,6 +486,107 @@ function drawMpeLane(g: CanvasRenderingContext2D, take: Take, zone: Zone, colour
   g.globalAlpha = 1;
 }
 
+/** The gestures' lane: a row per control played (pedals as bars, wheels filled from rest) */
+const GEST_ROW_H = 16;
+const GEST_ROWS: [string, string][] = [
+  [SUSTAIN, 'Pedal'],
+  [MOD, 'Mod'],
+  [BEND, 'Bend'],
+  [PRESSURE, 'AT']
+];
+/** The controls a take or loop has gestures of, with their names: the usual ones first, then CCs by number */
+function gestureRows(take: Take): [string, string][] {
+  const g = take.g ?? {};
+  const known = GEST_ROWS.filter(([k]) => g[k]);
+  const other = Object.keys(g)
+    .filter((k) => !GEST_ROWS.some(([r]) => r === k))
+    .sort((a, b) => Number(a.slice(1)) - Number(b.slice(1)))
+    .map((k): [string, string] => [k, 'CC ' + k.slice(1)]);
+  return [...known, ...other];
+}
+/** The gestures' lane height (0: none) */
+function gestureHeight(take: Take): number {
+  if (!take.g) return 0;
+  return gestureRows(take).length * GEST_ROW_H + 4;
+}
+/**
+ * The gestures' lane between the MPE lane (or the notes) and Velocity, view only: a row per
+ * control, pedals as bars where down, wheels and aftertouch filled up from 0, bend from the centre
+ */
+function drawGestureLane(g: CanvasRenderingContext2D, take: Take, colour: string): void {
+  const { w } = size;
+  const top = gridBottom() + VEL_GAP + (mpeLane ? MPE_H + VEL_GAP : 0);
+  const gs = take.g!;
+  const X = (t: number): number => sx(take.start + t - take.offset);
+  const from = take.offset;
+  const to = take.offset + take.length;
+  g.fillStyle = '#1c1f23';
+  g.fillRect(0, top, w, gestH);
+  g.font = '10px "Barlow Semi Condensed", sans-serif';
+  // values along the take, filled down to `fill` (a wheel's rest)
+  const line = (key: string, stroke: string, y: (v: number) => number, fill?: number): void => {
+    const series = gs[key];
+    if (!series) return;
+    const x0 = Math.max(KEYS_W, X(from));
+    const x1 = Math.min(w, X(to));
+    if (x1 <= x0) return;
+    g.beginPath();
+    let first = true;
+    for (let x = x0; x <= x1; x += 2) {
+      const v = valueAt(key, series, from + (x - X(from)) / view.ppt);
+      if (v === undefined) continue;
+      if (first) g.moveTo(x, y(v));
+      else g.lineTo(x, y(v));
+      first = false;
+    }
+    if (fill !== undefined && !first) {
+      g.lineTo(x1, fill);
+      g.lineTo(x0, fill);
+      g.closePath();
+      g.globalAlpha = 0.3;
+      g.fillStyle = stroke;
+      g.fill();
+      g.globalAlpha = 0.9;
+    }
+    g.strokeStyle = stroke;
+    g.lineWidth = 1;
+    g.stroke();
+  };
+  const pedal = (key: string, y: number, ph: number): void => {
+    g.fillStyle = colour;
+    g.globalAlpha = 0.75;
+    for (const [s0, s1] of pedalSpans(key, gs[key], from, to)) {
+      const x0 = Math.max(KEYS_W, X(s0));
+      const x1 = Math.min(w, X(s1));
+      if (x1 > x0) g.fillRect(x0, y, Math.max(1, x1 - x0 - 1), ph);
+    }
+    g.globalAlpha = 1;
+  };
+  g.save();
+  gestureRows(take).forEach(([key, name], i) => {
+    const ry = top + 2 + i * GEST_ROW_H;
+    g.globalAlpha = 1;
+    g.fillStyle = '#8b95a3';
+    g.fillText(name, 6, ry + 11);
+    g.fillStyle = '#ffffff0a';
+    g.fillRect(KEYS_W, ry + GEST_ROW_H - 1, w - KEYS_W, 1);
+    g.save();
+    g.beginPath();
+    g.rect(KEYS_W, ry, w - KEYS_W, GEST_ROW_H);
+    g.clip();
+    g.globalAlpha = 0.9;
+    if (isStepped(key)) pedal(key, ry + 3, 10);
+    else if (key === BEND) {
+      g.fillStyle = '#ffffff14';
+      g.fillRect(KEYS_W, ry + 7, w - KEYS_W, 1);
+      line(key, colour, (v) => ry + 7.5 - ((v - 8192) / 8192) * 6.5, ry + 7.5);
+    } else line(key, colour, (v) => ry + 14 - (v / 127) * 12, ry + 14);
+    g.restore();
+  });
+  g.restore();
+  g.globalAlpha = 1;
+}
+
 function drawTakeEditor(): void {
   const target = hooks.target();
   followTake(target?.take ?? null);
@@ -493,6 +597,7 @@ function drawTakeEditor(): void {
   const { w, h } = size;
   const take = target.take;
   mpeLane = take.hasExpression;
+  gestH = gestureHeight(take);
   if (take.id !== fittedId) {
     fittedId = take.id;
     fit(take);
@@ -662,6 +767,7 @@ function drawTakeEditor(): void {
   g.globalAlpha = 1;
 
   if (mpeLane) drawMpeLane(g, take, target.zone, colour);
+  if (gestH) drawGestureLane(g, take, colour);
 
   // velocity lane
   const vy = h - VEL_H;

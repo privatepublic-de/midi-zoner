@@ -4,6 +4,16 @@ import type { SongNote } from './take';
 import type { TakeNoteJSON } from './interfaces';
 import { fitCurves } from './note-curve';
 import type { CurveBuilder } from './note-curve';
+import {
+  GestureRecorder,
+  GesturesJSON,
+  GesturePart,
+  cutGestures,
+  fitGestures,
+  isStepped,
+  mergeHighest,
+  replaceSpan
+} from './gestures';
 
 /**
  * The zone's looper: one button records a loop, closes it, overdubs it.
@@ -81,7 +91,8 @@ export function loopFromNotes(
   from: number,
   to: number,
   bar: number,
-  empty = false
+  empty = false,
+  gestures?: GesturesJSON
 ): Take | null {
   const len = to - from;
   if (len <= 0) return null;
@@ -108,6 +119,8 @@ export function loopFromNotes(
   loop.length = len;
   loop.notes = notes;
   loop.spare = spareOf(played.filter((p) => !used.has(p)), from, to, bar);
+  // channel gestures as played (positions as the notes'), as far around it as its spare notes
+  loop.g = fitGestures(cutGestures(gestures, from - SPARE_BARS * bar, to + SPARE_BARS * bar, from));
   loop.sort();
   fitCurves([...loop.notes, ...loop.spare]);
   return loop;
@@ -162,12 +175,14 @@ export function recutLoop(loop: Take, a: number, b: number, bar: number): Take |
       else next.notes.push(takeNote(n, t, n.d, true));
     }
     next.spare = [...spareOf(regular.filter((p) => !used.has(p)), 0, b, bar), ...parked].sort((x, y) => x.t - y.t);
+    // gestures stay where they were played (they don't wrap round like the pick-up)
+    next.g = loop.g;
   } else {
     const all = [
       ...loop.notes.map((n) => asPlayed(n, isPickup(n) ? n.t - len : n.t)),
       ...loop.spare.map((n) => asPlayed(n, n.t))
     ].sort((x, y) => x.s - y.s);
-    next = loopFromNotes(all, a, b, bar, true);
+    next = loopFromNotes(all, a, b, bar, true, loop.g);
   }
   if (!next) return null;
   next.id = loop.id;
@@ -188,6 +203,8 @@ export class Looper {
   /** What happened to the loop in this run (recorded or overdubbed), so the card offers its bars after Stop */
   lastRun: 'rec' | 'dub' | null = null;
   private played: Played[] = [];
+  /** The zone channel's gestures as played (sustain, wheels; zone/gestures.ts), positions as the notes' */
+  private gestures = new GestureRecorder();
   // counts changes to `played`, so the overdub layer is rebuilt only when it changed
   private version = 0;
   private layerCache: { key: string; notes: TakeNoteJSON[] } | null = null;
@@ -219,6 +236,16 @@ export class Looper {
     return note;
   }
 
+  /** A channel gesture (a control's new value) at `at` */
+  gesture(at: number, key: string, value: number): void {
+    this.gestures.add(key, at, value);
+  }
+
+  /** Recording starts over at `at` (Start): what's held then (`values`) is where gestures begin */
+  restartGestures(at: number, values: Map<string, number>): void {
+    this.gestures.restart(at, values);
+  }
+
   /** A note's expression came in completely (the overdub layer is built again) */
   touch(): void {
     this.version++;
@@ -239,6 +266,8 @@ export class Looper {
   /** Forget what can't be needed any more: before the bar before now, or before the recording's pick-ups */
   prune(now: number, bar: number): void {
     const keepFrom = (this.mode === 'idle' ? now : Math.min(now, this.from)) - 2 * bar;
+    // gestures now and then (what's held at keepFrom stays)
+    if (this.gestures.start < keepFrom - 4 * bar) this.gestures.prune(keepFrom);
     if (this.played.length === 0 || this.played[0].s >= keepFrom) return;
     this.version++;
     this.played = this.played.filter((p) => p.open || p.s + p.d >= keepFrom || p.s >= keepFrom);
@@ -250,6 +279,8 @@ export class Looper {
     this.to = null;
     this.anchor = 0;
     this.played = [];
+    // positions start over: held pedals and wheels are where the next section's gestures begin
+    this.gestures.restart(0);
     this.version++;
   }
 
@@ -331,7 +362,14 @@ export class Looper {
     const from = this.from;
     this.mode = 'idle';
     this.to = null;
-    const loop = loopFromNotes(this.notesBetween(from - SPARE_BARS * bar, to + SPARE_BARS * bar, now), from, to, bar);
+    const loop = loopFromNotes(
+      this.notesBetween(from - SPARE_BARS * bar, to + SPARE_BARS * bar, now),
+      from,
+      to,
+      bar,
+      false,
+      this.gestures.gestures()
+    );
     if (loop) this.anchor = from;
     return loop;
   }
@@ -366,8 +404,52 @@ export class Looper {
     return this.layerCache.notes;
   }
 
-  /** The overdub ends at `to`: its notes join the loop */
+  /**
+   * The overdub's gestures from its first 1 to `to` join the loop's: pedals pressed add to
+   * the loop's (down where either is), a wheel moved replaces the loop's values from its
+   * first to its last move on each cycle. Returns how many controls changed.
+   */
+  private dubGestures(loop: Take, to: number): number {
+    const dub = this.gestures.gestures();
+    if (!dub) return 0;
+    const len = loop.length;
+    const g: GesturesJSON = { ...(loop.g ?? {}) };
+    let changed = 0;
+    const firstCycle = Math.floor((this.from - this.anchor) / len);
+    const lastCycle = Math.floor((to - 1 - this.anchor) / len);
+    for (const key in dub) {
+      const lane = dub[key];
+      const before = JSON.stringify(g[key] ?? null);
+      const parts: GesturePart[] = [];
+      for (let k = firstCycle; k <= lastCycle; k++) {
+        const c0 = this.anchor + k * len;
+        const a = Math.max(this.from, c0);
+        const b = Math.min(to, c0 + len);
+        if (b <= a) continue;
+        if (isStepped(key)) {
+          const cut = cutGestures({ [key]: lane }, a, b, c0)?.[key];
+          if (cut) parts.push({ series: cut, a: a - c0, b: b - c0 });
+          continue;
+        }
+        // the moves on this cycle (not a value only held since the recording started)
+        const held = this.gestures.heldAt(key);
+        const moves: number[] = [];
+        for (let i = 0; i < lane.length; i += 2) {
+          const t = lane[i];
+          if (t >= a && t < b && t > held) moves.push(t - c0, lane[i + 1]);
+        }
+        if (moves.length > 0) g[key] = replaceSpan(key, g[key], moves, moves[0], moves[moves.length - 2]);
+      }
+      if (parts.length > 0) g[key] = mergeHighest(key, g[key], parts, len);
+      if (JSON.stringify(g[key] ?? null) !== before) changed++;
+    }
+    if (changed > 0) loop.g = fitGestures(g);
+    return changed;
+  }
+
+  /** The overdub ends at `to`: its notes and gestures join the loop (how many were added) */
   closeDub(loop: Take, to: number, bar: number, now: number): number {
+    const gestures = this.dubGestures(loop, to);
     const added = this.dubNotes(loop, to, bar, now);
     this.mode = 'idle';
     this.to = null;
@@ -380,6 +462,6 @@ export class Looper {
     }
     loop.sort();
     if (count > 0) fitCurves([...loop.notes, ...loop.spare]);
-    return count;
+    return count + gestures;
   }
 }

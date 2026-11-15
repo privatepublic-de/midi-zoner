@@ -2,6 +2,7 @@ import { TakeJSON, TakeNoteJSON, NoteCurveJSON } from './interfaces';
 import { PPQ } from './seq-layer';
 import { Meter, DEFAULT_METER, barTicks, unitTicks, parseMeter } from '../meter';
 import { sanitizeCurve, trimCurve, countPoints, fitCurves } from './note-curve';
+import { GesturesJSON, cutGestures, sanitizeGestures } from './gestures';
 
 /** A note at a position of its own (a song position, or as played): what loops are cut from */
 export interface SongNote {
@@ -73,6 +74,11 @@ export class Take {
    * it negative, after it from its length on), so its edges can be dragged out again
    */
   spare: TakeNoteJSON[] = [];
+  /**
+   * Channel gestures (sustain, wheels, aftertouch, passed CCs), in the notes' ticks (a loop's
+   * reach into its spare bars too, so its edges can be dragged out); see zone/gestures.ts
+   */
+  g: GesturesJSON | undefined = undefined;
   /** A take: where it starts in its run (run ticks; the lead before its first bar was cut) */
   runOffset = 0;
   /** A loop: the run it was cut from (as a take's `at`) and where its first bar was in it (run ticks) */
@@ -112,6 +118,11 @@ export class Take {
   /** Whether any of its notes (spare ones included) carries MPE expression */
   get hasExpression(): boolean {
     return this.notes.some((n) => n.x) || this.spare.some((n) => n.x);
+  }
+
+  /** Whether it has channel gestures */
+  get hasGestures(): boolean {
+    return !!this.g;
   }
 
   /** Its notes without their MPE expression (in place; a loop keeps playing them plain) */
@@ -175,6 +186,9 @@ export class Take {
     part.notes = this.visibleNotes()
       .filter((n) => n.s >= from && n.s < to)
       .map((n) => takeNote(n, n.s - from, Math.min(n.d, to - n.s)));
+    // song positions → the take's ticks
+    const at = (s: number): number => s - this.start + this.offset;
+    part.g = cutGestures(this.g, at(from), at(to));
     return part;
   }
 
@@ -246,7 +260,8 @@ export class Take {
       ...(this.origin ? { origin: { at: this.origin.at, run: this.origin.run } } : {}),
       ...(this.spare.length
         ? { spare: this.spare.map(note) }
-        : {})
+        : {}),
+      ...(this.g ? { g: this.g } : {})
     };
   }
 
@@ -313,6 +328,7 @@ export class Take {
       }
       take.spare.sort((a, b) => a.t - b.t);
     }
+    take.g = sanitizeGestures(d.g, -Take.MAX_LENGTH, 2 * Take.MAX_LENGTH);
     if (points < 3 * Take.MAX_FILE_CURVE_POINTS) fitCurves([...take.notes, ...take.spare], Take.MAX_FILE_CURVE_POINTS);
     take.sort();
     return take;
@@ -327,6 +343,7 @@ export class Take {
     this.offset = from.offset;
     this.notes = from.notes;
     this.spare = from.spare;
+    this.g = from.g;
   }
 
   copy(): Take {

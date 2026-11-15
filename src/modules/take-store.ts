@@ -3,6 +3,7 @@ import { Meter, DEFAULT_METER, barTicks } from './meter';
 import type { TakeNoteJSON, NoteCurveJSON } from './zone/interfaces';
 import { updateCurves } from './zone/note-curve';
 import type { CurveBuilder } from './zone/note-curve';
+import { GestureRecorder, cutGestures } from './zone/gestures';
 
 /**
  * Takes: every run (Start → Stop) records what is played into each zone; when it ends,
@@ -20,6 +21,8 @@ export const MAX_TAKES = 16;
 interface Recording {
   /** cb: the key's expression while it's still coming in (MPE) */
   notes: (TakeNoteJSON & { open: boolean; cb?: CurveBuilder })[];
+  /** The zone channel's gestures (sustain, wheels; zone/gestures.ts), run ticks */
+  g: GestureRecorder;
 }
 
 // a take rolls over into a new one before it would reach a take's limits (notes, length)
@@ -65,21 +68,39 @@ class TakeStore {
   noteOn(zoneId: string, t: number, n: number, v: number): { x?: NoteCurveJSON; cb?: CurveBuilder } | null {
     if (!this.running) return null;
     this.lastAt = Math.max(this.lastAt, t);
-    let rec = this.recording.get(zoneId);
+    const rec = this.recordingFor(zoneId);
     // a very long run: what was played so far becomes a take, recording goes on in a new one
-    if (rec && rec.notes.length > 0 && (rec.notes.length >= ROLL_NOTES || t - rec.notes[0].t >= ROLL_LENGTH)) {
+    if (rec.notes.length > 0 && (rec.notes.length >= ROLL_NOTES || t - rec.notes[0].t >= ROLL_LENGTH)) {
       this.finish(zoneId, rec, t);
-      rec = undefined;
+      rec.g.prune(t);
       this.changed();
-    }
-    if (!rec) {
-      rec = { notes: [] };
-      this.recording.set(zoneId, rec);
     }
     this.noteOff(zoneId, t, n);
     const note: Recording['notes'][number] = { t, d: 0, n, v, open: true };
     rec.notes.push(note);
     return note;
+  }
+
+  private recordingFor(zoneId: string): Recording {
+    let rec = this.recording.get(zoneId);
+    if (!rec) {
+      rec = { notes: [], g: new GestureRecorder() };
+      this.recording.set(zoneId, rec);
+    }
+    return rec;
+  }
+
+  /** A channel gesture (a control's new value) at run tick t */
+  gesture(zoneId: string, t: number, key: string, value: number): void {
+    if (!this.running) return;
+    this.lastAt = Math.max(this.lastAt, t);
+    this.recordingFor(zoneId).g.add(key, t, value);
+  }
+
+  /** The run starts at tick t with these values held (a pedal down at Start is down in the take) */
+  holdGestures(zoneId: string, t: number, values: Map<string, number>): void {
+    if (!this.running) return;
+    this.recordingFor(zoneId).g.restart(t, values);
   }
 
   /** A key's expression is finished: the zone's newest take (if it got the note before) catches up */
@@ -139,6 +160,7 @@ class TakeStore {
     // up to the bar line after its end (at least past the last note)
     const last = Math.max(end - from, ...take.notes.map((n) => n.t + n.d));
     take.length = Math.min(Take.MAX_LENGTH, Math.max(take.barLine(last, 'ceil'), barTicks(first.meter)));
+    take.g = cutGestures(rec.g.gestures(), from, from + take.length, from);
     take.sort();
     this.add(zoneId, take);
     this.shown.set(zoneId, 0);
