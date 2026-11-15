@@ -649,7 +649,7 @@ function editedTake(): TakeTarget | null {
             if (!loop || !timeline.running) return null;
             const len = loop.length;
             const e = nowTick() - timeline.sectionStart - zone.looper.anchor;
-            return ((e % len) + len) % len;
+            return e < 0 ? null : ((e % len) + len) % len;
           }
         }
       : null;
@@ -1015,7 +1015,8 @@ function drawLane(
     const len = loopTake.length;
     const anchor = zone.looper.anchor;
     const until = elapsedNow + (w - headX) / ppt;
-    const first = anchor + Math.floor((elapsedNow - anchor) / len) * len;
+    // before it comes in (switched on, or from a take, while running) it starts at its first 1
+    const first = elapsedNow < anchor ? anchor : anchor + Math.floor((elapsedNow - anchor) / len) * len;
     asLoop = true;
     for (let c = first; c < until; c += len) {
       const cx = Math.round(x(elapsedToSong(c)));

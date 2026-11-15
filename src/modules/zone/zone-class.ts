@@ -10,7 +10,7 @@ import { CurveBuilder, updateCurves } from './note-curve';
 import type { CurveName } from './note-curve';
 import { barTicks } from '../meter';
 import { TakePlayer } from './take-player';
-import { Looper, PressResult } from './looper';
+import { Looper, PressResult, EARLY } from './looper';
 import { takeStore } from '../take-store';
 import { MpeInput, MpeMode, MPE_SLIDE_CC, PressureGlide, DEFAULT_PRESSURE_FROM, mpeSetupMessages, rescaleBend, memberChannels } from './mpe';
 import type { MpeDot, LoopExpression } from './mpe';
@@ -2153,6 +2153,21 @@ export class Zone {
     else if (message === MIDI.MESSAGE.CHANNEL_PRESSURE) [name, value] = ['press', data[1]];
     else return;
     builder.add(name, nowTick(), value, ms);
+  }
+
+  /**
+   * The loop's switch. Off: its sounding notes ring out. On while running: it starts over
+   * from its bar 1 at the coming 1 (at once when switched on a bar line, as a waiting
+   * switch lands), silent until then
+   */
+  setLoopOn(on: boolean): void {
+    this.loopOn = on;
+    if (!on) {
+      this.loopPlayer.release(true);
+    } else if (timeline.running) {
+      const bar = barTicks(timeline.meter);
+      this.looper.anchor = Math.ceil((this.loopNow() - EARLY) / bar) * bar;
+    }
   }
 
   /** Called when a loop's notes got the rest of their expression (the scene is saved) */

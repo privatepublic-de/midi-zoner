@@ -17,7 +17,7 @@ interface Voice {
   endAt: number;
   /** Where the next value is sampled (ticks since the section began) */
   next: number;
-  /** Its note rings out (Stop, loop off): its expression stays where it is until it ends */
+  /** Its note rings out (Stop, loop off): its expression stays where it is until its note-off */
   frozen: boolean;
   ended: boolean;
 }
@@ -58,6 +58,8 @@ export class TakePlayer {
       if (this.queue.length > 0) this.release(true);
       return;
     }
+    // it comes in at its first 1 (switched on, or a loop from a take, while running)
+    if (elapsed < anchor) return;
     const len = loop.length;
     // whole ticks: a tick never spans the loop's end
     const local = (((elapsed - anchor) % len) + len) % len;
@@ -179,13 +181,21 @@ export class TakePlayer {
   /** Sounding notes end (or ring out their length); unsent ones are dropped */
   release(ringOut: boolean): void {
     const ringOutNotes = ringOut && !this.zone.arp_enabled;
+    // a ringing note's expression stays where it is and comes to rest with its note-off
+    const ringing = new Set<Voice>();
     for (const ev of this.queue) {
       if (!ev.sounding) continue;
       const note = ev.note;
+      const voice = ev.voice;
       if (ringOutNotes) {
-        this.zone.ringOutAfterTicks(note.number, Math.max(0, ev.offAt - this.elapsed), () =>
-          this.send(MIDI.MESSAGE.NOTE_OFF, note)
-        );
+        if (voice) {
+          voice.frozen = true;
+          ringing.add(voice);
+        }
+        this.zone.ringOutAfterTicks(note.number, Math.max(0, ev.offAt - this.elapsed), () => {
+          this.send(MIDI.MESSAGE.NOTE_OFF, note);
+          if (voice) this.endVoice(voice);
+        });
       } else {
         this.send(MIDI.MESSAGE.NOTE_OFF, note);
       }
@@ -193,15 +203,9 @@ export class TakePlayer {
     this.queue.length = 0;
     this.timers.forEach((t) => clearTimeout(t));
     this.timers.clear();
-    // their expression stays where it is while notes ring out, then comes to rest (they stay
-    // listed until then, so a panic or undo meanwhile still reaches them)
-    for (const v of this.voices) {
-      if (v.slot < 0 || !ringOutNotes) this.endVoice(v);
-      else if (!v.frozen) {
-        v.frozen = true;
-        setTimeout(() => this.endVoice(v), Math.max(0, this.zone.ringOutMs(v.endAt - this.elapsed)));
-      }
-    }
+    // the others (in their release tail, or not started) rest now; ringing ones stay listed
+    // until their note-off, so a panic or undo meanwhile still reaches them
+    for (const v of this.voices) if (!ringing.has(v)) this.endVoice(v);
     this.voices = this.voices.filter((v) => !v.ended);
   }
 

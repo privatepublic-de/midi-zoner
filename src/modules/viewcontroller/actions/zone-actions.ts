@@ -32,8 +32,7 @@ export function createZoneActions(
     // the loop's switch: off keeps it, silent
     zone_loop_on: () => {
       if (!zone.loop) return;
-      zone.loopOn = !zone.loopOn;
-      if (!zone.loopOn) zone.loopPlayer.release(true);
+      zone.setLoopOn(!zone.loopOn);
       updateValuesForZone(zoneindex);
     },
     // the loop's recorded MPE expression cleared (its notes stay; the switch is on its chip)
