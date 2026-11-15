@@ -5795,7 +5795,7 @@ body.track-view:not(.minimized) {
     gap: 3px;
     white-space: nowrap;
     font-size: var(--fs-md);
-    .tc-label {
+    .lc-label {
       padding: 0 6px;
       color: var(--text-base-color);
     }
@@ -5816,6 +5816,9 @@ body.track-view:not(.minimized) {
     .lightButton.off {
       opacity: 0.3;
       pointer-events: none;
+    }
+    .tc-delete .material-icons {
+      font-size: 15px;
     }
     .lightButton:not(.tc-prev, .tc-next):hover {
       background-color: var(--on);
@@ -6180,8 +6183,7 @@ body.track-view:not(.minimized) {
   &[data-dock='zone']:not(.dock-closed) #zones > .zone.track-selected > :is(.settings, .rangeholder) {
     display: flex !important;
   }
-  /* the Track tab: the zone's settings and key range on the left (--track-settings-w),
-     its takes in the rest */
+  /* the Track tab: the zone's settings and key range on the left (--track-settings-w) */
   #zones > .zone.track-selected > .settings {
     top: calc(100vh - var(--dock-h) + var(--dock-bar-h) + 18px);
     right: auto;
@@ -6203,111 +6205,6 @@ body.track-view:not(.minimized) {
   }
   &[data-dock='zone']:not(.dock-closed, .converting) #trackDock .td-track {
     display: grid;
-  }
-  #trackDock .tdt-takes {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    min-height: 0;
-    border-left: 1px solid var(--slate-line);
-    font-size: var(--fs-md);
-  }
-  #trackDock .tdt-head {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-    padding: 9px 14px 4px;
-    b {
-      font-weight: 600;
-    }
-  }
-  #trackDock .tdt-summary,
-  #trackDock .tdt-none {
-    color: var(--slate-dim);
-  }
-  #trackDock .tdt-none {
-    margin: 6px 14px;
-  }
-  #trackDock .tdt-list {
-    overflow: auto;
-    padding: 0 8px 10px;
-    container-type: inline-size;
-  }
-  /* a narrow list: no date or note count, the preview gives way, tighter buttons */
-  @container (max-width: 640px) {
-    #trackDock .tdt-list .tdt-row {
-      grid-template-columns: 48px minmax(24px, 1fr) 52px auto;
-      gap: 8px;
-    }
-    #trackDock .tdt-where,
-    #trackDock .tdt-count {
-      display: none;
-    }
-    #trackDock .tdt-list .tdt-preview {
-      width: 100%;
-      min-width: 0;
-    }
-  }
-  #trackDock .tdt-row {
-    display: grid;
-    grid-template-columns: 52px 44px minmax(80px, 1fr) 60px 64px auto;
-    align-items: center;
-    gap: 10px;
-    height: 30px;
-    padding: 0 6px;
-    border-radius: var(--radius);
-    cursor: pointer;
-  }
-  #trackDock .tdt-row:hover {
-    background-color: var(--brighter-1);
-  }
-  /* the take selected in the lane: "where you are" */
-  #trackDock .tdt-row.selected {
-    background-color: var(--slate-raise);
-    box-shadow: inset 0 0 0 1px var(--select);
-  }
-  #trackDock :is(.tdt-where, .tdt-len, .tdt-count) {
-    color: var(--slate-dim);
-    white-space: nowrap;
-    font-variant-numeric: tabular-nums;
-  }
-  #trackDock .tdt-preview {
-    width: 100%;
-    height: 20px;
-  }
-  #trackDock .tdt-acts {
-    display: flex;
-    gap: 4px;
-    a {
-      box-sizing: border-box;
-      display: flex;
-      align-items: center;
-      height: 22px;
-      padding: 0 9px;
-      background-color: var(--slate-raise);
-      border: 1px solid var(--slate-line);
-      border-radius: var(--radius);
-      color: var(--text-base-color);
-      white-space: nowrap;
-      cursor: pointer;
-      flex: none;
-      width: auto;
-      min-width: 0;
-    }
-    a:has(.material-icons) {
-      padding: 0 4px;
-    }
-    .material-icons {
-      font-size: 15px;
-    }
-    a.disabled {
-      opacity: 0.4;
-      pointer-events: none;
-    }
-  }
-  /* Loop n bars always shows; the rest on the row under the mouse and the selected one */
-  #trackDock .tdt-row:not(:hover, .selected) .tdt-acts a:not([data-take-act='keep']) {
-    visibility: hidden;
   }
   /* the Notes tab: a piano roll for the chosen take */
   #trackDock .td-notes {
@@ -6570,4 +6467,10 @@ body.minimized .zone .mini-lane {
 body.track-view .zone .card-takes,
 body.minimized .zone .card-takes {
   display: none !important;
+}
+
+/* dragging an edge of a loop's block (track view) */
+body.loop-edge-dragging,
+body.loop-edge-dragging * {
+  cursor: ew-resize !important;
 }

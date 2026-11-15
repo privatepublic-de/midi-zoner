@@ -150,6 +150,8 @@ export interface TakeNoteJSON {
   d: number;
   n: number;
   v: number;
+  /** a loop's pick-up: played before its first 1, at its end so it leads into every repeat */
+  p?: 1;
 }
 
 /** A kept take: its place in the arrangement's song (ticks from bar 1), length, notes */
@@ -166,6 +168,8 @@ export interface TakeJSON {
   seq?: number;
   /** where each arrangement's section of the run began (take ticks) and its meter: its bars */
   sections?: { t: number; meter: unknown }[];
+  /** a loop's notes outside its bars (ticks from its start, before it negative), for dragging its edges out again */
+  spare?: TakeNoteJSON[];
 }
 
 export interface SequenceJSON {

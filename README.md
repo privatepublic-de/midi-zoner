@@ -16,7 +16,7 @@ This is an [Electron](https://www.electronjs.org/) application built with TypeSc
 - **Parameter locks**: per-step controller values, optionally sliding, Elektron style
 - **Takes**: every run from Start to Stop is recorded into each zone you play, and kept (the last 16 per zone, also in scene files). Press Loop on a take (on the card after Stop, or in the track view) and it becomes the zone's loop, pick-up included; or drag over bars of it to loop just those, edit its notes, quantize it, or turn it into a sequence
 - **Looper**: a loop per zone and arrangement, each its own length. Press Rec on the zone (or on a Mackie) on a 1 to record (a little late is fine), on a later 1 to close it: it plays at once and the chip shows its length (Loop 4), with the pick-up you played before the first 1 at its end. Press again to overdub, twice quickly to clear; mute silences it
-- **Track view**: all zones on a timeline, what was played behind the playhead and what comes ahead (sequence and loop), each zone's takes above its lane
+- **Track view**: all zones on a timeline, what was played behind the playhead and what comes ahead (sequence and loop), each zone's takes above its lane. Click a take or the loop to edit its notes below; drag the loop's edges (or − bar / + bar) when it came out a bar too long or short
 - **4 arrangements (A/B/C/D)**: snapshots of all zone settings, switched at the next bar, beat or 16th; each with its own meter (any n/4 or n/8 with grouping)
 - **Quantized switching**: mute, solo and feature switches can wait for the next bar while playing
 - **CC controllers**: knobs (7-bit, 14-bit, 10-bit KORG logue, NRPN), buttons, selectors, note-to-CC; sections and pages; MIDI learn; a full-window editor

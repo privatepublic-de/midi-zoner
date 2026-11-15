@@ -30,6 +30,8 @@ const SAME = PPQ / 6;
 const MIRROR = PPQ / 4 - 1;
 export const DOUBLE_PRESS_MS = 400;
 export const MAX_LOOP_BARS = 64;
+// a loop keeps what lies this many bars either side of it, so its edges can be dragged out
+export const SPARE_BARS = 16;
 
 interface Played {
   s: number;
@@ -73,15 +75,22 @@ export function pickupStart(played: { s: number; d: number }[], from: number, ba
   return phrase === -Infinity ? Infinity : phrase;
 }
 
-export function loopFromNotes(played: { s: number; d: number; n: number; v: number }[], from: number, to: number, bar: number): Take | null {
+export function loopFromNotes(
+  played: { s: number; d: number; n: number; v: number }[],
+  from: number,
+  to: number,
+  bar: number,
+  empty = false
+): Take | null {
   const len = to - from;
   if (len <= 0) return null;
-  const notes: TakeNoteJSON[] = played
-    .filter((p) => p.s >= from - EARLY && p.s < to - EARLY)
-    .map((p) => {
-      const t = Math.max(0, p.s - from);
-      return { t, d: Math.min(p.d, len), n: p.n, v: p.v };
-    });
+  const used = new Set<object>();
+  const notes: TakeNoteJSON[] = [];
+  for (const p of played) {
+    if (p.s < from - EARLY || p.s >= to - EARLY) continue;
+    notes.push({ t: Math.max(0, p.s - from), d: Math.min(p.d, len), n: p.n, v: p.v });
+    used.add(p);
+  }
   const before = played.filter((p) => p.s >= from - bar && p.s < from - EARLY).sort((a, b) => a.s - b.s);
   const phrase = pickupStart(played, from, bar);
   for (const p of before) {
@@ -89,15 +98,80 @@ export function loopFromNotes(played: { s: number; d: number; n: number; v: numb
     const t = p.s - from + len;
     if (t < 0) continue;
     if (notes.some((n) => n.n === p.n && Math.abs(n.t - t) <= MIRROR)) continue;
-    notes.push({ t, d: Math.max(0.25, Math.min(p.d, len)), n: p.n, v: p.v });
+    notes.push({ t, d: Math.max(0.25, Math.min(p.d, len)), n: p.n, v: p.v, p: 1 });
+    used.add(p);
   }
-  if (notes.length === 0 || notes.length > Take.MAX_NOTES) return null;
+  if ((notes.length === 0 && !empty) || notes.length > Take.MAX_NOTES) return null;
   const loop = new Take();
   loop.start = 0;
   loop.length = len;
   loop.notes = notes;
+  loop.spare = spareOf(played.filter((p) => !used.has(p)), from, to, bar);
   loop.sort();
   return loop;
+}
+
+/** What lies outside a loop's bars, up to SPARE_BARS on either side (ticks from its start) */
+function spareOf(rest: { s: number; d: number; n: number; v: number }[], from: number, to: number, bar: number): TakeNoteJSON[] {
+  return rest
+    .filter((p) => p.s >= from - SPARE_BARS * bar && p.s < to + SPARE_BARS * bar)
+    .sort((a, b) => Math.abs(a.s - (from + to) / 2) - Math.abs(b.s - (from + to) / 2))
+    .slice(0, Take.MAX_SPARE)
+    .map((p) => ({ t: p.s - from, d: p.d, n: p.n, v: p.v }))
+    .sort((a, b) => a.t - b.t);
+}
+
+/**
+ * The loop with its edges moved: bars `a`…`b`, counted from its start (a < 0 or b > its
+ * length drag an edge out, into what it was cut from; in, the bars go to its spare notes).
+ * Moving only the end carries the pick-up along with it; moving the start finds the pick-up
+ * into the new first 1 by the same rule as recording. A new Take (null: no bars left).
+ */
+export function recutLoop(loop: Take, a: number, b: number, bar: number): Take | null {
+  if (b - a < bar) return null;
+  const len = loop.length;
+  // a pick-up counts as one only while it's still in the last bar (an edit may have moved it)
+  const isPickup = (n: TakeNoteJSON): boolean => n.p === 1 && n.t >= len - bar;
+  const asPlayed = (n: TakeNoteJSON, s: number): { s: number; d: number; n: number; v: number } => ({ s, d: n.d, n: n.n, v: n.v });
+  let next: Take | null;
+  if (a === 0) {
+    // the pick-up (flagged, before the start: in the last bar, or set aside as played there already)
+    const pickups = [
+      ...loop.notes.filter(isPickup).map((n) => ({ ...n, t: n.t - len })),
+      ...loop.spare.filter((n) => n.p === 1 && n.t < 0 && n.t >= -bar)
+    ];
+    const regular = [...loop.notes.filter((n) => !isPickup(n)), ...loop.spare.filter((n) => !pickups.includes(n))].map(
+      (n) => asPlayed(n, n.t)
+    );
+    next = new Take();
+    next.start = 0;
+    next.length = b;
+    const used = new Set<object>();
+    for (const p of regular) {
+      if (p.s < -EARLY || p.s >= b - EARLY) continue;
+      next.notes.push({ t: Math.max(0, p.s), d: Math.min(p.d, b), n: p.n, v: p.v });
+      used.add(p);
+    }
+    // carried along with the end, unless the loop has it there already (then aside, flagged)
+    const parked: TakeNoteJSON[] = [];
+    for (const n of pickups) {
+      const t = n.t + b;
+      if (next.notes.some((m) => !m.p && m.n === n.n && Math.abs(m.t - t) <= MIRROR)) parked.push({ t: n.t, d: n.d, n: n.n, v: n.v, p: 1 });
+      else next.notes.push({ t, d: n.d, n: n.n, v: n.v, p: 1 });
+    }
+    next.spare = [...spareOf(regular.filter((p) => !used.has(p)), 0, b, bar), ...parked].sort((x, y) => x.t - y.t);
+  } else {
+    const all = [
+      ...loop.notes.map((n) => asPlayed(n, isPickup(n) ? n.t - len : n.t)),
+      ...loop.spare.map((n) => asPlayed(n, n.t))
+    ].sort((x, y) => x.s - y.s);
+    next = loopFromNotes(all, a, b, bar, true);
+  }
+  if (!next) return null;
+  next.id = loop.id;
+  next.sections = loop.sections.map((s) => ({ t: s.t, meter: s.meter }));
+  next.sort();
+  return next;
 }
 
 export class Looper {
@@ -235,7 +309,7 @@ export class Looper {
     const from = this.from;
     this.mode = 'idle';
     this.to = null;
-    const loop = loopFromNotes(this.notesBetween(from - bar, to - EARLY, now), from, to, bar);
+    const loop = loopFromNotes(this.notesBetween(from - SPARE_BARS * bar, to + SPARE_BARS * bar, now), from, to, bar);
     if (loop) this.anchor = from;
     return loop;
   }

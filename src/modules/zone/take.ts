@@ -12,6 +12,8 @@ export class Take {
   static MAX_BARS = 1024; // of 4/4
   static MAX_LENGTH = Take.MAX_BARS * PPQ * 4;
   static MAX_NOTES = 16384;
+  /** A loop's spare notes at most (they're in the scene and every undo step) */
+  static MAX_SPARE = 4096;
   // identifies a recorded take, so the session's list can hide it while it's kept
   id = Math.random().toString(36).slice(2, 10);
   start = 0;
@@ -24,6 +26,11 @@ export class Take {
   seq = 0;
   /** Sections of the run it was recorded in: where each began (take ticks, the first at 0) and its meter */
   sections: { t: number; meter: Meter }[] = [];
+  /**
+   * A loop's notes outside its bars, from what it was cut from (ticks from its start: before
+   * it negative, after it from its length on), so its edges can be dragged out again
+   */
+  spare: TakeNoteJSON[] = [];
   /** Counts recordings (the last seq handed out) */
   static counter = 0;
 
@@ -171,7 +178,10 @@ export class Take {
       ...(this.at ? { at: this.at } : {}),
       ...(this.seq ? { seq: this.seq } : {}),
       ...(this.sections.length ? { sections: this.sections.map((s) => ({ t: s.t, meter: s.meter })) } : {}),
-      notes: this.notes.map((n) => ({ t: round(n.t), d: round(n.d), n: n.n, v: n.v }))
+      notes: this.notes.map((n) => ({ t: round(n.t), d: round(n.d), n: n.n, v: n.v, ...(n.p ? { p: 1 as const } : {}) })),
+      ...(this.spare.length
+        ? { spare: this.spare.map((n) => ({ t: round(n.t), d: round(n.d), n: n.n, v: n.v, ...(n.p ? { p: 1 as const } : {}) })) }
+        : {})
     };
   }
 
@@ -203,17 +213,29 @@ export class Take {
       }
       take.sections.sort((a, b) => a.t - b.t);
     }
+    const note = (raw: unknown, lo: number, hi: number): TakeNoteJSON | null => {
+      if (!raw || typeof raw !== 'object') return null;
+      const r = raw as Partial<TakeNoteJSON>;
+      const t = Number(r.t);
+      const dur = Number(r.d);
+      const n = Math.round(Number(r.n));
+      const v = Math.round(Number(r.v));
+      if (!isFinite(t) || t < lo || t >= hi || !isFinite(dur) || dur <= 0) return null;
+      if (!(n >= 0 && n <= 127) || !(v >= 1 && v <= 127)) return null;
+      return { t, d: Math.min(dur, Take.MAX_LENGTH), n, v, ...(r.p === 1 ? { p: 1 as const } : {}) };
+    };
     if (Array.isArray(d.notes)) {
       for (const raw of d.notes.slice(0, Take.MAX_NOTES)) {
-        if (!raw || typeof raw !== 'object') continue;
-        const t = Number(raw.t);
-        const dur = Number(raw.d);
-        const n = Math.round(Number(raw.n));
-        const v = Math.round(Number(raw.v));
-        if (!isFinite(t) || t < 0 || t >= Take.MAX_LENGTH || !isFinite(dur) || dur <= 0) continue;
-        if (!(n >= 0 && n <= 127) || !(v >= 1 && v <= 127)) continue;
-        take.notes.push({ t, d: Math.min(dur, Take.MAX_LENGTH), n, v });
+        const n = note(raw, 0, Take.MAX_LENGTH);
+        if (n) take.notes.push(n);
       }
+    }
+    if (Array.isArray(d.spare)) {
+      for (const raw of d.spare.slice(0, Take.MAX_SPARE)) {
+        const n = note(raw, -Take.MAX_LENGTH, 2 * Take.MAX_LENGTH);
+        if (n) take.spare.push(n);
+      }
+      take.spare.sort((a, b) => a.t - b.t);
     }
     take.sort();
     return take;
@@ -227,6 +249,7 @@ export class Take {
     this.length = from.length;
     this.offset = from.offset;
     this.notes = from.notes;
+    this.spare = from.spare;
   }
 
   copy(): Take {
