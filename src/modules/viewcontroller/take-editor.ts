@@ -4,6 +4,7 @@ import { Take, songNote, setNoteLength } from '../zone/take';
 import type { SongNote } from '../zone/take';
 import type { TakeNoteJSON } from '../zone/interfaces';
 import { DIV_TICKS } from '../zone/seq-layer';
+import { CurveCursor } from '../zone/note-curve';
 import { DIV_NAMES, quantizeStarts } from '../zone/take-quantize';
 import { timeline } from '../timeline';
 import { Meter, barTicks, beatLines, unitTicks } from '../meter';
@@ -46,6 +47,8 @@ const KEYS_W = 40;
 const RULER_H = 18;
 const VEL_H = 48;
 const VEL_GAP = 6;
+/** The MPE lane over Velocity, for a loop or take played with MPE: pressure filled, slide a dashed line */
+const MPE_H = 44;
 const EDGE_PX = 5;
 const DRAG_PX = 3;
 const GRID_KEY = 'takeEditorGrid';
@@ -126,7 +129,9 @@ const sx = (s: number): number => KEYS_W + (s - view.left) * view.ppt;
 const tickAt = (x: number): number => view.left + (x - KEYS_W) / view.ppt;
 const py = (n: number): number => RULER_H + (view.top - n) * view.rowH;
 const pitchAt = (y: number): number => view.top - Math.floor((y - RULER_H) / view.rowH);
-const gridBottom = (): number => size.h - VEL_H - VEL_GAP;
+// whether the loop or take being edited has MPE (its notes' curves): it gets the MPE lane
+let mpeLane = false;
+const gridBottom = (): number => size.h - VEL_H - VEL_GAP - (mpeLane ? MPE_H + VEL_GAP : 0);
 const rows = (): number => Math.max(1, Math.floor((gridBottom() - RULER_H) / view.rowH));
 
 function inWindow(take: Take, note: TakeNoteJSON): boolean {
@@ -414,6 +419,70 @@ function updateTools(target: TakeTarget | null): void {
 }
 
 /** Called by the track view's draw loop while the Notes tab is open */
+/**
+ * The MPE lane over Velocity: each note's pressure filled (from the zone's threshold up, as
+ * it hears it) and its slide as a dashed line, both from the lane's bottom (0) to its top (127)
+ */
+function drawMpeLane(g: CanvasRenderingContext2D, take: Take, zone: Zone, colour: string): void {
+  const { w } = size;
+  const top = gridBottom() + VEL_GAP;
+  const base = top + MPE_H - 2;
+  const span = MPE_H - 6;
+  g.fillStyle = '#1c1f23';
+  g.fillRect(0, top, w, MPE_H);
+  g.fillStyle = '#8b95a3';
+  g.font = '10px "Barlow Semi Condensed", sans-serif';
+  g.fillText('MPE', 6, top + 14);
+  g.save();
+  g.beginPath();
+  g.rect(KEYS_W, top, w - KEYS_W, MPE_H);
+  g.clip();
+  const from = zone.mpe_at_from;
+  const d = drag;
+  // overlapping notes pile up: with notes picked that have MPE, only theirs
+  const only = [...sel].some((n) => n.x);
+  for (const note of take.notes) {
+    if (!note.x || !inWindow(take, note) || (only && !sel.has(note))) continue;
+    const s = take.songOf(note) + (sel.has(note) && d?.kind === 'move' && d.moved ? d.dt : 0);
+    const x0 = sx(s);
+    const x1 = sx(s + note.d);
+    if (x1 < KEYS_W || x0 > w) continue;
+    const left = Math.max(x0, KEYS_W);
+    const right = Math.min(x1, w);
+    const at = (x: number): number => (x - x0) / view.ppt;
+    if (note.x.press) {
+      const cursor = new CurveCursor({ press: note.x.press });
+      g.globalAlpha = only ? 0.55 : 0.35;
+      g.fillStyle = colour;
+      g.beginPath();
+      g.moveTo(left, base);
+      for (let x = left; x <= right; x += 2) {
+        const p = Math.max(0, cursor.at(at(x)).press - from) / Math.max(1, 127 - from);
+        g.lineTo(x, base - p * span);
+      }
+      g.lineTo(right, base);
+      g.fill();
+    }
+    if (note.x.slide) {
+      const cursor = new CurveCursor({ slide: note.x.slide });
+      g.globalAlpha = 0.9;
+      g.strokeStyle = '#8b95a3';
+      g.lineWidth = 1;
+      g.setLineDash([3, 2]);
+      g.beginPath();
+      for (let x = left; x <= right; x += 2) {
+        const y = base - ((cursor.at(at(x)).slide ?? 0) / 127) * span;
+        if (x === left) g.moveTo(x, y);
+        else g.lineTo(x, y);
+      }
+      g.stroke();
+      g.setLineDash([]);
+    }
+  }
+  g.restore();
+  g.globalAlpha = 1;
+}
+
 function drawTakeEditor(): void {
   const target = hooks.target();
   followTake(target?.take ?? null);
@@ -423,6 +492,7 @@ function drawTakeEditor(): void {
   if (!g || !target) return;
   const { w, h } = size;
   const take = target.take;
+  mpeLane = take.hasExpression;
   if (take.id !== fittedId) {
     fittedId = take.id;
     fit(take);
@@ -489,6 +559,21 @@ function drawTakeEditor(): void {
       g.strokeStyle = '#ffffff';
       g.lineWidth = 1.5;
       g.strokeRect(x0 + 0.75, py(n) + 0.75, x1 - x0 - 2.5, Math.max(2, view.rowH - 1.5));
+    }
+    // its MPE bend: a line through it at the pitch sounding (the keyboard's, in rows)
+    if (note.x?.bend && view.rowH >= 4) {
+      const cursor = new CurveCursor(note.x);
+      const mid = py(n) + view.rowH / 2;
+      g.globalAlpha = inside ? 0.9 : 0.4;
+      g.strokeStyle = '#ffffff';
+      g.lineWidth = 1.25;
+      g.beginPath();
+      for (let x = Math.max(x0, KEYS_W); x <= Math.min(x1, w); x += 2) {
+        const y = mid - (cursor.at((x - x0) / view.ppt).bend / 100) * view.rowH;
+        if (x === Math.max(x0, KEYS_W)) g.moveTo(x, y);
+        else g.lineTo(x, y);
+      }
+      g.stroke();
     }
     if (target.kind === 'loop' && note.p) pickups.push({ x: x0, y: py(n) });
   }
@@ -575,6 +660,8 @@ function drawTakeEditor(): void {
     4
   );
   g.globalAlpha = 1;
+
+  if (mpeLane) drawMpeLane(g, take, target.zone, colour);
 
   // velocity lane
   const vy = h - VEL_H;

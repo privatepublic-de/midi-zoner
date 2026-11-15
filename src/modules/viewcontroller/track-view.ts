@@ -1,5 +1,7 @@
 import { Zone } from '../zone/zone-class';
 import { ZONES_CHANGED_EVENT, UPDATE_ZONE_VIEW_EVENT } from '../zone/interfaces';
+import type { NoteCurveJSON, CurveSeries } from '../zone/interfaces';
+import { CurveCursor } from '../zone/note-curve';
 import { timeline, sessionNow, songNow, nowTick, timelineMeter, countInNow, NoteHistory } from '../timeline';
 import { Meter, DEFAULT_METER, barTicks, beatLines, snapToBeat, positionLabel, meterLabel, sameMeter } from '../meter';
 import { Take } from '../zone/take';
@@ -913,7 +915,7 @@ function drawLane(
     g.fillRect(x0, top, Math.max(1, x1 - x0 - 1), bh);
   };
 
-  // a note at song positions; ghost: dashed (won't play), faint: a take
+  // a note at song positions; ghost: dashed (won't play), faint: a take; curve: its MPE
   const note = (
     s0: number,
     s1: number,
@@ -921,7 +923,8 @@ function drawLane(
     velo: number,
     ghost: boolean,
     alpha = 1,
-    place = songRows
+    place = songRows,
+    curve?: NoteCurveJSON
   ): void => {
     if (row < 0) return;
     const x0 = x(s0);
@@ -944,6 +947,18 @@ function drawLane(
       g.setLineDash([2, 2]);
       g.strokeRect(x0 + 0.5, y + 0.5, width - 1, noteH - 1);
       g.setLineDash([]);
+    } else if (curve?.press) {
+      // played with MPE: brighter where the key was pressed harder
+      const a = g.globalAlpha;
+      g.fillStyle = colour;
+      fillByPressure(g, x0, y, width, noteH, s1 - s0, curve.press, zone.mpe_at_from, a);
+      g.globalAlpha = a;
+      // a loop's edge where the note is tall enough to show the fill inside it
+      if (asLoop && noteH > 4) {
+        g.strokeStyle = colour;
+        g.lineWidth = 1;
+        g.strokeRect(x0 + 0.5, y + 0.5, width - 1, noteH - 1);
+      }
     } else if (asLoop) {
       const a = g.globalAlpha;
       g.globalAlpha = a * 0.4;
@@ -985,7 +1000,7 @@ function drawLane(
     g.lineWidth = 1;
     for (const n of take.visibleNotes()) {
       if (x(toSong(n.s)) > w) break;
-      note(toSong(n.s), toSong(n.s + n.d), rowOf(n.n), n.v, false, 0.7, takeRows);
+      note(toSong(n.s), toSong(n.s + n.d), rowOf(n.n), n.v, false, 0.7, takeRows, n.x);
     }
   };
   feedsArp = zone.arp_enabled;
@@ -1039,7 +1054,7 @@ function drawLane(
       }
       for (const n of loopTake.notes) {
         if (c + n.t + n.d < elapsedNow) continue;
-        note(elapsedToSong(c + n.t), elapsedToSong(c + n.t + n.d), rowOf(n.n), n.v, loopOff);
+        note(elapsedToSong(c + n.t), elapsedToSong(c + n.t + n.d), rowOf(n.n), n.v, loopOff, 1, songRows, n.x);
       }
     }
     asLoop = false;
@@ -1466,6 +1481,30 @@ function placeTakeChip(
   takeChip.querySelector('.tc-prev')!.classList.toggle('off', shown.number <= 1);
   takeChip.querySelector('.tc-next')!.classList.toggle('off', shown.number >= shown.count);
   takeChip.style.left = `${Math.max(4, Math.min(w - takeChip.offsetWidth - 4, takeX + 4))}px`;
+}
+
+/**
+ * A note played with MPE, filled in slices brighter where its key was pressed harder: its
+ * pressure from the zone's threshold (`from`) up, as the zone hears it. `ticks`: its length.
+ */
+export function fillByPressure(
+  g: CanvasRenderingContext2D,
+  x0: number,
+  y: number,
+  width: number,
+  h: number,
+  ticks: number,
+  press: CurveSeries,
+  from: number,
+  alpha: number
+): void {
+  const cursor = new CurveCursor({ press });
+  const step = 2;
+  for (let px = 0; px < width; px += step) {
+    const p = cursor.at(((px + step / 2) / width) * ticks).press;
+    g.globalAlpha = alpha * (0.12 + (0.88 * Math.max(0, p - from)) / Math.max(1, 127 - from));
+    g.fillRect(x0 + px, y, Math.min(step, width - px), h);
+  }
 }
 
 /** The loop's chip in the strip, at its block: its length, a bar less or more, Clear */
