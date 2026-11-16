@@ -132,7 +132,7 @@ export function getHTML(zone: ZoneType, zoneindex: number): string {
         </div>
         <div class="lane-expand-toggle" data-action="${index}:seq_toggle_lanes_expand" title="Show or hide the lanes' settings">${
           ln === 0
-            ? '<span class="lane-expand-chevron"><i class="material-icons">arrow_right</i></span>'
+            ? '<span class="lane-expand-chevron"><i class="material-icons">chevron_right</i></span>'
             : ''
         }</div>`;
 

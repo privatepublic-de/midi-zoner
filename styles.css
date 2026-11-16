@@ -86,7 +86,8 @@
 
   /* Page-level stacking; values 1-10 elsewhere are local to a component */
   --z-topbar: 2;
-  --z-window: 2; /* port windows */
+  --z-window: 50; /* port windows: above everything in the page (zones, the track view's
+                     panel and its blocks, up to 10), below the zone popups */
   --z-zone-popup: 100; /* output/input routing popup */
   --z-overlay: 200; /* key switch and Mackie help */
   --z-overlay-top: 210; /* piano roll, controller editor */
@@ -205,6 +206,39 @@
   text-rendering: optimizeLegibility;
   font-feature-settings: 'liga';
   vertical-align: middle;
+}
+
+/* Folds: every chevron that shows or hides something (Setup, the track view's panel, the
+   drum lanes' settings, pages and sections in the controller editor, Manage MIDI ports)
+   is the same chevron in the same size and tone, and turns to show the new state. Lists
+   point right when closed and down when open; panels point the way they will move */
+.setup-toggle .chevron,
+#trackDock .td-collapse .material-icons,
+.lane-expand-chevron .material-icons,
+#ccEditor .cce-fold,
+.panel-section > summary::before {
+  width: var(--icon-md);
+  height: var(--icon-md);
+  font-size: var(--icon-md);
+  line-height: 1;
+  color: var(--slate-dim);
+  transition: transform 150ms ease;
+}
+.setup-toggle:hover .chevron,
+#trackDock .td-collapse:hover .material-icons,
+.drum-step-container:has(.lane-expand-toggle:hover) .lane-expand-chevron .material-icons,
+#ccEditor .cce-fold:hover,
+.panel-section > summary:hover::before {
+  color: var(--text-base-color);
+}
+@media (prefers-reduced-motion: reduce) {
+  .setup-toggle .chevron,
+  #trackDock .td-collapse .material-icons,
+  .lane-expand-chevron .material-icons,
+  #ccEditor .cce-fold,
+  .panel-section > summary::before {
+    transition: none;
+  }
 }
 
 /* =============================================================
@@ -535,10 +569,6 @@ option {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-}
-
-.setup-toggle .chevron {
-  transition: transform 150ms ease;
 }
 
 body.setup-open .setup-toggle .chevron {
@@ -3076,6 +3106,28 @@ body:not(.track-view):not(.minimized) #zones > .zone > .rangeholder {
   padding-top: 8px;
   border-top: 1px solid var(--brighter-1);
 }
+/* the app's fold chevron instead of the browser's triangle */
+.panel-section > summary {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  list-style: none;
+  cursor: pointer;
+}
+.panel-section > summary::-webkit-details-marker {
+  display: none;
+}
+.panel-section > summary::before {
+  content: 'expand_more';
+  font-family: 'Material Icons';
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  margin-left: -2px;
+  transform: rotate(-90deg);
+}
+.panel-section[open] > summary::before {
+  transform: none;
+}
 
 #clockOutPortWindow input {
   vertical-align: bottom;
@@ -4023,7 +4075,6 @@ body:not(.track-view):not(.minimized) #zones > .zone > .rangeholder {
     top: 0;
     width: 10px;
     height: calc(var(--drum-lanes, 12) * 100%);
-    font-size: var(--icon-lg);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -4043,8 +4094,10 @@ body:not(.track-view):not(.minimized) #zones > .zone > .rangeholder {
     border-right: 1px solid var(--darker-1);
   }
   &.lanes-expanded .lane-expand-chevron {
-    transform: rotate(180deg);
     margin-left: 2px;
+  }
+  &.lanes-expanded .lane-expand-chevron .material-icons {
+    transform: rotate(180deg);
   }
 
   .lane-label {
@@ -5408,16 +5461,11 @@ body.minimized .midi-led.on {
 }
 /* collapsing pages and sections */
 #ccEditor .cce-fold {
-  width: 16px;
   margin: 0 2px 0 -2px;
   vertical-align: -3px;
-  font-size: 16px;
-  color: var(--brighter-2);
   border-radius: var(--radius);
-  transition: transform 0.12s;
 }
 #ccEditor .cce-fold:hover {
-  color: var(--text-base-color);
   background-color: var(--brighter-1);
 }
 .cce-row.collapsed .cce-fold {
@@ -5983,18 +6031,39 @@ body.track-view:not(.minimized) {
   &.no-tracks #trackDock {
     display: none;
   }
+  /* the divider between the tracks and the dock: a hairline across the gap with a grip
+     in its middle, so it reads as something to drag; both light up on hover */
   #trackDock .td-resize {
+    --divider: var(--slate-line);
     position: absolute;
-    top: -8px;
+    top: -9px;
     left: 0;
     right: 0;
-    height: 8px;
+    height: 10px;
     z-index: 4;
     cursor: ns-resize;
+    background: linear-gradient(transparent 4px, var(--divider) 4px, var(--divider) 5px, transparent 5px);
+  }
+  #trackDock .td-resize::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 50%;
+    width: 40px;
+    height: 5px;
+    margin-left: -20px;
+    box-sizing: border-box;
+    border: 1px solid var(--divider);
+    border-radius: var(--radius-sm);
+    background-color: var(--slate-raise);
   }
   #trackDock .td-resize:hover,
   &.dock-resizing #trackDock .td-resize {
-    background: linear-gradient(transparent 3px, var(--slate-dim) 3px, var(--slate-dim) 5px, transparent 5px);
+    --divider: var(--slate-dim);
+  }
+  #trackDock .td-resize:hover::after,
+  &.dock-resizing #trackDock .td-resize::after {
+    background-color: var(--slate-dim);
   }
   &.dock-resizing {
     cursor: ns-resize;
@@ -6045,10 +6114,20 @@ body.track-view:not(.minimized) {
     color: var(--text-base-color);
     font-weight: 600;
   }
+  /* as tall as the tabs and level with them, the chevron in its middle */
   #trackDock .td-collapse {
     position: absolute;
-    top: 4px;
+    top: calc((var(--dock-bar-h) - 22px) / 2);
     right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 28px;
+    min-width: 0;
+    height: 22px;
+    margin: 0;
+    padding: 0;
   }
   &.dock-closed #trackDock .td-collapse .material-icons {
     transform: rotate(180deg);
