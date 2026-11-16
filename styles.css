@@ -1609,9 +1609,30 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
   color: var(--light-red-highlight);
 }
 
+/* the menu is a button like the chips beside it; the drag handle a dim grip without a
+   frame (lines, not dots, so the two don't look alike) */
+.zonetools .zonemenu {
+  width: 24px;
+  height: 20px;
+  box-sizing: border-box;
+  color: var(--brighter-4);
+  background-color: var(--slate-raise);
+  border: 1px solid var(--slate-line);
+}
+.zonetools .zonemenu .material-icons {
+  font-size: var(--icon-md);
+}
 .dragzone {
   padding: 0 4px;
+  color: var(--slate-dim);
   cursor: grab;
+}
+.zonetools .dragzone.rtool:hover:not(:disabled) {
+  background-image: none;
+  color: var(--text-base-color);
+}
+.dragzone .material-icons {
+  font-size: 18px;
 }
 
 .dragged .dragzone {
