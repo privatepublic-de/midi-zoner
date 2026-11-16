@@ -5647,7 +5647,8 @@ body.track-view:not(.minimized) {
   /* --dock-open-h: the height dragged at the top edge (track-view.ts) */
   --dock-h: min(var(--dock-open-h, 290px), calc(100vh - var(--topbar-h, 44px) - 120px));
   --dock-bar-h: 32px;
-  --strip-h: 28px; /* STRIP_H in track-view.ts */
+  /* STRIP_H in track-view.ts; not --strip-h, which is the top bar's height */
+  --track-strip-h: 28px;
   --track-settings-w: 540px;
   /* as xr18: tracks are cards on the dark ground, lanes and the ruler inset wells */
   --track-gap: 10px; /* round the tracks and the dock */
@@ -5874,8 +5875,8 @@ body.track-view:not(.minimized) {
   }
   #zones > .zone.track-selected > .track-lane {
     canvas {
-      top: var(--strip-h);
-      height: calc(100% - var(--strip-h));
+      top: var(--track-strip-h);
+      height: calc(100% - var(--track-strip-h));
     }
     .track-strip {
       display: flex;
@@ -5884,7 +5885,7 @@ body.track-view:not(.minimized) {
       left: 0;
       right: 0;
       top: 0;
-      height: var(--strip-h);
+      height: var(--track-strip-h);
       box-sizing: border-box;
       background-color: var(--slate-panel);
       border-bottom: 1px solid var(--slate-line);
