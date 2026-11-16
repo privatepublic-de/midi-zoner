@@ -6354,6 +6354,32 @@ body.track-view:not(.minimized) {
       margin-top: 0;
     }
   }
+  /* no step selected: the step editor's place as a quiet dashed frame with a hint, so
+     the editor doesn't appear out of empty space */
+  &[data-dock='seq']:not(.dock-closed) #zones > .zone.track-selected.show-seq:not(.disabled) > .seq:not(.has-selection) > .step-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    align-self: start;
+    box-sizing: border-box;
+    min-height: 150px;
+    padding: 12px;
+    border: 1px dashed var(--slate-line);
+    border-radius: var(--radius);
+    background: none;
+    box-shadow: none;
+    > * {
+      display: none;
+    }
+    &::before {
+      content: 'Select a step to edit it here';
+      color: var(--slate-dim);
+      text-align: center;
+    }
+  }
+  &[data-dock='seq']:not(.dock-closed) #zones > .zone.drumSequencer.track-selected.show-seq > .seq:not(.has-selection) > .step-info::before {
+    content: 'Select a step to edit it here (⌥-click: without adding a hit)';
+  }
   &[data-dock='arp']:not(.dock-closed) #zones > .zone.track-selected.arp-enabled > .arp-settings-block {
     display: block !important;
   }
