@@ -1815,31 +1815,50 @@ document.addEventListener('DOMContentLoaded', function () {
     saveZones();
   });
   DOM.on('#aboutBtn', 'click', () => ipcRenderer.invoke('open-about'));
-  const SETUP_OPEN_KEY = 'setupDrawerOpen';
+  // Setup floats over the zones (an overlay since Nov 2026: it grew too big to push them
+  // down). It starts closed; the Setup button, Esc or a press outside it close it.
+  localStorage.removeItem('setupDrawerOpen'); // where it used to be kept open across starts
   function setSetupOpen(open: boolean): void {
     document.body.classList.toggle('setup-open', open);
     DOM.get('#setupToggle')!.setAttribute('aria-expanded', String(open));
-    localStorage.setItem(SETUP_OPEN_KEY, open ? '1' : '0');
   }
-  setSetupOpen(localStorage.getItem(SETUP_OPEN_KEY) === '1');
   DOM.get('#setupToggle')!.addEventListener('click', () =>
     setSetupOpen(!document.body.classList.contains('setup-open'))
   );
   // The external clock name in the transport leads to where the clock source is chosen
   DOM.on('.transport .ext-badge', 'click', () => setSetupOpen(true));
-  // Keep the zones below the top bar, including the drawer when it is open (and when it wraps to two rows).
+  // A press outside closes it and still does what it was aimed at. The top bar (transport,
+  // undo, view) and what Setup opens (port windows, help, menus, dialogs) don't count.
+  const SETUP_KEEPS_OPEN =
+    '#midisettings, #inputPortWindow, #clockOutPortWindow, #keySwitchHelpOverlay, #mackieHelpOverlay, #contextmenu, #toast, dialog';
+  document.addEventListener(
+    'pointerdown',
+    (ev) => {
+      if (!document.body.classList.contains('setup-open')) return;
+      if ((ev.target as Element).closest?.(SETUP_KEEPS_OPEN)) return;
+      setSetupOpen(false);
+    },
+    true
+  );
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Escape' || !document.body.classList.contains('setup-open')) return;
+    // the editor panels and an open menu take Esc first
+    if (document.querySelector('#pianoRollOverlay.open, #ccEditor.open')) return;
+    if ((DOM.get('#contextmenu') as HTMLElement).style.display === 'block') return;
+    // a port window opened from Setup closes before Setup
+    const portWindows = ['#inputPortWindow', '#clockOutPortWindow'].map((s) => DOM.get(s) as HTMLElement);
+    const openWindow = portWindows.find((w) => w.style.display === 'block');
+    if (openWindow) openWindow.style.display = 'none';
+    else setSetupOpen(false);
+    const focused = document.activeElement as HTMLElement | null;
+    if (focused?.closest('#setupDrawer')) focused.blur();
+  });
+  // Keep the zones below the top bar (two rows when the window is narrow); Setup floats over them
   const topBar = DOM.get('#midisettings') as HTMLElement;
-  const setupDrawer = DOM.get('#setupDrawer') as HTMLElement;
   const syncTopBarHeight = (): void => {
-    const drawerOpen = document.body.classList.contains('setup-open');
-    const bottom = Math.max(
-      topBar.getBoundingClientRect().bottom,
-      drawerOpen ? setupDrawer.getBoundingClientRect().bottom : 0
-    );
-    document.documentElement.style.setProperty('--topbar-h', `${Math.ceil(bottom)}px`);
+    document.documentElement.style.setProperty('--topbar-h', `${Math.ceil(topBar.getBoundingClientRect().bottom)}px`);
   };
   new ResizeObserver(syncTopBarHeight).observe(topBar);
-  new ResizeObserver(syncTopBarHeight).observe(setupDrawer);
   syncTopBarHeight();
   DOM.on('#keySwitchEnabled', 'change', (ev) => {
     zones.keySwitchEnabled = (ev.target as HTMLInputElement).checked;
