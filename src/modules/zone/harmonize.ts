@@ -508,6 +508,27 @@ function voicedTones(c: Chord, key: Key, colour: number, line: number[], h: numb
   return base;
 }
 
+/** Colour below this: power chords */
+export const POWER_BELOW = 0.1;
+
+export function isPower(o: HarmonyOptions): boolean {
+  return (o.colour ?? 1) < POWER_BELOW;
+}
+
+/** Root, the chord's own fifth and the octave (or root and fifth where the octave doesn't fit) */
+function powerVoicings(chord: Chord, low: number, high: number): number[][] {
+  const tones = QUALITY[chord.quality];
+  const fifth = tones.includes(7) ? 7 : tones.includes(6) ? 6 : tones.includes(8) ? 8 : 7;
+  const out: number[][] = [];
+  // a little slack: three notes an octave wide don't always fit a narrow range (the cost keeps it near)
+  for (let r = low - 5; r <= high; r++) {
+    if (r % 12 !== chord.root) continue;
+    if (r + 12 <= high + 5) out.push([r, r + fifth, r + 12]);
+    else if (r + fifth <= high + 5) out.push([r, r + fifth]);
+  }
+  return out;
+}
+
 function voicings(tones: number[], low: number, high: number): number[][] {
   // every inversion, close and open (drop 2), in range
   const out: number[][] = [];
@@ -543,7 +564,18 @@ interface Hit {
   v: number;
 }
 
-export const RHYTHMS = ['Held', 'Beats', 'Pushes', 'Backbeat', 'Off-beats'] as const;
+export const RHYTHMS = ['Held', 'Beats', 'Pushes', 'Backbeat', 'Off-beats', 'Eighths'] as const;
+/** The order the Rhythm chips show them in (indices of RHYTHMS; new ones are appended there, saved settings keep theirs) */
+export const RHYTHM_ORDER = [0, 1, 5, 2, 3, 4];
+
+/** The 8ths of a span, from its start (ticks from the span's start) */
+function eighthsOf(span: { t: number; end: number }, meter: Meter): number[] {
+  const out: number[] = [];
+  const eighth = PPQ / 2;
+  void meter;
+  for (let t = Math.ceil(span.t / eighth) * eighth; t < span.end - 0.5; t += eighth) out.push(t - span.t);
+  return out;
+}
 
 /** The hits of one chord span, by rhythm style */
 function hitsOf(style: number, span: { t: number; end: number }, meter: Meter, segs: Segment[]): Hit[] {
@@ -562,6 +594,12 @@ function hitsOf(style: number, span: { t: number; end: number }, meter: Meter, s
       ];
     case 3: // chops on the bar's backbeats (2 and 4; in x/8 the later groups)
       return beats.filter((s) => s.beat % 2 === 1).map((s) => ({ t: s.t - span.t, d: Math.min(eighth, s.end - s.t) * 0.7, v: 84 }));
+    case 5: // every 8th, driving: the bar's 1 loudest, then the beats, the &s lighter
+      return eighthsOf(span, meter).map((t) => {
+        const at = (((span.t + t) % barTicks(meter)) + barTicks(meter)) % barTicks(meter);
+        const beat = beatOffsets(meter).some((o) => Math.abs(o - at) < 0.5);
+        return { t, d: eighth * 0.8, v: at < 0.5 ? 96 : beat ? 86 : 72 };
+      });
     default: // the & of every beat (in x/8: the middle of each group)
       return beats.map((s) => {
         const mid = s.t + Math.max(eighth, Math.floor((s.end - s.t) / 2 / eighth) * eighth);
@@ -667,7 +705,8 @@ export function rangeFor(line: LineNote[], o: HarmonyOptions): Range {
 export function voiceChord(chord: Chord, key: Key, o: HarmonyOptions, lineNotes: number[], prev: number[] | null, r: Range): number[] {
   const { low, high, over, shift } = r;
   const tones = voicedTones(chord, key, o.colour, lineNotes.map((n) => n % 12), o.harmony);
-  let cands = voicings(tones, low, high);
+  // power chords (Colour at its very bottom): root, fifth and the octave, no third
+  let cands = isPower(o) ? powerVoicings(chord, low, high) : voicings(tones, low, high);
   if (!cands.length) cands = voicings(QUALITY[chord.quality].map((x) => (chord.root + x) % 12), low - 3, high + 7);
   if (!cands.length) cands = [QUALITY[chord.quality].map((x) => low + ((chord.root + x - low + 120) % 12))].map((v) => v.sort((a, b) => a - b));
   const cost = (v: number[]) =>
@@ -684,7 +723,7 @@ export function voiceChord(chord: Chord, key: Key, o: HarmonyOptions, lineNotes:
 }
 
 /** Each rhythm's loudest hit (hitsOf): its strong hits bark when the accents are in the middle */
-const STYLE_LOUDEST = [76, 90, 92, 84, 80];
+const STYLE_LOUDEST = [76, 90, 92, 84, 80, 96];
 
 /**
  * Dynamics of a hit (`o.dynamics`: 0 even … 1 barking). How strong a hit is comes from the
@@ -856,7 +895,8 @@ export function bassLine(
   const roll = (a: number, b: number) => hashRoll(o.seed + 4243, Math.round(s.t), a, b);
   if (m < 0.2) {
     const n = 36 + ((chord.root - 36 + 120) % 12);
-    const raw = syncopate([{ t: s.t + push, until: s.end + push, n, v: 96, first: true }], o, push !== 0, roll);
+    const held: RawBass[] = [{ t: s.t + push, until: s.end + push, n, v: 96, first: true }];
+    const raw = syncopate(style === 5 ? pump(held) : held, o, push !== 0, roll);
     return { notes: raw.map((r) => place(r.t, r.d ?? (r.until - r.t) * (raw.length > 1 ? lerp(0.55, 0.97, o.length ?? 0.5) : 0.95), r.n, r.v)), last: n };
   }
   const tones = QUALITY[chord.quality];
@@ -951,12 +991,29 @@ export function bassLine(
       raw.push({ t: until - PPQ / 2, until, n: g, v: v - 26, first: false, d: (PPQ / 2) * 0.6 });
     }
   });
-  const notes = syncopate(raw, o, push !== 0, roll).map((r) => {
+  // Eighths: the bass pumps 8ths of each note (the first of each a little louder)
+  const pumped = style === 5 ? pump(raw) : raw;
+  const notes = syncopate(pumped, o, push !== 0, roll).map((r) => {
     let v = r.v;
     if (o.vary) v += (hashRoll(o.seed + 7919, Math.round(r.t * 8), r.n, 5) - 0.5) * 2 * 12 * o.vary;
     return place(r.t, r.d ?? (r.until - r.t) * lenK, r.n, v);
   });
   return { notes, last: slot[playing[playing.length - 1].i]! };
+}
+
+/** Each note as 8ths of its pitch up to the next note (skips stay as they are) */
+function pump(raw: RawBass[]): RawBass[] {
+  const out: RawBass[] = [];
+  for (const r of raw) {
+    if (r.d !== undefined) {
+      out.push(r);
+      continue;
+    }
+    for (let t = r.t; t < r.until - PPQ / 4; t += PPQ / 2) {
+      out.push({ t, until: Math.min(r.until, t + PPQ / 2), n: r.n, v: t === r.t ? r.v : r.v - 10, first: r.first && t === r.t });
+    }
+  }
+  return out;
 }
 
 interface RawBass {

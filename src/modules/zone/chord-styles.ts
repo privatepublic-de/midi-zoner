@@ -13,7 +13,7 @@ export interface ChordStyle {
   bass: Partial<ChordSettings>;
 }
 
-// rhythm: 0 Held, 1 Beats, 2 Pushes, 3 Backbeat, 4 Off-beats. accents 0.5 = the rhythm's own strong hits
+// rhythm: 0 Held, 1 Beats, 2 Pushes, 3 Backbeat, 4 Off-beats, 5 Eighths. colour under 0.1: power chords. accents 0.5 = the rhythm's own strong hits
 export const CHORD_STYLES: ChordStyle[] = [
   {
     id: 'strings',
@@ -30,7 +30,7 @@ export const CHORD_STYLES: ChordStyle[] = [
   {
     id: 'pop',
     name: 'Pop',
-    chords: { harmony: 0.35, colour: 0.3, rhythm: 2, length: 0.6, bark: 0.35, register: 2, vary: 0.2 },
+    chords: { harmony: 0.35, colour: 0.3, rhythm: 5, length: 0.5, bark: 0.3, register: 2, vary: 0.2 },
     bass: { bass: 0.3, length: 0.55, sync: 0.3, vary: 0.15 }
   },
   {
@@ -42,7 +42,7 @@ export const CHORD_STYLES: ChordStyle[] = [
   {
     id: 'naive',
     name: 'Naive',
-    chords: { harmony: 0.05, colour: 0.1, rhythm: 1, length: 0.6, changes: 0.25 },
+    chords: { harmony: 0.05, colour: 0.15, rhythm: 1, length: 0.6, changes: 0.25 },
     bass: { bass: 0.05, length: 0.6 }
   },
   {
@@ -54,7 +54,7 @@ export const CHORD_STYLES: ChordStyle[] = [
   {
     id: 'rock',
     name: 'Rock',
-    chords: { harmony: 0.2, colour: 0.1, rhythm: 1, length: 0.35, bark: 0.6, accents: 0.3, changes: 0.45, register: -3, vary: 0.2 },
+    chords: { harmony: 0.2, colour: 0.05, rhythm: 5, length: 0.45, bark: 0.45, accents: 0.3, changes: 0.45, register: -3, vary: 0.2 },
     bass: { bass: 0.1, length: 0.5, sync: 0.3, vary: 0.15 }
   },
   {

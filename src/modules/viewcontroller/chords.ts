@@ -14,7 +14,7 @@ import { takeStore } from '../take-store';
 import { timeline, nowTick, NoteHistory } from '../timeline';
 import { escapeHTML } from '../domutils';
 import { toast } from './toast';
-import { harmonize, progress, segmentsOf, chordName, keyName, RHYTHMS, LineNote, Chord, Key } from '../zone/harmonize';
+import { harmonize, progress, segmentsOf, chordName, keyName, RHYTHMS, RHYTHM_ORDER, POWER_BELOW, LineNote, Chord, Key } from '../zone/harmonize';
 import { LiveChords, HeardNote, Follower, Send, heardChords } from '../zone/live-chords';
 import { ChordPart, ChordPlan, ChordSettings, DEFAULT_CHORD_SETTINGS, harmonyOptions, loopSig } from '../zone/chord-settings';
 import MIDI from '../midi';
@@ -479,7 +479,7 @@ interface PadSpec {
 
 const PADS: Record<ChordPart, PadSpec[]> = {
   chords: [
-    { name: 'Harmony', x: 'harmony', y: 'colour', left: 'Fifths', right: 'Modal', bottom: 'Triads', top: '7 / 9', title: 'Left: chords along the circle of fifths, right: modal. Down: triads, up: sevenths and ninths (double-click: middle)' },
+    { name: 'Harmony', x: 'harmony', y: 'colour', left: 'Fifths', right: 'Modal', bottom: 'Power', top: '7 / 9', title: 'Left: chords along the circle of fifths, right: modal. Up: sevenths and ninths, down: triads, at the very bottom power chords (root and fifth) (double-click: middle)' },
     { name: 'Feel', x: 'length', y: 'bark', left: 'Stabs', right: 'Legato', bottom: 'Even', top: 'Barking', title: 'Left: short stabs, right: held. Up: the strong hits bark (loud and short), the others are soft and held (double-click: middle, even)' }
   ],
   bass: [
@@ -547,7 +547,7 @@ export function renderChordBlock(zone: Zone): void {
     placeDot(pad, s[spec.x] as number, s[spec.y] as number);
     showReadout(pad, spec, s[spec.x] as number, s[spec.y] as number);
   });
-  el.querySelectorAll<HTMLElement>('.cb-rhythm a').forEach((a, i) => a.classList.toggle('on', i === s.rhythm));
+  el.querySelectorAll<HTMLElement>('.cb-rhythm a').forEach((a) => a.classList.toggle('on', Number(a.dataset.rhythm) === s.rhythm));
   el.querySelectorAll<HTMLInputElement>('.cb-more input[type=range]').forEach((inp) => {
     const k = inp.dataset.k as keyof ChordSettings;
     if (document.activeElement !== inp) inp.value = String(s[k]);
@@ -572,7 +572,7 @@ export function renderChordBlock(zone: Zone): void {
 /** What a pad's settings sound like, in words (the engine's steps) */
 const WORDS: Partial<Record<keyof ChordSettings, (v: number) => string>> = {
   harmony: (v) => (v < 0.2 ? 'fifths' : v < 0.4 ? 'mostly fifths' : v < 0.6 ? 'fifths & modal' : v < 0.8 ? 'mostly modal' : 'modal'),
-  colour: (v) => (v <= 0.3 ? 'triads' : v <= 0.65 ? '7ths' : '7ths & 9ths'),
+  colour: (v) => (v < POWER_BELOW ? 'power chords' : v <= 0.3 ? 'triads' : v <= 0.65 ? '7ths' : '7ths & 9ths'),
   length: (v) => (v < 0.2 ? 'stabs' : v < 0.45 ? 'short' : v < 0.7 ? 'held' : 'legato'),
   bark: (v) => (v < 0.05 ? 'even' : v < 0.5 ? 'some barks' : 'barking'),
   bass: (v) => (v < 0.2 ? 'roots' : v < 0.45 ? 'root & fifth' : v < 0.7 ? 'approach notes' : v < 0.85 ? 'walking' : 'walking with skips'),
@@ -633,7 +633,7 @@ function blockHTML(zone: Zone): string {
         <option value="">none</option>${CHORD_STYLES.map((st) => `<option value="${st.id}">${escapeHTML(st.name)}</option>`).join('')}
       </select></div>
     <div class="cb-status"></div>
-    <div class="cb-row cb-rhythm-row"><span class="label">Rhythm</span><div class="cb-rhythm">${RHYTHMS.map((r) => `<a>${r}</a>`).join('')}</div></div>
+    <div class="cb-row cb-rhythm-row"><span class="label">Rhythm</span><div class="cb-rhythm">${RHYTHM_ORDER.map((i) => `<a data-rhythm="${i}">${RHYTHMS[i]}</a>`).join('')}</div></div>
     <div class="cb-pads">${pads}</div>
     <div class="cb-row cb-foot">
       <a class="cb-more-toggle" title="More settings"><i class="material-icons${open ? ' open' : ''}">chevron_right</i>More<small>${open ? '' : ': ' + sliders.map((m) => m.label).join(', ')}</small></a>
@@ -785,9 +785,9 @@ function initBlockEvents(): void {
     if (!t.closest?.('.chords-block')) return;
     const zone = zoneOfEl(t);
     if (!zone?.chords) return;
-    const r = t.closest('.cb-rhythm a');
+    const r = t.closest<HTMLElement>('.cb-rhythm a');
     if (r) {
-      const i = [...r.parentElement!.children].indexOf(r);
+      const i = Number(r.dataset.rhythm);
       if (i !== zone.chordSet.rhythm) setSettings(zone, { rhythm: i });
       return;
     }
