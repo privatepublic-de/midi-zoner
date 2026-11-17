@@ -18,6 +18,7 @@ import { harmonize, progress, segmentsOf, chordName, keyName, RHYTHMS, LineNote,
 import { LiveChords, HeardNote, Follower, Send, heardChords } from '../zone/live-chords';
 import { ChordPart, ChordPlan, ChordSettings, DEFAULT_CHORD_SETTINGS, harmonyOptions, loopSig } from '../zone/chord-settings';
 import MIDI from '../midi';
+import { CHORD_STYLES, styleById, styleSettings, differsFromStyle } from '../zone/chord-styles';
 
 interface Hooks {
   zones: () => Zone[];
@@ -553,6 +554,18 @@ export function renderChordBlock(zone: Zone): void {
   });
   const best = el.querySelector<HTMLElement>('.cb-best');
   if (best) best.hidden = !s.seed;
+  // the style, marked • once something was changed since
+  const sel = el.querySelector<HTMLSelectElement>('.cb-style');
+  if (sel && document.activeElement !== sel) {
+    const st = styleById(s.style);
+    sel.value = st ? st.id : '';
+    const changed = differsFromStyle(s, part);
+    for (const opt of sel.options) {
+      const name = styleById(opt.value)?.name ?? 'none';
+      const text = st && opt.value === st.id && changed ? `${name} •` : name;
+      if (opt.textContent !== text) opt.textContent = text;
+    }
+  }
   showStatus(zone);
 }
 
@@ -614,7 +627,11 @@ function blockHTML(zone: Zone): string {
     .join('');
   return `
     <div class="cb-row cb-follow-row"><span class="cb-what">${what}</span><span class="label">follows</span>
-      <select class="cb-follows" tabindex="-1" title="The zone whose line it plays to">${options}</select></div>
+      <select class="cb-follows" tabindex="-1" title="The zone whose line it plays to">${options}</select>
+      <span class="label cb-style-label">Style</span>
+      <select class="cb-style" tabindex="-1" title="Sets this zone and the other chords and bass zones on the same line together (• : changed since)">
+        <option value="">none</option>${CHORD_STYLES.map((st) => `<option value="${st.id}">${escapeHTML(st.name)}</option>`).join('')}
+      </select></div>
     <div class="cb-status"></div>
     <div class="cb-row cb-rhythm-row"><span class="label">Rhythm</span><div class="cb-rhythm">${RHYTHMS.map((r) => `<a>${r}</a>`).join('')}</div></div>
     <div class="cb-pads">${pads}</div>
@@ -647,6 +664,38 @@ function setSettings(zone: Zone, change: Partial<ChordSettings>, label = 'Chords
       if (src && src.length === plan.length) renderLoop(zone, src, plan, leadOf(line), zone.looper.anchor);
     }
   });
+}
+
+/**
+ * A style for the zone and the other chords and bass zones on its line (one undo step): their
+ * settings set, loops made of chords redone with new chords
+ */
+function applyStyle(zone: Zone, id: string): void {
+  const style = styleById(id);
+  if (!style) return;
+  const line = lineZoneOf(zone);
+  const targets = line ? followersOf(line) : [zone];
+  const zs = hooks.zones();
+  const busy = targets.find((z) => z.looper.mode !== 'idle');
+  if (busy) {
+    toast(`${escapeHTML(zoneName(busy))}: its loop is being recorded, finish that first`);
+    renderChordBlock(zone);
+    return;
+  }
+  hooks.commit(
+    targets.map((z) => zs.indexOf(z)),
+    `Style: ${style.name}`,
+    () => {
+      for (const z of targets) z.chordSet = styleSettings(style, z.chords!.part);
+      const src = line && lineOf(line);
+      const withPlan = targets.filter((z) => planOf(z) && src && z.loop!.length === src.length);
+      if (!line || !src || !withPlan.length) return;
+      const lead = leadOf(line);
+      const p = progress(src.notes, src.length, hooks.meter(), harmonyOptions(lead));
+      const plan = { key: p.key, chords: p.chords as (Chord | null)[], length: src.length };
+      withPlan.forEach((z) => renderLoop(z, src, plan, lead, z.looper.anchor));
+    }
+  );
 }
 
 /** makeLoops with a settings change inside the same undo step */
@@ -761,6 +810,13 @@ function initBlockEvents(): void {
     if (!t.closest?.('.chords-block')) return;
     const zone = zoneOfEl(t);
     if (!zone?.chords) return;
+    if (t.matches('.cb-style')) {
+      const st = styleById((t as HTMLSelectElement).value);
+      (t as HTMLSelectElement).blur();
+      if (st) applyStyle(zone, st.id);
+      else renderChordBlock(zone);
+      return;
+    }
     if (t.matches('.cb-follows')) {
       const id = (t as HTMLSelectElement).value;
       const zs = hooks.zones();

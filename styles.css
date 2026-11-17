@@ -6851,7 +6851,15 @@ body.track-view:not(.minimized) .channels > .ch.showchords {
 .chords-block .cb-what + .label {
   min-width: 0;
 }
+.chords-block .cb-style-label {
+  min-width: 0;
+  margin-left: 10px;
+}
+.chords-block select.cb-style,
 .chords-block select.cb-follows {
+  height: auto;
+  line-height: 1.25;
+  text-align: left;
   background: var(--slate-raise);
   color: var(--text-base-color);
   border: 1px solid var(--slate-line);
@@ -6951,6 +6959,7 @@ body.track-view:not(.minimized) .channels > .ch.showchords {
 }
 .chords-block .cb-dot {
   position: absolute;
+  z-index: 1;
   width: 14px;
   height: 14px;
   margin: -7px;
