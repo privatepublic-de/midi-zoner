@@ -424,7 +424,7 @@ const PADS: Record<ChordPart, PadSpec[]> = {
   ],
   bass: [
     { name: 'Bass', x: 'bass', y: 'length', left: 'Roots', right: 'Walking', bottom: 'Stabs', top: 'Legato', title: 'Left: the roots held, right: walking with approach notes. Down: short, up: held (double-click: middle)' },
-    { name: 'Feel', x: 'accents', y: 'vary', left: 'On-beat', right: 'Off-beat', bottom: 'Even', top: 'Loose', title: 'Left: accents on the beat, right: off the beat. Down: even, up: loose velocities (double-click: middle)' }
+    { name: 'Feel', x: 'sync', y: 'vary', left: 'Straight', right: 'Syncopated', bottom: 'Even', top: 'Loose', title: 'Left: straight, right: anticipations, off-beats and pickups. Down: even, up: loose velocities (double-click: straight)' }
   ]
 };
 
@@ -448,12 +448,13 @@ const MORE: Record<ChordPart, SliderSpec[]> = {
     { k: 'vary', label: 'Vary', left: 'Even', right: 'Loose', title: 'Velocities vary' }
   ],
   bass: [
+    { k: 'accents', label: 'Accents', left: 'On-beat', right: 'Off-beat', title: 'Louder on the beat or off it' },
     { k: 'harmony', label: 'Harmony', left: 'Fifths', right: 'Modal', title: 'Only when no chords zone follows the same line (that one chooses the chords)' },
     { k: 'changes', label: 'Changes', left: 'Slow', right: 'Fast', title: 'How often the chord changes (when no chords zone follows the same line)' }
   ]
 };
 
-const MIDDLE: Partial<Record<keyof ChordSettings, number>> = { length: 0.5, accents: 0.5, tensions: 0.5, register: 0, harmony: 0.3, colour: 0.4, bass: 0.5, vary: 0, changes: 0.5, unfold: 0 };
+const MIDDLE: Partial<Record<keyof ChordSettings, number>> = { length: 0.5, accents: 0.5, tensions: 0.5, register: 0, harmony: 0.3, colour: 0.4, bass: 0.5, vary: 0, changes: 0.5, unfold: 0, sync: 0 };
 
 function blockOf(zone: Zone): HTMLElement | null {
   return zone.elements?.zoneElement?.querySelector<HTMLElement>('.chords-block') ?? null;

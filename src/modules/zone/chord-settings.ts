@@ -28,6 +28,7 @@ export interface ChordSettings {
   tensions: number; // 0 softer … 1 louder (0.5 even)
   vary: number;
   bass: number; // bass moves: 0 roots … 1 walking
+  sync: number; // bass syncopation: 0 straight … 1 wild
   seed: number; // 0 = the best ("Another" counts up)
 }
 
@@ -43,6 +44,7 @@ export const DEFAULT_CHORD_SETTINGS: ChordSettings = {
   tensions: 0.5,
   vary: 0,
   bass: 0.5,
+  sync: 0,
   seed: 0
 };
 
@@ -75,6 +77,7 @@ export function chordSettingsFrom(x: unknown): ChordSettings {
     tensions: clamp01(o.tensions, d.tensions),
     vary: clamp01(o.vary, d.vary),
     bass: clamp01(o.bass, d.bass),
+    sync: clamp01(o.sync, d.sync),
     seed
   };
 }
@@ -147,6 +150,7 @@ export function harmonyOptions(s: ChordSettings): HarmonyOptions {
     tensions: s.tensions * 2 - 1,
     vary: s.vary,
     bassMove: s.bass,
+    syncopation: s.sync,
     seed: s.seed
   };
 }

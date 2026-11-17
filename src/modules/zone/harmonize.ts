@@ -93,6 +93,8 @@ export interface HarmonyOptions {
   register?: number;
   /** the bass: 0 roots held … root and fifth … with approach notes … 1 walking, with skips */
   bassMove?: number;
+  /** the bass: 0 straight … anticipations and off-beats … 1 wild (16th pickups and re-strikes) */
+  syncopation?: number;
   /** live: chords kept, per segment (null: free to choose) */
   frozen?: (Chord | null)[];
   /** live: the key found earlier (hysteresis), else analysed */
@@ -731,8 +733,9 @@ export function spanNotes(
       let d = Math.min(s.t + until + roll, s.t + Math.max(until, next)) - start;
       let t = start;
       if (wrap) {
-        if (t < 0) t += wrap; // a push into bar 1 goes at the loop's end
-        d = Math.min(d, wrap - t);
+        // a push into bar 1 goes at the loop's end and rings on into the next round's 1
+        if (t < 0) t += wrap;
+        else d = Math.min(d, wrap - t);
       }
       d = Math.max(1, d);
       let vel = hit.v + (from > hit.t ? -6 : accent);
@@ -791,15 +794,17 @@ export function bassLine(
   const m = Math.max(0, Math.min(1, o.bassMove ?? 0));
   const push = style === 2 ? -PPQ / 2 : 0;
   const place = (t: number, d: number, n: number, v: number): LineNote => {
+    // an anticipation of bar 1 goes at the loop's end and rings on into the next round
     if (wrap && t < 0) t += wrap;
-    if (wrap) d = Math.min(d, wrap - t);
+    else if (wrap) d = Math.min(d, wrap - t);
     return { t, d: Math.max(1, d), n, v: Math.round(Math.max(1, Math.min(127, v))) };
   };
+  const roll = (a: number, b: number) => hashRoll(o.seed + 4243, Math.round(s.t), a, b);
   if (m < 0.2) {
     const n = 36 + ((chord.root - 36 + 120) % 12);
-    return { notes: [place(s.t + push, (s.end - s.t) * 0.95, n, 96)], last: n };
+    const raw = syncopate([{ t: s.t + push, until: s.end + push, n, v: 96, first: true }], o, push !== 0, roll);
+    return { notes: raw.map((r) => place(r.t, r.d ?? (r.until - r.t) * (raw.length > 1 ? lerp(0.55, 0.97, o.length ?? 0.5) : 0.95), r.n, r.v)), last: n };
   }
-  const roll = (a: number, b: number) => hashRoll(o.seed + 4243, Math.round(s.t), a, b);
   const tones = QUALITY[chord.quality];
   const fifthI = tones.includes(7) ? 7 : tones.includes(6) ? 6 : tones.includes(8) ? 8 : 7;
   const chordPcs = tones.map((i) => (chord.root + i) % 12);
@@ -876,32 +881,90 @@ export function bassLine(
   }
   // the notes: each up to the next (with Length), velocity by weight
   const lenK = lerp(0.55, 0.97, o.length ?? 0.5);
-  const notes: LineNote[] = [];
+  const raw: RawBass[] = [];
   const playing = beats.map((b, i) => ({ b, i })).filter(({ i }) => slot[i] !== null);
   playing.forEach(({ b, i }, j) => {
     const t = b.t + (i === 0 ? push : 0);
     const until = j + 1 < playing.length ? playing[j + 1].b.t : s.end + push;
     let v = kind[i] === 'root' && b.first ? 100 : b.strong ? 92 : kind[i] === 'approach' ? 88 : 84;
     v += (o.accents ?? 0) * 10 * offBeatness(b.t, meter);
-    if (o.vary) v += (hashRoll(o.seed + 7919, Math.round(t * 8), slot[i]!, 5) - 0.5) * 2 * 12 * o.vary;
-    let d = (until - t) * lenK;
     // skips: an 8th before the next note, its pitch again or the octave
     const skip = m >= 0.85 && until - t >= PPQ && roll(i, 6) < (m - 0.85) * 4 * 0.6;
+    raw.push({ t, until: skip ? until - PPQ / 2 : until, n: slot[i]!, v, first: i === 0 });
     if (skip) {
-      d = Math.min(d, PPQ / 2 * 0.8);
       const nextPitch = j + 1 < playing.length ? slot[playing[j + 1].i]! : nearestPitch(next ?? chord.root, slot[i]!);
       const g = roll(i, 7) < 0.5 ? nextPitch : slot[i]! + (slot[i]! + 12 <= BASS_HIGH ? 12 : -12);
-      notes.push(place(until - PPQ / 2, PPQ / 2 * 0.6, g, v - 26));
+      raw.push({ t: until - PPQ / 2, until, n: g, v: v - 26, first: false, d: (PPQ / 2) * 0.6 });
     }
-    notes.push(place(t, d, slot[i]!, v));
+  });
+  const notes = syncopate(raw, o, push !== 0, roll).map((r) => {
+    let v = r.v;
+    if (o.vary) v += (hashRoll(o.seed + 7919, Math.round(r.t * 8), r.n, 5) - 0.5) * 2 * 12 * o.vary;
+    return place(r.t, r.d ?? (r.until - r.t) * lenK, r.n, v);
   });
   return { notes, last: slot[playing[playing.length - 1].i]! };
 }
 
+interface RawBass {
+  t: number;
+  /** where the next note comes in */
+  until: number;
+  n: number;
+  v: number;
+  /** the chord's first note */
+  first: boolean;
+  /** a fixed length (skips) */
+  d?: number;
+}
+
+/**
+ * Syncopation of a chord's bass notes (`o.syncopation`, with the seed): the first note
+ * anticipated an 8th, tied over the 1 (unless pushed already); others moved onto the "and";
+ * from the middle up re-strikes on the "and" of a held note, near the top 16th pickups just
+ * before the next beat (the octave, the fifth or the note again)
+ */
+function syncopate(raw: RawBass[], o: HarmonyOptions, pushed: boolean, roll: (a: number, b: number) => number): RawBass[] {
+  const y = Math.max(0, Math.min(1, o.syncopation ?? 0));
+  if (y < 0.05) return raw;
+  const end = raw.length ? raw[raw.length - 1].until : 0;
+  // moves: the first note anticipated, others onto the "and"
+  let moved = raw.map((r, j) => {
+    let t = r.t;
+    if (r.first && !pushed && roll(j, 11) < y * 0.7) t -= PPQ / 2;
+    else if (!r.first && r.d === undefined && roll(j, 12) < y * 0.45) t += PPQ / 2;
+    return { ...r, t, v: r.v + (t !== r.t ? 8 : 0) };
+  });
+  // one note per place (a moved note wins over a skip there), each up to the next
+  moved.sort((a, b) => a.t - b.t || Number(a.d !== undefined) - Number(b.d !== undefined));
+  moved = moved.filter((r, i) => i === 0 || r.t - moved[i - 1].t >= PPQ / 8);
+  moved.forEach((r, i) => (r.until = i + 1 < moved.length ? moved[i + 1].t : end));
+  moved = moved.filter((r) => r.until - r.t >= PPQ / 8);
+  // re-strikes in a held note's time: the "and" after it, near the top the 16th before the next beat
+  const out: RawBass[] = [];
+  moved.forEach((n, j) => {
+    out.push(n);
+    if (n.d !== undefined || y < 0.35 || n.until - n.t < PPQ || roll(j, 13) >= (y - 0.35) * 1.4) return;
+    const sixteenth = y > 0.65 && roll(j, 14) < (y - 0.65) * 2.2;
+    const at = sixteenth ? Math.ceil((n.t + PPQ / 2) / PPQ) * PPQ - PPQ / 4 : Math.floor(n.t / (PPQ / 2) + 1) * (PPQ / 2);
+    if (at <= n.t + PPQ / 4 || at >= n.until - PPQ / 8) return;
+    const pick = roll(j, 15);
+    const pitch =
+      pick < 0.4 && n.n + 12 <= BASS_HIGH ? n.n + 12 : pick < 0.65 && n.n + 7 <= BASS_HIGH ? n.n + 7 : pick < 0.8 && n.n - 5 >= BASS_LOW ? n.n - 5 : n.n;
+    out.push({ t: at, until: n.until, n: pitch, v: n.v - (sixteenth ? 14 : 8), first: false, d: sixteenth ? (PPQ / 4) * 0.8 : undefined });
+    n.until = at;
+  });
+  return out;
+}
+
 /** Bass notes in time order, each cut where the next one starts (a pushed chord cuts the one before) */
-export function tidyBass(notes: LineNote[]): LineNote[] {
-  notes.sort((a, b) => a.t - b.t || a.n - b.n);
+export function tidyBass(notes: LineNote[], length = 0): LineNote[] {
+  // stable: at the same place the later chord's note (an anticipation) comes last and wins
+  notes.sort((a, b) => a.t - b.t);
+  for (let i = notes.length - 2; i >= 0; i--) if (notes[i + 1].t - notes[i].t < PPQ / 8) notes.splice(i, 1);
   for (let i = 0; i + 1 < notes.length; i++) notes[i].d = Math.max(1, Math.min(notes[i].d, notes[i + 1].t - notes[i].t - 1));
+  // a loop's last note rings into the next round up to its first note
+  const last = notes[notes.length - 1];
+  if (length && last) last.d = Math.max(1, Math.min(last.d, length - last.t + notes[0].t - 1));
   return notes;
 }
 
@@ -932,5 +995,5 @@ export function harmonize(line: LineNote[], length: number, meter: Meter, o: Har
   }
   sp.forEach((s, i) => notes.push(...spanNotes(s.chord, voiced[i], s, p.segments, style, o, meter, length)));
   notes.sort((a, b) => a.t - b.t || a.n - b.n);
-  return { progression: p, notes, bass: tidyBass(bass), rhythm: RHYTHMS[style] };
+  return { progression: p, notes, bass: tidyBass(bass, length), rhythm: RHYTHMS[style] };
 }

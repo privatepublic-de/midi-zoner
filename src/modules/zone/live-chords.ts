@@ -100,7 +100,8 @@ export class LiveChords {
     let changed = false;
     const o = followers[0].o;
     // with pushes the chord is decided an 8th before its beat (it comes in there)
-    const lead = followers.some((f) => styleOf(f.o) === 2) ? PPQ / 2 : 0;
+    // (and when a syncopated bass anticipates the next chord)
+    const lead = followers.some((f) => styleOf(f.o) === 2 || (f.part === 'bass' && (f.o.syncopation ?? 0) >= 0.3)) ? PPQ / 2 : 0;
     const target = pos + lead;
     const bar = barTicks(meter);
     const segs = barSegments(Math.floor(target / bar), meter);
