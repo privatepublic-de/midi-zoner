@@ -125,7 +125,11 @@ const ACTION_LABEL_OVERRIDES: Record<string, string | OverrideFn> = {
   program_toggle: 'Program Change',
   toggle_seq: 'Sequencer On/Off',
   zone_loop_on: 'Loop On/Off',
-  zone_loop_mpe_clear: 'Clear Loop MPE'
+  zone_loop_mpe_clear: 'Clear Loop MPE',
+  zone_chords_on: 'Chords On/Off',
+  zone_chords_play: (part: string) => (part === 'bass' ? 'Play Bass' : 'Play Chords'),
+  zone_chords_stop: 'Stop Playing Chords / Bass',
+  zone_chords_clear: 'Clear Chord Loop'
 };
 
 // The property/action description, without any zone prefix.

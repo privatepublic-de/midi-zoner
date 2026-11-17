@@ -1,3 +1,4 @@
+import { chordRoleFrom } from '../modules/zone/chord-settings';
 import DOM, { escapeHTML as esc } from '../modules/domutils';
 import { Zone } from '../modules/zone/zone-class';
 import { migrateSpacers } from '../modules/zone/cc-layout';
@@ -201,6 +202,8 @@ function createZone(midi: MIDIInstance, zoneData: any, freshId = false): Zone {
     zone.devicePreset = { id: zoneData.devicePreset.id, name: zoneData.devicePreset.name };
   }
   if (zoneData.colorIndex != null) zone.colorIndex = zoneData.colorIndex;
+  // before the arrangement loads: a chords zone's Seq and Arp stay off
+  zone.chords = chordRoleFrom(zoneData.chords);
 
   if (Array.isArray(zoneData.arrangements) && zoneData.arrangements.length > 0) {
     zone.arrangements = [...zoneData.arrangements];
@@ -227,8 +230,16 @@ function applyStoredZones(
   if (storedZones) {
     if (append) {
       // add storedZones to existing zones, but don't overwrite any settings
+      const added: { from: unknown; zone: Zone }[] = [];
       for (let i = 0; i < (storedZones.list?.length ?? 0); i++) {
-        zones.list.push(createZone(midi, storedZones.list![i], true));
+        const zone = createZone(midi, storedZones.list![i], true);
+        added.push({ from: (storedZones.list![i] as any)?.id, zone });
+        zones.list.push(zone);
+      }
+      // the file's zones got fresh ids: a chords zone following a zone of the same file follows its copy
+      for (const { zone } of added) {
+        const line = zone.chords && added.find((a) => a.from === zone.chords!.follows);
+        if (line) zone.chords!.follows = line.zone.id;
       }
     } else {
       // overwrite existing zones with stored zones
@@ -1313,8 +1324,8 @@ document.addEventListener('DOMContentLoaded', function () {
       }
       // loop recordings and overdubs ending here: the loop plays from this tick
       view.landLoops(pos - timeline.sectionStart);
-      // experiment: live chords (chord-lab.ts)
-      view.chordLabTick(pos);
+      // chords zones following a line live
+      view.chordsTick(pos);
       for (let i = 0; i < zones.list.length; i++) {
         zones.list[i].clock(pos, tickIntervalMs);
       }
@@ -1330,7 +1341,7 @@ document.addEventListener('DOMContentLoaded', function () {
       zones.list.forEach((z) => z.finishExpression());
       // loops being recorded end at their nearest 1 (while the run's position is still known)
       if (!started) view.finishLoops();
-      view.chordLabTransport(started);
+      view.chordsTransport(started);
       timelineMeter(activeMeter());
       timelineTransport(started);
       // a run is a take: from Start to Stop (stopPos is where it stopped)
@@ -1368,9 +1379,12 @@ document.addEventListener('DOMContentLoaded', function () {
     },
     clockPausedHandler: () => {
       zones.list.forEach((z) => z.paused());
+      // live chords let go (they start again with the ticks)
+      view.chordsTransport(false);
     },
     panicHandler: () => {
       zones.list.forEach((z) => z.panic());
+      view.chordsPanic();
       view.updateValuesForAllZones(); // held Pedal buttons go dark
       console.log('app: distributed panic to all zones');
       setTimeout(() => {

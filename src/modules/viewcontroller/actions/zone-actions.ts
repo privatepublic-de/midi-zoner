@@ -4,6 +4,7 @@ import { ActionContext, ActionHelpers, ActionMap } from '../types';
 import { ipcRenderer } from 'electron';
 import { MpeMode, sanitizeBendRange, sanitizePressureFrom, zoneInputClaims } from '../../zone/mpe';
 import { ARRANGEMENT_LETTERS, labelForZone } from '../action-labels';
+import { playChords, stopChords, toggleChords, alignToLine } from '../chords';
 
 export function createZoneActions(
   ctx: ActionContext,
@@ -33,6 +34,33 @@ export function createZoneActions(
     zone_loop_on: () => {
       if (!zone.loop) return;
       zone.setLoopOn(!zone.loopOn);
+      // a chord loop stays in step with the line's loop
+      if (zone.chords && zone.loopOn) alignToLine(zone);
+      updateValuesForZone(zoneindex);
+    },
+    // ⋯ menu: this zone plays chords (or a bass line) to another zone's line
+    zone_chords_play: () => {
+      playChords(zone, actionParam1 === 'bass' ? 'bass' : 'chords');
+      // the other chords zones' Follows lists change too
+      updateValuesForAllZones();
+    },
+    // ⋯ menu of a chords zone: its chord loop goes (it follows live again)
+    zone_chords_clear: () => {
+      if (!zone.chords || !zone.loop || zone.looper.mode !== 'idle') return;
+      zone.loop = null;
+      zone.chordPlan = null;
+      zone.loopPlayer.release(true);
+      updateValuesForZone(zoneindex);
+    },
+    zone_chords_stop: () => {
+      if (!zone.chords) return;
+      stopChords(zone);
+      updateValuesForAllZones();
+    },
+    // the chord chip (in Seq's place): the chords on/off
+    zone_chords_on: () => {
+      if (!zone.chords) return;
+      toggleChords(zone);
       updateValuesForZone(zoneindex);
     },
     // the loop's recorded MPE expression cleared (its notes stay; the switch is on its chip)

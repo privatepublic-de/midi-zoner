@@ -23,7 +23,7 @@ import {
 } from './actions';
 import { closeCCEditor, initCCEditor, isCCEditorOpen, refreshCCEditor } from './cc-editor';
 import { initPianoRoll } from './piano-roll';
-import { initChordLab, chordLabTick, chordLabTransport, chordLabLoopChanged } from './chord-lab';
+import { initChords, chordsTick, chordsTransport, chordsPanic, chordsLineLoopChanged, chordsMenu, renderChordBlock, keepChords, alignToLine, updateChordChips } from './chords';
 import { initTrackView, isTrackView, setTrackView, followTrack, updateLoopChips, invalidateTrackView } from './track-view';
 import { takeStore } from '../take-store';
 import { renderStepLocks } from './step-locks';
@@ -222,10 +222,10 @@ function initController({
     () => meterOf(zones.arrangementIndex)
   );
   // experiment: chords for a line into another zone's loop (⌘⇧K)
-  initChordLab({
+  // chords zones: chords or a bass line to another zone's line
+  initChords({
     zones: () => zones.list,
-    commit: (zoneindex, label, change) => {
-      const indices = Array.isArray(zoneindex) ? zoneindex : [zoneindex];
+    commit: (indices, label, change) => {
       undoHistory.beforeAction(JSON.stringify(zones), labelForZone(zones.list[indices[0]], indices[0], label));
       change();
       indices.forEach((i) => updateValuesForZone(i));
@@ -423,8 +423,8 @@ function afterLoop(index: number, before: string, result: PressResult): void {
     window.dispatchEvent(new CustomEvent(UPDATE_ZONE_VIEW_EVENT, { detail: zone }));
     if (result.kind === 'cleared') toast(`${name}: loop cleared`);
   }
-  // experiment: chords following the loop (chord-lab.ts)
-  if (label && (result.kind === 'recorded' || result.kind === 'dubbed')) chordLabLoopChanged(zone, result.kind);
+  // the chords zones following this zone's line: their chords become loops too
+  if (label && (result.kind === 'recorded' || result.kind === 'dubbed')) chordsLineLoopChanged(zone);
   updateLoopChips();
   onStateChange?.();
 }
@@ -453,6 +453,20 @@ function actionHandler(ev: MouseEvent, overrideaction?: string): void {
   if (actionString!.endsWith(':zone_loop')) {
     loopZone(parseInt(actionString!));
     return;
+  }
+  {
+    // a chords zone: its Seq chip's place is the chords switch (key switches, Mackie), Arp is off,
+    // and Loop without a loop keeps the chords
+    const [zi, act] = actionString!.split(':');
+    const cz = zones.list[parseInt(zi)];
+    if (cz?.chords) {
+      if (act === 'toggle_seq') actionString = `${zi}:zone_chords_on`;
+      else if (act === 'zone_arp_enabled') return;
+      else if (act === 'zone_loop_on' && !cz.loop) {
+        keepChords(cz);
+        return;
+      }
+    }
   }
   if (waitsForBoundary(ev, actionString!)) return;
   undoHistory.beforeAction(JSON.stringify(zones), describeAction(actionString!, zones));
@@ -675,10 +689,15 @@ function contextHandler(ev: MouseEvent): void {
             ? meterMenu(act)
             : act.startsWith('loopmpe:')
               ? loopMpeMenu(parseInt(act.slice(8)))
-              : [act]
+              : act.startsWith('chords:')
+                ? chordsMenu(parseInt(act.slice(7)))
+                : [act]
     );
   // (a menu doesn't start with a divider: the meter chip has only the meter entries)
   while (menuActions[0] === '-') menuActions.shift();
+  // nor two dividers in a row (a group may be empty), nor ends with one
+  for (let i = menuActions.length - 1; i > 0; i--) if (menuActions[i] === '-' && menuActions[i - 1] === '-') menuActions.splice(i, 1);
+  while (menuActions[menuActions.length - 1] === '-') menuActions.pop();
   const contextMenuElement = DOM.get('#contextmenu') as HTMLElement;
 
   DOM.empty(contextMenuElement);
@@ -731,6 +750,17 @@ function contextHandler(ev: MouseEvent): void {
     }
     const zoneindex = parseInt(parts[0]);
     const zone: ZoneType = zones.list[zoneindex];
+    if (parts[1] === 'zone_chords_play') {
+      return parts[2] === 'bass'
+        ? '<i class="material-icons">graphic_eq</i> Play bass'
+        : '<i class="material-icons">piano</i> Play chords';
+    }
+    if (parts[1] === 'zone_chords_clear') {
+      return '<i class="material-icons">delete_sweep</i> Clear the chord loop (follow live)';
+    }
+    if (parts[1] === 'zone_chords_stop') {
+      return `<i class="material-icons">piano_off</i> Stop playing ${zone?.chords?.part === 'bass' ? 'bass' : 'chords'}`;
+    }
     if (parts[1] === 'seq_transpose') {
       const n = parseInt(parts[2]);
       const interval = Math.abs(n) === 12 ? ' (octave)' : Math.abs(n) === 7 ? ' (fifth)' : '';
@@ -1645,6 +1675,17 @@ function updateValuesForZone(index: number): void {
     });
     DOM.switchClass(zoneElement, zone.arp_enabled, 'arp-enabled');
     DOM.switchClass(zoneElement, zone.arp_direction >= 5, 'strum-mode');
+    // chords zones: the chord chip in Seq's place, their block
+    DOM.switchClass(zoneElement, !!zone.chords, 'chords-zone');
+    DOM.switchClass(zoneElement, !!zone.chords && zone.chordsOn, 'chords-on');
+    DOM.switchClass(zoneElement, zone.chords?.part === 'bass', 'chords-bass');
+    if (zone.chords) {
+      renderChordBlock(zone);
+      updateChordChips();
+    } else {
+      // a line zone renamed: the Follows lists say its name
+      zones.list.forEach((z) => z.chords && renderChordBlock(z));
+    }
     zone.renderTransposeAmount();
 
     const swingSliders = zone.elements.get(
@@ -1825,7 +1866,7 @@ function updateZoneHeaderContextMenus(currentArrIndex: number): void {
     const copyItems = others.map(t => `${i}:zone_arr_copy_to:${t}`).join(',');
     // the header's right-click menu and its ⋯ button show the same entries
     z.elements.zoneElement?.querySelectorAll<HTMLElement>('.channels, .zonemenu').forEach((el) => {
-      el.dataset.contextmenu = `${i}:zone_change_color,${i}:zone_export,loopmpe:${i},-,${copyItems},-,${i}:zone_delete`;
+      el.dataset.contextmenu = `${i}:zone_change_color,${i}:zone_export,loopmpe:${i},-,chords:${i},-,${copyItems},-,${i}:zone_delete`;
     });
   });
 }
@@ -1880,6 +1921,8 @@ function initStepDeselection(): void {
  * Live recording ends with the switch, so say so when it was on.
  */
 function switchZonesToArrangement(arrIndex: number): void {
+  // live chords let go: the new arrangement has its own switches and settings
+  chordsTransport(false);
   const recordingZones: string[] = [];
   zones.list.forEach((z, i) => {
     // the toast renders HTML; zone labels come from scene files
@@ -1968,8 +2011,9 @@ export {
   loopZone,
   landLoops,
   finishLoops,
-  chordLabTick,
-  chordLabTransport,
+  chordsTick,
+  chordsTransport,
+  chordsPanic,
   setToggleBoundary,
   selectArrangement,
   switchZonesToArrangement,

@@ -1,5 +1,6 @@
 /**
- * Live chords (experiment, Nov 2026): plays chords to a line as it is played. It can't know
+ * Live chords: plays chords to a line as it is played, for every chords or bass zone that
+ * follows it (one decision per line, so they agree). It can't know
  * a bar before it's played, so at each beat it guesses from what it has: notes held now,
  * the last notes before the beat, and what was played 1, 2 and 4 bars earlier (riffs
  * repeat). A moment after the beat it listens again and, if the note on the beat clashes
@@ -42,16 +43,36 @@ export interface HeardNote {
   held: boolean;
 }
 
-/** A note on or off for the chord zone (`bass`: for the bass zone) */
-export type Send = (on: boolean, n: number, v: number, bass: boolean) => void;
+/** A zone playing to the line: its id, part and settings; `out` is where its notes go (the zone object) */
+export interface Follower {
+  id: string;
+  part: 'chords' | 'bass';
+  o: HarmonyOptions;
+  out: unknown;
+}
+
+/** A note on or off, through the follower's `out` */
+export type Send = (out: unknown, on: boolean, n: number, v: number) => void;
 
 interface Event {
   at: number;
   on: boolean;
   n: number;
   v: number;
-  bass: boolean;
+  /** the follower's id */
+  f: string;
   token: number;
+}
+
+/** What one follower is playing */
+interface Voice {
+  out: unknown;
+  voicing: number[] | null;
+  lastBass: number | null;
+  /** pitch → token of its note-on */
+  sounding: Map<number, number>;
+  /** the span playing: its notes' tokens */
+  spanTokens: Set<number>;
 }
 
 const WINDOW_BARS = 8;
@@ -64,49 +85,75 @@ export class LiveChords {
   /** the chords played, per beat (song ticks of the beat → chord) */
   log = new Map<number, Chord>();
   private rival: { key: Key; count: number } | null = null;
-  private voicing: number[] | null = null;
-  /** the last bass note played (voice leading for the next) */
-  private lastBass: number | null = null;
   private queue: Event[] = [];
-  /** notes sounding: pitch (+128 for bass) → the token of their note-on */
-  private sounding = new Map<number, number>();
+  private voices = new Map<string, Voice>();
   private token = 0;
-  /** the span playing: its notes' tokens */
-  private spanTokens = new Set<number>();
-  private spanEnd = 0;
   private check: { seg: Segment; at: number } | null = null;
 
-  /** Called on every clock tick while running; true when the chord or key changed */
-  tick(pos: number, heard: HeardNote[], o: HarmonyOptions, meter: Meter, send: Send): boolean {
+  /**
+   * Called on every clock tick while running with the zones following the line (the first one's
+   * settings choose the chords); true when the chord or key changed
+   */
+  tick(pos: number, heard: HeardNote[], followers: Follower[], meter: Meter, send: Send): boolean {
+    this.sync(followers, send);
+    if (!followers.length) return false;
     let changed = false;
-    const style = styleOf(o);
+    const o = followers[0].o;
     // with pushes the chord is decided an 8th before its beat (it comes in there)
-    const lead = style === 2 ? PPQ / 2 : 0;
+    const lead = followers.some((f) => styleOf(f.o) === 2) ? PPQ / 2 : 0;
     const target = pos + lead;
     const bar = barTicks(meter);
     const segs = barSegments(Math.floor(target / bar), meter);
     const seg = segs.find((s) => s.t === target);
-    if (seg) changed = this.decide(seg, segs, pos, heard, o, meter, send) || changed;
+    if (seg) changed = this.decide(seg, segs, pos, heard, o, followers, meter, send) || changed;
     if (this.check && pos >= this.check.at) {
       const c = this.check;
       this.check = null;
-      changed = this.correct(c.seg, pos, heard, o, meter, send) || changed;
+      changed = this.correct(c.seg, pos, heard, o, followers, meter, send) || changed;
     }
     this.fire(pos, send);
     return changed;
   }
 
-  /** Stop, or the chord zone got a loop: everything off, the next run starts fresh (the key stays) */
+  /** Followers gone or replaced (undo gives new zone objects): what they sound goes off */
+  private sync(followers: Follower[], send: Send): void {
+    for (const [id, v] of this.voices) {
+      const f = followers.find((x) => x.id === id);
+      if (!f || f.out !== v.out) this.release(id, send);
+    }
+  }
+
+  /** One follower stops: its notes off, its events dropped */
+  release(id: string, send: Send): void {
+    const v = this.voices.get(id);
+    if (!v) return;
+    for (const [n] of v.sounding) send(v.out, false, n, 0);
+    this.queue = this.queue.filter((e) => e.f !== id);
+    this.voices.delete(id);
+  }
+
+  /** Stop, or nobody follows any more: everything off, the next run starts fresh (the key stays) */
   stop(send: Send): void {
-    for (const [key] of this.sounding) send(false, key % 128, 0, key >= 128);
-    this.sounding.clear();
+    for (const id of [...this.voices.keys()]) this.release(id, send);
     this.queue = [];
-    this.spanTokens.clear();
     this.chord = null;
-    this.voicing = null;
-    this.lastBass = null;
     this.check = null;
     this.rival = null;
+  }
+
+  /** Starting over: the key and the chords heard are forgotten too */
+  reset(send: Send): void {
+    this.stop(send);
+    this.key = null;
+    this.log.clear();
+  }
+
+  /** Panic: the synths were reset, nothing to send */
+  forget(): void {
+    this.voices.clear();
+    this.queue = [];
+    this.chord = null;
+    this.check = null;
   }
 
   get name(): string {
@@ -188,7 +235,7 @@ export class LiveChords {
     });
   }
 
-  private decide(seg: Segment, segs: Segment[], now: number, heard: HeardNote[], o: HarmonyOptions, meter: Meter, send: Send): boolean {
+  private decide(seg: Segment, segs: Segment[], now: number, heard: HeardNote[], o: HarmonyOptions, followers: Follower[], meter: Meter, send: Send): boolean {
     const keyBefore = this.key;
     if (seg.beat === 0 || !this.key) this.updateKey(seg, heard, o, meter);
     if (!this.key) return false;
@@ -201,12 +248,12 @@ export class LiveChords {
     const barEnd = segs[segs.length - 1].end;
     if (same && seg.beat !== 0) return this.key !== keyBefore;
     this.chord = same ? prev : best;
-    this.play(this.chord!, { t: seg.t, end: barEnd }, segs, now, heard, o, meter, send, !!same);
+    for (const f of followers) this.play(f, this.chord!, { t: seg.t, end: barEnd }, segs, now, heard, meter, !!same);
     return !same || this.key !== keyBefore;
   }
 
   /** Just after the beat: the note played on it decides between the guess and a better chord */
-  private correct(seg: Segment, now: number, heard: HeardNote[], o: HarmonyOptions, meter: Meter, send: Send): boolean {
+  private correct(seg: Segment, now: number, heard: HeardNote[], o: HarmonyOptions, followers: Follower[], meter: Meter, send: Send): boolean {
     if (!this.key || !this.chord) return false;
     const w = this.weights(seg, now, heard, meter, true);
     const ranked = this.scores(seg, w, o, meter).sort((a, b) => b.score - a.score);
@@ -219,64 +266,68 @@ export class LiveChords {
     this.chord = best.chord;
     this.log.set(seg.t, best.chord);
     const segs = barSegments(seg.bar, meter);
-    this.play(best.chord, { t: seg.t, end: segs[segs.length - 1].end }, segs, now, heard, o, meter, send, false);
+    for (const f of followers) this.play(f, best.chord, { t: seg.t, end: segs[segs.length - 1].end }, segs, now, heard, meter, false);
     return true;
   }
 
   // ------------------------------------------------------------------ playing
 
   private play(
+    f: Follower,
     chord: Chord,
     span: { t: number; end: number },
     segs: Segment[],
     now: number,
     heard: HeardNote[],
-    o: HarmonyOptions,
     meter: Meter,
-    send: Send,
     continuing: boolean
   ): void {
+    let v = this.voices.get(f.id);
+    if (!v) {
+      v = { out: f.out, voicing: null, lastBass: null, sounding: new Map(), spanTokens: new Set() };
+      this.voices.set(f.id, v);
+    }
+    const o = f.o;
     const style = styleOf(o);
-    const sounding = heard.filter((h) => h.held || (h.s < span.end && h.s + h.d > span.t)).map((h) => h.n);
-    const recent: LineNote[] = heard.map((h) => ({ t: h.s, d: h.d, n: h.n, v: h.v }));
-    const v = continuing && this.voicing ? this.voicing : voiceChord(chord, this.key!, o, sounding, this.voicing, rangeFor(recent, o));
-    this.voicing = v;
-    let notes = spanNotes(chord, v, span, segs, style, o, meter, 0);
     // a chord coming in late (a correction): what it would have played up to now comes in now
-    notes = notes
-      .map((n) => (n.t < now ? { ...n, t: now, d: n.d - (now - n.t) } : n))
-      .filter((n) => n.d >= 3);
-    // the next chord isn't known yet: a moving bass leads back to this one's root
-    const line = bassLine(chord, span, this.key!, null, this.lastBass, o, style, meter, 0);
-    this.lastBass = line.last;
-    const bass = line.notes.map((n) => (n.t < now ? { ...n, t: now, d: n.d - (now - n.t) } : n)).filter((n) => n.d >= 3);
-    const first = Math.min(...notes.map((n) => n.t), ...bass.map((n) => n.t));
-    if (continuing && style === 0) {
+    const fromNow = (ns: LineNote[]) => ns.map((n) => (n.t < now ? { ...n, t: now, d: n.d - (now - n.t) } : n)).filter((n) => n.d >= 3);
+    let notes: LineNote[];
+    if (f.part === 'bass') {
+      // the next chord isn't known yet: a moving bass leads back to this one's root
+      const line = bassLine(chord, span, this.key!, null, v.lastBass, o, style, meter, 0);
+      v.lastBass = line.last;
+      notes = fromNow(line.notes);
+    } else {
+      const sounding = heard.filter((h) => h.held || (h.s < span.end && h.s + h.d > span.t)).map((h) => h.n);
+      const recent: LineNote[] = heard.map((h) => ({ t: h.s, d: h.d, n: h.n, v: h.v }));
+      const voicing = continuing && v.voicing ? v.voicing : voiceChord(chord, this.key!, o, sounding, v.voicing, rangeFor(recent, o));
+      v.voicing = voicing;
+      notes = fromNow(spanNotes(chord, voicing, span, segs, style, o, meter, 0));
+    }
+    if (!notes.length) return;
+    const first = Math.min(...notes.map((n) => n.t));
+    if (continuing && style === 0 && f.part === 'chords') {
       // a held chord going on into the next bar: its notes keep sounding, held to the new end
-      const keep = new Set(notes.filter((n) => n.t === first && this.sounding.has(n.n)).map((n) => n.n));
-      this.queue = this.queue.filter((e) => !(this.spanTokens.has(e.token) && !e.on && keep.has(e.n)));
+      const keep = new Set(notes.filter((n) => n.t === first && v!.sounding.has(n.n)).map((n) => n.n));
+      this.queue = this.queue.filter((e) => !(e.f === f.id && v!.spanTokens.has(e.token) && !e.on && keep.has(e.n)));
       for (const n of notes) {
-        if (n.t === first && keep.has(n.n)) this.queue.push({ at: n.t + n.d, on: false, n: n.n, v: 0, bass: false, token: this.sounding.get(n.n)! });
-        else this.schedule(n, false);
+        if (n.t === first && keep.has(n.n)) this.queue.push({ at: n.t + n.d, on: false, n: n.n, v: 0, f: f.id, token: v.sounding.get(n.n)! });
+        else this.schedule(f.id, v, n);
       }
-      for (const n of bass) this.schedule(n, true);
-      this.spanEnd = span.end;
       return;
     }
     // the chord before stops where this one comes in
-    this.queue = this.queue.filter((e) => !(this.spanTokens.has(e.token) && e.at >= first));
-    for (const [key, token] of this.sounding) if (this.spanTokens.has(token)) this.queue.push({ at: first, on: false, n: key % 128, v: 0, bass: key >= 128, token });
-    this.spanTokens.clear();
-    for (const n of notes) this.schedule(n, false);
-    for (const n of bass) this.schedule(n, true);
-    this.spanEnd = span.end;
+    this.queue = this.queue.filter((e) => !(e.f === f.id && v!.spanTokens.has(e.token) && e.at >= first));
+    for (const [n, token] of v.sounding) if (v.spanTokens.has(token)) this.queue.push({ at: first, on: false, n, v: 0, f: f.id, token });
+    v.spanTokens.clear();
+    for (const n of notes) this.schedule(f.id, v, n);
   }
 
-  private schedule(n: LineNote, bass: boolean): void {
+  private schedule(f: string, v: Voice, n: LineNote): void {
     const token = ++this.token;
-    this.spanTokens.add(token);
-    this.queue.push({ at: n.t, on: true, n: n.n, v: n.v, bass, token });
-    this.queue.push({ at: n.t + n.d, on: false, n: n.n, v: 0, bass, token });
+    v.spanTokens.add(token);
+    this.queue.push({ at: n.t, on: true, n: n.n, v: n.v, f, token });
+    this.queue.push({ at: n.t + n.d, on: false, n: n.n, v: 0, f, token });
   }
 
   /** Events due by `pos`: note-offs before note-ons at the same time */
@@ -286,14 +337,15 @@ export class LiveChords {
     const set = new Set(due);
     this.queue = this.queue.filter((e) => !set.has(e));
     for (const e of due) {
-      const key = e.n + (e.bass ? 128 : 0);
+      const v = this.voices.get(e.f);
+      if (!v) continue;
       if (e.on) {
-        if (this.sounding.has(key)) send(false, e.n, 0, e.bass);
-        send(true, e.n, e.v, e.bass);
-        this.sounding.set(key, e.token);
-      } else if (this.sounding.get(key) === e.token) {
-        send(false, e.n, 0, e.bass);
-        this.sounding.delete(key);
+        if (v.sounding.has(e.n)) send(v.out, false, e.n, 0);
+        send(v.out, true, e.n, e.v);
+        v.sounding.set(e.n, e.token);
+      } else if (v.sounding.get(e.n) === e.token) {
+        send(v.out, false, e.n, 0);
+        v.sounding.delete(e.n);
       }
     }
   }

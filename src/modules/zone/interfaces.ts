@@ -244,6 +244,12 @@ export interface ZoneArrangementJSON {
   loop_on?: boolean;
   /** the loop plays its notes' recorded MPE expression (missing = yes) */
   loop_mpe?: boolean;
+  /** Chords zones: false = the chords are switched off (missing: on) */
+  chords_on?: boolean;
+  /** Chords zones: the settings (chord-settings.ts, sanitized on load) */
+  chord_set?: unknown;
+  /** Chords zones: the chords the loop was made of (for its chord names and redoing it) */
+  chord_plan?: unknown;
 }
 
 export interface ZoneJSON {
@@ -279,5 +285,7 @@ export interface ZoneJSON {
   devicePreset?: { id: string; name: string } | null;
   // Index of the controller page the zone shows
   cc_page?: number;
+  /** Plays chords or a bass line to another zone's line (chord-settings.ts ChordRole) */
+  chords?: unknown;
   arrangements: ZoneArrangementJSON[];
 }

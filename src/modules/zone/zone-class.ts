@@ -31,6 +31,7 @@ import {
 } from './interfaces';
 import { NoteDisplay } from './note-display';
 import { NoteHistory, timeline, nowTick } from '../timeline';
+import { ChordRole, ChordSettings, ChordPlan, DEFAULT_CHORD_SETTINGS, chordSettingsFrom, chordPlanFrom } from './chord-settings';
 import { DIV_TICKS, DivTick, PPQ, swingOffsetMs } from './seq-layer';
 import {
   ParamLocks,
@@ -261,6 +262,16 @@ export class Zone {
   readonly paramLocks = new ParamLocks(this);
   /** What this zone sent during the current run, for the track view */
   noteHistory = new NoteHistory();
+  /** What is played into this zone (after the octave shift), also while muted: chords zones hear it */
+  inputHistory = new NoteHistory();
+  /** input key → the pitch it went into inputHistory as (the note-off finds it after an octave change) */
+  private inputPitch = new Map<number, number>();
+  /** Plays chords or a bass line to another zone's line (zone-global; null: a normal zone) */
+  chords: ChordRole | null = null;
+  /** Per arrangement: the chords switch, the settings and the chords the loop was made of */
+  chordsOn = true;
+  chordSet: ChordSettings = { ...DEFAULT_CHORD_SETTINGS };
+  chordPlan: ChordPlan | null = null;
   /** The notes its arp played from during the current run, for the track view */
   heldHistory = new NoteHistory();
   /** Stable across undo, reorder and save: the take store keeps the zone's takes under it */
@@ -323,6 +334,7 @@ export class Zone {
       cc_controllers: this.cc_controllers,
       devicePreset: this.devicePreset,
       cc_page: this.ccPage,
+      ...(this.chords ? { chords: this.chords } : {}),
       arrangements: this.arrangements
     };
   }
@@ -361,8 +373,14 @@ export class Zone {
       euclid_length: this.euclid_length,
       sequence: this.sequence.toJSON(),
       swingAmount: this.swingAmount,
+      ...(this.chords ? { chord_set: { ...this.chordSet }, ...(this.chordsOn ? {} : { chords_on: false }) } : {}),
       ...(this.loop
-        ? { loop: this.loop.toJSON(), ...(this.loopOn ? {} : { loop_on: false }), ...(this.loopMpe ? {} : { loop_mpe: false }) }
+        ? {
+          loop: this.loop.toJSON(),
+          ...(this.loopOn ? {} : { loop_on: false }),
+          ...(this.loopMpe ? {} : { loop_mpe: false }),
+          ...(this.chordPlan ? { chord_plan: this.chordPlan } : {})
+        }
         : {})
     };
   }
@@ -381,7 +399,7 @@ export class Zone {
     this.at2mod = data.at2mod ?? false;
     this.pitchbend = data.pitchbend ?? true;
     this.programchange = data.programchange ?? false;
-    this.arp_enabled = data.arp_enabled ?? false;
+    this.arp_enabled = !this.chords && (data.arp_enabled ?? false);
     this.arp_hold = data.arp_hold ?? false;
     this.arp_direction = data.arp_direction ?? 0;
     this.arp_octaves = data.arp_octaves ?? 0;
@@ -419,6 +437,9 @@ export class Zone {
     if (this.loop) this.loop.start = 0;
     this.loopOn = data.loop_on !== false;
     this.loopMpe = data.loop_mpe !== false;
+    this.chordsOn = data.chords_on !== false;
+    this.chordSet = chordSettingsFrom(data.chord_set);
+    this.chordPlan = this.loop ? chordPlanFrom(data.chord_plan) : null;
 
     const seq = new Sequence(this);
     const sd = data.sequence || {};
@@ -429,7 +450,8 @@ export class Zone {
     seq._length = (sd as any).length ?? 16;
     seq.isDrumSequence = (sd as any).isDrumSequence ?? false;
     seq.drumLanes = (sd as any).drumLanes ?? 4;
-    seq.active = (sd as any).active ?? false;
+    // a chords zone's sequencer stays off (its switch comes back with the role's end)
+    seq.active = !this.chords && ((sd as any).active ?? false);
     // map() keeps the holes of the sparse lane array
     seq.drum_lanes = ((sd as any).drum_lanes || []).map((lane: any) =>
       lane ? DrumLane.from(lane, seq._length) : lane
@@ -507,6 +529,44 @@ export class Zone {
       this._lockRedrawPending = false;
       window.dispatchEvent(new CustomEvent(CC_LOCK_VALUES_EVENT, { detail: this }));
     });
+  }
+
+  /**
+   * Becomes a chords or bass zone (`role`), or a normal zone again (null). Its Seq and Arp go
+   * off in every arrangement while it plays chords; their switches come back when it stops
+   */
+  setChordRole(role: ChordRole | null): void {
+    const c = this.currentArrangementIndex;
+    this.arrangements[c] = this.captureArrangement();
+    if (role && !this.chords) {
+      role.stash = {
+        seq: this.arrangements.map((a) => !!a.sequence?.active),
+        arp: this.arrangements.map((a) => !!a.arp_enabled)
+      };
+      this.arrangements.forEach((a, i) => {
+        if (i === c) return;
+        if (a.sequence) a.sequence.active = false;
+        a.arp_enabled = false;
+      });
+      this.sequence.active = false;
+      this.arp_enabled = false;
+      this.chordsOn = true;
+    } else if (role && this.chords) {
+      role.stash = this.chords.stash;
+    } else if (!role && this.chords) {
+      const st = this.chords.stash;
+      if (st) {
+        this.arrangements.forEach((a, i) => {
+          if (i === c) return;
+          if (a.sequence) a.sequence.active = st.seq[i];
+          a.arp_enabled = st.arp[i];
+        });
+        this.sequence.active = st.seq[c];
+        this.arp_enabled = st.arp[c];
+      }
+    }
+    this.chords = role;
+    this.arrangements[c] = this.captureArrangement();
   }
 
   saveArrangement(index: number): void {
@@ -720,6 +780,11 @@ export class Zone {
         if (this.mpe === MpeMode.COLLAPSE) this.sendCollapsed(); // follows the previous key
       }
     }
+    // What is played into the zone, also while it's muted or silenced by a solo: chords zones
+    // following it hear it (they play to the line, not to what this zone sends)
+    if (!fromSequencer && loopChannel < 0 && (message === MIDI.MESSAGE.NOTE_ON || message === MIDI.MESSAGE.NOTE_OFF)) {
+      this.recordInput(message === MIDI.MESSAGE.NOTE_ON && data[2] > 0, data[1], data[2]);
+    }
     // Pass note-off through for actively sounding keyboard notes even when zone is disabled,
     // so held notes are not stuck when the arrangement switches and disables this zone.
     if (
@@ -767,7 +832,8 @@ export class Zone {
           // Vel% and Fixed Vel shape the strike; a note-off's (release) velocity, e.g. a
           // Seaboard's lift, passes as it came
           let velo = message === MIDI.MESSAGE.NOTE_ON ? this.scaledVelocity(data[2]) : data[2];
-          if (key >= this.low && key <= this.high) {
+          // a chords zone's chords and loop play whatever the key range (that's for what you play)
+          if ((key >= this.low && key <= this.high) || (fromSequencer && this.chords)) {
             if (isArpActive && this.arp_hold && this.arp_transpose) {
               this.arp_transpose_amount = ((key + 12) % 24) - 12;
               requestAnimationFrame(this._renderNotesBound);
@@ -1590,7 +1656,9 @@ export class Zone {
     if (this.loop) {
       const layer = this.looper.dubLayer(this.loop, elapsed, bar);
       // its own switch silences it, not mute (that's for what you play), as with the sequencer
-      this.loopPlayer.clockLoop(elapsed, tickIntervalMs, this.loop, layer, this.looper.anchor, !this.loopOn);
+      // a chords zone's switch silences its chord loop too
+      const silent = !this.loopOn || (this.chords !== null && !this.chordsOn);
+      this.loopPlayer.clockLoop(elapsed, tickIntervalMs, this.loop, layer, this.looper.anchor, silent);
     }
     if (tickIntervalMs > 0) this._lastTickIntervalMs = tickIntervalMs;
 
@@ -2268,6 +2336,12 @@ export class Zone {
     }
   }
 
+  /** A chords zone's switch: off silences its chords (live and its loop; the loop stays in step with the line) */
+  setChordsOn(on: boolean): void {
+    this.chordsOn = on;
+    if (!on) this.loopPlayer.release(true);
+  }
+
   /** Called when a loop's notes got the rest of their expression (the scene is saved) */
   static loopCurvesChanged: (() => void) | null = null;
 
@@ -2386,8 +2460,28 @@ export class Zone {
   }
 
   /** Undo replaces the zone objects: the replacement keeps showing what was played */
+  /** A key played into the zone, in its range: into inputHistory with the octave shift */
+  private recordInput(on: boolean, key: number, velo: number): void {
+    if (!on) {
+      const pitch = this.inputPitch.get(key);
+      if (pitch === undefined) return;
+      this.inputPitch.delete(key);
+      this.inputHistory.noteOff(pitch);
+      return;
+    }
+    if (key < this.low || key > this.high) return;
+    const pitch = key + (this.arp_enabled && this.midi.isClockRunning ? 0 : this.octave * 12);
+    if (pitch < 0 || pitch > 127) return;
+    const before = this.inputPitch.get(key);
+    if (before !== undefined) this.inputHistory.noteOff(before);
+    this.inputPitch.set(key, pitch);
+    this.inputHistory.noteOn(pitch, velo, true);
+  }
+
   adoptHistory(previous: Zone): void {
     this.noteHistory = previous.noteHistory;
+    this.inputHistory = previous.inputHistory;
+    this.inputPitch = previous.inputPitch;
     this.heldHistory = previous.heldHistory;
     this.looper = previous.looper;
     // what you hold (a pedal, a wheel) and what the loop holds goes on, without a lift and
@@ -2454,6 +2548,8 @@ export class Zone {
     // Global all-notes-off follows; just drop pending ring-outs
     this.paramLocks.cancelPending();
     this.noteHistory.closeAll();
+    this.inputHistory.closeAll();
+    this.inputPitch.clear();
     this.ringOuts.forEach((p) => clearTimeout(p.timer));
     this.ringOuts.clear();
     this.activeNotes = [];

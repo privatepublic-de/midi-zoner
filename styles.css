@@ -216,6 +216,7 @@
 #trackDock .td-collapse .material-icons,
 .lane-expand-chevron .material-icons,
 #ccEditor .cce-fold,
+.chords-block .cb-more-toggle .material-icons,
 .panel-section > summary::before {
   width: var(--icon-md);
   height: var(--icon-md);
@@ -228,6 +229,7 @@
 #trackDock .td-collapse:hover .material-icons,
 .drum-step-container:has(.lane-expand-toggle:hover) .lane-expand-chevron .material-icons,
 #ccEditor .cce-fold:hover,
+.chords-block .cb-more-toggle:hover .material-icons,
 .panel-section > summary:hover::before {
   color: var(--text-base-color);
 }
@@ -4832,7 +4834,7 @@ body.minimized #midisettings > :is(#setupToggle, .global-resets, #setupDrawer),
 body.minimized #midisettings .strip-end > :is(#midiPanic, .history, .zoom, .viewmode),
 body.minimized #midisettings .transport > :is(#metroClick, #metroCountIn),
 body.minimized .zone > :not(.channels),
-body.minimized .zone .channels > :not(.state):not(.solo):not(.showseq):not(.showarp):not(.zone-label):not(.midi-led),
+body.minimized .zone .channels > :not(.state):not(.solo):not(.showseq):not(.showarp):not(.showchords):not(.zone-label):not(.midi-led),
 body.minimized .zone.placeholder,
 body.minimized .zone.addnewzone {
   /* !important: mini view hides these over any zone state rule (e.g. .zone.disabled.show-seq .seq) */
@@ -6288,7 +6290,7 @@ body.track-view:not(.minimized) {
   &.converting #trackDock .td-empty {
     display: none !important;
   }
-  &.converting[data-dock] #zones > .zone.track-selected.track-selected > :is(.seq, .arp-settings-block, .ccpots, .settings, .rangeholder) {
+  &.converting[data-dock] #zones > .zone.track-selected.track-selected > :is(.seq, .arp-settings-block, .chords-block, .ccpots, .settings, .rangeholder) {
     display: none !important;
   }
   /* in the dock's place while its tab has nothing for this track */
@@ -6323,14 +6325,14 @@ body.track-view:not(.minimized) {
   }
 
   /* the selected track's block, placed in the dock */
-  #zones > .zone.track-selected > :is(.seq, .arp-settings-block, .ccpots, .settings, .rangeholder) {
+  #zones > .zone.track-selected > :is(.seq, .arp-settings-block, .chords-block, .ccpots, .settings, .rangeholder) {
     position: fixed;
     left: calc(var(--track-gap) + 1px);
     right: calc(var(--track-gap) + 1px);
     z-index: 3;
     margin: 0;
   }
-  #zones > .zone.track-selected > :is(.seq, .arp-settings-block, .ccpots) {
+  #zones > .zone.track-selected > :is(.seq, .arp-settings-block, .chords-block, .ccpots) {
     bottom: calc(var(--track-gap) + 1px);
     height: calc(var(--dock-h) - var(--track-gap) - var(--dock-bar-h) - 6px - 2px);
     box-sizing: border-box;
@@ -6382,6 +6384,9 @@ body.track-view:not(.minimized) {
   }
   &[data-dock='arp']:not(.dock-closed) #zones > .zone.track-selected.arp-enabled > .arp-settings-block {
     display: block !important;
+  }
+  &[data-dock='chords']:not(.dock-closed) #zones > .zone.track-selected.chords-on > .chords-block {
+    display: grid !important;
   }
   &[data-dock='cc']:not(.dock-closed) #zones > .zone.track-selected > .ccpots {
     display: block !important;
@@ -6707,4 +6712,265 @@ body.minimized .zone :is(.card-takes, .card-loop) {
 body.loop-edge-dragging,
 body.loop-edge-dragging * {
   cursor: ew-resize !important;
+}
+
+
+/* =============================================================
+   CHORDS ZONES  (viewcontroller/chords.ts)
+   A zone playing chords or a bass line to another zone's line: the chord chip takes Seq's
+   place (Seq, Arp and Rec go), its block holds Follows, Rhythm, two pads, More, Another
+   ============================================================= */
+.zone .channels .ch.showchords {
+  display: none;
+  /* fixed: the header doesn't move when the chord changes; long names are set smaller */
+  width: 40px;
+  padding: 0 4px;
+  box-sizing: border-box;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.zone.chords-zone .channels .ch.showchords {
+  display: flex;
+}
+.zone .channels .ch.showchords.long {
+  font-size: 11px;
+  letter-spacing: -0.04em;
+}
+.zone.chords-zone .channels > :is(.ch.showseq, .ch.showarp),
+.zone.chords-zone .channels .loopgroup > .ch.showloop {
+  display: none !important;
+}
+.zone.chords-zone .channels .loopgroup > .ch.showloopsw {
+  border-radius: var(--radius);
+}
+.zone.chords-on .channels .ch.showchords {
+  background-color: var(--on);
+  border-color: var(--on);
+}
+.zone:not(.disabled).chords-on .channels .ch.showchords {
+  color: var(--ink);
+}
+.zone.disabled.chords-on .channels .ch.showchords {
+  background-color: color-mix(in srgb, var(--on) 35%, var(--slate-panel));
+  border-color: transparent;
+  color: var(--brighter-4);
+}
+/* cards: the chip opens the group after the name, as Seq does */
+body:not(.track-view):not(.minimized) .zone .channels > .ch.showchords {
+  margin-left: 0;
+}
+body.track-view:not(.minimized) .channels > .ch.showchords {
+  order: 11;
+}
+
+.chords-block {
+  display: none;
+}
+.zone.chords-on .chords-block {
+  display: grid;
+}
+.chords-block {
+  grid-template-columns: 1fr;
+  gap: 8px;
+  padding: 8px 10px 10px;
+  --cb-pad-w: 150px;
+  --cb-pad-h: 96px;
+}
+.chords-block .cb-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.chords-block .cb-row > .label {
+  min-width: 52px;
+}
+.chords-block .cb-what {
+  font-weight: 600;
+  color: var(--text-base-color);
+}
+.chords-block .cb-what + .label {
+  min-width: 0;
+}
+.chords-block select.cb-follows {
+  background: var(--slate-raise);
+  color: var(--text-base-color);
+  border: 1px solid var(--slate-line);
+  border-radius: var(--radius);
+  padding: 2px 6px;
+  font: inherit;
+}
+.chords-block .cb-rhythm {
+  display: inline-flex;
+  border: 1px solid var(--slate-line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.chords-block .cb-rhythm a {
+  padding: 2px 8px;
+  background: var(--slate-raise);
+  color: var(--slate-dim);
+  border-left: 1px solid var(--slate-line);
+  cursor: pointer;
+}
+.chords-block .cb-rhythm a:first-child {
+  border-left: 0;
+}
+.chords-block .cb-rhythm a:hover {
+  color: var(--text-base-color);
+}
+.chords-block .cb-rhythm a.on {
+  background: var(--on);
+  color: var(--ink);
+}
+.chords-block .cb-pads {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.chords-block .cb-padbox {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto 1fr auto;
+  gap: 2px 4px;
+}
+.chords-block .cb-pt {
+  grid-column: 1 / 3;
+  color: var(--text-base-color);
+  font-size: 12px;
+  display: flex;
+  justify-content: space-between;
+}
+.chords-block .cb-pt small {
+  color: var(--slate-dim);
+}
+.chords-block .cb-yl {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  color: var(--slate-dim);
+  font-size: 10px;
+  display: flex;
+  justify-content: space-between;
+}
+.chords-block .cb-xl {
+  grid-column: 2;
+  color: var(--slate-dim);
+  font-size: 10px;
+  display: flex;
+  justify-content: space-between;
+}
+.chords-block .cb-pad {
+  position: relative;
+  width: var(--cb-pad-w);
+  height: var(--cb-pad-h);
+  background-color: var(--slate-inset);
+  background-image: linear-gradient(var(--slate-line) 1px, transparent 1px), linear-gradient(90deg, var(--slate-line) 1px, transparent 1px);
+  background-size: 25% 33.33%;
+  background-position: -1px -1px;
+  border: 1px solid var(--slate-line);
+  border-radius: var(--radius);
+  cursor: crosshair;
+  touch-action: none;
+}
+.chords-block .cb-dot {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  margin: -7px;
+  border-radius: 50%;
+  background: var(--zone-color);
+  box-shadow: 0 0 0 2px #0008, 0 0 10px var(--zone-color);
+  pointer-events: none;
+}
+.chords-block .cb-pad.dragging .cb-dot {
+  width: 16px;
+  height: 16px;
+  margin: -8px;
+}
+.chords-block .cb-x,
+.chords-block .cb-y {
+  position: absolute;
+  background: color-mix(in srgb, var(--zone-color) 45%, transparent);
+  pointer-events: none;
+}
+.chords-block .cb-x {
+  top: 0;
+  bottom: 0;
+  width: 1px;
+}
+.chords-block .cb-y {
+  left: 0;
+  right: 0;
+  height: 1px;
+}
+.chords-block .cb-foot {
+  justify-content: space-between;
+}
+.chords-block .cb-more-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  color: var(--slate-dim);
+  cursor: pointer;
+}
+.chords-block .cb-more-toggle:hover {
+  color: var(--text-base-color);
+}
+.chords-block .cb-more-toggle small {
+  font-size: 12px;
+}
+.chords-block .cb-more-toggle .material-icons {
+  margin-right: 2px;
+}
+.chords-block .cb-another {
+  cursor: pointer;
+}
+.chords-block .cb-more {
+  display: grid;
+  gap: 4px;
+}
+.chords-block .cb-sl {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.chords-block .cb-sl .label {
+  min-width: 64px;
+}
+.chords-block .cb-sl small {
+  color: var(--slate-dim);
+  font-size: 11px;
+  width: 48px;
+}
+.chords-block .cb-sl small:last-child {
+  text-align: right;
+}
+.chords-block .cb-sl input {
+  flex: 1;
+  max-width: 220px;
+}
+body.minimized .chords-block {
+  display: none !important;
+}
+/* the dock: the settings on the left, larger pads on the right */
+body.track-view:not(.minimized) #zones > .zone.track-selected > .chords-block {
+  --cb-pad-w: 230px;
+  --cb-pad-h: 150px;
+  grid-template-columns: auto 1fr;
+  grid-template-areas: 'a pads' 'b pads' 'foot pads' 'more pads';
+  align-content: start;
+  column-gap: 28px;
+  > .cb-row:nth-of-type(1) { grid-area: a; }
+  > .cb-row:nth-of-type(2) { grid-area: b; }
+  > .cb-foot { grid-area: foot; justify-content: flex-start; gap: 16px; }
+  > .cb-more { grid-area: more; }
+  > .cb-pads { grid-area: pads; }
+}
+.chords-block .cb-more-toggle .material-icons.open {
+  transform: rotate(90deg);
+}
+#trackDock .td-tab[hidden] {
+  display: none !important;
 }
