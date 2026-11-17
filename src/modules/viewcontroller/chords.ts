@@ -5,7 +5,7 @@
  * the chords (Loop chip on a chords zone without a loop, or when the line zone closes a loop),
  * and remembers them (`Zone.chordPlan`) for its chord names and for redoing it when a setting
  * changes. The block (`.chords-block` in the zone template) holds Follows, Rhythm, two pads,
- * More and Another; in the track view it is the dock's Chords tab.
+ * More and Other chords; in the track view it is the dock's Chords tab.
  */
 import { Zone } from '../zone/zone-class';
 import { Take } from '../zone/take';
@@ -218,7 +218,7 @@ function anchorFor(src: { anchor: number }): number {
 
 /**
  * The line's chords as loops of its followers (`which`; one undo step). `fromLive`: the chords
- * heard while it played are kept; `fresh`: chosen anew (Harmony, Changes, Another), else each
+ * heard while it played are kept; `fresh`: chosen anew (Harmony, Chord changes, Other chords), else each
  * keeps its own plan where it has one
  */
 function makeLoops(line: Zone, which: Zone[], label: string, fromLive: boolean): boolean {
@@ -332,13 +332,64 @@ function chordNow(zone: Zone): string {
     const segs = segmentsOf(plan.length, hooks.meter());
     const i = segs.findIndex((s) => at >= s.t && at < s.end);
     const c = plan.chords[Math.max(0, i)];
-    return c ? chordName(c) : '–';
+    if (c) return chordName(c);
   }
-  if (timeline.running && line && zone.chordsOn) {
+  if (timeline.running && line && zone.chordsOn && playsLive(zone)) {
     const d = deciders.get(line.id);
     if (d?.chord) return chordName(d.chord);
   }
-  return '–';
+  // nothing sounding: what the zone plays
+  return zone.chords?.part === 'bass' ? 'Bass' : 'Chords';
+}
+
+/** Whether a zone chooses the chords of its line (the first chords zone on it), else who does */
+function leaderOf(zone: Zone): Zone | null {
+  const line = lineZoneOf(zone);
+  return line ? followersOf(line)[0] ?? null : null;
+}
+
+/** The status line of a chords zone's block: what it does now, in words, and a dot (live, loop, waiting) */
+function statusOf(zone: Zone): { dot: 'live' | 'loop' | 'wait'; main: string; more: string[] } {
+  const line = lineZoneOf(zone);
+  if (!line) return { dot: 'wait', main: 'Not following a line yet', more: ['choose one above'] };
+  const leader = leaderOf(zone);
+  const from = leader && leader !== zone ? [`chords from ${zoneNumberName(leader)}`] : [];
+  const plan = planOf(zone);
+  const d = deciders.get(line.id);
+  const key = plan?.key ?? d?.key;
+  const keyText = key ? [`key ${keyName(key)}`] : [];
+  if (!zone.chordsOn) return { dot: 'wait', main: 'Switched off', more: ['the chip in its header switches it on'] };
+  if (zone.loop && zone.loopOn) {
+    return {
+      dot: 'loop',
+      main: `Playing its loop (${Take.lengthLabel(zone.loop.length, hooks.meter())})`,
+      // its loop holds the chords it kept (not necessarily the leading zone's now)
+      more: ['Loop off: follow live', ...keyText]
+    };
+  }
+  const label = lineLabel(line);
+  if (!timeline.running) {
+    return { dot: 'wait', main: 'Waiting for the clock', more: [`plays to ${label} while it runs`, ...(zone.loop ? ['its loop is kept, switched off'] : [])] };
+  }
+  if (!d?.key) return { dot: 'live', main: `Listening to ${label}`, more: ['chords come in once it has heard a few notes'] };
+  return { dot: 'live', main: `Following ${label} live`, more: [...from, ...(zone.loop ? [] : ['Loop keeps these chords']), ...keyText] };
+}
+
+/** "2 E-Piano" */
+function zoneNumberName(z: Zone): string {
+  const i = hooks.zones().indexOf(z);
+  return z.label ? `${i + 1} ${z.label}` : `Zone ${i + 1}`;
+}
+
+/** The status line, written only when it changed */
+function showStatus(zone: Zone): void {
+  const el = blockOf(zone)?.querySelector<HTMLElement>('.cb-status');
+  if (!el) return;
+  const st = statusOf(zone);
+  const key = `${st.dot}|${st.main}|${st.more.join('|')}`;
+  if (el.dataset.key === key) return;
+  el.dataset.key = key;
+  el.innerHTML = `<span class="cb-dot-state ${st.dot}"></span><span><b>${escapeHTML(st.main)}</b>${st.more.map((m) => ` <span class="sep">·</span> ${escapeHTML(m)}`).join('')}</span>`;
 }
 
 /** The chips of chords zones show the chord */
@@ -353,6 +404,7 @@ export function updateChordChips(): void {
       chip.textContent = text;
       chip.classList.toggle('long', text.length > 4);
     }
+    showStatus(z);
     const line = lineZoneOf(z);
     const what = z.chords.part === 'bass' ? 'Bass' : 'Chords';
     const title = !line
@@ -424,7 +476,7 @@ const PADS: Record<ChordPart, PadSpec[]> = {
   ],
   bass: [
     { name: 'Bass', x: 'bass', y: 'length', left: 'Roots', right: 'Walking', bottom: 'Stabs', top: 'Legato', title: 'Left: the roots held, right: walking with approach notes. Down: short, up: held (double-click: middle)' },
-    { name: 'Feel', x: 'sync', y: 'vary', left: 'Straight', right: 'Syncopated', bottom: 'Even', top: 'Loose', title: 'Left: straight, right: anticipations, off-beats and pickups. Down: even, up: loose velocities (double-click: straight)' }
+    { name: 'Feel', x: 'sync', y: 'vary', left: 'Straight', right: 'Syncopated', bottom: 'Exact', top: 'Loose', title: 'Left: straight, right: anticipations, off-beats and pickups. Down: exact, up: loose, as a player would (double-click: straight)' }
   ]
 };
 
@@ -442,16 +494,16 @@ interface SliderSpec {
 const MORE: Record<ChordPart, SliderSpec[]> = {
   chords: [
     { k: 'accents', label: 'Accents', left: 'On-beat', right: 'Off-beat', title: 'Louder on the beat or off it; with Barking up, where the barks fall (middle: the rhythm\'s own strong hits)' },
-    { k: 'changes', label: 'Changes', left: 'Slow', right: 'Fast', title: 'How often the chord changes' },
-    { k: 'unfold', label: 'Build-up', left: 'Together', right: 'Unfold', title: 'Chords rolled, the 7th and 9th coming in later' },
+    { k: 'changes', label: 'Chord changes', left: 'Slow', right: 'Fast', title: 'How often the chord changes' },
+    { k: 'unfold', label: 'Build-up', left: 'Together', right: 'Note by note', title: 'Chords rolled, the 7th and 9th coming in later' },
     { k: 'register', label: 'Register', left: 'Lower', right: 'Higher', min: -12, max: 12, step: 1, title: 'Where the chords sit: semitones down or up (double-click: back to 0)' },
-    { k: 'tensions', label: 'Tensions', left: 'Softer', right: 'Louder', title: 'The 7th, 9th and b5 softer or louder than the triad' },
-    { k: 'vary', label: 'Vary', left: 'Even', right: 'Loose', title: 'Velocities vary' }
+    { k: 'tensions', label: '7th & 9th', left: 'Softer', right: 'Louder', title: 'The 7th, 9th and b5 softer or louder than the triad' },
+    { k: 'vary', label: 'Human', left: 'Exact', right: 'Loose', title: 'Velocities vary a little, as a player\'s would' }
   ],
   bass: [
     { k: 'accents', label: 'Accents', left: 'On-beat', right: 'Off-beat', title: 'Louder on the beat or off it' },
     { k: 'harmony', label: 'Harmony', left: 'Fifths', right: 'Modal', title: 'Only when no chords zone follows the same line (that one chooses the chords)' },
-    { k: 'changes', label: 'Changes', left: 'Slow', right: 'Fast', title: 'How often the chord changes (when no chords zone follows the same line)' }
+    { k: 'changes', label: 'Chord changes', left: 'Slow', right: 'Fast', title: 'How often the chord changes (when no chords zone follows the same line)' }
   ]
 };
 
@@ -464,7 +516,7 @@ function blockOf(zone: Zone): HTMLElement | null {
 /** The block's layout (rebuilt only when this changes, never during a drag) */
 function layoutKey(zone: Zone): string {
   const zs = hooks.zones();
-  return [zone.chords?.part, moreOpen.has(zone.id), zone.chords?.follows, ...zs.map((z) => `${z.id}:${z.label}:${!!z.chords}`)].join('|');
+  return [zone.chords?.part, moreOpen.has(zone.id), zone.chords?.follows, leaderOf(zone) === zone, ...zs.map((z) => `${z.id}:${z.label}:${!!z.chords}:${z.chords?.part}`)].join('|');
 }
 
 let dragging: HTMLElement | null = null;
@@ -485,21 +537,34 @@ export function renderChordBlock(zone: Zone): void {
   el.querySelectorAll<HTMLElement>('.cb-pad').forEach((pad, i) => {
     const spec = PADS[part][i];
     placeDot(pad, s[spec.x] as number, s[spec.y] as number);
+    showReadout(pad, spec, s[spec.x] as number, s[spec.y] as number);
   });
   el.querySelectorAll<HTMLElement>('.cb-rhythm a').forEach((a, i) => a.classList.toggle('on', i === s.rhythm));
   el.querySelectorAll<HTMLInputElement>('.cb-more input[type=range]').forEach((inp) => {
     const k = inp.dataset.k as keyof ChordSettings;
     if (document.activeElement !== inp) inp.value = String(s[k]);
   });
-  const another = el.querySelector<HTMLElement>('.cb-another');
-  if (another) another.title = `Another good choice${s.seed ? ` (choice ${s.seed + 1}; double-click: back to the best)` : ''}`;
-  const tag = el.querySelector<HTMLElement>('.cb-key');
-  if (tag) {
-    const line = lineZoneOf(zone);
-    const plan = planOf(zone);
-    const k = plan?.key ?? (line && deciders.get(line.id)?.key);
-    tag.textContent = k ? keyName(k) : '';
-  }
+  const best = el.querySelector<HTMLElement>('.cb-best');
+  if (best) best.hidden = !s.seed;
+  showStatus(zone);
+}
+
+/** What a pad's settings sound like, in words (the engine's steps) */
+const WORDS: Partial<Record<keyof ChordSettings, (v: number) => string>> = {
+  harmony: (v) => (v < 0.2 ? 'fifths' : v < 0.4 ? 'mostly fifths' : v < 0.6 ? 'fifths & modal' : v < 0.8 ? 'mostly modal' : 'modal'),
+  colour: (v) => (v <= 0.3 ? 'triads' : v <= 0.65 ? '7ths' : '7ths & 9ths'),
+  length: (v) => (v < 0.2 ? 'stabs' : v < 0.45 ? 'short' : v < 0.7 ? 'held' : 'legato'),
+  bark: (v) => (v < 0.05 ? 'even' : v < 0.5 ? 'some barks' : 'barking'),
+  bass: (v) => (v < 0.2 ? 'roots' : v < 0.45 ? 'root & fifth' : v < 0.7 ? 'approach notes' : v < 0.85 ? 'walking' : 'walking with skips'),
+  sync: (v) => (v < 0.05 ? 'straight' : v < 0.35 ? 'a little syncopated' : v < 0.65 ? 'syncopated' : 'wild'),
+  vary: (v) => (v < 0.05 ? 'exact' : v < 0.5 ? 'a little loose' : 'loose')
+};
+
+function showReadout(pad: HTMLElement, spec: PadSpec, x: number, y: number): void {
+  const ro = pad.closest('.cb-padbox')?.querySelector<HTMLElement>('.cb-ro');
+  if (!ro) return;
+  const text = `${WORDS[spec.x]?.(x) ?? ''} · ${WORDS[spec.y]?.(y) ?? ''}`;
+  if (ro.textContent !== text) ro.textContent = text;
 }
 
 function placeDot(pad: HTMLElement, x: number, y: number): void {
@@ -519,32 +584,36 @@ function blockHTML(zone: Zone): string {
     (line ? '' : `<option value="" selected>${zone.chords!.follows ? '⚠ missing' : 'choose a line'}</option>`) +
     cands.map((z) => `<option value="${escapeHTML(z.id)}"${z === line ? ' selected' : ''}>${escapeHTML(lineLabel(z))}</option>`).join('');
   const what = part === 'bass' ? 'Bass' : 'Chords';
+  // a bass zone on a line a chords zone follows: the chords zone chooses the chords
+  const leads = leaderOf(zone) === zone || !line;
+  const sliders = MORE[part].filter((m) => leads || (m.k !== 'harmony' && m.k !== 'changes'));
   const pads = PADS[part]
     .map(
       (p, i) => `
     <div class="cb-padbox" title="${escapeHTML(p.title)}">
-      <div class="cb-pt">${p.name}${i === 0 ? ' <small class="cb-key"></small>' : ''}</div>
-      <div class="cb-yl"><span>${p.bottom}</span><span>${p.top}</span></div>
-      <div class="cb-pad" data-pad="${i}"><div class="cb-x"></div><div class="cb-y"></div><div class="cb-dot"></div></div>
+      <div class="cb-pt"><span>${p.name}</span><span class="cb-ro"></span></div>
+      <div class="cb-pad" data-pad="${i}"><div class="cb-x"></div><div class="cb-y"></div><div class="cb-dot"></div>
+        <span class="cb-yin top">${p.top}</span><span class="cb-yin bottom">${p.bottom}</span></div>
       <div class="cb-xl"><span>${p.left}</span><span>${p.right}</span></div>
     </div>`
     )
     .join('');
   const open = moreOpen.has(zone.id);
-  const more = MORE[part]
+  const more = sliders
     .map(
       (m) => `<label class="cb-sl" title="${escapeHTML(m.title)}"><span class="label">${m.label}</span><small>${m.left}</small>
       <input type="range" data-k="${m.k}" min="${m.min ?? 0}" max="${m.max ?? 1}" step="${m.step ?? 0.05}" tabindex="-1"><small>${m.right}</small></label>`
     )
     .join('');
   return `
-    <div class="cb-row"><span class="cb-what">${what}</span><span class="label">follows</span>
+    <div class="cb-row cb-follow-row"><span class="cb-what">${what}</span><span class="label">follows</span>
       <select class="cb-follows" tabindex="-1" title="The zone whose line it plays to">${options}</select></div>
-    <div class="cb-row"><span class="label">Rhythm</span><div class="cb-rhythm">${RHYTHMS.map((r) => `<a>${r}</a>`).join('')}</div></div>
+    <div class="cb-status"></div>
+    <div class="cb-row cb-rhythm-row"><span class="label">Rhythm</span><div class="cb-rhythm">${RHYTHMS.map((r) => `<a>${r}</a>`).join('')}</div></div>
     <div class="cb-pads">${pads}</div>
     <div class="cb-row cb-foot">
-      <a class="cb-more-toggle" title="More settings"><i class="material-icons${open ? ' open' : ''}">chevron_right</i>More<small>${open ? '' : ': ' + MORE[part].map((m) => m.label).join(', ')}</small></a>
-      <a class="lightButton cb-another">Another</a>
+      <a class="cb-more-toggle" title="More settings"><i class="material-icons${open ? ' open' : ''}">chevron_right</i>More<small>${open ? '' : ': ' + sliders.map((m) => m.label).join(', ')}</small></a>
+      ${leads ? '<span class="cb-choices"><a class="lightButton cb-best" title="Back to the chords that fit best" hidden>Back to best</a><a class="lightButton cb-another" title="Other chords that also fit">Other chords</a></span>' : ''}
     </div>
     ${open ? `<div class="cb-more">${more}</div>` : ''}`;
 }
@@ -608,6 +677,7 @@ function initBlockEvents(): void {
     dragging = pad;
     pad.setPointerCapture(ev.pointerId);
     pad.classList.add('dragging');
+    pad.closest('.cb-padbox')?.classList.add('drag');
     const at = (e: PointerEvent) => {
       const r = pad.getBoundingClientRect();
       const x = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
@@ -620,6 +690,7 @@ function initBlockEvents(): void {
       (zone.chordSet as any)[spec.x] = p.x;
       (zone.chordSet as any)[spec.y] = p.y;
       placeDot(pad, p.x, p.y);
+      showReadout(pad, spec, p.x, p.y);
     };
     move(ev);
     const up = (e: PointerEvent) => {
@@ -627,6 +698,7 @@ function initBlockEvents(): void {
       pad.removeEventListener('pointerup', up);
       pad.removeEventListener('pointercancel', up);
       pad.classList.remove('dragging');
+      pad.closest('.cb-padbox')?.classList.remove('drag');
       dragging = null;
       const p = at(e);
       const change = { [spec.x]: p.x, [spec.y]: p.y } as Partial<ChordSettings>;
@@ -647,8 +719,6 @@ function initBlockEvents(): void {
     if (pad) {
       const spec = PADS[zone.chords.part][parseInt(pad.dataset.pad!)];
       setSettings(zone, { [spec.x]: MIDDLE[spec.x] ?? 0.5, [spec.y]: MIDDLE[spec.y] ?? 0.5 } as Partial<ChordSettings>);
-    } else if (t.closest('.chords-block .cb-another')) {
-      setSettings(zone, { seed: 0 }, 'Chords: the Best');
     } else if (t.matches('.chords-block .cb-more input[type=range]')) {
       const k = (t as HTMLInputElement).dataset.k as keyof ChordSettings;
       setSettings(zone, { [k]: MIDDLE[k] ?? 0.5 } as Partial<ChordSettings>);
@@ -665,8 +735,12 @@ function initBlockEvents(): void {
       if (i !== zone.chordSet.rhythm) setSettings(zone, { rhythm: i });
       return;
     }
-    if (t.closest('.cb-another') && ev.detail === 1) {
-      setSettings(zone, { seed: (zone.chordSet.seed % 9973) + 1 }, 'Chords: Another');
+    if (t.closest('.cb-another')) {
+      setSettings(zone, { seed: (zone.chordSet.seed % 9973) + 1 }, 'Other Chords');
+      return;
+    }
+    if (t.closest('.cb-best')) {
+      if (zone.chordSet.seed) setSettings(zone, { seed: 0 }, 'Chords: Back to Best');
       return;
     }
     if (t.closest('.cb-more-toggle')) {

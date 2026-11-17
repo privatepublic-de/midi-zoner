@@ -6774,8 +6774,39 @@ body.track-view:not(.minimized) .channels > .ch.showchords {
   grid-template-columns: 1fr;
   gap: 8px;
   padding: 8px 10px 10px;
-  --cb-pad-w: 150px;
-  --cb-pad-h: 96px;
+  --cb-pad-w: 190px;
+  --cb-pad-h: 104px;
+}
+/* what the zone does now, in words: a dot for live (the live green), its loop (the zone colour) or waiting */
+.chords-block .cb-status {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: -2px;
+  font-size: 12px;
+  color: var(--slate-dim);
+}
+.chords-block .cb-status b {
+  font-weight: 500;
+  color: var(--text-base-color);
+}
+.chords-block .cb-status .sep {
+  opacity: 0.5;
+}
+.chords-block .cb-dot-state {
+  flex: none;
+  align-self: center;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--slate-line);
+}
+.chords-block .cb-dot-state.live {
+  background: var(--live);
+  box-shadow: 0 0 6px var(--live);
+}
+.chords-block .cb-dot-state.loop {
+  background: var(--zone-color);
 }
 .chords-block .cb-row {
   display: flex;
@@ -6832,30 +6863,47 @@ body.track-view:not(.minimized) .channels > .ch.showchords {
 }
 .chords-block .cb-padbox {
   display: grid;
-  grid-template-columns: auto 1fr;
   grid-template-rows: auto 1fr auto;
-  gap: 2px 4px;
+  gap: 2px;
 }
+/* the pad's name and, at its right, what it is set to (bright while it's dragged) */
 .chords-block .cb-pt {
-  grid-column: 1 / 3;
   color: var(--text-base-color);
   font-size: 12px;
   display: flex;
+  align-items: baseline;
   justify-content: space-between;
+  gap: 10px;
 }
-.chords-block .cb-pt small {
+.chords-block .cb-ro {
+  font-size: 11px;
   color: var(--slate-dim);
+  white-space: nowrap;
 }
-.chords-block .cb-yl {
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
-  color: var(--slate-dim);
+.chords-block .cb-padbox.drag .cb-ro {
+  color: var(--text-base-color);
+}
+.chords-block .cb-padbox.drag .cb-pad {
+  border-color: color-mix(in srgb, var(--zone-color) 60%, var(--slate-line));
+}
+/* the up-down ends, set level inside the pad's left edge */
+.chords-block .cb-yin {
+  position: absolute;
+  left: 5px;
+  padding: 1px 2px;
   font-size: 10px;
-  display: flex;
-  justify-content: space-between;
+  line-height: 1;
+  color: var(--slate-dim);
+  background: color-mix(in srgb, var(--slate-inset) 85%, transparent);
+  pointer-events: none;
+}
+.chords-block .cb-yin.top {
+  top: 4px;
+}
+.chords-block .cb-yin.bottom {
+  bottom: 4px;
 }
 .chords-block .cb-xl {
-  grid-column: 2;
   color: var(--slate-dim);
   font-size: 10px;
   display: flex;
@@ -6924,8 +6972,15 @@ body.track-view:not(.minimized) .channels > .ch.showchords {
 .chords-block .cb-more-toggle .material-icons {
   margin-right: 2px;
 }
-.chords-block .cb-another {
+.chords-block .cb-choices {
+  display: flex;
+  gap: 6px;
+}
+.chords-block .cb-choices a {
   cursor: pointer;
+}
+.chords-block .cb-choices a[hidden] {
+  display: none;
 }
 .chords-block .cb-more {
   display: grid;
@@ -6937,7 +6992,7 @@ body.track-view:not(.minimized) .channels > .ch.showchords {
   gap: 6px;
 }
 .chords-block .cb-sl .label {
-  min-width: 64px;
+  min-width: 84px;
 }
 .chords-block .cb-sl small {
   color: var(--slate-dim);
@@ -6959,11 +7014,12 @@ body.track-view:not(.minimized) #zones > .zone.track-selected > .chords-block {
   --cb-pad-w: 230px;
   --cb-pad-h: 150px;
   grid-template-columns: auto 1fr;
-  grid-template-areas: 'a pads' 'b pads' 'foot pads' 'more pads';
   align-content: start;
   column-gap: 28px;
-  > .cb-row:nth-of-type(1) { grid-area: a; }
-  > .cb-row:nth-of-type(2) { grid-area: b; }
+  grid-template-areas: 'a pads' 'st pads' 'b pads' 'foot pads' 'more pads';
+  > .cb-follow-row { grid-area: a; }
+  > .cb-status { grid-area: st; }
+  > .cb-rhythm-row { grid-area: b; }
   > .cb-foot { grid-area: foot; justify-content: flex-start; gap: 16px; }
   > .cb-more { grid-area: more; }
   > .cb-pads { grid-area: pads; }

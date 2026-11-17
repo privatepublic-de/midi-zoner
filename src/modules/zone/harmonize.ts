@@ -74,7 +74,7 @@ export interface HarmonyOptions {
   changes: number; // 0 slow (every 2 bars) … 1 fast (on beats)
   rhythm: number; // 0 on-beat … 1 off-beat
   colour: number; // 0 triads … 1 sevenths and ninths
-  /** 0 = the best; others give other good choices ("Another") */
+  /** 0 = the best; others give other good choices ("Other chords") */
   seed: number;
   /** voicing range (MIDI notes); default under the line */
   low?: number;
@@ -123,7 +123,7 @@ export function chordName(c: Chord): string {
     case '7': return r + '7';
     case 'sus4': return r + 'sus4';
     case 'sus2': return r + 'sus2';
-    case 'q': return r + 'q'; // stacked fourths
+    case 'q': return r + '4ths'; // stacked fourths
   }
 }
 
@@ -392,7 +392,7 @@ export function progress(line: LineNote[], length: number, meter: Meter, o: Harm
   });
   const KK = voc.length;
 
-  // per segment and chord: fit + prior (+ seeded noise per bar and chord for "Another")
+  // per segment and chord: fit + prior (+ seeded noise per bar and chord for "Other chords")
   const node: number[][] = segs.map((s, i) =>
     voc.map((c, k) => {
       const len = (s.end - s.t) / PPQ;
@@ -543,7 +543,7 @@ interface Hit {
   v: number;
 }
 
-export const RHYTHMS = ['Pads', 'Beats', 'Pushes', 'Backbeat', 'Off-beats'] as const;
+export const RHYTHMS = ['Held', 'Beats', 'Pushes', 'Backbeat', 'Off-beats'] as const;
 
 /** The hits of one chord span, by rhythm style */
 function hitsOf(style: number, span: { t: number; end: number }, meter: Meter, segs: Segment[]): Hit[] {
