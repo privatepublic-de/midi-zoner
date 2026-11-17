@@ -117,7 +117,7 @@ function chordFrom(x: unknown): Chord | null {
   const root = typeof o.root === 'number' ? Math.round(o.root) : -1;
   if (root < 0 || root > 11 || !QUALITIES.includes(o.quality as Chord['quality'])) return null;
   const degree = typeof o.degree === 'number' ? Math.max(-1, Math.min(6, Math.round(o.degree))) : -1;
-  const kind = (['dia', 'sec', 'bor', 'mod'] as const).find((k) => k === o.kind) ?? 'dia';
+  const kind = (['dia', 'sec', 'bor', 'mod', 'out'] as const).find((k) => k === o.kind) ?? 'dia';
   return { root, quality: o.quality as Chord['quality'], degree, kind, prior: 0 };
 }
 

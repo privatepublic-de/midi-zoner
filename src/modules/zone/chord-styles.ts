@@ -13,7 +13,7 @@ export interface ChordStyle {
   bass: Partial<ChordSettings>;
 }
 
-// rhythm: 0 Held, 1 Beats, 2 Pushes, 3 Backbeat, 4 Off-beats, 5 Eighths. colour under 0.1: power chords. accents 0.5 = the rhythm's own strong hits
+// rhythm: 0 Held, 1 Beats, 2 Pushes, 3 Backbeat, 4 Off-beats, 5 Eighths, 6 Scattered. harmony over 0.85: free. colour under 0.1: power chords. accents 0.5 = the rhythm's own strong hits
 export const CHORD_STYLES: ChordStyle[] = [
   {
     id: 'strings',
@@ -38,6 +38,12 @@ export const CHORD_STYLES: ChordStyle[] = [
     name: 'Soul jazz',
     chords: { harmony: 0.3, colour: 0.85, rhythm: 4, length: 0.3, bark: 0.7, changes: 0.5, unfold: 0.2, tensions: 0.7, vary: 0.3 },
     bass: { bass: 0.8, length: 0.6, sync: 0.5, vary: 0.3 }
+  },
+  {
+    id: 'freejazz',
+    name: 'Free jazz',
+    chords: { harmony: 0.97, colour: 0.9, rhythm: 6, length: 0.2, bark: 0.7, changes: 0.9, unfold: 0.3, tensions: 0.7, vary: 1 },
+    bass: { bass: 1, length: 0.4, sync: 1, vary: 1 }
   },
   {
     id: 'naive',

@@ -24,6 +24,7 @@ import {
   fitOf,
   chordTones,
   scaleOf,
+  freeNoise,
   transition,
   changeCost,
   segmentsOf,
@@ -289,8 +290,9 @@ export class LiveChords {
         x += same ? 0.15 + 0.5 * calm : transition(prev, c, key, h) - changeCost(seg, o.changes) + (seg.beat === 0 ? 0.25 * (1 - h) : 0);
       } else if (c.root === key.tonic && c.degree === 0) x += 0.5;
       // a chord from outside the key (a secondary dominant, borrowed) needs clearer reasons live
-      if (c.kind === 'sec' || c.kind === 'bor') x -= 0.25 + 0.4 * calm;
+      if (c.kind === 'sec' || c.kind === 'bor' || c.kind === 'out') x -= 0.25 + 0.4 * calm;
       if (o.seed) x += (hashRoll(o.seed, seg.bar, c.root, QUALITY_INDEX[c.quality]) - 0.5) * 1.2 * len;
+      x += freeNoise(o, seg, c) * len;
       // the form: what was played here 4 and 8 bars ago
       for (const [bars, k] of [[4, 0.3], [8, 0.5]]) {
         const then = this.log.get(seg.t - bars * barTicks(meter));

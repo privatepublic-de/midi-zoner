@@ -65,7 +65,8 @@ export interface Chord {
   /** scale degree in the key (0-based), -1 if borrowed or chromatic */
   degree: number;
   /** what kind: diatonic, secondary dominant, borrowed, modal colour */
-  kind: 'dia' | 'sec' | 'bor' | 'mod';
+  /** `out`: free harmony (Harmony past FREE_FROM), a chord from outside the key on any root */
+  kind: 'dia' | 'sec' | 'bor' | 'mod' | 'out';
   prior: number;
 }
 
@@ -318,6 +319,17 @@ export function vocabulary(key: Key, h: number): Chord[] {
   add({ root: key.tonic, quality: 'q', degree: 0, kind: 'mod', prior: 1.0 * h - 0.55 });
   const ch = CHARACTERISTIC[key.mode];
   if (ch > 0) add({ root: (key.tonic + s[ch]) % 12, quality: 'q', degree: ch, kind: 'mod', prior: 0.8 * h - 0.5 });
+  // free harmony: past FREE_FROM chords leave the key: stacked fourths, dominant sevenths (tritone
+  // substitutes and more), augmented and minor chords on every root; the line still decides
+  if (h > FREE_FROM) {
+    const free = (h - FREE_FROM) / (1 - FREE_FROM);
+    for (let root = 0; root < 12; root++) {
+      add({ root, quality: 'q', degree: -1, kind: 'out', prior: -0.35 + 0.6 * free });
+      add({ root, quality: '7', degree: -1, kind: 'out', prior: -0.39 + 0.5 * free });
+      add({ root, quality: 'aug', degree: -1, kind: 'out', prior: -0.39 + 0.4 * free });
+      add({ root, quality: 'min', degree: -1, kind: 'out', prior: -0.39 + 0.4 * free });
+    }
+  }
   return out;
 }
 
@@ -339,6 +351,20 @@ export function fitOf(w: number[], c: Chord, key: Key): number {
   }
   return f;
 }
+
+/**
+ * Free harmony's unpredictability: past FREE_FROM each chord gets a push up or down per beat
+ * (with the seed: the same each time round), growing towards the right edge
+ */
+export function freeNoise(o: HarmonyOptions, seg: { bar: number; beat: number }, c: Chord): number {
+  const h = Math.max(0, Math.min(1, o.harmony));
+  if (h <= FREE_FROM) return 0;
+  const free = (h - FREE_FROM) / (1 - FREE_FROM);
+  return (hashRoll(o.seed + 1301, seg.bar * 16 + seg.beat, c.root, QUALITY_INDEX[c.quality]) - 0.5) * 2.4 * free;
+}
+
+/** Harmony above this: free harmony (chords from outside the key) */
+export const FREE_FROM = 0.85;
 
 /** Root motion a → b, as the harmony setting likes it */
 export function transition(a: Chord, b: Chord, key: Key, h: number): number {
@@ -400,6 +426,7 @@ export function progress(line: LineNote[], length: number, meter: Meter, o: Harm
       const len = (s.end - s.t) / PPQ;
       let x = fitOf(w[i], c, key) + 0.25 * c.prior * len;
       if (o.seed) x += (hashRoll(o.seed, s.bar, c.root, QUALITY_INDEX[c.quality]) - 0.5) * 1.2 * len;
+      x += freeNoise(o, s, c) * len;
       return x;
     })
   );
@@ -566,9 +593,9 @@ interface Hit {
   v: number;
 }
 
-export const RHYTHMS = ['Held', 'Beats', 'Pushes', 'Backbeat', 'Off-beats', 'Eighths'] as const;
+export const RHYTHMS = ['Held', 'Beats', 'Pushes', 'Backbeat', 'Off-beats', 'Eighths', 'Scattered'] as const;
 /** The order the Rhythm chips show them in (indices of RHYTHMS; new ones are appended there, saved settings keep theirs) */
-export const RHYTHM_ORDER = [0, 1, 5, 2, 3, 4];
+export const RHYTHM_ORDER = [0, 1, 5, 2, 3, 4, 6];
 
 /** The 8ths of a span, from its start (ticks from the span's start) */
 function eighthsOf(span: { t: number; end: number }, meter: Meter): number[] {
@@ -579,8 +606,41 @@ function eighthsOf(span: { t: number; end: number }, meter: Meter): number[] {
   return out;
 }
 
+/**
+ * Irregular hits: each 16th of the span may hit, by a density that changes from bar to bar (some
+ * bars nearly empty, some busy) and leans off the beat; a hit sometimes runs into the next 16th
+ * (a burst). Positions come from the bar and the seed, so a bar plays the same each time round
+ */
+function scatteredHits(span: { t: number; end: number }, meter: Meter, seed: number): Hit[] {
+  const sixteenth = PPQ / 4;
+  const bar = barTicks(meter);
+  const offs = beatOffsets(meter);
+  const hits: Hit[] = [];
+  let burst = false;
+  for (let t = Math.ceil(span.t / sixteenth) * sixteenth; t < span.end - 0.5; t += sixteenth) {
+    const b = Math.floor(t / bar);
+    const at = ((t % bar) + bar) % bar;
+    const i = Math.round(at / sixteenth);
+    const density = 0.12 + 0.4 * hashRoll(seed + 911, b, 999, 2);
+    const onBeat = offs.some((o) => Math.abs(o - at) < 0.5);
+    const onEighth = Math.abs(at % (PPQ / 2)) < 0.5;
+    const chance: number = density * (onBeat ? 0.7 : onEighth ? 1.3 : 0.8) + (burst ? 0.35 : 0);
+    burst = hashRoll(seed + 911, b, i, 1) < chance;
+    if (burst) hits.push({ t: t - span.t, d: sixteenth, v: 70 + Math.round(25 * hashRoll(seed + 911, b, i, 3)) });
+  }
+  // at least one hit for the chord, on an 8th of it
+  if (!hits.length) {
+    const len = span.end - span.t;
+    const t = Math.floor((hashRoll(seed + 911, Math.floor(span.t / bar), 77, 4) * len) / (PPQ / 2)) * (PPQ / 2);
+    hits.push({ t: Math.min(t, Math.max(0, len - sixteenth)), d: sixteenth, v: 80 });
+  }
+  // each up to the next hit (an 8th at most)
+  hits.forEach((h, k) => (h.d = Math.min(PPQ / 2, (k + 1 < hits.length ? hits[k + 1].t : span.end - span.t) - h.t) * 0.9));
+  return hits;
+}
+
 /** The hits of one chord span, by rhythm style */
-function hitsOf(style: number, span: { t: number; end: number }, meter: Meter, segs: Segment[]): Hit[] {
+function hitsOf(style: number, span: { t: number; end: number }, meter: Meter, segs: Segment[], seed = 0): Hit[] {
   const len = span.end - span.t;
   const beats = segs.filter((s) => s.t >= span.t && s.t < span.end);
   const eighth = PPQ / 2;
@@ -596,6 +656,8 @@ function hitsOf(style: number, span: { t: number; end: number }, meter: Meter, s
       ];
     case 3: // chops on the bar's backbeats (2 and 4; in x/8 the later groups)
       return beats.filter((s) => s.beat % 2 === 1).map((s) => ({ t: s.t - span.t, d: Math.min(eighth, s.end - s.t) * 0.7, v: 84 }));
+    case 6: // scattered: irregular comping on 8ths and 16ths, a different pattern every bar (with the seed)
+      return scatteredHits(span, meter, seed);
     case 5: // every 8th, driving: the bar's 1 loudest, then the beats, the &s lighter
       return eighthsOf(span, meter).map((t) => {
         const at = (((span.t + t) % barTicks(meter)) + barTicks(meter)) % barTicks(meter);
@@ -725,7 +787,7 @@ export function voiceChord(chord: Chord, key: Key, o: HarmonyOptions, lineNotes:
 }
 
 /** Each rhythm's loudest hit (hitsOf): its strong hits bark when the accents are in the middle */
-const STYLE_LOUDEST = [76, 90, 92, 84, 80, 96];
+const STYLE_LOUDEST = [76, 90, 92, 84, 80, 96, 92];
 
 /**
  * Dynamics of a hit (`o.dynamics`: 0 even … 1 barking). How strong a hit is comes from the
@@ -797,7 +859,7 @@ export function spanNotes(
     const at = Math.round((spanLen * unfold * r) / (most + 1) / (PPQ / 2)) * (PPQ / 2);
     return Math.min(Math.max(PPQ / 2, at), spanLen - PPQ / 2);
   };
-  const hits = hitsOf(style, s, meter, segs);
+  const hits = hitsOf(style, s, meter, segs, o.seed);
   hits.forEach((hit, h) => {
     // the next hit of this chord (or the next chord's, pushed an 8th early with Pushes)
     const next = h + 1 < hits.length ? hits[h + 1].t : spanLen - (style === 2 ? PPQ / 2 : 0);

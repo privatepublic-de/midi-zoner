@@ -14,7 +14,7 @@ import { takeStore } from '../take-store';
 import { timeline, nowTick, NoteHistory } from '../timeline';
 import { escapeHTML } from '../domutils';
 import { toast } from './toast';
-import { harmonize, progress, segmentsOf, chordName, keyName, RHYTHMS, RHYTHM_ORDER, POWER_BELOW, LineNote, Chord, Key } from '../zone/harmonize';
+import { harmonize, progress, segmentsOf, chordName, keyName, RHYTHMS, RHYTHM_ORDER, POWER_BELOW, FREE_FROM, LineNote, Chord, Key } from '../zone/harmonize';
 import { LiveChords, HeardNote, Follower, Send, heardChords } from '../zone/live-chords';
 import { ChordPart, ChordPlan, ChordSettings, DEFAULT_CHORD_SETTINGS, harmonyOptions, loopSig } from '../zone/chord-settings';
 import MIDI from '../midi';
@@ -512,7 +512,7 @@ interface PadSpec {
 
 const PADS: Record<ChordPart, PadSpec[]> = {
   chords: [
-    { name: 'Harmony', x: 'harmony', y: 'colour', left: 'Fifths', right: 'Modal', bottom: 'Power', top: '7 / 9', title: 'Left: chords along the circle of fifths, right: modal. Up: sevenths and ninths, down: triads, at the very bottom power chords (root and fifth) (double-click: middle)' },
+    { name: 'Harmony', x: 'harmony', y: 'colour', left: 'Fifths', right: 'Modal · Free', bottom: 'Power', top: '7 / 9', title: 'Left: chords along the circle of fifths, right: modal, at the far right free (chords from outside the key). Up: sevenths and ninths, down: triads, at the very bottom power chords (root and fifth) (double-click: middle)' },
     { name: 'Feel', x: 'length', y: 'bark', left: 'Stabs', right: 'Legato', bottom: 'Even', top: 'Barking', title: 'Left: short stabs, right: held. Up: the strong hits bark (loud and short), the others are soft and held (double-click: middle, even)' }
   ],
   bass: [
@@ -605,7 +605,7 @@ export function renderChordBlock(zone: Zone): void {
 
 /** What a pad's settings sound like, in words (the engine's steps) */
 const WORDS: Partial<Record<keyof ChordSettings, (v: number) => string>> = {
-  harmony: (v) => (v < 0.2 ? 'fifths' : v < 0.4 ? 'mostly fifths' : v < 0.6 ? 'fifths & modal' : v < 0.8 ? 'mostly modal' : 'modal'),
+  harmony: (v) => (v < 0.2 ? 'fifths' : v < 0.4 ? 'mostly fifths' : v < 0.6 ? 'fifths & modal' : v < 0.75 ? 'mostly modal' : v <= FREE_FROM ? 'modal' : 'free'),
   colour: (v) => (v < POWER_BELOW ? 'power chords' : v <= 0.3 ? 'triads' : v <= 0.65 ? '7ths' : '7ths & 9ths'),
   length: (v) => (v < 0.2 ? 'stabs' : v < 0.45 ? 'short' : v < 0.7 ? 'held' : 'legato'),
   bark: (v) => (v < 0.05 ? 'even' : v < 0.5 ? 'some barks' : 'barking'),
