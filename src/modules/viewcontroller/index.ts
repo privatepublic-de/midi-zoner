@@ -23,6 +23,7 @@ import {
 } from './actions';
 import { closeCCEditor, initCCEditor, isCCEditorOpen, refreshCCEditor } from './cc-editor';
 import { initPianoRoll } from './piano-roll';
+import { initChordLab, chordLabTick, chordLabTransport, chordLabLoopChanged } from './chord-lab';
 import { initTrackView, isTrackView, setTrackView, followTrack, updateLoopChips, invalidateTrackView } from './track-view';
 import { takeStore } from '../take-store';
 import { renderStepLocks } from './step-locks';
@@ -220,6 +221,18 @@ function initController({
     },
     () => meterOf(zones.arrangementIndex)
   );
+  // experiment: chords for a line into another zone's loop (⌘⇧K)
+  initChordLab({
+    zones: () => zones.list,
+    commit: (zoneindex, label, change) => {
+      undoHistory.beforeAction(JSON.stringify(zones), labelForZone(zones.list[zoneindex], zoneindex, label));
+      change();
+      updateValuesForZone(zoneindex);
+      triggerSave();
+      invalidateTrackView();
+    },
+    meter: () => meterOf(zones.arrangementIndex)
+  });
   setMenuHandler(contextHandler);
   initCCEditor({
     zone: (index) => zones.list[index],
@@ -409,6 +422,8 @@ function afterLoop(index: number, before: string, result: PressResult): void {
     window.dispatchEvent(new CustomEvent(UPDATE_ZONE_VIEW_EVENT, { detail: zone }));
     if (result.kind === 'cleared') toast(`${name}: loop cleared`);
   }
+  // experiment: chords following the loop (chord-lab.ts)
+  if (label && (result.kind === 'recorded' || result.kind === 'dubbed')) chordLabLoopChanged(zone, result.kind);
   updateLoopChips();
   onStateChange?.();
 }
@@ -1952,6 +1967,8 @@ export {
   loopZone,
   landLoops,
   finishLoops,
+  chordLabTick,
+  chordLabTransport,
   setToggleBoundary,
   selectArrangement,
   switchZonesToArrangement,

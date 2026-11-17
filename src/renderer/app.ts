@@ -1313,6 +1313,8 @@ document.addEventListener('DOMContentLoaded', function () {
       }
       // loop recordings and overdubs ending here: the loop plays from this tick
       view.landLoops(pos - timeline.sectionStart);
+      // experiment: live chords (chord-lab.ts)
+      view.chordLabTick(pos);
       for (let i = 0; i < zones.list.length; i++) {
         zones.list[i].clock(pos, tickIntervalMs);
       }
@@ -1328,6 +1330,7 @@ document.addEventListener('DOMContentLoaded', function () {
       zones.list.forEach((z) => z.finishExpression());
       // loops being recorded end at their nearest 1 (while the run's position is still known)
       if (!started) view.finishLoops();
+      view.chordLabTransport(started);
       timelineMeter(activeMeter());
       timelineTransport(started);
       // a run is a take: from Start to Stop (stopPos is where it stopped)
