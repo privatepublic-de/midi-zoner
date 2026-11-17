@@ -29,6 +29,7 @@ export interface ChordSettings {
   vary: number;
   bass: number; // bass moves: 0 roots … 1 walking
   sync: number; // bass syncopation: 0 straight … 1 wild
+  bark: number; // chord dynamics: 0 even … 1 barking
   seed: number; // 0 = the best ("Another" counts up)
 }
 
@@ -45,6 +46,7 @@ export const DEFAULT_CHORD_SETTINGS: ChordSettings = {
   vary: 0,
   bass: 0.5,
   sync: 0,
+  bark: 0,
   seed: 0
 };
 
@@ -78,6 +80,7 @@ export function chordSettingsFrom(x: unknown): ChordSettings {
     vary: clamp01(o.vary, d.vary),
     bass: clamp01(o.bass, d.bass),
     sync: clamp01(o.sync, d.sync),
+    bark: clamp01(o.bark, d.bark),
     seed
   };
 }
@@ -151,6 +154,7 @@ export function harmonyOptions(s: ChordSettings): HarmonyOptions {
     vary: s.vary,
     bassMove: s.bass,
     syncopation: s.sync,
+    dynamics: s.bark,
     seed: s.seed
   };
 }

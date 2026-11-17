@@ -95,6 +95,8 @@ export interface HarmonyOptions {
   bassMove?: number;
   /** the bass: 0 straight … anticipations and off-beats … 1 wild (16th pickups and re-strikes) */
   syncopation?: number;
+  /** chords: 0 even … 1 barking (strong hits loud and short, the others soft and held) */
+  dynamics?: number;
   /** live: chords kept, per segment (null: free to choose) */
   frozen?: (Chord | null)[];
   /** live: the key found earlier (hysteresis), else analysed */
@@ -681,6 +683,54 @@ export function voiceChord(chord: Chord, key: Key, o: HarmonyOptions, lineNotes:
   return cands.reduce((a, b) => (cost(b) < cost(a) ? b : a), cands[0]);
 }
 
+/** Each rhythm's loudest hit (hitsOf): its strong hits bark when the accents are in the middle */
+const STYLE_LOUDEST = [76, 90, 92, 84, 80];
+
+/**
+ * Dynamics of a hit (`o.dynamics`: 0 even … 1 barking). How strong a hit is comes from the
+ * accent setting (on or off the beat), or, when that's in the middle, from the rhythm's own
+ * pattern (its louder hits; with Pads a chord coming in on the bar's 1). Strong hits get louder
+ * and shorter, up to e-piano barks (velocity 112–127, a short stab); the others get softer and
+ * held longer; every bar of four a little swell (with the seed). Returns the velocity change
+ * and the length (undefined: the usual)
+ */
+function dynamicsOf(hit: Hit, style: number, pos: number, next: number, o: HarmonyOptions, meter: Meter): { dv: number; d?: number; floor?: number } {
+  const D = Math.max(0, Math.min(1, o.dynamics ?? 0));
+  if (D < 0.02) return { dv: 0 };
+  const a = o.accents ?? 0;
+  const bar = barTicks(meter);
+  const onOne = Math.abs(((pos % bar) + bar) % bar) < 0.5;
+  const e = Math.max(
+    -1,
+    Math.min(
+      1,
+      Math.abs(a) >= 0.15
+        ? a * offBeatness(pos, meter) * 1.4
+        : style === 0
+          ? onOne ? 0.6 : 0
+          : // the rhythm's loudest hits are its strong ones
+            0.6 - (STYLE_LOUDEST[style] - hit.v) / 12
+    )
+  );
+  const usual = hitLength(hit, next, o.length ?? 0.5);
+  // a swell over four bars: softer at the start, fuller towards the fourth
+  const barNo = Math.floor(pos / bar);
+  const swell = D * ((((barNo % 4) + 4) % 4) / 3 - 0.5) * 14 + D * (hashRoll(o.seed + 3301, barNo, 1, 2) - 0.5) * 8;
+  if (e > 0.3) {
+    // a bark: up to 112–127, a short stab (an 8th at most)
+    const target = 112 + 15 * e;
+    const dv = (target - hit.v) * D + swell * 0.5;
+    // held chords (Pads, a push) bark and ring on; in the other rhythms a bark is a short stab
+    if (style === 0 || usual > PPQ * 1.5) return { dv };
+    const stab = Math.min(usual, PPQ * 0.4);
+    return { dv, d: lerp(usual, stab, Math.min(1, D * 1.3)) };
+  }
+  // the cushion: softer (not under about 45, where an e-piano stops sounding) and held on towards the next hit
+  const dv = -D * (20 + 12 * Math.max(0, -e)) + swell;
+  const legato = Math.max(hit.d, next - hit.t - 1);
+  return { dv, d: lerp(usual, Math.max(usual, legato), D * 0.7), floor: Math.min(hit.v, 45) };
+}
+
 /**
  * The notes a voiced chord plays over its span (song or loop ticks) in the rhythm, with
  * build-up and expression. `wrap`: a loop's length (a push before 0 goes at its end), 0 = none
@@ -710,9 +760,12 @@ export function spanNotes(
   hits.forEach((hit, h) => {
     // the next hit of this chord (or the next chord's, pushed an 8th early with Pushes)
     const next = h + 1 < hits.length ? hits[h + 1].t : spanLen - (style === 2 ? PPQ / 2 : 0);
-    const d0 = hitLength(hit, next, o.length ?? 0.5);
     const pos = s.t + hit.t;
-    const accent = (o.accents ?? 0) * 22 * offBeatness(pos < 0 && wrap ? pos + wrap : pos, meter);
+    const where = pos < 0 && wrap ? pos + wrap : pos;
+    const accent = (o.accents ?? 0) * 22 * offBeatness(where, meter);
+    // dynamics: strong hits bark (loud and short), the others are a soft held cushion
+    const dyn = dynamicsOf(hit, style, where, next, o, meter);
+    const d0 = dyn.d ?? hitLength(hit, next, o.length ?? 0.5);
     let rolled = 0;
     v.forEach((n, k) => {
       const late = enter(ranks[k]);
@@ -738,7 +791,8 @@ export function spanNotes(
         else d = Math.min(d, wrap - t);
       }
       d = Math.max(1, d);
-      let vel = hit.v + (from > hit.t ? -6 : accent);
+      let vel = hit.v + dyn.dv + (from > hit.t ? -6 : accent);
+      if (dyn.floor) vel = Math.max(dyn.floor, vel);
       if (ranks[k]) vel += (o.tensions ?? 0) * 22;
       if (o.vary) vel += (hashRoll(o.seed + 7919, Math.round(t * 8), n, 3) - 0.5) * 2 * 14 * o.vary;
       notes.push({ t, d, n, v: Math.round(Math.max(1, Math.min(127, vel))) });

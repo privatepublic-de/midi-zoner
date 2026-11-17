@@ -420,7 +420,7 @@ interface PadSpec {
 const PADS: Record<ChordPart, PadSpec[]> = {
   chords: [
     { name: 'Harmony', x: 'harmony', y: 'colour', left: 'Fifths', right: 'Modal', bottom: 'Triads', top: '7 / 9', title: 'Left: chords along the circle of fifths, right: modal. Down: triads, up: sevenths and ninths (double-click: middle)' },
-    { name: 'Feel', x: 'length', y: 'accents', left: 'Stabs', right: 'Legato', bottom: 'On-beat', top: 'Off-beat', title: 'Left: short stabs, right: held. Down: accents on the beat, up: off the beat (double-click: middle)' }
+    { name: 'Feel', x: 'length', y: 'bark', left: 'Stabs', right: 'Legato', bottom: 'Even', top: 'Barking', title: 'Left: short stabs, right: held. Up: the strong hits bark (loud and short), the others are soft and held (double-click: middle, even)' }
   ],
   bass: [
     { name: 'Bass', x: 'bass', y: 'length', left: 'Roots', right: 'Walking', bottom: 'Stabs', top: 'Legato', title: 'Left: the roots held, right: walking with approach notes. Down: short, up: held (double-click: middle)' },
@@ -441,6 +441,7 @@ interface SliderSpec {
 
 const MORE: Record<ChordPart, SliderSpec[]> = {
   chords: [
+    { k: 'accents', label: 'Accents', left: 'On-beat', right: 'Off-beat', title: 'Louder on the beat or off it; with Barking up, where the barks fall (middle: the rhythm\'s own strong hits)' },
     { k: 'changes', label: 'Changes', left: 'Slow', right: 'Fast', title: 'How often the chord changes' },
     { k: 'unfold', label: 'Build-up', left: 'Together', right: 'Unfold', title: 'Chords rolled, the 7th and 9th coming in later' },
     { k: 'register', label: 'Register', left: 'Lower', right: 'Higher', min: -12, max: 12, step: 1, title: 'Where the chords sit: semitones down or up (double-click: back to 0)' },
@@ -454,7 +455,7 @@ const MORE: Record<ChordPart, SliderSpec[]> = {
   ]
 };
 
-const MIDDLE: Partial<Record<keyof ChordSettings, number>> = { length: 0.5, accents: 0.5, tensions: 0.5, register: 0, harmony: 0.3, colour: 0.4, bass: 0.5, vary: 0, changes: 0.5, unfold: 0, sync: 0 };
+const MIDDLE: Partial<Record<keyof ChordSettings, number>> = { length: 0.5, accents: 0.5, tensions: 0.5, register: 0, harmony: 0.3, colour: 0.4, bass: 0.5, vary: 0, changes: 0.5, unfold: 0, sync: 0, bark: 0 };
 
 function blockOf(zone: Zone): HTMLElement | null {
   return zone.elements?.zoneElement?.querySelector<HTMLElement>('.chords-block') ?? null;
