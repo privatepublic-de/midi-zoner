@@ -23,7 +23,7 @@ import {
 } from './actions';
 import { closeCCEditor, initCCEditor, isCCEditorOpen, refreshCCEditor } from './cc-editor';
 import { initPianoRoll } from './piano-roll';
-import { initChords, chordsTick, chordsTransport, chordsPanic, chordsLineLoopChanged, chordsMenu, renderChordBlock, keepChords, alignToLine, updateChordChips } from './chords';
+import { initChords, chordsTick, chordsTransport, chordsPanic, chordsLineLoopChanged, chordsMenu, renderChordBlock, keepChords, alignToLine, updateChordChips, playChords } from './chords';
 import { initTrackView, isTrackView, setTrackView, followTrack, updateLoopChips, invalidateTrackView } from './track-view';
 import { takeStore } from '../take-store';
 import { renderStepLocks } from './step-locks';
@@ -960,6 +960,11 @@ function addPlaceholder(): void {
     '#zones',
     'beforeend',
     '<div class="zone addnewzone"><a class="action" title="Add a zone">+ Add zone</a>' +
+      // once there is a zone to follow: a zone that plays chords or a bass line to it
+      (zones.list.some((z) => !z.chords)
+        ? '<div class="addzone-chords">or a <a class="action" data-part="chords" title="Add a zone that plays chords to another zone\'s line">chords zone</a>' +
+          ' or <a class="action" data-part="bass" title="Add a zone that plays a bass line to another zone\'s line">bass zone</a> that plays to another zone\'s line</div>'
+        : '') +
       '<p class="addzone-hint">A zone sends one key range of your keyboard to one MIDI output, with its own arpeggiator, sequencer and controls.</p></div>'
   );
   DOM.all('#zones .zone.placeholder', (e) => e.remove());
@@ -2014,6 +2019,7 @@ export {
   chordsTick,
   chordsTransport,
   chordsPanic,
+  playChords,
   setToggleBoundary,
   selectArrangement,
   switchZonesToArrangement,

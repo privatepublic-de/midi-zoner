@@ -1037,6 +1037,33 @@ body.minimized #meterChip {
 .addzone-hint {
   display: none;
 }
+/* under "+ Add zone": a chords or bass zone, as two words in a sentence */
+.zone.addnewzone {
+  flex-wrap: wrap;
+  align-content: flex-start;
+}
+.zone.addnewzone .addzone-chords {
+  flex-basis: 100%;
+  padding: 0 0 0 13px;
+  font-size: 12px;
+  color: color-mix(in srgb, var(--slate-dim) 70%, transparent);
+  a {
+    display: inline;
+    width: auto;
+    height: auto;
+    padding: 0;
+    border: 0;
+    color: var(--slate-dim);
+    text-decoration: underline;
+    text-decoration-color: var(--slate-line);
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+  a:hover {
+    color: var(--text-base-color);
+    text-decoration-color: currentColor;
+  }
+}
 
 /* Empty scene: the link becomes the one thing to do, with a line on what a zone is */
 #zones:not(:has(> .zone:not(.addnewzone, .placeholder))) .zone.addnewzone {

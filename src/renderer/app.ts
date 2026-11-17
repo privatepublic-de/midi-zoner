@@ -1481,8 +1481,9 @@ document.addEventListener('DOMContentLoaded', function () {
         undoHistory.onChange = updateUndoRedoButtons;
         updateUndoRedoButtons();
 
-        function createNewZone(): void {
-          undoHistory.push(JSON.stringify(zones), 'Add Zone');
+        /** `part`: a chords or bass zone, following the zone with a line (named after what it plays) */
+        function createNewZone(part?: 'chords' | 'bass'): void {
+          undoHistory.push(JSON.stringify(zones), part === 'bass' ? 'Add Bass Zone' : part ? 'Add Chords Zone' : 'Add Zone');
           let colorIndex = 0;
           if (zones.list.length > 0) {
             colorIndex = zones.list[zones.list.length - 1].colorIndex + 1;
@@ -1493,8 +1494,14 @@ document.addEventListener('DOMContentLoaded', function () {
               zones.list[zones.list.length - 1].outputPortId;
           }
           zones.list.push(newZone);
+          if (part) {
+            newZone.label = part === 'bass' ? 'Bass' : 'Chords';
+            view.playChords(newZone, part);
+          }
           saveZones();
           view.renderLastZone();
+          // the other chords zones' Follows lists
+          if (part) view.updateValuesForAllZones();
           DOM.get(`#zone${zones.list.length - 1}`)!.scrollIntoView();
         }
         window.addEventListener('resize', () => {
@@ -1502,7 +1509,8 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         // The "+ Add zone" link is re-rendered with the zones, so listen on the list
         DOM.get('#zones')!.addEventListener('click', (ev) => {
-          if ((ev.target as HTMLElement).closest('.addnewzone a')) createNewZone();
+          const link = (ev.target as HTMLElement).closest<HTMLElement>('.addnewzone a');
+          if (link) createNewZone(link.dataset.part === 'bass' ? 'bass' : link.dataset.part === 'chords' ? 'chords' : undefined);
         });
         DOM.get('#deleteallzones')!.addEventListener('click', async () => {
           await ipcRenderer

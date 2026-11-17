@@ -291,6 +291,13 @@ export function playChords(zone: Zone, part: ChordPart): void {
   if (zone.loop && !planOf(zone)) zone.setLoopOn(false);
   const line = lineZoneOf(zone);
   if (line) freshStart(line);
+  // which line it took (chosen for you): said once, changed in its settings
+  const what = part === 'bass' ? 'a bass line' : 'chords';
+  toast(
+    line
+      ? `${escapeHTML(zoneNumberName(zone))} plays ${what} to ${escapeHTML(lineLabel(line))}`
+      : `${escapeHTML(zoneNumberName(zone))} plays ${what}: add a zone with a line to follow, then choose it in its settings`
+  );
 }
 
 /** ⋯ menu: Stop playing chords: a normal zone again, its Seq and Arp switches back */
