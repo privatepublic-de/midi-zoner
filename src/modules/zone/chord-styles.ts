@@ -24,13 +24,13 @@ export const CHORD_STYLES: ChordStyle[] = [
   {
     id: 'piano',
     name: 'Piano accomp',
-    chords: { harmony: 0.3, colour: 0.5, rhythm: 0, length: 0.7, bark: 0.15, unfold: 0.3, vary: 0.35 },
+    chords: { harmony: 0.3, colour: 0.5, rhythm: 0, length: 0.7, bark: 0.15, unfold: 0.3, strum: 1, vary: 0.35 },
     bass: { bass: 0.3, length: 0.7, sync: 0.1, vary: 0.2 }
   },
   {
     id: 'pop',
     name: 'Pop',
-    chords: { harmony: 0.35, colour: 0.3, rhythm: 5, length: 0.5, bark: 0.3, register: 2, vary: 0.2 },
+    chords: { harmony: 0.35, colour: 0.3, rhythm: 5, length: 0.5, bark: 0.3, strum: 3, register: 2, vary: 0.2 },
     bass: { bass: 0.3, length: 0.55, sync: 0.3, vary: 0.15 }
   },
   {
@@ -48,7 +48,7 @@ export const CHORD_STYLES: ChordStyle[] = [
   {
     id: 'country',
     name: 'Country',
-    chords: { harmony: 0.1, colour: 0.15, rhythm: 3, length: 0.3, bark: 0.3, changes: 0.4, vary: 0.15 },
+    chords: { harmony: 0.1, colour: 0.15, rhythm: 3, length: 0.3, bark: 0.3, strum: 1, changes: 0.4, vary: 0.15 },
     bass: { bass: 0.3, length: 0.45, vary: 0.1 }
   },
   {

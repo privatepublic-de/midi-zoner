@@ -99,10 +99,37 @@ const deciders = new Map<string, LiveChords>();
 /** After the chords were switched on: the line's notes before this (session position) aren't heard */
 const freshFrom = new Map<string, number>();
 
-const send: Send = (out, on, n, v) => {
+/** The clock's tick, for notes sent a little into it (strums) */
+let tickMs = 20;
+/** Note-ons waiting a few ms (a strum), by zone and pitch: a note-off sent now cancels them (nothing hangs) */
+const waiting = new Map<string, ReturnType<typeof setTimeout>>();
+
+const send: Send = (out, on, n, v, delay = 0) => {
   const zone = out as Zone;
-  const status = on ? MIDI.MESSAGE.NOTE_ON : MIDI.MESSAGE.NOTE_OFF;
-  zone.handleMidi(status, Uint8Array.from([status, n, on ? v : 0]), true);
+  const key = `${zone.id}:${n}`;
+  const now = () => {
+    const status = on ? MIDI.MESSAGE.NOTE_ON : MIDI.MESSAGE.NOTE_OFF;
+    zone.handleMidi(status, Uint8Array.from([status, n, on ? v : 0]), true);
+  };
+  const ms = delay * tickMs;
+  if (!on && ms < 1) {
+    const w = waiting.get(key);
+    if (w !== undefined) {
+      // its note-on hasn't gone out yet: it won't
+      clearTimeout(w);
+      waiting.delete(key);
+      return;
+    }
+  }
+  if (ms < 1) {
+    now();
+    return;
+  }
+  const timer = setTimeout(() => {
+    if (waiting.get(key) === timer) waiting.delete(key);
+    now();
+  }, ms);
+  if (on) waiting.set(key, timer);
 };
 
 /** Plays live: switched on, and its loop isn't playing */
@@ -124,8 +151,9 @@ function heard(line: Zone, songPos: number, meter: Meter): HeardNote[] {
 }
 
 /** Every clock tick (run position): the live chords */
-export function chordsTick(pos: number): void {
+export function chordsTick(pos: number, tickIntervalMs = 0): void {
   if (!hooks) return;
+  if (tickIntervalMs > 0) tickMs = tickIntervalMs;
   const zs = hooks.zones();
   const meter = hooks.meter();
   const songPos = pos - timeline.sectionStart;
@@ -160,6 +188,8 @@ export function chordsTransport(started: boolean): void {
 /** Panic: the synths were reset */
 export function chordsPanic(): void {
   for (const d of deciders.values()) d.forget();
+  for (const w of waiting.values()) clearTimeout(w);
+  waiting.clear();
 }
 
 /** Switched on: the line's decider starts fresh (a new key, listening from now) */
@@ -466,6 +496,9 @@ export function chordMarks(zone: Zone, from: number, to: number): { s: number; n
 
 const moreOpen = new Set<string>();
 
+/** The Strum chips (ChordSettings.strum) */
+const STRUMS = ['Off', 'Down', 'Up', 'Down & up'];
+
 interface PadSpec {
   name: string;
   x: keyof ChordSettings;
@@ -548,6 +581,7 @@ export function renderChordBlock(zone: Zone): void {
     showReadout(pad, spec, s[spec.x] as number, s[spec.y] as number);
   });
   el.querySelectorAll<HTMLElement>('.cb-rhythm a').forEach((a) => a.classList.toggle('on', Number(a.dataset.rhythm) === s.rhythm));
+  el.querySelectorAll<HTMLElement>('.cb-strum a').forEach((a) => a.classList.toggle('on', Number(a.dataset.strum) === s.strum));
   el.querySelectorAll<HTMLInputElement>('.cb-more input[type=range]').forEach((inp) => {
     const k = inp.dataset.k as keyof ChordSettings;
     if (document.activeElement !== inp) inp.value = String(s[k]);
@@ -619,6 +653,8 @@ function blockHTML(zone: Zone): string {
     )
     .join('');
   const open = moreOpen.has(zone.id);
+  const strumRow = `<div class="cb-sl" title="Notes of a chord one after another, quickly, as on a guitar: Down plays the low notes first, Up the high ones first (lighter), Down &amp; up downstrokes on the beats and upstrokes between"><span class="label">Strum</span>
+      <div class="cb-segs cb-strum">${STRUMS.map((name, i) => `<a data-strum="${i}">${escapeHTML(name)}</a>`).join('')}</div></div>`;
   const more = sliders
     .map(
       (m) => `<label class="cb-sl" title="${escapeHTML(m.title)}"><span class="label">${m.label}</span><small>${m.left}</small>
@@ -636,10 +672,10 @@ function blockHTML(zone: Zone): string {
     <div class="cb-row cb-rhythm-row"><span class="label">Rhythm</span><div class="cb-rhythm">${RHYTHM_ORDER.map((i) => `<a data-rhythm="${i}">${RHYTHMS[i]}</a>`).join('')}</div></div>
     <div class="cb-pads">${pads}</div>
     <div class="cb-row cb-foot">
-      <a class="cb-more-toggle" title="More settings"><i class="material-icons${open ? ' open' : ''}">chevron_right</i>More<small>${open ? '' : ': ' + sliders.map((m) => m.label).join(', ')}</small></a>
+      <a class="cb-more-toggle" title="More settings"><i class="material-icons${open ? ' open' : ''}">chevron_right</i>More<small>${open ? '' : ': ' + [...(part === 'chords' ? ['Strum'] : []), ...sliders.map((m) => m.label)].join(', ')}</small></a>
       ${leads ? '<span class="cb-choices"><a class="lightButton cb-best" title="Back to the chords that fit best" hidden>Back to best</a><a class="lightButton cb-another" title="Other chords that also fit">Other chords</a></span>' : ''}
     </div>
-    ${open ? `<div class="cb-more">${more}</div>` : ''}`;
+    ${open ? `<div class="cb-more">${part === 'chords' ? strumRow : ''}${more}</div>` : ''}`;
 }
 
 /** A setting changed (one undo step): a loop made of chords is redone, live it applies to the next chord */
@@ -785,6 +821,12 @@ function initBlockEvents(): void {
     if (!t.closest?.('.chords-block')) return;
     const zone = zoneOfEl(t);
     if (!zone?.chords) return;
+    const st = t.closest<HTMLElement>('.cb-strum a');
+    if (st) {
+      const i = Number(st.dataset.strum);
+      if (i !== zone.chordSet.strum) setSettings(zone, { strum: i });
+      return;
+    }
     const r = t.closest<HTMLElement>('.cb-rhythm a');
     if (r) {
       const i = Number(r.dataset.rhythm);

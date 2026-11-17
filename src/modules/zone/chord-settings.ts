@@ -30,6 +30,7 @@ export interface ChordSettings {
   bass: number; // bass moves: 0 roots … 1 walking
   sync: number; // bass syncopation: 0 straight … 1 wild
   bark: number; // chord dynamics: 0 even … 1 barking
+  strum: number; // 0 off, 1 down, 2 up, 3 down & up
   seed: number; // 0 = the best ("Other chords" counts up)
   /** the style it was set from (chord-styles.ts; '' none) */
   style: string;
@@ -49,6 +50,7 @@ export const DEFAULT_CHORD_SETTINGS: ChordSettings = {
   bass: 0.5,
   sync: 0,
   bark: 0,
+  strum: 0,
   seed: 0,
   style: ''
 };
@@ -84,6 +86,7 @@ export function chordSettingsFrom(x: unknown): ChordSettings {
     bass: clamp01(o.bass, d.bass),
     sync: clamp01(o.sync, d.sync),
     bark: clamp01(o.bark, d.bark),
+    strum: typeof o.strum === 'number' && [0, 1, 2, 3].includes(o.strum) ? o.strum : 0,
     seed,
     style: typeof o.style === 'string' && /^[a-z]{1,16}$/.test(o.style) ? o.style : ''
   };
@@ -159,6 +162,7 @@ export function harmonyOptions(s: ChordSettings): HarmonyOptions {
     bassMove: s.bass,
     syncopation: s.sync,
     dynamics: s.bark,
+    strum: s.strum,
     seed: s.seed
   };
 }

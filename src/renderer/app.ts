@@ -1325,7 +1325,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // loop recordings and overdubs ending here: the loop plays from this tick
       view.landLoops(pos - timeline.sectionStart);
       // chords zones following a line live
-      view.chordsTick(pos);
+      view.chordsTick(pos, tickIntervalMs);
       for (let i = 0; i < zones.list.length; i++) {
         zones.list[i].clock(pos, tickIntervalMs);
       }

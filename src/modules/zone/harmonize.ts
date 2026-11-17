@@ -97,6 +97,8 @@ export interface HarmonyOptions {
   syncopation?: number;
   /** chords: 0 even … 1 barking (strong hits loud and short, the others soft and held) */
   dynamics?: number;
+  /** chords: 0 off, 1 down (low notes first, a guitar's downstroke), 2 up (high first), 3 down on the beats and up between */
+  strum?: number;
   /** live: chords kept, per segment (null: free to choose) */
   frozen?: (Chord | null)[];
   /** live: the key found earlier (hysteresis), else analysed */
@@ -805,6 +807,9 @@ export function spanNotes(
     // dynamics: strong hits bark (loud and short), the others are a soft held cushion
     const dyn = dynamicsOf(hit, style, where, next, o, meter);
     const d0 = dyn.d ?? hitLength(hit, next, o.length ?? 0.5);
+    // a strum: down (low notes first) or up (high first, lighter); Down & up: down on the beats
+    const strum = o.strum ?? 0;
+    const up = strum === 2 || (strum === 3 && offBeatness(where, meter) > 0.3);
     let rolled = 0;
     v.forEach((n, k) => {
       const late = enter(ranks[k]);
@@ -818,8 +823,10 @@ export function spanNotes(
       }
       // a tension tone too late for this hit waits for a later one
       if (until - from < (from > hit.t ? PPQ / 4 : 0.5)) return;
-      // rolled bottom up: a few ticks per voice that starts with the hit
-      const roll = from === hit.t ? rolled++ * 1.5 * Math.min(1, unfold * 2) : 0;
+      // rolled bottom up: a few ticks per voice that starts with the hit; strummed: a fraction of one
+      const order = up ? v.length - 1 - k : k;
+      const strumAt = strum && from === hit.t ? order * STRUM_STEP : 0;
+      const roll = (from === hit.t ? rolled++ * 1.5 * Math.min(1, unfold * 2) : 0) + strumAt;
       const start = s.t + from + roll;
       // a rolled voice keeps its length (up to the next hit)
       let d = Math.min(s.t + until + roll, s.t + Math.max(until, next)) - start;
@@ -833,12 +840,17 @@ export function spanNotes(
       let vel = hit.v + dyn.dv + (from > hit.t ? -6 : accent);
       if (dyn.floor) vel = Math.max(dyn.floor, vel);
       if (ranks[k]) vel += (o.tensions ?? 0) * 22;
+      // later strings a little softer, an upstroke lighter
+      if (strum && from === hit.t) vel -= order * 3 + (up ? 8 : 0);
       if (o.vary) vel += (hashRoll(o.seed + 7919, Math.round(t * 8), n, 3) - 0.5) * 2 * 14 * o.vary;
       notes.push({ t, d, n, v: Math.round(Math.max(1, Math.min(127, vel))) });
     });
   });
   return notes;
 }
+
+/** A strum's spread per note, in ticks (about 8 ms at 120 BPM) */
+const STRUM_STEP = 0.4;
 
 const BASS_LOW = 28; // E1
 const BASS_HIGH = 52; // E3

@@ -6867,26 +6867,31 @@ body.track-view:not(.minimized) .channels > .ch.showchords {
   padding: 2px 6px;
   font: inherit;
 }
-.chords-block .cb-rhythm {
+.chords-block .cb-rhythm,
+.chords-block .cb-segs {
   display: inline-flex;
   border: 1px solid var(--slate-line);
   border-radius: var(--radius);
   overflow: hidden;
 }
-.chords-block .cb-rhythm a {
+.chords-block .cb-rhythm a,
+.chords-block .cb-segs a {
   padding: 2px 8px;
   background: var(--slate-raise);
   color: var(--slate-dim);
   border-left: 1px solid var(--slate-line);
   cursor: pointer;
 }
-.chords-block .cb-rhythm a:first-child {
+.chords-block .cb-rhythm a:first-child,
+.chords-block .cb-segs a:first-child {
   border-left: 0;
 }
-.chords-block .cb-rhythm a:hover {
+.chords-block .cb-rhythm a:hover,
+.chords-block .cb-segs a:hover {
   color: var(--text-base-color);
 }
-.chords-block .cb-rhythm a.on {
+.chords-block .cb-rhythm a.on,
+.chords-block .cb-segs a.on {
   background: var(--on);
   color: var(--ink);
 }

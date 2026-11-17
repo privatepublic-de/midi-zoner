@@ -54,7 +54,8 @@ export interface Follower {
 }
 
 /** A note on or off, through the follower's `out` */
-export type Send = (out: unknown, on: boolean, n: number, v: number) => void;
+/** `delay`: ticks into this tick (a strum's later notes); 0 = now */
+export type Send = (out: unknown, on: boolean, n: number, v: number, delay?: number) => void;
 
 interface Event {
   at: number;
@@ -395,21 +396,22 @@ export class LiveChords {
     this.queue.push({ at: n.t + n.d, on: false, n: n.n, v: 0, f, token });
   }
 
-  /** Events due by `pos`: note-offs before note-ons at the same time */
+  /** Events due within this tick, each sent with its delay into it (strums): note-offs before note-ons at the same time */
   private fire(pos: number, send: Send): void {
-    const due = this.queue.filter((e) => e.at <= pos + 0.5).sort((a, b) => a.at - b.at || Number(a.on) - Number(b.on));
+    const due = this.queue.filter((e) => e.at < pos + 1 - 1e-6).sort((a, b) => a.at - b.at || Number(a.on) - Number(b.on));
     if (!due.length) return;
     const set = new Set(due);
     this.queue = this.queue.filter((e) => !set.has(e));
     for (const e of due) {
       const v = this.voices.get(e.f);
       if (!v) continue;
+      const delay = Math.max(0, e.at - pos);
       if (e.on) {
-        if (v.sounding.has(e.n)) send(v.out, false, e.n, 0);
-        send(v.out, true, e.n, e.v);
+        if (v.sounding.has(e.n)) send(v.out, false, e.n, 0, delay);
+        send(v.out, true, e.n, e.v, delay);
         v.sounding.set(e.n, e.token);
       } else if (v.sounding.get(e.n) === e.token) {
-        send(v.out, false, e.n, 0);
+        send(v.out, false, e.n, 0, delay);
         v.sounding.delete(e.n);
       }
     }
