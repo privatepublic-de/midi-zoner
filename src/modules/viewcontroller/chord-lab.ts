@@ -17,7 +17,8 @@ import { ZONES_CHANGED_EVENT } from '../zone/interfaces';
 
 interface Hooks {
   zones: () => Zone[];
-  commit: (zoneIndex: number, label: string, change: () => void) => void;
+  /** one undo step changing the zones at `zoneIndex` */
+  commit: (zoneIndex: number | number[], label: string, change: () => void) => void;
   meter: () => Meter;
 }
 
@@ -186,6 +187,7 @@ function build(): void {
       <button data-a="apply">Apply</button>
       <button data-a="another" title="Another good choice">Another</button>
       <button data-a="best" title="Back to the best choice">Best</button>
+      <button data-a="over" title="Clear the chord and bass loops and start fresh: live listens anew for the key, Another goes back to the best choice">Start over</button>
       <label><input type="checkbox" data-k="auto"${state.auto ? ' checked' : ''}> Apply on change</label>
     </div>
     <div class="cl-live"></div>
@@ -235,6 +237,10 @@ function build(): void {
     const a = (ev.target as HTMLElement).closest('[data-a]')?.getAttribute('data-a');
     if ((ev.target as HTMLElement).closest('.cl-close')) toggle();
     if (!a) return;
+    if (a === 'over') {
+      startOver();
+      return;
+    }
     if (a === 'another') state.seed = (state.seed % 9973) + 1;
     if (a === 'best') state.seed = 0;
     save();
@@ -288,7 +294,9 @@ export function initChordLab(h: Hooks): void {
 
 // ---------------------------------------------------------------------------- following
 
-const live = new LiveChords();
+let live = new LiveChords();
+/** after Start over: what was played before this (session position) is not heard */
+let freshFrom = -Infinity;
 let liveZones: { dst: Zone; bass: Zone | null } | null = null;
 
 function sendTo(dst: Zone, bass: Zone | null): Send {
@@ -327,7 +335,7 @@ function heard(src: Zone, songPos: number, meter: Meter): HeardNote[] {
   const from = now - 9 * barTicks(meter);
   return src.noteHistory
     .between(Math.max(from, offset), now + 1)
-    .filter((h) => h.start >= offset)
+    .filter((h) => h.start >= offset && h.start >= freshFrom)
     .map((h) => ({ s: h.start - offset, d: Math.max(1, (h.end ?? now) - h.start), n: h.pitch, v: h.velo, held: h.end === null }));
 }
 
@@ -351,6 +359,42 @@ export function chordLabTick(pos: number): void {
   const meter = hooks.meter();
   const songPos = pos - timeline.sectionStart;
   if (live.tick(songPos, heard(src, songPos, meter), options(), meter, sendTo(dst, bass))) showLive();
+}
+
+/**
+ * Start over: what the lab made goes: the chord (and bass) zone's loop in this arrangement
+ * (one undo step), the live chords sounding, the key and chords live heard; Another back to Best.
+ * The settings stay
+ */
+function startOver(): void {
+  stopLive();
+  live = new LiveChords();
+  // live listens only to what is played from now on
+  freshFrom = timeline.running ? timeline.runStart + nowTick() : -Infinity;
+  state.seed = 0;
+  try {
+    localStorage.setItem('chordLab', JSON.stringify(state));
+  } catch {
+    /* per machine only */
+  }
+  const zones = hooks.zones();
+  const src = zones[state.from];
+  const targets = [state.to, state.bass].filter((i, k, all) => zones[i] && zones[i] !== src && all.indexOf(i) === k && zones[i].loop);
+  const out = panel.querySelector('.cl-out') as HTMLElement;
+  if (targets.some((i) => zones[i].looper.mode !== 'idle')) {
+    toast('A loop there is being recorded: finish that first');
+    return;
+  }
+  if (targets.length) {
+    hooks.commit(targets, 'Clear Chords', () => {
+      for (const i of targets) {
+        zones[i].loop = null;
+        zones[i].loopPlayer.release(true);
+      }
+    });
+  }
+  out.textContent = targets.length ? 'Cleared: Apply, or play with Follow: Live' : 'Nothing to clear: starting fresh';
+  showLive();
 }
 
 /** Start and Stop: live chords start over */

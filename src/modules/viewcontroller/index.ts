@@ -225,9 +225,10 @@ function initController({
   initChordLab({
     zones: () => zones.list,
     commit: (zoneindex, label, change) => {
-      undoHistory.beforeAction(JSON.stringify(zones), labelForZone(zones.list[zoneindex], zoneindex, label));
+      const indices = Array.isArray(zoneindex) ? zoneindex : [zoneindex];
+      undoHistory.beforeAction(JSON.stringify(zones), labelForZone(zones.list[indices[0]], indices[0], label));
       change();
-      updateValuesForZone(zoneindex);
+      indices.forEach((i) => updateValuesForZone(i));
       triggerSave();
       invalidateTrackView();
     },
