@@ -22,6 +22,8 @@ import {
   analyse,
   vocabulary,
   fitOf,
+  chordTones,
+  scaleOf,
   transition,
   changeCost,
   segmentsOf,
@@ -77,7 +79,54 @@ interface Voice {
 
 const WINDOW_BARS = 8;
 /** Ticks after the beat when it listens again */
-const LISTEN = 6;
+const LISTEN = 12; // an 8th: passing and approach notes are mostly let go by then
+
+/** How calm live chords are, from Chord changes: 1 at Slow … 0 at Fast */
+function calmOf(o: HarmonyOptions): number {
+  return 1 - Math.max(0, Math.min(1, o.changes));
+}
+
+/**
+ * How well a chord carries the notes, live: as fitOf(), but a 6th or 9th of the chord that is
+ * in the key counts as its colour (C6, Cadd9), not against it, so a 6th on the beat doesn't
+ * turn C into Am
+ */
+function liveFit(w: number[], c: Chord, key: Key): number {
+  let f = fitOf(w, c, key);
+  const tones = chordTones(c);
+  const scale = scaleOf(key);
+  // a chromatic neighbour (out of the key, a half step from a chord tone: G Ab G, G F# G) decorates
+  // the chord instead of fighting it
+  for (let pc = 0; pc < 12; pc++) {
+    if (!w[pc] || scale.includes(pc) || tones.includes(pc)) continue;
+    const above = tones.includes((pc + 11) % 12);
+    const below = tones.includes((pc + 1) % 12);
+    if (above) f += w[pc] * (1.3 - 0.2);
+    else if (below) f += w[pc] * (0.8 - 0.2);
+  }
+  // a 6th or 9th in the key colours a chord of the key (C6, Cadd9)
+  if (c.kind !== 'dia' || c.quality === 'q' || c.quality === 'sus2' || c.quality === 'sus4' || c.quality === 'dim') return f;
+  for (const i of [2, 9]) {
+    const pc = (c.root + i) % 12;
+    if (w[pc] && scale.includes(pc) && !tones.includes(pc)) f += w[pc] * 0.25;
+  }
+  return f;
+}
+
+/** The weight of notes that really clash with a chord: a half step over a chord tone, or out of the key */
+function clashOf(w: number[], c: Chord, key: Key): number {
+  const tones = chordTones(c);
+  const scale = scaleOf(key);
+  let x = 0;
+  for (let pc = 0; pc < 12; pc++) {
+    if (!w[pc] || tones.includes(pc)) continue;
+    const inKey = scale.includes(pc);
+    const neighbour = tones.includes((pc + 11) % 12) || tones.includes((pc + 1) % 12);
+    // in the key: a half step over a chord tone clashes (F over C-E); out of it: anything but a neighbour
+    if (inKey ? tones.includes((pc + 11) % 12) : !neighbour) x += w[pc];
+  }
+  return x;
+}
 
 export class LiveChords {
   key: Key | null = null;
@@ -207,10 +256,21 @@ export class LiveChords {
       if (h.held || h.s + h.d > seg.t) add({ ...h, d: Math.max(h.d, seg.end - h.s) }, seg.t, seg.end, 1);
       // what led into the beat
       else if (h.s >= seg.t - PPQ / 2 && h.s < seg.t) w[h.n % 12] += 0.4;
-      // played on the beat (listening again just after it)
-      if (onBeat && h.s >= seg.t - 3 && h.s <= now) w[h.n % 12] += 2;
+      // played on the beat (listening again an 8th after it), by its length: a 16th counts half, an 8th or more fully
+      if (onBeat && h.s >= seg.t - 3 && h.s <= now) w[h.n % 12] += 2 * Math.min(1, (h.held ? now - h.s : h.d) / (PPQ / 2));
       // what was played here 1, 2, 4 and 8 bars ago (riffs and phrases repeat)
       [1, 2, 4, 8].forEach((bars, i) => add(h, seg.t - bars * bar, seg.end - bars * bar, [0.5, 0.3, 0.3, 0.4][i]));
+    }
+    // a note outside the key counts half, unless held a beat or more or played again within the bar:
+    // a passing or approach note doesn't take the chord along, a note that stays does
+    if (this.key) {
+      const scale = scaleOf(this.key);
+      for (let pc = 0; pc < 12; pc++) {
+        if (!w[pc] || scale.includes(pc)) continue;
+        const recent = heard.filter((h) => h.n % 12 === pc && h.s >= seg.t - bar && h.s <= now);
+        const stays = recent.length >= 2 || recent.some((h) => (h.held ? now - h.s : h.d) >= PPQ);
+        if (!stays) w[pc] *= 0.5;
+      }
     }
     return w;
   }
@@ -221,11 +281,14 @@ export class LiveChords {
     const len = (seg.end - seg.t) / PPQ;
     const prev = this.chord;
     return vocabulary(key, h).map((c) => {
-      let x = fitOf(w, c, key) + 0.25 * c.prior * len;
+      const calm = calmOf(o);
+      let x = liveFit(w, c, key) + 0.25 * c.prior * len;
       if (prev) {
         const same = prev.root === c.root && prev.quality === c.quality;
-        x += same ? 0.15 : transition(prev, c, key, h) - changeCost(seg, o.changes) + (seg.beat === 0 ? 0.25 * (1 - h) : 0);
+        x += same ? 0.15 + 0.5 * calm : transition(prev, c, key, h) - changeCost(seg, o.changes) + (seg.beat === 0 ? 0.25 * (1 - h) : 0);
       } else if (c.root === key.tonic && c.degree === 0) x += 0.5;
+      // a chord from outside the key (a secondary dominant, borrowed) needs clearer reasons live
+      if (c.kind === 'sec' || c.kind === 'bor') x -= 0.25 + 0.4 * calm;
       if (o.seed) x += (hashRoll(o.seed, seg.bar, c.root, QUALITY_INDEX[c.quality]) - 0.5) * 1.2 * len;
       // the form: what was played here 4 and 8 bars ago
       for (const [bars, k] of [[4, 0.3], [8, 0.5]]) {
@@ -263,7 +326,8 @@ export class LiveChords {
     if (best.chord.root === cur.root && best.chord.quality === cur.quality) return false;
     const mine = ranked.find((r) => r.chord.root === cur.root && r.chord.quality === cur.quality);
     // only when the guess clashes with what was played and the better chord is clearly better
-    if (fitOf(w, cur, this.key) >= 0 || (mine && best.score - mine.score < 1.2)) return false;
+    // only when the guess really clashes with a note held on the beat, and the better chord is clearly better
+    if (clashOf(w, cur, this.key) < 1.5 || (mine && best.score - mine.score < 1.2 + 0.8 * calmOf(o))) return false;
     this.chord = best.chord;
     this.log.set(seg.t, best.chord);
     const segs = barSegments(seg.bar, meter);

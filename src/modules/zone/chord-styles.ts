@@ -36,7 +36,7 @@ export const CHORD_STYLES: ChordStyle[] = [
   {
     id: 'souljazz',
     name: 'Soul jazz',
-    chords: { harmony: 0.3, colour: 0.85, rhythm: 4, length: 0.3, bark: 0.7, changes: 0.65, unfold: 0.2, tensions: 0.7, vary: 0.3 },
+    chords: { harmony: 0.3, colour: 0.85, rhythm: 4, length: 0.3, bark: 0.7, changes: 0.5, unfold: 0.2, tensions: 0.7, vary: 0.3 },
     bass: { bass: 0.8, length: 0.6, sync: 0.5, vary: 0.3 }
   },
   {
@@ -72,7 +72,7 @@ export const CHORD_STYLES: ChordStyle[] = [
   {
     id: 'bossa',
     name: 'Bossa',
-    chords: { harmony: 0.3, colour: 0.8, rhythm: 2, length: 0.65, bark: 0.1, changes: 0.6, unfold: 0.15, tensions: 0.45, vary: 0.2 },
+    chords: { harmony: 0.3, colour: 0.8, rhythm: 2, length: 0.65, bark: 0.1, changes: 0.5, unfold: 0.15, tensions: 0.45, vary: 0.2 },
     bass: { bass: 0.3, length: 0.55, sync: 0.3, vary: 0.15 }
   },
   {
@@ -84,7 +84,7 @@ export const CHORD_STYLES: ChordStyle[] = [
   {
     id: 'gospel',
     name: 'Gospel',
-    chords: { harmony: 0.15, colour: 0.6, rhythm: 1, length: 0.55, bark: 0.55, accents: 0.9, changes: 0.7, unfold: 0.3, tensions: 0.55, vary: 0.3 },
+    chords: { harmony: 0.15, colour: 0.6, rhythm: 1, length: 0.55, bark: 0.55, accents: 0.9, changes: 0.55, unfold: 0.3, tensions: 0.55, vary: 0.3 },
     bass: { bass: 0.75, length: 0.6, sync: 0.2, vary: 0.25 }
   }
 ];

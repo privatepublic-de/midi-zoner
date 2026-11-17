@@ -502,7 +502,7 @@ interface SliderSpec {
 const MORE: Record<ChordPart, SliderSpec[]> = {
   chords: [
     { k: 'accents', label: 'Accents', left: 'On-beat', right: 'Off-beat', title: 'Louder on the beat or off it; with Barking up, where the barks fall (middle: the rhythm\'s own strong hits)' },
-    { k: 'changes', label: 'Chord changes', left: 'Slow', right: 'Fast', title: 'How often the chord changes' },
+    { k: 'changes', label: 'Chord changes', left: 'Slow', right: 'Fast', title: 'How often the chord changes; towards Slow, live chords also let passing and off-key notes go by' },
     { k: 'unfold', label: 'Build-up', left: 'Together', right: 'Note by note', title: 'Chords rolled, the 7th and 9th coming in later' },
     { k: 'register', label: 'Register', left: 'Lower', right: 'Higher', min: -12, max: 12, step: 1, title: 'Where the chords sit: semitones down or up (double-click: back to 0)' },
     { k: 'tensions', label: '7th & 9th', left: 'Softer', right: 'Louder', title: 'The 7th, 9th and b5 softer or louder than the triad' },
