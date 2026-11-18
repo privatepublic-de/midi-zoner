@@ -756,7 +756,7 @@ function contextHandler(ev: MouseEvent): void {
         : '<i class="material-icons">piano</i> Play chords';
     }
     if (parts[1] === 'zone_chords_clear') {
-      return '<i class="material-icons">delete_sweep</i> Clear the chord loop (follow live)';
+      return '<i class="material-icons">delete_sweep</i> Clear chord loop';
     }
     if (parts[1] === 'zone_chords_stop') {
       return `<i class="material-icons">piano_off</i> Stop playing ${zone?.chords?.part === 'bass' ? 'bass' : 'chords'}`;

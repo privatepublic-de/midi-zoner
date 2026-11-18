@@ -6804,30 +6804,26 @@ body.track-view:not(.minimized) .channels > .ch.showchords {
   --cb-pad-w: 190px;
   --cb-pad-h: 104px;
 }
-/* what the zone does now, in words: a dot for live (the live green), its loop (the zone colour) or waiting */
+/* what the zone does now, as a tag at the end of the Follows row: a dot for live (the live green),
+   its loop (the zone colour) or waiting, and a few words; the whole sentence in its tooltip */
 .chords-block .cb-status {
+  margin-left: auto;
   display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin-top: -2px;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
-  color: var(--slate-dim);
-}
-.chords-block .cb-status b {
-  font-weight: 500;
   color: var(--text-base-color);
+  white-space: nowrap;
 }
-.chords-block .cb-status .sep {
-  opacity: 0.5;
-}
-.chords-block .cb-startover {
+/* quiet text actions in the footer (Start over, Back to best) */
+.chords-block .cb-text {
   color: var(--slate-dim);
   text-decoration: underline;
   text-decoration-color: var(--slate-line);
   text-underline-offset: 3px;
   cursor: pointer;
 }
-.chords-block .cb-startover:hover {
+.chords-block .cb-text:hover {
   color: var(--text-base-color);
   text-decoration-color: currentColor;
 }
@@ -6862,11 +6858,8 @@ body.track-view:not(.minimized) .channels > .ch.showchords {
 .chords-block .cb-what + .label {
   min-width: 0;
 }
-.chords-block .cb-style-label {
-  min-width: 0;
-  margin-left: 10px;
-}
 .chords-block select.cb-style,
+.chords-block select.cb-rhythm-sel,
 .chords-block select.cb-follows {
   height: auto;
   line-height: 1.25;
@@ -7024,17 +7017,29 @@ body.track-view:not(.minimized) .channels > .ch.showchords {
 .chords-block .cb-more-toggle .material-icons {
   margin-right: 2px;
 }
-.chords-block .cb-choices {
+.chords-block .cb-actions {
   display: flex;
-  gap: 6px;
+  align-items: center;
+  gap: 14px;
 }
-.chords-block .cb-choices a {
+.chords-block .cb-actions a {
   cursor: pointer;
 }
-.chords-block .cb-choices a[hidden] {
+.chords-block .cb-actions a[hidden] {
   display: none;
 }
+.chords-block .cb-rhythm-row .label {
+  min-width: 0;
+}
+.chords-block .cb-rhythm-row select + .label {
+  margin-left: 10px;
+}
+/* More: how it plays, then which chords, a gap between */
 .chords-block .cb-more {
+  display: grid;
+  gap: 14px;
+}
+.chords-block .cb-group {
   display: grid;
   gap: 4px;
 }
@@ -7068,13 +7073,15 @@ body.track-view:not(.minimized) #zones > .zone.track-selected > .chords-block {
   grid-template-columns: auto 1fr;
   align-content: start;
   column-gap: 28px;
-  grid-template-areas: 'a pads' 'st pads' 'b pads' 'foot pads' 'more pads';
+  grid-template-areas: 'a pads' 'b pads' 'foot pads' 'more pads';
   > .cb-follow-row { grid-area: a; }
-  > .cb-status { grid-area: st; }
   > .cb-rhythm-row { grid-area: b; }
-  > .cb-foot { grid-area: foot; justify-content: flex-start; gap: 16px; }
-  > .cb-more { grid-area: more; }
+  > .cb-foot { grid-area: foot; }
+  > .cb-more { grid-area: more; grid-template-columns: 1fr 1fr; column-gap: 28px; align-items: start; }
   > .cb-pads { grid-area: pads; }
+  /* two groups side by side: shorter end labels, longer sliders */
+  .cb-sl .label { min-width: 72px; }
+  .cb-sl small { width: 40px; }
 }
 .chords-block .cb-more-toggle .material-icons.open {
   transform: rotate(90deg);

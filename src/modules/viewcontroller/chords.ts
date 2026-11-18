@@ -408,12 +408,31 @@ function leaderOf(zone: Zone): Zone | null {
 }
 
 /** The status line of a chords zone's block: what it does now, in words, and a dot (live, loop, waiting) */
-function statusOf(zone: Zone): { dot: 'live' | 'loop' | 'wait'; main: string; more: string[] } {
+function statusOf(zone: Zone): { dot: 'live' | 'loop' | 'wait'; main: string; more: string[]; tag: string } {
+  const st = statusSentence(zone);
+  return { ...st, tag: tagOf(zone, st.dot) };
+}
+
+/** The status in two or three words, for the tag at the end of the Follows row */
+function tagOf(zone: Zone, dot: 'live' | 'loop' | 'wait'): string {
+  const line = lineZoneOf(zone);
+  if (!line) return 'no line';
+  if (!zone.chordsOn) return 'off';
+  // the loop's key while it plays, else the key heard live
+  const plan = zone.loop && zone.loopOn ? planOf(zone) : null;
+  const key = plan?.key ?? deciders.get(line.id)?.key;
+  if (dot === 'loop') return `its loop · ${Take.lengthLabel(zone.loop!.length, hooks.meter())}`;
+  if (!timeline.running) return 'waiting';
+  if (!key) return 'listening…';
+  return `live · ${keyName(key)}`;
+}
+
+function statusSentence(zone: Zone): { dot: 'live' | 'loop' | 'wait'; main: string; more: string[] } {
   const line = lineZoneOf(zone);
   if (!line) return { dot: 'wait', main: 'Not following a line yet', more: ['choose one above'] };
   const leader = leaderOf(zone);
   const from = leader && leader !== zone ? [`chords from ${zoneNumberName(leader)}`] : [];
-  const plan = planOf(zone);
+  const plan = zone.loop && zone.loopOn ? planOf(zone) : null;
   const d = deciders.get(line.id);
   const key = plan?.key ?? d?.key;
   const keyText = key ? [`key ${keyName(key)}`] : [];
@@ -447,14 +466,12 @@ function showStatus(zone: Zone): void {
   const el = blockOf(zone)?.querySelector<HTMLElement>('.cb-status');
   if (!el) return;
   const st = statusOf(zone);
-  const key = `${st.dot}|${st.main}|${st.more.join('|')}`;
+  const key = `${st.dot}|${st.tag}|${st.main}|${st.more.join('|')}`;
   if (el.dataset.key === key) return;
   el.dataset.key = key;
-  // Start over, wherever there is a line to listen to
-  const over = lineZoneOf(zone)
-    ? ` <span class="sep">·</span> <a class="cb-startover" title="Forget what was heard on this line (key and chords) and listen anew, for the chords and the bass; chord loops playing here are switched off (kept)">Start over</a>`
-    : '';
-  el.innerHTML = `<span class="cb-dot-state ${st.dot}"></span><span><b>${escapeHTML(st.main)}</b>${st.more.map((m) => ` <span class="sep">·</span> ${escapeHTML(m)}`).join('')}${over}</span>`;
+  // the tag: a dot and a few words; the whole sentence in its tooltip
+  el.title = [st.main, ...st.more].join(' · ');
+  el.innerHTML = `<span class="cb-dot-state ${st.dot}"></span>${escapeHTML(st.tag)}`;
 }
 
 /**
@@ -589,7 +606,7 @@ const MORE: Record<ChordPart, SliderSpec[]> = {
   chords: [
     { k: 'accents', label: 'Accents', left: 'On-beat', right: 'Off-beat', title: 'Louder on the beat or off it; with Barking up, where the barks fall (middle: the rhythm\'s own strong hits)' },
     { k: 'changes', label: 'Chord changes', left: 'Slow', right: 'Fast', title: 'How often the chord changes; towards Slow, live chords also let passing and off-key notes go by' },
-    { k: 'unfold', label: 'Build-up', left: 'Together', right: 'Note by note', title: 'Chords rolled, the 7th and 9th coming in later' },
+    { k: 'unfold', label: 'Build-up', left: 'Together', right: 'Rolled', title: 'Chords rolled, the 7th and 9th coming in later' },
     { k: 'register', label: 'Register', left: 'Lower', right: 'Higher', min: -12, max: 12, step: 1, title: 'Where the chords sit: semitones down or up (double-click: back to 0)' },
     { k: 'tensions', label: '7th & 9th', left: 'Softer', right: 'Louder', title: 'The 7th, 9th and b5 softer or louder than the triad' },
     { k: 'vary', label: 'Human', left: 'Exact', right: 'Loose', title: 'Velocities vary a little, as a player\'s would' }
@@ -633,7 +650,8 @@ export function renderChordBlock(zone: Zone): void {
     placeDot(pad, s[spec.x] as number, s[spec.y] as number);
     showReadout(pad, spec, s[spec.x] as number, s[spec.y] as number);
   });
-  el.querySelectorAll<HTMLElement>('.cb-rhythm a').forEach((a) => a.classList.toggle('on', Number(a.dataset.rhythm) === s.rhythm));
+  const rs = el.querySelector<HTMLSelectElement>('.cb-rhythm-sel');
+  if (rs && document.activeElement !== rs) rs.value = String(s.rhythm);
   el.querySelectorAll<HTMLElement>('.cb-strum a').forEach((a) => a.classList.toggle('on', Number(a.dataset.strum) === s.strum));
   el.querySelectorAll<HTMLElement>('.cb-blues a').forEach((a) => a.classList.toggle('on', Number(a.dataset.blues) === s.blues));
   const sw = el.querySelector<HTMLInputElement>('input[data-swing]');
@@ -721,21 +739,38 @@ function blockHTML(zone: Zone): string {
       <input type="range" data-k="${m.k}" min="${m.min ?? 0}" max="${m.max ?? 1}" step="${m.step ?? 0.05}" tabindex="-1"><small>${m.right}</small></label>`
     )
     .join('');
+  // More in two groups: how it plays (feel), then which chords (harmony)
+  const row = (k: keyof ChordSettings) => sliders.find((m) => m.k === k);
+  const slider = (m: SliderSpec | undefined) =>
+    m
+      ? `<label class="cb-sl" title="${escapeHTML(m.title)}"><span class="label">${m.label}</span><small>${m.left}</small>
+      <input type="range" data-k="${m.k}" min="${m.min ?? 0}" max="${m.max ?? 1}" step="${m.step ?? 0.05}" tabindex="-1"><small>${m.right}</small></label>`
+      : '';
+  const feel = (part === 'chords' ? strumRow : '') + swingRow + slider(row('accents')) + slider(row('vary'));
+  const chordsGroup =
+    slider(row('changes')) + slider(row('harmony')) + slider(row('tensions')) + (part === 'chords' ? bluesRow : '') + slider(row('unfold')) + slider(row('register'));
+  void more;
   return `
     <div class="cb-row cb-follow-row"><span class="cb-what">${what}</span><span class="label">follows</span>
       <select class="cb-follows" tabindex="-1" title="The zone whose line it plays to">${options}</select>
-      <span class="label cb-style-label">Style</span>
+      <span class="cb-status"></span></div>
+    <div class="cb-row cb-rhythm-row">
+      <span class="label">Style</span>
       <select class="cb-style" tabindex="-1" title="Sets this zone and the other chords and bass zones on the same line together (• : changed since)">
         <option value="">none</option>${CHORD_STYLES.map((st) => `<option value="${st.id}">${escapeHTML(st.name)}</option>`).join('')}
-      </select></div>
-    <div class="cb-status"></div>
-    <div class="cb-row cb-rhythm-row"><span class="label">Rhythm</span><div class="cb-rhythm">${RHYTHM_ORDER.map((i) => `<a data-rhythm="${i}">${RHYTHMS[i]}</a>`).join('')}</div></div>
+      </select>
+      <span class="label">Rhythm</span>
+      <select class="cb-rhythm-sel" tabindex="-1" title="How the chords hit">${RHYTHM_ORDER.map((i) => `<option value="${i}">${RHYTHMS[i]}</option>`).join('')}</select>
+    </div>
     <div class="cb-pads">${pads}</div>
     <div class="cb-row cb-foot">
-      <a class="cb-more-toggle" title="More settings"><i class="material-icons${open ? ' open' : ''}">chevron_right</i>More<small>${open ? '' : ': ' + [...(part === 'chords' ? ['Strum', 'Swing', 'Blues 7ths'] : ['Swing']), ...sliders.map((m) => m.label)].join(', ')}</small></a>
-      ${leads ? '<span class="cb-choices"><a class="lightButton cb-best" title="Back to the chords that fit best" hidden>Back to best</a><a class="lightButton cb-another" title="Other chords that also fit">Other chords</a></span>' : ''}
+      <a class="cb-more-toggle" title="More settings"><i class="material-icons${open ? ' open' : ''}">chevron_right</i>More</a>
+      <span class="cb-actions">
+        ${line ? '<a class="cb-text cb-startover" title="Forget what was heard on this line (key and chords) and listen anew, for the chords and the bass; chord loops playing here are switched off (kept)">Start over</a>' : ''}
+        ${leads ? '<a class="cb-text cb-best" title="Back to the chords that fit best" hidden>Back to best</a><a class="lightButton cb-another" title="Other chords that also fit">Other chords</a>' : ''}
+      </span>
     </div>
-    ${open ? `<div class="cb-more">${part === 'chords' ? strumRow : ''}${swingRow}${part === 'chords' ? bluesRow : ''}${more}</div>` : ''}`;
+    ${open ? `<div class="cb-more"><div class="cb-group">${feel}</div><div class="cb-group">${chordsGroup}</div></div>` : ''}`;
 }
 
 /** A setting changed (one undo step): a loop made of chords is redone, live it applies to the next chord */
@@ -931,6 +966,12 @@ function initBlockEvents(): void {
     if (!t.closest?.('.chords-block')) return;
     const zone = zoneOfEl(t);
     if (!zone?.chords) return;
+    if (t.matches('.cb-rhythm-sel')) {
+      const i = Number((t as HTMLSelectElement).value);
+      (t as HTMLSelectElement).blur();
+      if (i !== zone.chordSet.rhythm) setSettings(zone, { rhythm: i });
+      return;
+    }
     if (t.matches('.cb-style')) {
       const st = styleById((t as HTMLSelectElement).value);
       (t as HTMLSelectElement).blur();
