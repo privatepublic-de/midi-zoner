@@ -101,8 +101,15 @@ function bassUnder(z: Zone): Zone | null {
 
 /** A follower's engine options: its settings, the zone's swing, shells over a bass zone */
 function optionsOf(z: Zone): HarmonyOptions {
-  return { ...harmonyOptions(z.chordSet), swing: z.swingAmount, shell: !!bassUnder(z) };
+  const o = harmonyOptions(z.chordSet);
+  // a second chords zone on the line keeps clear of the first (it doesn't double its notes)
+  const lead = leaderOf(z);
+  const above = z.chords?.part === 'chords' && lead && lead !== z && lead.chords?.part === 'chords' ? SECOND_CHORDS_ABOVE : 0;
+  return { ...o, register: (o.register ?? 0) + above, swing: z.swingAmount, shell: !!bassUnder(z) };
 }
+
+/** How far a second chords zone on the same line sits above the first (semitones) */
+const SECOND_CHORDS_ABOVE = 5;
 
 // ------------------------------------------------------------------------------ live
 
@@ -724,17 +731,22 @@ function blockHTML(zone: Zone): string {
   // a bass zone on a line a chords zone follows: the chords zone chooses the chords
   const leads = leaderOf(zone) === zone || !line;
   const sliders = MORE[part].filter((m) => leads || (m.k !== 'harmony' && m.k !== 'changes'));
+  // a chords zone following another one's choice: Classic ↔ Modal is that zone's
+  const leader = leaderOf(zone);
+  const chosenBy = part === 'chords' && !leads && leader ? zoneNumberName(leader) : '';
   const pads = PADS[part]
-    .map(
-      (p, i) => `
-    <div class="cb-padbox" title="${escapeHTML(p.title)}">
+    .map((p, i) => {
+      const borrowed = chosenBy && i === 0;
+      const title = borrowed ? `${p.title}. Classic ↔ Modal here does nothing: ${chosenBy} chooses the chords on this line` : p.title;
+      return `
+    <div class="cb-padbox" title="${escapeHTML(title)}">
       <div class="cb-pt"><span class="cb-pt-name">${p.name}</span><span class="cb-ro"></span></div>
       <div class="cb-pad" data-pad="${i}">
         <span class="cb-lbl top">${p.top}</span><span class="cb-lbl bottom">${p.bottom}</span>
-        <span class="cb-lbl left">${p.left}</span><span class="cb-lbl right">${p.right}</span>
+        <span class="cb-lbl left${borrowed ? ' off' : ''}">${p.left}</span><span class="cb-lbl right${borrowed ? ' off' : ''}">${p.right}</span>
         <div class="cb-x"></div><div class="cb-y"></div><div class="cb-dot"></div></div>
-    </div>`
-    )
+    </div>`;
+    })
     .join('');
   const open = moreOpen.has(zone.id);
   const swingRow = `<label class="cb-sl" title="The zone's Swing (the same as in its settings): each beat's second half later; about 67 % is a triplet swing"><span class="label">Swing</span><small>Straight</small>
@@ -815,16 +827,25 @@ function applyStyle(zone: Zone, id: string): void {
   const style = styleById(id);
   if (!style) return;
   const line = lineZoneOf(zone);
-  const targets = line ? followersOf(line) : [zone];
+  // the chords change only when the zone choosing them gets the style: then every follower with a
+  // loop made of chords gets the new ones, so they keep agreeing
+  const decides = !!line && leaderOf(zone) === zone;
+  // its zone, and from the zone choosing the chords the bass on the line too; another chords zone
+  // keeps its own style, and a second chords zone's style is its own only
+  const targets = line
+    ? [zone, ...(decides && zone.chords!.part === 'chords' ? followersOf(line).filter((z) => z !== zone && z.chords!.part === 'bass') : [])]
+    : [zone];
   const zs = hooks.zones();
-  const busy = targets.find((z) => z.looper.mode !== 'idle');
+  const redo = line ? (decides ? followersOf(line) : targets).filter((z) => planOf(z)) : [];
+  const touched = [...new Set([...targets, ...redo])];
+  const busy = touched.find((z) => z.looper.mode !== 'idle');
   if (busy) {
     toast(`${escapeHTML(zoneName(busy))}: its loop is being recorded, finish that first`);
     renderChordBlock(zone);
     return;
   }
   hooks.commit(
-    targets.map((z) => zs.indexOf(z)),
+    touched.map((z) => zs.indexOf(z)),
     `Style: ${style.name}`,
     () => {
       for (const z of targets) {
@@ -832,12 +853,17 @@ function applyStyle(zone: Zone, id: string): void {
         z.swingAmount = style.swing ?? 0;
       }
       const src = line && lineOf(line);
-      const withPlan = targets.filter((z) => planOf(z) && src && z.loop!.length === src.length);
+      const withPlan = redo.filter((z) => src && z.loop!.length === src.length);
       if (!line || !src || !withPlan.length) return;
       const lead = leadOf(line);
-      const p = progress(src.notes, src.length, hooks.meter(), harmonyOptions(lead));
-      const plan = { key: p.key, chords: p.chords as (Chord | null)[], length: src.length };
-      withPlan.forEach((z) => renderLoop(z, src, plan, lead, z.looper.anchor));
+      if (decides) {
+        const p = progress(src.notes, src.length, hooks.meter(), harmonyOptions(lead));
+        const plan = { key: p.key, chords: p.chords as (Chord | null)[], length: src.length };
+        withPlan.forEach((z) => renderLoop(z, src, plan, lead, z.looper.anchor));
+      } else {
+        // the same chords, played the new way
+        withPlan.forEach((z) => renderLoop(z, src, planOf(z)!, lead, z.looper.anchor));
+      }
     }
   );
 }

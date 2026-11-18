@@ -6952,6 +6952,11 @@ body.track-view:not(.minimized) .channels > .ch.showchords {
 .chords-block .cb-lbl.bottom {
   bottom: 4px;
 }
+/* on a chords zone following another one's chords: Classic ↔ Modal is that zone's */
+.chords-block .cb-lbl.off {
+  opacity: 0.3;
+  text-decoration: line-through;
+}
 .chords-block .cb-lbl.left,
 .chords-block .cb-lbl.right {
   top: 50%;
