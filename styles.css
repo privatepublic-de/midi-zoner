@@ -6820,6 +6820,17 @@ body.track-view:not(.minimized) .channels > .ch.showchords {
 .chords-block .cb-status .sep {
   opacity: 0.5;
 }
+.chords-block .cb-startover {
+  color: var(--slate-dim);
+  text-decoration: underline;
+  text-decoration-color: var(--slate-line);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.chords-block .cb-startover:hover {
+  color: var(--text-base-color);
+  text-decoration-color: currentColor;
+}
 .chords-block .cb-dot-state {
   flex: none;
   align-self: center;

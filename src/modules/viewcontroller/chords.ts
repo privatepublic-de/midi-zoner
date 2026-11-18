@@ -450,7 +450,37 @@ function showStatus(zone: Zone): void {
   const key = `${st.dot}|${st.main}|${st.more.join('|')}`;
   if (el.dataset.key === key) return;
   el.dataset.key = key;
-  el.innerHTML = `<span class="cb-dot-state ${st.dot}"></span><span><b>${escapeHTML(st.main)}</b>${st.more.map((m) => ` <span class="sep">·</span> ${escapeHTML(m)}`).join('')}</span>`;
+  // Start over, wherever there is a line to listen to
+  const over = lineZoneOf(zone)
+    ? ` <span class="sep">·</span> <a class="cb-startover" title="Forget what was heard on this line (key and chords) and listen anew, for the chords and the bass; chord loops playing here are switched off (kept)">Start over</a>`
+    : '';
+  el.innerHTML = `<span class="cb-dot-state ${st.dot}"></span><span><b>${escapeHTML(st.main)}</b>${st.more.map((m) => ` <span class="sep">·</span> ${escapeHTML(m)}`).join('')}${over}</span>`;
+}
+
+/**
+ * Start over: the line's chords and bass zones forget what they heard (key, chords, notes so far)
+ * and listen anew from now; chord loops playing on the line are switched off, kept (one undo step)
+ */
+function startOver(zone: Zone): void {
+  const line = lineZoneOf(zone);
+  if (!line) return;
+  const fs = followersOf(line);
+  const looping = fs.filter((z) => z.loop && z.loopOn);
+  if (looping.find((z) => z.looper.mode !== 'idle')) {
+    toast('A loop there is being recorded: finish that first');
+    return;
+  }
+  if (looping.length) {
+    const zs = hooks.zones();
+    hooks.commit(
+      looping.map((z) => zs.indexOf(z)),
+      'Start Over',
+      () => looping.forEach((z) => z.setLoopOn(false))
+    );
+  }
+  freshStart(line);
+  toast(`Listening anew to ${escapeHTML(lineLabel(line))}`);
+  fs.forEach((z) => showStatus(z));
 }
 
 /** The chips of chords zones show the chord */
@@ -876,6 +906,10 @@ function initBlockEvents(): void {
     if (r) {
       const i = Number(r.dataset.rhythm);
       if (i !== zone.chordSet.rhythm) setSettings(zone, { rhythm: i });
+      return;
+    }
+    if (t.closest('.cb-startover')) {
+      startOver(zone);
       return;
     }
     if (t.closest('.cb-another')) {
