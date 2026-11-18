@@ -609,8 +609,8 @@ interface Hit {
 }
 
 export const RHYTHMS = ['Held', 'Beats', 'Pushes', 'Backbeat', 'Off-beats', 'Eighths', 'Scattered', 'Charleston'] as const;
-/** The order the Rhythm chips show them in (indices of RHYTHMS; new ones are appended there, saved settings keep theirs) */
-export const RHYTHM_ORDER = [0, 1, 5, 2, 7, 3, 4, 6];
+/** The order the Rhythm dropdown lists them: on the beat from held to busy, then off the beat, then free (indices of RHYTHMS; new ones are appended there, saved settings keep theirs) */
+export const RHYTHM_ORDER = [0, 1, 3, 5, 2, 7, 4, 6];
 
 /** The 8ths of a span, from its start (ticks from the span's start) */
 function eighthsOf(span: { t: number; end: number }, meter: Meter): number[] {

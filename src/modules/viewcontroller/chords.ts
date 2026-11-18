@@ -18,7 +18,7 @@ import { harmonize, progress, segmentsOf, chordName, keyName, RHYTHMS, RHYTHM_OR
 import { LiveChords, HeardNote, Follower, Send, heardChords } from '../zone/live-chords';
 import { ChordPart, ChordPlan, ChordSettings, DEFAULT_CHORD_SETTINGS, harmonyOptions, loopSig } from '../zone/chord-settings';
 import MIDI from '../midi';
-import { CHORD_STYLES, styleById, styleSettings, differsFromStyle } from '../zone/chord-styles';
+import { STYLE_GROUPS, stylesIn, styleById, styleSettings, differsFromStyle } from '../zone/chord-styles';
 
 interface Hooks {
   zones: () => Zone[];
@@ -669,7 +669,7 @@ export function renderChordBlock(zone: Zone): void {
     sel.value = st ? st.id : '';
     const changed = differsFromStyle(s, part);
     for (const opt of sel.options) {
-      const name = styleById(opt.value)?.name ?? 'none';
+      const name = styleById(opt.value)?.name ?? 'No style';
       const text = st && opt.value === st.id && changed ? `${name} •` : name;
       if (opt.textContent !== text) opt.textContent = text;
     }
@@ -757,7 +757,7 @@ function blockHTML(zone: Zone): string {
     <div class="cb-row cb-rhythm-row">
       <span class="label">Style</span>
       <select class="cb-style" tabindex="-1" title="Sets this zone and the other chords and bass zones on the same line together (• : changed since)">
-        <option value="">none</option>${CHORD_STYLES.map((st) => `<option value="${st.id}">${escapeHTML(st.name)}</option>`).join('')}
+        <option value="">No style</option>${STYLE_GROUPS.map((g) => `<optgroup label="${escapeHTML(g)}">${stylesIn(g).map((st) => `<option value="${st.id}">${escapeHTML(st.name)}</option>`).join('')}</optgroup>`).join('')}
       </select>
       <span class="label">Rhythm</span>
       <select class="cb-rhythm-sel" tabindex="-1" title="How the chords hit">${RHYTHM_ORDER.map((i) => `<option value="${i}">${RHYTHMS[i]}</option>`).join('')}</select>

@@ -9,6 +9,8 @@ import { ChordPart, ChordSettings, DEFAULT_CHORD_SETTINGS } from './chord-settin
 export interface ChordStyle {
   id: string;
   name: string;
+  /** the group it is listed under (STYLE_GROUPS) */
+  group: string;
   chords: Partial<ChordSettings>;
   bass: Partial<ChordSettings>;
   /** the zones' Swing (0 … 1; missing: straight) */
@@ -19,36 +21,42 @@ export interface ChordStyle {
 export const CHORD_STYLES: ChordStyle[] = [
   {
     id: 'strings',
-    name: 'Slow string pad',
+    group: 'Calm',
+    name: 'String pad',
     chords: { harmony: 0.25, colour: 0.45, rhythm: 0, length: 0.9, changes: 0.25, unfold: 0.7, register: 5, tensions: 0.4, vary: 0.1 },
     bass: { bass: 0.05, length: 0.9, vary: 0.05 }
   },
   {
     id: 'piano',
+    group: 'Calm',
     name: 'Piano accomp',
     chords: { harmony: 0.3, colour: 0.5, rhythm: 0, length: 0.7, bark: 0.15, unfold: 0.3, strum: 1, vary: 0.35 },
     bass: { bass: 0.3, length: 0.7, sync: 0.1, vary: 0.2 }
   },
   {
     id: 'pop',
+    group: 'Pop & rock',
     name: 'Pop',
     chords: { harmony: 0.35, colour: 0.3, rhythm: 5, length: 0.5, bark: 0.3, strum: 3, register: 2, vary: 0.2 },
     bass: { bass: 0.3, length: 0.55, sync: 0.3, vary: 0.15 }
   },
   {
     id: 'souljazz',
+    group: 'Jazz',
     name: 'Soul jazz',
     chords: { harmony: 0.3, colour: 0.85, rhythm: 4, length: 0.3, bark: 0.7, changes: 0.5, unfold: 0.2, tensions: 0.7, vary: 0.3 },
     bass: { bass: 0.8, length: 0.6, sync: 0.5, vary: 0.3 }
   },
   {
     id: 'freejazz',
+    group: 'Jazz',
     name: 'Free jazz',
     chords: { harmony: 0.97, colour: 0.9, rhythm: 6, length: 0.2, bark: 0.7, changes: 0.9, unfold: 0.3, tensions: 0.7, vary: 1 },
     bass: { bass: 1, length: 0.4, sync: 1, vary: 1 }
   },
   {
     id: 'bebop',
+    group: 'Jazz',
     name: 'Bebop',
     chords: { harmony: 0.15, colour: 0.8, rhythm: 7, length: 0.35, bark: 0.4, changes: 0.75, tensions: 0.6, vary: 0.35 },
     bass: { bass: 0.95, length: 0.7, sync: 0.2, vary: 0.3 },
@@ -56,6 +64,7 @@ export const CHORD_STYLES: ChordStyle[] = [
   },
   {
     id: 'blues',
+    group: 'Pop & rock',
     name: 'Blues shuffle',
     chords: { harmony: 0.1, colour: 0.5, rhythm: 5, length: 0.45, bark: 0.4, changes: 0.35, blues: 1, vary: 0.25 },
     bass: { bass: 0.55, length: 0.6, sync: 0.1, vary: 0.2 },
@@ -63,6 +72,7 @@ export const CHORD_STYLES: ChordStyle[] = [
   },
   {
     id: 'jazzwaltz',
+    group: 'Jazz',
     name: 'Jazz waltz',
     chords: { harmony: 0.2, colour: 0.75, rhythm: 7, length: 0.4, bark: 0.3, changes: 0.6, tensions: 0.55, vary: 0.3 },
     bass: { bass: 0.85, length: 0.7, sync: 0.1, vary: 0.25 },
@@ -70,77 +80,96 @@ export const CHORD_STYLES: ChordStyle[] = [
   },
   {
     id: 'ballad',
+    group: 'Calm',
     name: 'Ballad',
     chords: { harmony: 0.25, colour: 0.8, rhythm: 0, length: 0.9, changes: 0.35, unfold: 0.55, register: 2, tensions: 0.45, vary: 0.2 },
     bass: { bass: 0.3, length: 0.9, vary: 0.1 }
   },
   {
     id: 'naive',
+    group: 'Pop & rock',
     name: 'Naive',
     chords: { harmony: 0.05, colour: 0.15, rhythm: 1, length: 0.6, changes: 0.25 },
     bass: { bass: 0.05, length: 0.6 }
   },
   {
     id: 'country',
+    group: 'Pop & rock',
     name: 'Country',
     chords: { harmony: 0.1, colour: 0.15, rhythm: 3, length: 0.3, bark: 0.3, strum: 1, changes: 0.4, vary: 0.15 },
     bass: { bass: 0.3, length: 0.45, vary: 0.1 }
   },
   {
     id: 'rock',
+    group: 'Pop & rock',
     name: 'Rock',
     chords: { harmony: 0.2, colour: 0.05, rhythm: 5, length: 0.45, bark: 0.45, accents: 0.3, changes: 0.45, register: -3, vary: 0.2 },
     bass: { bass: 0.1, length: 0.5, sync: 0.3, vary: 0.15 }
   },
   {
     id: 'motown',
+    group: 'Soul & groove',
     name: 'Motown',
     chords: { harmony: 0.3, colour: 0.25, rhythm: 3, length: 0.35, bark: 0.5, changes: 0.5, register: 3, vary: 0.2 },
     bass: { bass: 0.65, length: 0.45, sync: 0.55, vary: 0.25 }
   },
   {
     id: 'afrobeat',
+    group: 'Soul & groove',
     name: 'Afrobeat',
     chords: { harmony: 0.6, colour: 0.5, rhythm: 4, length: 0.2, bark: 0.35, changes: 0.25, register: 3, vary: 0.3 },
     bass: { bass: 0.35, length: 0.5, sync: 0.7, vary: 0.35 }
   },
   {
     id: 'reggae',
+    group: 'Soul & groove',
     name: 'Reggae',
     chords: { harmony: 0.3, colour: 0.4, rhythm: 4, length: 0.15, bark: 0.2, changes: 0.35, register: 3, vary: 0.15 },
     bass: { bass: 0.35, length: 0.65, sync: 0.6, vary: 0.4 }
   },
   {
     id: 'funk',
+    group: 'Soul & groove',
     name: 'Funk',
     chords: { harmony: 0.45, colour: 0.9, rhythm: 4, length: 0.1, bark: 0.9, changes: 0.3, register: 3, tensions: 0.6, vary: 0.3 },
     bass: { bass: 0.3, length: 0.3, sync: 1, vary: 0.35 }
   },
   {
     id: 'bossa',
+    group: 'Jazz',
     name: 'Bossa',
     chords: { harmony: 0.3, colour: 0.8, rhythm: 2, length: 0.65, bark: 0.1, changes: 0.5, unfold: 0.15, tensions: 0.45, vary: 0.2 },
     bass: { bass: 0.3, length: 0.55, sync: 0.3, vary: 0.15 }
   },
   {
     id: 'modal',
+    group: 'Calm',
     name: 'Modal',
     chords: { harmony: 0.95, colour: 0.7, rhythm: 0, length: 0.85, changes: 0.2, unfold: 0.5, vary: 0.15 },
     bass: { bass: 0.05, length: 0.85, vary: 0.05 }
   },
   {
     id: 'ambient',
+    group: 'Calm',
     name: 'Ambient',
     chords: { harmony: 0.75, colour: 0.6, rhythm: 0, length: 1, changes: 0.1, unfold: 0.9, register: 7, tensions: 0.4, vary: 0.1 },
     bass: { bass: 0, length: 1 }
   },
   {
     id: 'gospel',
+    group: 'Soul & groove',
     name: 'Gospel',
     chords: { harmony: 0.15, colour: 0.6, rhythm: 1, length: 0.55, bark: 0.55, accents: 0.9, changes: 0.55, unfold: 0.3, tensions: 0.55, vary: 0.3 },
     bass: { bass: 0.75, length: 0.6, sync: 0.2, vary: 0.25 }
   }
 ];
+
+/** The style dropdown's groups, in order; styles alphabetical within each */
+export const STYLE_GROUPS = ['Calm', 'Jazz', 'Soul & groove', 'Pop & rock'];
+
+export function stylesIn(group: string): ChordStyle[] {
+  return CHORD_STYLES.filter((s) => s.group === group).sort((a, b) => a.name.localeCompare(b.name));
+}
 
 export function styleById(id: string): ChordStyle | undefined {
   return CHORD_STYLES.find((s) => s.id === id);
