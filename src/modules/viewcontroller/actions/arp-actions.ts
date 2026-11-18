@@ -1,3 +1,4 @@
+import { chordsSwingChanged } from '../chords';
 import { ActionContext, ActionHelpers, ActionMap } from '../types';
 
 export function createArpActions(
@@ -52,6 +53,8 @@ export function createArpActions(
     },
     zone_swing_amount: () => {
       zone.swingAmount = parseInt((element as HTMLInputElement).value) / 100;
+      // a chords zone's loop made of chords is played anew with it
+      if (zone.chords) chordsSwingChanged(zone);
       updateValuesForZone(zoneindex);
     },
   };

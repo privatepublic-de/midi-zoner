@@ -100,6 +100,12 @@ export interface HarmonyOptions {
   dynamics?: number;
   /** chords: 0 off, 1 down (low notes first, a guitar's downstroke), 2 up (high first), 3 down on the beats and up between */
   strum?: number;
+  /** the zone's swing (0 straight … 1): each beat's second half later, the rest stretched along */
+  swing?: number;
+  /** chords: leave out the root (and the fifth with 9ths) when a bass zone plays it (shell voicings) */
+  shell?: boolean;
+  /** blues: the key's I, IV and V are dominant seventh chords */
+  blues?: boolean;
   /** live: chords kept, per segment (null: free to choose) */
   frozen?: (Chord | null)[];
   /** live: the key found earlier (hysteresis), else analysed */
@@ -271,7 +277,7 @@ function triadOn(key: Key, deg: number): Quality {
 }
 
 /** The chords to choose from, with how much the harmony setting likes each */
-export function vocabulary(key: Key, h: number): Chord[] {
+export function vocabulary(key: Key, h: number, blues = false): Chord[] {
   const s = MODE_STEPS[key.mode];
   const out: Chord[] = [];
   const add = (c: Chord) => {
@@ -291,7 +297,9 @@ export function vocabulary(key: Key, h: number): Chord[] {
     if (quality === 'dim' || quality === 'aug') fn -= 0.6;
     // in minor modes the fifth degree's own chord is weak functionally (no leading tone)
     if (deg === 4 && quality === 'min') fn = 0.35;
-    add({ root, quality, degree: deg, kind: 'dia', prior: lerp(fn, modal, h) });
+    // blues: I, IV and V as dominant sevenths (in place of their triads)
+    const q = blues && (deg === 0 || deg === 3 || deg === 4) && quality !== 'dim' ? ('7' as Quality) : quality;
+    add({ root, quality: q, degree: deg, kind: 'dia', prior: lerp(fn, modal, h) + (q !== quality ? 0.2 : 0) });
   }
   const fifths = 1 - h;
   const middle = 4 * h * (1 - h);
@@ -307,7 +315,8 @@ export function vocabulary(key: Key, h: number): Chord[] {
   // borrowed: iv, bVI, bVII in major modes; IV major in minor ones
   const major = s[2] === 4;
   if (major) {
-    add({ root: (key.tonic + 5) % 12, quality: 'min', degree: -1, kind: 'bor', prior: 0.35 * middle });
+    // (not with blues 7ths: the blues' IV is a dominant seventh, not a minor iv)
+    if (!blues) add({ root: (key.tonic + 5) % 12, quality: 'min', degree: -1, kind: 'bor', prior: 0.35 * middle });
     add({ root: (key.tonic + 8) % 12, quality: 'maj', degree: -1, kind: 'bor', prior: 0.35 * middle });
     add({ root: (key.tonic + 10) % 12, quality: 'maj', degree: -1, kind: 'bor', prior: 0.4 * middle });
   } else {
@@ -402,7 +411,7 @@ export function progress(line: LineNote[], length: number, meter: Meter, o: Harm
   const key = o.key ?? analysis!.keys[0];
   const segs = segmentsOf(length, meter);
   const w = weighSegments(line, length, segs, meter);
-  const voc = vocabulary(key, h);
+  const voc = vocabulary(key, h, !!o.blues);
   const K = voc.length;
   const N = segs.length;
   const frozen = o.frozen ?? [];
@@ -513,7 +522,7 @@ export interface Accompaniment {
 }
 
 /** Chord tones with the colour: sevenths, then ninths, left out where they'd clash with the line */
-function voicedTones(c: Chord, key: Key, colour: number, line: number[], h: number): number[] {
+function voicedTones(c: Chord, key: Key, colour: number, line: number[], h: number, shell = false): number[] {
   const base = QUALITY[c.quality].map((i) => (c.root + i) % 12);
   const scale = scaleOf(key);
   const clash = (pc: number) => line.includes((pc + 1) % 12) || line.includes((pc + 11) % 12);
@@ -534,6 +543,12 @@ function voicedTones(c: Chord, key: Key, colour: number, line: number[], h: numb
     add((c.root + 3 * 5) % 12); // a fourth fourth
   }
   void h;
+  // shells: over a bass zone, a chord with its seventh leaves the root out (and the fifth with a 9th)
+  if (shell && base.length >= 4 && base.some((pc) => pc === (c.root + 10) % 12 || pc === (c.root + 11) % 12)) {
+    base.splice(base.indexOf(c.root % 12), 1);
+    const fifth = (c.root + 7) % 12;
+    if (base.length >= 4 && base.includes(fifth)) base.splice(base.indexOf(fifth), 1);
+  }
   return base;
 }
 
@@ -593,9 +608,9 @@ interface Hit {
   v: number;
 }
 
-export const RHYTHMS = ['Held', 'Beats', 'Pushes', 'Backbeat', 'Off-beats', 'Eighths', 'Scattered'] as const;
+export const RHYTHMS = ['Held', 'Beats', 'Pushes', 'Backbeat', 'Off-beats', 'Eighths', 'Scattered', 'Charleston'] as const;
 /** The order the Rhythm chips show them in (indices of RHYTHMS; new ones are appended there, saved settings keep theirs) */
-export const RHYTHM_ORDER = [0, 1, 5, 2, 3, 4, 6];
+export const RHYTHM_ORDER = [0, 1, 5, 2, 7, 3, 4, 6];
 
 /** The 8ths of a span, from its start (ticks from the span's start) */
 function eighthsOf(span: { t: number; end: number }, meter: Meter): number[] {
@@ -639,6 +654,53 @@ function scatteredHits(span: { t: number; end: number }, meter: Meter, seed: num
   return hits;
 }
 
+/** Charleston patterns in a bar (ticks from its 1, 4/4 positions; cut to shorter bars) */
+const CHARLESTON: number[][] = [
+  [0, 36], // the Charleston: 1, & of 2
+  [0, 36], // (twice as likely)
+  [12, 48], // reverse: & of 1, 3
+  [0, 36, 84], // with a push on the & of 4
+  [36, 84], // only the off-beats
+  [0, 60] // 1 and & of 3
+];
+
+/** Bebop comping: a Charleston pattern per bar (the same each time round); a short hit, the 1 a little longer */
+function charlestonHits(span: { t: number; end: number }, meter: Meter, seed: number): Hit[] {
+  const bar = barTicks(meter);
+  const hits: Hit[] = [];
+  for (let b = Math.floor(span.t / bar); b * bar < span.end; b++) {
+    const pattern = CHARLESTON[Math.floor(hashRoll(seed + 2203, b, 5, 6) * CHARLESTON.length)];
+    pattern.forEach((p, i) => {
+      const t = b * bar + p;
+      if (p < bar && t >= span.t && t < span.end) hits.push({ t: t - span.t, d: p === 0 ? PPQ * 0.9 : PPQ * 0.45, v: i === 0 ? 88 : 80 });
+    });
+  }
+  if (!hits.length) hits.push({ t: 0, d: PPQ * 0.45, v: 80 });
+  hits.forEach((h, k) => (h.d = Math.min(h.d, (k + 1 < hits.length ? hits[k + 1].t : span.end - span.t) - h.t - 1)));
+  return hits.filter((h) => h.d > 0);
+}
+
+/**
+ * Swing: within each beat its second half moves later (by `swing` × half of an 8th, up to a dotted
+ * feel; 0.67 is a triplet swing) and everything in it is stretched along, so 16ths keep their order
+ */
+export function swingWarp(t: number, swing: number): number {
+  if (!swing) return t;
+  const beat = Math.floor(t / PPQ) * PPQ;
+  const at = t - beat;
+  const half = PPQ / 2;
+  const mid = half + swing * (half / 2);
+  return beat + (at < half ? (at * mid) / half : mid + ((at - half) * (PPQ - mid)) / half);
+}
+
+/** A note swung: its start and its end moved by the warp */
+function swungNote(n: LineNote, swing: number): LineNote {
+  if (!swing) return n;
+  const t = swingWarp(n.t, swing);
+  const end = swingWarp(n.t + n.d, swing);
+  return { ...n, t, d: Math.max(1, end - t) };
+}
+
 /** The hits of one chord span, by rhythm style */
 function hitsOf(style: number, span: { t: number; end: number }, meter: Meter, segs: Segment[], seed = 0): Hit[] {
   const len = span.end - span.t;
@@ -658,6 +720,8 @@ function hitsOf(style: number, span: { t: number; end: number }, meter: Meter, s
       return beats.filter((s) => s.beat % 2 === 1).map((s) => ({ t: s.t - span.t, d: Math.min(eighth, s.end - s.t) * 0.7, v: 84 }));
     case 6: // scattered: irregular comping on 8ths and 16ths, a different pattern every bar (with the seed)
       return scatteredHits(span, meter, seed);
+    case 7: // Charleston: 1 and the & of 2, with variations per bar (with the seed)
+      return charlestonHits(span, meter, seed);
     case 5: // every 8th, driving: the bar's 1 loudest, then the beats, the &s lighter
       return eighthsOf(span, meter).map((t) => {
         const at = (((span.t + t) % barTicks(meter)) + barTicks(meter)) % barTicks(meter);
@@ -768,7 +832,7 @@ export function rangeFor(line: LineNote[], o: HarmonyOptions): Range {
 /** A chord's voicing: near the last one, clear of the line's notes (`lineNotes`: sounding with it) */
 export function voiceChord(chord: Chord, key: Key, o: HarmonyOptions, lineNotes: number[], prev: number[] | null, r: Range): number[] {
   const { low, high, over, shift } = r;
-  const tones = voicedTones(chord, key, o.colour, lineNotes.map((n) => n % 12), o.harmony);
+  const tones = voicedTones(chord, key, o.colour, lineNotes.map((n) => n % 12), o.harmony, !!o.shell);
   // power chords (Colour at its very bottom): root, fifth and the octave, no third
   let cands = isPower(o) ? powerVoicings(chord, low, high) : voicings(tones, low, high);
   if (!cands.length) cands = voicings(QUALITY[chord.quality].map((x) => (chord.root + x) % 12), low - 3, high + 7);
@@ -787,7 +851,7 @@ export function voiceChord(chord: Chord, key: Key, o: HarmonyOptions, lineNotes:
 }
 
 /** Each rhythm's loudest hit (hitsOf): its strong hits bark when the accents are in the middle */
-const STYLE_LOUDEST = [76, 90, 92, 84, 80, 96, 92];
+const STYLE_LOUDEST = [76, 90, 92, 84, 80, 96, 92, 88];
 
 /**
  * Dynamics of a hit (`o.dynamics`: 0 even … 1 barking). How strong a hit is comes from the
@@ -905,7 +969,7 @@ export function spanNotes(
       // later strings a little softer, an upstroke lighter
       if (strum && from === hit.t) vel -= order * 3 + (up ? 8 : 0);
       if (o.vary) vel += (hashRoll(o.seed + 7919, Math.round(t * 8), n, 3) - 0.5) * 2 * 14 * o.vary;
-      notes.push({ t, d, n, v: Math.round(Math.max(1, Math.min(127, vel))) });
+      notes.push(swungNote({ t, d, n, v: Math.round(Math.max(1, Math.min(127, vel))) }, o.swing ?? 0));
     });
   });
   return notes;
@@ -960,7 +1024,11 @@ export function bassLine(
 ): { notes: LineNote[]; last: number } {
   const m = Math.max(0, Math.min(1, o.bassMove ?? 0));
   const push = style === 2 ? -PPQ / 2 : 0;
-  const place = (t: number, d: number, n: number, v: number): LineNote => {
+  const place = (t0: number, d0: number, n: number, v: number): LineNote => {
+    // swung on the song's grid, before a loop's wrap
+    const sw = swungNote({ t: t0, d: d0, n, v }, o.swing ?? 0);
+    let t = sw.t;
+    let d = sw.d;
     // an anticipation of bar 1 goes at the loop's end and rings on into the next round
     if (wrap && t < 0) t += wrap;
     else if (wrap) d = Math.min(d, wrap - t);

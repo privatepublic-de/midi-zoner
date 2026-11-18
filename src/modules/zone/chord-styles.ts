@@ -11,9 +11,11 @@ export interface ChordStyle {
   name: string;
   chords: Partial<ChordSettings>;
   bass: Partial<ChordSettings>;
+  /** the zones' Swing (0 … 1; missing: straight) */
+  swing?: number;
 }
 
-// rhythm: 0 Held, 1 Beats, 2 Pushes, 3 Backbeat, 4 Off-beats, 5 Eighths, 6 Scattered. harmony over 0.85: free. colour under 0.1: power chords. accents 0.5 = the rhythm's own strong hits
+// rhythm: 0 Held, 1 Beats, 2 Pushes, 3 Backbeat, 4 Off-beats, 5 Eighths, 6 Scattered, 7 Charleston. harmony over 0.85: free. colour under 0.1: power chords. accents 0.5 = the rhythm's own strong hits
 export const CHORD_STYLES: ChordStyle[] = [
   {
     id: 'strings',
@@ -46,6 +48,33 @@ export const CHORD_STYLES: ChordStyle[] = [
     bass: { bass: 1, length: 0.4, sync: 1, vary: 1 }
   },
   {
+    id: 'bebop',
+    name: 'Bebop',
+    chords: { harmony: 0.15, colour: 0.8, rhythm: 7, length: 0.35, bark: 0.4, changes: 0.75, tensions: 0.6, vary: 0.35 },
+    bass: { bass: 0.95, length: 0.7, sync: 0.2, vary: 0.3 },
+    swing: 0.67
+  },
+  {
+    id: 'blues',
+    name: 'Blues shuffle',
+    chords: { harmony: 0.1, colour: 0.5, rhythm: 5, length: 0.45, bark: 0.4, changes: 0.35, blues: 1, vary: 0.25 },
+    bass: { bass: 0.55, length: 0.6, sync: 0.1, vary: 0.2 },
+    swing: 0.67
+  },
+  {
+    id: 'jazzwaltz',
+    name: 'Jazz waltz',
+    chords: { harmony: 0.2, colour: 0.75, rhythm: 7, length: 0.4, bark: 0.3, changes: 0.6, tensions: 0.55, vary: 0.3 },
+    bass: { bass: 0.85, length: 0.7, sync: 0.1, vary: 0.25 },
+    swing: 0.6
+  },
+  {
+    id: 'ballad',
+    name: 'Ballad',
+    chords: { harmony: 0.25, colour: 0.8, rhythm: 0, length: 0.9, changes: 0.35, unfold: 0.55, register: 2, tensions: 0.45, vary: 0.2 },
+    bass: { bass: 0.3, length: 0.9, vary: 0.1 }
+  },
+  {
     id: 'naive',
     name: 'Naive',
     chords: { harmony: 0.05, colour: 0.15, rhythm: 1, length: 0.6, changes: 0.25 },
@@ -62,6 +91,18 @@ export const CHORD_STYLES: ChordStyle[] = [
     name: 'Rock',
     chords: { harmony: 0.2, colour: 0.05, rhythm: 5, length: 0.45, bark: 0.45, accents: 0.3, changes: 0.45, register: -3, vary: 0.2 },
     bass: { bass: 0.1, length: 0.5, sync: 0.3, vary: 0.15 }
+  },
+  {
+    id: 'motown',
+    name: 'Motown',
+    chords: { harmony: 0.3, colour: 0.25, rhythm: 3, length: 0.35, bark: 0.5, changes: 0.5, register: 3, vary: 0.2 },
+    bass: { bass: 0.65, length: 0.45, sync: 0.55, vary: 0.25 }
+  },
+  {
+    id: 'afrobeat',
+    name: 'Afrobeat',
+    chords: { harmony: 0.6, colour: 0.5, rhythm: 4, length: 0.2, bark: 0.35, changes: 0.25, register: 3, vary: 0.3 },
+    bass: { bass: 0.35, length: 0.5, sync: 0.7, vary: 0.35 }
   },
   {
     id: 'reggae',
@@ -86,6 +127,12 @@ export const CHORD_STYLES: ChordStyle[] = [
     name: 'Modal',
     chords: { harmony: 0.95, colour: 0.7, rhythm: 0, length: 0.85, changes: 0.2, unfold: 0.5, vary: 0.15 },
     bass: { bass: 0.05, length: 0.85, vary: 0.05 }
+  },
+  {
+    id: 'ambient',
+    name: 'Ambient',
+    chords: { harmony: 0.75, colour: 0.6, rhythm: 0, length: 1, changes: 0.1, unfold: 0.9, register: 7, tensions: 0.4, vary: 0.1 },
+    bass: { bass: 0, length: 1 }
   },
   {
     id: 'gospel',

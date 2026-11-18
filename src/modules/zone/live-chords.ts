@@ -282,7 +282,7 @@ export class LiveChords {
     const h = Math.max(0, Math.min(1, o.harmony));
     const len = (seg.end - seg.t) / PPQ;
     const prev = this.chord;
-    return vocabulary(key, h).map((c) => {
+    return vocabulary(key, h, !!o.blues).map((c) => {
       const calm = calmOf(o);
       let x = liveFit(w, c, key) + 0.25 * c.prior * len;
       if (prev) {

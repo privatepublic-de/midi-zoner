@@ -14,7 +14,7 @@ import { takeStore } from '../take-store';
 import { timeline, nowTick, NoteHistory } from '../timeline';
 import { escapeHTML } from '../domutils';
 import { toast } from './toast';
-import { harmonize, progress, segmentsOf, chordName, keyName, RHYTHMS, RHYTHM_ORDER, POWER_BELOW, FREE_FROM, LineNote, Chord, Key } from '../zone/harmonize';
+import { harmonize, progress, segmentsOf, chordName, keyName, RHYTHMS, RHYTHM_ORDER, POWER_BELOW, FREE_FROM, LineNote, Chord, Key, HarmonyOptions } from '../zone/harmonize';
 import { LiveChords, HeardNote, Follower, Send, heardChords } from '../zone/live-chords';
 import { ChordPart, ChordPlan, ChordSettings, DEFAULT_CHORD_SETTINGS, harmonyOptions, loopSig } from '../zone/chord-settings';
 import MIDI from '../midi';
@@ -90,6 +90,18 @@ function lineOf(zone: Zone): { notes: LineNote[]; length: number; anchor: number
     }
   }
   return null;
+}
+
+/** The bass zone playing under a chords zone (on the same line), if any */
+function bassUnder(z: Zone): Zone | null {
+  const line = lineZoneOf(z);
+  if (!line || z.chords?.part !== 'chords') return null;
+  return followersOf(line).find((f) => f !== z && f.chords!.part === 'bass') ?? null;
+}
+
+/** A follower's engine options: its settings, the zone's swing, shells over a bass zone */
+function optionsOf(z: Zone): HarmonyOptions {
+  return { ...harmonyOptions(z.chordSet), swing: z.swingAmount, shell: !!bassUnder(z) };
 }
 
 // ------------------------------------------------------------------------------ live
@@ -168,7 +180,7 @@ export function chordsTick(pos: number, tickIntervalMs = 0): void {
     }
     if (!d) deciders.set(line.id, (d = new LiveChords()));
     seen.add(line.id);
-    const followers: Follower[] = fs.map((z) => ({ id: z.id, part: z.chords!.part, o: harmonyOptions(z.chordSet), out: z }));
+    const followers: Follower[] = fs.map((z) => ({ id: z.id, part: z.chords!.part, o: optionsOf(z), out: z }));
     d.tick(songPos, heard(line, songPos, meter), followers, meter, send);
   }
   for (const [id, d] of deciders) if (!seen.has(id)) d.stop(send);
@@ -223,7 +235,7 @@ function leadOf(line: Zone): ChordSettings {
 /** Writes a follower's loop from a plan (inside a commit) */
 function renderLoop(z: Zone, src: { notes: LineNote[]; length: number }, plan: { key: Key; chords: (Chord | null)[]; length: number }, lead: ChordSettings, anchor: number): void {
   const o = {
-    ...harmonyOptions(z.chordSet),
+    ...optionsOf(z),
     harmony: lead.harmony,
     changes: lead.changes,
     seed: lead.seed,
@@ -303,6 +315,15 @@ export function chordsLineLoopChanged(line: Zone): void {
   // followers set to follow live (their loop off) or with a loop edited by hand keep theirs
   const fs = followersOf(line).filter((z) => z.chordsOn && (!z.loop || (z.loopOn && planOf(z))));
   if (fs.length) makeLoops(line, fs, 'Chords', true);
+}
+
+/** The zone's Swing changed (inside the action's undo step): its loop made of chords is played anew */
+export function chordsSwingChanged(zone: Zone): void {
+  const line = lineZoneOf(zone);
+  const plan = planOf(zone);
+  const src = line && lineOf(line);
+  if (!zone.chords || !plan || !src || src.length !== plan.length) return;
+  renderLoop(zone, src, plan, leadOf(line!), zone.looper.anchor);
 }
 
 /** A chords zone's Loop chip switched on again: in step with the line */
@@ -410,7 +431,9 @@ function statusOf(zone: Zone): { dot: 'live' | 'loop' | 'wait'; main: string; mo
     return { dot: 'wait', main: 'Waiting for the clock', more: [`plays to ${label} while it runs`, ...(zone.loop ? ['its loop is kept, switched off'] : [])] };
   }
   if (!d?.key) return { dot: 'live', main: `Listening to ${label}`, more: ['chords come in once it has heard a few notes'] };
-  return { dot: 'live', main: `Following ${label} live`, more: [...from, ...(zone.loop ? [] : ['Loop keeps these chords']), ...keyText] };
+  const under = bassUnder(zone);
+  const shells = under ? [`rootless over ${zoneNumberName(under)}`] : [];
+  return { dot: 'live', main: `Following ${label} live`, more: [...from, ...shells, ...(zone.loop ? [] : ['Loop keeps these chords']), ...keyText] };
 }
 
 /** "2 E-Piano" */
@@ -582,7 +605,10 @@ export function renderChordBlock(zone: Zone): void {
   });
   el.querySelectorAll<HTMLElement>('.cb-rhythm a').forEach((a) => a.classList.toggle('on', Number(a.dataset.rhythm) === s.rhythm));
   el.querySelectorAll<HTMLElement>('.cb-strum a').forEach((a) => a.classList.toggle('on', Number(a.dataset.strum) === s.strum));
-  el.querySelectorAll<HTMLInputElement>('.cb-more input[type=range]').forEach((inp) => {
+  el.querySelectorAll<HTMLElement>('.cb-blues a').forEach((a) => a.classList.toggle('on', Number(a.dataset.blues) === s.blues));
+  const sw = el.querySelector<HTMLInputElement>('input[data-swing]');
+  if (sw && document.activeElement !== sw) sw.value = String(zone.swingAmount);
+  el.querySelectorAll<HTMLInputElement>('.cb-more input[type=range][data-k]').forEach((inp) => {
     const k = inp.dataset.k as keyof ChordSettings;
     if (document.activeElement !== inp) inp.value = String(s[k]);
   });
@@ -653,6 +679,10 @@ function blockHTML(zone: Zone): string {
     )
     .join('');
   const open = moreOpen.has(zone.id);
+  const swingRow = `<label class="cb-sl" title="The zone's Swing (the same as in its settings): each beat's second half later; about 67 % is a triplet swing"><span class="label">Swing</span><small>Straight</small>
+      <input type="range" data-swing min="0" max="1" step="0.01" tabindex="-1"><small>Swung</small></label>`;
+  const bluesRow = `<div class="cb-sl" title="Blues: the key's I, IV and V are dominant seventh chords"><span class="label">Blues 7ths</span>
+      <div class="cb-segs cb-blues"><a data-blues="0">Off</a><a data-blues="1">On</a></div></div>`;
   const strumRow = `<div class="cb-sl" title="Notes of a chord one after another, quickly, as on a guitar: Down plays the low notes first, Up the high ones first (lighter), Down &amp; up downstrokes on the beats and upstrokes between"><span class="label">Strum</span>
       <div class="cb-segs cb-strum">${STRUMS.map((name, i) => `<a data-strum="${i}">${escapeHTML(name)}</a>`).join('')}</div></div>`;
   const more = sliders
@@ -672,10 +702,10 @@ function blockHTML(zone: Zone): string {
     <div class="cb-row cb-rhythm-row"><span class="label">Rhythm</span><div class="cb-rhythm">${RHYTHM_ORDER.map((i) => `<a data-rhythm="${i}">${RHYTHMS[i]}</a>`).join('')}</div></div>
     <div class="cb-pads">${pads}</div>
     <div class="cb-row cb-foot">
-      <a class="cb-more-toggle" title="More settings"><i class="material-icons${open ? ' open' : ''}">chevron_right</i>More<small>${open ? '' : ': ' + [...(part === 'chords' ? ['Strum'] : []), ...sliders.map((m) => m.label)].join(', ')}</small></a>
+      <a class="cb-more-toggle" title="More settings"><i class="material-icons${open ? ' open' : ''}">chevron_right</i>More<small>${open ? '' : ': ' + [...(part === 'chords' ? ['Strum', 'Swing', 'Blues 7ths'] : ['Swing']), ...sliders.map((m) => m.label)].join(', ')}</small></a>
       ${leads ? '<span class="cb-choices"><a class="lightButton cb-best" title="Back to the chords that fit best" hidden>Back to best</a><a class="lightButton cb-another" title="Other chords that also fit">Other chords</a></span>' : ''}
     </div>
-    ${open ? `<div class="cb-more">${part === 'chords' ? strumRow : ''}${more}</div>` : ''}`;
+    ${open ? `<div class="cb-more">${part === 'chords' ? strumRow : ''}${swingRow}${part === 'chords' ? bluesRow : ''}${more}</div>` : ''}`;
 }
 
 /** A setting changed (one undo step): a loop made of chords is redone, live it applies to the next chord */
@@ -722,7 +752,10 @@ function applyStyle(zone: Zone, id: string): void {
     targets.map((z) => zs.indexOf(z)),
     `Style: ${style.name}`,
     () => {
-      for (const z of targets) z.chordSet = styleSettings(style, z.chords!.part);
+      for (const z of targets) {
+        z.chordSet = styleSettings(style, z.chords!.part);
+        z.swingAmount = style.swing ?? 0;
+      }
       const src = line && lineOf(line);
       const withPlan = targets.filter((z) => planOf(z) && src && z.loop!.length === src.length);
       if (!line || !src || !withPlan.length) return;
@@ -811,7 +844,13 @@ function initBlockEvents(): void {
     if (pad) {
       const spec = PADS[zone.chords.part][parseInt(pad.dataset.pad!)];
       setSettings(zone, { [spec.x]: MIDDLE[spec.x] ?? 0.5, [spec.y]: MIDDLE[spec.y] ?? 0.5 } as Partial<ChordSettings>);
-    } else if (t.matches('.chords-block .cb-more input[type=range]')) {
+    } else if (t.matches('.chords-block input[data-swing]')) {
+      const zs = hooks.zones();
+      hooks.commit([zs.indexOf(zone)], 'Swing', () => {
+        zone.swingAmount = 0;
+        chordsSwingChanged(zone);
+      });
+    } else if (t.matches('.chords-block .cb-more input[type=range][data-k]')) {
       const k = (t as HTMLInputElement).dataset.k as keyof ChordSettings;
       setSettings(zone, { [k]: MIDDLE[k] ?? 0.5 } as Partial<ChordSettings>);
     }
@@ -821,6 +860,12 @@ function initBlockEvents(): void {
     if (!t.closest?.('.chords-block')) return;
     const zone = zoneOfEl(t);
     if (!zone?.chords) return;
+    const bl = t.closest<HTMLElement>('.cb-blues a');
+    if (bl) {
+      const i = Number(bl.dataset.blues);
+      if (i !== zone.chordSet.blues) setSettings(zone, { blues: i }, 'Chords: Blues 7ths');
+      return;
+    }
     const st = t.closest<HTMLElement>('.cb-strum a');
     if (st) {
       const i = Number(st.dataset.strum);
@@ -867,6 +912,16 @@ function initBlockEvents(): void {
       });
       const line = lineZoneOf(zone);
       if (line) freshStart(line);
+      return;
+    }
+    if (t.matches('input[data-swing]')) {
+      const v = parseFloat((t as HTMLInputElement).value);
+      (t as HTMLInputElement).blur();
+      const zs = hooks.zones();
+      hooks.commit([zs.indexOf(zone)], 'Swing', () => {
+        zone.swingAmount = v;
+        chordsSwingChanged(zone);
+      });
       return;
     }
     if (t.matches('.cb-more input[type=range]')) {
