@@ -755,27 +755,31 @@ function mud(v: number[]): number {
  * The chords' range: under a line that sits high, over one that sits low (as a right hand
  * over a bass line), in the middle for a wide one; `register` shifts it (semitones)
  */
-export function registerFor(line: LineNote[], register = 0): { low: number; high: number; over: boolean } {
+export function registerFor(line: LineNote[], register = 0): { low: number; high: number; over: boolean; around: boolean } {
   const sorted = line.map((n) => n.n).sort((a, b) => a - b);
   const at = (q: number) => (sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * q))] : 72);
   const lineLow = at(0.2);
   const lineHigh = at(0.8);
-  let low: number, high: number, over = false;
-  if (lineLow - 1 - 10 >= FLOOR + 2) {
-    // room under the line (an octave at least above the floor): up to an octave and a half below it
-    high = Math.min(79, lineLow - 1);
-    low = Math.max(FLOOR + 2, high - 17);
-  } else if (lineHigh + 1 + 14 <= 84) {
-    over = true;
-    low = Math.max(CLOSE_FLOOR, lineHigh + 1);
-    high = low + 16;
-  } else {
-    low = CLOSE_FLOOR;
-    high = 72;
-  }
+  // under the line, as a pianist's left hand under a melody: centred 8 semitones under its lower notes,
+  // never under G3 (lower gets muddy) nor over G#4; a line lower than that has the chords around it,
+  // only a bass line (under E3) has them over it. It moves smoothly with the line, no jumps
+  const bassLine = lineHigh < BASS_LINE_UNDER;
+  const centre = bassLine
+    ? Math.min(64, Math.max(CENTRE_LOW + 4, lineHigh + 8))
+    : Math.min(CENTRE_HIGH, Math.max(CENTRE_LOW, lineLow - 8));
+  const low = centre - 7;
+  const high = centre + 8;
+  const over = bassLine;
+  const around = !over && lineLow - 1 < high - 2;
   const shift = Math.round(register);
-  return { low: Math.max(FLOOR - 12, low + shift), high: Math.min(108, high + shift), over };
+  return { low: Math.max(FLOOR - 12, low + shift), high: Math.min(108, high + shift), over, around };
 }
+
+/** Chords centre: not under G3, not over G#4 (a 15-semitone range around it) */
+const CENTRE_LOW = 55;
+const CENTRE_HIGH = 68;
+/** A line all under this (E3) is a bass line: the chords go over it */
+const BASS_LINE_UNDER = 52;
 
 /** A hit's length: 0 a stab (a 16th at most), 0.5 the rhythm's own, 1 up to the next hit (legato) */
 function hitLength(hit: Hit, next: number, length: number): number {
@@ -820,18 +824,20 @@ export interface Range {
   low: number;
   high: number;
   over: boolean;
+  /** the chords sit around the line (it's too low to go under): crossing it is fine */
+  around: boolean;
   shift: number;
 }
 
 export function rangeFor(line: LineNote[], o: HarmonyOptions): Range {
   const reg = registerFor(line, o.register ?? 0);
   // a register moved towards the line may cross into it
-  return { low: o.low ?? reg.low, high: o.high ?? reg.high, over: reg.over, shift: Math.round(o.register ?? 0) };
+  return { low: o.low ?? reg.low, high: o.high ?? reg.high, over: reg.over, around: reg.around, shift: Math.round(o.register ?? 0) };
 }
 
 /** A chord's voicing: near the last one, clear of the line's notes (`lineNotes`: sounding with it) */
 export function voiceChord(chord: Chord, key: Key, o: HarmonyOptions, lineNotes: number[], prev: number[] | null, r: Range): number[] {
-  const { low, high, over, shift } = r;
+  const { low, high, over, around, shift } = r;
   const tones = voicedTones(chord, key, o.colour, lineNotes.map((n) => n % 12), o.harmony, !!o.shell);
   // power chords (Colour at its very bottom): root, fifth and the octave, no third
   let cands = isPower(o) ? powerVoicings(chord, low, high) : voicings(tones, low, high);
@@ -843,9 +849,11 @@ export function voiceChord(chord: Chord, key: Key, o: HarmonyOptions, lineNotes:
     Math.abs(v.reduce((a, b) => a + b, 0) / v.length - (low + high) / 2) * (prev ? 0.6 : 2) +
     // no voice a half step from the line
     v.filter((x) => lineNotes.some((m) => m - x === 1 || x - m === 1)).length * 4 +
-    (over
-      ? Math.max(0, (lineNotes.length ? Math.max(...lineNotes) : 0) + Math.min(0, shift) - v[0]) * 0.8
-      : Math.max(0, v[v.length - 1] - (lineNotes.length ? Math.min(...lineNotes) : 127) - Math.max(0, shift)) * 0.8) +
+    (around
+      ? 0
+      : over
+        ? Math.max(0, (lineNotes.length ? Math.max(...lineNotes) : 0) + Math.min(0, shift) - v[0]) * 0.8
+        : Math.max(0, v[v.length - 1] - (lineNotes.length ? Math.min(...lineNotes) : 127) - Math.max(0, shift)) * 0.8) +
     mud(v);
   return cands.reduce((a, b) => (cost(b) < cost(a) ? b : a), cands[0]);
 }

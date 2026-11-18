@@ -23,7 +23,7 @@ export const CHORD_STYLES: ChordStyle[] = [
     id: 'strings',
     group: 'Calm',
     name: 'String pad',
-    chords: { harmony: 0.25, colour: 0.45, rhythm: 0, length: 0.9, changes: 0.25, unfold: 0.7, register: 5, tensions: 0.4, vary: 0.1 },
+    chords: { harmony: 0.25, colour: 0.45, rhythm: 0, length: 0.9, changes: 0.25, unfold: 0.7, register: 3, tensions: 0.4, vary: 0.1 },
     bass: { bass: 0.05, length: 0.9, vary: 0.05 }
   },
   {
@@ -37,7 +37,7 @@ export const CHORD_STYLES: ChordStyle[] = [
     id: 'pop',
     group: 'Pop & rock',
     name: 'Pop',
-    chords: { harmony: 0.35, colour: 0.3, rhythm: 5, length: 0.5, bark: 0.3, strum: 3, register: 2, vary: 0.2 },
+    chords: { harmony: 0.35, colour: 0.3, rhythm: 5, length: 0.5, bark: 0.3, strum: 3, register: 0, vary: 0.2 },
     bass: { bass: 0.3, length: 0.55, sync: 0.3, vary: 0.15 }
   },
   {
@@ -82,7 +82,7 @@ export const CHORD_STYLES: ChordStyle[] = [
     id: 'ballad',
     group: 'Calm',
     name: 'Ballad',
-    chords: { harmony: 0.25, colour: 0.8, rhythm: 0, length: 0.9, changes: 0.35, unfold: 0.55, register: 2, tensions: 0.45, vary: 0.2 },
+    chords: { harmony: 0.25, colour: 0.8, rhythm: 0, length: 0.9, changes: 0.35, unfold: 0.55, register: 0, tensions: 0.45, vary: 0.2 },
     bass: { bass: 0.3, length: 0.9, vary: 0.1 }
   },
   {
@@ -110,28 +110,28 @@ export const CHORD_STYLES: ChordStyle[] = [
     id: 'motown',
     group: 'Soul & groove',
     name: 'Motown',
-    chords: { harmony: 0.3, colour: 0.25, rhythm: 3, length: 0.35, bark: 0.5, changes: 0.5, register: 3, vary: 0.2 },
+    chords: { harmony: 0.3, colour: 0.25, rhythm: 3, length: 0.35, bark: 0.5, changes: 0.5, register: 1, vary: 0.2 },
     bass: { bass: 0.65, length: 0.45, sync: 0.55, vary: 0.25 }
   },
   {
     id: 'afrobeat',
     group: 'Soul & groove',
     name: 'Afrobeat',
-    chords: { harmony: 0.6, colour: 0.5, rhythm: 4, length: 0.2, bark: 0.35, changes: 0.25, register: 3, vary: 0.3 },
+    chords: { harmony: 0.6, colour: 0.5, rhythm: 4, length: 0.2, bark: 0.35, changes: 0.25, register: 1, vary: 0.3 },
     bass: { bass: 0.35, length: 0.5, sync: 0.7, vary: 0.35 }
   },
   {
     id: 'reggae',
     group: 'Soul & groove',
     name: 'Reggae',
-    chords: { harmony: 0.3, colour: 0.4, rhythm: 4, length: 0.15, bark: 0.2, changes: 0.35, register: 3, vary: 0.15 },
+    chords: { harmony: 0.3, colour: 0.4, rhythm: 4, length: 0.15, bark: 0.2, changes: 0.35, register: 1, vary: 0.15 },
     bass: { bass: 0.35, length: 0.65, sync: 0.6, vary: 0.4 }
   },
   {
     id: 'funk',
     group: 'Soul & groove',
     name: 'Funk',
-    chords: { harmony: 0.45, colour: 0.9, rhythm: 4, length: 0.1, bark: 0.9, changes: 0.3, register: 3, tensions: 0.6, vary: 0.3 },
+    chords: { harmony: 0.45, colour: 0.9, rhythm: 4, length: 0.1, bark: 0.9, changes: 0.3, register: 1, tensions: 0.6, vary: 0.3 },
     bass: { bass: 0.3, length: 0.3, sync: 1, vary: 0.35 }
   },
   {
@@ -152,7 +152,7 @@ export const CHORD_STYLES: ChordStyle[] = [
     id: 'ambient',
     group: 'Calm',
     name: 'Ambient',
-    chords: { harmony: 0.75, colour: 0.6, rhythm: 0, length: 1, changes: 0.1, unfold: 0.9, register: 7, tensions: 0.4, vary: 0.1 },
+    chords: { harmony: 0.75, colour: 0.6, rhythm: 0, length: 1, changes: 0.1, unfold: 0.9, register: 4, tensions: 0.4, vary: 0.1 },
     bass: { bass: 0, length: 1 }
   },
   {
