@@ -6907,60 +6907,74 @@ body.track-view:not(.minimized) .channels > .ch.showchords {
 }
 .chords-block .cb-padbox {
   display: grid;
-  grid-template-rows: auto 1fr auto;
-  gap: 2px;
+  grid-template-rows: auto 1fr;
+  gap: 3px;
 }
-/* the pad's name and, at its right, what it is set to (bright while it's dragged) */
+/* the pad's name; while it's dragged what it is set to in its place */
 .chords-block .cb-pt {
   color: var(--text-base-color);
   font-size: 12px;
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-}
-.chords-block .cb-ro {
-  font-size: 11px;
-  color: var(--slate-dim);
   white-space: nowrap;
 }
+.chords-block .cb-ro {
+  display: none;
+}
+.chords-block .cb-padbox.drag .cb-pt-name {
+  display: none;
+}
 .chords-block .cb-padbox.drag .cb-ro {
-  color: var(--text-base-color);
+  display: inline;
 }
 .chords-block .cb-padbox.drag .cb-pad {
   border-color: color-mix(in srgb, var(--zone-color) 60%, var(--slate-line));
 }
-/* the up-down ends, set level inside the pad's left edge */
-.chords-block .cb-yin {
+/* the four ends, centred on the pad's edges inside it: where the dot goes towards each; over the
+   dot and its lines (the words stay readable, the dot shows round the letters), no plate, a thin dark outline */
+.chords-block .cb-lbl {
   position: absolute;
-  left: 5px;
-  padding: 1px 2px;
+  z-index: 2;
   font-size: 10px;
   line-height: 1;
-  color: var(--slate-dim);
-  background: color-mix(in srgb, var(--slate-inset) 85%, transparent);
+  color: var(--text-base-color);
+  opacity: 0.75;
+  text-shadow: 0 0 2px var(--slate-inset), 0 0 2px var(--slate-inset), 0 0 1px #000;
+  white-space: nowrap;
   pointer-events: none;
 }
-.chords-block .cb-yin.top {
+.chords-block .cb-lbl.top,
+.chords-block .cb-lbl.bottom {
+  left: 50%;
+  transform: translateX(-50%);
+}
+.chords-block .cb-lbl.top {
   top: 4px;
 }
-.chords-block .cb-yin.bottom {
+.chords-block .cb-lbl.bottom {
   bottom: 4px;
 }
-.chords-block .cb-xl {
-  color: var(--slate-dim);
-  font-size: 10px;
-  display: flex;
-  justify-content: space-between;
+.chords-block .cb-lbl.left,
+.chords-block .cb-lbl.right {
+  top: 50%;
+  transform: translateY(-50%);
+}
+.chords-block .cb-lbl.left {
+  left: 5px;
+}
+.chords-block .cb-lbl.right {
+  right: 5px;
 }
 .chords-block .cb-pad {
   position: relative;
   width: var(--cb-pad-w);
   height: var(--cb-pad-h);
   background-color: var(--slate-inset);
-  background-image: linear-gradient(var(--slate-line) 1px, transparent 1px), linear-gradient(90deg, var(--slate-line) 1px, transparent 1px);
-  background-size: 25% 33.33%;
-  background-position: -1px -1px;
+  /* only the middle cross: the neutral setting, where the lines from the dot end (no grid: the pads are continuous) */
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--slate-dim) 45%, transparent), color-mix(in srgb, var(--slate-dim) 45%, transparent)),
+    linear-gradient(color-mix(in srgb, var(--slate-dim) 45%, transparent), color-mix(in srgb, var(--slate-dim) 45%, transparent));
+  background-size: 100% 1px, 1px 100%;
+  background-position: 0 50%, 50% 0;
+  background-repeat: no-repeat, no-repeat;
   border: 1px solid var(--slate-line);
   border-radius: var(--radius);
   cursor: crosshair;
@@ -6982,21 +6996,20 @@ body.track-view:not(.minimized) .channels > .ch.showchords {
   height: 16px;
   margin: -8px;
 }
+/* lines from the dot to the pad's middle lines (placeDot()): how far from the middle, each way */
 .chords-block .cb-x,
 .chords-block .cb-y {
   position: absolute;
-  background: color-mix(in srgb, var(--zone-color) 45%, transparent);
+  background: color-mix(in srgb, var(--zone-color) 70%, transparent);
   pointer-events: none;
 }
 .chords-block .cb-x {
-  top: 0;
-  bottom: 0;
-  width: 1px;
+  width: 2px;
+  margin-left: -1px;
 }
 .chords-block .cb-y {
-  left: 0;
-  right: 0;
-  height: 1px;
+  height: 2px;
+  margin-top: -1px;
 }
 .chords-block .cb-foot {
   justify-content: space-between;

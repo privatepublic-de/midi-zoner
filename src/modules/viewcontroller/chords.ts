@@ -582,12 +582,12 @@ interface PadSpec {
 
 const PADS: Record<ChordPart, PadSpec[]> = {
   chords: [
-    { name: 'Harmony', x: 'harmony', y: 'colour', left: 'Fifths', right: 'Modal · Free', bottom: 'Power', top: '7 / 9', title: 'Left: chords along the circle of fifths, right: modal, at the far right free (chords from outside the key). Up: sevenths and ninths, down: triads, at the very bottom power chords (root and fifth) (double-click: middle)' },
-    { name: 'Feel', x: 'length', y: 'bark', left: 'Stabs', right: 'Legato', bottom: 'Even', top: 'Barking', title: 'Left: short stabs, right: held. Up: the strong hits bark (loud and short), the others are soft and held (double-click: middle, even)' }
+    { name: 'Chords', x: 'harmony', y: 'colour', left: 'Classic', right: 'Modal', bottom: 'Plain', top: 'Rich', title: 'Which chords: classic (along the circle of fifths) to modal, at the far right free (chords from outside the key); plain triads to rich sevenths and ninths, at the very bottom power chords (double-click: middle)' },
+    { name: 'Feel', x: 'length', y: 'bark', left: 'Short', right: 'Long', bottom: 'Soft', top: 'Punchy', title: 'How they are played: short stabs to long and held; even and soft to punchy, the strong hits loud and short (an e-piano\'s barks) over a soft held cushion (double-click: middle)' }
   ],
   bass: [
-    { name: 'Bass', x: 'bass', y: 'length', left: 'Roots', right: 'Walking', bottom: 'Stabs', top: 'Legato', title: 'Left: the roots held, right: walking with approach notes. Down: short, up: held (double-click: middle)' },
-    { name: 'Feel', x: 'sync', y: 'vary', left: 'Straight', right: 'Syncopated', bottom: 'Exact', top: 'Loose', title: 'Left: straight, right: anticipations, off-beats and pickups. Down: exact, up: loose, as a player would (double-click: straight)' }
+    { name: 'Line', x: 'bass', y: 'sync', left: 'Roots', right: 'Walking', bottom: 'Straight', top: 'Syncopated', title: 'Which notes and when: the roots held to walking with approach notes and skips; straight to syncopated, with anticipations, off-beats and pickups (double-click: middle, straight)' },
+    { name: 'Feel', x: 'length', y: 'vary', left: 'Short', right: 'Long', bottom: 'Tight', top: 'Loose', title: 'How it is played: short to long and held; tight and even to loose, as a player would (double-click: middle)' }
   ]
 };
 
@@ -699,8 +699,17 @@ function placeDot(pad: HTMLElement, x: number, y: number): void {
   const dot = pad.querySelector<HTMLElement>('.cb-dot')!;
   const lx = pad.querySelector<HTMLElement>('.cb-x')!;
   const ly = pad.querySelector<HTMLElement>('.cb-y')!;
-  dot.style.left = lx.style.left = `${x * 100}%`;
-  dot.style.top = ly.style.top = `${(1 - y) * 100}%`;
+  const px = x * 100;
+  const py = (1 - y) * 100;
+  dot.style.left = `${px}%`;
+  dot.style.top = `${py}%`;
+  // each line from the dot to the pad's middle: how far the setting is from the middle, each way
+  lx.style.left = `${px}%`;
+  lx.style.top = `${Math.min(py, 50)}%`;
+  lx.style.height = `${Math.abs(py - 50)}%`;
+  ly.style.top = `${py}%`;
+  ly.style.left = `${Math.min(px, 50)}%`;
+  ly.style.width = `${Math.abs(px - 50)}%`;
 }
 
 function blockHTML(zone: Zone): string {
@@ -719,10 +728,11 @@ function blockHTML(zone: Zone): string {
     .map(
       (p, i) => `
     <div class="cb-padbox" title="${escapeHTML(p.title)}">
-      <div class="cb-pt"><span>${p.name}</span><span class="cb-ro"></span></div>
-      <div class="cb-pad" data-pad="${i}"><div class="cb-x"></div><div class="cb-y"></div><div class="cb-dot"></div>
-        <span class="cb-yin top">${p.top}</span><span class="cb-yin bottom">${p.bottom}</span></div>
-      <div class="cb-xl"><span>${p.left}</span><span>${p.right}</span></div>
+      <div class="cb-pt"><span class="cb-pt-name">${p.name}</span><span class="cb-ro"></span></div>
+      <div class="cb-pad" data-pad="${i}">
+        <span class="cb-lbl top">${p.top}</span><span class="cb-lbl bottom">${p.bottom}</span>
+        <span class="cb-lbl left">${p.left}</span><span class="cb-lbl right">${p.right}</span>
+        <div class="cb-x"></div><div class="cb-y"></div><div class="cb-dot"></div></div>
     </div>`
     )
     .join('');
