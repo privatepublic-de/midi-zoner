@@ -251,20 +251,18 @@
     </div>
   </div>
   <div class="mini-lane" title="What this zone plays: behind the playhead what it sent, ahead what comes (dashed: won't sound, e.g. Seq off or a step skipped by its condition). A waiting switch shows where it lands"><canvas></canvas></div>
-  <div class="card-takes" title="Takes: what you played, one per Start → Stop">
-    <a class="lightButton" data-ct="prev" title="An earlier take">‹</a><span class="ct-label"></span><a class="lightButton" data-ct="next" title="A later take">›</a>
-    <canvas class="ct-preview"></canvas>
-    <a class="lightButton" data-ct="keep" title="This take becomes the zone’s loop in this arrangement, replacing its loop">Loop</a>
-    <a class="lightButton" data-ct="discard" title="Hide this until the next take (the take stays, see the Tracks view)">Discard</a>
-  </div>
-  <div class="card-loop" title="The loop of this run: its bars can still be changed">
-    <span class="cl-label"></span>
+  <div class="card-plays" title="What plays by itself at the next Start (your playing is kept as a take either way)">
+    <span class="cp-label">Start plays</span><span class="cp-what"></span><span class="cp-note"></span><span class="cp-gap"></span>
     <a class="lightButton" data-cl="less" title="One bar shorter: the last bar is set aside (+ bar brings it back)">− bar</a>
     <a class="lightButton" data-cl="more" title="One bar longer: brings back a bar set aside, else an empty one">+ bar</a>
     <a class="lightButton" data-cl="clear" title="Clear the loop (⌘Z brings it back)">Clear</a>
-    <span class="cl-gap"></span>
-    <span class="cl-note"></span>
-    <a class="lightButton" data-cl="takes" title="Show this run's take instead">Takes ›</a>
+  </div>
+  <div class="card-takes" title="Takes: what you played, one per Start → Stop">
+    <a class="lightButton" data-ct="prev" title="An earlier take">‹</a><span class="ct-label"><span class="ct-name"></span><span class="ct-new">new</span></span><a class="lightButton" data-ct="next" title="A later take">›</a>
+    <canvas class="ct-preview"></canvas>
+    <a class="lightButton" data-ct="keep">Loop</a>
+    <a class="lightButton" data-ct="along"></a>
+    <a class="lightButton" data-ct="delete" title="Delete this take (⌘Z brings it back)">Delete</a>
   </div>
   <div
     class="seq shadowed-zone-block"

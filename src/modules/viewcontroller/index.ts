@@ -984,8 +984,8 @@ function addPlaceholder(): void {
     '<div class="zone addnewzone"><a class="action" title="Add a zone">+ Add zone</a>' +
       // once there is a zone to follow: a zone that plays chords or a bass line to it
       (zones.list.some((z) => !z.chords)
-        ? '<div class="addzone-chords">or a <a class="action" data-part="chords" title="Add a zone that plays chords to another zone\'s line">chords zone</a>' +
-          ' or <a class="action" data-part="bass" title="Add a zone that plays a bass line to another zone\'s line">bass zone</a> that plays to another zone\'s line</div>'
+        ? '<div class="addzone-chords">or a <a class="action" data-part="chords" title="Add a zone that plays chords to what another zone plays">chords zone</a>' +
+          ' or <a class="action" data-part="bass" title="Add a zone that plays a bass line to what another zone plays">bass zone</a> that plays along with another zone</div>'
         : '') +
       '<p class="addzone-hint">A zone sends one key range of your keyboard to one MIDI output, with its own arpeggiator, sequencer and controls.</p></div>'
   );

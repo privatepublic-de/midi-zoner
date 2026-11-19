@@ -50,10 +50,10 @@ function followersOf(line: Zone): Zone[] {
     .sort((a, b) => Number(a.chords!.part === 'bass') - Number(b.chords!.part === 'bass') || zs.indexOf(a) - zs.indexOf(b));
 }
 
-/** "1 Lead line", "Zone 3 line" */
+/** The zone a chords zone follows, by name: "1 Lead", "Zone 3" */
 export function lineLabel(z: Zone): string {
   const i = hooks.zones().indexOf(z);
-  return z.label ? `${i + 1} ${z.label} line` : `Zone ${i + 1} line`;
+  return z.label ? `${i + 1} ${z.label}` : `Zone ${i + 1}`;
 }
 
 function zoneName(z: Zone): string {
@@ -400,7 +400,7 @@ function makeLoops(line: Zone, which: Zone[], label: string, fromLive: boolean):
 export function keepChords(zone: Zone): void {
   const line = lineZoneOf(zone);
   if (!line) {
-    toast(`${escapeHTML(zoneName(zone))}: pick the line it follows first`);
+    toast(`${escapeHTML(zoneName(zone))}: pick the zone it follows first`);
     return;
   }
   // the line's other followers get theirs too, so chords and bass stay together
@@ -446,7 +446,7 @@ export function playChords(zone: Zone, part: ChordPart): void {
   toast(
     line
       ? `${escapeHTML(zoneNumberName(zone))} plays ${what} to ${escapeHTML(lineLabel(line))}`
-      : `${escapeHTML(zoneNumberName(zone))} plays ${what}: add a zone with a line to follow, then choose it in its settings`
+      : `${escapeHTML(zoneNumberName(zone))} plays ${what}: add a zone to follow, then choose it in its settings`
   );
 }
 
@@ -514,7 +514,7 @@ function statusOf(zone: Zone): { dot: 'live' | 'loop' | 'wait'; main: string; mo
 /** The status in two or three words, for the tag at the end of the Follows row */
 function tagOf(zone: Zone, dot: 'live' | 'loop' | 'wait'): string {
   const line = lineZoneOf(zone);
-  if (!line) return 'no line';
+  if (!line) return 'follows nothing';
   if (!zone.chordsOn) return 'off';
   // the loop's key while it plays, else the key heard live
   const plan = zone.loop && zone.loopOn ? shownPlanOf(zone) : null;
@@ -527,7 +527,7 @@ function tagOf(zone: Zone, dot: 'live' | 'loop' | 'wait'): string {
 
 function statusSentence(zone: Zone): { dot: 'live' | 'loop' | 'wait'; main: string; more: string[] } {
   const line = lineZoneOf(zone);
-  if (!line) return { dot: 'wait', main: 'Not following a line yet', more: ['choose one in its settings'] };
+  if (!line) return { dot: 'wait', main: 'Not following a zone yet', more: ['choose one in its settings'] };
   const leader = leaderOf(zone);
   const from = leader && leader !== zone ? [`chords from ${zoneNumberName(leader)}`] : [];
   const plan = zone.loop && zone.loopOn ? shownPlanOf(zone) : null;
@@ -619,7 +619,7 @@ export function updateChordChips(): void {
     const line = lineZoneOf(z);
     const what = z.chords.part === 'bass' ? 'Bass' : 'Chords';
     const title = !line
-      ? `${what} on/off · not following a line yet (choose one in its settings)`
+      ? `${what} on/off · not following a zone yet (choose one in its settings)`
       : `${what} on/off · follows ${lineLabel(line)}${deciders.get(line.id)?.key ? ' · ' + keyName(deciders.get(line.id)!.key!) : ''}`;
     if (chip.title !== title) chip.title = title;
   });
@@ -835,7 +835,7 @@ function blockHTML(zone: Zone): string {
   const line = lineZoneOf(zone);
   const cands = zs.filter((z) => z !== zone && !z.chords);
   const options =
-    (line ? '' : `<option value="" selected>${zone.chords!.follows ? '⚠ missing' : 'choose a line'}</option>`) +
+    (line ? '' : `<option value="" selected>${zone.chords!.follows ? '⚠ missing' : 'choose a zone'}</option>`) +
     cands.map((z) => `<option value="${escapeHTML(z.id)}"${z === line ? ' selected' : ''}>${escapeHTML(lineLabel(z))}</option>`).join('');
   const what = part === 'bass' ? 'Bass' : 'Chords';
   // a bass zone on a line a chords zone follows: the chords zone chooses the chords
@@ -1012,12 +1012,12 @@ function renderSummary(zone: Zone): void {
     const what = part === 'bass' ? 'Bass' : 'Chords';
     const follows = line
       ? `<span class="label">follows</span><span class="cs-line">${escapeHTML(lineLabel(line))}</span>`
-      : `<span class="cs-none">${zone.chords.follows ? '⚠ its line is missing' : 'follows no line yet'}</span>`;
+      : `<span class="cs-none">${zone.chords.follows ? '⚠ the zone it follows is missing' : 'follows no zone yet'}</span>`;
     const parts = [style, rhythm].filter((x) => x).map((x) => `<span class="cs-sep">·</span><span>${escapeHTML(x)}</span>`).join('');
     el.innerHTML =
       `<span class="cb-what">${what}</span>${follows}${parts}<span class="cb-status"></span>` +
       (line ? '<a class="cb-text cb-startover" title="Forget what was heard on this line (key and chords) and listen anew, for the chords and the bass; chord loops playing here are switched off (kept)">Start over</a>' : '') +
-      `<a class="lightButton cs-edit" title="Set up the ${part === 'bass' ? 'bass' : 'chords'}: line, style, rhythm, pads and more (double-click the row)"><i class="material-icons">edit</i>Edit</a>`;
+      `<a class="lightButton cs-edit" title="Set up the ${part === 'bass' ? 'bass' : 'chords'}: who it follows, style, rhythm, pads and more (double-click the row)"><i class="material-icons">edit</i>Edit</a>`;
   }
   el.title = `${part === 'bass' ? 'Bass' : 'Chords'} of this zone (double-click: edit)`;
 }

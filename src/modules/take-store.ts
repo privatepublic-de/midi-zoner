@@ -185,6 +185,11 @@ class TakeStore {
     return out.reverse();
   }
 
+  /** Whether the run under way has notes for the zone yet (they'll be its newest take at Stop) */
+  isRecording(zoneId: string): boolean {
+    return (this.recording.get(zoneId)?.notes.length ?? 0) > 0;
+  }
+
   /** When the run under way began (as its takes' `at`) */
   get runAt(): number {
     return this.startedAt;

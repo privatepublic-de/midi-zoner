@@ -5987,6 +5987,15 @@ body.track-view:not(.minimized) {
       opacity: 0.3;
       pointer-events: none;
     }
+    .lightButton.active {
+      background-color: var(--on);
+      border-color: var(--on);
+      color: var(--on-text);
+    }
+    .tc-new {
+      margin: 0 3px;
+      color: var(--select);
+    }
     .lightButton[hidden] {
       display: none;
     }
@@ -6711,33 +6720,75 @@ body.minimized .zone .mini-lane {
   display: none !important;
 }
 
-/* Takes strip (cards, stopped, zones with takes): ‹ Take n/m ›, preview, Loop n bars;
-   the loop strip instead after a run that recorded or overdubbed the zone's loop */
-.zone .card-loop,
+/* Takes on the cards (stopped): a row saying what Start plays (with the loop of this run:
+   its bars and Clear), then the takes: ‹ Take n/m new ›, preview, Loop n bars, Play along, Delete */
+.zone .card-plays,
 .zone .card-takes {
   display: none;
   align-items: center;
   gap: 6px;
-  margin: 4px 0 2px;
   font-size: var(--fs-md);
   color: var(--slate-dim);
 }
 
-.zone.has-card-takes .card-takes,
-.zone.has-card-loop .card-loop {
+.zone .card-plays {
+  min-height: 22px;
+  margin: 4px 0 0;
+  gap: 8px;
+}
+
+.zone .card-takes {
+  margin: 6px 0 2px;
+  padding-top: 6px;
+  border-top: 1px solid color-mix(in srgb, var(--slate-line) 60%, transparent);
+}
+
+.zone.has-card-plays .card-plays,
+.zone.has-card-takes .card-takes {
   display: flex;
 }
 
-.zone .card-loop .cl-label {
-  color: var(--text-base-color);
-  padding: 0 4px;
+.zone .card-plays .cp-label {
+  flex: none;
 }
 
-.zone .card-loop .cl-gap {
+.zone .card-plays .cp-what {
+  display: flex;
+  gap: 10px;
+  color: var(--text-base-color);
+  white-space: nowrap;
+}
+
+.zone .card-plays .cp-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: var(--live);
+  vertical-align: 1px;
+}
+
+.zone .card-plays .cp-note {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.zone .card-plays .cp-gap {
   flex: 1;
 }
 
-.zone :is(.card-takes, .card-loop) .lightButton {
+.zone .card-plays [data-cl] {
+  display: none;
+}
+
+.zone .card-plays.with-tools [data-cl] {
+  display: inline-flex;
+}
+
+.zone :is(.card-takes, .card-plays) .lightButton {
   min-width: 22px;
   height: 22px;
   padding: 0 8px;
@@ -6748,6 +6799,17 @@ body.minimized .zone .mini-lane {
   color: var(--text-base-color);
   min-width: 64px;
   text-align: center;
+  white-space: nowrap;
+}
+
+.zone .card-takes .ct-new {
+  display: none;
+  margin-left: 4px;
+  color: var(--select);
+}
+
+.zone .card-takes .ct-label.is-new .ct-new {
+  display: inline;
 }
 
 .zone .card-takes .ct-preview {
@@ -6756,8 +6818,8 @@ body.minimized .zone .mini-lane {
   height: 18px;
 }
 
-body.track-view .zone :is(.card-takes, .card-loop),
-body.minimized .zone :is(.card-takes, .card-loop) {
+body.track-view .zone :is(.card-takes, .card-plays),
+body.minimized .zone :is(.card-takes, .card-plays) {
   display: none !important;
 }
 
