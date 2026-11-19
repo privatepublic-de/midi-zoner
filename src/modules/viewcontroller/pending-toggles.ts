@@ -14,7 +14,8 @@ const LIT_AFTER: Record<string, (zone: ZoneType) => boolean> = {
   zone_solo: (zone) => !zone.solo,
   toggle_seq: (zone) => !zone.sequence.active,
   zone_arp_enabled: (zone) => !zone.arp_enabled,
-  zone_loop_on: (zone) => !zone.loopOn
+  zone_loop_on: (zone) => !zone.loopOn,
+  zone_chords_on: (zone) => !zone.chordsOn
 };
 
 /** What a waiting toggle will do, for the mini lane's marker */
@@ -23,7 +24,8 @@ const TAG: Record<string, (zone: ZoneType) => string> = {
   zone_solo: (zone) => (zone.solo ? 'Solo off' : 'Solo'),
   toggle_seq: (zone) => (zone.sequence.active ? 'Seq off' : 'Seq on'),
   zone_arp_enabled: (zone) => (zone.arp_enabled ? 'Arp off' : 'Arp on'),
-  zone_loop_on: (zone) => (zone.loopOn ? 'Loop off' : 'Loop on')
+  zone_loop_on: (zone) => (zone.loopOn ? 'Loop off' : 'Loop on'),
+  zone_chords_on: (zone) => (zone.chordsOn ? 'Chords off' : 'Chords on')
 };
 
 const BLINK_MS = 120;

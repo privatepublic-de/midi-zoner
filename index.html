@@ -290,6 +290,7 @@
         <span class="td-name"></span>
         <a class="td-tab" data-tab="zone" title="The zone's settings: octave, thru, program, pedal, key range">Zone</a>
         <a class="td-tab" data-tab="seq" title="The zone's step sequencer">Sequencer</a>
+        <a class="td-tab" data-tab="chords" title="The chords (or bass line) this zone plays to another zone's line" hidden>Chords</a>
         <a class="td-tab" data-tab="arp" title="The zone's arpeggiator">Arp</a>
         <a class="td-tab" data-tab="cc" title="The zone's knobs and buttons for the synth">Controllers</a>
         <a class="td-tab" data-tab="notes" title="Edit the notes of what is picked in the lanes: the loop or a take">Loop</a>
@@ -493,6 +494,23 @@
       <!-- the zone's step editor (.step-info) moves in here for the steps of the selected notes -->
       <div class="pr-steps zone show-seq" hidden>
         <div class="seq"></div>
+      </div>
+    </div>
+    <div id="chordsSheet" class="editor-sheet" role="dialog" aria-modal="true" aria-label="Chords" tabindex="-1">
+      <div class="es-bar">
+        <span class="es-title">Chords</span>
+        <!-- the chords and bass zones on the line, the shown one picked (chords.ts renderSheetBar()) -->
+        <span class="chs-zones"></span>
+        <span class="es-sep"></span>
+        <button class="es-play" title="Play / stop (Space)"></button>
+        <span class="es-grow"></span>
+        <button class="es-undo"><i class="material-icons">undo</i><span class="es-step"></span></button>
+        <button class="es-redo"><i class="material-icons">redo</i></button>
+        <span class="es-sep"></span>
+        <button class="es-done" title="Done (Esc)">Done</button>
+      </div>
+      <div class="chs-body zone">
+        <div class="chords-block"></div>
       </div>
     </div>
     <div id="ccEditor" class="editor-sheet" role="dialog" aria-modal="true" aria-label="Controller editor" tabindex="-1">

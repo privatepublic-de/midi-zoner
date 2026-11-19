@@ -1,3 +1,4 @@
+import { chordMarks } from './chords';
 import { Zone } from '../zone/zone-class';
 import { ZONES_CHANGED_EVENT, UPDATE_ZONE_VIEW_EVENT } from '../zone/interfaces';
 import type { NoteCurveJSON, CurveSeries } from '../zone/interfaces';
@@ -26,7 +27,7 @@ const TAKE_HINT = 'Everything you play from Start to Stop becomes a take';
  * they stay in the zone element and are only placed there by CSS (body[data-dock]).
  */
 
-type DockTab = 'seq' | 'arp' | 'cc' | 'zone' | 'notes';
+type DockTab = 'seq' | 'arp' | 'cc' | 'zone' | 'notes' | 'chords';
 
 const VIEW_KEY = 'viewMode';
 const TAB_KEY = 'trackDockTab';
@@ -48,6 +49,7 @@ const STOPPED_REDRAW_MS = 500;
 // a recording loop's wash
 const LOOP_REC = '#e5484d';
 const PEDAL_PAD = 4; // room under the notes for the pedal's bar
+const CHORD_PAD = 12; // room under the notes of a chords zone for the chord names
 
 let getZones: () => Zone[] = () => [];
 let trackView = localStorage.getItem(VIEW_KEY) === 'tracks';
@@ -206,7 +208,13 @@ function updateLoopChips(): void {
     if (sw.textContent !== swLabel) sw.textContent = swLabel;
     sw.classList.toggle('loop-none', !loop);
     sw.classList.toggle('loop-on', !!loop && zone.loopOn);
-    const swTitle = !loop
+    const swTitle = zone.chords
+      ? !loop
+        ? 'Keep these chords as the loop: the ones played, the rest worked out from the line'
+        : zone.loopOn
+          ? `Chord loop (${length}) on: it plays instead of following live. Click: follow live, kept`
+          : `Chord loop (${length}) off: following live. Click: play the loop`
+      : !loop
       ? 'No loop yet: record one with Rec'
       : zone.loopOn
         ? `Loop (${length}) on: it plays, also on a muted zone. Click: off, kept`
@@ -265,6 +273,7 @@ function drawCards(): void {
     const el = z.elements.zoneElement;
     if (!el) return;
     const show =
+      !!z.chords ||
       (z.enabled && z.sequence.active) ||
       seqHasNotes(z.sequence) ||
       z.arp_enabled ||
@@ -436,9 +445,15 @@ function updateDock(zones: Zone[]): void {
     dock.style.setProperty('--zone-color', style.getPropertyValue('--zone-color'));
     dock.style.setProperty('--zone-surface', style.getPropertyValue('--zone-surface'));
   }
-  const off: Partial<Record<DockTab, boolean>> = { seq: !zone.sequence.active, arp: !zone.arp_enabled };
+  // a chords zone has a Chords tab in place of Sequencer and Arp (and the other way round)
+  if (zone.chords && (tab === 'seq' || tab === 'arp')) tab = 'chords';
+  else if (!zone.chords && tab === 'chords') tab = 'seq';
+  if (document.body.dataset['dock'] !== tab) document.body.dataset['dock'] = tab;
+  const off: Partial<Record<DockTab, boolean>> = { seq: !zone.sequence.active, arp: !zone.arp_enabled, chords: !zone.chordsOn };
+  const hidden: Partial<Record<DockTab, boolean>> = { seq: !!zone.chords, arp: !!zone.chords, chords: !zone.chords };
   dock.querySelectorAll('.td-tab').forEach((t) => {
     const name = (t as HTMLElement).dataset['tab'] as DockTab;
+    (t as HTMLElement).hidden = !!hidden[name];
     t.classList.toggle('active', dockOpen && name === tab);
     // a feature that is off for this track: the tab is dim (it says so when opened)
     t.classList.toggle('off', !!off[name]);
@@ -451,6 +466,9 @@ function updateDock(zones: Zone[]): void {
     turnOn = 'Turn on';
   } else if (tab === 'arp' && !zone.arp_enabled) {
     empty = 'The arpeggiator of this zone is off.';
+    turnOn = 'Turn on';
+  } else if (tab === 'chords' && !zone.chordsOn) {
+    empty = `The ${zone.chords?.part === 'bass' ? 'bass' : 'chords'} of this zone are off.`;
     turnOn = 'Turn on';
   } else if (tab === 'notes' && !editedTake()) {
     empty = zone.hasRecorded
@@ -465,7 +483,7 @@ function updateDock(zones: Zone[]): void {
 
 function turnOnFeature(): void {
   const zoneEl = getZones()[selected]?.elements.zoneElement;
-  const chip = zoneEl?.querySelector(tab === 'arp' ? '.channels .showarp' : '.channels .showseq');
+  const chip = zoneEl?.querySelector(tab === 'arp' ? '.channels .showarp' : tab === 'chords' ? '.channels .showchords' : '.channels .showseq');
   (chip as HTMLElement | null)?.click();
 }
 
@@ -873,7 +891,8 @@ function drawLane(
   // room at the bottom for the pedal's bar, so notes don't cover it
   const songGest = zone.loop?.g?.[SUSTAIN] ? PEDAL_PAD : 0;
   const takeGest = takeLane && latest?.g?.[SUSTAIN] ? PEDAL_PAD : 0;
-  const rowH = (h - 2 * LANE_PAD - songGest) / rows;
+  const chordPad = zone.chords ? CHORD_PAD : 0;
+  const rowH = (h - 2 * LANE_PAD - songGest - chordPad) / rows;
   const noteH = Math.max(3, Math.min(drums ? 8 : 6, rowH - (drums ? 2 : 0)));
   const rowY = (row: number): number => songY + LANE_PAD + row * rowH + (rowH - noteH) / 2;
   // the take lane's rows: the same pitches, pressed into it
@@ -1036,7 +1055,8 @@ function drawLane(
           g.fillRect(cx, songY + 1, 1, h - 2);
         }
         // tagged at its next start in view, else at the playhead (the cycle playing now)
-        if (!lineTags.some((t) => t.row === 0) && (c > elapsedNow ? cx <= w : c + len > until)) {
+        // (a chords zone's lane names its chords there instead)
+        if (!zone.chords && !lineTags.some((t) => t.row === 0) && (c > elapsedNow ? cx <= w : c + len > until)) {
           lineTags.push({ x: c > elapsedNow ? cx : headX, text: `Loop ${Take.lengthLabel(len, currentMeter())}`, row: 0 });
         }
       } else {
@@ -1270,6 +1290,32 @@ function drawLane(
     g.globalAlpha = 1;
     g.fillStyle = colour;
     g.fillText(t.text, tx + 3, ty + 9);
+  }
+  // a chords zone: the chord names along the lane's bottom, from where each comes in
+  if (chordPad) {
+    const cm = chordMarks(zone, songHead - headX / ppt, songHead + (w - headX) / ppt);
+    g.font = '600 10px "Barlow Semi Condensed", sans-serif';
+    const ty = songY + h - songGest - CHORD_PAD;
+    cm.forEach((m, i) => {
+      const cx = Math.round(x(m.s));
+      const end = i + 1 < cm.length ? Math.round(x(cm[i + 1].s)) : w;
+      if (end < 0 || cx > w) return;
+      const tw = Math.min(end - cx - 2, Math.ceil(g.measureText(m.name).width) + 7);
+      if (tw < 8) return;
+      g.globalAlpha = 0.9;
+      g.fillStyle = '#15171a';
+      g.fillRect(cx, ty, tw, 11);
+      g.globalAlpha = 1;
+      g.fillStyle = colour;
+      g.fillRect(cx, ty, 2, 11);
+      g.save();
+      g.beginPath();
+      g.rect(cx, ty, tw, 11);
+      g.clip();
+      g.fillStyle = '#e7eaee';
+      g.fillText(m.name, cx + 4, ty + 9);
+      g.restore();
+    });
   }
   for (const [at, tags] of marks) {
     const lx = Math.round(x(at));
@@ -2327,6 +2373,8 @@ function initTrackView(
         setTab('seq');
       } else if (chip.classList.contains('showarp')) {
         setTab('arp');
+      } else if (chip.classList.contains('showchords')) {
+        setTab('chords');
       }
     },
     true
