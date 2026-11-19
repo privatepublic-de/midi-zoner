@@ -429,7 +429,9 @@ Shared with the sibling app xr18-console: slate surfaces (`--slate-bg`, `--slate
 
 ## Testing Notes
 
-The application has no automated tests. Manual testing should cover:
+The application has no automated tests. The chords engine has a check: `npm run check:chords` (`scripts/chords-check.mjs`, lines in `scripts/chord-tunes.mjs`: public domain traditionals written from memory, exercises, the user's Greensleeves take as played) runs the loop path, live and live with a take read ahead in three styles and reports what makes chords implausible (key found, ✓ / ~ another fitting mode on the tonic / ✗; clash = melody a half step over a chord tone; changes per bar), compared with `scripts/chords-baseline.json` (▲ worse, ▼ better); keep a good change's results with `--save scripts/chords-baseline.json`. The chords are a helper giving first steps, so it scores plausibility, not a chart.
+
+Manual testing should cover:
 - Zone creation, deletion, reordering
 - Note routing with various ranges and octave transposition
 - Per-zone input port/channel filtering
