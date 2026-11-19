@@ -442,41 +442,83 @@ export function progress(line: LineNote[], length: number, meter: Meter, o: Harm
   const trans: number[][] = voc.map((a) => voc.map((b) => transition(a, b, key, h)));
   const cadenceFirst = (c: Chord) => (c.root === key.tonic && c.degree === 0 ? 0.6 * (1 - h) + 0.4 * h : 0);
   const cadenceLast = (c: Chord) => (c.root === (key.tonic + 7) % 12 && (c.quality === 'maj' || c.quality === '7') ? 0.6 * (1 - h) : 0);
-  const step = (i: number, a: number, b: number) =>
-    a === b ? 0 : trans[a][b] - changeCost(segs[i], o.changes) + (segs[i].beat === 0 ? 0.25 * (1 - h) : 0);
+  // a change into segment i costs trans[a][b] + off[i] (staying costs nothing)
+  const off = segs.map((s) => -changeCost(s, o.changes) + (s.beat === 0 ? 0.25 * (1 - h) : 0));
+  const step = (i: number, a: number, b: number) => (a === b ? 0 : trans[a][b] + off[i]);
   const allowed = (i: number, k: number) => (fixed[i] >= 0 ? fixed[i] === k : k < K);
+  const lastBonus = voc.map(cadenceLast);
 
+  // An upper bound per first chord, from one backward pass: rest[b] = the best from segment i on
+  // in chord b, with the closing step (last → first) bounded by its best over every first chord
+  let rest = new Array(KK).fill(-Infinity);
+  for (let b = 0; b < KK; b++) {
+    if (!allowed(N - 1, b)) continue;
+    let close = N > 1 ? -Infinity : 0;
+    if (N > 1) for (let f = 0; f < K; f++) close = Math.max(close, step(0, b, f));
+    rest[b] = node[N - 1][b] + lastBonus[b] + close;
+  }
+  for (let i = N - 2; i >= 1; i--) {
+    const prev = rest;
+    rest = new Array(KK).fill(-Infinity);
+    for (let a = 0; a < KK; a++) {
+      if (!allowed(i, a)) continue;
+      let m = -Infinity;
+      for (let b = 0; b < KK; b++) if (prev[b] > -Infinity) m = Math.max(m, prev[b] + step(i + 1, a, b));
+      rest[a] = node[i][a] + m;
+    }
+  }
+
+  // Viterbi for each first chord, then close the cycle (last → first). The most promising first
+  // chords go first, and one whose bound can't beat the best is skipped: the same result, far fewer runs
+  const firsts = (fixed[0] >= 0 ? [fixed[0]] : [...Array(K).keys()]).map((f) => {
+    let u = node[0][f] + cadenceFirst(voc[f]);
+    if (N > 1) {
+      let m = -Infinity;
+      for (let b = 0; b < KK; b++) if (rest[b] > -Infinity) m = Math.max(m, rest[b] + step(1, f, b));
+      u += m;
+    } else u += lastBonus[f];
+    return { f, u };
+  });
+  firsts.sort((x, y) => y.u - x.u || x.f - y.f);
   let best = -Infinity;
+  let bestFirst = -1;
   let bestPath: number[] = [];
-  const firsts = fixed[0] >= 0 ? [fixed[0]] : [...Array(K).keys()];
-  for (const f of firsts) {
-    // Viterbi with the first chord fixed, then close the cycle (last → first)
+  const EPS = 1e-9;
+  for (const { f, u } of firsts) {
+    if (u < best - EPS || (u <= best + EPS && f > bestFirst)) continue;
     let score = new Array(KK).fill(-Infinity);
     score[f] = node[0][f] + cadenceFirst(voc[f]);
     const back: number[][] = [];
     for (let i = 1; i < N; i++) {
       const next = new Array(KK).fill(-Infinity);
       const from = new Array(KK).fill(0);
+      const o_i = off[i];
       for (let b = 0; b < KK; b++) {
         if (!allowed(i, b)) continue;
+        let nb = -Infinity;
+        let fb = 0;
         for (let a = 0; a < KK; a++) {
-          if (score[a] === -Infinity) continue;
-          const x = score[a] + step(i, a, b);
-          if (x > next[b]) {
-            next[b] = x;
-            from[b] = a;
+          const sa = score[a];
+          if (sa === -Infinity) continue;
+          const x = a === b ? sa : sa + trans[a][b] + o_i;
+          if (x > nb) {
+            nb = x;
+            fb = a;
           }
         }
-        next[b] += node[i][b];
+        next[b] = nb + node[i][b];
+        from[b] = fb;
       }
       back.push(from);
       score = next;
     }
     for (let last = 0; last < KK; last++) {
       if (score[last] === -Infinity) continue;
-      const total = score[last] + (N > 1 ? step(0, last, f) : 0) + cadenceLast(voc[last]);
-      if (total > best) {
+      const total = score[last] + (N > 1 ? step(0, last, f) : 0) + lastBonus[last];
+      // ties go to the lower first chord, as when they were tried in order
+      if (total > best || (total === best && f < bestFirst)) {
         best = total;
+        bestFirst = f;
         const path = [last];
         for (let i = N - 2; i >= 0; i--) path.unshift(back[i][path[0]]);
         bestPath = path;

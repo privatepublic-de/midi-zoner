@@ -122,12 +122,12 @@ class NoteHistory {
   low = 128;
   high = -1;
 
-  /** The notes starting from LOOKBACK before `from` up to `to` (binary search on start) */
-  between(from: number, to: number): HistoryNote[] {
+  /** The notes starting from `lookback` before `from` up to `to` (binary search on start) */
+  between(from: number, to: number, lookback = NoteHistory.LOOKBACK): HistoryNote[] {
     const notes = this.notes;
     let lo = 0;
     let hi = notes.length;
-    const after = from - NoteHistory.LOOKBACK;
+    const after = from - lookback;
     while (lo < hi) {
       const mid = (lo + hi) >> 1;
       if (notes[mid].start < after) lo = mid + 1;

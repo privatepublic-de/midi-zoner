@@ -143,9 +143,10 @@ export class LiveChords {
 
   /**
    * Called on every clock tick while running with the zones following the line (the first one's
-   * settings choose the chords); true when the chord or key changed
+   * settings choose the chords); true when the chord or key changed. `heard` gives the line as
+   * played, asked for only on ticks that decide something
    */
-  tick(pos: number, heard: HeardNote[], followers: Follower[], meter: Meter, send: Send): boolean {
+  tick(pos: number, heard: () => HeardNote[], followers: Follower[], meter: Meter, send: Send): boolean {
     this.sync(followers, send);
     if (!followers.length) return false;
     let changed = false;
@@ -157,11 +158,11 @@ export class LiveChords {
     const bar = barTicks(meter);
     const segs = barSegments(Math.floor(target / bar), meter);
     const seg = segs.find((s) => s.t === target);
-    if (seg) changed = this.decide(seg, segs, pos, heard, o, followers, meter, send) || changed;
+    if (seg) changed = this.decide(seg, segs, pos, heard(), o, followers, meter) || changed;
     if (this.check && pos >= this.check.at) {
       const c = this.check;
       this.check = null;
-      changed = this.correct(c.seg, pos, heard, o, followers, meter, send) || changed;
+      changed = this.correct(c.seg, pos, heard(), o, followers, meter) || changed;
     }
     this.fire(pos, send);
     return changed;
@@ -302,7 +303,7 @@ export class LiveChords {
     });
   }
 
-  private decide(seg: Segment, segs: Segment[], now: number, heard: HeardNote[], o: HarmonyOptions, followers: Follower[], meter: Meter, send: Send): boolean {
+  private decide(seg: Segment, segs: Segment[], now: number, heard: HeardNote[], o: HarmonyOptions, followers: Follower[], meter: Meter): boolean {
     const keyBefore = this.key;
     if (seg.beat === 0 || !this.key) this.updateKey(seg, heard, o, meter);
     if (!this.key) return false;
@@ -324,7 +325,7 @@ export class LiveChords {
   }
 
   /** Just after the beat: the note played on it decides between the guess and a better chord */
-  private correct(seg: Segment, now: number, heard: HeardNote[], o: HarmonyOptions, followers: Follower[], meter: Meter, send: Send): boolean {
+  private correct(seg: Segment, now: number, heard: HeardNote[], o: HarmonyOptions, followers: Follower[], meter: Meter): boolean {
     if (!this.key || !this.chord) return false;
     const w = this.weights(seg, now, heard, meter, true);
     const ranked = this.scores(seg, w, o, meter).sort((a, b) => b.score - a.score);

@@ -96,20 +96,25 @@ function lineOf(zone: Zone): { notes: LineNote[]; length: number; anchor: number
   return null;
 }
 
-/** The bass zone playing under a chords zone (on the same line), if any */
-function bassUnder(z: Zone): Zone | null {
+/** The followers of a chords zone's line (empty: none or no line) */
+function fellowsOf(z: Zone): Zone[] {
   const line = lineZoneOf(z);
-  if (!line || z.chords?.part !== 'chords') return null;
-  return followersOf(line).find((f) => f !== z && f.chords!.part === 'bass') ?? null;
+  return line ? followersOf(line) : [];
 }
 
-/** A follower's engine options: its settings, the zone's swing, shells over a bass zone */
-function optionsOf(z: Zone): HarmonyOptions {
+/** The bass zone playing under a chords zone (on the same line), if any; `fs`: the line's followers */
+function bassUnder(z: Zone, fs = fellowsOf(z)): Zone | null {
+  if (z.chords?.part !== 'chords') return null;
+  return fs.find((f) => f !== z && f.chords!.part === 'bass') ?? null;
+}
+
+/** A follower's engine options: its settings, the zone's swing, shells over a bass zone; `fs`: the line's followers */
+function optionsOf(z: Zone, fs = fellowsOf(z)): HarmonyOptions {
   const o = harmonyOptions(z.chordSet);
   // a second chords zone on the line keeps clear of the first (it doesn't double its notes)
-  const lead = leaderOf(z);
+  const lead = fs[0];
   const above = z.chords?.part === 'chords' && lead && lead !== z && lead.chords?.part === 'chords' ? SECOND_CHORDS_ABOVE : 0;
-  return { ...o, register: (o.register ?? 0) + above, swing: z.swingAmount, shell: !!bassUnder(z) };
+  return { ...o, register: (o.register ?? 0) + above, swing: z.swingAmount, shell: !!bassUnder(z, fs) };
 }
 
 /** How far a second chords zone on the same line sits above the first (semitones) */
@@ -167,7 +172,7 @@ function heard(line: Zone, songPos: number, meter: Meter): HeardNote[] {
   const from = Math.max(now - 9 * barTicks(meter), offset, freshFrom.get(line.id) ?? -Infinity);
   const take = (h: NoteHistory, played: boolean) =>
     h
-      .between(from, now + 1)
+      .between(from, now + 1, 0)
       .filter((n) => n.start >= from && (played || !n.live))
       .map((n) => ({ s: n.start - offset, d: Math.max(1, (n.end ?? now) - n.start), n: n.pitch, v: n.velo, held: n.end === null }));
   return [...take(line.inputHistory, true), ...take(line.noteHistory, false)].sort((a, b) => a.s - b.s);
@@ -183,7 +188,8 @@ export function chordsTick(pos: number, tickIntervalMs = 0): void {
   const seen = new Set<string>();
   for (const line of zs) {
     if (line.chords) continue;
-    const fs = followersOf(line).filter(playsLive);
+    const all = followersOf(line);
+    const fs = all.filter(playsLive);
     let d = deciders.get(line.id);
     if (!fs.length) {
       if (d) d.stop(send);
@@ -191,11 +197,23 @@ export function chordsTick(pos: number, tickIntervalMs = 0): void {
     }
     if (!d) deciders.set(line.id, (d = new LiveChords()));
     seen.add(line.id);
-    const followers: Follower[] = fs.map((z) => ({ id: z.id, part: z.chords!.part, o: optionsOf(z), out: z }));
-    d.tick(songPos, heard(line, songPos, meter), followers, meter, send);
+    const followers: Follower[] = fs.map((z) => ({ id: z.id, part: z.chords!.part, o: optionsOf(z, all), out: z }));
+    let notes: HeardNote[] | null = null;
+    d.tick(songPos, () => (notes ??= heard(line, songPos, meter)), followers, meter, send);
   }
   for (const [id, d] of deciders) if (!seen.has(id)) d.stop(send);
-  updateChordChips();
+  chipsNextFrame();
+}
+
+let chipFrame = 0;
+
+/** The chips and status lines follow on the next frame (once per frame, not on every tick) */
+function chipsNextFrame(): void {
+  if (chipFrame) return;
+  chipFrame = requestAnimationFrame(() => {
+    chipFrame = 0;
+    updateChordChips();
+  });
 }
 
 /** Start, Stop, an arrangement switch: live chords start over (the key stays, the chords heard go) */
@@ -241,6 +259,26 @@ function loopOf(notes: LineNote[], length: number): Take {
 function planOf(zone: Zone): ChordPlan | null {
   const p = zone.chordPlan;
   return p && zone.loop && p.sig === loopSig(zone.loop) && p.length === zone.loop.length ? p : null;
+}
+
+/** Loop signatures worked out in this task (a frame's chips and lanes ask several times per zone) */
+let sigs: WeakMap<Take, number> | null = null;
+
+/**
+ * planOf() for showing (chips, status, lane names): the loop's signature is worked out once per
+ * task (a loop's notes can be edited in place, so it isn't kept longer). Decisions use planOf()
+ */
+function shownPlanOf(zone: Zone): ChordPlan | null {
+  const p = zone.chordPlan;
+  const loop = zone.loop;
+  if (!p || !loop || p.length !== loop.length) return null;
+  if (!sigs) {
+    sigs = new WeakMap();
+    queueMicrotask(() => (sigs = null));
+  }
+  let sig = sigs.get(loop);
+  if (sig === undefined) sigs.set(loop, (sig = loopSig(loop)));
+  return p.sig === sig ? p : null;
 }
 
 /** The decision settings: the lead zone's (the first chords zone on the line) */
@@ -397,7 +435,7 @@ export function chordsMenu(index: number): string[] {
 /** The chord sounding (or, stopped, the loop's first one) */
 function chordNow(zone: Zone): string {
   const line = lineZoneOf(zone);
-  const plan = planOf(zone);
+  const plan = shownPlanOf(zone);
   if (zone.loop && zone.loopOn && plan) {
     let at = 0;
     if (timeline.running) {
@@ -435,7 +473,7 @@ function tagOf(zone: Zone, dot: 'live' | 'loop' | 'wait'): string {
   if (!line) return 'no line';
   if (!zone.chordsOn) return 'off';
   // the loop's key while it plays, else the key heard live
-  const plan = zone.loop && zone.loopOn ? planOf(zone) : null;
+  const plan = zone.loop && zone.loopOn ? shownPlanOf(zone) : null;
   const key = plan?.key ?? deciders.get(line.id)?.key;
   if (dot === 'loop') return `its loop · ${Take.lengthLabel(zone.loop!.length, hooks.meter())}`;
   if (!timeline.running) return 'waiting';
@@ -448,7 +486,7 @@ function statusSentence(zone: Zone): { dot: 'live' | 'loop' | 'wait'; main: stri
   if (!line) return { dot: 'wait', main: 'Not following a line yet', more: ['choose one in its settings'] };
   const leader = leaderOf(zone);
   const from = leader && leader !== zone ? [`chords from ${zoneNumberName(leader)}`] : [];
-  const plan = zone.loop && zone.loopOn ? planOf(zone) : null;
+  const plan = zone.loop && zone.loopOn ? shownPlanOf(zone) : null;
   const d = deciders.get(line.id);
   const key = plan?.key ?? d?.key;
   const keyText = key ? [`key ${keyName(key)}`] : [];
@@ -545,7 +583,7 @@ export function updateChordChips(): void {
 export function chordMarks(zone: Zone, from: number, to: number): { s: number; name: string }[] {
   if (!hooks || !zone.chords) return [];
   const out: { s: number; name: string }[] = [];
-  const plan = planOf(zone);
+  const plan = shownPlanOf(zone);
   if (zone.loop && zone.loopOn && plan) {
     // where the chord changes (the same chord over several beats is one name)
     const segs = segmentsOf(plan.length, hooks.meter());
