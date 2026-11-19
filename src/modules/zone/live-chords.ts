@@ -24,7 +24,7 @@ import {
   vocabulary,
   fitOf,
   chordTones,
-  scaleOf,
+  keyTones,
   freeNoise,
   transition,
   changeCost,
@@ -101,7 +101,7 @@ function calmOf(o: HarmonyOptions): number {
 function liveFit(w: number[], c: Chord, key: Key): number {
   let f = fitOf(w, c, key);
   const tones = chordTones(c);
-  const scale = scaleOf(key);
+  const scale = keyTones(key);
   // a chromatic neighbour (out of the key, a half step from a chord tone: G Ab G, G F# G) decorates
   // the chord instead of fighting it
   for (let pc = 0; pc < 12; pc++) {
@@ -120,19 +120,28 @@ function liveFit(w: number[], c: Chord, key: Key): number {
   return f;
 }
 
-/** The weight of notes that really clash with a chord: a half step over a chord tone, or out of the key */
+/**
+ * The weight of notes that really clash with a chord: a half step over a chord tone, out of the
+ * key, or a minor key's leading tone against a chord holding the tonic (D# over Em wants B)
+ */
 function clashOf(w: number[], c: Chord, key: Key): number {
   const tones = chordTones(c);
-  const scale = scaleOf(key);
+  const scale = keyTones(key);
+  const leading = scale.length > 7 ? (key.tonic + 11) % 12 : -1;
   let x = 0;
   for (let pc = 0; pc < 12; pc++) {
     if (!w[pc] || tones.includes(pc)) continue;
     const inKey = scale.includes(pc);
     const neighbour = tones.includes((pc + 11) % 12) || tones.includes((pc + 1) % 12);
     // in the key: a half step over a chord tone clashes (F over C-E); out of it: anything but a neighbour
-    if (inKey ? tones.includes((pc + 11) % 12) : !neighbour) x += w[pc];
+    if (pc === leading ? tones.includes(key.tonic) : inKey ? tones.includes((pc + 11) % 12) : !neighbour) x += w[pc];
   }
   return x;
+}
+
+/** The V7 of a minor key, its leading tone in it (B7 in E minor) */
+function isMinorDominant(c: Chord, key: Key): boolean {
+  return c.quality === '7' && c.root === (key.tonic + 7) % 12 && keyTones(key).length > 7;
 }
 
 export class LiveChords {
@@ -141,6 +150,8 @@ export class LiveChords {
   /** the chords played, per beat (song ticks of the beat → chord) */
   log = new Map<number, Chord>();
   private rival: { key: Key; count: number } | null = null;
+  /** where the key was found (song ticks) */
+  private keySince: number | null = null;
   private queue: Event[] = [];
   private voices = new Map<string, Voice>();
   private token = 0;
@@ -149,9 +160,11 @@ export class LiveChords {
   /**
    * Called on every clock tick while running with the zones following the line (the first one's
    * settings choose the chords); true when the chord or key changed. `heard` gives the line as
-   * played, asked for only on ticks that decide something
+   * played, asked for only on ticks that decide something. `ahead`: the line's notes still to
+   * come (from this tick on, a bar and a beat ahead) when they are known (a take playing along),
+   * else null: then each beat is decided on what it will play, not guessed
    */
-  tick(pos: number, heard: () => HeardNote[], followers: Follower[], meter: Meter, send: Send): boolean {
+  tick(pos: number, heard: () => HeardNote[], followers: Follower[], meter: Meter, send: Send, ahead?: () => HeardNote[] | null): boolean {
     this.sync(followers, send);
     if (!followers.length) return false;
     let changed = false;
@@ -163,7 +176,7 @@ export class LiveChords {
     const bar = barTicks(meter);
     const segs = barSegments(Math.floor(target / bar), meter);
     const seg = segs.find((s) => s.t === target);
-    if (seg) changed = this.decide(seg, segs, pos, heard(), o, followers, meter) || changed;
+    if (seg) changed = this.decide(seg, segs, pos, heard(), ahead?.() ?? null, o, followers, meter) || changed;
     if (this.check && pos >= this.check.at) {
       const c = this.check;
       this.check = null;
@@ -203,6 +216,7 @@ export class LiveChords {
   reset(send: Send): void {
     this.stop(send);
     this.key = null;
+    this.keySince = null;
     this.log.clear();
   }
 
@@ -236,11 +250,14 @@ export class LiveChords {
       .map((h) => ({ t: h.s - from, d: Math.max(1, Math.min(h.d, seg.t - h.s)), n: h.n, v: h.v }));
     // a key needs a few notes and at least three pitch classes
     if (line.length < 4 || new Set(line.map((n) => n.n % 12)).size < 3) return;
-    const a = analyse(line, seg.t - from, meter, o.harmony);
+    // the window's first note opens the line only when nothing was heard before it
+    const begins = !heard.some((h) => h.s < from);
+    const a = analyse(line, seg.t - from, meter, o.harmony, begins);
     const best = a.keys[0];
     const same = (x: Key, y: Key) => x.tonic === y.tonic && x.mode === y.mode;
     if (!this.key) {
       this.key = best;
+      this.keySince = seg.t;
       return;
     }
     if (same(best, this.key)) {
@@ -248,19 +265,26 @@ export class LiveChords {
       return;
     }
     const current = a.keys.find((k) => same(k, this.key!));
-    if (current && best.score - current.score < 0.04) {
+    // a key heard for a few bars holds on: the relative major or the fifth's key share most notes,
+    // and a phrase resting on the fifth (a half cadence) looks like its key for a bar or two
+    const settled = this.keySince !== null && seg.t - this.keySince >= 4 * bar;
+    if (current && best.score - current.score < (settled ? 0.1 : 0.04)) {
       this.rival = null;
       return;
     }
     this.rival = this.rival && same(this.rival.key, best) ? { key: best, count: this.rival.count + 1 } : { key: best, count: 1 };
     if (this.rival.count >= 2) {
       this.key = best;
+      this.keySince = seg.t;
       this.rival = null;
     }
   }
 
-  /** The line's pitch classes for a beat, as far as they can be known now */
-  private weights(seg: Segment, now: number, heard: HeardNote[], meter: Meter, onBeat: boolean): number[] {
+  /**
+   * The line's pitch classes for a beat, as far as they can be known now; `until` (the notes to
+   * come are known): weighed on to there, without the echoes of earlier bars
+   */
+  private weights(seg: Segment, now: number, heard: HeardNote[], meter: Meter, onBeat: boolean, until = 0): number[] {
     const w = new Array(12).fill(0);
     const bar = barTicks(meter);
     const add = (h: HeardNote, from: number, to: number, k: number) => {
@@ -268,19 +292,25 @@ export class LiveChords {
       if (o > 0) w[h.n % 12] += (Math.max(o, PPQ / 4) / PPQ) * k * (0.6 + 0.4 * (h.v / 127));
     };
     for (const h of heard) {
-      // held now: it sounds into the beat
-      if (h.held || h.s + h.d > seg.t) add({ ...h, d: Math.max(h.d, seg.end - h.s) }, seg.t, seg.end, 1);
+      // held now: it sounds into the beat (a note known to come: as long as it is)
+      if (h.held || h.s + h.d > seg.t) add(h.held ? { ...h, d: Math.max(h.d, seg.end - h.s) } : h, seg.t, seg.end, 1);
       // what led into the beat
       else if (h.s >= seg.t - PPQ / 2 && h.s < seg.t) w[h.n % 12] += 0.4;
       // played on the beat (listening again an 8th after it), by its length: a 16th counts half, an 8th or more fully
       if (onBeat && h.s >= seg.t - 3 && h.s <= now) w[h.n % 12] += 2 * Math.min(1, (h.held ? now - h.s : h.d) / (PPQ / 2));
+      // known to come: what plays after the beat up to the half bar or the bar's end counts too, and
+      // what was played before needn't stand in for it
+      if (until > 0) {
+        if (until > seg.end) add(h, seg.end, until, 0.6);
+        continue;
+      }
       // what was played here 1, 2, 4 and 8 bars ago (riffs and phrases repeat)
       [1, 2, 4, 8].forEach((bars, i) => add(h, seg.t - bars * bar, seg.end - bars * bar, [0.5, 0.3, 0.3, 0.4][i]));
     }
     // a note outside the key counts half, unless held a beat or more or played again within the bar:
     // a passing or approach note doesn't take the chord along, a note that stays does
     if (this.key) {
-      const scale = scaleOf(this.key);
+      const scale = keyTones(this.key);
       for (let pc = 0; pc < 12; pc++) {
         if (!w[pc] || scale.includes(pc)) continue;
         const recent = heard.filter((h) => h.n % 12 === pc && h.s >= seg.t - bar && h.s <= now);
@@ -303,8 +333,11 @@ export class LiveChords {
         const same = prev.root === c.root && prev.quality === c.quality;
         x += same ? 0.15 + 0.5 * calm : transition(prev, c, key, h) - changeCost(seg, o.changes) + (seg.beat === 0 ? 0.25 * (1 - h) : 0);
       } else if (c.root === key.tonic && c.degree === 0) x += 0.5;
-      // a chord from outside the key (a secondary dominant, borrowed) needs clearer reasons live
-      if (c.kind === 'sec' || c.kind === 'bor' || c.kind === 'out') x -= 0.25 + 0.4 * calm;
+      // a chord from outside the key (a secondary dominant, borrowed) needs clearer reasons live;
+      // the dominant of a minor key is its own (harmonic minor), not from outside
+      if ((c.kind === 'sec' && !isMinorDominant(c, key)) || c.kind === 'bor' || c.kind === 'out') x -= 0.25 + 0.4 * calm;
+      // sus and fourths are the modal end's colour: towards the circle of fifths they need reasons too
+      else if (c.kind === 'mod') x -= (0.25 + 0.4 * calm) * (1 - h);
       if (o.seed) x += (hashRoll(o.seed, seg.bar, c.root, QUALITY_INDEX[c.quality]) - 0.5) * 1.2 * len;
       x += freeNoise(o, seg, c) * len;
       // the form: what was played here 4 and 8 bars ago
@@ -316,17 +349,23 @@ export class LiveChords {
     });
   }
 
-  private decide(seg: Segment, segs: Segment[], now: number, heard: HeardNote[], o: HarmonyOptions, followers: Follower[], meter: Meter): boolean {
+  private decide(seg: Segment, segs: Segment[], now: number, played: HeardNote[], coming: HeardNote[] | null, o: HarmonyOptions, followers: Follower[], meter: Meter): boolean {
     const keyBefore = this.key;
-    if (seg.beat === 0 || !this.key) this.updateKey(seg, heard, o, meter);
+    // the notes to come known: the beat is weighed as if listened to after it (and isn't checked again)
+    const heard = coming ? [...played, ...coming] : played;
+    if (seg.beat === 0 || !this.key) this.updateKey(seg, played, o, meter);
+    // no key yet: the coming bar may tell it (the chords come in with the line's first bar)
+    if (!this.key && coming) this.updateKey({ ...seg, t: seg.t + barTicks(meter) }, heard, o, meter);
     if (!this.key) return false;
-    const ranked = this.scores(seg, this.weights(seg, now, heard, meter, false), o, meter).sort((a, b) => b.score - a.score);
+    const until = seg.beats % 2 === 0 && seg.beat < seg.beats / 2 ? segs[seg.beats / 2].t : segs[segs.length - 1].end;
+    const w = coming ? this.weights(seg, seg.t + LISTEN, heard, meter, true, until) : this.weights(seg, now, heard, meter, false);
+    const ranked = this.scores(seg, w, o, meter).sort((a, b) => b.score - a.score);
     const best = ranked[0].chord;
     const prev = this.chord;
     const same = prev && prev.root === best.root && prev.quality === best.quality;
     this.log.set(seg.t, same ? prev! : best);
     this.trimLog(seg.t - LOG_BARS * barTicks(meter));
-    this.check = { seg, at: seg.t + LISTEN };
+    this.check = coming ? null : { seg, at: seg.t + LISTEN };
     const barEnd = segs[segs.length - 1].end;
     if (same && seg.beat !== 0) {
       // the chord goes on; a follower without a voice (just switched on, or its zone replaced by undo) comes in now
@@ -347,13 +386,23 @@ export class LiveChords {
     const best = ranked[0];
     if (best.chord.root === cur.root && best.chord.quality === cur.quality) return false;
     const mine = ranked.find((r) => r.chord.root === cur.root && r.chord.quality === cur.quality);
-    // only when the guess really clashes with a note held on the beat, and the better chord is clearly better
-    if (clashOf(w, cur, this.key) < 1.5 || (mine && best.score - mine.score < 1.2 + 0.8 * calmOf(o))) return false;
+    // only when the guess really clashes with a note held on the beat, or two notes struck together on it
+    // (a double stop, a chord) both miss it; and the better chord is clearly better
+    const struck = this.struckOn(seg, now, heard);
+    const missed = struck.length >= 2 && !struck.some((pc) => chordTones(cur).includes(pc)) && struck.every((pc) => chordTones(best.chord).includes(pc));
+    if ((!missed && clashOf(w, cur, this.key) < 1.5) || (mine && best.score - mine.score < 1.2 + 0.8 * calmOf(o))) return false;
     this.chord = best.chord;
     this.log.set(seg.t, best.chord);
     const segs = barSegments(seg.bar, meter);
     for (const f of followers) this.play(f, best.chord, { t: seg.t, end: segs[segs.length - 1].end }, segs, now, heard, meter, false);
     return true;
+  }
+
+  /** The pitch classes struck together on the beat (within a few ticks of each other) */
+  private struckOn(seg: Segment, now: number, heard: HeardNote[]): number[] {
+    const on = heard.filter((h) => h.s >= seg.t - 3 && h.s <= now).sort((a, b) => a.s - b.s);
+    if (!on.length) return [];
+    return [...new Set(on.filter((h) => h.s - on[0].s <= 3).map((h) => h.n % 12))];
   }
 
   // ------------------------------------------------------------------ playing

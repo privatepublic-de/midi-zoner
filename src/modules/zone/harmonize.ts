@@ -203,7 +203,15 @@ function weighSegments(line: LineNote[], length: number, segs: Segment[], meter:
 
 // ---------------------------------------------------------------- analyse
 
-export function analyse(line: LineNote[], length: number, meter: Meter = DEFAULT_METER, harmony = 0.5): Analysis {
+/** Minor modes (Dorian, Aeolian): their raised 7th leads into the tonic as in harmonic minor (D# in E minor) */
+const MINOR_MODES = [1, 5];
+
+/**
+ * Ranks keys for a line. `begins`: the line begins here, so its first strong note names the
+ * tonic; live it is a window of what was played last, whose first note is only a beginning when
+ * nothing came before it
+ */
+export function analyse(line: LineNote[], length: number, meter: Meter = DEFAULT_METER, harmony = 0.5, begins = true): Analysis {
   const segs = segmentsOf(length, meter);
   const seg = weighSegments(line, length, segs, meter);
   const hist = new Array(12).fill(0);
@@ -215,7 +223,7 @@ export function analyse(line: LineNote[], length: number, meter: Meter = DEFAULT
   const sorted = [...line].filter((n) => !n.p).sort((a, b) => a.t - b.t);
   if (sorted.length) {
     const first = sorted.find((n) => strength(n.t, meter) >= 0.7) ?? sorted[0];
-    emph[first.n % 12] += 1;
+    if (begins) emph[first.n % 12] += 1;
     // the last note names the tonic when it lands: on a 1 or held
     const last = sorted.reduce((a, b) => (b.t + b.d >= a.t + a.d ? b : a));
     emph[last.n % 12] += strength(onBeat(last, segs), meter) === 1 || last.d >= PPQ * 1.5 ? 2 : 0.6;
@@ -245,6 +253,9 @@ export function analyse(line: LineNote[], length: number, meter: Meter = DEFAULT
         if (deg === 0) p = 1;
         else if (deg === 4 || deg === 2) p = 0.8;
         else if (deg >= 0) p = 0.55;
+        // minor: the leading tone belongs to the key (harmonic minor), Aeolian's raised 6th leads up to it (melodic minor)
+        else if (MINOR_MODES.includes(mode) && rel === 11) p = 0.35;
+        else if (mode === 5 && rel === 9) p = -0.2;
         fit += (hist[pc] / total) * p;
       }
       const fifth = (tonic + steps[4]) % 12;
@@ -264,6 +275,12 @@ export function scaleOf(k: Key): number[] {
   return MODE_STEPS[k.mode].map((s) => (k.tonic + s) % 12).sort((a, b) => a - b);
 }
 
+/** The notes that belong to the key: its scale, in minor modes with the leading tone (not for voicing: no Em(maj7)) */
+export function keyTones(k: Key): number[] {
+  const s = scaleOf(k);
+  return MINOR_MODES.includes(k.mode) ? [...s, (k.tonic + 11) % 12] : s;
+}
+
 // ---------------------------------------------------------------- chords
 
 function triadOn(key: Key, deg: number): Quality {
@@ -276,6 +293,12 @@ function triadOn(key: Key, deg: number): Quality {
   return 'aug';
 }
 
+/**
+ * How much the circle-of-fifths end likes a chord, by its root's distance from the tonic: in
+ * major I, IV, V first; in minor the relative major (bIII), bVI and bVII are as common as ii and vi
+ */
+const FUNCTIONAL = [1, 0.3, 0.5, 0.55, 0.15, 0.7, 0.05, 0.8, 0.5, 0.5, 0.5, 0.05];
+
 /** The chords to choose from, with how much the harmony setting likes each */
 export function vocabulary(key: Key, h: number, blues = false): Chord[] {
   const s = MODE_STEPS[key.mode];
@@ -286,14 +309,13 @@ export function vocabulary(key: Key, h: number, blues = false): Chord[] {
     if (same) same.prior = Math.max(same.prior, c.prior);
     else out.push(c);
   };
-  const functional = [1, 0.5, 0.15, 0.7, 0.8, 0.5, 0.05];
   for (let deg = 0; deg < 7; deg++) {
     const quality = triadOn(key, deg);
     const root = (key.tonic + s[deg]) % 12;
     let modal = deg === 0 ? 1.2 : deg === CHARACTERISTIC[key.mode] ? 0.9 : 0.3;
     // a diminished fifth against the tonic chord blurs a mode
     if (quality === 'dim' || quality === 'aug') modal = -0.5;
-    let fn = functional[deg];
+    let fn = FUNCTIONAL[s[deg]];
     if (quality === 'dim' || quality === 'aug') fn -= 0.6;
     // in minor modes the fifth degree's own chord is weak functionally (no leading tone)
     if (deg === 4 && quality === 'min') fn = 0.35;
@@ -345,7 +367,7 @@ export function vocabulary(key: Key, h: number, blues = false): Chord[] {
 /** How well a chord carries the line in one segment (weighted pitch classes) */
 export function fitOf(w: number[], c: Chord, key: Key): number {
   const cp = chordTones(c);
-  const scale = scaleOf(key);
+  const scale = keyTones(key);
   let f = 0;
   for (let pc = 0; pc < 12; pc++) {
     if (!w[pc]) continue;

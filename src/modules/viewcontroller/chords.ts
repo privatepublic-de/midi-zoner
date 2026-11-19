@@ -13,6 +13,7 @@
 import { Zone } from '../zone/zone-class';
 import { Take } from '../zone/take';
 import { Meter, barTicks } from '../meter';
+import { PPQ } from '../zone/seq-layer';
 import { takeStore } from '../take-store';
 import { timeline, nowTick, NoteHistory } from '../timeline';
 import { escapeHTML } from '../domutils';
@@ -178,6 +179,41 @@ function heard(line: Zone, songPos: number, meter: Meter): HeardNote[] {
   return [...take(line.inputHistory, true), ...take(line.noteHistory, false)].sort((a, b) => a.s - b.s);
 }
 
+/** The line's take playing along while it sounds (its loop hasn't taken over): its notes are known ahead */
+function takeAhead(line: Zone, pos: number): Take | null {
+  const take = line.playingTake;
+  if (!take || take.length <= 0 || !timeline.running) return null;
+  if (line.loop && line.loopOn && pos - timeline.sectionStart >= line.looper.anchor) return null;
+  return take;
+}
+
+/**
+ * The notes of the line's take playing along still to come, from run tick `pos` (this tick's
+ * own too: the zones play it after the chords) a bar and a beat ahead, at song positions;
+ * null when it plays none (then the chords are guessed as for keys played)
+ */
+function ahead(line: Zone, pos: number, meter: Meter): HeardNote[] | null {
+  const take = takeAhead(line, pos);
+  if (!take) return null;
+  const len = take.length;
+  const end = take.offset + len;
+  const until = pos + barTicks(meter) + PPQ;
+  const anchor = line.takeAnchor;
+  const out: HeardNote[] = [];
+  // cycle by cycle from the one playing (run ticks), as the take player plays it
+  for (let c = pos < anchor ? anchor : anchor + Math.floor((pos - anchor) / len) * len; c < until; c += len) {
+    for (const n of take.notes) {
+      if (n.t < take.offset) continue;
+      if (n.t >= end) break;
+      const at = c + n.t - take.offset;
+      if (at < pos) continue;
+      if (at >= until) break;
+      out.push({ s: at - timeline.sectionStart, d: Math.max(1, Math.min(n.d, end - n.t)), n: n.n, v: n.v, held: false });
+    }
+  }
+  return out;
+}
+
 /** Every clock tick (run position): the live chords */
 export function chordsTick(pos: number, tickIntervalMs = 0): void {
   if (!hooks) return;
@@ -201,7 +237,7 @@ export function chordsTick(pos: number, tickIntervalMs = 0): void {
     if (!d) deciders.set(line.id, (d = new LiveChords()));
     const followers: Follower[] = fs.map((z) => ({ id: z.id, part: z.chords!.part, o: optionsOf(z, all), out: z }));
     let notes: HeardNote[] | null = null;
-    d.tick(songPos, () => (notes ??= heard(line, songPos, meter)), followers, meter, send);
+    d.tick(songPos, () => (notes ??= heard(line, songPos, meter)), followers, meter, send, () => ahead(line, pos, meter));
   }
   // lines gone or followed by nobody: their decisions go
   for (const [id, d] of deciders) {
@@ -514,7 +550,9 @@ function statusSentence(zone: Zone): { dot: 'live' | 'loop' | 'wait'; main: stri
   if (!d?.key) return { dot: 'live', main: `Listening to ${label}`, more: ['chords come in once it has heard a few notes'] };
   const under = bassUnder(zone);
   const shells = under ? [`rootless over ${zoneNumberName(under)}`] : [];
-  return { dot: 'live', main: `Following ${label} live`, more: [...from, ...shells, ...(zone.loop ? [] : ['Loop keeps these chords']), ...keyText] };
+  const take = takeAhead(line, nowTick());
+  const reads = take ? [`reads its Take ${takeStore.of(line.id).indexOf(take) + 1} a bar ahead`] : [];
+  return { dot: 'live', main: `Following ${label} live`, more: [...from, ...reads, ...shells, ...(zone.loop ? [] : ['Loop keeps these chords']), ...keyText] };
 }
 
 /** "2 E-Piano" */
