@@ -55,8 +55,7 @@ export interface Follower {
   out: unknown;
 }
 
-/** A note on or off, through the follower's `out` */
-/** `delay`: ticks into this tick (a strum's later notes); 0 = now */
+/** A note on or off, through the follower's `out`; `delay`: ticks into this tick (a strum's later notes), 0 = now */
 export type Send = (out: unknown, on: boolean, n: number, v: number, delay?: number) => void;
 
 interface Event {
@@ -348,7 +347,6 @@ export class LiveChords {
     const best = ranked[0];
     if (best.chord.root === cur.root && best.chord.quality === cur.quality) return false;
     const mine = ranked.find((r) => r.chord.root === cur.root && r.chord.quality === cur.quality);
-    // only when the guess clashes with what was played and the better chord is clearly better
     // only when the guess really clashes with a note held on the beat, and the better chord is clearly better
     if (clashOf(w, cur, this.key) < 1.5 || (mine && best.score - mine.score < 1.2 + 0.8 * calmOf(o))) return false;
     this.chord = best.chord;

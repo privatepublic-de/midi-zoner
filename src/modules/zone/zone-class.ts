@@ -2460,7 +2460,6 @@ export class Zone {
     return { label: this.loop ? 'Dub' : 'Rec', state: 'off' };
   }
 
-  /** Undo replaces the zone objects: the replacement keeps showing what was played */
   /** A key played into the zone, in its range: into inputHistory with the octave shift */
   private recordInput(on: boolean, key: number, velo: number): void {
     if (!on) {
@@ -2479,6 +2478,7 @@ export class Zone {
     this.inputHistory.noteOn(pitch, velo, true);
   }
 
+  /** Undo replaces the zone objects: the replacement keeps showing what was played */
   adoptHistory(previous: Zone): void {
     this.noteHistory = previous.noteHistory;
     this.inputHistory = previous.inputHistory;

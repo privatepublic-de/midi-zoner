@@ -1187,12 +1187,6 @@ function initBlockEvents(): void {
       if (i !== zone.chordSet.strum) setSettings(zone, { strum: i });
       return;
     }
-    const r = t.closest<HTMLElement>('.cb-rhythm a');
-    if (r) {
-      const i = Number(r.dataset.rhythm);
-      if (i !== zone.chordSet.rhythm) setSettings(zone, { rhythm: i });
-      return;
-    }
     if (t.closest('.cb-startover')) {
       startOver(zone);
       return;
@@ -1285,9 +1279,4 @@ export function initChords(h: Hooks): void {
   hooks = h;
   initBlockEvents();
   initSheet();
-}
-
-/** For the track view: the zone plays chords (its lane shows their names) */
-export function isChordsZone(zone: Zone): boolean {
-  return !!zone.chords;
 }

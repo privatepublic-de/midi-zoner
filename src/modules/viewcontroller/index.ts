@@ -221,7 +221,6 @@ function initController({
     },
     () => meterOf(zones.arrangementIndex)
   );
-  // experiment: chords for a line into another zone's loop (⌘⇧K)
   // chords zones: chords or a bass line to another zone's line
   initChords({
     zones: () => zones.list,
