@@ -1,3 +1,5 @@
+import { setRangeValue } from '../domutils';
+
 export class ZoneElements {
   isReady = false;
   zoneElement: HTMLElement | null = null;
@@ -80,7 +82,7 @@ export class ZoneElements {
 
   setPercentage(selector: string, percentage: number, zoneIndex: number): void {
     const el = this.getCachedElement(selector) as HTMLInputElement;
-    if (el) el.value = String(percentage);
+    if (el) setRangeValue(el, percentage);
     let outputSelector = selector;
     if (outputSelector.startsWith('.')) {
       outputSelector = outputSelector.substring(1);

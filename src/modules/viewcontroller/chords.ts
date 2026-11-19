@@ -16,7 +16,7 @@ import { Meter, barTicks } from '../meter';
 import { PPQ } from '../zone/seq-layer';
 import { takeStore } from '../take-store';
 import { timeline, nowTick, NoteHistory } from '../timeline';
-import { escapeHTML } from '../domutils';
+import { escapeHTML, setRangeValue } from '../domutils';
 import { toast } from './toast';
 import { harmonize, progress, segmentsOf, chordName, keyName, RHYTHMS, RHYTHM_ORDER, POWER_BELOW, FREE_FROM, LineNote, Chord, Key, HarmonyOptions } from '../zone/harmonize';
 import { LiveChords, HeardNote, Follower, Send, heardChords, HEARD_BARS } from '../zone/live-chords';
@@ -836,10 +836,9 @@ function drawBlock(zone: Zone, el: HTMLElement): void {
   el.querySelectorAll<HTMLElement>('.cb-strum a').forEach((a) => a.classList.toggle('on', Number(a.dataset.strum) === s.strum));
   el.querySelectorAll<HTMLElement>('.cb-blues a').forEach((a) => a.classList.toggle('on', Number(a.dataset.blues) === s.blues));
   const sw = el.querySelector<HTMLInputElement>('input[data-swing]');
-  if (sw && document.activeElement !== sw) sw.value = String(zone.swingAmount);
+  if (sw) setSlider(sw, zone.swingAmount);
   el.querySelectorAll<HTMLInputElement>('.cb-more input[type=range][data-k]').forEach((inp) => {
-    const k = inp.dataset.k as keyof ChordSettings;
-    if (document.activeElement !== inp) inp.value = String(s[k]);
+    setSlider(inp, s[inp.dataset.k as keyof ChordSettings] as number);
   });
   el.querySelectorAll<HTMLElement>('.cb-best').forEach((b) => (b.hidden = !s.seed));
   // the style, marked • once something was changed since
@@ -854,6 +853,11 @@ function drawBlock(zone: Zone, el: HTMLElement): void {
       if (opt.textContent !== text) opt.textContent = text;
     }
   }
+}
+
+/** A slider's thumb and its filled part; left alone while held */
+function setSlider(inp: HTMLInputElement, v: number): void {
+  if (!inp.matches(':active')) setRangeValue(inp, v);
 }
 
 /** What a pad's settings sound like, in words (the engine's steps) */

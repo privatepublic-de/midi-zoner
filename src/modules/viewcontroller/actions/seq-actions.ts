@@ -1,3 +1,4 @@
+import { setRangeValue } from '../../domutils';
 import { Zone } from '../../zone/zone-class';
 import { Sequence } from '../../zone/sequence';
 import { SeqStep } from '../../zone/seq-step';
@@ -175,7 +176,7 @@ export function createSeqActions(
         if (hitsInput) {
           const laneLen = sequence.getDrumLane(laneNo).length;
           hitsInput.max = String(laneLen);
-          hitsInput.value = String(Math.min(parseInt(hitsInput.value), laneLen));
+          setRangeValue(hitsInput, Math.min(parseInt(hitsInput.value), laneLen));
           const valDisplay = eucPanel.querySelector('.euc-val') as HTMLElement | null;
           if (valDisplay) valDisplay.textContent = hitsInput.value;
         }

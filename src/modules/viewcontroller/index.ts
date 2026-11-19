@@ -1,4 +1,4 @@
-import DOM, { escapeHTML } from '../domutils';
+import DOM, { escapeHTML, syncRangeFill, setRangeValue } from '../domutils';
 import MIDI from '../midi';
 import { differsFromPreset, findDevicePreset, matchesPort, presetsByMaker, PresetDevice } from '../device-presets';
 
@@ -1377,14 +1377,6 @@ function updateGeneralButtons(): void {
   DOM.switchClass(elAllHoldOff, held > 0, 'active');
 }
 
-/** Range inputs have no native "filled" part in Chromium: expose the value as a percentage for the track gradient. */
-function syncRangeFill(el: HTMLInputElement): void {
-  const min = parseFloat(el.min || '0');
-  const max = parseFloat(el.max || '100');
-  const pct = max > min ? ((parseFloat(el.value) - min) / (max - min)) * 100 : 0;
-  el.style.setProperty('--fill', `${Math.max(0, Math.min(100, pct))}%`);
-}
-
 function syncRangeFills(root: ParentNode): void {
   root.querySelectorAll<HTMLInputElement>('input[type="range"]').forEach(syncRangeFill);
 }
@@ -1595,7 +1587,7 @@ function updateValuesForZone(index: number): void {
           ) as HTMLInputElement | null;
           if (ratchetDeltaEl) {
             const pct = velocityDeltaToPercent(step.ratchetVelocityDelta ?? 0);
-            ratchetDeltaEl.value = String(pct);
+            setRangeValue(ratchetDeltaEl, pct);
             const deltaOut = ratchetDeltaEl.parentElement?.querySelector(
               `output[for="${ratchetDeltaEl.id}"]`
             ) as HTMLOutputElement | null;

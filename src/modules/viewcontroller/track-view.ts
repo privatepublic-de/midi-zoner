@@ -10,7 +10,7 @@ import { shiftGestures, pedalSpans, SUSTAIN } from '../zone/gestures';
 import type { GesturesJSON } from '../zone/gestures';
 import { loopFromNotes, pickupStart, recutLoop, EARLY, MAX_LOOP_BARS } from '../zone/looper';
 import { takeStore, MAX_TAKES } from '../take-store';
-import { escapeHTML } from '../domutils';
+import { escapeHTML, setRangeValue } from '../domutils';
 import { DIV_TICKS, PPQ } from '../zone/seq-layer';
 import { analyse, quantize, quantizeStarts, applyToSequence, swingFor, stepPos, DIV_NAMES, PlayedNote, Quantized } from '../zone/take-quantize';
 import { toast } from './toast';
@@ -2017,9 +2017,7 @@ function updateConvertPanel(): void {
   panel.querySelectorAll('.tdc-for-take').forEach((r) => ((r as HTMLElement).style.display = intoTake ? '' : 'none'));
   panel.querySelectorAll('.tdc-for-steps').forEach((r) => ((r as HTMLElement).style.display = intoTake ? 'none' : ''));
   const strength = panel.querySelector('.tdc-strength') as HTMLInputElement;
-  strength.value = String(Math.round(c.strength * 100));
-  // the filled part of the track, as the zones' sliders show it
-  strength.style.setProperty('--fill', `${((c.strength * 100 - 10) / 90) * 100}%`);
+  setRangeValue(strength, Math.round(c.strength * 100));
   panel.querySelector('.tdc-strength-value')!.textContent = `${Math.round(c.strength * 100)}%`;
   panel.querySelectorAll('.tdc-mode [data-mode]').forEach((m) => {
     m.classList.toggle('on', ((m as HTMLElement).dataset['mode'] === 'drums') === c.drums);
