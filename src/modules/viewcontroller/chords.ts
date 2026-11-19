@@ -608,9 +608,15 @@ function startOverLine(line: Zone): void {
   updateFollowRows();
 }
 
-/** "3 Chords and 4 Bass" */
+/** Zones as they are on screen (followersOf() puts chords before bass, for the engine) */
+function inZoneOrder(fs: Zone[]): Zone[] {
+  const zs = hooks.zones();
+  return [...fs].sort((a, b) => zs.indexOf(a) - zs.indexOf(b));
+}
+
+/** "3 Chords and 4 Bass", in zone order */
 function followerNames(fs: Zone[]): string {
-  const names = fs.map((z) => zoneNumberName(z));
+  const names = inZoneOrder(fs).map((z) => zoneNumberName(z));
   return names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : names[0] ?? '';
 }
 
@@ -643,7 +649,7 @@ export function updateFollowRows(): void {
     const el = line.elements?.zoneElement;
     const row = el?.querySelector<HTMLElement>('.card-follow');
     if (!el || !row) return;
-    const fs = line.chords ? [] : followersOf(line);
+    const fs = line.chords ? [] : inZoneOrder(followersOf(line));
     const show = fs.length > 0;
     if (el.classList.contains('has-card-follow') !== show) el.classList.toggle('has-card-follow', show);
     if (!show) return;
