@@ -12,6 +12,7 @@ import type { CurveName } from './note-curve';
 import { barTicks } from '../meter';
 import { TakePlayer } from './take-player';
 import { Looper, PressResult, EARLY } from './looper';
+import { HEARD_TICKS } from './live-chords';
 import { takeStore } from '../take-store';
 import { MpeInput, MpeMode, MPE_SLIDE_CC, PressureGlide, DEFAULT_PRESSURE_FROM, mpeSetupMessages, rescaleBend, memberChannels } from './mpe';
 import type { MpeDot, LoopExpression } from './mpe';
@@ -262,8 +263,8 @@ export class Zone {
   readonly paramLocks = new ParamLocks(this);
   /** What this zone sent during the current run, for the track view */
   noteHistory = new NoteHistory();
-  /** What is played into this zone (after the octave shift), also while muted: chords zones hear it */
-  inputHistory = new NoteHistory();
+  /** What is played into this zone (after the octave shift), also while muted: chords zones hear it (only as far back as they listen) */
+  inputHistory = new NoteHistory(HEARD_TICKS);
   /** input key → the pitch it went into inputHistory as (the note-off finds it after an octave change) */
   private inputPitch = new Map<number, number>();
   /** Plays chords or a bass line to another zone's line (zone-global; null: a normal zone) */

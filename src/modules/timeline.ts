@@ -122,6 +122,9 @@ class NoteHistory {
   low = 128;
   high = -1;
 
+  /** `keep`: notes that started longer ago than this (ticks) are let go, else up to MAX notes are kept */
+  constructor(private readonly keep = Infinity) {}
+
   /** The notes starting from `lookback` before `from` up to `to` (binary search on start) */
   between(from: number, to: number, lookback = NoteHistory.LOOKBACK): HistoryNote[] {
     const notes = this.notes;
@@ -145,6 +148,14 @@ class NoteHistory {
     if (pitch < this.low) this.low = pitch;
     if (pitch > this.high) this.high = pitch;
     if (this.notes.length > NoteHistory.MAX) this.notes.splice(0, this.notes.length - NoteHistory.MAX);
+    // past `keep`: let go in batches (when the oldest is twice as old), not on every note
+    const now = this.notes[this.notes.length - 1].start;
+    if (this.notes[0].start < now - 2 * this.keep) {
+      const from = now - this.keep;
+      let i = 0;
+      while (i < this.notes.length && this.notes[i].start < from) i++;
+      this.notes.splice(0, i);
+    }
   }
 
   noteOff(pitch: number): void {

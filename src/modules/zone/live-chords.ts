@@ -13,6 +13,7 @@
 import { Meter, barTicks } from '../meter';
 import { PPQ } from './seq-layer';
 import { hashRoll } from '../prng';
+import { MAX_LOOP_BARS } from './looper';
 import {
   Chord,
   Key,
@@ -80,6 +81,11 @@ interface Voice {
 }
 
 const WINDOW_BARS = 8;
+/** How far back the line is listened to (bars), and that in ticks for the longest meter (32/4) */
+export const HEARD_BARS = 9;
+export const HEARD_TICKS = HEARD_BARS * 32 * PPQ;
+/** The chords played are kept this long (bars): a loop closed over them (up to 64 bars) keeps them, the form looks 8 back */
+const LOG_BARS = MAX_LOOP_BARS + 8;
 /** Ticks after the beat when it listens again */
 const LISTEN = 12; // an 8th: passing and approach notes are mostly let go by then
 
@@ -209,6 +215,14 @@ export class LiveChords {
     this.check = null;
   }
 
+  /** The log is in time order (beats are logged as they come; Start and arrangement switches clear it) */
+  private trimLog(before: number): void {
+    for (const t of this.log.keys()) {
+      if (t >= before) break;
+      this.log.delete(t);
+    }
+  }
+
   get name(): string {
     return this.chord ? chordName(this.chord) : '';
   }
@@ -312,6 +326,7 @@ export class LiveChords {
     const prev = this.chord;
     const same = prev && prev.root === best.root && prev.quality === best.quality;
     this.log.set(seg.t, same ? prev! : best);
+    this.trimLog(seg.t - LOG_BARS * barTicks(meter));
     this.check = { seg, at: seg.t + LISTEN };
     const barEnd = segs[segs.length - 1].end;
     if (same && seg.beat !== 0) {

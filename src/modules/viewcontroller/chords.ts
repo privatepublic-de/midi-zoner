@@ -18,7 +18,7 @@ import { timeline, nowTick, NoteHistory } from '../timeline';
 import { escapeHTML } from '../domutils';
 import { toast } from './toast';
 import { harmonize, progress, segmentsOf, chordName, keyName, RHYTHMS, RHYTHM_ORDER, POWER_BELOW, FREE_FROM, LineNote, Chord, Key, HarmonyOptions } from '../zone/harmonize';
-import { LiveChords, HeardNote, Follower, Send, heardChords } from '../zone/live-chords';
+import { LiveChords, HeardNote, Follower, Send, heardChords, HEARD_BARS } from '../zone/live-chords';
 import { ChordPart, ChordPlan, ChordSettings, DEFAULT_CHORD_SETTINGS, harmonyOptions, loopSig } from '../zone/chord-settings';
 import MIDI from '../midi';
 import { STYLE_GROUPS, stylesIn, styleById, styleSettings, differsFromStyle } from '../zone/chord-styles';
@@ -169,7 +169,7 @@ function playsLive(z: Zone): boolean {
 function heard(line: Zone, songPos: number, meter: Meter): HeardNote[] {
   const offset = timeline.runStart + timeline.sectionStart;
   const now = offset + songPos;
-  const from = Math.max(now - 9 * barTicks(meter), offset, freshFrom.get(line.id) ?? -Infinity);
+  const from = Math.max(now - HEARD_BARS * barTicks(meter), offset, freshFrom.get(line.id) ?? -Infinity);
   const take = (h: NoteHistory, played: boolean) =>
     h
       .between(from, now + 1, 0)
@@ -185,10 +185,13 @@ export function chordsTick(pos: number, tickIntervalMs = 0): void {
   const zs = hooks.zones();
   const meter = hooks.meter();
   const songPos = pos - timeline.sectionStart;
-  const seen = new Set<string>();
+  // lines someone follows (live or not: a loop kept later wants the chords heard)
+  const followed = new Set<string>();
   for (const line of zs) {
     if (line.chords) continue;
     const all = followersOf(line);
+    if (!all.length) continue;
+    followed.add(line.id);
     const fs = all.filter(playsLive);
     let d = deciders.get(line.id);
     if (!fs.length) {
@@ -196,12 +199,17 @@ export function chordsTick(pos: number, tickIntervalMs = 0): void {
       continue;
     }
     if (!d) deciders.set(line.id, (d = new LiveChords()));
-    seen.add(line.id);
     const followers: Follower[] = fs.map((z) => ({ id: z.id, part: z.chords!.part, o: optionsOf(z, all), out: z }));
     let notes: HeardNote[] | null = null;
     d.tick(songPos, () => (notes ??= heard(line, songPos, meter)), followers, meter, send);
   }
-  for (const [id, d] of deciders) if (!seen.has(id)) d.stop(send);
+  // lines gone or followed by nobody: their decisions go
+  for (const [id, d] of deciders) {
+    if (followed.has(id)) continue;
+    d.stop(send);
+    deciders.delete(id);
+  }
+  for (const id of freshFrom.keys()) if (!followed.has(id)) freshFrom.delete(id);
   chipsNextFrame();
 }
 
@@ -608,14 +616,15 @@ export function chordMarks(zone: Zone, from: number, to: number): { s: number; n
   const line = lineZoneOf(zone);
   const d = line && deciders.get(line.id);
   if (!d) return out;
+  // the log is in time order and trimmed (LiveChords.trimLog)
   let last = '';
-  [...d.log.entries()]
-    .sort((a, b) => a[0] - b[0])
-    .forEach(([s, c]) => {
-      const name = chordName(c);
-      if (name !== last && s >= from - 4 * barTicks(hooks.meter()) && s < to) out.push({ s, name });
-      last = name;
-    });
+  const after = from - 4 * barTicks(hooks.meter());
+  for (const [s, c] of d.log) {
+    if (s >= to) break;
+    const name = chordName(c);
+    if (name !== last && s >= after) out.push({ s, name });
+    last = name;
+  }
   return out;
 }
 
