@@ -220,7 +220,32 @@ function updateLoopChips(): void {
         ? `Loop (${length}) on: it plays, also on a muted zone. Click: off, kept`
         : `Loop (${length}) off: kept, silent. Click: on`;
     if (sw.title !== swTitle) sw.title = swTitle;
+    updateTakeChip(zone);
   }
+}
+
+/** The Take chip (zones with takes): "Take 3" lit while that take plays along, dim while the loop plays instead */
+function updateTakeChip(zone: Zone): void {
+  const el = zone.elements.zoneElement;
+  const chip = el?.querySelector('.showtake') as HTMLElement | null;
+  if (!el || !chip) return;
+  const takes = takeStore.of(zone.id);
+  const has = takes.length > 0 && !zone.chords;
+  if (el.classList.contains('has-takes') !== has) el.classList.toggle('has-takes', has);
+  if (!has) return;
+  const playing = zone.playingTake;
+  const quiet = !!playing && !!zone.loop && zone.loopOn;
+  const label = playing ? `Take ${takes.indexOf(playing) + 1}` : 'Take';
+  if (chip.textContent !== label) chip.textContent = label;
+  chip.classList.toggle('take-on', !!playing);
+  chip.classList.toggle('take-quiet', quiet);
+  const shown = takeStore.shownTake(zone.id);
+  const title = playing
+    ? quiet
+      ? `${label} plays along, quiet while the loop plays (Loop off: it's heard again). Click: off`
+      : `${label} plays along from bar 1 of every run, as if played: chords follow it, Rec loops bars of it. Click: off`
+    : `Play Take ${shown ? takes.indexOf(shown) + 1 : ''} along from bar 1 of every run, as if played (chords follow it, Rec loops bars of it)`;
+  if (chip.title !== title) chip.title = title;
 }
 
 /** What the Loop chip does next, in its tooltip */
@@ -840,9 +865,9 @@ function drawLane(
   // the section began this long ago (session positions), at most the view's width back
   const passFrom = sessionNow() - Math.min(elapsedNow, (headX + 8) / ppt);
   const heldHistory = drums ? null : syncHeld(zone);
-  // notes played through from the input show only in the take being recorded
+  // notes played through from the input show only in the take being recorded (a take playing along isn't recorded)
   const history = running
-    ? zone.noteHistory.between(passFrom, sessionNow() + 1).filter((n) => inPass(n) && !(takeLane && n.live))
+    ? zone.noteHistory.between(passFrom, sessionNow() + 1).filter((n) => inPass(n) && !(takeLane && n.live && !n.take))
     : [];
   const held = running && heldHistory ? heldHistory.between(passFrom, sessionNow() + 1).filter(inPass) : [];
   const shown = shownTake(zone);
@@ -869,6 +894,7 @@ function drawLane(
       for (let s = 0; s < seq.length; s++) seq.steps[s]?.notesArray.forEach((n) => take(n.number));
     }
     zone.loop?.notes.forEach((n) => take(n.n));
+    zone.playingTake?.notes.forEach((n) => take(n.n));
     if (takeLane) latest?.notes.forEach((n) => take(n.n));
     recording?.forEach((n) => take(n.n));
     // the span of everything played this session, so rows don't jump while scrolling
@@ -1091,6 +1117,39 @@ function drawLane(
       }
     }
     asLoop = false;
+  }
+  // the take playing along, cycle by cycle from the playhead on (run ticks → song); dashed
+  // while it won't sound (the loop plays instead, or the zone is muted)
+  const along = zone.playingTake;
+  if (along) {
+    const len = along.length;
+    const runNow = elapsedNow + (running ? timeline.sectionStart : 0);
+    const runToSong = (r: number): number => elapsedToSong(r - (running ? timeline.sectionStart : 0));
+    const until = runNow + (w - headX) / ppt;
+    const anchor = zone.takeAnchor;
+    const first = runNow < anchor ? anchor : anchor + Math.floor((runNow - anchor) / len) * len;
+    const quiet = (!!loopTake && zone.loopOn) || !zone.audible;
+    feedsArp = zone.arp_enabled;
+    for (let c = first; c < until; c += len) {
+      const cx = Math.round(x(runToSong(c)));
+      if (mini && c > runNow && cx >= 0 && cx <= w) {
+        g.globalAlpha = 0.5;
+        g.fillStyle = colour;
+        g.fillRect(cx, songY + 1, 1, h - 2);
+      }
+      if (mini && !lineTags.some((t) => t.row === 0) && (c > runNow ? cx <= w : c + len > until)) {
+        lineTags.push({ x: c > runNow ? cx : headX, text: `Take ${takeStore.of(zone.id).indexOf(along) + 1}`, row: 0 });
+      }
+      for (const n of along.notes) {
+        const at = c + n.t - along.offset;
+        if (n.t < along.offset) continue;
+        if (n.t >= along.offset + len || at > until) break;
+        const end = at + Math.min(n.d, along.offset + len - n.t);
+        if (end < runNow) continue;
+        note(runToSong(at), runToSong(end), rowOf(n.n), n.v, quiet);
+      }
+    }
+    feedsArp = false;
   }
   if (!mini) {
     if (block) loopBlocks.set(zone, { x0: block.x0, x1: block.x1, top: songY, barPx: barLen() * ppt });

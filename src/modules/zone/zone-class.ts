@@ -6,7 +6,7 @@ import { Sequence } from './sequence';
 import { SeqStep } from './seq-step';
 import { DrumLane } from './drum-lane';
 import { Take } from './take';
-import { BEND, PRESSURE, SUSTAIN, GestureMix, gestureOf } from './gestures';
+import { BEND, PRESSURE, SUSTAIN, GestureMix, gestureOf, springsBackTo } from './gestures';
 import { CurveBuilder, updateCurves } from './note-curve';
 import type { CurveName } from './note-curve';
 import { barTicks } from '../meter';
@@ -286,6 +286,20 @@ export class Zone {
   /** Recording and overdubbing the loop: a live gesture, handed on across undo */
   looper = new Looper();
   readonly loopPlayer = new TakePlayer(this);
+  /**
+   * A take playing along (its id; zone-global, saved as `play_take`): from bar 1 of every
+   * run, over and over, into the zone as if played (sound, chords zones following, the
+   * looper's input; not into takes). Quiet while the zone's loop plays; mute silences it
+   */
+  playTake: string | null = null;
+  /** Where it plays from (run ticks): 0, or the bar line after it was switched on while running */
+  takeAnchor = 0;
+  readonly takePlayer = new TakePlayer(this, true);
+  /** Pitches the playing take sounds through the zone (their note-offs follow, also into a mute) */
+  private takeSounding = new Set<number>();
+  /** A note of the playing take is on its way through handleMessage (any key range, sent as live) */
+  private takeLive = false;
+  private takeRestTimer: ReturnType<typeof setTimeout> | null = null;
   arrangements: ZoneArrangementJSON[] = [];
   currentArrangementIndex = 0;
   lastTouchedRangePoint = 0;
@@ -336,6 +350,7 @@ export class Zone {
       devicePreset: this.devicePreset,
       cc_page: this.ccPage,
       ...(this.chords ? { chords: this.chords } : {}),
+      ...(this.playTake ? { play_take: this.playTake } : {}),
       arrangements: this.arrangements
     };
   }
@@ -681,7 +696,8 @@ export class Zone {
       }
     }
     this.midi.send(msg, portId, timestamp);
-    if (noteOn) this.noteHistory.noteOn(msg[1], msg[2], live);
+    // a playing take's notes count as played (chords zones hear them from inputHistory)
+    if (noteOn) this.noteHistory.noteOn(msg[1], msg[2], live || this.takeLive, this.takeLive);
     else if (status === MIDI.MESSAGE.NOTE_ON || status === MIDI.MESSAGE.NOTE_OFF) this.noteHistory.noteOff(msg[1]);
     if (!noteOn || this.ledTimer !== null) return;
     const body = document.body.classList;
@@ -834,7 +850,8 @@ export class Zone {
           // Seaboard's lift, passes as it came
           let velo = message === MIDI.MESSAGE.NOTE_ON ? this.scaledVelocity(data[2]) : data[2];
           // a chords zone's chords and loop play whatever the key range (that's for what you play)
-          if ((key >= this.low && key <= this.high) || (fromSequencer && this.chords)) {
+          // nor a playing take's notes (played into the zone already, at their pitch)
+          if ((key >= this.low && key <= this.high) || (fromSequencer && (this.chords || this.takeLive))) {
             if (isArpActive && this.arp_hold && this.arp_transpose) {
               this.arp_transpose_amount = ((key + 12) % 24) - 12;
               requestAnimationFrame(this._renderNotesBound);
@@ -1661,6 +1678,14 @@ export class Zone {
       const silent = !this.loopOn || (this.chords !== null && !this.chordsOn);
       this.loopPlayer.clockLoop(elapsed, tickIntervalMs, this.loop, layer, this.looper.anchor, silent);
     }
+    // the take playing along: quiet while the loop plays (it took over: a loop from the take)
+    const take = this.playingTake;
+    if (take) {
+      const loopPlays = this.loop !== null && this.loopOn && elapsed >= this.looper.anchor;
+      this.takePlayer.clockTake(pos, tickIntervalMs, take, this.takeAnchor, loopPlays);
+    } else if (this.takePlayer.busy) {
+      this.takePlayer.release(true);
+    }
     if (tickIntervalMs > 0) this._lastTickIntervalMs = tickIntervalMs;
 
     const tickn = pos % this.arp_ticks;
@@ -2130,6 +2155,11 @@ export class Zone {
     this.arp.repeatnote = null;
     this.sequence.stopped(ringOut);
     this.loopPlayer.release(ringOut);
+    // the take playing along starts over at the next Start (an arrangement switch: it goes on)
+    if (ringOut) {
+      this.takePlayer.release(true);
+      this.takeAnchor = 0;
+    }
     // the loop starts over at bar 1 (a recording was finished before, see finishLoop())
     this.looper.reset();
     // Controllers go back to their own values once ringing notes have ended (a little
@@ -2157,6 +2187,7 @@ export class Zone {
     this.ringOutArpNote();
     this.sequence.paused();
     this.loopPlayer.release(true);
+    this.takePlayer.release(true);
     if (this._strumGraceTimer !== null) {
       clearTimeout(this._strumGraceTimer);
       this._strumGraceTimer = null;
@@ -2288,6 +2319,81 @@ export class Zone {
     const now = nowTick();
     this.looper.noteOff(now - timeline.sectionStart, pitch);
     takeStore.noteOff(this.id, now, pitch);
+  }
+
+  /** The take playing along, while it's there (a chords zone plays none) */
+  get playingTake(): Take | null {
+    if (!this.playTake || this.chords) return null;
+    return takeStore.of(this.id).find((t) => t.id === this.playTake) ?? null;
+  }
+
+  /** The take playing along (null: none); switched on while running, it comes in from its bar 1 at the next bar line */
+  setPlayTake(id: string | null): void {
+    this.takePlayer.release(true);
+    this.playTake = id;
+    this.takeAnchor = 0;
+    if (id && timeline.running) {
+      const bar = barTicks(timeline.meter);
+      const inSection = nowTick() - timeline.sectionStart;
+      this.takeAnchor = timeline.sectionStart + Math.ceil(inSection / bar - 1e-6) * bar;
+    }
+  }
+
+  /**
+   * A note of the playing take, as if played at its pitch: chords zones following hear it
+   * and the looper takes it in (a take is made only of your keys); it sounds unless muted
+   */
+  playTakeNote(on: boolean, pitch: number, velo: number): void {
+    if (on) this.inputHistory.noteOn(pitch, velo, true);
+    else this.inputHistory.noteOff(pitch);
+    if (timeline.running) {
+      const at = nowTick() - timeline.sectionStart;
+      if (on) this.looper.noteOn(at, pitch, velo);
+      else this.looper.noteOff(at, pitch);
+    }
+    if (on) {
+      if (!this.audible) return;
+      this.takeSounding.add(pitch);
+    } else if (!this.takeSounding.delete(pitch)) {
+      return;
+    }
+    const status = on ? MIDI.MESSAGE.NOTE_ON : MIDI.MESSAGE.NOTE_OFF;
+    this.takeLive = true;
+    try {
+      this.handleMidi(status, Uint8Array.from([status + this.channel, pitch, on ? velo : 0]), true);
+    } finally {
+      this.takeLive = false;
+    }
+  }
+
+  /** A control of the playing take (sustain, wheels…), as if played: out unless muted, into the looper's input */
+  takeGesture(key: string, value: number): void {
+    if (this.takeRestTimer !== null) {
+      clearTimeout(this.takeRestTimer);
+      this.takeRestTimer = null;
+    }
+    if (timeline.running) this.looper.gesture(nowTick() - timeline.sectionStart, key, value);
+    if (this.audible) this.gestureMix.played(key, value);
+  }
+
+  /** The take stops playing these controls: pedals lift and wheels rest, after ringing notes */
+  takeGesturesEnd(keys: string[]): void {
+    if (keys.length === 0) return;
+    const rest = (): void => {
+      for (const key of keys) {
+        const v = springsBackTo(key);
+        if (v !== undefined) this.gestureMix.played(key, v);
+      }
+    };
+    if (this.takeRestTimer !== null) clearTimeout(this.takeRestTimer);
+    this.takeRestTimer = null;
+    const wait = this._ringOutUntil - performance.now();
+    if (wait <= 0) rest();
+    else
+      this.takeRestTimer = setTimeout(() => {
+        this.takeRestTimer = null;
+        rest();
+      }, wait + 20);
   }
 
   /** A 14-bit bend from the keyboard in hundredths of a semitone of its range */
@@ -2498,6 +2604,9 @@ export class Zone {
     // rest from the old zone could overwrite what this one sent)
     previous.loopPlayer.endVoices(true);
     previous.loopPlayer.release(true);
+    // the take playing along goes on in its place (from the next note); the old one lets go
+    previous.takePlayer.release(true);
+    this.takeAnchor = previous.takeAnchor;
     // A held Pedal is a live gesture, not scene data: it stays down across undo,
     // without an up/down blip that would cut sustained notes. On another
     // output or channel the old one lets go (releasePedal() after the carry-over).
@@ -2528,6 +2637,9 @@ export class Zone {
     // A swung arp hit still waiting would send a note-on after the zone is gone
     this.arpSwingPending.forEach((p) => clearTimeout(p.timer));
     this.arpSwingPending.length = 0;
+    // a playing take's notes due later would sound after the zone is gone
+    this.takePlayer.release(false);
+    if (this.takeRestTimer !== null) clearTimeout(this.takeRestTimer);
     this.flushRingOuts();
     this.arpNoteOff();
     const outevent = new Uint8Array([0, 0, 0]);
@@ -2559,6 +2671,7 @@ export class Zone {
     this.passedThrough.clear();
     this.holdList = [];
     this.finishCurves(true);
+    this.takeSounding.clear();
     // reset controllers has put the synth's bend and pressure at rest already
     this.loopPlayer.endVoices(true);
     this.mpeIn.reset();

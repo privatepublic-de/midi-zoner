@@ -198,6 +198,7 @@ function createZone(midi: MIDIInstance, zoneData: any, freshId = false): Zone {
   zone.bank_lsb = zoneData.bank_lsb ?? null;
   if (zoneData.cc_controllers) zone.cc_controllers = migrateSpacers(zoneData.cc_controllers);
   if (typeof zoneData.cc_page == 'number') zone.ccPage = Math.max(0, Math.floor(zoneData.cc_page));
+  if (typeof zoneData.play_take == 'string' && /^[a-z0-9]{1,16}$/.test(zoneData.play_take)) zone.playTake = zoneData.play_take;
   if (typeof zoneData.devicePreset?.id == 'string' && typeof zoneData.devicePreset?.name == 'string') {
     zone.devicePreset = { id: zoneData.devicePreset.id, name: zoneData.devicePreset.name };
   }

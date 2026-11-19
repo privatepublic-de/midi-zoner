@@ -289,5 +289,7 @@ export interface ZoneJSON {
   cc_page?: number;
   /** Plays chords or a bass line to another zone's line (chord-settings.ts ChordRole) */
   chords?: unknown;
+  /** The id of the zone's take that plays along (Zone.playTake) */
+  play_take?: string;
   arrangements: ZoneArrangementJSON[];
 }

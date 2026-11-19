@@ -204,12 +204,25 @@ class TakeStore {
     return this.of(zoneId).length > 0 || this.recording.has(zoneId);
   }
 
+  /** The id of a zone's take that must stay (the one playing along), set by the view */
+  keeps: (zoneId: string) => string | null = () => null;
+
+  /** At most MAX_TAKES: the oldest go, except the one playing along */
+  private trimmed(zoneId: string, list: Take[]): Take[] {
+    const keep = this.keeps(zoneId);
+    const out = [...list];
+    for (let i = 0; out.length > MAX_TAKES && i < out.length; ) {
+      if (out[i].id === keep) i++;
+      else out.splice(i, 1);
+    }
+    return out;
+  }
+
   /** Adds a take (at `index`, else as the newest); the oldest go beyond MAX_TAKES */
   add(zoneId: string, take: Take, index?: number): void {
     const list = [...this.of(zoneId)];
     list.splice(index ?? list.length, 0, take);
-    while (list.length > MAX_TAKES) list.shift();
-    this.byZone.set(zoneId, list);
+    this.byZone.set(zoneId, this.trimmed(zoneId, list));
     this.changed();
   }
 
@@ -230,7 +243,7 @@ class TakeStore {
 
   /** Replaces a zone's takes (the saved takes at start) */
   set(zoneId: string, takes: Take[]): void {
-    this.byZone.set(zoneId, takes.slice(-MAX_TAKES));
+    this.byZone.set(zoneId, this.trimmed(zoneId, takes));
     this.shown.delete(zoneId);
     this.changed();
   }
@@ -244,7 +257,7 @@ class TakeStore {
     const added = takes.filter((t) => !have.has(t.id));
     if (added.length === 0) return;
     const list = [...this.of(zoneId), ...added].sort((a, b) => (a.at || 0) - (b.at || 0) || a.seq - b.seq);
-    this.byZone.set(zoneId, list.slice(-MAX_TAKES));
+    this.byZone.set(zoneId, this.trimmed(zoneId, list));
     this.changed();
   }
 

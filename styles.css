@@ -6639,6 +6639,24 @@ body.track-view:not(.minimized) {
   pointer-events: none;
 }
 
+/* the Take chip: only on zones with takes; lit while one plays along, dimmed while the loop plays instead */
+.zone .channels .ch.showtake {
+  display: none;
+  min-width: 46px;
+  margin-right: 6px;
+}
+.zone.has-takes .channels .ch.showtake {
+  display: flex;
+}
+.zone .channels .ch.showtake.take-on {
+  background-color: var(--on);
+  border-color: var(--on);
+  color: var(--on-text);
+}
+.zone .channels .ch.showtake.take-on.take-quiet {
+  opacity: 0.5;
+}
+
 .zone .channels .ch.showloop.loop-rec {
   background-color: var(--danger);
   border-color: var(--danger);

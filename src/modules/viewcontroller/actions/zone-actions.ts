@@ -240,6 +240,12 @@ export function createZoneActions(
           }
         });
     },
+    // the shown take plays along (as if played, from bar 1 of every run), or none
+    zone_take_play: () => {
+      if (zone.chords) return;
+      zone.setPlayTake(zone.playingTake ? null : takeStore.shownTake(zone.id)?.id ?? null);
+      updateValuesForZone(zoneindex);
+    },
     // a track of a MIDI file as the zone's newest take (an undo step of its own once imported)
     zone_import_midi: () => {
       void importMidiFile(zoneindex);

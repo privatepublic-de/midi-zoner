@@ -3,7 +3,7 @@ import { escapeHTML } from '../domutils';
 import { Note } from '../zone/note';
 import { Take } from '../zone/take';
 import type { Zone } from '../zone/zone-class';
-import { takeStore, MAX_TAKES } from '../take-store';
+import { takeStore } from '../take-store';
 import { MidiFile, MidiPart, parseMidiFile, partsOf, takeFromPart, partLabel } from '../midi-file';
 import { Meter, meterLabel, sameMeter } from '../meter';
 import type { UndoPatch } from '../undo-history';
@@ -102,9 +102,9 @@ function importPart(zoneId: string, file: MidiFile, part: MidiPart): void {
     return;
   }
   take.seq = ++Take.counter;
-  // the oldest take goes when the zone has MAX_TAKES: undo brings it back
+  // past MAX_TAKES the oldest (not the one playing along) goes: undo brings it back
   const before = takeStore.of(zoneId);
-  const evicted = before.length >= MAX_TAKES ? before[0] : null;
+  let evicted: { take: Take; at: number } | null = null;
   const arr = h.arrangement();
   const oldMeter = h.meterOf(arr);
   const oldTempo = h.tempo();
@@ -118,12 +118,15 @@ function importPart(zoneId: string, file: MidiFile, part: MidiPart): void {
   };
   const revert = (): void => {
     takeStore.remove(zoneId, take);
-    if (evicted) takeStore.add(zoneId, evicted, 0);
+    if (evicted) takeStore.add(zoneId, evicted.take, evicted.at);
     h.setMeter(arr, oldMeter);
     if (oldTempo !== null) h.setTempo(oldTempo);
     h.refresh();
   };
   apply();
+  const after = takeStore.of(zoneId);
+  const gone = before.findIndex((t) => !after.includes(t));
+  if (gone >= 0) evicted = { take: before[gone], at: gone };
   h.pushPatch(h.label(index, 'Import Take'), { undo: revert, redo: apply });
 
   const zone = h.zones()[index];

@@ -36,9 +36,12 @@ interface Scheduled {
 /**
  * Plays a zone's loop every tick: notes between two ticks go out on timers for their
  * place. They are fed through the zone like step notes (arp, octave and range rules apply).
+ * With `asTake`, a take playing along instead: its notes and gestures go in as if played
+ * (Zone.playTakeNote / takeGesture), without MPE expression.
  */
 export class TakePlayer {
   private zone: Zone;
+  private asTake: boolean;
   private queue: Scheduled[] = [];
   private timers = new Set<ReturnType<typeof setTimeout>>();
   private elapsed = 0;
@@ -49,8 +52,46 @@ export class TakePlayer {
   private gestures: { g: GesturesJSON | undefined; length: number } | null = null;
   private gestureKeys: string[] = [];
   private sampled = new Map<string, number>();
-  constructor(zone: Zone) {
+  constructor(zone: Zone, asTake = false) {
     this.zone = zone;
+    this.asTake = asTake;
+  }
+
+  /** Whether it has notes sounding or due (a take that stops playing lets go of them) */
+  get busy(): boolean {
+    return this.queue.length > 0 || this.gestures !== null;
+  }
+
+  /**
+   * A take playing along from `anchor` (run ticks) at run tick `pos`, over and over: its
+   * window (offset, length) from its bar 1. Quiet (the zone's loop plays): what sounds
+   * rings out, nothing new starts, it keeps its place.
+   */
+  clockTake(pos: number, tickIntervalMs: number, take: Take, anchor: number, quiet: boolean): void {
+    const later = this.advance(pos, tickIntervalMs);
+    if (quiet) {
+      if (this.busy) this.release(true);
+      return;
+    }
+    if (pos < anchor) return;
+    const len = take.length;
+    const local = (pos - anchor) % len;
+    this.playGestures(take, local, later, take.offset);
+    const notes = take.notes;
+    const from = take.offset + local;
+    const end = take.offset + len;
+    // sorted by t: from the first at or after this tick
+    let lo = 0;
+    let hi = notes.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (notes[mid].t < from) lo = mid + 1;
+      else hi = mid;
+    }
+    for (let i = lo; i < notes.length && notes[i].t < from + 1 && notes[i].t < end; i++) {
+      const tn = notes[i];
+      this.schedule(tn, tn.t - from, Math.min(tn.d, end - tn.t), later);
+    }
   }
 
   /**
@@ -83,21 +124,27 @@ export class TakePlayer {
    * belongs to it, as notes do, so it isn't played at the end); pedals change where they were
    * played, wheels are sampled about every SAMPLE_MS along their lines
    */
-  private playGestures(loop: Take, local: number, later: (ticks: number, fn: () => void) => void): void {
+  private playGestures(loop: Take, local: number, later: (ticks: number, fn: () => void) => void, offset = 0): void {
     const g = loop.g;
+    // a take's gestures are in its notes' ticks: its window starts at `offset`
+    local += offset;
     const keys = g ? Object.keys(g) : [];
-    let fresh = local < 1;
+    let fresh = local - offset < 1;
     if (!this.gestures || this.gestures.g !== g || this.gestures.length !== loop.length) {
       // another loop, or this one changed: controls it no longer plays go back to yours
       const gone = this.gestureKeys.filter((k) => !keys.includes(k));
-      if (gone.length > 0) this.zone.loopGesturesGone(gone);
+      if (gone.length > 0) {
+        if (this.asTake) this.zone.takeGesturesEnd(gone);
+        else this.zone.loopGesturesGone(gone);
+      }
       this.gestures = { g, length: loop.length };
       this.gestureKeys = keys;
       this.sampled.clear();
       fresh = true;
     }
     if (!g) return;
-    const end = loop.length - EARLY;
+    const end = offset + loop.length - EARLY;
+    const out = (key: string, v: number): void => (this.asTake ? this.zone.takeGesture(key, v) : this.zone.loopGesture(key, v));
     const step = Math.min(1, SAMPLE_MS / Math.max(1, this.tickMs));
     for (const key of keys) {
       const s = g[key];
@@ -106,25 +153,25 @@ export class TakePlayer {
         const v = at(Math.min(local, end));
         if (v !== undefined) {
           this.sampled.set(key, sendValue(key, v));
-          this.zone.loopGesture(key, v);
+          out(key, v);
         }
       }
       if (isStepped(key)) {
         for (let i = firstPointAtOrAfter(s, local); i < s.length && s[i] < local + 1; i += 2) {
           const t = s[i];
-          if (t <= 0 || t >= end || (fresh && t <= local)) continue;
+          if (t <= offset || t >= end || (fresh && t <= local)) continue;
           const v = s[i + 1];
-          later(t - local, () => this.zone.loopGesture(key, v));
+          later(t - local, () => out(key, v));
         }
         continue;
       }
       for (let t = local + (fresh ? step : 0); t < local + 1 && t < end; t += step) {
         const v = at(t);
         if (v === undefined) continue;
-        const out = sendValue(key, v);
-        if (this.sampled.get(key) === out) continue;
-        this.sampled.set(key, out);
-        later(t - local, () => this.zone.loopGesture(key, out));
+        const value = sendValue(key, v);
+        if (this.sampled.get(key) === value) continue;
+        this.sampled.set(key, value);
+        later(t - local, () => out(key, value));
       }
     }
   }
@@ -209,7 +256,7 @@ export class TakePlayer {
     const onAt = elapsed + ahead;
     const ev: Scheduled = { note, onAt, offAt: onAt + length, sounding: false, releasing: false };
     // its expression, through its release tail (at most TAIL_MS at this tempo)
-    if (tn.x && zone.loopExpression) {
+    if (tn.x && zone.loopExpression && !this.asTake) {
       const tail = Math.min(curveEnd(tn.x), length + TAIL_MS / Math.max(1, this.tickMs));
       const cursor = new CurveCursor(tn.x);
       ev.voice = { slot: -1, cursor, onAt, endAt: onAt + Math.max(length, tail), next: onAt + 1e-9, frozen: false, ended: false };
@@ -263,7 +310,8 @@ export class TakePlayer {
     this.timers.forEach((t) => clearTimeout(t));
     this.timers.clear();
     // its pedal lifts and wheels rest (after the ringing notes); played again, it starts afresh
-    this.zone.loopGesturesEnd(ringOutNotes);
+    if (this.asTake) this.zone.takeGesturesEnd(this.gestureKeys);
+    else this.zone.loopGesturesEnd(ringOutNotes);
     this.gestures = null;
     this.gestureKeys = [];
     this.sampled.clear();
@@ -284,6 +332,10 @@ export class TakePlayer {
   }
 
   private send(status: number, note: Note, loopChannel = -1): void {
+    if (this.asTake) {
+      this.zone.playTakeNote(status === MIDI.MESSAGE.NOTE_ON, note.number, note.velo);
+      return;
+    }
     const msg = Uint8Array.from([status + note.channel, note.number, status === MIDI.MESSAGE.NOTE_ON ? note.velo : 0]);
     this.zone.handleMidi(status, msg, true, undefined, loopChannel);
   }

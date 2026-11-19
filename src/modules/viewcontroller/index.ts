@@ -223,6 +223,8 @@ function initController({
     },
     () => meterOf(zones.arrangementIndex)
   );
+  // the take playing along is never pushed out by newer takes
+  takeStore.keeps = (zoneId) => zones.list.find((z) => z.id === zoneId)?.playTake ?? null;
   // a zone's ⋯ → Import MIDI file as take…: the take, the file's meter and tempo in one undo step
   initMidiImport({
     zones: () => zones.list,
