@@ -58,15 +58,15 @@
     "key": "C Ionian",
     "keyOk": true,
     "keyMode": false,
-    "clash": 3.1070584262073537,
-    "changes": 0.9166666666666666
+    "clash": 2.330293819655515,
+    "changes": 0.9583333333333334
    },
    "ahead": {
     "key": "C Ionian",
     "keyOk": true,
     "keyMode": false,
     "clash": 0,
-    "changes": 1.2083333333333333
+    "changes": 1.0833333333333333
    }
   },
   "Scarborough Fair (approx.)": {
@@ -101,18 +101,18 @@
     "changes": 1.4166666666666667
    },
    "live": {
-    "key": "A Aeolian",
-    "keyOk": false,
+    "key": "D Dorian",
+    "keyOk": true,
     "keyMode": false,
-    "clash": 2.7777777777777755,
-    "changes": 1
+    "clash": 1.3888888888888915,
+    "changes": 1.1666666666666667
    },
    "ahead": {
-    "key": "A Aeolian",
-    "keyOk": false,
+    "key": "D Dorian",
+    "keyOk": true,
     "keyMode": false,
     "clash": 0,
-    "changes": 1.5833333333333333
+    "changes": 1.75
    }
   },
   "Old Joe Clark (approx.)": {
@@ -147,15 +147,15 @@
     "changes": 1.8333333333333333
    },
    "live": {
-    "key": "A Dorian",
-    "keyOk": false,
+    "key": "E Aeolian",
+    "keyOk": true,
     "keyMode": false,
     "clash": 6.349206349206357,
-    "changes": 2
+    "changes": 2.2222222222222223
    },
    "ahead": {
-    "key": "A Dorian",
-    "keyOk": false,
+    "key": "E Aeolian",
+    "keyOk": true,
     "keyMode": false,
     "clash": 4.477611940298513,
     "changes": 2.388888888888889
@@ -170,18 +170,18 @@
     "changes": 1.375
    },
    "live": {
-    "key": "A Aeolian",
-    "keyOk": false,
-    "keyMode": false,
-    "clash": 3.448275862068971,
-    "changes": 1.875
-   },
-   "ahead": {
-    "key": "A Aeolian",
-    "keyOk": false,
+    "key": "D Aeolian",
+    "keyOk": true,
     "keyMode": false,
     "clash": 0,
-    "changes": 1.5
+    "changes": 1.125
+   },
+   "ahead": {
+    "key": "D Aeolian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.75
    }
   },
   "Frère Jacques": {
@@ -428,15 +428,15 @@
     "key": "C Ionian",
     "keyOk": true,
     "keyMode": false,
-    "clash": 10.097939885173924,
-    "changes": 0.9583333333333334
+    "clash": 6.9908814589665615,
+    "changes": 1
    },
    "ahead": {
     "key": "C Ionian",
     "keyOk": true,
     "keyMode": false,
-    "clash": 2.2222222222222237,
-    "changes": 1.1666666666666667
+    "clash": 0,
+    "changes": 1.0833333333333333
    }
   },
   "Scarborough Fair (approx.)": {
@@ -471,18 +471,18 @@
     "changes": 1.4166666666666667
    },
    "live": {
-    "key": "A Aeolian",
-    "keyOk": false,
+    "key": "D Dorian",
+    "keyOk": true,
     "keyMode": false,
     "clash": 1.3888888888888915,
     "changes": 1
    },
    "ahead": {
-    "key": "A Aeolian",
-    "keyOk": false,
+    "key": "D Dorian",
+    "keyOk": true,
     "keyMode": false,
     "clash": 0,
-    "changes": 1.75
+    "changes": 1.8333333333333333
    }
   },
   "Old Joe Clark (approx.)": {
@@ -517,18 +517,18 @@
     "changes": 1.7777777777777777
    },
    "live": {
-    "key": "A Dorian",
-    "keyOk": false,
+    "key": "E Aeolian",
+    "keyOk": true,
     "keyMode": false,
     "clash": 4.761904761904766,
-    "changes": 1.9444444444444444
+    "changes": 2.2222222222222223
    },
    "ahead": {
-    "key": "A Dorian",
-    "keyOk": false,
+    "key": "E Aeolian",
+    "keyOk": true,
     "keyMode": false,
     "clash": 2.9850746268656745,
-    "changes": 2.3333333333333335
+    "changes": 2.388888888888889
    }
   },
   "Joshua Fit the Battle (approx.)": {
@@ -540,18 +540,18 @@
     "changes": 1.375
    },
    "live": {
-    "key": "A Aeolian",
-    "keyOk": false,
-    "keyMode": false,
-    "clash": 3.448275862068971,
-    "changes": 1.875
-   },
-   "ahead": {
-    "key": "A Aeolian",
-    "keyOk": false,
+    "key": "D Dorian",
+    "keyOk": true,
     "keyMode": false,
     "clash": 0,
-    "changes": 1.75
+    "changes": 1.125
+   },
+   "ahead": {
+    "key": "D Dorian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 2.375
    }
   },
   "Frère Jacques": {
@@ -798,15 +798,15 @@
     "key": "C Ionian",
     "keyOk": true,
     "keyMode": false,
-    "clash": 10.097939885173924,
-    "changes": 0.8333333333333334
+    "clash": 6.9908814589665615,
+    "changes": 0.7916666666666666
    },
    "ahead": {
     "key": "C Ionian",
     "keyOk": true,
     "keyMode": false,
-    "clash": 6.666666666666671,
-    "changes": 0.9166666666666666
+    "clash": 4.444444444444447,
+    "changes": 0.8333333333333334
    }
   },
   "Scarborough Fair (approx.)": {
@@ -841,18 +841,18 @@
     "changes": 0.9166666666666666
    },
    "live": {
-    "key": "A Aeolian",
-    "keyOk": false,
+    "key": "D Dorian",
+    "keyOk": true,
     "keyMode": false,
-    "clash": 2.7777777777777755,
+    "clash": 1.3888888888888915,
     "changes": 0.6666666666666666
    },
    "ahead": {
-    "key": "A Aeolian",
-    "keyOk": false,
+    "key": "D Dorian",
+    "keyOk": true,
     "keyMode": false,
-    "clash": 1.2499999999999958,
-    "changes": 1.25
+    "clash": 0,
+    "changes": 1.4166666666666667
    }
   },
   "Old Joe Clark (approx.)": {
@@ -910,18 +910,18 @@
     "changes": 0.5
    },
    "live": {
-    "key": "A Aeolian",
-    "keyOk": false,
+    "key": "D Dorian",
+    "keyOk": true,
     "keyMode": false,
     "clash": 3.448275862068971,
-    "changes": 0.5
+    "changes": 0.375
    },
    "ahead": {
-    "key": "A Aeolian",
-    "keyOk": false,
+    "key": "D Dorian",
+    "keyOk": true,
     "keyMode": false,
-    "clash": 3.1250000000000044,
-    "changes": 1.125
+    "clash": 0,
+    "changes": 1
    }
   },
   "Frère Jacques": {
@@ -1097,14 +1097,14 @@
     "key": "E Dorian",
     "keyOk": true,
     "keyMode": false,
-    "clash": 0.9966290488055107,
+    "clash": 3.2537007181591675,
     "changes": 0.696969696969697
    },
    "ahead": {
     "key": "E Dorian",
     "keyOk": true,
     "keyMode": false,
-    "clash": 1.0388501494236517,
+    "clash": 3.2303970399886155,
     "changes": 0.9696969696969697
    }
   }

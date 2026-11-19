@@ -209,28 +209,41 @@ const MINOR_MODES = [1, 5];
 /**
  * Ranks keys for a line. `begins`: the line begins here, so its first strong note names the
  * tonic; live it is a window of what was played last, whose first note is only a beginning when
- * nothing came before it
+ * nothing came before it. `window`: a live window, which doesn't end where the line ends: its
+ * latest note is only where the line is now (often the fifth, a tune starting again), so the
+ * tonic comes from where its phrases came to rest instead
  */
-export function analyse(line: LineNote[], length: number, meter: Meter = DEFAULT_METER, harmony = 0.5, begins = true): Analysis {
+export function analyse(line: LineNote[], length: number, meter: Meter = DEFAULT_METER, harmony = 0.5, begins = true, window = false): Analysis {
   const segs = segmentsOf(length, meter);
   const seg = weighSegments(line, length, segs, meter);
   const hist = new Array(12).fill(0);
   seg.forEach((s) => s.forEach((x, pc) => (hist[pc] += x)));
   const total = hist.reduce((a, b) => a + b, 0) || 1;
 
-  // emphasis: the first strong note, the last note, notes on bar 1s, the longest notes
+  // emphasis: the first strong note, the last note (live: where phrases rest), notes on bar 1s, the longest notes
   const emph = new Array(12).fill(0);
   const sorted = [...line].filter((n) => !n.p).sort((a, b) => a.t - b.t);
+  // live, an emphasised note may also be the fifth of the tonic (`fifth`: how likely): a tune's first
+  // note and a phrase's rest (a half cadence) often are, a downbeat less so (a riff's IV and V)
+  const vote = (pc: number, w: number, fifth: number) => {
+    emph[pc] += w;
+    if (window) emph[(pc + 5) % 12] += fifth * w;
+  };
   if (sorted.length) {
     const first = sorted.find((n) => strength(n.t, meter) >= 0.7) ?? sorted[0];
-    if (begins) emph[first.n % 12] += 1;
-    // the last note names the tonic when it lands: on a 1 or held
-    const last = sorted.reduce((a, b) => (b.t + b.d >= a.t + a.d ? b : a));
-    emph[last.n % 12] += strength(onBeat(last, segs), meter) === 1 || last.d >= PPQ * 1.5 ? 2 : 0.6;
+    if (begins) vote(first.n % 12, 1, 0.6);
+    if (!window) {
+      // the last note names the tonic when it lands: on a 1 or held
+      const last = sorted.reduce((a, b) => (b.t + b.d >= a.t + a.d ? b : a));
+      emph[last.n % 12] += strength(onBeat(last, segs), meter) === 1 || last.d >= PPQ * 1.5 ? 2 : 0.6;
+    } else {
+      // where its phrases came to rest
+      phraseEndings(line, length, meter).forEach((w, pc) => vote(pc, w, 0.8));
+    }
     const longest = Math.max(...sorted.map((n) => n.d));
     for (const n of sorted) {
-      if (strength(onBeat(n, segs), meter) === 1) emph[n.n % 12] += 0.5;
-      if (n.d >= longest * 0.8) emph[n.n % 12] += 0.4;
+      if (strength(onBeat(n, segs), meter) === 1) vote(n.n % 12, 0.5, 0.3);
+      if (n.d >= longest * 0.8) vote(n.n % 12, 0.4, 0.3);
     }
     // the lowest note often names the tonic in a riff
     const lowest = Math.min(...sorted.map((n) => n.n));
@@ -269,6 +282,26 @@ export function analyse(line: LineNote[], length: number, meter: Meter = DEFAULT
   const rival = keys.find((k) => k.tonic !== best.tonic || scaleOf(k).join() !== bestSet);
   const missing = hist.map((x, pc) => (x < total * 0.005 ? pc : -1)).filter((pc) => pc >= 0);
   return { keys, margin: rival ? Math.max(0, Math.min(1, (best.score - rival.score) * 4)) : 1, missing };
+}
+
+/**
+ * Where a line's phrases came to rest, per pitch class: notes on a beat held two beats or
+ * followed by a beat's rest (1 on a bar's 1, 0.6 on another beat)
+ */
+export function phraseEndings(line: LineNote[], length: number, meter: Meter = DEFAULT_METER): number[] {
+  const segs = segmentsOf(length, meter);
+  const sorted = [...line].filter((n) => !n.p).sort((a, b) => a.t - b.t);
+  const out = new Array(12).fill(0);
+  sorted.forEach((n, i) => {
+    // a long note rushed by up to an 8th rests on the beat it anticipates
+    const ahead = n.d >= PPQ ? segs.find((sg) => sg.t > n.t && sg.t - n.t <= PPQ / 2) : undefined;
+    const st = Math.max(strength(onBeat(n, segs), meter), ahead ? strength(ahead.t, meter) : 0);
+    if (st < 0.7) return;
+    const next = sorted.slice(i + 1).find((m) => m.t > n.t + EARLY);
+    const rest = next ? next.t - (n.t + n.d) >= PPQ : n.t + n.d + PPQ <= length;
+    if (n.d >= 2 * PPQ || rest) out[n.n % 12] += st === 1 ? 1 : 0.6;
+  });
+  return out;
 }
 
 export function scaleOf(k: Key): number[] {

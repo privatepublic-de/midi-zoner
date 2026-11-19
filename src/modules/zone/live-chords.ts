@@ -21,6 +21,7 @@ import {
   LineNote,
   Segment,
   analyse,
+  phraseEndings,
   vocabulary,
   fitOf,
   chordTones,
@@ -252,7 +253,7 @@ export class LiveChords {
     if (line.length < 4 || new Set(line.map((n) => n.n % 12)).size < 3) return;
     // the window's first note opens the line only when nothing was heard before it
     const begins = !heard.some((h) => h.s < from);
-    const a = analyse(line, seg.t - from, meter, o.harmony, begins);
+    const a = analyse(line, seg.t - from, meter, o.harmony, begins, true);
     const best = a.keys[0];
     const same = (x: Key, y: Key) => x.tonic === y.tonic && x.mode === y.mode;
     if (!this.key) {
@@ -265,9 +266,17 @@ export class LiveChords {
       return;
     }
     const current = a.keys.find((k) => same(k, this.key!));
-    // a key heard for a few bars holds on: the relative major or the fifth's key share most notes,
-    // and a phrase resting on the fifth (a half cadence) looks like its key for a bar or two
-    const settled = this.keySince !== null && seg.t - this.keySince >= 4 * bar;
+    // a key heard for a few bars, with a phrase resting on its tonic or a riff coming back to it on the
+    // 1s, holds on: the relative major or the fifth's key share most notes, and a phrase resting on
+    // the fifth (a half cadence) looks like its key for a bar or two. One that never came to rest
+    // (found from a tune's first bar, which often circles the fifth) gives way easily
+    const tonic = this.key.tonic;
+    // (a downbeat rushed by up to an 8th still starts its bar)
+    const onOne = (n: LineNote) => n.t % bar <= 3 || n.t % bar >= bar - PPQ / 2;
+    const ones = new Set(line.filter(onOne).map((n) => Math.round(n.t / bar)));
+    const onTonic = new Set(line.filter((n) => n.n % 12 === tonic && onOne(n)).map((n) => Math.round(n.t / bar)));
+    const cadenced = phraseEndings(line, seg.t - from, meter)[tonic] > 0 || (ones.size >= 2 && onTonic.size * 2 >= ones.size);
+    const settled = this.keySince !== null && seg.t - this.keySince >= 4 * bar && cadenced;
     if (current && best.score - current.score < (settled ? 0.1 : 0.04)) {
       this.rival = null;
       return;
