@@ -4,8 +4,11 @@
  * zone/live-chords.ts, so a chords and a bass zone on one line agree); its loop is made of
  * the chords (Loop chip on a chords zone without a loop, or when the line zone closes a loop),
  * and remembers them (`Zone.chordPlan`) for its chord names and for redoing it when a setting
- * changes. The block (`.chords-block` in the zone template) holds Follows, Rhythm, two pads,
- * More and Other chords; in the track view it is the dock's Chords tab.
+ * changes. The block (`.chords-block` in the zone template) holds Follows, Style, Rhythm, two
+ * pads, More and the actions; in the track view it is the dock's Chords tab. In the cards a
+ * zone shows only a summary row (`.chords-sum`), its Edit opens the Chords sheet
+ * (`#chordsSheet`), which draws a block of its own for the zone it shows, with the line's chords
+ * and bass zones as chips in its header.
  */
 import { Zone } from '../zone/zone-class';
 import { Take } from '../zone/take';
@@ -19,6 +22,7 @@ import { LiveChords, HeardNote, Follower, Send, heardChords } from '../zone/live
 import { ChordPart, ChordPlan, ChordSettings, DEFAULT_CHORD_SETTINGS, harmonyOptions, loopSig } from '../zone/chord-settings';
 import MIDI from '../midi';
 import { STYLE_GROUPS, stylesIn, styleById, styleSettings, differsFromStyle } from '../zone/chord-styles';
+import { initSheetHeader, setSheetZone } from './editor-sheet';
 
 interface Hooks {
   zones: () => Zone[];
@@ -436,7 +440,7 @@ function tagOf(zone: Zone, dot: 'live' | 'loop' | 'wait'): string {
 
 function statusSentence(zone: Zone): { dot: 'live' | 'loop' | 'wait'; main: string; more: string[] } {
   const line = lineZoneOf(zone);
-  if (!line) return { dot: 'wait', main: 'Not following a line yet', more: ['choose one above'] };
+  if (!line) return { dot: 'wait', main: 'Not following a line yet', more: ['choose one in its settings'] };
   const leader = leaderOf(zone);
   const from = leader && leader !== zone ? [`chords from ${zoneNumberName(leader)}`] : [];
   const plan = zone.loop && zone.loopOn ? planOf(zone) : null;
@@ -470,15 +474,17 @@ function zoneNumberName(z: Zone): string {
 
 /** The status line, written only when it changed */
 function showStatus(zone: Zone): void {
-  const el = blockOf(zone)?.querySelector<HTMLElement>('.cb-status');
-  if (!el) return;
+  const els = [...blocksOf(zone), summaryOf(zone)].map((b) => b?.querySelector<HTMLElement>('.cb-status')).filter((e): e is HTMLElement => !!e);
+  if (!els.length) return;
   const st = statusOf(zone);
   const key = `${st.dot}|${st.tag}|${st.main}|${st.more.join('|')}`;
-  if (el.dataset.key === key) return;
-  el.dataset.key = key;
-  // the tag: a dot and a few words; the whole sentence in its tooltip
-  el.title = [st.main, ...st.more].join(' · ');
-  el.innerHTML = `<span class="cb-dot-state ${st.dot}"></span>${escapeHTML(st.tag)}`;
+  for (const el of els) {
+    if (el.dataset.key === key) continue;
+    el.dataset.key = key;
+    // the tag: a dot and a few words; the whole sentence in its tooltip
+    el.title = [st.main, ...st.more].join(' · ');
+    el.innerHTML = `<span class="cb-dot-state ${st.dot}"></span>${escapeHTML(st.tag)}`;
+  }
 }
 
 /**
@@ -520,6 +526,7 @@ export function updateChordChips(): void {
       chip.classList.toggle('long', text.length > 4);
     }
     showStatus(z);
+    renderSummary(z);
     const line = lineZoneOf(z);
     const what = z.chords.part === 'bass' ? 'Bass' : 'Chords';
     const title = !line
@@ -571,7 +578,6 @@ export function chordMarks(zone: Zone, from: number, to: number): { s: number; n
 
 // ------------------------------------------------------------------------------ the block
 
-const moreOpen = new Set<string>();
 
 /** The Strum chips (ChordSettings.strum) */
 const STRUMS = ['Off', 'Down', 'Up', 'Down & up'];
@@ -627,22 +633,37 @@ const MORE: Record<ChordPart, SliderSpec[]> = {
 
 const MIDDLE: Partial<Record<keyof ChordSettings, number>> = { length: 0.5, accents: 0.5, tensions: 0.5, register: 0, harmony: 0.3, colour: 0.4, bass: 0.5, vary: 0, changes: 0.5, unfold: 0, sync: 0, bark: 0 };
 
-function blockOf(zone: Zone): HTMLElement | null {
-  return zone.elements?.zoneElement?.querySelector<HTMLElement>('.chords-block') ?? null;
+/** The zone's block and, while the Chords sheet shows the zone, the sheet's */
+function blocksOf(zone: Zone): HTMLElement[] {
+  const own = zone.elements?.zoneElement?.querySelector<HTMLElement>('.chords-block');
+  const out = own ? [own] : [];
+  if (sheet && isChordsSheetOpen() && sheetZoneId === zone.id) out.push(sheet.querySelector<HTMLElement>('.chords-block')!);
+  return out;
+}
+
+function inSheet(el: Element): boolean {
+  return !!sheet && sheet.contains(el);
 }
 
 /** The block's layout (rebuilt only when this changes, never during a drag) */
 function layoutKey(zone: Zone): string {
   const zs = hooks.zones();
-  return [zone.chords?.part, moreOpen.has(zone.id), zone.chords?.follows, leaderOf(zone) === zone, ...zs.map((z) => `${z.id}:${z.label}:${!!z.chords}:${z.chords?.part}`)].join('|');
+  return [zone.chords?.part, zone.chords?.follows, leaderOf(zone) === zone, ...zs.map((z) => `${z.id}:${z.label}:${!!z.chords}:${z.chords?.part}`)].join('|');
 }
 
 let dragging: HTMLElement | null = null;
 
 /** Draws a zone's block (after every change of the zone) */
 export function renderChordBlock(zone: Zone): void {
-  const el = blockOf(zone);
-  if (!el || !zone.chords || !hooks) return;
+  if (!zone.chords || !hooks) return;
+  renderSummary(zone);
+  if (isChordsSheetOpen() && sheetZoneId === zone.id) renderSheetBar();
+  for (const el of blocksOf(zone)) drawBlock(zone, el);
+  showStatus(zone);
+}
+
+function drawBlock(zone: Zone, el: HTMLElement): void {
+  if (!zone.chords) return;
   if (dragging && el.contains(dragging)) return;
   const part = zone.chords.part;
   const key = layoutKey(zone);
@@ -667,8 +688,7 @@ export function renderChordBlock(zone: Zone): void {
     const k = inp.dataset.k as keyof ChordSettings;
     if (document.activeElement !== inp) inp.value = String(s[k]);
   });
-  const best = el.querySelector<HTMLElement>('.cb-best');
-  if (best) best.hidden = !s.seed;
+  el.querySelectorAll<HTMLElement>('.cb-best').forEach((b) => (b.hidden = !s.seed));
   // the style, marked • once something was changed since
   const sel = el.querySelector<HTMLSelectElement>('.cb-style');
   if (sel && document.activeElement !== sel) {
@@ -681,7 +701,6 @@ export function renderChordBlock(zone: Zone): void {
       if (opt.textContent !== text) opt.textContent = text;
     }
   }
-  showStatus(zone);
 }
 
 /** What a pad's settings sound like, in words (the engine's steps) */
@@ -719,6 +738,7 @@ function placeDot(pad: HTMLElement, x: number, y: number): void {
   ly.style.width = `${Math.abs(px - 50)}%`;
 }
 
+/** The block's controls (the cards' sheet and the track view's dock both have room: More is always shown) */
 function blockHTML(zone: Zone): string {
   const part = zone.chords!.part;
   const zs = hooks.zones();
@@ -748,19 +768,12 @@ function blockHTML(zone: Zone): string {
     </div>`;
     })
     .join('');
-  const open = moreOpen.has(zone.id);
   const swingRow = `<label class="cb-sl" title="The zone's Swing (the same as in its settings): each beat's second half later; about 67 % is a triplet swing"><span class="label">Swing</span><small>Straight</small>
       <input type="range" data-swing min="0" max="1" step="0.01" tabindex="-1"><small>Swung</small></label>`;
   const bluesRow = `<div class="cb-sl" title="Blues: the key's I, IV and V are dominant seventh chords"><span class="label">Blues 7ths</span>
       <div class="cb-segs cb-blues"><a data-blues="0">Off</a><a data-blues="1">On</a></div></div>`;
   const strumRow = `<div class="cb-sl" title="Notes of a chord one after another, quickly, as on a guitar: Down plays the low notes first, Up the high ones first (lighter), Down &amp; up downstrokes on the beats and upstrokes between"><span class="label">Strum</span>
       <div class="cb-segs cb-strum">${STRUMS.map((name, i) => `<a data-strum="${i}">${escapeHTML(name)}</a>`).join('')}</div></div>`;
-  const more = sliders
-    .map(
-      (m) => `<label class="cb-sl" title="${escapeHTML(m.title)}"><span class="label">${m.label}</span><small>${m.left}</small>
-      <input type="range" data-k="${m.k}" min="${m.min ?? 0}" max="${m.max ?? 1}" step="${m.step ?? 0.05}" tabindex="-1"><small>${m.right}</small></label>`
-    )
-    .join('');
   // More in two groups: how it plays (feel), then which chords (harmony)
   const row = (k: keyof ChordSettings) => sliders.find((m) => m.k === k);
   const slider = (m: SliderSpec | undefined) =>
@@ -771,28 +784,31 @@ function blockHTML(zone: Zone): string {
   const feel = (part === 'chords' ? strumRow : '') + swingRow + slider(row('accents')) + slider(row('vary'));
   const chordsGroup =
     slider(row('changes')) + slider(row('harmony')) + slider(row('tensions')) + (part === 'chords' ? bluesRow : '') + slider(row('unfold')) + slider(row('register'));
-  void more;
+  const actions = `<span class="cb-actions">
+        ${line ? '<a class="cb-text cb-startover" title="Forget what was heard on this line (key and chords) and listen anew, for the chords and the bass; chord loops playing here are switched off (kept)">Start over</a>' : ''}
+        ${leads ? '<a class="cb-text cb-best" title="Back to the chords that fit best" hidden>Back to best</a><a class="lightButton cb-another" title="Other chords that also fit">Other chords</a>' : ''}
+      </span>`;
+  // one row on top (the actions too in the dock, which is low), the pads beside More, the actions
+  // in a footer in the sheet
   return `
-    <div class="cb-row cb-follow-row"><span class="cb-what">${what}</span><span class="label">follows</span>
+    <div class="cb-top">
+      <span class="cb-what">${what}</span><span class="label">follows</span>
       <select class="cb-follows" tabindex="-1" title="The zone whose line it plays to">${options}</select>
-      <span class="cb-status"></span></div>
-    <div class="cb-row cb-rhythm-row">
-      <span class="label">Style</span>
+      <span class="label cb-gap">Style</span>
       <select class="cb-style" tabindex="-1" title="Sets this zone and the other chords and bass zones on the same line together (• : changed since)">
         <option value="">No style</option>${STYLE_GROUPS.map((g) => `<optgroup label="${escapeHTML(g)}">${stylesIn(g).map((st) => `<option value="${st.id}">${escapeHTML(st.name)}</option>`).join('')}</optgroup>`).join('')}
       </select>
-      <span class="label">Rhythm</span>
+      <span class="label cb-gap">Rhythm</span>
       <select class="cb-rhythm-sel" tabindex="-1" title="How the chords hit">${RHYTHM_ORDER.map((i) => `<option value="${i}">${RHYTHMS[i]}</option>`).join('')}</select>
+      ${actions}
+      <span class="cb-status"></span>
     </div>
     <div class="cb-pads">${pads}</div>
-    <div class="cb-row cb-foot">
-      <a class="cb-more-toggle" title="More settings"><i class="material-icons${open ? ' open' : ''}">chevron_right</i>More</a>
-      <span class="cb-actions">
-        ${line ? '<a class="cb-text cb-startover" title="Forget what was heard on this line (key and chords) and listen anew, for the chords and the bass; chord loops playing here are switched off (kept)">Start over</a>' : ''}
-        ${leads ? '<a class="cb-text cb-best" title="Back to the chords that fit best" hidden>Back to best</a><a class="lightButton cb-another" title="Other chords that also fit">Other chords</a>' : ''}
-      </span>
+    <div class="cb-more">
+      <div class="cb-group"><div class="cb-head">How it plays</div>${feel}</div>
+      ${chordsGroup ? `<div class="cb-group"><div class="cb-head">Which chords</div>${chordsGroup}</div>` : ''}
     </div>
-    ${open ? `<div class="cb-more"><div class="cb-group">${feel}</div><div class="cb-group">${chordsGroup}</div></div>` : ''}`;
+    <div class="cb-foot">${actions}</div>`;
 }
 
 /** A setting changed (one undo step): a loop made of chords is redone, live it applies to the next chord */
@@ -884,7 +900,138 @@ function makeLoopsWith(line: Zone, which: Zone[], label: string, change: () => v
   });
 }
 
+// ------------------------------------------------------------------------------ cards: summary row and sheet
+
+function summaryOf(zone: Zone): HTMLElement | null {
+  return zone.elements?.zoneElement?.querySelector<HTMLElement>('.chords-sum') ?? null;
+}
+
+/** The card's one row: what it follows, its style and rhythm, the status tag, Start over, Edit */
+function renderSummary(zone: Zone): void {
+  const el = summaryOf(zone);
+  if (!el || !zone.chords) return;
+  const part = zone.chords.part;
+  const line = lineZoneOf(zone);
+  const s = zone.chordSet;
+  const st = styleById(s.style);
+  const style = st ? `${st.name}${differsFromStyle(s, part) ? ' •' : ''}` : '';
+  const rhythm = part === 'chords' ? RHYTHMS[s.rhythm] : '';
+  const key = [part, line ? lineLabel(line) : zone.chords.follows ? '!' : '', style, rhythm].join('|');
+  if (el.dataset.key !== key) {
+    el.dataset.key = key;
+    const what = part === 'bass' ? 'Bass' : 'Chords';
+    const follows = line
+      ? `<span class="label">follows</span><span class="cs-line">${escapeHTML(lineLabel(line))}</span>`
+      : `<span class="cs-none">${zone.chords.follows ? '⚠ its line is missing' : 'follows no line yet'}</span>`;
+    const parts = [style, rhythm].filter((x) => x).map((x) => `<span class="cs-sep">·</span><span>${escapeHTML(x)}</span>`).join('');
+    el.innerHTML =
+      `<span class="cb-what">${what}</span>${follows}${parts}<span class="cb-status"></span>` +
+      (line ? '<a class="cb-text cb-startover" title="Forget what was heard on this line (key and chords) and listen anew, for the chords and the bass; chord loops playing here are switched off (kept)">Start over</a>' : '') +
+      `<a class="lightButton cs-edit" title="Set up the ${part === 'bass' ? 'bass' : 'chords'}: line, style, rhythm, pads and more (double-click the row)"><i class="material-icons">edit</i>Edit</a>`;
+  }
+  el.title = `${part === 'bass' ? 'Bass' : 'Chords'} of this zone (double-click: edit)`;
+}
+
+let sheet: HTMLElement | null = null;
+/** Zone.id of the zone the sheet shows (ids survive undo, the zone objects don't) */
+let sheetZoneId = '';
+
+export function isChordsSheetOpen(): boolean {
+  return !!sheet?.classList.contains('open');
+}
+
+function sheetZone(): Zone | null {
+  return hooks.zones().find((z) => z.id === sheetZoneId && z.chords) ?? null;
+}
+
+/** Opens the Chords sheet on a chords zone (cards only; the track view has its dock tab) */
+export function openChordsSheet(zone: Zone): void {
+  if (!sheet || !zone.chords) return;
+  sheetZoneId = zone.id;
+  sheet.classList.add('open');
+  sheet.focus();
+  refreshChordsSheet();
+}
+
+export function closeChordsSheet(): void {
+  if (!sheet || !isChordsSheetOpen()) return;
+  // a field being changed commits before the sheet goes away
+  if (sheet.contains(document.activeElement)) (document.activeElement as HTMLElement).blur();
+  sheet.classList.remove('open');
+  sheetZoneId = '';
+  window.dispatchEvent(new CustomEvent('closeContextMenu'));
+}
+
+/** After zones were re-rendered or changed: redraws the sheet, or closes it when its zone is gone */
+export function refreshChordsSheet(): void {
+  if (!isChordsSheetOpen()) return;
+  const zone = sheetZone();
+  if (!zone || document.body.classList.contains('track-view') || document.body.classList.contains('minimized')) {
+    closeChordsSheet();
+    return;
+  }
+  renderChordBlock(zone);
+}
+
+/** The sheet's header: the line's chords and bass zones as chips, the shown one picked; zone colour, undo names */
+function renderSheetBar(): void {
+  const zone = sheetZone();
+  if (!sheet || !zone) return;
+  const zs = hooks.zones();
+  const index = zs.indexOf(zone);
+  const line = lineZoneOf(zone);
+  const zones = line ? followersOf(line) : [zone];
+  const colour = (z: Zone) => z.elements?.zoneElement?.dataset.colorindex ?? '0';
+  sheet.dataset.colorindex = colour(zone);
+  setSheetZone(sheet, zone, index);
+  const chips = sheet.querySelector<HTMLElement>('.chs-zones')!;
+  const key = zones.map((z) => `${z.id}:${zs.indexOf(z)}:${z.label}:${z.chords!.part}:${colour(z)}:${z === zone}`).join('|');
+  if (chips.dataset.key === key) return;
+  chips.dataset.key = key;
+  chips.innerHTML = zones
+    .map((z) => {
+      const name = z.label ? `${zs.indexOf(z) + 1} ${z.label}` : `Zone ${zs.indexOf(z) + 1}`;
+      const part = z.chords!.part;
+      const title = z === zone ? `${name}: shown` : `Show ${name}'s ${part === 'bass' ? 'bass' : 'chords'}`;
+      return `<button class="chs-zchip${z === zone ? ' sel' : ''}" data-zone-id="${escapeHTML(z.id)}" data-colorindex="${escapeHTML(colour(z))}" title="${escapeHTML(title)}">${escapeHTML(name)}<small>${part}</small></button>`;
+    })
+    .join('');
+}
+
+function initSheet(): void {
+  sheet = document.getElementById('chordsSheet');
+  if (!sheet) return;
+  initSheetHeader(sheet, closeChordsSheet);
+  sheet.addEventListener('click', (ev) => {
+    const chip = (ev.target as HTMLElement).closest<HTMLElement>('.chs-zchip');
+    if (!chip || chip.dataset.zoneId === sheetZoneId) return;
+    const zone = hooks.zones().find((z) => z.id === chip.dataset.zoneId && z.chords);
+    if (!zone) return;
+    if (sheet!.contains(document.activeElement)) (document.activeElement as HTMLElement).blur();
+    sheetZoneId = zone.id;
+    sheet!.focus();
+    refreshChordsSheet();
+  });
+  // a press outside closes (it still lands); menus, dialogs and toasts don't count
+  document.addEventListener('mousedown', (ev) => {
+    if (!isChordsSheetOpen()) return;
+    const t = ev.target as Element;
+    if (t.closest('#contextmenu')) {
+      ev.preventDefault();
+      return;
+    }
+    if (sheet!.contains(t) || t.closest('dialog, #toast')) return;
+    closeChordsSheet();
+  });
+  sheet.addEventListener('keyup', (ev) => ev.stopPropagation());
+  // the Tracks view (its dock has the Chords tab) or the mini view: the sheet closes
+  new MutationObserver(() => {
+    if (isChordsSheetOpen()) refreshChordsSheet();
+  }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+}
+
 function zoneOfEl(el: Element): Zone | null {
+  if (inSheet(el)) return sheetZone();
   const z = el.closest('.zone');
   if (!z) return null;
   const i = parseInt(z.id.replace('zone', ''));
@@ -956,6 +1103,21 @@ function initBlockEvents(): void {
       setSettings(zone, { [k]: MIDDLE[k] ?? 0.5 } as Partial<ChordSettings>);
     }
   });
+  // the card's summary row: Start over, Edit, a double-click edits
+  document.addEventListener('click', (ev) => {
+    const t = ev.target as HTMLElement;
+    if (!t.closest?.('.chords-sum')) return;
+    const zone = zoneOfEl(t);
+    if (!zone?.chords) return;
+    if (t.closest('.cs-edit')) openChordsSheet(zone);
+    else if (t.closest('.cb-startover')) startOver(zone);
+  });
+  document.addEventListener('dblclick', (ev) => {
+    const t = ev.target as HTMLElement;
+    if (!t.closest?.('.chords-sum') || t.closest('a')) return;
+    const zone = zoneOfEl(t);
+    if (zone?.chords) openChordsSheet(zone);
+  });
   document.addEventListener('click', (ev) => {
     const t = ev.target as HTMLElement;
     if (!t.closest?.('.chords-block')) return;
@@ -990,11 +1152,6 @@ function initBlockEvents(): void {
     if (t.closest('.cb-best')) {
       if (zone.chordSet.seed) setSettings(zone, { seed: 0 }, 'Chords: Back to Best');
       return;
-    }
-    if (t.closest('.cb-more-toggle')) {
-      if (moreOpen.has(zone.id)) moreOpen.delete(zone.id);
-      else moreOpen.add(zone.id);
-      renderChordBlock(zone);
     }
   });
   document.addEventListener('change', (ev) => {
@@ -1047,6 +1204,25 @@ function initBlockEvents(): void {
     'keydown',
     (ev) => {
       const t = ev.target as HTMLElement;
+      // the sheet: Esc closes, ⌘Z and Space (play/stop) reach the app, nothing else does
+      if (isChordsSheetOpen()) {
+        const mod = ev.metaKey || ev.ctrlKey;
+        if (ev.key === 'Escape') {
+          if (t.closest?.('#contextmenu')) return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          closeChordsSheet();
+          return;
+        }
+        if (mod && ev.code === 'KeyZ') return;
+        if (ev.code === 'Space' && !t.matches?.('input[type=text], input[type=number], textarea')) {
+          // not a press of the focused button or select
+          ev.preventDefault();
+          return;
+        }
+        ev.stopPropagation();
+        return;
+      }
       if (t.closest?.('.chords-block') && ev.code !== 'KeyZ' && ev.code !== 'Space') ev.stopPropagation();
     },
     true
@@ -1056,6 +1232,7 @@ function initBlockEvents(): void {
 export function initChords(h: Hooks): void {
   hooks = h;
   initBlockEvents();
+  initSheet();
 }
 
 /** For the track view: the zone plays chords (its lane shows their names) */

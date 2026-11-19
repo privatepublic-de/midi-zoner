@@ -22,8 +22,19 @@ const sheets: HTMLElement[] = [];
 function stepName(sheet: HTMLElement, label: string | null): string {
   if (!label) return '';
   const prefix = sheet.dataset.zonePrefix ? `${sheet.dataset.zonePrefix} – ` : '';
-  return prefix && label.startsWith(prefix) ? label.slice(prefix.length) : label;
+  if (prefix && label.startsWith(prefix)) return label.slice(prefix.length);
+  // steps of other zones (or of several) name them briefly: "Strings, Bass: Style: Bossa"
+  const names: string[] = [];
+  let rest = label;
+  for (let m = rest.match(ZONE_PREFIX); m; m = rest.match(ZONE_PREFIX)) {
+    const name = m[2] ?? `Zone ${m[1]}`;
+    if (!names.includes(name)) names.push(name);
+    rest = rest.slice(m[0].length);
+  }
+  return names.length ? `${names.join(', ')}: ${rest}` : label;
 }
+
+const ZONE_PREFIX = /^Zone (\d+)(?: \((.*?)\))? – /;
 
 function renderHistory(sheet: HTMLElement): void {
   const undo = sheet.querySelector('.es-undo') as HTMLButtonElement;
@@ -45,7 +56,8 @@ export function updateSheetHistory(state: HistoryState): void {
 
 /** Names the zone being edited; call on open and when the zone may have changed */
 export function setSheetZone(sheet: HTMLElement, zone: ZoneType, index: number): void {
-  (sheet.querySelector('.es-zone') as HTMLElement).textContent = zone.label || `Zone ${index + 1}`;
+  const chip = sheet.querySelector<HTMLElement>('.es-zone');
+  if (chip) chip.textContent = zone.label || `Zone ${index + 1}`;
   sheet.dataset.zonePrefix = zonePrefix(zone, index);
   renderHistory(sheet);
 }

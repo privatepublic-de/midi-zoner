@@ -23,7 +23,7 @@ import {
 } from './actions';
 import { closeCCEditor, initCCEditor, isCCEditorOpen, refreshCCEditor } from './cc-editor';
 import { initPianoRoll } from './piano-roll';
-import { initChords, chordsTick, chordsTransport, chordsPanic, chordsLineLoopChanged, chordsMenu, renderChordBlock, keepChords, alignToLine, updateChordChips, playChords } from './chords';
+import { initChords, chordsTick, chordsTransport, chordsPanic, chordsLineLoopChanged, chordsMenu, renderChordBlock, keepChords, alignToLine, updateChordChips, playChords, refreshChordsSheet } from './chords';
 import { initTrackView, isTrackView, setTrackView, followTrack, updateLoopChips, invalidateTrackView } from './track-view';
 import { takeStore } from '../take-store';
 import { renderStepLocks } from './step-locks';
@@ -951,6 +951,7 @@ function renderZones(): void {
   addPlaceholder();
   updateZoneHeaderContextMenus(zones.arrangementIndex);
   refreshCCEditor();
+  refreshChordsSheet();
   markPending();
 }
 
@@ -1690,6 +1691,8 @@ function updateValuesForZone(index: number): void {
     } else {
       // a line zone renamed: the Follows lists say its name
       zones.list.forEach((z) => z.chords && renderChordBlock(z));
+      // the zone the Chords sheet showed stopped playing chords: it closes
+      refreshChordsSheet();
     }
     zone.renderTransposeAmount();
 

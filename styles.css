@@ -130,27 +130,37 @@
 }
 
 .zone[data-colorindex='0'],
-#ccEditor[data-colorindex='0'] {
+#ccEditor[data-colorindex='0'],
+#chordsSheet[data-colorindex='0'],
+.chs-zchip[data-colorindex='0'] {
   --zone-color: var(--zone-0);
   --zone-surface: var(--zone-surface-0);
 }
 .zone[data-colorindex='1'],
-#ccEditor[data-colorindex='1'] {
+#ccEditor[data-colorindex='1'],
+#chordsSheet[data-colorindex='1'],
+.chs-zchip[data-colorindex='1'] {
   --zone-color: var(--zone-1);
   --zone-surface: var(--zone-surface-1);
 }
 .zone[data-colorindex='2'],
-#ccEditor[data-colorindex='2'] {
+#ccEditor[data-colorindex='2'],
+#chordsSheet[data-colorindex='2'],
+.chs-zchip[data-colorindex='2'] {
   --zone-color: var(--zone-2);
   --zone-surface: var(--zone-surface-2);
 }
 .zone[data-colorindex='3'],
-#ccEditor[data-colorindex='3'] {
+#ccEditor[data-colorindex='3'],
+#chordsSheet[data-colorindex='3'],
+.chs-zchip[data-colorindex='3'] {
   --zone-color: var(--zone-3);
   --zone-surface: var(--zone-surface-3);
 }
 .zone[data-colorindex='4'],
-#ccEditor[data-colorindex='4'] {
+#ccEditor[data-colorindex='4'],
+#chordsSheet[data-colorindex='4'],
+.chs-zchip[data-colorindex='4'] {
   --zone-color: var(--zone-4);
   --zone-surface: var(--zone-surface-4);
 }
@@ -216,7 +226,6 @@
 #trackDock .td-collapse .material-icons,
 .lane-expand-chevron .material-icons,
 #ccEditor .cce-fold,
-.chords-block .cb-more-toggle .material-icons,
 .panel-section > summary::before {
   width: var(--icon-md);
   height: var(--icon-md);
@@ -229,7 +238,6 @@
 #trackDock .td-collapse:hover .material-icons,
 .drum-step-container:has(.lane-expand-toggle:hover) .lane-expand-chevron .material-icons,
 #ccEditor .cce-fold:hover,
-.chords-block .cb-more-toggle:hover .material-icons,
 .panel-section > summary:hover::before {
   color: var(--text-base-color);
 }
@@ -4385,7 +4393,7 @@ body.running .drumSequencer .lane-expand-toggle {
 }
 
 /* :is() with the ids, so these beat the panels' own `#ccEditor button` rules */
-:is(#ccEditor, #pianoRollOverlay) .es-bar :is(button, .es-button) {
+:is(#ccEditor, #pianoRollOverlay, #chordsSheet) .es-bar :is(button, .es-button) {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -4400,14 +4408,14 @@ body.running .drumSequencer .lane-expand-toggle {
   white-space: nowrap;
   cursor: pointer;
 }
-:is(#ccEditor, #pianoRollOverlay) .es-bar :is(button, .es-button):hover:not(:disabled) {
+:is(#ccEditor, #pianoRollOverlay, #chordsSheet) .es-bar :is(button, .es-button):hover:not(:disabled) {
   background-color: var(--darker-1);
 }
-:is(#ccEditor, #pianoRollOverlay) .es-bar button:disabled {
+:is(#ccEditor, #pianoRollOverlay, #chordsSheet) .es-bar button:disabled {
   opacity: 0.35;
   cursor: default;
 }
-:is(#ccEditor, #pianoRollOverlay) .es-bar .material-icons {
+:is(#ccEditor, #pianoRollOverlay, #chordsSheet) .es-bar .material-icons {
   font-size: var(--icon-md);
 }
 .es-bar .cc-preset-name {
@@ -4423,7 +4431,7 @@ body.running .drumSequencer .lane-expand-toggle {
 }
 
 /* Play / stop mirrors the toolbar's Start button; hidden while an external clock leads */
-:is(#ccEditor, #pianoRollOverlay) .es-bar .es-play {
+:is(#ccEditor, #pianoRollOverlay, #chordsSheet) .es-bar .es-play {
   background-color: var(--darker-1);
 }
 .es-play::before {
@@ -4441,7 +4449,7 @@ body.running .es-play::before {
 body.running .es-play::after {
   content: 'Stop';
 }
-body.running :is(#ccEditor, #pianoRollOverlay) .es-bar .es-play {
+body.running :is(#ccEditor, #pianoRollOverlay, #chordsSheet) .es-bar .es-play {
   background-color: color-mix(in srgb, var(--live) 30%, var(--darker-1));
 }
 body:has(.clocksettings.isExternal) .es-play,
@@ -4450,7 +4458,7 @@ body:has(.clocksettings.isExternal) .es-play + .es-sep {
 }
 
 /* Done is the one outlined control: the way back, edits are already applied */
-:is(#ccEditor, #pianoRollOverlay) .es-bar .es-done {
+:is(#ccEditor, #pianoRollOverlay, #chordsSheet) .es-bar .es-done {
   height: 26px; /* the bar's button size; the outline sets it apart */
   margin-left: 2px;
   padding: 0 12px;
@@ -4463,13 +4471,13 @@ body:has(.clocksettings.isExternal) .es-play + .es-sep {
 }
 /* as specific as the bar's shared hover, which would otherwise win; a light
    tint, since the bar's zone tint is as dark as raised slate */
-:is(#ccEditor, #pianoRollOverlay) .es-bar .es-done:hover:not(:disabled) {
+:is(#ccEditor, #pianoRollOverlay, #chordsSheet) .es-bar .es-done:hover:not(:disabled) {
   background-color: var(--hover-tint);
 }
-:is(#ccEditor, #pianoRollOverlay) .es-bar .es-done:active:not(:disabled) {
+:is(#ccEditor, #pianoRollOverlay, #chordsSheet) .es-bar .es-done:active:not(:disabled) {
   background-color: var(--brighter-1);
 }
-:is(#ccEditor, #pianoRollOverlay) .es-bar button:focus-visible {
+:is(#ccEditor, #pianoRollOverlay, #chordsSheet) .es-bar button:focus-visible {
   outline: 1px solid var(--brighter-4);
 }
 
@@ -6797,16 +6805,73 @@ body.track-view:not(.minimized) .channels > .ch.showchords {
 .zone.chords-on .chords-block {
   display: grid;
 }
+/* the block (Chords sheet and the track view's dock): one row on top, the pads beside More (two
+   groups on one grid, so every slider lines up), the actions in a footer (in the dock: in the top
+   row, it is low) */
 .chords-block {
-  grid-template-columns: 1fr;
-  gap: 8px;
-  padding: 8px 10px 10px;
-  --cb-pad-w: 190px;
-  --cb-pad-h: 104px;
+  --cb-pad-w: 230px;
+  --cb-pad-h: 150px;
+  grid-template-columns: auto auto;
+  grid-template-areas: 'top top' 'pads more' 'foot foot';
+  justify-content: start;
+  align-content: start;
+  gap: 0;
+}
+.chords-block > .cb-top {
+  grid-area: top;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--darker-3);
+  white-space: nowrap;
+  .label {
+    min-width: 0;
+  }
+  .cb-gap {
+    margin-left: 14px;
+  }
+  .cb-actions {
+    margin-left: auto;
+    padding-left: 24px;
+  }
+  .cb-status {
+    margin-left: auto;
+    padding-left: 24px;
+  }
+  .cb-actions:not(:empty) + .cb-status {
+    margin-left: 0;
+  }
+}
+.chords-block > .cb-pads.cb-pads {
+  grid-area: pads;
+  flex-wrap: nowrap;
+  gap: 20px;
+  padding: 14px 24px 16px 16px;
+}
+.chords-block > .cb-more {
+  grid-area: more;
+  grid-template-columns: auto auto;
+  column-gap: 32px;
+  align-items: start;
+  padding: 14px 16px 16px 24px;
+  border-left: 1px solid var(--darker-3);
+}
+.chords-block > .cb-foot {
+  grid-area: foot;
+  display: flex;
+  padding: 10px 16px 12px;
+  border-top: 1px solid var(--darker-3);
+  .cb-actions {
+    width: 100%;
+  }
+  .cb-startover {
+    margin-right: auto;
+  }
 }
 /* what the zone does now, as a tag at the end of the Follows row: a dot for live (the live green),
    its loop (the zone colour) or waiting, and a few words; the whole sentence in its tooltip */
-.chords-block .cb-status {
+:is(.chords-block, .chords-sum) .cb-status {
   margin-left: auto;
   display: flex;
   align-items: center;
@@ -6816,18 +6881,18 @@ body.track-view:not(.minimized) .channels > .ch.showchords {
   white-space: nowrap;
 }
 /* quiet text actions in the footer (Start over, Back to best) */
-.chords-block .cb-text {
+:is(.chords-block, .chords-sum) .cb-text {
   color: var(--slate-dim);
   text-decoration: underline;
   text-decoration-color: var(--slate-line);
   text-underline-offset: 3px;
   cursor: pointer;
 }
-.chords-block .cb-text:hover {
+:is(.chords-block, .chords-sum) .cb-text:hover {
   color: var(--text-base-color);
   text-decoration-color: currentColor;
 }
-.chords-block .cb-dot-state {
+:is(.chords-block, .chords-sum) .cb-dot-state {
   flex: none;
   align-self: center;
   width: 7px;
@@ -6835,28 +6900,16 @@ body.track-view:not(.minimized) .channels > .ch.showchords {
   border-radius: 50%;
   background: var(--slate-line);
 }
-.chords-block .cb-dot-state.live {
+:is(.chords-block, .chords-sum) .cb-dot-state.live {
   background: var(--live);
   box-shadow: 0 0 6px var(--live);
 }
-.chords-block .cb-dot-state.loop {
+:is(.chords-block, .chords-sum) .cb-dot-state.loop {
   background: var(--zone-color);
 }
-.chords-block .cb-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.chords-block .cb-row > .label {
-  min-width: 52px;
-}
-.chords-block .cb-what {
+:is(.chords-block, .chords-sum) .cb-what {
   font-weight: 600;
   color: var(--text-base-color);
-}
-.chords-block .cb-what + .label {
-  min-width: 0;
 }
 .chords-block select.cb-style,
 .chords-block select.cb-rhythm-sel,
@@ -7016,25 +7069,6 @@ body.track-view:not(.minimized) .channels > .ch.showchords {
   height: 2px;
   margin-top: -1px;
 }
-.chords-block .cb-foot {
-  justify-content: space-between;
-}
-.chords-block .cb-more-toggle {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  color: var(--slate-dim);
-  cursor: pointer;
-}
-.chords-block .cb-more-toggle:hover {
-  color: var(--text-base-color);
-}
-.chords-block .cb-more-toggle small {
-  font-size: 12px;
-}
-.chords-block .cb-more-toggle .material-icons {
-  margin-right: 2px;
-}
 .chords-block .cb-actions {
   display: flex;
   align-items: center;
@@ -7046,63 +7080,191 @@ body.track-view:not(.minimized) .channels > .ch.showchords {
 .chords-block .cb-actions a[hidden] {
   display: none;
 }
-.chords-block .cb-rhythm-row .label {
-  min-width: 0;
-}
-.chords-block .cb-rhythm-row select + .label {
-  margin-left: 10px;
-}
-/* More: how it plays, then which chords, a gap between */
 .chords-block .cb-more {
   display: grid;
-  gap: 14px;
 }
+/* a group: label, left word, slider, right word; buttons span the last three */
 .chords-block .cb-group {
   display: grid;
-  gap: 4px;
+  grid-template-columns: max-content max-content 150px max-content;
+  column-gap: 8px;
+  row-gap: 10px;
+  align-items: center;
+}
+.chords-block .cb-head {
+  grid-column: 1 / -1;
+  margin-bottom: -2px;
+  color: var(--slate-dim);
+  font-size: 12px;
 }
 .chords-block .cb-sl {
-  display: flex;
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
   align-items: center;
-  gap: 6px;
 }
 .chords-block .cb-sl .label {
-  min-width: 84px;
+  min-width: 0;
+  padding-right: 8px;
 }
 .chords-block .cb-sl small {
   color: var(--slate-dim);
   font-size: 11px;
-  width: 48px;
-}
-.chords-block .cb-sl small:last-child {
   text-align: right;
 }
+.chords-block .cb-sl small:last-child {
+  text-align: left;
+}
 .chords-block .cb-sl input {
-  flex: 1;
-  max-width: 220px;
+  width: 100%;
+  margin: 0;
+}
+.chords-block .cb-sl .cb-segs {
+  grid-column: 2 / -1;
+  display: flex;
+  a {
+    flex: 1;
+    text-align: center;
+    white-space: nowrap;
+  }
 }
 body.minimized .chords-block {
   display: none !important;
 }
-/* the dock: the settings on the left, larger pads on the right */
-body.track-view:not(.minimized) #zones > .zone.track-selected > .chords-block {
-  --cb-pad-w: 230px;
-  --cb-pad-h: 150px;
-  grid-template-columns: auto 1fr;
-  align-content: start;
-  column-gap: 28px;
-  grid-template-areas: 'a pads' 'b pads' 'foot pads' 'more pads';
-  > .cb-follow-row { grid-area: a; }
-  > .cb-rhythm-row { grid-area: b; }
-  > .cb-foot { grid-area: foot; }
-  > .cb-more { grid-area: more; grid-template-columns: 1fr 1fr; column-gap: 28px; align-items: start; }
-  > .cb-pads { grid-area: pads; }
-  /* two groups side by side: shorter end labels, longer sliders */
-  .cb-sl .label { min-width: 72px; }
-  .cb-sl small { width: 40px; }
+/* the cards: one summary row instead of the block, Edit opens the Chords sheet */
+body:not(.track-view) #zones > .zone > .chords-block {
+  display: none !important;
 }
-.chords-block .cb-more-toggle .material-icons.open {
-  transform: rotate(90deg);
+.chords-sum {
+  display: none;
+}
+body:not(.track-view):not(.minimized) .zone.chords-zone > .chords-sum {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 4px 2px 2px;
+  color: var(--text-base-color);
+  white-space: nowrap;
+  cursor: default;
+}
+.chords-sum > .label,
+.chords-sum .cs-sep,
+.chords-sum .cs-none {
+  color: var(--slate-dim);
+}
+.chords-sum .cs-line {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.chords-sum .cb-status {
+  margin-left: auto;
+}
+.chords-sum .cb-text {
+  font-size: 12px;
+}
+.chords-sum .cs-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  .material-icons {
+    font-size: 15px;
+  }
+}
+/* the Chords sheet: a panel over the cards, one size for every zone and setting (the largest
+   layout, a chords zone choosing the chords), so it never jumps */
+#chordsSheet {
+  inset: 60px auto auto 50%;
+  transform: translateX(-50%);
+  width: min(1240px, calc(100vw - 48px));
+  height: min(340px, calc(100vh - 84px));
+  max-height: calc(100vh - 84px);
+  outline: none;
+}
+#chordsSheet .es-bar {
+  background-color: color-mix(in srgb, var(--zone-surface) 55%, #000);
+}
+#chordsSheet .chs-body.zone {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: auto;
+}
+#chordsSheet .chords-block {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto 1fr auto;
+  min-height: 100%;
+  > .cb-top .cb-actions {
+    display: none;
+  }
+  > .cb-top .cb-status {
+    margin-left: auto;
+  }
+}
+/* the line's chords and bass zones: a chip each, the shown one picked in amber */
+.chs-zones {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+}
+#chordsSheet .es-bar button.chs-zchip {
+  height: 22px;
+  gap: 6px;
+  padding: 0 10px 0 8px;
+  background-color: var(--slate-raise);
+  box-shadow: inset 0 0 0 1px var(--slate-line);
+  color: var(--slate-dim);
+  &::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    background-color: var(--zone-color);
+  }
+  small {
+    color: var(--slate-dim);
+    font-size: 11px;
+  }
+  &:hover {
+    color: var(--text-base-color);
+  }
+  &.sel {
+    color: var(--text-base-color);
+    box-shadow: inset 0 0 0 1px var(--select);
+  }
+}
+/* narrow windows: More under the pads */
+@media (max-width: 1300px) {
+  #chordsSheet {
+    width: min(720px, calc(100vw - 48px));
+    height: min(560px, calc(100vh - 84px));
+  }
+  #chordsSheet .chords-block {
+    grid-template-columns: auto;
+    grid-template-rows: auto auto 1fr auto;
+    grid-template-areas: 'top' 'pads' 'more' 'foot';
+    > .cb-more {
+      border-left: none;
+      border-top: 1px solid var(--darker-3);
+      padding-left: 16px;
+    }
+  }
+}
+/* the dock: the actions in the top row, no footer */
+body.track-view:not(.minimized) #zones > .zone.track-selected > .chords-block {
+  grid-template-columns: auto 1fr;
+  padding: 0;
+  overflow: auto;
+  > .cb-foot {
+    display: none;
+  }
 }
 #trackDock .td-tab[hidden] {
   display: none !important;

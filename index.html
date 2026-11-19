@@ -496,6 +496,23 @@
         <div class="seq"></div>
       </div>
     </div>
+    <div id="chordsSheet" class="editor-sheet" role="dialog" aria-modal="true" aria-label="Chords" tabindex="-1">
+      <div class="es-bar">
+        <span class="es-title">Chords</span>
+        <!-- the chords and bass zones on the line, the shown one picked (chords.ts renderSheetBar()) -->
+        <span class="chs-zones"></span>
+        <span class="es-sep"></span>
+        <button class="es-play" title="Play / stop (Space)"></button>
+        <span class="es-grow"></span>
+        <button class="es-undo"><i class="material-icons">undo</i><span class="es-step"></span></button>
+        <button class="es-redo"><i class="material-icons">redo</i></button>
+        <span class="es-sep"></span>
+        <button class="es-done" title="Done (Esc)">Done</button>
+      </div>
+      <div class="chs-body zone">
+        <div class="chords-block"></div>
+      </div>
+    </div>
     <div id="ccEditor" class="editor-sheet" role="dialog" aria-modal="true" aria-label="Controller editor" tabindex="-1">
       <div class="es-bar">
         <span class="es-title">Controllers</span>
