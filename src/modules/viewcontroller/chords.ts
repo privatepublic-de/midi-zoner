@@ -198,13 +198,18 @@ export function chordsTick(pos: number, tickIntervalMs = 0): void {
   updateChordChips();
 }
 
-/** Start, Stop, an arrangement switch: live chords start over (the key stays) */
-export function chordsTransport(started: boolean): void {
+/** Start, Stop, an arrangement switch: live chords start over (the key stays, the chords heard go) */
+export function chordsTransport(): void {
   for (const d of deciders.values()) {
     d.stop(send);
     d.log.clear();
   }
-  void started;
+  updateChordChips();
+}
+
+/** The clock paused (the run goes on): live chords let go and come in again with the ticks; what was heard stays */
+export function chordsPause(): void {
+  for (const d of deciders.values()) d.stop(send);
   updateChordChips();
 }
 

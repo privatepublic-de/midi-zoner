@@ -313,7 +313,11 @@ export class LiveChords {
     this.log.set(seg.t, same ? prev! : best);
     this.check = { seg, at: seg.t + LISTEN };
     const barEnd = segs[segs.length - 1].end;
-    if (same && seg.beat !== 0) return this.key !== keyBefore;
+    if (same && seg.beat !== 0) {
+      // the chord goes on; a follower without a voice (just switched on, or its zone replaced by undo) comes in now
+      for (const f of followers) if (!this.voices.has(f.id)) this.play(f, prev!, { t: seg.t, end: barEnd }, segs, now, heard, meter, false);
+      return this.key !== keyBefore;
+    }
     this.chord = same ? prev : best;
     for (const f of followers) this.play(f, this.chord!, { t: seg.t, end: barEnd }, segs, now, heard, meter, !!same);
     return !same || this.key !== keyBefore;

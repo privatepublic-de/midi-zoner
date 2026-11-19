@@ -23,7 +23,7 @@ import {
 } from './actions';
 import { closeCCEditor, initCCEditor, isCCEditorOpen, refreshCCEditor } from './cc-editor';
 import { initPianoRoll } from './piano-roll';
-import { initChords, chordsTick, chordsTransport, chordsPanic, chordsLineLoopChanged, chordsMenu, renderChordBlock, keepChords, alignToLine, updateChordChips, playChords, refreshChordsSheet } from './chords';
+import { initChords, chordsTick, chordsTransport, chordsPause, chordsPanic, chordsLineLoopChanged, chordsMenu, renderChordBlock, keepChords, alignToLine, updateChordChips, playChords, refreshChordsSheet } from './chords';
 import { initTrackView, isTrackView, setTrackView, followTrack, updateLoopChips, invalidateTrackView } from './track-view';
 import { takeStore } from '../take-store';
 import { renderStepLocks } from './step-locks';
@@ -1930,7 +1930,7 @@ function initStepDeselection(): void {
  */
 function switchZonesToArrangement(arrIndex: number): void {
   // live chords let go: the new arrangement has its own switches and settings
-  chordsTransport(false);
+  chordsTransport();
   const recordingZones: string[] = [];
   zones.list.forEach((z, i) => {
     // the toast renders HTML; zone labels come from scene files
@@ -2021,6 +2021,7 @@ export {
   finishLoops,
   chordsTick,
   chordsTransport,
+  chordsPause,
   chordsPanic,
   playChords,
   setToggleBoundary,

@@ -1341,7 +1341,7 @@ document.addEventListener('DOMContentLoaded', function () {
       zones.list.forEach((z) => z.finishExpression());
       // loops being recorded end at their nearest 1 (while the run's position is still known)
       if (!started) view.finishLoops();
-      view.chordsTransport(started);
+      view.chordsTransport();
       timelineMeter(activeMeter());
       timelineTransport(started);
       // a run is a take: from Start to Stop (stopPos is where it stopped)
@@ -1380,7 +1380,7 @@ document.addEventListener('DOMContentLoaded', function () {
     clockPausedHandler: () => {
       zones.list.forEach((z) => z.paused());
       // live chords let go (they start again with the ticks)
-      view.chordsTransport(false);
+      view.chordsPause();
     },
     panicHandler: () => {
       zones.list.forEach((z) => z.panic());
