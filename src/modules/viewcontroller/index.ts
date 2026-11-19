@@ -23,7 +23,7 @@ import {
 } from './actions';
 import { closeCCEditor, initCCEditor, isCCEditorOpen, refreshCCEditor } from './cc-editor';
 import { initPianoRoll } from './piano-roll';
-import { initChords, chordsTick, chordsTransport, chordsPause, chordsPanic, chordsLineLoopChanged, chordsMenu, renderChordBlock, keepChords, alignToLine, updateChordChips, playChords, refreshChordsSheet } from './chords';
+import { initChords, chordsTick, chordsTransport, chordsPause, chordsPanic, chordsLineLoopChanged, chordsMenu, renderChordBlock, keepChords, alignToLine, updateChordChips, updateFollowRows, playChords, refreshChordsSheet } from './chords';
 import { initTrackView, isTrackView, setTrackView, followTrack, updateLoopChips, invalidateTrackView } from './track-view';
 import { takeStore } from '../take-store';
 import { initMidiImport } from './midi-import';
@@ -1712,6 +1712,8 @@ function updateValuesForZone(index: number): void {
     } else {
       // a line zone renamed: the Follows lists say its name
       zones.list.forEach((z) => z.chords && renderChordBlock(z));
+      // who follows it (its card's row)
+      updateFollowRows();
       // the zone the Chords sheet showed stopped playing chords: it closes
       refreshChordsSheet();
     }

@@ -582,8 +582,12 @@ function showStatus(zone: Zone): void {
  */
 function startOver(zone: Zone): void {
   const line = lineZoneOf(zone);
-  if (!line) return;
+  if (line) startOverLine(line);
+}
+
+function startOverLine(line: Zone): void {
   const fs = followersOf(line);
+  if (fs.length === 0) return;
   const looping = fs.filter((z) => z.loop && z.loopOn);
   if (looping.find((z) => z.looper.mode !== 'idle')) {
     toast('A loop there is being recorded: finish that first');
@@ -598,13 +602,72 @@ function startOver(zone: Zone): void {
     );
   }
   freshStart(line);
-  toast(`Listening anew to ${escapeHTML(lineLabel(line))}`);
+  anew.set(line.id, 'listening anew');
+  toast(`${escapeHTML(followerNames(fs))} listen anew to ${escapeHTML(lineLabel(line))}`);
   fs.forEach((z) => showStatus(z));
+  updateFollowRows();
+}
+
+/** "3 Chords and 4 Bass" */
+function followerNames(fs: Zone[]): string {
+  const names = fs.map((z) => zoneNumberName(z));
+  return names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : names[0] ?? '';
+}
+
+// why a followed zone's chords and bass listen anew, until they've heard a key again (zone id → words)
+const anew = new Map<string, string>();
+
+/**
+ * Take along switched (on, off or to another take) on a zone others follow: they hear different
+ * music now, so they forget what they heard and listen anew (chord loops stay as they are)
+ */
+export function chordsTakeAlongChanged(line: Zone): void {
+  const fs = followersOf(line);
+  if (fs.length === 0) return;
+  freshStart(line);
+  const take = line.playingTake;
+  const what = take ? `Take ${takeStore.of(line.id).indexOf(take) + 1} plays along` : 'Take along off';
+  anew.set(line.id, `listening anew: ${what}`);
+  toast(`${escapeHTML(what)} on ${escapeHTML(lineLabel(line))}: ${escapeHTML(followerNames(fs))} listen anew`);
+  fs.forEach((z) => showStatus(z));
+  updateFollowRows();
+}
+
+/**
+ * A followed zone's card: "Followed by ● 3 Chords ● 4 Bass · heard D Aeolian  [Start over]"
+ * (rebuilt only when what it says changes)
+ */
+export function updateFollowRows(): void {
+  if (!hooks) return;
+  hooks.zones().forEach((line) => {
+    const el = line.elements?.zoneElement;
+    const row = el?.querySelector<HTMLElement>('.card-follow');
+    if (!el || !row) return;
+    const fs = line.chords ? [] : followersOf(line);
+    const show = fs.length > 0;
+    if (el.classList.contains('has-card-follow') !== show) el.classList.toggle('has-card-follow', show);
+    if (!show) return;
+    const key = deciders.get(line.id)?.key;
+    if (key) anew.delete(line.id);
+    const status = key ? `heard ${keyName(key)}` : anew.get(line.id) ?? (timeline.running ? 'listening…' : '');
+    const colours = fs.map((z) => (z.elements?.zoneElement ? getComputedStyle(z.elements.zoneElement).getPropertyValue('--zone-color').trim() : ''));
+    const html =
+      '<span class="cf-label">Followed by</span>' +
+      fs.map((z, i) => `<span class="cf-who"><span class="cf-dot" style="background:${escapeHTML(colours[i])}"></span>${escapeHTML(zoneNumberName(z))}</span>`).join('') +
+      (status ? `<span class="cf-status">· ${escapeHTML(status)}</span>` : '') +
+      '<span class="cf-gap"></span>' +
+      `<a class="lightButton cf-startover" title="${escapeHTML(`Forget what was heard from ${lineLabel(line)} (key and chords) and listen anew: ${followerNames(fs)}; chord loops playing there are switched off (kept). Switching Take along here does this by itself`)}">Start over</a>`;
+    if (row.dataset.html !== html) {
+      row.dataset.html = html;
+      row.innerHTML = html;
+    }
+  });
 }
 
 /** The chips of chords zones show the chord */
 export function updateChordChips(): void {
   if (!hooks) return;
+  updateFollowRows();
   hooks.zones().forEach((z) => {
     if (!z.chords) return;
     const chip = z.elements?.zoneElement?.querySelector<HTMLElement>('.channels .showchords');
@@ -875,7 +938,7 @@ function blockHTML(zone: Zone): string {
   const chordsGroup =
     slider(row('changes')) + slider(row('harmony')) + slider(row('tensions')) + (part === 'chords' ? bluesRow : '') + slider(row('unfold')) + slider(row('register'));
   const actions = `<span class="cb-actions">
-        ${line ? '<a class="cb-text cb-startover" title="Forget what was heard on this line (key and chords) and listen anew, for the chords and the bass; chord loops playing here are switched off (kept)">Start over</a>' : ''}
+        ${line ? '<a class="cb-text cb-startover" title="Forget what was heard (key and chords) and listen anew, for every chords and bass zone following the same zone; chord loops playing there are switched off (kept)">Start over</a>' : ''}
         ${leads ? '<a class="cb-text cb-best" title="Back to the chords that fit best" hidden>Back to best</a><a class="lightButton cb-another" title="Other chords that also fit">Other chords</a>' : ''}
       </span>`;
   // one row on top (the actions too in the dock, which is low), the pads beside More, the actions
@@ -1016,7 +1079,6 @@ function renderSummary(zone: Zone): void {
     const parts = [style, rhythm].filter((x) => x).map((x) => `<span class="cs-sep">·</span><span>${escapeHTML(x)}</span>`).join('');
     el.innerHTML =
       `<span class="cb-what">${what}</span>${follows}${parts}<span class="cb-status"></span>` +
-      (line ? '<a class="cb-text cb-startover" title="Forget what was heard on this line (key and chords) and listen anew, for the chords and the bass; chord loops playing here are switched off (kept)">Start over</a>' : '') +
       `<a class="lightButton cs-edit" title="Set up the ${part === 'bass' ? 'bass' : 'chords'}: who it follows, style, rhythm, pads and more (double-click the row)"><i class="material-icons">edit</i>Edit</a>`;
   }
   el.title = `${part === 'bass' ? 'Bass' : 'Chords'} of this zone (double-click: edit)`;
@@ -1200,7 +1262,13 @@ function initBlockEvents(): void {
     const zone = zoneOfEl(t);
     if (!zone?.chords) return;
     if (t.closest('.cs-edit')) openChordsSheet(zone);
-    else if (t.closest('.cb-startover')) startOver(zone);
+  });
+  // a followed zone's card: Start over for all its chords and bass zones
+  document.addEventListener('click', (ev) => {
+    const t = ev.target as HTMLElement;
+    if (!t.closest?.('.card-follow .cf-startover')) return;
+    const line = hooks.zones().find((z) => z.elements?.zoneElement?.contains(t));
+    if (line) startOverLine(line);
   });
   document.addEventListener('dblclick', (ev) => {
     const t = ev.target as HTMLElement;

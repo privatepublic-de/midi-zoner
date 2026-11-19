@@ -1,4 +1,4 @@
-import { chordMarks } from './chords';
+import { chordMarks, chordsTakeAlongChanged } from './chords';
 import { Zone } from '../zone/zone-class';
 import { ZONES_CHANGED_EVENT, UPDATE_ZONE_VIEW_EVENT } from '../zone/interfaces';
 import type { NoteCurveJSON, CurveSeries } from '../zone/interfaces';
@@ -2354,6 +2354,7 @@ function initTrackView(
     if (!take) return;
     const on = zone.playingTake !== take;
     commit(selected, on ? 'Take Along On' : 'Take Along Off', () => zone.setPlayTake(on ? take.id : null));
+    chordsTakeAlongChanged(zone);
     invalidate();
   });
   takeChip.querySelector('.tc-label')!.addEventListener('click', (ev) => {
@@ -2419,6 +2420,7 @@ function initTrackView(
       if (!take || zone.chords) return;
       const on = zone.playingTake !== take;
       commit(index, on ? 'Take Along On' : 'Take Along Off', () => zone.setPlayTake(on ? take.id : null));
+      chordsTakeAlongChanged(zone);
     } else if (act === 'delete') {
       if (take && !timeline.running) deleteTake(index, take);
       clearCapture();

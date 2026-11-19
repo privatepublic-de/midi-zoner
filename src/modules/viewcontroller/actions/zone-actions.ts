@@ -4,7 +4,7 @@ import { ActionContext, ActionHelpers, ActionMap } from '../types';
 import { ipcRenderer } from 'electron';
 import { MpeMode, sanitizeBendRange, sanitizePressureFrom, zoneInputClaims } from '../../zone/mpe';
 import { ARRANGEMENT_LETTERS, labelForZone } from '../action-labels';
-import { playChords, stopChords, toggleChords, alignToLine } from '../chords';
+import { playChords, stopChords, toggleChords, alignToLine, chordsTakeAlongChanged } from '../chords';
 import { importMidiFile } from '../midi-import';
 
 export function createZoneActions(
@@ -244,6 +244,7 @@ export function createZoneActions(
     zone_take_play: () => {
       if (zone.chords) return;
       zone.setPlayTake(zone.playingTake ? null : takeStore.shownTake(zone.id)?.id ?? null);
+      chordsTakeAlongChanged(zone);
       updateValuesForZone(zoneindex);
     },
     // a track of a MIDI file as the zone's newest take (an undo step of its own once imported)

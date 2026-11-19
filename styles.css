@@ -6818,6 +6818,58 @@ body.minimized .zone .mini-lane {
   height: 18px;
 }
 
+/* A followed zone (cards, also while running): who follows it, what they heard, Start over */
+.zone .card-follow {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  min-height: 22px;
+  margin: 4px 0 0;
+  font-size: var(--fs-md);
+  color: var(--slate-dim);
+}
+
+.zone.has-card-follow .card-follow {
+  display: flex;
+}
+
+.zone .card-follow .cf-who {
+  color: var(--text-base-color);
+  white-space: nowrap;
+}
+
+.zone .card-follow .cf-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 5px;
+  border-radius: 50%;
+  vertical-align: 1px;
+}
+
+.zone .card-follow .cf-status {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.zone .card-follow .cf-gap {
+  flex: 1;
+}
+
+.zone .card-follow .lightButton {
+  height: 22px;
+  min-width: 22px;
+  padding: 0 8px;
+  justify-content: center;
+}
+
+body.track-view .zone .card-follow,
+body.minimized .zone .card-follow {
+  display: none !important;
+}
+
 body.track-view .zone :is(.card-takes, .card-plays),
 body.minimized .zone :is(.card-takes, .card-plays) {
   display: none !important;
