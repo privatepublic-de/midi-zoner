@@ -233,9 +233,11 @@ export function analyse(line: LineNote[], length: number, meter: Meter = DEFAULT
     const first = sorted.find((n) => strength(n.t, meter) >= 0.7) ?? sorted[0];
     if (begins) vote(first.n % 12, 1, 0.6);
     if (!window) {
-      // the last note names the tonic when it lands: on a 1 or held
+      // the last note names the tonic when it lands: on a 1, or held with a rest after it; a loop goes
+      // round, so a long note leading straight back into its first (a turnaround) isn't an ending
       const last = sorted.reduce((a, b) => (b.t + b.d >= a.t + a.d ? b : a));
-      emph[last.n % 12] += strength(onBeat(last, segs), meter) === 1 || last.d >= PPQ * 1.5 ? 2 : 0.6;
+      const rest = length - (last.t + last.d) + sorted[0].t >= PPQ;
+      emph[last.n % 12] += strength(onBeat(last, segs), meter) === 1 || (last.d >= PPQ * 1.5 && rest) ? 2 : last.d >= PPQ * 1.5 ? 1.4 : 0.6;
     } else {
       // where its phrases came to rest
       phraseEndings(line, length, meter).forEach((w, pc) => vote(pc, w, 0.8));

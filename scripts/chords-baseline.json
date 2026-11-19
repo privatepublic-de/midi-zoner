@@ -278,8 +278,8 @@
   },
   "12-bar blues riff": {
    "loop": {
-    "key": "F Ionian",
-    "keyOk": false,
+    "key": "C Mixolydian",
+    "keyOk": true,
     "keyMode": false,
     "clash": 10.416666666666659,
     "changes": 1.75
@@ -648,8 +648,8 @@
   },
   "12-bar blues riff": {
    "loop": {
-    "key": "F Ionian",
-    "keyOk": false,
+    "key": "C Mixolydian",
+    "keyOk": true,
     "keyMode": false,
     "clash": 10.416666666666659,
     "changes": 1.75
