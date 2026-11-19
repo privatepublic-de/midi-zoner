@@ -241,6 +241,23 @@ function createWindow(): void {
       });
     return content;
   });
+  // a MIDI file to import as a take: its bytes and name (parsed in the renderer)
+  ipcMain.handle('open-midi-file', async (): Promise<{ name: string; bytes: Uint8Array } | { error: string } | undefined> => {
+    const result = await dialog.showOpenDialog(win!, {
+      title: 'Import MIDI file',
+      message: 'Import a track of a MIDI file as a take of this zone',
+      buttonLabel: 'Import',
+      filters: [{ name: 'MIDI file', extensions: ['mid', 'midi', 'smf', 'kar'] }]
+    });
+    if (result.canceled || !result.filePaths[0]) return undefined;
+    const file = result.filePaths[0];
+    try {
+      if (fs.statSync(file).size > 16 * 1024 * 1024) return { error: 'The file is too large for a MIDI file' };
+      return { name: path.basename(file), bytes: new Uint8Array(fs.readFileSync(file)) };
+    } catch {
+      return { error: 'The file couldn’t be read' };
+    }
+  });
   ipcMain.handle('set-view-mode', (event, mini: boolean, width: number, height: number) => {
     if (!win) return;
     if (mini) {

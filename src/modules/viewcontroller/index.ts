@@ -9,7 +9,7 @@ import { Zone } from '../zone/zone-class';
 import { showThruAndProgram } from './actions/filter-actions';
 import { MpeMode } from '../zone/mpe';
 import { Sequence } from '../zone/sequence';
-import { ZONES_CHANGED_EVENT, UPDATE_ZONE_VIEW_EVENT } from '../zone/interfaces';
+import { ZONES_CHANGED_EVENT, UPDATE_ZONE_VIEW_EVENT, TEMPO_CHANGED_EVENT } from '../zone/interfaces';
 import { Note } from '../zone/note';
 import { showStepProperties } from './step-marks';
 
@@ -26,6 +26,7 @@ import { initPianoRoll } from './piano-roll';
 import { initChords, chordsTick, chordsTransport, chordsPause, chordsPanic, chordsLineLoopChanged, chordsMenu, renderChordBlock, keepChords, alignToLine, updateChordChips, playChords, refreshChordsSheet } from './chords';
 import { initTrackView, isTrackView, setTrackView, followTrack, updateLoopChips, invalidateTrackView } from './track-view';
 import { takeStore } from '../take-store';
+import { initMidiImport } from './midi-import';
 import { renderStepLocks } from './step-locks';
 import { isQuantizable, requestToggle, isPending, hasPendingToggles, takePendingToggles, markPending, setToggleBoundary } from './pending-toggles';
 import { describeAction, labelForZone, zonePrefix, ARRANGEMENT_LETTERS } from './action-labels';
@@ -92,6 +93,7 @@ const contextMenuActionLabel: Record<string, string> = {
   seq_clear_lane: '<i class="material-icons">clear</i> Clear lane',
   zone_change_color: '<i class="material-icons">palette</i> Change colour',
   zone_export: '<i class="material-icons">save_alt</i> Save zone to file…',
+  zone_import_midi: '<i class="material-icons">library_music</i> Import MIDI file as take…',
   zone_loop_mpe_clear: '<i class="material-icons">clear</i> Clear the loop’s MPE',
   zone_delete: '<i class="material-icons">delete_outline</i> Delete zone…',
   cc_preset_save: '<i class="material-icons">save</i> Save as new preset…',
@@ -221,6 +223,24 @@ function initController({
     },
     () => meterOf(zones.arrangementIndex)
   );
+  // a zone's ⋯ → Import MIDI file as take…: the take, the file's meter and tempo in one undo step
+  initMidiImport({
+    zones: () => zones.list,
+    label: (zoneindex, label) => labelForZone(zones.list[zoneindex], zoneindex, label),
+    pushPatch: (label, patch) => undoHistory.pushPatch(label, patch),
+    arrangement: () => zones.arrangementIndex,
+    meterOf: (arr) => meterOf(arr),
+    setMeter: (arr, meter) => setArrangementMeter(arr, meter, true),
+    tempo: () => (midiController.deviceIdInClock === MIDI.INTERNAL_PORT_ID ? zones.tempo : null),
+    setTempo: (bpm) => {
+      if (zones.tempo === bpm) return;
+      zones.tempo = bpm;
+      midiController.setInternalBPM(bpm);
+      triggerSave();
+      window.dispatchEvent(new CustomEvent(TEMPO_CHANGED_EVENT));
+    },
+    refresh: () => invalidateTrackView()
+  });
   // chords zones: chords or a bass line to another zone's line
   initChords({
     zones: () => zones.list,
@@ -629,14 +649,14 @@ function meterOf(arrIndex: number): Meter {
 }
 
 /** An arrangement's meter (an undo step of its own when it comes from the menu's field) */
-function setArrangementMeter(arrIndex: number, meter: Meter): void {
+function setArrangementMeter(arrIndex: number, meter: Meter, quiet = false): void {
   if (!(arrIndex >= 0 && arrIndex < 4)) return;
   const meters = (zones.meters ??= []);
   while (meters.length < 4) meters.push(null);
   meters[arrIndex] = sameMeter(meter, DEFAULT_METER) ? null : meter;
   updateArrangementMeters();
   triggerSave();
-  toast(`Arrangement ${ARRANGEMENT_LETTERS[arrIndex]} is in ${meterLabel(meter)}`);
+  if (!quiet) toast(`Arrangement ${ARRANGEMENT_LETTERS[arrIndex]} is in ${meterLabel(meter)}`);
 }
 
 /** A–D show their meter when it isn't 4/4 */
@@ -1873,7 +1893,7 @@ function updateZoneHeaderContextMenus(currentArrIndex: number): void {
     const copyItems = others.map(t => `${i}:zone_arr_copy_to:${t}`).join(',');
     // the header's right-click menu and its ⋯ button show the same entries
     z.elements.zoneElement?.querySelectorAll<HTMLElement>('.channels, .zonemenu').forEach((el) => {
-      el.dataset.contextmenu = `${i}:zone_change_color,${i}:zone_export,loopmpe:${i},-,chords:${i},-,${copyItems},-,${i}:zone_delete`;
+      el.dataset.contextmenu = `${i}:zone_change_color,${i}:zone_export,${i}:zone_import_midi,loopmpe:${i},-,chords:${i},-,${copyItems},-,${i}:zone_delete`;
     });
   });
 }

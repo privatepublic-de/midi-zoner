@@ -9,7 +9,7 @@ import MIDI, { PortDescriptor, MIDIMessage, InputPortDef } from '../modules/midi
 import * as view from '../modules/viewcontroller';
 import { ZonesData } from '../modules/viewcontroller/types';
 import { ipcRenderer, webFrame } from 'electron';
-import { ZoneArrangementJSON, isLayoutEntry } from '../modules/zone/interfaces';
+import { ZoneArrangementJSON, isLayoutEntry, TEMPO_CHANGED_EVENT } from '../modules/zone/interfaces';
 import { UndoHistory } from '../modules/undo-history';
 import { labelForZone } from '../modules/viewcontroller/action-labels';
 import { updateSheetHistory } from '../modules/viewcontroller/editor-sheet';
@@ -1569,6 +1569,8 @@ document.addEventListener('DOMContentLoaded', function () {
           commitBpmGesture();
         });
         updateBpmInput();
+        // a MIDI file's tempo (Import MIDI file as take…, and its undo)
+        window.addEventListener(TEMPO_CHANGED_EVENT, () => updateBpmInput());
         midi.bpmDetectedHandler = (bpm: number | null) => {
           if (midi.deviceIdInClock !== MIDI.INTERNAL_PORT_ID) {
             bpmInput.value = bpm !== null ? bpm.toFixed(1) : '';

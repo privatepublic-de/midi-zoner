@@ -5,6 +5,7 @@ import { ipcRenderer } from 'electron';
 import { MpeMode, sanitizeBendRange, sanitizePressureFrom, zoneInputClaims } from '../../zone/mpe';
 import { ARRANGEMENT_LETTERS, labelForZone } from '../action-labels';
 import { playChords, stopChords, toggleChords, alignToLine } from '../chords';
+import { importMidiFile } from '../midi-import';
 
 export function createZoneActions(
   ctx: ActionContext,
@@ -238,6 +239,10 @@ export function createZoneActions(
             toast(result.message, { warning: result.warning });
           }
         });
+    },
+    // a track of a MIDI file as the zone's newest take (an undo step of its own once imported)
+    zone_import_midi: () => {
+      void importMidiFile(zoneindex);
     },
     zone_arr_copy_to: () => {
       const targetIndex = parseInt(actionParam1);

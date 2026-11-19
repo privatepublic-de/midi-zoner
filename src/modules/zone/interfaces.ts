@@ -6,6 +6,8 @@ export const UPDATE_ZONE_VIEW_EVENT = 'update-zone-view';
 export const ZONES_CHANGED_EVENT = 'zones-changed';
 /** A zone's knobs show other values: parameter locks were sent or reverted (detail: the zone) */
 export const CC_LOCK_VALUES_EVENT = 'cc-lock-values';
+/** zones.tempo changed outside the BPM field (a MIDI file's tempo): the field shows it */
+export const TEMPO_CHANGED_EVENT = 'tempo-changed';
 
 export enum CCControllerType {
   UNIPOLAR_ROTARY = 0,
