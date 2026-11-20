@@ -176,6 +176,12 @@ export class LiveChords {
   /** the chords played, per beat (song ticks of the beat → chord) */
   log = new Map<number, Chord>();
   private rival: { key: Key; count: number } | null = null;
+  /** a key the line seems to have moved to by the beat checks of `newKey()`, and on how many running */
+  private moved: { key: Key; count: number } | null = null;
+  /** where the line began to be in the key `newKey()` moved to (song ticks): the bar checks don't look further back */
+  private movedFrom = -Infinity;
+  /** the key `newKey()` moved away from, when (song ticks), and its `keySince` / `movedFrom`: it comes back as quickly */
+  private left: { key: Key; at: number; since: number | null; from: number } | null = null;
   /** where the key was found (song ticks) */
   private keySince: number | null = null;
   private queue: Event[] = [];
@@ -262,6 +268,10 @@ export class LiveChords {
     this.chord = null;
     this.check = null;
     this.rival = null;
+    this.moved = null;
+    // song positions start over with the next run or arrangement
+    this.movedFrom = -Infinity;
+    this.left = null;
     this.lastSound = null;
     this.waiting = 0;
     this.vamp = null;
@@ -388,7 +398,8 @@ export class LiveChords {
 
   private updateKey(seg: Segment, heard: HeardNote[], o: HarmonyOptions, meter: Meter): void {
     const bar = barTicks(meter);
-    const from = seg.t - WINDOW_BARS * bar;
+    // after a move to another key, what came before it is the old key's
+    const from = Math.max(seg.t - WINDOW_BARS * bar, this.movedFrom);
     const line: LineNote[] = heard
       .filter((h) => h.s >= from && h.s < seg.t)
       .map((h) => ({ t: h.s - from, d: Math.max(1, Math.min(h.d, seg.t - h.s)), n: h.n, v: h.v }));
@@ -430,6 +441,78 @@ export class LiveChords {
       this.keySince = seg.t;
       this.rival = null;
     }
+  }
+
+  /**
+   * Playing in another key (C minor → A minor, C major): checked on every beat, so the chords follow
+   * within a bar or two instead of waiting for the new key to fill the 8-bar window. It takes two
+   * or more notes outside the key, each on a beat, a beat long or played twice (a slide, a blue note
+   * or a passing note is one; chromatic neighbours don't count), and one key holding every note
+   * since the bar the first of them came in (at least a bar back, at most two: a line mixing both
+   * thirds, as blues does, has none), found on two beats running; one on the same tonic is
+   * preferred when it is close. Coming back (an excursion of a bar or two) goes as quickly: for 8
+   * bars after a move, once the notes since the last one outside the key it left (three or more,
+   * over half a bar) fit it again, that key returns with all it had heard. The relative major and the fifth's key bring no notes outside the key: the bar
+   * checks of `updateKey()` decide those
+   */
+  private newKey(seg: Segment, heard: HeardNote[], o: HarmonyOptions, meter: Meter): boolean {
+    if (!this.key) return false;
+    const bar = barTicks(meter);
+    const scale = keyTones(this.key);
+    if (this.left && seg.t - this.left.at > WINDOW_BARS * bar) this.left = null;
+    // a chromatic neighbour or passing note (a half step from the notes either side: G Ab G, C C# D) only decorates
+    const line0 = heard.filter((h) => h.s < seg.t).sort((a, b) => a.s - b.s);
+    const decorates = (i: number) =>
+      i > 0 && i < line0.length - 1 && Math.abs(line0[i].n - line0[i - 1].n) === 1 && Math.abs(line0[i + 1].n - line0[i].n) === 1;
+    const window = line0.filter((h) => h.s >= seg.t - 2 * bar);
+    const recent = line0.filter((h, i) => h.s >= seg.t - 2 * bar && !decorates(i));
+    const len = (h: HeardNote) => Math.min(h.d, seg.t - h.s);
+    const stressed = (h: HeardNote) => h.s % PPQ <= 3 || h.s % PPQ >= PPQ - 3 || len(h) >= PPQ - 2;
+    const outside = recent.filter((h) => !scale.includes(h.n % 12));
+    const strong = new Set(outside.filter((h) => stressed(h) || outside.some((x) => x !== h && x.n % 12 === h.n % 12)).map((h) => h.n % 12));
+    if (strong.size < 2) return (this.moved = null), false;
+    const same = (x: Key, y: Key) => x.tonic === y.tonic && x.mode === y.mode;
+    let best: Key | undefined;
+    let from = 0;
+    // back to the key it left: the notes since the last one outside it (three or more, over half a bar) fit it again
+    if (this.left) {
+      const home = keyTones(this.left.key);
+      let i = recent.length;
+      while (i > 0 && home.includes(recent[i - 1].n % 12)) i--;
+      const since = recent.slice(i);
+      if (since.length >= 3 && seg.t - since[0].s >= bar / 2) best = this.left.key;
+    }
+    // from the bar the first of them came in, or from that note when the old key's notes came before it in its bar
+    const first = Math.min(...outside.map((h) => h.s));
+    for (const start of best ? [] : [first - (first % bar), first]) {
+      from = Math.min(seg.t - bar, start);
+      const line: LineNote[] = window
+        .filter((h) => h.s >= from)
+        .map((h) => ({ t: h.s - from, d: Math.max(1, len(h)), n: h.n, v: h.v }));
+      if (line.length < 4 || new Set(line.map((n) => n.n % 12)).size < 3) break;
+      const held = recent.filter((h) => h.s >= from);
+      const fitting = analyse(line, seg.t - from, meter, o.harmony, false, true).keys.filter((k) => {
+        const tones = keyTones(k);
+        return held.every((h) => tones.includes(h.n % 12));
+      });
+      // a bar or two says little about which note is home: one close behind on the same tonic as
+      // before wins (C major → C minor, or blues licks over C, rather than E♭ major)
+      const home = fitting.find((k) => k.tonic === this.key!.tonic);
+      best = home && fitting[0].score - home.score < 0.06 ? home : fitting[0];
+      if (best) break;
+    }
+    if (!best || same(best, this.key)) return (this.moved = null), false;
+    this.moved = this.moved && same(this.moved.key, best) ? { key: best, count: this.moved.count + 1 } : { key: best, count: 1 };
+    if (this.moved.count < 2) return false;
+    const back = this.left && same(best, this.left.key) ? this.left : null;
+    // moving on from a key it only moved to keeps the way home
+    this.left = back ? null : this.left ?? { key: this.key, at: seg.t, since: this.keySince, from: this.movedFrom };
+    this.key = best;
+    this.keySince = back ? back.since : seg.t;
+    this.movedFrom = back ? back.from : from;
+    this.rival = null;
+    this.moved = null;
+    return true;
   }
 
   /**
@@ -563,7 +646,7 @@ export class LiveChords {
     const keyBefore = this.key;
     // the notes to come known: the beat is weighed as if listened to after it (and isn't checked again)
     const heard = coming ? [...played, ...coming] : played;
-    if (seg.beat === 0 || !this.key) this.updateKey(seg, played, o, meter);
+    if (!this.newKey(seg, played, o, meter) && (seg.beat === 0 || !this.key)) this.updateKey(seg, played, o, meter);
     // no key yet: the coming bar may tell it (the chords come in with the line's first bar)
     if (!this.key && coming) this.updateKey({ ...seg, t: seg.t + barTicks(meter) }, heard, o, meter);
     if (!this.key) return false;
