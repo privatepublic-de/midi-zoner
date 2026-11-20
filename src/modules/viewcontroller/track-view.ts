@@ -288,8 +288,8 @@ function seqHasNotes(seq: Zone['sequence']): boolean {
 
 /**
  * The cards: a mini lane under each header that has something to play (sequence notes,
- * the loop, the arp) or was played into, or an enabled zone's sequencer on (even with
- * an empty sequence), on the same song as the track view
+ * the loop, the arp) or was played into, a zone chords follow, or an enabled zone's sequencer
+ * on (even with an empty sequence), on the same song as the track view
  */
 function drawCards(): void {
   const zones = getZones();
@@ -303,11 +303,17 @@ function drawCards(): void {
   timelineMeter(currentMeter());
   const songHead = songNow();
   const runToSong = (timeline.running ? nowTick() : 0) - songHead;
+  // zones a chords or bass zone follows: their lane is there before anything is played into them
+  const followed = new Set<string>();
+  zones.forEach((z) => {
+    if (z.chords?.follows) followed.add(z.chords.follows);
+  });
   zones.forEach((z) => {
     const el = z.elements.zoneElement;
     if (!el) return;
     const show =
       !!z.chords ||
+      followed.has(z.id) ||
       (z.enabled && z.sequence.active) ||
       seqHasNotes(z.sequence) ||
       z.arp_enabled ||
@@ -381,8 +387,12 @@ function updateCardPlays(zone: Zone, el: HTMLElement): void {
 function updateCardTakes(zone: Zone, el: HTMLElement): void {
   const takes = takeStore.of(zone.id);
   const stopped = !timeline.running;
-  const showTakes = stopped && takes.length > 0;
-  const showPlays = showTakes || (stopped && zone.loop !== null && zone.looper.lastRun !== null);
+  // while running the rows are hidden but keep their place, so the cards don't jump at Start
+  const held = !stopped && (el.classList.contains('has-card-plays') || el.classList.contains('has-card-takes'));
+  if (el.classList.contains('card-rows-held') !== held) el.classList.toggle('card-rows-held', held);
+  if (!stopped) return;
+  const showTakes = takes.length > 0;
+  const showPlays = showTakes || (zone.loop !== null && zone.looper.lastRun !== null);
   if (el.classList.contains('has-card-plays') !== showPlays) el.classList.toggle('has-card-plays', showPlays);
   if (el.classList.contains('has-card-takes') !== showTakes) el.classList.toggle('has-card-takes', showTakes);
   if (showPlays) updateCardPlays(zone, el);

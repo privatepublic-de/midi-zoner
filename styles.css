@@ -6950,6 +6950,11 @@ body.minimized .zone .card-follow {
   display: none !important;
 }
 
+/* while running: hidden, their place kept (no jump at Start) */
+.zone.card-rows-held :is(.card-takes, .card-plays) {
+  visibility: hidden;
+}
+
 body.track-view .zone :is(.card-takes, .card-plays),
 body.minimized .zone :is(.card-takes, .card-plays) {
   display: none !important;
