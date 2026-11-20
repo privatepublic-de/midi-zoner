@@ -1034,7 +1034,7 @@ function blockHTML(zone: Zone): string {
     slider(row('changes')) + slider(row('harmony')) + slider(row('tensions')) + (part === 'chords' ? bluesRow : pedalRow) + slider(row('unfold')) + slider(row('register'));
   const actions = `<span class="cb-actions">
         ${line ? '<a class="cb-text cb-startover" title="Forget what was heard (key and chords) and listen anew, for every chords and bass zone following the same zone; chord loops playing there are switched off (kept)">Listen anew</a>' : ''}
-        ${line ? `<span class="cb-ends">${endsHtml('cb-text')}</span>` : ''}
+        ${line ? `<span class="cb-ends">${endsHtml('lightButton')}</span>` : ''}
         ${leads ? '<a class="cb-text cb-best" title="Back to the chords that fit best" hidden>Back to best</a><a class="lightButton cb-another" title="Other chords that also fit">Other chords</a>' : ''}
       </span>`;
   // one row on top (the actions too in the dock, which is low), the pads beside More, the actions

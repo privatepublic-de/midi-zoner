@@ -7022,10 +7022,16 @@ body.track-view:not(.minimized) .chords-block > .cb-top {
   flex-wrap: wrap;
   row-gap: 8px;
 }
-/* Finish / Open end / Play on, after Start over */
+/* Finish / Open end / Play on: buttons (they act on what plays now), set apart from Listen anew by a
+   divider while shown */
 .chords-block .cb-ends {
   display: flex;
-  gap: 14px;
+  align-items: center;
+  gap: 6px;
+}
+.chords-block .cb-ends:has(> .cb-finish:not([hidden])) {
+  padding-left: 14px;
+  border-left: 1px solid var(--slate-line);
 }
 /* what the zone does now, as a tag at the end of the Follows row: a dot for live (the live green),
    its loop (the zone colour) or waiting, and a few words; the whole sentence in its tooltip */
