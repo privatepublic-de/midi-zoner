@@ -7,6 +7,12 @@
  * with its guess, changes chord (as an accompanist reacting). The key is found from the
  * last 8 bars and only changes when another one wins twice in a row.
  *
+ * When the line rests for more than two bars, or plays one note over and over for two and a half,
+ * the combo waits for it (`waitOf()`): it keeps the vamp
+ * heard but plays it looser, as players do while the lead takes a breath: softer, a hit left out
+ * here and there, now and then a bar laid back, other lengths and voicings, once in a while
+ * another chord or a turnaround at a phrase's end. The first note played brings it back at once.
+ *
  * Positions are song ticks (the arrangement's bar 1 = 0). The chords it played are kept per
  * beat (`log`), so a loop closed over them can keep what was heard.
  */
@@ -34,6 +40,7 @@ import {
   rangeFor,
   voiceChord,
   spanNotes,
+  hitsOf,
   bassLine,
   chordName,
   QUALITY_INDEX
@@ -88,6 +95,18 @@ export const HEARD_TICKS = HEARD_BARS * 32 * PPQ;
 const LOG_BARS = MAX_LOOP_BARS + 8;
 /** Ticks after the beat when it listens again */
 const LISTEN = 12; // an 8th: passing and approach notes are mostly let go by then
+
+/** Waiting starts after this much rest (bars) and has grown fully WAIT_GROW bars later */
+const WAIT_AFTER = 2;
+const WAIT_GROW = 2;
+/** One note played over and over (at least this often) for this long (bars) counts as resting too */
+const REPEAT_AFTER = 2.5;
+const REPEAT_NOTES = 4;
+
+/** A number 0…1 for this waiting stretch (`salt`), bar and purpose `k`: the same each time it's asked */
+function roll(salt: number, bar: number, k: number, c = 0): number {
+  return hashRoll(salt, bar, k + 101, c);
+}
 
 /** How calm live chords are, from Chord changes: 1 at Slow … 0 at Fast */
 function calmOf(o: HarmonyOptions): number {
@@ -157,6 +176,14 @@ export class LiveChords {
   private voices = new Map<string, Voice>();
   private token = 0;
   private check: { seg: Segment; at: number } | null = null;
+  /** where the line sounded last (song ticks; it outlives what `heard` reaches back) */
+  private lastSound: number | null = null;
+  /** 0 = the line plays … 1 = it has rested a while, the combo waits for it */
+  waiting = 0;
+  /** where this waiting stretch began: what makes its variations its own */
+  private waitSalt = 0;
+  /** waiting: the vamp's chord at the last beat (what plays may stray from it) */
+  private vamp: Chord | null = null;
 
   /**
    * Called on every clock tick while running with the zones following the line (the first one's
@@ -211,6 +238,9 @@ export class LiveChords {
     this.chord = null;
     this.check = null;
     this.rival = null;
+    this.lastSound = null;
+    this.waiting = 0;
+    this.vamp = null;
   }
 
   /** Starting over: the key and the chords heard are forgotten too */
@@ -227,6 +257,9 @@ export class LiveChords {
     this.queue = [];
     this.chord = null;
     this.check = null;
+    this.lastSound = null;
+    this.waiting = 0;
+    this.vamp = null;
   }
 
   /** The log is in time order (beats are logged as they come; Start and arrangement switches clear it) */
@@ -330,11 +363,10 @@ export class LiveChords {
     return w;
   }
 
-  private scores(seg: Segment, w: number[], o: HarmonyOptions, meter: Meter): { chord: Chord; score: number }[] {
+  private scores(seg: Segment, w: number[], o: HarmonyOptions, meter: Meter, waiting = false, prev = this.chord): { chord: Chord; score: number }[] {
     const key = this.key!;
     const h = Math.max(0, Math.min(1, o.harmony));
     const len = (seg.end - seg.t) / PPQ;
-    const prev = this.chord;
     return vocabulary(key, h, !!o.blues).map((c) => {
       const calm = calmOf(o);
       let x = liveFit(w, c, key) + 0.25 * c.prior * len;
@@ -354,8 +386,67 @@ export class LiveChords {
         const then = this.log.get(seg.t - bars * barTicks(meter));
         if (then && then.root === c.root && then.quality === c.quality) x += k;
       }
+      if (waiting) x += this.waitScore(seg, c, len);
       return { chord: c, score: x };
     });
+  }
+
+  /**
+   * How far the combo waits for the line at this beat: 0 while it plays (a note held, or one
+   * sounding within the last WAIT_AFTER bars, its loop and sequence too), growing after that much rest.
+   * Notes known to come (a take read ahead) within the bar end the wait
+   */
+  private waitOf(seg: Segment, played: HeardNote[], coming: HeardNote[] | null, meter: Meter): number {
+    const bar = barTicks(meter);
+    for (const h of played) {
+      const end = h.held ? seg.t : h.s + h.d;
+      if (this.lastSound === null || end > this.lastSound) this.lastSound = end;
+    }
+    const grow = (bars: number, after: number) => (bars < after ? 0 : Math.min(1, 0.65 + (0.35 * (bars - after)) / WAIT_GROW));
+    const repeat = this.repeatBars(seg, played, coming, bar);
+    const waitRepeat = grow(repeat, REPEAT_AFTER);
+    if (coming?.some((h) => h.s < seg.t + bar)) return waitRepeat;
+    if (this.lastSound === null) return 0;
+    return Math.max(waitRepeat, grow((seg.t - this.lastSound) / bar, WAIT_AFTER));
+  }
+
+  /**
+   * How long (bars, up to this beat) the line has been playing one note over and over (octaves
+   * too, at least REPEAT_NOTES times): a lead marking time, the combo waits for more as if it
+   * rested. 0 when its latest notes aren't that, or notes known to come (a take read ahead)
+   * within the bar leave the note
+   */
+  private repeatBars(seg: Segment, played: HeardNote[], coming: HeardNote[] | null, bar: number): number {
+    const notes = played.filter((h) => h.s <= seg.t).sort((a, b) => b.s - a.s);
+    if (!notes.length) return 0;
+    const pc = notes[0].n % 12;
+    if (coming?.some((h) => h.s < seg.t + bar && h.n % 12 !== pc)) return 0;
+    // the note has to go on: the latest one sounding still or within a beat
+    const last = notes[0].held ? seg.t : notes[0].s + notes[0].d;
+    if (seg.t - last > PPQ) return 0;
+    let from = notes[0].s;
+    let count = 0;
+    for (const h of notes) {
+      if (h.n % 12 !== pc) break;
+      from = h.s;
+      count++;
+    }
+    return count >= REPEAT_NOTES ? (seg.t - from) / bar : 0;
+  }
+
+  /**
+   * Waiting: once in a while (a 2-bar stretch in three, about, when fully waiting) another chord
+   * than the vamp's, decided per bar, and at a 4-bar phrase's end now and then the dominant, a
+   * turnaround handing back to the lead
+   */
+  private waitScore(seg: Segment, c: Chord, len: number): number {
+    const w = this.waiting;
+    if (!w || !this.key) return 0;
+    let x = 0;
+    if (roll(this.waitSalt, seg.bar >> 1, 1) < 0.5 * w) x += (roll(this.waitSalt, seg.bar, 2, c.root * 16 + QUALITY_INDEX[c.quality]) - 0.5) * 2.6 * w * len;
+    const dominant = c.root === (this.key.tonic + 7) % 12 && (c.quality === 'maj' || c.quality === '7');
+    if (dominant && seg.bar % 4 === 3 && seg.beat >= seg.beats / 2 && roll(this.waitSalt, seg.bar, 3) < 0.7 * w) x += 1.6 * w;
+    return x;
   }
 
   private decide(seg: Segment, segs: Segment[], now: number, played: HeardNote[], coming: HeardNote[] | null, o: HarmonyOptions, followers: Follower[], meter: Meter): boolean {
@@ -366,17 +457,26 @@ export class LiveChords {
     // no key yet: the coming bar may tell it (the chords come in with the line's first bar)
     if (!this.key && coming) this.updateKey({ ...seg, t: seg.t + barTicks(meter) }, heard, o, meter);
     if (!this.key) return false;
+    const waited = this.waiting;
+    this.waiting = this.waitOf(seg, played, coming, meter);
+    if (this.waiting && !waited) this.waitSalt = (o.seed * 7919 + Math.round(this.lastSound ?? 0)) | 0;
+    // the line is back: what plays now goes on as it did before the wait
+    const back = waited > 0 && !this.waiting;
     const until = seg.beats % 2 === 0 && seg.beat < seg.beats / 2 ? segs[seg.beats / 2].t : segs[segs.length - 1].end;
     const w = coming ? this.weights(seg, seg.t + LISTEN, heard, meter, true, until) : this.weights(seg, now, heard, meter, false);
-    const ranked = this.scores(seg, w, o, meter).sort((a, b) => b.score - a.score);
-    const best = ranked[0].chord;
+    // waiting: the vamp goes on from its own last chord and is what's logged (the form, a loop kept
+    // from it); what's played may stray from it
+    const ranked = this.scores(seg, w, o, meter, false, this.waiting && waited ? this.vamp : this.chord).sort((a, b) => b.score - a.score);
+    const vamp = ranked[0].chord;
+    this.vamp = vamp;
+    const best = this.waiting ? this.scores(seg, w, o, meter, true).sort((a, b) => b.score - a.score)[0].chord : vamp;
     const prev = this.chord;
     const same = prev && prev.root === best.root && prev.quality === best.quality;
-    this.log.set(seg.t, same ? prev! : best);
+    this.log.set(seg.t, this.waiting ? vamp : same ? prev! : best);
     this.trimLog(seg.t - LOG_BARS * barTicks(meter));
     this.check = coming ? null : { seg, at: seg.t + LISTEN };
     const barEnd = segs[segs.length - 1].end;
-    if (same && seg.beat !== 0) {
+    if (same && seg.beat !== 0 && !back) {
       // the chord goes on; a follower without a voice (just switched on, or its zone replaced by undo) comes in now
       for (const f of followers) if (!this.voices.has(f.id)) this.play(f, prev!, { t: seg.t, end: barEnd }, segs, now, heard, meter, false);
       return this.key !== keyBefore;
@@ -401,6 +501,7 @@ export class LiveChords {
     const missed = struck.length >= 2 && !struck.some((pc) => chordTones(cur).includes(pc)) && struck.every((pc) => chordTones(best.chord).includes(pc));
     if ((!missed && clashOf(w, cur, this.key) < 1.5) || (mine && best.score - mine.score < 1.2 + 0.8 * calmOf(o))) return false;
     this.chord = best.chord;
+    this.vamp = best.chord;
     this.log.set(seg.t, best.chord);
     const segs = barSegments(seg.bar, meter);
     for (const f of followers) this.play(f, best.chord, { t: seg.t, end: segs[segs.length - 1].end }, segs, now, heard, meter, false);
@@ -431,7 +532,9 @@ export class LiveChords {
       v = { out: f.out, voicing: null, lastBass: null, sounding: new Map(), spanTokens: new Set() };
       this.voices.set(f.id, v);
     }
-    const o = f.o;
+    const bar = segs[0].bar;
+    const w = this.waiting;
+    const o = w ? this.looser(f, bar) : f.o;
     const style = styleOf(o);
     // a chord coming in late (a correction): what it would have played up to now comes in now
     const fromNow = (ns: LineNote[]) => ns.map((n) => (n.t < now ? { ...n, t: now, d: n.d - (now - n.t) } : n)).filter((n) => n.d >= 3);
@@ -444,10 +547,13 @@ export class LiveChords {
     } else {
       const sounding = heard.filter((h) => h.held || (h.s < span.end && h.s + h.d > span.t)).map((h) => h.n);
       const recent: LineNote[] = heard.map((h) => ({ t: h.s, d: h.d, n: h.n, v: h.v }));
-      const voicing = continuing && v.voicing ? v.voicing : voiceChord(chord, this.key!, o, sounding, v.voicing, rangeFor(recent, o));
+      // waiting: now and then the same chord voiced anew on a bar's 1
+      const revoice = w > 0 && span.t === segs[0].t && roll(this.waitSalt, bar, 4) < 0.8 * w;
+      const voicing = continuing && v.voicing && !revoice ? v.voicing : voiceChord(chord, this.key!, o, sounding, v.voicing, rangeFor(recent, o));
       v.voicing = voicing;
       notes = fromNow(spanNotes(chord, voicing, span, segs, style, o, meter, 0));
     }
+    if (w) notes = this.thinned(f, notes, span, segs, bar, meter, style, o.seed);
     if (!notes.length) return;
     const first = Math.min(...notes.map((n) => n.t));
     if (continuing && style === 0 && f.part === 'chords') {
@@ -465,6 +571,65 @@ export class LiveChords {
     for (const [n, token] of v.sounding) if (v.spanTokens.has(token)) this.queue.push({ at: first, on: false, n, v: 0, f: f.id, token });
     v.spanTokens.clear();
     for (const n of notes) this.schedule(f.id, v, n);
+  }
+
+  /**
+   * A follower's settings for a bar while waiting: other lengths, accents, roll and colour each
+   * bar (within reach of its own), the bass moving a little more or less
+   */
+  private looser(f: Follower, bar: number): HarmonyOptions {
+    const w = this.waiting;
+    const o = f.o;
+    const k = f.part === 'bass' ? 20 : 10;
+    const r = (i: number) => (roll(this.waitSalt, bar, k + i) - 0.5) * 2 * w;
+    const c01 = (x: number) => Math.max(0, Math.min(1, x));
+    if (f.part === 'bass') return { ...o, bassMove: c01((o.bassMove ?? 0) + 0.6 * r(0)), length: c01((o.length ?? 0.5) + 0.45 * r(1)), syncopation: c01((o.syncopation ?? 0) + 0.45 * r(2)), vary: c01((o.vary ?? 0) + 0.5 * w) };
+    return {
+      ...o,
+      length: c01((o.length ?? 0.5) + 0.65 * r(0)),
+      dynamics: c01((o.dynamics ?? 0) + 0.6 * r(1)),
+      unfold: c01((o.unfold ?? 0) + 0.5 * Math.abs(r(2))),
+      colour: c01(o.colour + 0.45 * r(3)),
+      register: (o.register ?? 0) + Math.round(4 * r(5)),
+      accents: Math.max(-1, Math.min(1, (o.accents ?? 0) + 0.65 * r(4))),
+      vary: c01((o.vary ?? 0) + 0.7 * w)
+    };
+  }
+
+  /**
+   * Waiting: the chords play softer and leave hits out (never the chord's first, so a change is
+   * heard), now and then a bar's second half laid back; the bass keeps time, a little softer
+   */
+  private thinned(f: Follower, notes: LineNote[], span: { t: number; end: number }, segs: Segment[], bar: number, meter: Meter, style: number, seed: number): LineNote[] {
+    const w = this.waiting;
+    const soft = (n: LineNote, k: number) => ({ ...n, v: Math.max(30, Math.round(n.v * (1 - k * w))) });
+    if (f.part === 'bass') {
+      // the bass keeps time on the chord's first note, the others now and then left out
+      const first = Math.min(...notes.map((n) => n.t));
+      return notes.filter((n, i) => n.t === first || roll(this.waitSalt, bar, 7, i) >= 0.25 * w).map((n) => soft(n, 0.2));
+    }
+    // held pads: only softer
+    if (style === 0) return notes.map((n) => soft(n, 0.35));
+    // each note belongs to the rhythm's hit it came with (a rolled or strummed voice a few ticks
+    // after it, a tension tone coming in later with the build-up): a hit left out goes whole
+    const hits = hitsOf(style, span, meter, segs, seed).map((h) => span.t + h.t);
+    const hitOf = (n: LineNote) => {
+      let i = 0;
+      while (i + 1 < hits.length && hits[i + 1] <= n.t + 0.5) i++;
+      return i;
+    };
+    const barLen = barTicks(meter);
+    const half = span.t - (span.t % barLen) + barLen / 2;
+    const layBack = roll(this.waitSalt, bar, 5) < 0.45 * w;
+    return notes
+      .filter((n) => {
+        const i = hitOf(n);
+        // the chord's first hit always sounds: a change is heard
+        if (i === 0) return true;
+        if (layBack && hits[i] >= half) return false;
+        return roll(this.waitSalt, bar, 6, i) >= 0.6 * w;
+      })
+      .map((n) => soft(n, 0.35));
   }
 
   private schedule(f: string, v: Voice, n: LineNote): void {

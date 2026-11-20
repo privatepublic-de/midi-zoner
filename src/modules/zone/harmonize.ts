@@ -801,7 +801,7 @@ function swungNote(n: LineNote, swing: number): LineNote {
 }
 
 /** The hits of one chord span, by rhythm style */
-function hitsOf(style: number, span: { t: number; end: number }, meter: Meter, segs: Segment[], seed = 0): Hit[] {
+export function hitsOf(style: number, span: { t: number; end: number }, meter: Meter, segs: Segment[], seed = 0): Hit[] {
   const len = span.end - span.t;
   const beats = segs.filter((s) => s.t >= span.t && s.t < span.end);
   const eighth = PPQ / 2;

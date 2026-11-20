@@ -522,6 +522,8 @@ function tagOf(zone: Zone, dot: 'live' | 'loop' | 'wait'): string {
   if (dot === 'loop') return `its loop · ${Take.lengthLabel(zone.loop!.length, hooks.meter())}`;
   if (!timeline.running) return 'waiting';
   if (!key) return 'listening…';
+  // the line rests: the combo plays on, looser, waiting for it
+  if (deciders.get(line.id)?.waiting) return `waits for you · ${keyName(key)}`;
   return `live · ${keyName(key)}`;
 }
 
@@ -552,7 +554,8 @@ function statusSentence(zone: Zone): { dot: 'live' | 'loop' | 'wait'; main: stri
   const shells = under ? [`rootless over ${zoneNumberName(under)}`] : [];
   const take = takeAhead(line, nowTick());
   const reads = take ? [`reads its Take ${takeStore.of(line.id).indexOf(take) + 1} a bar ahead`] : [];
-  return { dot: 'live', main: `Following ${label} live`, more: [...from, ...reads, ...shells, ...(zone.loop ? [] : ['Loop keeps these chords']), ...keyText] };
+  const rests = d.waiting > 0 ? [`plays on, looser, while ${label} rests`] : [];
+  return { dot: 'live', main: `Following ${label} live`, more: [...rests, ...from, ...reads, ...shells, ...(zone.loop ? [] : ['Loop keeps these chords']), ...keyText] };
 }
 
 /** "2 E-Piano" */
@@ -655,7 +658,8 @@ export function updateFollowRows(): void {
     if (!show) return;
     const key = deciders.get(line.id)?.key;
     if (key) anew.delete(line.id);
-    const status = key ? `heard ${keyName(key)}` : anew.get(line.id) ?? (timeline.running ? 'listening…' : '');
+    const waits = timeline.running && deciders.get(line.id)?.waiting ? ' · waiting for you' : '';
+    const status = key ? `heard ${keyName(key)}${waits}` : anew.get(line.id) ?? (timeline.running ? 'listening…' : '');
     const colours = fs.map((z) => (z.elements?.zoneElement ? getComputedStyle(z.elements.zoneElement).getPropertyValue('--zone-color').trim() : ''));
     const html =
       '<span class="cf-label">Followed by</span>' +
