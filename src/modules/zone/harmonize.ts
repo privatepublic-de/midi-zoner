@@ -106,6 +106,8 @@ export interface HarmonyOptions {
   shell?: boolean;
   /** blues: the key's I, IV and V are dominant seventh chords */
   blues?: boolean;
+  /** bass: a pedal point, the key's tonic held under the chords (pedalHolds()) */
+  pedal?: boolean;
   /** live: chords kept, per segment (null: free to choose) */
   frozen?: (Chord | null)[];
   /** live: the key found earlier (hysteresis), else analysed */
@@ -1187,6 +1189,15 @@ function brokenNotes(chord: Chord, v: number[], s: { t: number; end: number }, h
   return notes;
 }
 
+/**
+ * A pedal point on the tonic holds under a chord unless a tone of the chord lies a half step above
+ * it (a minor 9th over the held bass: the bII, an A7 over a C pedal); a major 7th under a chord, a
+ * 4th or a tritone are the pedal's colour and stay
+ */
+export function pedalHolds(chord: Chord, tonic: number): boolean {
+  return !QUALITY[chord.quality].some((i) => (chord.root + i) % 12 === (tonic + 1) % 12);
+}
+
 /** A strum's spread per note, in ticks (about 8 ms at 120 BPM) */
 const STRUM_STEP = 0.4;
 
@@ -1247,6 +1258,25 @@ export function bassLine(
     return { t, d: Math.max(1, d), n, v: Math.round(Math.max(1, Math.min(127, v))) };
   };
   const roll = (a: number, b: number) => hashRoll(o.seed + 4243, Math.round(s.t), a, b);
+  if (o.pedal && pedalHolds(chord, key.tonic)) {
+    // a pedal point: the key's tonic under every chord, struck again where a chord comes in (softer
+    // within a bar); with more Bass moves it jumps to its octave on the strong beats now and then
+    const n = 36 + ((key.tonic - 36 + 120) % 12);
+    const bar = barTicks(meter);
+    const onOne = Math.abs(((s.t % bar) + bar) % bar) < 0.5;
+    const held: RawBass[] = [{ t: s.t + push, until: s.end + push, n, v: onOne ? 96 : 80, first: true }];
+    if (m >= 0.35 && n + 12 <= BASS_HIGH) {
+      let up = false;
+      for (const b of spanBeats(s, meter)) {
+        if (!b.strong || b.t <= s.t || roll(Math.round(b.t), 7) >= m) continue;
+        up = !up;
+        held[held.length - 1].until = b.t;
+        held.push({ t: b.t, until: s.end + push, n: up ? n + 12 : n, v: 82, first: false });
+      }
+    }
+    const raw = syncopate(style === 5 ? pump(held) : held, o, push !== 0, roll);
+    return { notes: raw.map((r) => place(r.t, r.d ?? (r.until - r.t) * (raw.length > 1 ? lerp(0.55, 0.97, o.length ?? 0.5) : 0.95), r.n, r.v)), last: n };
+  }
   if (m < 0.2) {
     const n = 36 + ((chord.root - 36 + 120) % 12);
     const held: RawBass[] = [{ t: s.t + push, until: s.end + push, n, v: 96, first: true }];

@@ -106,7 +106,8 @@ function fellowsOf(z: Zone): Zone[] {
 /** The bass zone playing under a chords zone (on the same line), if any; `fs`: the line's followers */
 function bassUnder(z: Zone, fs = fellowsOf(z)): Zone | null {
   if (z.chords?.part !== 'chords') return null;
-  return fs.find((f) => f !== z && f.chords!.part === 'bass') ?? null;
+  // a bass holding a pedal point doesn't play the roots: the chords keep theirs
+  return fs.find((f) => f !== z && f.chords!.part === 'bass' && f.chordSet.pedal !== 1) ?? null;
 }
 
 /** A follower's engine options: its settings, the zone's swing, shells over a bass zone; `fs`: the line's followers */
@@ -845,6 +846,7 @@ function drawBlock(zone: Zone, el: HTMLElement): void {
   if (rs && document.activeElement !== rs) rs.value = String(s.rhythm);
   el.querySelectorAll<HTMLElement>('.cb-strum a').forEach((a) => a.classList.toggle('on', Number(a.dataset.strum) === s.strum));
   el.querySelectorAll<HTMLElement>('.cb-blues a').forEach((a) => a.classList.toggle('on', Number(a.dataset.blues) === s.blues));
+  el.querySelectorAll<HTMLElement>('.cb-pedal a').forEach((a) => a.classList.toggle('on', Number(a.dataset.pedal) === s.pedal));
   const sw = el.querySelector<HTMLInputElement>('input[data-swing]');
   if (sw) setSlider(sw, zone.swingAmount);
   el.querySelectorAll<HTMLInputElement>('.cb-more input[type=range][data-k]').forEach((inp) => {
@@ -939,6 +941,8 @@ function blockHTML(zone: Zone): string {
       <input type="range" data-swing min="0" max="1" step="0.01" tabindex="-1"><small>Swung</small></label>`;
   const bluesRow = `<div class="cb-sl" title="Blues: the key's I, IV and V are dominant seventh chords"><span class="label">Blues 7ths</span>
       <div class="cb-segs cb-blues"><a data-blues="0">Off</a><a data-blues="1">On</a></div></div>`;
+  const pedalRow = `<div class="cb-sl" title="Pedal point: the bass holds the key's tonic under the chords; only a chord with a tone a half step above it gets its own root"><span class="label">Pedal</span>
+      <div class="cb-segs cb-pedal"><a data-pedal="0">Off</a><a data-pedal="1">On</a></div></div>`;
   const strumRow = `<div class="cb-sl" title="Notes of a chord one after another, quickly, as on a guitar: Down plays the low notes first, Up the high ones first (lighter), Down &amp; up downstrokes on the beats and upstrokes between"><span class="label">Strum</span>
       <div class="cb-segs cb-strum">${STRUMS.map((name, i) => `<a data-strum="${i}">${escapeHTML(name)}</a>`).join('')}</div></div>`;
   // More in two groups: how it plays (feel), then which chords (harmony)
@@ -950,7 +954,7 @@ function blockHTML(zone: Zone): string {
       : '';
   const feel = (part === 'chords' ? strumRow : '') + swingRow + slider(row('accents')) + slider(row('vary'));
   const chordsGroup =
-    slider(row('changes')) + slider(row('harmony')) + slider(row('tensions')) + (part === 'chords' ? bluesRow : '') + slider(row('unfold')) + slider(row('register'));
+    slider(row('changes')) + slider(row('harmony')) + slider(row('tensions')) + (part === 'chords' ? bluesRow : pedalRow) + slider(row('unfold')) + slider(row('register'));
   const actions = `<span class="cb-actions">
         ${line ? '<a class="cb-text cb-startover" title="Forget what was heard (key and chords) and listen anew, for every chords and bass zone following the same zone; chord loops playing there are switched off (kept)">Start over</a>' : ''}
         ${leads ? '<a class="cb-text cb-best" title="Back to the chords that fit best" hidden>Back to best</a><a class="lightButton cb-another" title="Other chords that also fit">Other chords</a>' : ''}
@@ -993,12 +997,13 @@ function setSettings(zone: Zone, change: Partial<ChordSettings>, label = 'Chords
     makeLoopsWith(line, followersOf(line).filter((z) => planOf(z)), label, () => Object.assign(zone.chordSet, change));
     return;
   }
-  hooks.commit([index], label, () => {
+  // the bass's pedal decides whether the chords leave out their roots: their loops are played anew too
+  const chordsToo = line && 'pedal' in change && change.pedal !== zone.chordSet.pedal ? followersOf(line).filter((z) => z !== zone && z.chords!.part === 'chords' && planOf(z)) : [];
+  const redo: [Zone, ChordPlan | null][] = [[zone, plan], ...chordsToo.map((z): [Zone, ChordPlan | null] => [z, planOf(z)])];
+  hooks.commit([index, ...chordsToo.map((z) => zs.indexOf(z))], label, () => {
     Object.assign(zone.chordSet, change);
-    if (plan && line) {
-      const src = lineOf(line);
-      if (src && src.length === plan.length) renderLoop(zone, src, plan, leadOf(line), zone.looper.anchor);
-    }
+    const src = line ? lineOf(line) : null;
+    for (const [z, p] of redo) if (p && line && src && src.length === p.length) renderLoop(z, src, p, leadOf(line), z.looper.anchor);
   });
 }
 
@@ -1299,6 +1304,12 @@ function initBlockEvents(): void {
     if (bl) {
       const i = Number(bl.dataset.blues);
       if (i !== zone.chordSet.blues) setSettings(zone, { blues: i }, 'Chords: Blues 7ths');
+      return;
+    }
+    const pd = t.closest<HTMLElement>('.cb-pedal a');
+    if (pd) {
+      const i = Number(pd.dataset.pedal);
+      if (i !== zone.chordSet.pedal) setSettings(zone, { pedal: i }, 'Bass: Pedal');
       return;
     }
     const st = t.closest<HTMLElement>('.cb-strum a');

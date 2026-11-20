@@ -131,14 +131,14 @@ export const CHORD_STYLES: ChordStyle[] = [
     group: 'Calm',
     name: 'Modal',
     chords: { harmony: 0.8, colour: 0.7, rhythm: 0, length: 0.85, changes: 0.2, unfold: 0.5, vary: 0.15 },
-    bass: { bass: 0.05, length: 0.85, vary: 0.05 }
+    bass: { bass: 0.05, length: 0.85, vary: 0.05, pedal: 1 }
   },
   {
     id: 'ambient',
     group: 'Calm',
     name: 'Ambient',
     chords: { harmony: 0.75, colour: 0.6, rhythm: 0, length: 1, changes: 0.1, unfold: 0.9, register: 4, tensions: 0.4, vary: 0.1 },
-    bass: { bass: 0, length: 1 }
+    bass: { bass: 0, length: 1, pedal: 1 }
   },
   {
     id: 'gospel',
