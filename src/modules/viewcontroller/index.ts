@@ -472,21 +472,19 @@ function actionHandler(ev: MouseEvent, overrideaction?: string): void {
     actionString += ':' + (ev.type == 'focus' ? 1 : 0);
   }
   if (actionString!.endsWith(':zone_loop')) {
-    loopZone(parseInt(actionString!));
+    // a chords zone's Rec keeps the chords heard as its loop (again: replacing it)
+    const rz = zones.list[parseInt(actionString!)];
+    if (rz?.chords) keepChords(rz);
+    else loopZone(parseInt(actionString!));
     return;
   }
   {
-    // a chords zone: its Seq chip's place is the chords switch (key switches, Mackie), Arp is off,
-    // and Loop without a loop keeps the chords
+    // a chords zone: its Seq chip's place is the chords switch (key switches, Mackie), Arp is off
     const [zi, act] = actionString!.split(':');
     const cz = zones.list[parseInt(zi)];
     if (cz?.chords) {
       if (act === 'toggle_seq') actionString = `${zi}:zone_chords_on`;
       else if (act === 'zone_arp_enabled') return;
-      else if (act === 'zone_loop_on' && !cz.loop) {
-        keepChords(cz);
-        return;
-      }
     }
   }
   if (waitsForBoundary(ev, actionString!)) return;

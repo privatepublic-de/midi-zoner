@@ -6915,12 +6915,8 @@ body.loop-edge-dragging * {
   font-size: 11px;
   letter-spacing: -0.04em;
 }
-.zone.chords-zone .channels > :is(.ch.showseq, .ch.showarp),
-.zone.chords-zone .channels .loopgroup > .ch.showloop {
+.zone.chords-zone .channels > :is(.ch.showseq, .ch.showarp) {
   display: none !important;
-}
-.zone.chords-zone .channels .loopgroup > .ch.showloopsw {
-  border-radius: var(--radius);
 }
 .zone.chords-on .channels .ch.showchords {
   background-color: var(--on);

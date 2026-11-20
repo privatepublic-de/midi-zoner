@@ -195,10 +195,15 @@ function updateLoopChips(): void {
   for (const zone of getZones()) {
     const chip = zone.elements.zoneElement?.querySelector('.showloop');
     if (!chip) continue;
-    const { label, state } = zone.loopChip;
+    // a chords zone's Rec keeps the chords heard: it never records or overdubs, so it always says Rec
+    const { label, state } = zone.chords ? { label: 'Rec', state: 'off' } : zone.loopChip;
     if (chip.textContent !== label) chip.textContent = label;
     for (const s of ['wait', 'rec', 'closing']) chip.classList.toggle(`loop-${s}`, s === state);
-    const title = loopChipTitle(zone, state);
+    const title = zone.chords
+      ? zone.loop
+        ? `Rec: keep the chords heard as the loop again, replacing Loop · ${Take.lengthLabel(zone.loop.length, currentMeter())} (⌘Z brings it back)`
+        : 'Rec: keep the chords heard as the loop, the rest worked out from the line'
+      : loopChipTitle(zone, state);
     if ((chip as HTMLElement).title !== title) (chip as HTMLElement).title = title;
     // the loop's switch beside it: its length, lit while it plays
     const sw = zone.elements.zoneElement?.querySelector('.showloopsw') as HTMLElement | null;
@@ -211,7 +216,7 @@ function updateLoopChips(): void {
     sw.classList.toggle('loop-on', !!loop && zone.loopOn);
     const swTitle = zone.chords
       ? !loop
-        ? 'Keep these chords as the loop: the ones played, the rest worked out from the line'
+        ? 'No chord loop yet: keep one with Rec'
         : zone.loopOn
           ? `Chord loop (${length}) on: it plays instead of following live. Click: follow live, kept`
           : `Chord loop (${length}) off: following live. Click: play the loop`
