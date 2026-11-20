@@ -2351,7 +2351,7 @@ function initTrackView(
     const take = zone && !zone.chords ? shownTake(zone)?.take : null;
     if (!take) return;
     const on = zone.playingTake !== take;
-    commit(selected, on ? 'Take Along On' : 'Take Along Off', () => zone.setPlayTake(on ? take.id : null));
+    commit(selected, on ? 'Play Along On' : 'Play Along Off', () => zone.setPlayTake(on ? take.id : null));
     chordsTakeAlongChanged(zone);
     invalidate();
   });
@@ -2417,7 +2417,7 @@ function initTrackView(
     } else if (act === 'along') {
       if (!take || zone.chords) return;
       const on = zone.playingTake !== take;
-      commit(index, on ? 'Take Along On' : 'Take Along Off', () => zone.setPlayTake(on ? take.id : null));
+      commit(index, on ? 'Play Along On' : 'Play Along Off', () => zone.setPlayTake(on ? take.id : null));
       chordsTakeAlongChanged(zone);
     } else if (act === 'delete') {
       if (take && !timeline.running) deleteTake(index, take);
