@@ -1746,7 +1746,26 @@ body:not(.track-view):not(.minimized) #zones > .zone > .channels {
   > .zonetools { order: 2; width: var(--hdr-col3); justify-content: flex-end; }
   > .hdr-break { display: block; order: 3; flex-basis: 100%; height: 0; }
   > :is(.ch.showseq, .ch.showarp) { order: 4; width: calc((var(--hdr-col1) - 6px) / 2); margin-left: 0; }
-  > .ch.showchords { order: 4; width: var(--hdr-col1); margin-left: 0; }
+  /* a chords zone: the switch in Seq's place, the chord sounding read out in Arp's */
+  > .ch.showchords { order: 4; width: calc((var(--hdr-col1) - 6px) / 2); margin-left: 0; }
+  > .ch.showchords > .chc-part { display: inline; }
+  > .ch.showchords > .chc-now { display: none; }
+  > .chordnow {
+    order: 4;
+    width: calc((var(--hdr-col1) - 6px) / 2);
+    height: 26px;
+    box-sizing: border-box;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--slate-line);
+    border-radius: var(--radius);
+    color: var(--text-base-color);
+    font-size: 15px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  > .chordnow.none { color: var(--slate-dim); font-weight: 400; }
   > .loopgroup { order: 5; margin-left: 6px; }
   > .loopgroup > .ch { width: 66px; }
   > .ch.showccs { order: 6; margin-left: auto; width: var(--hdr-col3); }
@@ -6872,26 +6891,30 @@ body.minimized .zone .mini-lane {
   display: flex;
 }
 
-.zone .card-follow .cf-who {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: var(--text-base-color);
-  white-space: nowrap;
+/* "to [3][4]": the followers as their numbers, boxes in their colours like the zones' name boxes */
+.zone .card-follow .cf-nums {
+  display: flex;
+  flex: none;
+  gap: 4px;
+  margin-right: 6px;
+}
+.zone .card-follow .cf-num {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  color: var(--on-text);
+  font-weight: 600;
+  font-size: 12px;
 }
 
-/* short of room, the status gives way first, then the names; the label and the buttons keep their size */
+/* short of room, the status gives way; "to", the numbers and the buttons keep their size */
 .zone .card-follow .cf-label {
   flex: none;
-}
-
-.zone .card-follow .cf-dot {
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  margin-right: 5px;
-  border-radius: 50%;
-  vertical-align: 1px;
 }
 
 .zone .card-follow .cf-status {
@@ -6900,6 +6923,13 @@ body.minimized .zone .mini-lane {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+/* the key heard: the row's value */
+.zone .card-follow .cf-key {
+  color: var(--text-base-color);
+  font-size: 15px;
+  font-weight: 600;
 }
 
 .zone .card-follow .cf-gap {
@@ -6935,7 +6965,8 @@ body.loop-edge-dragging * {
 /* =============================================================
    CHORDS ZONES  (viewcontroller/chords.ts)
    A zone playing chords or a bass line to another zone's line: the chord chip takes Seq's
-   place (Seq, Arp and Rec go), its block holds Follows, Rhythm, two pads, More, Another
+   place (Seq and Arp go; in cards it is the switch and the chord sounding is read out in Arp's
+   place), its block holds Follows, Rhythm, two pads, More, Another
    ============================================================= */
 .zone .channels .ch.showchords {
   display: none;
@@ -6948,6 +6979,15 @@ body.loop-edge-dragging * {
   overflow: hidden;
 }
 .zone.chords-zone .channels .ch.showchords {
+  display: flex;
+}
+/* the chip shows the chord (Tracks header, mini view); cards make it the switch, with the
+   chord beside it (.chordnow) */
+.zone .channels .ch.showchords > .chc-part,
+.zone .channels > .chordnow {
+  display: none;
+}
+body:not(.track-view):not(.minimized) .zone.chords-zone .channels > .chordnow {
   display: flex;
 }
 .zone .channels .ch.showchords.long {

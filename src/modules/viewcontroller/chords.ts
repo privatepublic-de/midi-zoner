@@ -478,6 +478,7 @@ export function chordsMenu(index: number): string[] {
 // ------------------------------------------------------------------------------ chip and lanes
 
 /** The chord sounding (or, stopped, the loop's first one) */
+/** The chord sounding now (stopped: the loop's first), '' when none */
 function chordNow(zone: Zone): string {
   const line = lineZoneOf(zone);
   const plan = shownPlanOf(zone);
@@ -496,8 +497,8 @@ function chordNow(zone: Zone): string {
     const d = deciders.get(line.id);
     if (d?.chord) return chordName(d.chord);
   }
-  // nothing sounding: what the zone plays
-  return zone.chords?.part === 'bass' ? 'Bass' : 'Chords';
+  // nothing sounding
+  return '';
 }
 
 /** Whether a zone chooses the chords of its line (the first chords zone on it), else who does */
@@ -719,6 +720,11 @@ export function chordsTakeAlongChanged(line: Zone): void {
  * A followed zone's card: "Followed by ● 3 Chords ● 4 Bass · heard D minor  [Listen anew]"
  * (rebuilt only when what it says changes)
  */
+/** Sentence case for a status leading a row */
+function upFirst(t: string): string {
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
 export function updateFollowRows(): void {
   if (!hooks) return;
   hooks.zones().forEach((line) => {
@@ -734,14 +740,23 @@ export function updateFollowRows(): void {
     const waits = timeline.running && deciders.get(line.id)?.waiting ? ' · waiting for you' : '';
     const dd = deciders.get(line.id);
     const ends = timeline.running && dd ? (dd.finished ? ' · finished' : dd.finishing ? (dd.finishing === 'open' ? ' · ending open' : ' · finishing') : '') : '';
-    const status = ends ? ends.slice(3) : key ? `heard ${keyLabel(key)}${waits}` : anew.get(line.id) ?? (timeline.running ? 'listening…' : '');
+    // "heard" quiet, the key as the value
+    const status = ends
+      ? escapeHTML(upFirst(ends.slice(3)))
+      : key
+        ? `Heard <span class="cf-key">${escapeHTML(keyLabel(key))}</span>${escapeHTML(waits)}`
+        : escapeHTML(upFirst(anew.get(line.id) ?? (timeline.running ? 'listening…' : '')));
     const shown = endsShown(line);
     const colours = fs.map((z) => (z.elements?.zoneElement ? getComputedStyle(z.elements.zoneElement).getPropertyValue('--zone-color').trim() : ''));
+    // the followers as their numbers in their colours (the name boxes' look), named in the tooltip
+    // what was heard leads (the row's value); the followers sit with the buttons acting on them
     const html =
-      '<span class="cf-label">Followed by</span>' +
-      fs.map((z, i) => `<span class="cf-who"><span class="cf-dot" style="background:${escapeHTML(colours[i])}"></span>${escapeHTML(zoneNumberName(z))}</span>`).join('') +
-      (status ? `<span class="cf-status">· ${escapeHTML(status)}</span>` : '') +
+      (status ? `<span class="cf-status">${status}</span>` : '') +
       '<span class="cf-gap"></span>' +
+      `<span class="cf-label" title="${escapeHTML(`Followed by ${followerNames(fs)}`)}">to</span>` +
+      '<span class="cf-nums">' +
+      fs.map((z, i) => `<span class="cf-num" style="background:${escapeHTML(colours[i])}" title="${escapeHTML(zoneNumberName(z))}">${hooks.zones().indexOf(z) + 1}</span>`).join('') +
+      '</span>' +
       `<a class="lightButton cf-startover" title="${escapeHTML(`Forget what was heard from ${lineLabel(line)} (key and chords) and listen anew: ${followerNames(fs)}; chord loops playing there are switched off (kept). Switching Play along here does this by itself`)}">Listen anew</a>` +
       (shown ? endsHtml('lightButton', shown) : '');
     if (row.dataset.html !== html) {
@@ -757,17 +772,30 @@ export function updateChordChips(): void {
   updateFollowRows();
   hooks.zones().forEach((z) => {
     if (!z.chords) return;
-    const chip = z.elements?.zoneElement?.querySelector<HTMLElement>('.channels .showchords');
+    const el = z.elements?.zoneElement;
+    const chip = el?.querySelector<HTMLElement>('.channels .showchords');
     if (!chip) return;
-    const text = chordNow(z);
-    if (chip.textContent !== text) {
-      chip.textContent = text;
+    // cards: the chip is the switch ("Chords" / "Bass") and the chord is read out beside it;
+    // the Tracks header and the mini view have room for one chip, which shows the chord
+    const what = z.chords.part === 'bass' ? 'Bass' : 'Chords';
+    const chord = chordNow(z);
+    const text = chord || what;
+    const part = chip.querySelector<HTMLElement>('.chc-part');
+    const now = chip.querySelector<HTMLElement>('.chc-now');
+    if (part && part.textContent !== what) part.textContent = what;
+    if (now && now.textContent !== text) {
+      now.textContent = text;
       chip.classList.toggle('long', text.length > 4);
+    }
+    const readout = el!.querySelector<HTMLElement>('.channels > .chordnow');
+    const shown = chord || '–';
+    if (readout && readout.textContent !== shown) {
+      readout.textContent = shown;
+      readout.classList.toggle('none', !chord);
     }
     showStatus(z);
     renderSummary(z);
     const line = lineZoneOf(z);
-    const what = z.chords.part === 'bass' ? 'Bass' : 'Chords';
     const title = !line
       ? `${what} on/off · not following a zone yet (choose one in its settings)`
       : `${what} on/off · follows ${lineLabel(line)}${deciders.get(line.id)?.key ? ' · ' + keyLabel(deciders.get(line.id)!.key!) : ''}`;
