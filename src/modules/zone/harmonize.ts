@@ -707,9 +707,11 @@ interface Hit {
   v: number;
 }
 
-export const RHYTHMS = ['Held', 'Beats', 'Pushes', 'Backbeat', 'Off-beats', 'Eighths', 'Scattered', 'Comping'] as const;
+export const RHYTHMS = ['Held', 'Beats', 'Pushes', 'Backbeat', 'Off-beats', 'Eighths', 'Scattered', 'Comping', 'Broken'] as const;
+/** The Broken rhythm's index: chord tones one after another, an 8th each */
+export const BROKEN = 8;
 /** The order the Rhythm dropdown lists them: on the beat from held to busy, then off the beat, then free (indices of RHYTHMS; new ones are appended there, saved settings keep theirs) */
-export const RHYTHM_ORDER = [0, 1, 3, 5, 2, 7, 4, 6];
+export const RHYTHM_ORDER = [0, 1, 3, 5, 8, 2, 7, 4, 6];
 
 /** The 8ths of a span, from its start (ticks from the span's start) */
 function eighthsOf(span: { t: number; end: number }, meter: Meter): number[] {
@@ -821,6 +823,12 @@ export function hitsOf(style: number, span: { t: number; end: number }, meter: M
       return scatteredHits(span, meter, seed);
     case 7: // Comping: 1 and the & of 2 (the Charleston), with variations per bar (with the seed)
       return charlestonHits(span, meter, seed);
+    case 8: // Broken: every 8th one tone (spanNotes), the bar's 1 a little louder, the &s lighter
+      return eighthsOf(span, meter).map((t) => {
+        const at = (((span.t + t) % barTicks(meter)) + barTicks(meter)) % barTicks(meter);
+        const beat = beatOffsets(meter).some((o) => Math.abs(o - at) < 0.5);
+        return { t, d: eighth * 0.9, v: at < 0.5 ? 86 : beat ? 78 : 72 };
+      });
     case 5: // every 8th, driving: the bar's 1 loudest, then the beats, the &s lighter
       return eighthsOf(span, meter).map((t) => {
         const at = (((span.t + t) % barTicks(meter)) + barTicks(meter)) % barTicks(meter);
@@ -958,7 +966,7 @@ export function voiceChord(chord: Chord, key: Key, o: HarmonyOptions, lineNotes:
 }
 
 /** Each rhythm's loudest hit (hitsOf): its strong hits bark when the accents are in the middle */
-const STYLE_LOUDEST = [76, 90, 92, 84, 80, 96, 92, 88];
+const STYLE_LOUDEST = [76, 90, 92, 84, 80, 96, 92, 88, 86];
 
 /**
  * Dynamics of a hit (`o.dynamics`: 0 even … 1 barking). How strong a hit is comes from the
@@ -1031,6 +1039,7 @@ export function spanNotes(
     return Math.min(Math.max(PPQ / 2, at), spanLen - PPQ / 2);
   };
   const hits = hitsOf(style, s, meter, segs, o.seed);
+  if (style === BROKEN) return brokenNotes(chord, v, s, hits, o, meter, wrap);
   hits.forEach((hit, h) => {
     // the next hit of this chord (or the next chord's, pushed an 8th early with Pushes)
     const next = h + 1 < hits.length ? hits[h + 1].t : spanLen - (style === 2 ? PPQ / 2 : 0);
@@ -1078,6 +1087,102 @@ export function spanNotes(
       if (o.vary) vel += (hashRoll(o.seed + 7919, Math.round(t * 8), n, 3) - 0.5) * 2 * 14 * o.vary;
       notes.push(swungNote({ t, d, n, v: Math.round(Math.max(1, Math.min(127, vel))) }, o.swing ?? 0));
     });
+  });
+  return notes;
+}
+
+/**
+ * Broken-chord figures over a voicing's tones (indices, low to high), each played an 8th a tone
+ * and repeated: up and down, Alberti (low, high, middle, high), rising, broken thirds
+ */
+const BROKEN_FIGURES: { weight: number; of: (n: number) => number[] }[] = [
+  { weight: 0.35, of: (n) => [...Array(n).keys(), ...Array.from({ length: Math.max(0, n - 2) }, (_, i) => n - 2 - i)] },
+  { weight: 0.25, of: (n) => (n < 3 ? [0, 1] : n === 3 ? [0, 2, 1, 2] : [0, n - 2, 1, n - 2]) },
+  { weight: 0.2, of: (n) => [...Array(n).keys()] },
+  { weight: 0.2, of: (n) => (n < 4 ? (n < 3 ? [0, 1] : [0, 2, 1, 2]) : [0, 2, 1, 3]) }
+];
+
+function brokenFigure(r: number): number {
+  let acc = 0;
+  for (let i = 0; i < BROKEN_FIGURES.length; i++) {
+    acc += BROKEN_FIGURES[i].weight;
+    if (r < acc) return i;
+  }
+  return 0;
+}
+
+/**
+ * Broken chords: one tone of the voicing per 8th in a figure that starts over with each chord and
+ * each bar. Played as a pianist would, the same each time round (with the seed): a figure lasts two
+ * bars, a phrase's fourth bar may turn to another, now and then the last 8th before a bar or chord
+ * splits into two 16ths (a neighbour leading into the next 1), an & is left out, or a chord opens with its top tone too. Short: detached;
+ * from the middle of Length tones ring on, at Long to the chord's end (as with the pedal down), a
+ * tone stopping where it comes round again. The lowest and the highest tone lean out a little; Human
+ * also loosens the timing
+ */
+function brokenNotes(chord: Chord, v: number[], s: { t: number; end: number }, hits: Hit[], o: HarmonyOptions, meter: Meter, wrap: number): LineNote[] {
+  const tones = [...v].sort((a, b) => a - b);
+  const top = tones.length - 1;
+  const spanLen = s.end - s.t;
+  const len = o.length ?? 0.5;
+  const vary = o.vary ?? 0;
+  const bar = barTicks(meter);
+  const sixteenth = PPQ / 4;
+  const salt = o.seed + 4409;
+  // what is played: tone index, start (from the span's start), velocity change, the hit it belongs to
+  const events: { i: number; t: number; dv: number; h: number }[] = [];
+  hits.forEach((hit, h) => {
+    const pos = s.t + hit.t;
+    const barNo = Math.floor(pos / bar);
+    const barStart = barNo * bar;
+    // the figure: one per two bars, a phrase's fourth bar sometimes turns to another
+    let f = brokenFigure(hashRoll(salt, Math.floor(barNo / 2), 1, 1));
+    if (((barNo % 4) + 4) % 4 === 3 && hashRoll(salt, barNo, 2, 1) < 0.5) f = (f + 1 + Math.floor(hashRoll(salt, barNo, 3, 1) * 3)) % BROKEN_FIGURES.length;
+    const fig = BROKEN_FIGURES[f].of(tones.length);
+    // its place in the figure: from the chord's start or the bar line, whichever is later
+    const from = Math.max(s.t, barStart);
+    const k = Math.round((pos - from) / (PPQ / 2));
+    const at = ((pos % bar) + bar) % bar;
+    const onBeat = beatOffsets(meter).some((b) => Math.abs(b - at) < 0.5);
+    const r = (x: number) => hashRoll(salt, Math.round(pos * 8), x, 2);
+    // an & left out now and then (never the chord's first tone)
+    if (h > 0 && !onBeat && r(1) < 0.12) return;
+    const i = fig[k % fig.length];
+    events.push({ i, t: hit.t, dv: i === 0 && k === 0 ? 4 : i === top ? 2 : -1, h });
+    // the chord opens with its top tone as well (ringing on only)
+    if (h === 0 && len >= 0.5 && top >= 2 && i !== top && r(2) < 0.3) events.push({ i: top, t: hit.t + 0.3, dv: -10, h });
+    // the last 8th before a bar line or the chord's end: two 16ths, the second leading into the 1 (not the low tone)
+    const nextT = h + 1 < hits.length ? hits[h + 1].t : spanLen;
+    const endsHere = h + 1 >= hits.length || Math.floor((s.t + nextT) / bar) !== barNo;
+    if (endsHere && nextT - hit.t >= PPQ / 2 - 0.5 && spanLen >= PPQ && r(3) < 0.18) events.push({ i: i === 1 || top < 1 ? top : 1, t: hit.t + sixteenth, dv: -6, h });
+  });
+  events.sort((a, b) => a.t - b.t);
+  const notes: LineNote[] = [];
+  events.forEach((e, j) => {
+    const hit = hits[e.h];
+    const n = tones[e.i];
+    const step = (j + 1 < events.length ? events[j + 1].t : spanLen) - e.t;
+    const pos = s.t + e.t;
+    const where = pos < 0 && wrap ? pos + wrap : pos;
+    const dyn = dynamicsOf(hit, BROKEN, where, e.t + step, o, meter);
+    const short = Math.min(step, PPQ / 2);
+    const ring = len < 0.5 ? lerp(Math.min(short, sixteenth * 0.8), short * 0.9, len * 2) : lerp(short * 0.9, spanLen - e.t, (len - 0.5) * 2);
+    let d = len >= 0.5 ? Math.max(ring, Math.min(dyn.d ?? 0, spanLen - e.t)) : (dyn.d ?? ring);
+    // a tone stops where it comes round again
+    const again = events.find((x, m) => m > j && tones[x.i] === n);
+    if (again) d = Math.min(d, again.t - e.t - 0.5);
+    // Human: up to about ±10 ms at 120 BPM, a chord's first tone never early
+    const jitter = vary ? (hashRoll(salt, Math.round(pos * 8), n, 4) - 0.5) * vary : 0;
+    let t = pos + (e.t === 0 ? Math.abs(jitter) : jitter);
+    if (wrap) {
+      if (t < 0) t += wrap;
+      else d = Math.min(d, wrap - t);
+    }
+    let vel = hit.v + dyn.dv + e.dv + (o.accents ?? 0) * 22 * offBeatness(where, meter);
+    if (dyn.floor) vel = Math.max(dyn.floor, vel);
+    if (tensionRank(n, chord)) vel += (o.tensions ?? 0) * 22;
+    if (vary) vel += (hashRoll(o.seed + 7919, Math.round(t * 8), n, 3) - 0.5) * 2 * 14 * vary;
+    notes.push(swungNote({ t, d: Math.max(1, d), n, v: Math.round(Math.max(1, Math.min(127, vel))) }, o.swing ?? 0));
   });
   return notes;
 }

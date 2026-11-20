@@ -17,7 +17,7 @@ export interface ChordStyle {
   swing?: number;
 }
 
-// rhythm: 0 Held, 1 Beats, 2 Pushes, 3 Backbeat, 4 Off-beats, 5 Eighths, 6 Scattered, 7 Comping. harmony over 0.85: free. colour under 0.1: power chords. accents 0.5 = the rhythm's own strong hits
+// rhythm: 0 Held, 1 Beats, 2 Pushes, 3 Backbeat, 4 Off-beats, 5 Eighths, 6 Scattered, 7 Comping, 8 Broken. harmony over 0.85: free. colour under 0.1: power chords. accents 0.5 = the rhythm's own strong hits
 export const CHORD_STYLES: ChordStyle[] = [
   {
     id: 'strings',
@@ -74,7 +74,7 @@ export const CHORD_STYLES: ChordStyle[] = [
     id: 'ballad',
     group: 'Calm',
     name: 'Ballad',
-    chords: { harmony: 0.25, colour: 0.8, rhythm: 0, length: 0.9, changes: 0.35, unfold: 0.55, register: 0, tensions: 0.45, vary: 0.2 },
+    chords: { harmony: 0.25, colour: 0.8, rhythm: 8, length: 0.9, changes: 0.35, unfold: 0.55, register: 0, tensions: 0.45, vary: 0.2 },
     bass: { bass: 0.3, length: 0.9, vary: 0.1 }
   },
   {
