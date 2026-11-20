@@ -707,7 +707,7 @@ interface Hit {
   v: number;
 }
 
-export const RHYTHMS = ['Held', 'Beats', 'Pushes', 'Backbeat', 'Off-beats', 'Eighths', 'Scattered', 'Charleston'] as const;
+export const RHYTHMS = ['Held', 'Beats', 'Pushes', 'Backbeat', 'Off-beats', 'Eighths', 'Scattered', 'Comping'] as const;
 /** The order the Rhythm dropdown lists them: on the beat from held to busy, then off the beat, then free (indices of RHYTHMS; new ones are appended there, saved settings keep theirs) */
 export const RHYTHM_ORDER = [0, 1, 3, 5, 2, 7, 4, 6];
 
@@ -763,7 +763,7 @@ const CHARLESTON: number[][] = [
   [0, 60] // 1 and & of 3
 ];
 
-/** Bebop comping: a Charleston pattern per bar (the same each time round); a short hit, the 1 a little longer */
+/** Comping: a Charleston pattern per bar (the same each time round); a short hit, the 1 a little longer */
 function charlestonHits(span: { t: number; end: number }, meter: Meter, seed: number): Hit[] {
   const bar = barTicks(meter);
   const hits: Hit[] = [];
@@ -819,7 +819,7 @@ export function hitsOf(style: number, span: { t: number; end: number }, meter: M
       return beats.filter((s) => s.beat % 2 === 1).map((s) => ({ t: s.t - span.t, d: Math.min(eighth, s.end - s.t) * 0.7, v: 84 }));
     case 6: // scattered: irregular comping on 8ths and 16ths, a different pattern every bar (with the seed)
       return scatteredHits(span, meter, seed);
-    case 7: // Charleston: 1 and the & of 2, with variations per bar (with the seed)
+    case 7: // Comping: 1 and the & of 2 (the Charleston), with variations per bar (with the seed)
       return charlestonHits(span, meter, seed);
     case 5: // every 8th, driving: the bar's 1 loudest, then the beats, the &s lighter
       return eighthsOf(span, meter).map((t) => {
