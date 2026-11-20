@@ -62,9 +62,7 @@
       class="ch showccs"
       data-action="${index}:cc_toggle"
       title="Show this zone's controllers"
-    >
-      CC
-    </div>
+    ><span class="cc-long">Controllers</span><span class="cc-short">CC</span></div>
     <input
       type="text"
       class="zone-label"
@@ -227,16 +225,17 @@
           data-change="${index}:zone_output_config_name"
           tabindex="-1"
         />
+        <div class="ior-row ior-clock">
+          <span class="ior-label"></span>
+          <div
+            class="sendClock"
+            data-action="${index}:zone_send_clock"
+            title="Send MIDI clock to this output on/off"
+          >Send clock</div>
+        </div>
       </div>
     </div>
-    <div
-      class="sendClock"
-      data-action="${index}:zone_send_clock"
-      title="Send MIDI clock to this output"
-    >
-      <i class="material-icons sel">watch_later</i
-      ><i class="material-icons unsel">query_builder</i>
-    </div>
+    <div class="hdr-break"></div>
     <div class="zonetools">
       <div
         class="zonemenu rtool"

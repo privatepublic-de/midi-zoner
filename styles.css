@@ -1262,18 +1262,28 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
 }
 
 
-.sendClock {
+/* In/Out popup, under the output: send MIDI clock there (a switch chip) */
+.iorouting-popup .ior-clock {
+  margin-top: 8px;
+}
+.iorouting-popup .sendClock {
   display: flex;
-  justify-content: center;
   align-items: center;
-  height: 20px;
-  font-size: var(--icon-md);
+  flex-shrink: 0;
+  height: 22px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  font-size: var(--fs-sm);
   color: var(--brighter-4);
+  background-color: var(--slate-raise);
+  border: 1px solid var(--slate-line);
+  border-radius: var(--radius);
   cursor: pointer;
 }
-
-.sendClock.selected {
-  color: var(--text-base-color);
+.iorouting-popup .sendClock.selected {
+  background-color: var(--on);
+  border-color: var(--on);
+  color: var(--on-text);
 }
 
 .iorouting {
@@ -1469,10 +1479,6 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
   flex-shrink: 0;
 }
 
-.iorouting-popup .sendClock {
-  font-size: var(--icon-sm);
-  flex-shrink: 0;
-}
 .ch.selected {
   border-color: var(--on);
   background-color: var(--on);
@@ -1634,8 +1640,7 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
 }
 
 /* header icons: at least 20px wide to click */
-.zonetools .rtool,
-.channels > .sendClock {
+.zonetools .rtool {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -1710,14 +1715,51 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
   background: var(--slate-line);
 }
 
-/* cards: the name sits between [M S] and [Seq Arp Loop | CC], set apart from both by the
-   same group gap as the divider before CC (6px + 8px), so it needs no divider of its own */
-body:not(.track-view):not(.minimized) .zone .channels {
-  > .ch.state { order: -3; }
-  > .ch.solo { order: -2; }
-  > .zone-label { order: -1; margin-left: 8px; margin-right: 8px; }
-  > .ch.showseq { margin-left: 0; }
-  > .ch.showseq::before { display: none; }
+/* the Controllers chip says CC where there is little room (Tracks header) */
+.channels .ch.showccs > .cc-long,
+.channels > .hdr-break {
+  display: none;
+}
+
+/* cards: two rows on three shared columns, so the eye reads down from the zone to its switches
+   and from the output to what feeds it:
+     [M S name]      [output ………………]  [⋯ ≡]
+     [Seq] [Arp]     [Take] [Loop|Rec]  [Controllers]
+   (a chords zone: its chord chip fills the first column) */
+body:not(.track-view):not(.minimized) #zones > .zone > .channels {
+  --hdr-col1: 210px;
+  --hdr-col3: 80px;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 6px;
+  row-gap: 8px;
+  > .ch.state { order: -3; width: 26px; }
+  > .ch.solo { order: -2; width: 26px; }
+  > .zone-label {
+    order: -1;
+    flex: none;
+    width: calc(var(--hdr-col1) - 64px);
+    margin: 0;
+    box-sizing: border-box;
+  }
+  > .iorouting { order: 1; flex: 1 1 0; margin-left: 6px; }
+  > .zonetools { order: 2; width: var(--hdr-col3); justify-content: flex-end; }
+  > .hdr-break { display: block; order: 3; flex-basis: 100%; height: 0; }
+  > :is(.ch.showseq, .ch.showarp) { order: 4; width: calc((var(--hdr-col1) - 6px) / 2); margin-left: 0; }
+  > .ch.showchords { order: 4; width: var(--hdr-col1); margin-left: 0; }
+  > .loopgroup { order: 5; margin-left: 6px; }
+  > .loopgroup > .ch { width: 66px; }
+  > .ch.showccs { order: 6; margin-left: auto; width: var(--hdr-col3); }
+  > :is(.ch.showseq, .ch.showarp, .ch.showchords, .ch.showccs),
+  > .loopgroup > .ch {
+    height: 26px;
+    padding: 0 8px;
+    box-sizing: border-box;
+    font-size: 14px;
+  }
+  > :is(.ch.showseq, .loopgroup, .ch.showccs)::before { display: none; }
+  > .ch.showccs > .cc-long { display: inline; }
+  > .ch.showccs > .cc-short { display: none; }
 }
 
 /* =============================================================
@@ -5879,9 +5921,6 @@ body.track-view:not(.minimized) {
     background-color: var(--live);
     box-shadow: 0 0 5px 1px var(--live);
   }
-  .channels > .sendClock {
-    display: none;
-  }
   /* drag: the row takes the target's place, the others shift */
   #zones > .zone.dragged {
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
@@ -6929,10 +6968,6 @@ body.loop-edge-dragging * {
   background-color: color-mix(in srgb, var(--on) 35%, var(--slate-panel));
   border-color: transparent;
   color: var(--brighter-4);
-}
-/* cards: the chip opens the group after the name, as Seq does */
-body:not(.track-view):not(.minimized) .zone .channels > .ch.showchords {
-  margin-left: 0;
 }
 body.track-view:not(.minimized) .channels > .ch.showchords {
   order: 11;
