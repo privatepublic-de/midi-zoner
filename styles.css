@@ -6834,8 +6834,16 @@ body.minimized .zone .mini-lane {
 }
 
 .zone .card-follow .cf-who {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: var(--text-base-color);
   white-space: nowrap;
+}
+
+/* short of room, the status gives way first, then the names; the label and the buttons keep their size */
+.zone .card-follow .cf-label {
+  flex: none;
 }
 
 .zone .card-follow .cf-dot {
@@ -6848,6 +6856,7 @@ body.minimized .zone .mini-lane {
 }
 
 .zone .card-follow .cf-status {
+  flex-shrink: 100;
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
@@ -6859,6 +6868,8 @@ body.minimized .zone .mini-lane {
 }
 
 .zone .card-follow .lightButton {
+  flex: none;
+  white-space: nowrap;
   height: 22px;
   min-width: 22px;
   padding: 0 8px;
@@ -7000,6 +7011,20 @@ body.track-view:not(.minimized) .channels > .ch.showchords {
   .cb-ends {
     margin-right: auto;
   }
+}
+/* the dock: the block scrolls sideways when narrower than pads and More; its top row stays within
+   the visible width (and in view when scrolled) and wraps, so the actions at its end never run past
+   the dock's edge */
+body.track-view:not(.minimized) .chords-block {
+  container-type: inline-size;
+}
+body.track-view:not(.minimized) .chords-block > .cb-top {
+  position: sticky;
+  left: 0;
+  box-sizing: border-box;
+  max-width: 100cqw;
+  flex-wrap: wrap;
+  row-gap: 8px;
 }
 /* Finish / Open end / Play on, after Start over */
 .chords-block .cb-ends {
@@ -7207,6 +7232,8 @@ body.track-view:not(.minimized) .channels > .ch.showchords {
   gap: 14px;
 }
 .chords-block .cb-actions a {
+  flex: none;
+  white-space: nowrap;
   cursor: pointer;
 }
 .chords-block .cb-actions a[hidden] {

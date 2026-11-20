@@ -214,7 +214,8 @@ export class LiveChords {
     const bar = barTicks(meter);
     const segs = barSegments(Math.floor(target / bar), meter);
     const seg = segs.find((s) => s.t === target);
-    if (this.finished || this.ending) {
+    // up to the cadence the chords go on as before (no bar left empty)
+    if (this.finished || (this.ending && target >= this.ending.at)) {
       if (seg && this.ending) changed = this.cadence(seg, segs, pos, heard, o, followers, meter) || changed;
       this.fire(pos, send);
       if (this.ending && pos >= this.ending.end) {
