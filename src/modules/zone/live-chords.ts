@@ -367,12 +367,12 @@ export class LiveChords {
     const key = this.key!;
     const h = Math.max(0, Math.min(1, o.harmony));
     const len = (seg.end - seg.t) / PPQ;
-    return vocabulary(key, h, !!o.blues).map((c) => {
+    return vocabulary(key, h, !!o.blues, !!o.subs).map((c) => {
       const calm = calmOf(o);
       let x = liveFit(w, c, key) + 0.25 * c.prior * len;
       if (prev) {
         const same = prev.root === c.root && prev.quality === c.quality;
-        x += same ? 0.15 + 0.5 * calm : transition(prev, c, key, h) - changeCost(seg, o.changes) + (seg.beat === 0 ? 0.25 * (1 - h) : 0);
+        x += same ? 0.15 + 0.5 * calm : transition(prev, c, key, h, !!o.subs) - changeCost(seg, o.changes) + (seg.beat === 0 ? 0.25 * (1 - h) : 0);
       } else if (c.root === key.tonic && c.degree === 0) x += 0.5;
       // a chord from outside the key (a secondary dominant, borrowed) needs clearer reasons live;
       // the dominant of a minor key is its own (harmonic minor), not from outside

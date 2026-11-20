@@ -58,7 +58,7 @@ export const CHORD_STYLES: ChordStyle[] = [
     id: 'bebop',
     group: 'Jazz',
     name: 'Jazz comping',
-    chords: { harmony: 0.15, colour: 0.8, rhythm: 7, length: 0.35, bark: 0.4, changes: 0.75, tensions: 0.6, vary: 0.35 },
+    chords: { harmony: 0.15, colour: 0.8, rhythm: 7, length: 0.35, bark: 0.4, changes: 0.75, tensions: 0.6, vary: 0.35, subs: 1 },
     bass: { bass: 0.95, length: 0.7, sync: 0.2, vary: 0.3 },
     swing: 0.67
   },
@@ -123,7 +123,7 @@ export const CHORD_STYLES: ChordStyle[] = [
     id: 'bossa',
     group: 'Jazz',
     name: 'Bossa',
-    chords: { harmony: 0.3, colour: 0.8, rhythm: 2, length: 0.65, bark: 0.1, changes: 0.5, unfold: 0.15, tensions: 0.45, vary: 0.2 },
+    chords: { harmony: 0.3, colour: 0.8, rhythm: 2, length: 0.65, bark: 0.1, changes: 0.5, unfold: 0.15, tensions: 0.45, vary: 0.2, subs: 1 },
     bass: { bass: 0.3, length: 0.55, sync: 0.3, vary: 0.15 }
   },
   {

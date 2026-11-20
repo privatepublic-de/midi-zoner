@@ -32,6 +32,7 @@ export interface ChordSettings {
   bark: number; // chord dynamics: 0 even … 1 barking
   strum: number; // 0 off, 1 down, 2 up, 3 down & up
   blues: number; // 1: the key's I, IV and V are dominant sevenths
+  subs: number; // chords, 1: jazz substitutes (tritone substitutes, related ii chords)
   pedal: number; // bass, 1: the key's tonic held under the chords (a pedal point)
   seed: number; // 0 = the best ("Other chords" counts up)
   /** the style it was set from (chord-styles.ts; '' none) */
@@ -54,6 +55,7 @@ export const DEFAULT_CHORD_SETTINGS: ChordSettings = {
   bark: 0,
   strum: 0,
   blues: 0,
+  subs: 0,
   pedal: 0,
   seed: 0,
   style: ''
@@ -92,6 +94,7 @@ export function chordSettingsFrom(x: unknown): ChordSettings {
     bark: clamp01(o.bark, d.bark),
     strum: typeof o.strum === 'number' && [0, 1, 2, 3].includes(o.strum) ? o.strum : 0,
     blues: o.blues === 1 ? 1 : 0,
+    subs: o.subs === 1 ? 1 : 0,
     pedal: o.pedal === 1 ? 1 : 0,
     seed,
     style: typeof o.style === 'string' && /^[a-z]{1,16}$/.test(o.style) ? o.style : ''
@@ -170,6 +173,7 @@ export function harmonyOptions(s: ChordSettings): HarmonyOptions {
     dynamics: s.bark,
     strum: s.strum,
     blues: s.blues === 1,
+    subs: s.subs === 1,
     pedal: s.pedal === 1,
     seed: s.seed
   };

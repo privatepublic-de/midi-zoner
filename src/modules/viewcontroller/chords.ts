@@ -845,7 +845,7 @@ function drawBlock(zone: Zone, el: HTMLElement): void {
   const rs = el.querySelector<HTMLSelectElement>('.cb-rhythm-sel');
   if (rs && document.activeElement !== rs) rs.value = String(s.rhythm);
   el.querySelectorAll<HTMLElement>('.cb-strum a').forEach((a) => a.classList.toggle('on', Number(a.dataset.strum) === s.strum));
-  el.querySelectorAll<HTMLElement>('.cb-blues a').forEach((a) => a.classList.toggle('on', Number(a.dataset.blues) === s.blues));
+  el.querySelectorAll<HTMLElement>('.cb-flags a').forEach((a) => a.classList.toggle('on', s[a.dataset.flag as 'blues' | 'subs'] === 1));
   el.querySelectorAll<HTMLElement>('.cb-pedal a').forEach((a) => a.classList.toggle('on', Number(a.dataset.pedal) === s.pedal));
   const sw = el.querySelector<HTMLInputElement>('input[data-swing]');
   if (sw) setSlider(sw, zone.swingAmount);
@@ -939,8 +939,9 @@ function blockHTML(zone: Zone): string {
     .join('');
   const swingRow = `<label class="cb-sl" title="The zone's Swing (the same as in its settings): each beat's second half later; about 67 % is a triplet swing"><span class="label">Swing</span><small>Straight</small>
       <input type="range" data-swing min="0" max="1" step="0.01" tabindex="-1"><small>Swung</small></label>`;
-  const bluesRow = `<div class="cb-sl" title="Blues: the key's I, IV and V are dominant seventh chords"><span class="label">Blues 7ths</span>
-      <div class="cb-segs cb-blues"><a data-blues="0">Off</a><a data-blues="1">On</a></div></div>`;
+  // Blues 7ths and Jazz subs: two switches in one row (both on: a jazz blues)
+  const bluesRow = `<div class="cb-sl" title="Blues 7ths: the key's I, IV and V are dominant seventh chords. Jazz subs: a dominant's tritone substitute (D♭7 for G7), a ii before its V, dominants leading into each other, towards Classic. Each on/off"><span class="label">Blues &amp; jazz</span>
+      <div class="cb-segs cb-flags"><a data-flag="blues">Blues 7ths</a><a data-flag="subs">Jazz subs</a></div></div>`;
   const pedalRow = `<div class="cb-sl" title="Pedal point: the bass holds the key's tonic under the chords; only a chord with a tone a half step above it gets its own root"><span class="label">Pedal</span>
       <div class="cb-segs cb-pedal"><a data-pedal="0">Off</a><a data-pedal="1">On</a></div></div>`;
   const strumRow = `<div class="cb-sl" title="Notes of a chord one after another, quickly, as on a guitar: Down plays the low notes first, Up the high ones first (lighter), Down &amp; up downstrokes on the beats and upstrokes between"><span class="label">Strum</span>
@@ -990,7 +991,7 @@ function setSettings(zone: Zone, change: Partial<ChordSettings>, label = 'Chords
   if (index < 0) return;
   const line = lineZoneOf(zone);
   // only a real change of these chooses new chords (a pad's other axis moved alone doesn't)
-  const decides = (['harmony', 'changes', 'seed'] as const).some((k) => k in change && change[k] !== zone.chordSet[k]);
+  const decides = (['harmony', 'changes', 'seed', 'blues', 'subs'] as const).some((k) => k in change && change[k] !== zone.chordSet[k]);
   const plan = planOf(zone);
   // a change of the chords themselves goes to every follower with a loop made of chords
   if (line && decides && plan && followersOf(line)[0] === zone) {
@@ -1300,10 +1301,10 @@ function initBlockEvents(): void {
     if (!t.closest?.('.chords-block')) return;
     const zone = zoneOfEl(t);
     if (!zone?.chords) return;
-    const bl = t.closest<HTMLElement>('.cb-blues a');
-    if (bl) {
-      const i = Number(bl.dataset.blues);
-      if (i !== zone.chordSet.blues) setSettings(zone, { blues: i }, 'Chords: Blues 7ths');
+    const fl = t.closest<HTMLElement>('.cb-flags a');
+    if (fl) {
+      const k = fl.dataset.flag === 'subs' ? 'subs' : 'blues';
+      setSettings(zone, { [k]: zone.chordSet[k] === 1 ? 0 : 1 }, k === 'subs' ? 'Chords: Jazz subs' : 'Chords: Blues 7ths');
       return;
     }
     const pd = t.closest<HTMLElement>('.cb-pedal a');

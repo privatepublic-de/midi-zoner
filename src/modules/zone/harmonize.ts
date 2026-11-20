@@ -106,6 +106,8 @@ export interface HarmonyOptions {
   shell?: boolean;
   /** blues: the key's I, IV and V are dominant seventh chords */
   blues?: boolean;
+  /** jazz substitutes: tritone substitutes for dominants, related ii chords, dominants in chains */
+  subs?: boolean;
   /** bass: a pedal point, the key's tonic held under the chords (pedalHolds()) */
   pedal?: boolean;
   /** live: chords kept, per segment (null: free to choose) */
@@ -337,7 +339,7 @@ function triadOn(key: Key, deg: number): Quality {
 const FUNCTIONAL = [1, 0.3, 0.5, 0.55, 0.15, 0.7, 0.05, 0.8, 0.5, 0.5, 0.5, 0.05];
 
 /** The chords to choose from, with how much the harmony setting likes each */
-export function vocabulary(key: Key, h: number, blues = false): Chord[] {
+export function vocabulary(key: Key, h: number, blues = false, subs = false): Chord[] {
   const s = MODE_STEPS[key.mode];
   const out: Chord[] = [];
   const add = (c: Chord) => {
@@ -370,6 +372,15 @@ export function vocabulary(key: Key, h: number, blues = false): Chord[] {
     if (q !== 'maj' && q !== 'min') continue;
     const target = (key.tonic + s[deg]) % 12;
     add({ root: (target + 7) % 12, quality: '7', degree: -1, kind: 'sec', prior: 0.12 * fifths - 0.6 * h });
+  }
+  // jazz substitutes: each dominant's tritone substitute (Db7 for G7, the same tritone, resolving a
+  // half step down) and the minor chord a fifth above a secondary dominant (its related ii: Gm
+  // before C7), towards the fifths end where these belong
+  if (subs) {
+    for (const d of out.filter((c) => c.quality === '7' && c.kind === 'sec').map((c) => c.root)) {
+      add({ root: (d + 6) % 12, quality: '7', degree: -1, kind: 'sec', prior: 0.25 * fifths - 0.6 * h });
+      add({ root: (d + 7) % 12, quality: 'min', degree: -1, kind: 'sec', prior: 0.05 * fifths - 0.6 * h });
+    }
   }
   // borrowed: iv, bVI, bVII in major modes; IV major in minor ones
   const major = s[2] === 4;
@@ -435,15 +446,20 @@ export function freeNoise(o: HarmonyOptions, seg: { bar: number; beat: number },
 export const FREE_FROM = 0.85;
 
 /** Root motion a → b, as the harmony setting likes it */
-export function transition(a: Chord, b: Chord, key: Key, h: number): number {
+export function transition(a: Chord, b: Chord, key: Key, h: number, subs = false): number {
   if (a.root === b.root && a.quality === b.quality) return 0;
   const i = (b.root - a.root + 12) % 12;
   const F = [0.1, -0.3, 0.45, 0.3, 0.3, 1.0, -0.5, 0.35, 0.4, 0.5, 0.45, 0.1];
   const M = [0.3, 0.2, 0.6, 0.3, 0.2, 0.3, -0.3, 0.4, 0.4, 0.3, 0.7, 0.2];
   let t = lerp(F[i], M[i], h);
-  if (a.quality === '7') t += (i === 5 ? 0.4 : -1) * (1 - h) - 0.3 * h;
-  // one secondary dominant at a time: a chain of them reads as a modulation
-  if (a.kind === 'sec' && b.kind === 'sec' && b.root !== (key.tonic + 7) % 12) t -= 0.8;
+  // with jazz substitutes a dominant resolves a fifth down or a half step down (its tritone substitute)
+  const resolves = i === 5 || (subs && i === 11);
+  if (a.quality === '7') t += (resolves ? 0.4 : -1) * (1 - h) - 0.3 * h;
+  // jazz substitutes: a ii going to its V or to the V's tritone substitute
+  if (subs && a.quality === 'min' && b.quality === '7' && (i === 5 || i === 11)) t += 0.35 * (1 - h);
+  // one secondary dominant at a time: a chain of them reads as a modulation (with jazz
+  // substitutes dominants may chain when each resolves, and a related ii leads into its V)
+  if (a.kind === 'sec' && b.kind === 'sec' && b.root !== (key.tonic + 7) % 12) t -= subs && (resolves || (a.quality === 'min' && i === 5)) ? 0.1 : 0.8;
   if (b.root === key.tonic || a.root === key.tonic) t += 0.3 * h;
   return t;
 }
@@ -470,7 +486,7 @@ export function progress(line: LineNote[], length: number, meter: Meter, o: Harm
   const key = o.key ?? analysis!.keys[0];
   const segs = segmentsOf(length, meter);
   const w = weighSegments(line, length, segs, meter);
-  const voc = vocabulary(key, h, !!o.blues);
+  const voc = vocabulary(key, h, !!o.blues, !!o.subs);
   const K = voc.length;
   const N = segs.length;
   const frozen = o.frozen ?? [];
@@ -498,7 +514,7 @@ export function progress(line: LineNote[], length: number, meter: Meter, o: Harm
       return x;
     })
   );
-  const trans: number[][] = voc.map((a) => voc.map((b) => transition(a, b, key, h)));
+  const trans: number[][] = voc.map((a) => voc.map((b) => transition(a, b, key, h, !!o.subs)));
   const cadenceFirst = (c: Chord) => (c.root === key.tonic && c.degree === 0 ? 0.6 * (1 - h) + 0.4 * h : 0);
   const cadenceLast = (c: Chord) => (c.root === (key.tonic + 7) % 12 && (c.quality === 'maj' || c.quality === '7') ? 0.6 * (1 - h) : 0);
   // a change into segment i costs trans[a][b] + off[i] (staying costs nothing)
@@ -709,13 +725,13 @@ interface Hit {
   v: number;
 }
 
-export const RHYTHMS = ['Held', 'Beats', 'Pushes', 'Backbeat', 'Off-beats', 'Eighths', 'Scattered', 'Comping', 'Broken', 'Dotted'] as const;
+export const RHYTHMS = ['Held', 'Beats', 'Pushes', 'Backbeat', 'Off-beats', 'Eighths', 'Scattered', 'Comping', 'Broken', 'Dotted', 'Strong beats'] as const;
 /** The Broken rhythm's index: chord tones one after another, an 8th each */
 export const BROKEN = 8;
 /** The Dotted rhythm's index: hits on groups of 8ths, 3+3+2 in 4/4 (figureGroups()) */
 export const DOTTED = 9;
 /** The order the Rhythm dropdown lists them: on the beat from held to busy, then off the beat, then free (indices of RHYTHMS; new ones are appended there, saved settings keep theirs) */
-export const RHYTHM_ORDER = [0, 1, 3, 5, 8, 2, 9, 7, 4, 6];
+export const RHYTHM_ORDER = [0, 10, 1, 3, 5, 8, 2, 9, 7, 4, 6];
 
 /** The 8ths of a span, from its start (ticks from the span's start) */
 function eighthsOf(span: { t: number; end: number }, meter: Meter): number[] {
@@ -863,6 +879,18 @@ export function hitsOf(style: number, span: { t: number; end: number }, meter: M
       return scatteredHits(span, meter, seed);
     case 7: // Comping: 1 and the & of 2 (the Charleston), with variations per bar (with the seed)
       return charlestonHits(span, meter, seed);
+    case 10: {
+      // Strong beats: the bar's 1 and its middle (1 and 3 in 4/4, 1 and 4 in 6/8 and 5/4; 3/4 only
+      // the 1), each up to the next; a chord coming in between them is struck where it comes in
+      const bar = barTicks(meter);
+      const offs = beatOffsets(meter);
+      const mid = offs.length % 2 === 0 ? offs.length / 2 : offs.length >= 5 ? Math.ceil(offs.length / 2) : -1;
+      const strong = [0, ...(mid > 0 ? [offs[mid]] : [])];
+      const at: number[] = [];
+      for (let b = Math.floor(span.t / bar); b * bar < span.end; b++) for (const o of strong) if (b * bar + o >= span.t - 0.5 && b * bar + o < span.end - 0.5) at.push(b * bar + o - span.t);
+      if (!at.length || at[0] > 0.5) at.unshift(0);
+      return at.map((t, i) => ({ t, d: ((i + 1 < at.length ? at[i + 1] : len) - t) * 0.9, v: Math.abs((((span.t + t) % bar) + bar) % bar) < 0.5 ? 90 : 82 }));
+    }
     case 9: {
       // Dotted: on each group's start, the bar's 1 louder, each up to the next
       const starts = figureStarts(span, meter);
@@ -1016,7 +1044,7 @@ export function voiceChord(chord: Chord, key: Key, o: HarmonyOptions, lineNotes:
 }
 
 /** Each rhythm's loudest hit (hitsOf): its strong hits bark when the accents are in the middle */
-const STYLE_LOUDEST = [76, 90, 92, 84, 80, 96, 92, 88, 86, 92];
+const STYLE_LOUDEST = [76, 90, 92, 84, 80, 96, 92, 88, 86, 92, 90];
 
 /**
  * Dynamics of a hit (`o.dynamics`: 0 even … 1 barking). How strong a hit is comes from the
