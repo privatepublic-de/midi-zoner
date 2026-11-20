@@ -709,11 +709,13 @@ interface Hit {
   v: number;
 }
 
-export const RHYTHMS = ['Held', 'Beats', 'Pushes', 'Backbeat', 'Off-beats', 'Eighths', 'Scattered', 'Comping', 'Broken'] as const;
+export const RHYTHMS = ['Held', 'Beats', 'Pushes', 'Backbeat', 'Off-beats', 'Eighths', 'Scattered', 'Comping', 'Broken', 'Dotted'] as const;
 /** The Broken rhythm's index: chord tones one after another, an 8th each */
 export const BROKEN = 8;
+/** The Dotted rhythm's index: hits on groups of 8ths, 3+3+2 in 4/4 (figureGroups()) */
+export const DOTTED = 9;
 /** The order the Rhythm dropdown lists them: on the beat from held to busy, then off the beat, then free (indices of RHYTHMS; new ones are appended there, saved settings keep theirs) */
-export const RHYTHM_ORDER = [0, 1, 3, 5, 8, 2, 7, 4, 6];
+export const RHYTHM_ORDER = [0, 1, 3, 5, 8, 2, 9, 7, 4, 6];
 
 /** The 8ths of a span, from its start (ticks from the span's start) */
 function eighthsOf(span: { t: number; end: number }, meter: Meter): number[] {
@@ -721,6 +723,42 @@ function eighthsOf(span: { t: number; end: number }, meter: Meter): number[] {
   const eighth = PPQ / 2;
   void meter;
   for (let t = Math.ceil(span.t / eighth) * eighth; t < span.end - 0.5; t += eighth) out.push(t - span.t);
+  return out;
+}
+
+/**
+ * A bar's 8ths in groups for Dotted: 3+3+2 per eight, the rest as 3s and 2s (7: 3+2+2, 6: 3+3,
+ * 5: 3+2, 4: 2+2); a single 8th left over joins the group before
+ */
+export function figureGroups(eighths: number): number[] {
+  const out: number[] = [];
+  let rest = Math.max(1, Math.round(eighths));
+  while (rest >= 8) {
+    out.push(3, 3, 2);
+    rest -= 8;
+  }
+  while (rest > 4) {
+    out.push(3);
+    rest -= 3;
+  }
+  if (rest === 4) out.push(2, 2);
+  else if (rest === 1 && out.length) out[out.length - 1]++;
+  else if (rest > 0) out.push(rest);
+  return out;
+}
+
+/** Where Dotted's groups start within a span (song ticks) */
+function figureStarts(span: { t: number; end: number }, meter: Meter): number[] {
+  const bar = barTicks(meter);
+  const eighth = PPQ / 2;
+  const offs: number[] = [];
+  let at = 0;
+  for (const g of figureGroups(bar / eighth)) {
+    offs.push(at * eighth);
+    at += g;
+  }
+  const out: number[] = [];
+  for (let b = Math.floor(span.t / bar); b * bar < span.end; b++) for (const o of offs) if (b * bar + o >= span.t - 0.5 && b * bar + o < span.end - 0.5) out.push(b * bar + o);
   return out;
 }
 
@@ -825,6 +863,16 @@ export function hitsOf(style: number, span: { t: number; end: number }, meter: M
       return scatteredHits(span, meter, seed);
     case 7: // Comping: 1 and the & of 2 (the Charleston), with variations per bar (with the seed)
       return charlestonHits(span, meter, seed);
+    case 9: {
+      // Dotted: on each group's start, the bar's 1 louder, each up to the next
+      const starts = figureStarts(span, meter);
+      if (!starts.length) return [{ t: 0, d: len * 0.9, v: 88 }];
+      const bar = barTicks(meter);
+      return starts.map((t, i) => {
+        const until = i + 1 < starts.length ? starts[i + 1] : span.end;
+        return { t: t - span.t, d: (until - t) * 0.9, v: Math.abs(((t % bar) + bar) % bar) < 0.5 ? 92 : 86 };
+      });
+    }
     case 8: // Broken: every 8th one tone (spanNotes), the bar's 1 a little louder, the &s lighter
       return eighthsOf(span, meter).map((t) => {
         const at = (((span.t + t) % barTicks(meter)) + barTicks(meter)) % barTicks(meter);
@@ -968,7 +1016,7 @@ export function voiceChord(chord: Chord, key: Key, o: HarmonyOptions, lineNotes:
 }
 
 /** Each rhythm's loudest hit (hitsOf): its strong hits bark when the accents are in the middle */
-const STYLE_LOUDEST = [76, 90, 92, 84, 80, 96, 92, 88, 86];
+const STYLE_LOUDEST = [76, 90, 92, 84, 80, 96, 92, 88, 86, 92];
 
 /**
  * Dynamics of a hit (`o.dynamics`: 0 even … 1 barking). How strong a hit is comes from the
@@ -1274,13 +1322,13 @@ export function bassLine(
         held.push({ t: b.t, until: s.end + push, n: up ? n + 12 : n, v: 82, first: false });
       }
     }
-    const raw = syncopate(style === 5 ? pump(held) : held, o, push !== 0, roll);
+    const raw = syncopate(style === 5 ? pump(held) : style === DOTTED ? onFigure(held, s, meter) : held, o, push !== 0, roll);
     return { notes: raw.map((r) => place(r.t, r.d ?? (r.until - r.t) * (raw.length > 1 ? lerp(0.55, 0.97, o.length ?? 0.5) : 0.95), r.n, r.v)), last: n };
   }
   if (m < 0.2) {
     const n = 36 + ((chord.root - 36 + 120) % 12);
     const held: RawBass[] = [{ t: s.t + push, until: s.end + push, n, v: 96, first: true }];
-    const raw = syncopate(style === 5 ? pump(held) : held, o, push !== 0, roll);
+    const raw = syncopate(style === 5 ? pump(held) : style === DOTTED ? onFigure(held, s, meter) : held, o, push !== 0, roll);
     return { notes: raw.map((r) => place(r.t, r.d ?? (r.until - r.t) * (raw.length > 1 ? lerp(0.55, 0.97, o.length ?? 0.5) : 0.95), r.n, r.v)), last: n };
   }
   const tones = QUALITY[chord.quality];
@@ -1375,14 +1423,30 @@ export function bassLine(
       raw.push({ t: until - PPQ / 2, until, n: g, v: v - 26, first: false, d: (PPQ / 2) * 0.6 });
     }
   });
-  // Eighths: the bass pumps 8ths of each note (the first of each a little louder)
-  const pumped = style === 5 ? pump(raw) : raw;
+  // Eighths: the bass pumps 8ths of each note (the first of each a little louder); Dotted: it plays the figure
+  const pumped = style === 5 ? pump(raw) : style === DOTTED ? onFigure(raw, s, meter) : raw;
   const notes = syncopate(pumped, o, push !== 0, roll).map((r) => {
     let v = r.v;
     if (o.vary) v += (hashRoll(o.seed + 7919, Math.round(r.t * 8), r.n, 5) - 0.5) * 2 * 12 * o.vary;
     return place(r.t, r.d ?? (r.until - r.t) * lenK, r.n, v);
   });
   return { notes, last: slot[playing[playing.length - 1].i]! };
+}
+
+/**
+ * The bass on Dotted: a note on each group's start (and where the chord comes in), each with the
+ * pitch the line has there, so a root and fifth line plays root, root, fifth; skips are left out
+ */
+function onFigure(raw: RawBass[], s: { t: number; end: number }, meter: Meter): RawBass[] {
+  const main = raw.filter((r) => r.d === undefined);
+  if (!main.length) return raw;
+  const first = main[0].t;
+  const end = main[main.length - 1].until;
+  const ts = [first, ...figureStarts(s, meter).filter((t) => t > first + PPQ / 4 && t < end - PPQ / 4)];
+  return ts.map((t, i) => {
+    const src = main.filter((r) => r.t <= t + 0.5).pop() ?? main[0];
+    return { t, until: i + 1 < ts.length ? ts[i + 1] : end, n: src.n, v: i === 0 ? src.v : src.v - 6, first: i === 0 };
+  });
 }
 
 /** Each note as 8ths of its pitch up to the next note (skips stay as they are) */

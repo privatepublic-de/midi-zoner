@@ -18,7 +18,7 @@ import { takeStore } from '../take-store';
 import { timeline, nowTick, NoteHistory } from '../timeline';
 import { escapeHTML, setRangeValue } from '../domutils';
 import { toast } from './toast';
-import { harmonize, progress, segmentsOf, chordName, keyName, RHYTHMS, RHYTHM_ORDER, POWER_BELOW, FREE_FROM, LineNote, Chord, Key, HarmonyOptions } from '../zone/harmonize';
+import { harmonize, progress, segmentsOf, chordName, keyName, RHYTHMS, RHYTHM_ORDER, DOTTED, POWER_BELOW, FREE_FROM, LineNote, Chord, Key, HarmonyOptions } from '../zone/harmonize';
 import { LiveChords, HeardNote, Follower, Send, heardChords, HEARD_BARS } from '../zone/live-chords';
 import { ChordPart, ChordPlan, ChordSettings, DEFAULT_CHORD_SETTINGS, harmonyOptions, loopSig } from '../zone/chord-settings';
 import MIDI from '../midi';
@@ -970,7 +970,7 @@ function blockHTML(zone: Zone): string {
         <option value="">No style</option>${STYLE_GROUPS.map((g) => `<optgroup label="${escapeHTML(g)}">${stylesIn(g).map((st) => `<option value="${st.id}">${escapeHTML(st.name)}</option>`).join('')}</optgroup>`).join('')}
       </select>
       <span class="label cb-gap">Rhythm</span>
-      <select class="cb-rhythm-sel" tabindex="-1" title="How the chords hit">${RHYTHM_ORDER.map((i) => `<option value="${i}">${RHYTHMS[i]}</option>`).join('')}</select>
+      <select class="cb-rhythm-sel" tabindex="-1" title="How the chords hit">${RHYTHM_ORDER.map((i) => `<option value="${i}"${i === DOTTED ? ' title="Hits on dotted quarters, the bar closed by a shorter group: 3+3+2 8ths in 4/4, 3+3 in 3/4, 3+2+2 in 7/8"' : ''}>${RHYTHMS[i]}</option>`).join('')}</select>
       ${actions}
       <span class="cb-status"></span>
     </div>
