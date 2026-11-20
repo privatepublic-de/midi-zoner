@@ -7430,3 +7430,10 @@ body.track-view:not(.minimized) #zones > .zone.track-selected > .chords-block {
 #trackDock .td-tab[hidden] {
   display: none !important;
 }
+
+/* Loop n bars: hovered, it outlines the bars it loops in amber (the take's preview or lane), so
+   the button takes the same edge */
+.card-takes [data-ct='keep']:hover,
+.tc-keep:hover {
+  box-shadow: inset 0 0 0 1px var(--select);
+}

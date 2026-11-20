@@ -113,6 +113,9 @@ const loopBlocks = new WeakMap<Zone, { x0: number; x1: number; top: number; barP
 let loopDrag: { zone: Zone; edge: 'start' | 'end'; bars: number } | null = null;
 // "where you are" (styles.css --select): the picked take or loop
 let amber = '';
+/** Loop n bars hovered: the zone whose take lane outlines the bars it loops (Tracks), and the card whose preview does */
+let keepHover: Zone | null = null;
+let keepHoverCard: HTMLElement | null = null;
 // What the Notes tab edits: the zone's loop or one of its takes (by zone id: undo keeps it)
 let editing: { zoneId: string; kind: 'loop' } | { zoneId: string; kind: 'take'; take: Take } | null = null;
 // Turning a take (or bars of it) into steps, or quantizing it: the preview, set in the dock panel
@@ -391,7 +394,8 @@ function updateCardTakes(zone: Zone, el: HTMLElement): void {
   const isNew = index === takes.length && takeStore.runAt > 0 && take.at === takeStore.runAt;
   const along = !zone.chords && zone.playingTake === take;
   const preview = strip.querySelector('.ct-preview') as HTMLCanvasElement;
-  const key = [take.id, takeStore.version, index, takes.length, isNew, along, !!zone.chords, preview.clientWidth, zoneColours.get(el)].join('|');
+  const hovered = keepHoverCard === el;
+  const key = [take.id, takeStore.version, index, takes.length, isNew, along, !!zone.chords, preview.clientWidth, zoneColours.get(el), hovered].join('|');
   if (cardTakesKeys.get(el) === key) return;
   cardTakesKeys.set(el, key);
   strip.querySelector('.ct-name')!.textContent = `Take ${index}/${takes.length}`;
@@ -410,7 +414,7 @@ function updateCardTakes(zone: Zone, el: HTMLElement): void {
     : `Play Take ${index} along from bar 1 of every run, as if played (chords follow it, Rec loops bars of it)`;
   strip.querySelector('[data-ct=prev]')!.classList.toggle('disabled', index <= 1);
   strip.querySelector('[data-ct=next]')!.classList.toggle('disabled', index >= takes.length);
-  drawTakePreview(preview, take, 1, zoneColours.get(el) || '#8fa3b8');
+  drawTakePreview(preview, take, 1, zoneColours.get(el) || '#8fa3b8', hovered ? keepRange(take) : null);
 }
 
 /** Song position where a waiting toggle lands: the next bar, beat or 16th after `head` */
@@ -1219,6 +1223,11 @@ function drawLane(
   }
   if (latest && !running && takeLane) {
     drawTake(latest);
+    // Loop n bars hovered: the bars it loops
+    const range = keepHover === zone ? keepRange(latest) : null;
+    if (range) {
+      outlineLoopBars(g, x(toSong(range.from)), x(toSong(range.to)), Math.max(0, x(toSong(latest.start))), Math.min(w, x(toSong(latest.start + latest.length))), takeY + 1, TAKE_LANE_H - 2, keepLabel(latest));
+    }
     // the bars the loop was cut from, when it came from this take's run
     const origin = zone.loop?.origin;
     const from = origin && origin.at === latest.at ? origin.run - latest.runOffset : NaN;
@@ -1582,16 +1591,7 @@ function drawLoopBlock(
     g.rect(a, top + 2, b - a, h - 4);
     g.clip();
     if (leaving) {
-      g.fillStyle = '#00000059';
-      g.fillRect(a, top + 2, b - a, h - 4);
-      g.strokeStyle = '#ffffff1f';
-      g.lineWidth = 1;
-      for (let k = -h; k < b - a; k += 6) {
-        g.beginPath();
-        g.moveTo(a + k, top + h);
-        g.lineTo(a + k + h, top);
-        g.stroke();
-      }
+      hatch(g, a, top + 2, b - a, h - 4);
     } else {
       g.fillStyle = colour;
       g.globalAlpha = 0.08;
@@ -2121,7 +2121,8 @@ function endConvert(): void {
 
 
 
-function drawTakePreview(canvas: HTMLCanvasElement, take: Take, share: number, colour: string): void {
+/** A take's preview; with `range` (Loop n bars hovered) the bars it loops outlined, the rest hatched */
+function drawTakePreview(canvas: HTMLCanvasElement, take: Take, share: number, colour: string, range: { from: number; to: number } | null = null): void {
   const dpr = window.devicePixelRatio || 1;
   const full = canvas.clientWidth;
   const h = canvas.clientHeight;
@@ -2149,6 +2150,63 @@ function drawTakePreview(canvas: HTMLCanvasElement, take: Take, share: number, c
     const y = 2 + ((hi - n.n) / span) * (h - 6);
     g.fillRect((n.s - take.start) * px, y, Math.max(1.5, n.d * px - 0.5), 2);
   }
+  g.globalAlpha = 1;
+  if (range) outlineLoopBars(g, (range.from - take.start) * px, (range.to - take.start) * px, 0, w, 0, h, null);
+}
+
+/**
+ * Loop n bars hovered: the bars it loops (x0…x1) framed in amber, the take's other bars
+ * (within left…right) hatched; `tag` named in the frame ("Loop 2 bars") and "set aside" on the
+ * hatched bars, where there is room
+ */
+function outlineLoopBars(g: CanvasRenderingContext2D, x0: number, x1: number, left: number, right: number, top: number, h: number, tag: string | null): void {
+  if (!amber) amber = getComputedStyle(document.body).getPropertyValue('--select').trim() || '#f0b429';
+  x0 = Math.max(left, Math.round(x0));
+  x1 = Math.min(right, Math.round(x1));
+  g.save();
+  g.globalAlpha = 1;
+  g.font = '600 10px "Barlow Semi Condensed", sans-serif';
+  for (const [a, b] of [[left, x0], [x1, right]]) {
+    if (b - a < 1) continue;
+    hatch(g, a, top, b - a, h);
+    if (tag && b - a > g.measureText('set aside').width + 10) {
+      g.fillStyle = DIM_TEXT;
+      g.fillText('set aside', a + 5, top + h - 5);
+    }
+  }
+  g.strokeStyle = amber;
+  g.lineWidth = tag ? 2 : 1;
+  const inset = g.lineWidth / 2;
+  g.strokeRect(x0 + inset, top + inset, x1 - x0 - 2 * inset, h - 2 * inset);
+  if (tag) {
+    const tw = g.measureText(tag).width + 8;
+    if (x1 - x0 > tw + 4) {
+      g.fillStyle = amber;
+      g.fillRect(x0 + 2, top + 2, tw, 13);
+      g.fillStyle = '#15171a';
+      g.fillText(tag, x0 + 6, top + 12);
+    }
+  }
+  g.restore();
+}
+
+/** Bars set aside: darkened and hatched */
+function hatch(g: CanvasRenderingContext2D, a: number, top: number, width: number, h: number): void {
+  g.save();
+  g.beginPath();
+  g.rect(a, top, width, h);
+  g.clip();
+  g.fillStyle = '#00000059';
+  g.fillRect(a, top, width, h);
+  g.strokeStyle = '#ffffff1f';
+  g.lineWidth = 1;
+  for (let k = -h; k < width; k += 6) {
+    g.beginPath();
+    g.moveTo(a + k, top + h);
+    g.lineTo(a + k + h, top);
+    g.stroke();
+  }
+  g.restore();
 }
 
 
@@ -2346,7 +2404,16 @@ function initTrackView(
   takeChip.addEventListener('mousedown', (ev) => ev.stopPropagation());
   takeChip.querySelector('.tc-prev')!.addEventListener('click', () => browseTakes(-1));
   takeChip.querySelector('.tc-next')!.addEventListener('click', () => browseTakes(1));
-  takeChip.querySelector('.tc-keep')!.addEventListener('click', () => {
+  const keepEl = takeChip.querySelector('.tc-keep')!;
+  keepEl.addEventListener('mouseenter', () => {
+    keepHover = getZones()[selected] ?? null;
+    invalidate();
+  });
+  keepEl.addEventListener('mouseleave', () => {
+    keepHover = null;
+    invalidate();
+  });
+  keepEl.addEventListener('click', () => {
     const zone = getZones()[selected];
     const shown = zone && shownTake(zone);
     if (shown) keepTake(zone, shown.take);
@@ -2409,7 +2476,18 @@ function initTrackView(
     else if (act === 'clear') clearLoop(zone);
     invalidate();
   });
-  // the cards' takes rows
+  // the cards' takes rows: Loop n bars hovered outlines its bars in the preview
+  zonesEl.addEventListener('mouseover', (ev) => {
+    const keep = (ev.target as Element).closest('.card-takes [data-ct=keep]');
+    const card = keep ? (keep.closest('.zone') as HTMLElement | null) : null;
+    if (card === keepHoverCard) return;
+    keepHoverCard = card;
+    invalidate();
+  });
+  zonesEl.addEventListener('mouseleave', () => {
+    keepHoverCard = null;
+    invalidate();
+  });
   zonesEl.addEventListener('click', (ev) => {
     const button = (ev.target as Element).closest('.card-takes [data-ct]') as HTMLElement | null;
     const index = button ? zoneIndexOf(button) : -1;
