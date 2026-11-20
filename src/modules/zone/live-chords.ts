@@ -13,6 +13,11 @@
  * here and there, now and then a bar laid back, other lengths and voicings, once in a while
  * another chord or a turnaround at a phrase's end. The first note played brings it back at once.
  *
+ * Finish (`finish()`): from the next bar line the combo closes with a cadence (IV or ii, V7) and a
+ * final tonic chord held out, or, ending open, a bar of IV and the V held out unresolved (a half
+ * cadence, a question), then stays silent while the clock runs on, until Play on, Stop/Start
+ * or Start over.
+ *
  * Positions are song ticks (the arrangement's bar 1 = 0). The chords it played are kept per
  * beat (`log`), so a loop closed over them can keep what was heard.
  */
@@ -42,6 +47,7 @@ import {
   spanNotes,
   hitsOf,
   bassLine,
+  triadOn,
   chordName,
   QUALITY_INDEX
 } from './harmonize';
@@ -182,6 +188,10 @@ export class LiveChords {
   waiting = 0;
   /** where this waiting stretch began: what makes its variations its own */
   private waitSalt = 0;
+  /** Finish: where the cadence starts, its dominant comes in, the final chord comes in and ends (song ticks) */
+  private ending: { at: number; dominant: number; final: number; end: number; open: boolean } | null = null;
+  /** the ending has been played: silent until Play on, Stop/Start or Start over */
+  finished = false;
   /** waiting: the vamp's chord at the last beat (what plays may stray from it) */
   private vamp: Chord | null = null;
 
@@ -204,6 +214,19 @@ export class LiveChords {
     const bar = barTicks(meter);
     const segs = barSegments(Math.floor(target / bar), meter);
     const seg = segs.find((s) => s.t === target);
+    if (this.finished || this.ending) {
+      if (seg && this.ending) changed = this.cadence(seg, segs, pos, heard, o, followers, meter) || changed;
+      this.fire(pos, send);
+      if (this.ending && pos >= this.ending.end) {
+        // done: whatever still sounds goes off, silent from here on
+        for (const id of [...this.voices.keys()]) this.release(id, send);
+        this.ending = null;
+        this.finished = true;
+        this.chord = null;
+        changed = true;
+      }
+      return changed;
+    }
     if (seg) changed = this.decide(seg, segs, pos, heard(), ahead?.() ?? null, o, followers, meter) || changed;
     if (this.check && pos >= this.check.at) {
       const c = this.check;
@@ -241,6 +264,92 @@ export class LiveChords {
     this.lastSound = null;
     this.waiting = 0;
     this.vamp = null;
+    this.ending = null;
+    this.finished = false;
+  }
+
+  /**
+   * Finish (`open`: on the V, unresolved): the cadence starts at the next bar line (the one after when it's less than a beat and a
+   * half away, so the change can be decided in time), the final chord a bar later. Nothing heard yet
+   * (no key): it just stops. Returns where the final chord comes in, or null when it stopped at once
+   */
+  finish(pos: number, meter: Meter, send: Send, open = false): number | null {
+    if (this.ending) return this.ending.final;
+    if (!this.key) {
+      for (const id of [...this.voices.keys()]) this.release(id, send);
+      this.finished = true;
+      return null;
+    }
+    const bar = barTicks(meter);
+    let at = Math.ceil((pos + 1) / bar) * bar;
+    if (at - pos < PPQ * 1.5) at += bar;
+    const segs = barSegments(at / bar, meter);
+    const pre = Math.max(1, Math.floor(segs.length / 2));
+    // ending open, the subdominant takes the whole bar and the V is the chord held out
+    const dominant = open ? -1 : segs.length > 1 ? segs[pre].t : at + bar / 2;
+    // the final chord rings a bar, at least four beats
+    this.ending = { at, dominant, final: at + bar, end: at + bar + Math.max(bar, 4 * PPQ), open };
+    this.check = null;
+    this.waiting = 0;
+    return at + bar;
+  }
+
+  /** Play on after Finish: the next beat decides as usual and every follower comes in there */
+  playOn(): void {
+    this.ending = null;
+    this.finished = false;
+    this.chord = null;
+  }
+
+  /** Finishing (the cadence under way): 'closed' or 'open', else null */
+  get finishing(): 'closed' | 'open' | null {
+    return this.ending ? (this.ending.open ? 'open' : 'closed') : null;
+  }
+
+  /**
+   * The ending's beats: the subdominant (ii with Jazz subs in a major key, else IV, iv in minor),
+   * the dominant seventh, then the tonic held, as one strike (strummed if it strums) with the bass
+   * on its root
+   */
+  private cadence(seg: Segment, segs: Segment[], now: number, heard: () => HeardNote[], o: HarmonyOptions, followers: Follower[], meter: Meter): boolean {
+    const e = this.ending!;
+    const key = this.key!;
+    const major = triadOn(key, 0) === 'maj';
+    const sub: Chord =
+      o.subs && major
+        ? { root: (key.tonic + 2) % 12, quality: 'min', degree: 1, kind: 'dia', prior: 0 }
+        : { root: (key.tonic + 5) % 12, quality: major ? 'maj' : 'min', degree: 3, kind: 'dia', prior: 0 };
+    const dom: Chord = { root: (key.tonic + 7) % 12, quality: '7', degree: 4, kind: 'sec', prior: 0 };
+    const tonic: Chord = { root: key.tonic, quality: major ? 'maj' : 'min', degree: 0, kind: 'dia', prior: 0 };
+    const bar = barTicks(meter);
+    let chord: Chord;
+    let span: { t: number; end: number };
+    let next: number | null;
+    let final = false;
+    if (seg.t === e.at) {
+      chord = sub;
+      span = { t: e.at, end: e.open ? e.at + bar : e.dominant };
+      next = dom.root;
+    } else if (seg.t === e.dominant) {
+      chord = dom;
+      span = { t: e.dominant, end: e.at + bar };
+      next = tonic.root;
+    } else if (seg.t === e.final) {
+      // ending open: the V (a plain major triad, also in minor) rings out, unresolved
+      chord = e.open ? { root: dom.root, quality: 'maj', degree: 4, kind: 'dia', prior: 0 } : tonic;
+      span = { t: e.final, end: e.end };
+      next = null;
+      final = true;
+    } else return false;
+    this.chord = chord;
+    this.log.set(seg.t, chord);
+    const played = heard();
+    for (const f of followers) {
+      // the final chord: one strike held out (the bass on the root), a little louder
+      const fo: HarmonyOptions = final ? { ...f.o, rhythm: 0, length: 1, dynamics: 0, bassMove: 0, syncopation: 0, unfold: 0 } : f.o;
+      this.play(f, chord, span, segs, now, played, meter, false, { o: fo, next, louder: final ? 10 : 0 });
+    }
+    return true;
   }
 
   /** Starting over: the key and the chords heard are forgotten too */
@@ -525,7 +634,8 @@ export class LiveChords {
     now: number,
     heard: HeardNote[],
     meter: Meter,
-    continuing: boolean
+    continuing: boolean,
+    as: { o?: HarmonyOptions; next?: number | null; louder?: number } = {}
   ): void {
     let v = this.voices.get(f.id);
     if (!v) {
@@ -534,14 +644,14 @@ export class LiveChords {
     }
     const bar = segs[0].bar;
     const w = this.waiting;
-    const o = w ? this.looser(f, bar) : f.o;
+    const o = as.o ?? (w ? this.looser(f, bar) : f.o);
     const style = styleOf(o);
     // a chord coming in late (a correction): what it would have played up to now comes in now
     const fromNow = (ns: LineNote[]) => ns.map((n) => (n.t < now ? { ...n, t: now, d: n.d - (now - n.t) } : n)).filter((n) => n.d >= 3);
     let notes: LineNote[];
     if (f.part === 'bass') {
       // the next chord isn't known yet: a moving bass leads back to this one's root
-      const line = bassLine(chord, span, this.key!, null, v.lastBass, o, style, meter, 0);
+      const line = bassLine(chord, span, this.key!, as.next ?? null, v.lastBass, o, style, meter, 0);
       v.lastBass = line.last;
       notes = fromNow(line.notes);
     } else {
@@ -553,7 +663,8 @@ export class LiveChords {
       v.voicing = voicing;
       notes = fromNow(spanNotes(chord, voicing, span, segs, style, o, meter, 0));
     }
-    if (w) notes = this.thinned(f, notes, span, segs, bar, meter, style, o.seed);
+    if (as.louder) notes = notes.map((n) => ({ ...n, v: Math.min(127, n.v + as.louder!) }));
+    if (w && !as.o) notes = this.thinned(f, notes, span, segs, bar, meter, style, o.seed);
     if (!notes.length) return;
     const first = Math.min(...notes.map((n) => n.t));
     if (continuing && style === 0 && f.part === 'chords') {
@@ -569,6 +680,8 @@ export class LiveChords {
     // the chord before stops where this one comes in
     this.queue = this.queue.filter((e) => !(e.f === f.id && v!.spanTokens.has(e.token) && e.at >= first));
     for (const [n, token] of v.sounding) if (v.spanTokens.has(token)) this.queue.push({ at: first, on: false, n, v: 0, f: f.id, token });
+    // its notes still to come before then (a strum's later voices, a push) end there too, or they'd hang
+    for (const e of [...this.queue]) if (e.on && e.f === f.id && v.spanTokens.has(e.token)) this.queue.push({ at: Math.max(first, e.at + 1), on: false, n: e.n, v: 0, f: f.id, token: e.token });
     v.spanTokens.clear();
     for (const n of notes) this.schedule(f.id, v, n);
   }

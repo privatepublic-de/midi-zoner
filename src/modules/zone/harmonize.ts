@@ -322,7 +322,7 @@ export function keyTones(k: Key): number[] {
 
 // ---------------------------------------------------------------- chords
 
-function triadOn(key: Key, deg: number): Quality {
+export function triadOn(key: Key, deg: number): Quality {
   const s = MODE_STEPS[key.mode];
   const third = (s[(deg + 2) % 7] - s[deg] + 12) % 12;
   const fifth = (s[(deg + 4) % 7] - s[deg] + 12) % 12;

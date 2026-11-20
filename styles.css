@@ -6997,9 +6997,14 @@ body.track-view:not(.minimized) .channels > .ch.showchords {
   .cb-actions {
     width: 100%;
   }
-  .cb-startover {
+  .cb-ends {
     margin-right: auto;
   }
+}
+/* Finish / Open end / Play on, after Start over */
+.chords-block .cb-ends {
+  display: flex;
+  gap: 14px;
 }
 /* what the zone does now, as a tag at the end of the Follows row: a dot for live (the live green),
    its loop (the zone colour) or waiting, and a few words; the whole sentence in its tooltip */
