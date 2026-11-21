@@ -8010,9 +8010,50 @@ body:not(.track-view):not(.minimized) #zones > .zone {
   > .arp-settings-block .arp-settings > .label:first-child,
   > .thru-panel .thru-line > .label:first-child {
     flex: none;
-    width: 64px;
+    width: 72px;
     margin: 0;
   }
+  /* two columns across Arp and Thru (Nov 21, the user's ask): the label (72px: "Send program"),
+     then the first control in a 100px cell (each is about that wide: the Up menu, the Gate slider, 8 in 8, Fixed 127,
+     the program number), so Rate, Chance, the pattern editor, Scale and Bank MSB start on one
+     line; the rest of a row follows as it fits. The Pass line stays a flow of chips */
+  &.fold-arp:not(.disabled):not(.chords-zone) > .arp-settings-block .arp-settings,
+  > .thru-panel .thru-line:not(:first-of-type) {
+    display: grid;
+    grid-template-columns: 72px 100px 52px;
+    grid-auto-flow: column;
+    grid-auto-columns: max-content;
+    justify-content: start;
+    align-items: center;
+    column-gap: 5px;
+  }
+  > .arp-settings-block .arp-settings > *,
+  > .thru-panel .thru-line:not(:first-of-type) > * {
+    justify-self: start;
+  }
+  /* the second label ends right before its value (the values start on one line), so it reads
+     with its value, not with the control before it */
+  &.fold-arp > .arp-settings-block .arp-settings > .label:nth-child(3 of :not(.thru-gap)),
+  > .thru-panel .thru-line:not(:first-of-type) > .label:nth-child(3 of :not(.thru-gap)) {
+    justify-self: end;
+  }
+  > .thru-panel .thru-line:not(:first-of-type) > .thru-gap { display: none; }
+  /* a slider in a grid cell keeps the 96px it has in a flex row; no extra space before the label
+     after it (the column does that) */
+  > :is(.arp-settings-block, .thru-panel) .percent-holder {
+    width: 96px;
+    input[type='range'] { flex: 1 1 0; min-width: 0; width: 0; }
+  }
+  > :is(.arp-settings-block, .thru-panel) .percent-holder + :is(.label, .drop-down) { margin-left: 0; }
+  /* the pattern row: ‹ in the second label's cell, ending where the labels end, so the pattern
+     starts on the values' line */
+  &.fold-arp > .arp-settings-block .arp-pattern-row > .action:nth-child(3) {
+    justify-self: end;
+  }
+  /* Ratchet after the Chance value: a little air, its slider a little shorter so 2× still fits */
+  > .arp-settings-block .label.ratchet-holder { margin-left: 8px; }
+  > .arp-settings-block .percent-holder.ratchet-holder { width: 86px; }
+  > .thru-panel .programsettings > .program-send { margin-left: 10px; }
   /* Sequencer: Rec and Piano roll */
   > .seq .seqtools > :is(.seq_record_live, .seq-pianoroll) {
     position: absolute;
