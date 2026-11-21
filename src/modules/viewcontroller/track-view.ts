@@ -369,6 +369,10 @@ function updateCardPlays(zone: Zone, el: HTMLElement): void {
     ? items.map((t) => `<span class="cp-item"><span class="cp-dot"></span>${escapeHTML(t)}</span>`).join('')
     : '<span class="cp-item cp-none">nothing by itself, only what you play</span>';
   if (what.innerHTML !== html) what.innerHTML = html;
+  // stopped: what the next Start plays; running: what plays now
+  const label = row.querySelector('.cp-label')!;
+  const word = timeline.running ? 'Plays' : 'Start plays';
+  if (label.textContent !== word) label.textContent = word;
   const noteEl = row.querySelector('.cp-note')!;
   if (noteEl.textContent !== note) noteEl.textContent = note;
 }
@@ -379,11 +383,9 @@ function updateCardPlays(zone: Zone, el: HTMLElement): void {
  */
 function updateCardTakes(zone: Zone, el: HTMLElement): void {
   const takes = takeStore.of(zone.id);
-  const stopped = !timeline.running;
-  // while running the rows are hidden but keep their place, so the cards don't jump at Start
-  const held = !stopped && (el.classList.contains('has-card-plays') || el.classList.contains('has-card-takes'));
-  if (el.classList.contains('card-rows-held') !== held) el.classList.toggle('card-rows-held', held);
-  if (!stopped) return;
+  const running = timeline.running;
+  // the rows stay while running (no jump at Start, no hole while playing); a take recorded in
+  // this run joins them at Stop
   const showTakes = takes.length > 0;
   const showPlays = showTakes || (zone.loop !== null && zone.looper.lastRun !== null);
   if (el.classList.contains('has-card-plays') !== showPlays) el.classList.toggle('has-card-plays', showPlays);
@@ -397,7 +399,7 @@ function updateCardTakes(zone: Zone, el: HTMLElement): void {
   const isNew = index === takes.length && takeStore.runAt > 0 && take.at === takeStore.runAt;
   const along = !zone.chords && zone.playingTake === take;
   const preview = strip.querySelector('.ct-preview') as HTMLCanvasElement;
-  const key = [take.id, takeStore.version, index, takes.length, isNew, along, !!zone.chords, preview.clientWidth, zoneColours.get(el)].join('|');
+  const key = [take.id, takeStore.version, index, takes.length, isNew, along, !!zone.chords, preview.clientWidth, zoneColours.get(el), running].join('|');
   if (cardTakesKeys.get(el) === key) return;
   cardTakesKeys.set(el, key);
   strip.querySelector('.ct-name')!.textContent = `Take ${index}/${takes.length}`;
@@ -411,6 +413,9 @@ function updateCardTakes(zone: Zone, el: HTMLElement): void {
     : `Play Take ${index} along from bar 1 of every run, as if played (chords follow it, Rec loops bars of it)`;
   strip.querySelector('[data-ct=prev]')!.classList.toggle('disabled', index <= 1);
   strip.querySelector('[data-ct=next]')!.classList.toggle('disabled', index >= takes.length);
+  const del = strip.querySelector('[data-ct=delete]') as HTMLElement;
+  del.classList.toggle('disabled', running);
+  del.title = running ? 'Takes can be deleted once stopped' : 'Delete this take (⌘Z brings it back)';
   drawTakePreview(preview, take, 1, zoneColours.get(el) || '#8fa3b8');
 }
 

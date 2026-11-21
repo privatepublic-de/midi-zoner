@@ -6858,6 +6858,11 @@ body.minimized .zone .mini-lane {
   padding: 0 8px;
   justify-content: center;
 }
+/* ‹ › at the ends, Delete while running */
+.zone .card-takes .lightButton.disabled {
+  opacity: 0.3;
+  cursor: default;
+}
 
 .zone .card-takes .ct-label {
   color: var(--text-base-color);
@@ -6954,11 +6959,6 @@ body.minimized .zone .mini-lane {
 body.track-view .zone .card-follow,
 body.minimized .zone .card-follow {
   display: none !important;
-}
-
-/* while running: hidden, their place kept (no jump at Start) */
-.zone.card-rows-held :is(.card-takes, .card-plays) {
-  visibility: hidden;
 }
 
 body.track-view .zone :is(.card-takes, .card-plays),
