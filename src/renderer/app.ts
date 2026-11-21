@@ -220,6 +220,9 @@ function createZone(midi: MIDIInstance, zoneData: any, freshId = false): Zone {
   const fromFile = Take.listFrom(zoneData.takes);
   if (fromFile.length || migrated.length) takeStore.merge(zone.id, [...migrated, ...fromFile]);
   zone.loadArrangement(zones.arrangementIndex || 0);
+  // the cards' folds; scenes from before them open the panels of what is switched on
+  zone.show_seq_panel = typeof zoneData.show_seq_panel === 'boolean' ? zoneData.show_seq_panel : zone.sequence.active;
+  zone.show_arp_panel = typeof zoneData.show_arp_panel === 'boolean' ? zoneData.show_arp_panel : zone.arp_enabled;
   return zone;
 }
 

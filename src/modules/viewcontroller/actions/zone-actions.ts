@@ -247,6 +247,17 @@ export function createZoneActions(
       chordsTakeAlongChanged(zone);
       updateValuesForZone(zoneindex);
     },
+    // the cards' folds: show or hide a panel, the feature stays as it is
+    zone_fold_seq: () => {
+      zone.show_seq_panel = !zone.show_seq_panel;
+      updateValuesForZone(zoneindex);
+      triggerSave();
+    },
+    zone_fold_arp: () => {
+      zone.show_arp_panel = !zone.show_arp_panel;
+      updateValuesForZone(zoneindex);
+      triggerSave();
+    },
     // a track of a MIDI file as the zone's newest take (an undo step of its own once imported)
     zone_import_midi: () => {
       void importMidiFile(zoneindex);

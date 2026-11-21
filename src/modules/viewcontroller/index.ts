@@ -1409,9 +1409,18 @@ function updateValuesForZone(index: number): void {
     const zoneIsEnabled = zone.enabled && (!foldSoloedOut || Zone.solocount === 0 || zone.solo);
     DOM.switchClass(zoneElement, !zoneIsEnabled, 'disabled');
     DOM.switchClass(zoneElement, zone.show_cc, 'show-cc');
+    // cards: the folds under the takes rows show the panels (switching Seq or Arp moves nothing)
+    DOM.switchClass(zoneElement, zone.show_seq_panel, 'fold-seq');
+    DOM.switchClass(zoneElement, zone.show_arp_panel, 'fold-arp');
+    const seqExtra = zoneElement.querySelector('.card-folds .cf-seq-extra');
+    if (seqExtra) {
+      const text = sequence.isDrumSequence ? `${sequence.length} steps · ${sequence.drumLanes} lanes` : `${sequence.length} steps`;
+      if (seqExtra.textContent !== text) seqExtra.textContent = text;
+    }
 
-    if (sequence.active) {
-      DOM.addClass(zoneElement, 'show-seq');
+    // the panel is kept up to date while it's on (Tracks, cards) or its fold is open (cards)
+    DOM.switchClass(zoneElement, sequence.active, 'show-seq');
+    if (sequence.active || zone.show_seq_panel) {
       DOM.switchClass(zoneElement, sequence.isDrumSequence, 'drumSequencer');
       if (sequence.isDrumSequence) {
         DOM.removeClass(
@@ -1648,8 +1657,6 @@ function updateValuesForZone(index: number): void {
         );
       }
       zone.elements.setSelectedIndex('.seq_division', sequence.division);
-    } else {
-      DOM.removeClass(zoneElement, 'show-seq');
     }
     [
       'cc',

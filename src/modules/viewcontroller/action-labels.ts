@@ -103,7 +103,9 @@ const ACTION_LABEL_OVERRIDES: Record<string, string | OverrideFn> = {
   cc_nrpn_msb: 'NRPN Number (MSB)',
   cc_nrpn_lsb: 'NRPN Number (LSB)',
   cc_nrpn_data_lsb: 'NRPN Data Format',
-  cc_toggle: 'Toggle CC',
+  cc_toggle: 'Show/Hide Controllers',
+  zone_fold_seq: 'Show/Hide Sequencer',
+  zone_fold_arp: 'Show/Hide Arp',
 
   filters_at2mod: 'Aftertouch → Mod Filter',
   filters_cc: 'CC Filter',

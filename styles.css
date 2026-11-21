@@ -226,6 +226,7 @@
 #trackDock .td-collapse .material-icons,
 .lane-expand-chevron .material-icons,
 #ccEditor .cce-fold,
+.card-folds .cf-fold > .material-icons,
 .panel-section > summary::before {
   width: var(--icon-md);
   height: var(--icon-md);
@@ -236,6 +237,7 @@
 }
 .setup-toggle:hover .chevron,
 #trackDock .td-collapse:hover .material-icons,
+.card-folds .cf-fold:hover > .material-icons,
 .drum-step-container:has(.lane-expand-toggle:hover) .lane-expand-chevron .material-icons,
 #ccEditor .cce-fold:hover,
 .panel-section > summary:hover::before {
@@ -246,6 +248,7 @@
   #trackDock .td-collapse .material-icons,
   .lane-expand-chevron .material-icons,
   #ccEditor .cce-fold,
+  .card-folds .cf-fold > .material-icons,
   .panel-section > summary::before {
     transition: none;
   }
@@ -1715,6 +1718,11 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
   background: var(--slate-line);
 }
 
+/* cards: a chords zone has no Take chip (it plays chords, not a take) */
+body:not(.track-view):not(.minimized) #zones > .zone.chords-zone > .channels > .loopgroup > .ch.showtake {
+  display: none;
+}
+
 /* the Controllers chip says CC where there is little room (Tracks header) */
 .channels .ch.showccs > .cc-long,
 .channels > .hdr-break {
@@ -1779,6 +1787,12 @@ body:not(.track-view):not(.minimized) #zones > .zone > .channels {
   > :is(.ch.showseq, .loopgroup, .ch.showccs)::before { display: none; }
   > .ch.showccs > .cc-long { display: inline; }
   > .ch.showccs > .cc-short { display: none; }
+  /* the second row only switches what plays (Nov 21, the user's pick from mocks): Seq, Arp, Loop,
+     as wide as each other; takes along, recording loops and making them are in the Tracks view,
+     the panels open from the folds below the takes rows (.card-folds) */
+  > .loopgroup > :is(.ch.showtake, .ch.showloop),
+  > .ch.showccs { display: none; }
+  > .loopgroup > .ch.showloopsw { width: calc((var(--hdr-col1) - 6px) / 2); border-radius: var(--radius); }
 }
 
 /* =============================================================
@@ -6838,14 +6852,6 @@ body.minimized .zone .mini-lane {
   flex: 1;
 }
 
-.zone .card-plays [data-cl] {
-  display: none;
-}
-
-.zone .card-plays.with-tools [data-cl] {
-  display: inline-flex;
-}
-
 .zone :is(.card-takes, .card-plays) .lightButton {
   min-width: 22px;
   height: 22px;
@@ -7511,9 +7517,102 @@ body.track-view:not(.minimized) #zones > .zone.track-selected > .chords-block {
   display: none !important;
 }
 
-/* Loop n bars: hovered, it outlines the bars it loops in amber (the take's preview or lane), so
+/* Loop n bars (Tracks): hovered, it outlines the bars it loops in amber in the take lane, so
    the button takes the same edge */
-.card-takes [data-ct='keep']:hover,
 .tc-keep:hover {
   box-shadow: inset 0 0 0 1px var(--select);
+}
+
+/* =============================================================
+   CARD FOLDS  (.card-folds in the zone template, cards only)
+   Sequencer / Arp / Controllers: each shows or hides its panel right below, whether the
+   feature is on or not (Seq and Arp in the header only switch, so they never move a card).
+   Open panels follow in this order, a divider between two (Nov 21, the user's pick from mocks)
+   ============================================================= */
+.zone .card-folds {
+  display: none;
+}
+body:not(.track-view):not(.minimized) #zones > .zone:not(.disabled) > .card-folds {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding-top: 8px;
+  border-top: 1px solid var(--slate-line);
+  font-size: var(--fs-md);
+}
+.card-folds .cf-fold {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--slate-dim);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.card-folds .cf-fold:hover {
+  color: var(--text-base-color);
+}
+/* lists point right when closed, down when open */
+.card-folds .cf-fold > .material-icons {
+  transform: rotate(-90deg);
+}
+.zone.fold-seq .card-folds .cf-seq,
+.zone.fold-arp .card-folds .cf-arp,
+.zone.show-cc .card-folds .cf-cc {
+  color: var(--text-base-color);
+}
+.zone.fold-seq .card-folds .cf-seq > .material-icons,
+.zone.fold-arp .card-folds .cf-arp > .material-icons,
+.zone.show-cc .card-folds .cf-cc > .material-icons {
+  transform: none;
+}
+.card-folds .cf-seq-extra {
+  margin-left: 5px;
+  color: var(--slate-dim);
+  font-size: var(--fs-sm, 12px);
+}
+/* a chords zone plays neither: only Controllers */
+.zone.chords-zone .card-folds :is(.cf-seq, .cf-arp) {
+  display: none;
+}
+
+/* one spacing: every block of a card 10px apart, no margins of its own (hidden blocks leave none) */
+body:not(.track-view):not(.minimized) #zones > .zone {
+  gap: 10px;
+  > :is(.channels, .mini-lane, .card-follow, .card-plays, .card-takes, .card-folds, .chords-sum) {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+  /* the keyboard and its settings row belong together */
+  > .settings {
+    margin-top: -4px;
+  }
+}
+
+/* the panels follow their folds, not the switches */
+body:not(.track-view):not(.minimized) #zones > .zone {
+  > .seq,
+  > .arp-settings-block {
+    display: none;
+  }
+  &.fold-seq:not(.disabled):not(.chords-zone) > .seq {
+    display: flex;
+    align-items: flex-start;
+    flex-direction: column-reverse;
+  }
+  &.fold-arp:not(.disabled):not(.chords-zone) > .arp-settings-block {
+    display: block;
+  }
+  &.fold-arp:not(.disabled):not(.chords-zone) > .arp-settings-block .arp-settings {
+    display: flex;
+    align-items: center;
+  }
+  &:not(.show-cc) > .ccpots {
+    display: none;
+  }
+  /* two open panels: a divider between them */
+  &.fold-seq.fold-arp:not(.chords-zone) > .arp-settings-block,
+  &.show-cc:is(.fold-seq, .fold-arp):not(.chords-zone) > .ccpots {
+    padding-top: 10px;
+    border-top: 1px solid var(--slate-line);
+  }
 }

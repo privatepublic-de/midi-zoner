@@ -113,9 +113,8 @@ const loopBlocks = new WeakMap<Zone, { x0: number; x1: number; top: number; barP
 let loopDrag: { zone: Zone; edge: 'start' | 'end'; bars: number } | null = null;
 // "where you are" (styles.css --select): the picked take or loop
 let amber = '';
-/** Loop n bars hovered: the zone whose take lane outlines the bars it loops (Tracks), and the card whose preview does */
+/** Loop n bars hovered: the zone whose take lane outlines the bars it loops */
 let keepHover: Zone | null = null;
-let keepHoverCard: HTMLElement | null = null;
 // What the Notes tab edits: the zone's loop or one of its takes (by zone id: undo keeps it)
 let editing: { zoneId: string; kind: 'loop' } | { zoneId: string; kind: 'take'; take: Take } | null = null;
 // Turning a take (or bars of it) into steps, or quantizing it: the preview, set in the dock panel
@@ -244,11 +243,13 @@ function updateTakeChip(zone: Zone): void {
   if (!has) return;
   const playing = zone.playingTake;
   const quiet = !!playing && !!zone.loop && zone.loopOn;
-  const label = playing ? `Take ${takes.indexOf(playing) + 1}` : 'Take';
+  const shown = takeStore.shownTake(zone.id);
+  // the take it plays along, else the one it would (the shown take)
+  const named = playing ?? shown;
+  const label = named ? `Take ${takes.indexOf(named) + 1}` : 'Take';
   if (chip.textContent !== label) chip.textContent = label;
   chip.classList.toggle('take-on', !!playing);
   chip.classList.toggle('take-quiet', quiet);
-  const shown = takeStore.shownTake(zone.id);
   const title = playing
     ? quiet
       ? `${label} plays along, quiet while the loop plays (Loop off: it's heard again). Click: off`
@@ -358,7 +359,7 @@ function startPlays(zone: Zone): { items: string[]; note: string } {
   return { items, note: notes.join(', ') };
 }
 
-/** The card's "Start plays" row; with the loop of this run, its bars and Clear */
+/** The card's "Start plays" row (the loop's bars and Clear are in the Tracks view) */
 function updateCardPlays(zone: Zone, el: HTMLElement): void {
   const row = el.querySelector('.card-plays') as HTMLElement | null;
   if (!row) return;
@@ -370,19 +371,11 @@ function updateCardPlays(zone: Zone, el: HTMLElement): void {
   if (what.innerHTML !== html) what.innerHTML = html;
   const noteEl = row.querySelector('.cp-note')!;
   if (noteEl.textContent !== note) noteEl.textContent = note;
-  const loop = zone.loop;
-  const tools = !!loop && zone.looper.lastRun !== null;
-  if (row.classList.contains('with-tools') !== tools) row.classList.toggle('with-tools', tools);
-  if (tools) {
-    const bar = barLen();
-    row.querySelector('[data-cl=less]')!.classList.toggle('disabled', loop.length <= bar);
-    row.querySelector('[data-cl=more]')!.classList.toggle('disabled', loop.length + bar > MAX_LOOP_BARS * bar);
-  }
 }
 
 /**
- * The card's takes (stopped): what Start plays, then ‹ Take n/m ›, a preview, Loop n bars,
- * Play along, Delete
+ * The card's takes (stopped): what Start plays, then ‹ Take n/m ›, a preview, Play along,
+ * Delete (loops are made from takes in the Tracks view)
  */
 function updateCardTakes(zone: Zone, el: HTMLElement): void {
   const takes = takeStore.of(zone.id);
@@ -404,17 +397,11 @@ function updateCardTakes(zone: Zone, el: HTMLElement): void {
   const isNew = index === takes.length && takeStore.runAt > 0 && take.at === takeStore.runAt;
   const along = !zone.chords && zone.playingTake === take;
   const preview = strip.querySelector('.ct-preview') as HTMLCanvasElement;
-  const hovered = keepHoverCard === el;
-  const key = [take.id, takeStore.version, index, takes.length, isNew, along, !!zone.chords, preview.clientWidth, zoneColours.get(el), hovered].join('|');
+  const key = [take.id, takeStore.version, index, takes.length, isNew, along, !!zone.chords, preview.clientWidth, zoneColours.get(el)].join('|');
   if (cardTakesKeys.get(el) === key) return;
   cardTakesKeys.set(el, key);
   strip.querySelector('.ct-name')!.textContent = `Take ${index}/${takes.length}`;
   strip.querySelector('.ct-label')!.classList.toggle('is-new', isNew);
-  const keep = strip.querySelector('[data-ct=keep]') as HTMLElement;
-  keep.textContent = keepLabel(take);
-  keep.title = zone.loop
-    ? `This take becomes the zone’s loop in this arrangement, replacing Loop · ${Take.lengthLabel(zone.loop.length, currentMeter())}`
-    : 'This take becomes the zone’s loop in this arrangement';
   const alongBtn = strip.querySelector('[data-ct=along]') as HTMLElement;
   alongBtn.style.display = zone.chords ? 'none' : '';
   alongBtn.textContent = along ? 'Plays along' : 'Play along';
@@ -424,7 +411,7 @@ function updateCardTakes(zone: Zone, el: HTMLElement): void {
     : `Play Take ${index} along from bar 1 of every run, as if played (chords follow it, Rec loops bars of it)`;
   strip.querySelector('[data-ct=prev]')!.classList.toggle('disabled', index <= 1);
   strip.querySelector('[data-ct=next]')!.classList.toggle('disabled', index >= takes.length);
-  drawTakePreview(preview, take, 1, zoneColours.get(el) || '#8fa3b8', hovered ? keepRange(take) : null);
+  drawTakePreview(preview, take, 1, zoneColours.get(el) || '#8fa3b8');
 }
 
 /** Song position where a waiting toggle lands: the next bar, beat or 16th after `head` */
@@ -2131,8 +2118,8 @@ function endConvert(): void {
 
 
 
-/** A take's preview; with `range` (Loop n bars hovered) the bars it loops outlined, the rest hatched */
-function drawTakePreview(canvas: HTMLCanvasElement, take: Take, share: number, colour: string, range: { from: number; to: number } | null = null): void {
+/** A take's preview (the cards' takes row) */
+function drawTakePreview(canvas: HTMLCanvasElement, take: Take, share: number, colour: string): void {
   const dpr = window.devicePixelRatio || 1;
   const full = canvas.clientWidth;
   const h = canvas.clientHeight;
@@ -2161,7 +2148,6 @@ function drawTakePreview(canvas: HTMLCanvasElement, take: Take, share: number, c
     g.fillRect((n.s - take.start) * px, y, Math.max(1.5, n.d * px - 0.5), 2);
   }
   g.globalAlpha = 1;
-  if (range) outlineLoopBars(g, (range.from - take.start) * px, (range.to - take.start) * px, 0, w, 0, h, null);
 }
 
 /**
@@ -2474,30 +2460,7 @@ function initTrackView(
       invalidate();
     })
   );
-  // the cards' "Start plays" rows: the loop of this run, its bars and Clear
-  zonesEl.addEventListener('click', (ev) => {
-    const button = (ev.target as Element).closest('.card-plays [data-cl]') as HTMLElement | null;
-    const zone = button && getZones()[zoneIndexOf(button)];
-    if (!button || !zone?.loop || button.classList.contains('disabled')) return;
-    const act = button.dataset['cl'];
-    const len = zone.loop.length;
-    if (act === 'less') setLoopBars(zone, 0, len - barLen(), 'Loop Length');
-    else if (act === 'more') setLoopBars(zone, 0, len + barLen(), 'Loop Length');
-    else if (act === 'clear') clearLoop(zone);
-    invalidate();
-  });
-  // the cards' takes rows: Loop n bars hovered outlines its bars in the preview
-  zonesEl.addEventListener('mouseover', (ev) => {
-    const keep = (ev.target as Element).closest('.card-takes [data-ct=keep]');
-    const card = keep ? (keep.closest('.zone') as HTMLElement | null) : null;
-    if (card === keepHoverCard) return;
-    keepHoverCard = card;
-    invalidate();
-  });
-  zonesEl.addEventListener('mouseleave', () => {
-    keepHoverCard = null;
-    invalidate();
-  });
+  // the cards' takes rows (loops are made in the Tracks view)
   zonesEl.addEventListener('click', (ev) => {
     const button = (ev.target as Element).closest('.card-takes [data-ct]') as HTMLElement | null;
     const index = button ? zoneIndexOf(button) : -1;
@@ -2505,9 +2468,7 @@ function initTrackView(
     if (!button || !zone || button.classList.contains('disabled')) return;
     const act = button.dataset['ct'];
     const take = takeStore.shownTake(zone.id);
-    if (act === 'keep') {
-      if (take) keepTake(zone, take);
-    } else if (act === 'along') {
+    if (act === 'along') {
       if (!take || zone.chords) return;
       const on = zone.playingTake !== take;
       commit(index, on ? 'Play Along On' : 'Play Along Off', () => zone.setPlayTake(on ? take.id : null));

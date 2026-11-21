@@ -252,16 +252,18 @@
   <div class="card-follow" title="Zones playing chords or bass to this one"></div>
   <div class="card-plays" title="What plays by itself at the next Start (your playing is kept as a take either way)">
     <span class="cp-label">Start plays</span><span class="cp-what"></span><span class="cp-note"></span><span class="cp-gap"></span>
-    <a class="lightButton" data-cl="less" title="One bar shorter: the last bar is set aside (+ bar brings it back)">− bar</a>
-    <a class="lightButton" data-cl="more" title="One bar longer: brings back a bar set aside, else an empty one">+ bar</a>
-    <a class="lightButton" data-cl="clear" title="Clear the loop (⌘Z brings it back)">Clear</a>
   </div>
   <div class="card-takes" title="Takes: what you played, one per Start → Stop">
     <a class="lightButton" data-ct="prev" title="An earlier take">‹</a><span class="ct-label"><span class="ct-name"></span><span class="ct-new">new</span></span><a class="lightButton" data-ct="next" title="A later take">›</a>
     <canvas class="ct-preview"></canvas>
-    <a class="lightButton" data-ct="keep">Loop</a>
     <a class="lightButton" data-ct="along"></a>
     <a class="lightButton" data-ct="delete" title="Delete this take (⌘Z brings it back)">Delete</a>
+  </div>
+  <div class="chords-sum"></div>
+  <div class="card-folds">
+    <a class="cf-fold cf-seq" data-action="${index}:zone_fold_seq" title="Show or hide the sequencer's steps (Seq switches it on/off)"><i class="material-icons">expand_more</i>Sequencer<small class="cf-seq-extra"></small></a>
+    <a class="cf-fold cf-arp" data-action="${index}:zone_fold_arp" title="Show or hide the arp's settings (Arp switches it on/off)"><i class="material-icons">expand_more</i>Arp</a>
+    <a class="cf-fold cf-cc" data-action="${index}:cc_toggle" title="Show or hide this zone's controllers"><i class="material-icons">expand_more</i>Controllers</a>
   </div>
   <div
     class="seq shadowed-zone-block"
@@ -549,7 +551,6 @@
       </div>
     </div>
   </div>
-  <div class="chords-sum"></div>
   <div class="chords-block shadowed-zone-block"></div>
   <div class="arp-settings-block shadowed-zone-block">
     <div class="arp-settings">
