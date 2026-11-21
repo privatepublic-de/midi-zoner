@@ -312,6 +312,11 @@ export class LiveChords {
     this.chord = null;
   }
 
+  /** Where the ending's cadence starts (song ticks) and whether it ends open; null when none is coming */
+  get endingAt(): { at: number; open: boolean } | null {
+    return this.ending ? { at: this.ending.at, open: this.ending.open } : null;
+  }
+
   /** Finishing (the cadence under way): 'closed' or 'open', else null */
   get finishing(): 'closed' | 'open' | null {
     return this.ending ? (this.ending.open ? 'open' : 'closed') : null;

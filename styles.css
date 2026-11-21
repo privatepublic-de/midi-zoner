@@ -1737,7 +1737,9 @@ body:not(.track-view):not(.minimized) #zones > .zone {
   &.disabled.show-seq > .channels > .ch.showseq,
   &.disabled > .channels > .ch.showarp.selected,
   &.disabled > .channels > .loopgroup > .ch.showloopsw.loop-on,
-  &.disabled.chords-on > .channels > .ch.showchords {
+  &.disabled.chords-on > .channels > .ch.showchords,
+  /* a finished line: on, but silent until Play on */
+  &.chords-on.chords-finished > .channels > .ch.showchords {
     background: color-mix(in srgb, var(--zone-color) 6%, transparent);
     &::before {
       background: color-mix(in srgb, var(--live) 40%, #3b4047);
@@ -7072,19 +7074,35 @@ body:not(.track-view):not(.minimized) .zone.chords-zone .mini-lane .lane-status 
   color: var(--text-base-color);
 }
 
-/* Finish / Open end / Play on in a chords or bass zone's row, while running */
-.zone .chords-sum .cs-ends {
-  display: flex;
-  gap: 6px;
-  margin-left: 8px;
+/* Finish / Open end (Play on while ending) on the followed zone's lane, before "to [3][4]", while
+   running: one place for the whole line (Nov 21, the user's pick from mocks) */
+.zone .card-follow .cf-ends {
+  display: inline-flex;
+  gap: 3px;
+  margin-right: 2px;
+  padding-right: 6px;
+  border-right: 1px solid var(--slate-line);
 }
-.zone .chords-sum .cs-ends .lightButton {
-  height: 22px;
-  padding: 0 8px;
+.zone .card-follow .cf-end {
+  display: inline-flex;
+  align-items: center;
+  height: 15px;
+  padding: 0 5px;
+  box-sizing: border-box;
+  border: 1px solid var(--slate-line);
+  border-radius: var(--radius-sm);
+  background: var(--slate-raise);
+  color: var(--text-base-color);
+  font-size: 11px;
+  line-height: 1;
   white-space: nowrap;
+  cursor: pointer;
 }
-.zone .chords-sum .cs-ends .lightButton[hidden] {
-  display: none;
+.zone .card-follow .cf-end:hover {
+  border-color: var(--slate-dim);
+}
+.zone .card-follow .cf-right:has(.cf-ends) {
+  max-width: 80%;
 }
 
 body.track-view .zone .card-follow,
@@ -7559,9 +7577,8 @@ body:not(.track-view):not(.minimized) .zone.chords-zone > .chords-sum {
 .chords-sum .cb-text {
   font-size: 12px;
 }
-/* short of room (Finish / Open end while running): the style and rhythm give way, the
-   buttons keep their size */
-.chords-sum > :is(.cb-what, .cs-ends, .cs-edit, .label, .cs-sep) {
+/* short of room: the style and rhythm give way, the rest keeps its size */
+.chords-sum > :is(.cb-what, .cs-edit, .label, .cs-sep) {
   flex: none;
 }
 .chords-sum > span:not([class]) {
@@ -7573,7 +7590,6 @@ body:not(.track-view):not(.minimized) .zone.chords-zone > .chords-sum {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  /* as tall as Finish / Open end, so the row doesn't grow when they show at Start */
   height: 22px;
   padding: 0 8px;
   box-sizing: border-box;

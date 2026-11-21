@@ -1,4 +1,4 @@
-import { chordMarks, chordsTakeAlongChanged } from './chords';
+import { chordMarks, chordsTakeAlongChanged, endingMarks } from './chords';
 import { Zone } from '../zone/zone-class';
 import { ZONES_CHANGED_EVENT, UPDATE_ZONE_VIEW_EVENT } from '../zone/interfaces';
 import type { NoteCurveJSON, CurveSeries } from '../zone/interfaces';
@@ -877,6 +877,8 @@ function drawLane(
   const landAt = waiting.length > 0 ? landingAt(songHead) : Infinity;
   const marks = new Map<number, string[]>();
   if (waiting.length > 0) marks.set(landAt, waiting.map((p) => p.tag));
+  // a line ending (Finish / Open end): where its cadence comes in, on the line zone and its followers
+  for (const m of endingMarks(zone)) if (m.at > songHead) marks.set(m.at, [...(marks.get(m.at) ?? []), m.tag]);
   const seqFlips = waiting.some((p) => p.action === 'toggle_seq');
   const seqSounds = (s: number): boolean => seq.active !== (seqFlips && s >= landAt);
 
