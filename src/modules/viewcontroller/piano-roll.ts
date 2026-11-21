@@ -8,6 +8,9 @@ import { labelForZone } from './action-labels';
 import { showStepProperties, stepDetails, velocityLabel } from './step-marks';
 import { initSheetHeader, setSheetZone } from './editor-sheet';
 import { ZONES_CHANGED_EVENT } from '../zone/interfaces';
+import { timeline } from '../timeline';
+import { meterLabel, startsBeat } from '../meter';
+import { DIV_TICKS } from '../zone/seq-layer';
 
 // Steps share the visible width (between these bounds, scrolling beyond); the
 // width is set as --pr-cell-w for the grid lines in styles.css.
@@ -552,19 +555,32 @@ function fitCellWidth(sequence: SequenceType): void {
   overlayEl.style.setProperty('--pr-cell-w', `${cellW}px`);
 }
 
-// Step numbers above the grid: every step, beat starts emphasised.
+// Step numbers above the grid: every step, beat starts emphasised (in the arrangement's meter at
+// the step's length); the grid's beat lines on the same steps
 function renderStepHeader(sequence: SequenceType): void {
-  const key = `${sequence.length}:${cellW}`;
+  const meter = timeline.meter;
+  const stepTicks = DIV_TICKS[sequence.division];
+  const key = `${sequence.length}:${cellW}:${stepTicks}:${meterLabel(meter)}`;
   if (key === stepHeaderKey) return;
   stepHeaderKey = key;
   DOM.empty(stepHeaderEl);
   stepHeaderEl.style.width = `${sequence.length * cellW}px`;
+  const stops: string[] = [];
+  let from = 0;
   for (let i = 0; i < sequence.length; i++) {
+    const beat = startsBeat(i, stepTicks, meter);
     const cell = document.createElement('div');
-    cell.className = 'pr-step' + (i % 4 === 0 ? ' beat' : '');
+    cell.className = 'pr-step' + (beat ? ' beat' : '');
     cell.textContent = String(i + 1);
     stepHeaderEl.appendChild(cell);
+    if (beat) {
+      const x = i * cellW;
+      stops.push(`transparent ${from}px ${x}px`, `var(--brighter-1) ${x}px ${x + 1}px`);
+      from = x + 1;
+    }
   }
+  stops.push(`transparent ${from}px`);
+  overlayEl.style.setProperty('--pr-beat-lines', `linear-gradient(to right, ${stops.join(', ')})`);
 }
 
 function renderNotesAndVelocity(zone: ZoneType): void {

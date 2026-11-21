@@ -102,7 +102,7 @@ export function getHTML(zone: ZoneType, zoneindex: number): string {
   let sequencerGrid = '';
   for (let i = 0; i < Sequence.MAX_STEPS; i++) {
     sequencerGrid += `<div class="step" data-dragselect="${i}" data-contextmenu="${index}:seq_copy_step:${i},${index}:seq_paste_step:${i},-,${index}:seq_clear_step:${i},${index}:seq_clear_locks:${i},${index}:seq_clear_all">${
-      i % 4 === 0 ? `<span class="beat-num">${i + 1}</span>` : ''
+      `<span class="beat-num">${i + 1}</span>`
     }<span class="material-icons chance-mark">casino</span><span class="lock-dot"></span></div>`;
   }
 
@@ -139,7 +139,7 @@ export function getHTML(zone: ZoneType, zoneindex: number): string {
     for (let i = 0; i < Sequence.MAX_STEPS_DRUMS; i++) {
       const stepId = Sequence.getIdForDrumStep(ln, i);
       drumLanes += `<div class="step" data-action="${index}:seq_drumstep_select:${stepId}" data-dblclickaction="${index}:seq_clear_step:${stepId}" data-dragselect="${stepId}" data-contextmenu="${index}:seq_copy_step:${stepId},${index}:seq_paste_step:${stepId},-,${index}:seq_clear_step:${stepId},${index}:seq_clear_locks:${stepId}">${
-        i % 4 === 0 ? `<span class="beat-num">${i + 1}</span>` : ''
+        `<span class="beat-num">${i + 1}</span>`
       }<span class="material-icons chance-mark">casino</span><span class="lock-dot"></span></div>`;
     }
     drumLanes += '</div>';

@@ -30,7 +30,9 @@ import { initMidiImport } from './midi-import';
 import { renderStepLocks } from './step-locks';
 import { isQuantizable, requestToggle, isPending, hasPendingToggles, takePendingToggles, markPending, setToggleBoundary } from './pending-toggles';
 import { describeAction, labelForZone, zonePrefix, ARRANGEMENT_LETTERS } from './action-labels';
-import { Meter, DEFAULT_METER, METER_CHOICES, meterLabel, sameMeter, parseMeter } from '../meter';
+import { Meter, DEFAULT_METER, METER_CHOICES, meterLabel, sameMeter, parseMeter, startsBeat } from '../meter';
+import { timeline, timelineMeter } from '../timeline';
+import { DIV_TICKS } from '../zone/seq-layer';
 import type { PressResult } from '../zone/looper';
 import {
   updateControllerValues,
@@ -689,13 +691,37 @@ function setArrangementMeter(arrIndex: number, meter: Meter, quiet = false): voi
   const meters = (zones.meters ??= []);
   while (meters.length < 4) meters.push(null);
   meters[arrIndex] = sameMeter(meter, DEFAULT_METER) ? null : meter;
-  updateArrangementMeters();
+  updateValuesForAllZones(); // the meters on A–D, the beat marks
   triggerSave();
   if (!quiet) toast(`Arrangement ${ARRANGEMENT_LETTERS[arrIndex]} is in ${meterLabel(meter)}`);
 }
 
+/**
+ * The steps and arp cells that start a beat get a mark (and the steps their number), in the
+ * arrangement's meter at the step's length; redone when either changes
+ */
+function markBeats(zone: ZoneType, zoneElement: HTMLElement): void {
+  const meter = timeline.meter;
+  const stepTicks = DIV_TICKS[zone.sequence.division];
+  const key = `${stepTicks}|${meterLabel(meter)}`;
+  if (zoneElement.dataset.beatKey !== key) {
+    zoneElement.dataset.beatKey = key;
+    zoneElement.querySelectorAll('.step-container > .step').forEach((el, i) => {
+      el.classList.toggle('beat', startsBeat(i, stepTicks, meter));
+    });
+    zoneElement.querySelectorAll('.drum-step-container > .drum-lane').forEach((lane) => {
+      lane.querySelectorAll(':scope > .step').forEach((el, i) => {
+        el.classList.toggle('beat', startsBeat(i, stepTicks, meter));
+      });
+    });
+  }
+  zone.renderPattern();
+}
+
 /** A–D show their meter when it isn't 4/4 */
 function updateArrangementMeters(): void {
+  // the active arrangement's meter: the steps' and arp cells' beat marks follow it
+  timelineMeter(meterOf(zones.arrangementIndex));
   (DOM.all("*[data-select-arrangement]") as HTMLElement[]).forEach((el, i) => {
     const meter = meterOf(i);
     if (sameMeter(meter, DEFAULT_METER)) el.removeAttribute('data-meter');
@@ -1398,10 +1424,11 @@ function renderMarkersForZone(
 }
 
 function updateValuesForAllZones(): void {
+  // first: it sets the current meter, which the zones' beat marks follow
+  updateArrangementMeters();
   for (let i = 0; i < zones.list.length; i++) {
     updateValuesForZone(i);
   }
-  updateArrangementMeters();
   onStateChange?.();
 }
 
@@ -1455,6 +1482,7 @@ function updateValuesForZone(index: number): void {
     DOM.switchClass(zoneElement, zone.show_seq_panel, 'fold-seq');
     DOM.switchClass(zoneElement, zone.show_arp_panel, 'fold-arp');
     DOM.switchClass(zoneElement, zone.show_thru_panel, 'fold-thru');
+    markBeats(zone, zoneElement as HTMLElement);
     // the cards' switches say a little about themselves: "Seq 16 steps" ("16 steps · 4 lanes" for
     // drums), "Arp Up"
     // and the cards' panel headings the same, with "off" while the feature is off

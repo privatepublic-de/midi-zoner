@@ -150,4 +150,14 @@ function parseMeter(data: unknown): Meter | null {
   return { n, d, groups };
 }
 
-export { barTicks, unitTicks, beatOffsets, beatIndexAt, beatNumberAt, snapToBeat, beatLines, positionLabel, meterLabel, sameMeter, parseMeter };
+/**
+ * Whether step `i` of steps `stepTicks` long starts a beat, counting step 0 as a bar's 1: the
+ * sequencer's steps, the arp pattern's cells and the piano roll mark these (Nov 22, the user's
+ * ask: 6/8 marks every 6 sixteenths, 7/8 2+2+3 at 4, 4, 6). A step a beat starts inside of has no mark
+ */
+function startsBeat(i: number, stepTicks: number, m: Meter): boolean {
+  if (!(stepTicks > 0)) return false;
+  return beatOffsets(m).includes((i * stepTicks) % barTicks(m));
+}
+
+export { startsBeat, barTicks, unitTicks, beatOffsets, beatIndexAt, beatNumberAt, snapToBeat, beatLines, positionLabel, meterLabel, sameMeter, parseMeter };

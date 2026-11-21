@@ -9,7 +9,7 @@ import { Take } from './take';
 import { BEND, PRESSURE, SUSTAIN, GestureMix, gestureOf, springsBackTo } from './gestures';
 import { CurveBuilder, updateCurves } from './note-curve';
 import type { CurveName } from './note-curve';
-import { barTicks } from '../meter';
+import { barTicks, startsBeat } from '../meter';
 import { TakePlayer } from './take-player';
 import { Looper, PressResult, EARLY } from './looper';
 import { HEARD_TICKS } from './live-chords';
@@ -1580,6 +1580,8 @@ export class Zone {
       const cell = el.children[i];
       cell.classList.toggle('on', !!this.arp_pattern[i]);
       cell.classList.toggle('playhead', i === this.arp.patternPos);
+      // a tick under the cells that start a beat (at the arp's rate, in the arrangement's meter)
+      cell.classList.toggle('beat', startsBeat(i, this.arp_ticks, timeline.meter));
     }
   }
 
