@@ -1412,10 +1412,11 @@ function updateValuesForZone(index: number): void {
     // cards: the folds under the takes rows show the panels (switching Seq or Arp moves nothing)
     DOM.switchClass(zoneElement, zone.show_seq_panel, 'fold-seq');
     DOM.switchClass(zoneElement, zone.show_arp_panel, 'fold-arp');
-    // the cards' switches say a little about themselves: "Seq 16 steps", "Arp Up"
+    // the cards' switches say a little about themselves: "Seq 16 steps" ("16 steps · 4 lanes" for
+    // drums), "Arp Up"
     const seqSw = zoneElement.querySelector('.channels > .showseq .sw-extra');
     if (seqSw) {
-      const text = `${sequence.length} steps`;
+      const text = sequence.isDrumSequence ? `${sequence.length} steps · ${sequence.drumLanes} lanes` : `${sequence.length} steps`;
       if (seqSw.textContent !== text) seqSw.textContent = text;
     }
     const arpSw = zoneElement.querySelector('.channels > .showarp .sw-extra');
