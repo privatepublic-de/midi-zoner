@@ -785,6 +785,8 @@ export function updateChordChips(): void {
       now.textContent = text;
       chip.classList.toggle('long', text.length > 4);
     }
+    // cards: "Chords Am" in one switch; with no chord sounding only "Chords"
+    chip.classList.toggle('no-chord', !chord);
     const readout = el!.querySelector<HTMLElement>('.channels > .chordnow');
     const shown = chord || '–';
     if (readout && readout.textContent !== shown) {

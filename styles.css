@@ -1718,6 +1718,49 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
   background: var(--slate-line);
 }
 
+/* cards: an LED switch while on (Seq on, Arp on, the loop playing, the chords on) */
+body:not(.track-view):not(.minimized) #zones > .zone {
+  &.show-seq > .channels > .ch.showseq,
+  & > .channels > .ch.showarp.selected,
+  & > .channels > .loopgroup > .ch.showloopsw.loop-on,
+  &.chords-on > .channels > .ch.showchords {
+    color: var(--text-base-color);
+    background: color-mix(in srgb, var(--zone-color) 14%, transparent);
+    border-color: color-mix(in srgb, var(--zone-color) 55%, var(--slate-line));
+    &::before {
+      background: var(--live);
+      box-shadow: 0 0 6px var(--live);
+    }
+    .sw-extra { color: color-mix(in srgb, var(--text-base-color) 70%, transparent); }
+  }
+  /* a muted zone: the light dims */
+  &.disabled.show-seq > .channels > .ch.showseq,
+  &.disabled > .channels > .ch.showarp.selected,
+  &.disabled > .channels > .loopgroup > .ch.showloopsw.loop-on,
+  &.disabled.chords-on > .channels > .ch.showchords {
+    background: color-mix(in srgb, var(--zone-color) 6%, transparent);
+    &::before {
+      background: color-mix(in srgb, var(--live) 40%, #3b4047);
+      box-shadow: none;
+    }
+  }
+}
+
+/* only a chords or bass zone has the chords switch */
+body:not(.track-view):not(.minimized) #zones > .zone:not(.chords-zone) > .channels > .ch.showchords {
+  display: none;
+}
+
+/* the switches' small words are for the cards; the Tracks header shows "Loop 4", the mini view none */
+.channels .ch:is(.showseq, .showarp) > .sw-extra,
+body.minimized .channels .ch.showloopsw > .sw-extra,
+body.track-view .channels .ch.showloopsw .sw-unit {
+  display: none;
+}
+body:not(.track-view):not(.minimized) #zones > .zone > .channels > .ch:is(.showseq, .showarp) > .sw-extra {
+  display: inline;
+}
+
 /* cards: a chords zone has no Take chip (it plays chords, not a take) */
 body:not(.track-view):not(.minimized) #zones > .zone.chords-zone > .channels > .loopgroup > .ch.showtake {
   display: none;
@@ -1753,31 +1796,15 @@ body:not(.track-view):not(.minimized) #zones > .zone > .channels {
   > .iorouting { order: 1; flex: 1 1 0; margin-left: 6px; }
   > .zonetools { order: 2; width: var(--hdr-col3); justify-content: flex-end; }
   > .hdr-break { display: block; order: 3; flex-basis: 100%; height: 0; }
-  > :is(.ch.showseq, .ch.showarp) { order: 4; width: calc((var(--hdr-col1) - 6px) / 2); margin-left: 0; }
-  /* a chords zone: the switch in Seq's place, the chord sounding read out in Arp's */
-  > .ch.showchords { order: 4; width: calc((var(--hdr-col1) - 6px) / 2); margin-left: 0; }
+  > :is(.ch.showseq, .ch.showarp, .ch.showchords) { order: 4; margin-left: 0; }
+  /* a chords zone: "Chords Am" in one switch (the chord sounding after its part) */
   > .ch.showchords > .chc-part { display: inline; }
-  > .ch.showchords > .chc-now { display: none; }
-  > .chordnow {
-    order: 4;
-    width: calc((var(--hdr-col1) - 6px) / 2);
-    height: 26px;
-    box-sizing: border-box;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid var(--slate-line);
-    border-radius: var(--radius);
-    color: var(--text-base-color);
-    font-size: 15px;
-    font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-  }
-  > .chordnow.none { color: var(--slate-dim); font-weight: 400; }
-  > .loopgroup { order: 5; margin-left: 6px; }
-  > .loopgroup > .ch { width: 66px; }
+  > .ch.showchords > .chc-now { display: inline; font-weight: 600; font-size: 15px; color: var(--text-base-color); }
+  > .ch.showchords.no-chord > .chc-now { display: none; }
+  > .chordnow { display: none !important; }
+  > .loopgroup { order: 5; margin-left: 2px; }
   > .ch.showccs { order: 6; margin-left: auto; width: var(--hdr-col3); }
-  > :is(.ch.showseq, .ch.showarp, .ch.showchords, .ch.showccs),
+  > .ch.showccs,
   > .loopgroup > .ch {
     height: 26px;
     padding: 0 8px;
@@ -1792,7 +1819,44 @@ body:not(.track-view):not(.minimized) #zones > .zone > .channels {
      the panels open from the folds below the takes rows (.card-folds) */
   > .loopgroup > :is(.ch.showtake, .ch.showloop),
   > .ch.showccs { display: none; }
-  > .loopgroup > .ch.showloopsw { width: calc((var(--hdr-col1) - 6px) / 2); border-radius: var(--radius); }
+  /* LED switches (Nov 21, the user's pick from mocks: the filled slabs looked bureaucratic): as wide
+     as what they say, a light that glows while on, the zone colour as a soft wash; a little about
+     each in small type ("Seq 16 steps", "Arp Up", "Loop 4 bars", "Chords Am") */
+  > :is(.ch.showseq, .ch.showarp, .ch.showchords),
+  > .loopgroup > .ch.showloopsw {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    width: auto;
+    min-width: 0;
+    height: 28px;
+    padding: 0 12px 0 10px;
+    box-sizing: border-box;
+    border: 1px solid var(--slate-line);
+    border-radius: var(--radius-lg);
+    background: transparent;
+    color: var(--slate-dim);
+    font-size: 14px;
+    letter-spacing: 0;
+    white-space: nowrap;
+  }
+  > :is(.ch.showseq, .ch.showarp, .ch.showchords),
+  > .loopgroup > .ch.showloopsw {
+    &::before {
+      content: '';
+      display: block;
+      position: static;
+      flex: none;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #3b4047;
+      box-shadow: inset 0 0 0 1px #4a5058;
+    }
+    &:hover { border-color: var(--slate-dim); color: var(--text-base-color); }
+    .sw-extra { font-size: 12px; color: var(--slate-dim); }
+  }
+  > .loopgroup > .ch.showloopsw.loop-none { opacity: 0.45; }
 }
 
 /* =============================================================
@@ -6677,6 +6741,22 @@ body.track-view:not(.minimized) {
   border-color: var(--slate-line);
   box-shadow: none;
   color: var(--brighter-4);
+}
+
+/* cards' LED switches: the blink goes between the lit and the unlit look */
+body:not(.track-view):not(.minimized) #zones > .zone > .channels .ch:is(.showseq, .showarp, .showchords, .showloopsw).pending {
+  &[data-flip='on'] {
+    color: var(--text-base-color);
+    background: color-mix(in srgb, var(--zone-color) 14%, transparent);
+    border-color: color-mix(in srgb, var(--zone-color) 55%, var(--slate-line));
+    &::before { background: var(--live); box-shadow: 0 0 6px var(--live); }
+  }
+  &[data-flip='off'] {
+    color: var(--slate-dim);
+    background: transparent;
+    border-color: var(--slate-line);
+    &::before { background: #3b4047; box-shadow: inset 0 0 0 1px #4a5058; }
+  }
 }
 
 /* =============================================================

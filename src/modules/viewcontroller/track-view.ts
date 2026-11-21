@@ -212,8 +212,15 @@ function updateLoopChips(): void {
     if (!sw) continue;
     const loop = zone.loop;
     const length = loop ? Take.lengthLabel(loop.length, currentMeter()) : '';
-    const swLabel = loop ? `Loop ${length.split(' ')[0]}` : 'Loop';
-    if (sw.textContent !== swLabel) sw.textContent = swLabel;
+    // "Loop 4 bars" in cards, "Loop 4" in the Tracks header (the unit hidden there)
+    const [n, ...unit] = length.split(' ');
+    const swHtml = loop
+      ? `<span class="sw-name">Loop</span><small class="sw-extra">${escapeHTML(n)}<span class="sw-unit"> ${escapeHTML(unit.join(' '))}</span></small>`
+      : '<span class="sw-name">Loop</span>';
+    if (sw.dataset.html !== swHtml) {
+      sw.dataset.html = swHtml;
+      sw.innerHTML = swHtml;
+    }
     sw.classList.toggle('loop-none', !loop);
     sw.classList.toggle('loop-on', !!loop && zone.loopOn);
     const swTitle = zone.chords

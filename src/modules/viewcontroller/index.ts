@@ -1417,6 +1417,18 @@ function updateValuesForZone(index: number): void {
       const text = sequence.isDrumSequence ? `${sequence.length} steps · ${sequence.drumLanes} lanes` : `${sequence.length} steps`;
       if (seqExtra.textContent !== text) seqExtra.textContent = text;
     }
+    // the cards' switches say a little about themselves: "Seq 16 steps", "Arp Up"
+    const seqSw = zoneElement.querySelector('.channels > .showseq .sw-extra');
+    if (seqSw) {
+      const text = `${sequence.length} steps`;
+      if (seqSw.textContent !== text) seqSw.textContent = text;
+    }
+    const arpSw = zoneElement.querySelector('.channels > .showarp .sw-extra');
+    const dirs = zoneElement.querySelector<HTMLSelectElement>('select.arp_direction');
+    if (arpSw && dirs) {
+      const text = dirs.options[zone.arp_direction]?.text ?? '';
+      if (arpSw.textContent !== text) arpSw.textContent = text;
+    }
 
     // the panel is kept up to date while it's on (Tracks, cards) or its fold is open (cards)
     DOM.switchClass(zoneElement, sequence.active, 'show-seq');
