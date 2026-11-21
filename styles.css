@@ -1746,6 +1746,11 @@ body:not(.track-view):not(.minimized) #zones > .zone {
       box-shadow: none;
     }
   }
+  /* finished: the frame and text dim too, so it reads as silent at a glance */
+  &.chords-on.chords-finished > .channels > .ch.showchords {
+    color: var(--slate-dim);
+    border-color: var(--slate-line);
+  }
 }
 
 /* only a chords or bass zone has the chords switch */
