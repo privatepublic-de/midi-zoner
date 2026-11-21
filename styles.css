@@ -7312,7 +7312,7 @@ body.track-view:not(.minimized) .chords-block > .cb-top {
 :is(.chords-block, .chords-sum, .lane-status) .cb-dot-state.loop {
   background: var(--zone-color);
 }
-:is(.chords-block, .chords-sum) .cb-what {
+.chords-block .cb-what {
   font-weight: 600;
   color: var(--text-base-color);
 }
@@ -7583,7 +7583,7 @@ body:not(.track-view):not(.minimized) .zone.chords-zone > .chords-sum {
   font-size: 12px;
 }
 /* short of room: the style and rhythm give way, the rest keeps its size */
-.chords-sum > :is(.cb-what, .cs-edit, .label, .cs-sep) {
+.chords-sum > :is(.cs-edit, .label, .cs-sep) {
   flex: none;
 }
 .chords-sum > span:not([class]) {

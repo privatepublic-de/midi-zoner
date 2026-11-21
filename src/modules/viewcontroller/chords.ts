@@ -1227,14 +1227,14 @@ function renderSummary(zone: Zone): void {
   const key = [part, line ? lineLabel(line) : zone.chords.follows ? '!' : '', colour, style, rhythm].join('|');
   if (el.dataset.key !== key) {
     el.dataset.key = key;
-    const what = part === 'bass' ? 'Bass' : 'Chords';
     const follows = line
       ? `<span class="label">from</span><span class="cs-line" title="${escapeHTML(lineLabel(line))}">` +
         `<span class="cs-num" style="background:${escapeHTML(colour)}">${hooks.zones().indexOf(line) + 1}</span>${escapeHTML(line.label || 'Zone')}</span>`
-      : `<span class="cs-none">${zone.chords.follows ? '⚠ the zone it follows is missing' : 'follows no zone yet'}</span>`;
+      : `<span class="cs-none">${zone.chords.follows ? '⚠ The zone it follows is missing' : 'Follows no zone yet'}</span>`;
     const parts = [style, rhythm].filter((x) => x).map((x) => `<span class="cs-sep">·</span><span>${escapeHTML(x)}</span>`).join('');
     el.innerHTML =
-      `<span class="cb-what">${what}</span>${follows}${parts}<span class="cs-gap"></span>` +
+      // no "Chords" / "Bass" first: the switch above names it (Nov 21, the user's pick from mocks)
+      `${follows}${parts}<span class="cs-gap"></span>` +
       `<a class="lightButton cs-edit" title="Set up the ${part === 'bass' ? 'bass' : 'chords'}: who it follows, style, rhythm, pads and more (double-click the row)"><i class="material-icons">edit</i>Edit</a>`;
   }
   el.title = `${part === 'bass' ? 'Bass' : 'Chords'} of this zone (double-click: edit)`;
