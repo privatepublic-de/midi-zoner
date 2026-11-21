@@ -288,6 +288,7 @@ Note numbers range 0-127. Display format uses `Note.display()` which produces `M
 ### Undo/Redo
 - `UndoHistory` (src/modules/undo-history.ts) — max 20 entries, JSON snapshots of the full `zones` object
 - Discrete mutations: `undoHistory.push(JSON.stringify(zones))` after the change
+- Showing and hiding is saved but no undo step (Nov 22, the user's call: ⌘Z undid a fold instead of the last edit): the cards' folds and panel headings (`zone_fold_seq`, `zone_fold_arp`, `zone_fold_thru`, `cc_toggle`) and the In/Out popup (`iorouting_toggle`, `iorouting_input`) are `VIEW_ONLY_ACTIONS` in viewcontroller/index.ts (no `beforeAction()`), as a controller page switch
 - Continuous gestures (CC knob drag, BPM input focus): `startGesture(before)` → `endGesture(after)` collapses to one entry
 - Scene file loads also push a snapshot so load is undoable
 - UI buttons `#undoBtn` / `#redoBtn` are disabled when the stack is empty

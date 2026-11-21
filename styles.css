@@ -3745,7 +3745,9 @@ input[type='range'] {
 }
 .thru-line > .label:first-child {
   flex: none;
-  width: 60px;
+  /* "Send program" on one line (the Tracks dock; the cards' grid has the same width) */
+  width: 72px;
+  white-space: nowrap;
 }
 .thru-gap {
   width: 10px;
@@ -8173,4 +8175,9 @@ body:not(.track-view):not(.minimized) #zones > .zone {
    the output has room to be read (Nov 21, the user's pick from mocks) */
 body.track-view:not(.minimized) #zones > .zone > .channels > .ch.showccs {
   display: none;
+}
+/* "Loop 4": a space between the word and the length (the chip is a flex row, so the markup's
+   own space doesn't show) */
+body.track-view:not(.minimized) #zones > .zone > .channels > .loopgroup > .showloopsw .sw-extra {
+  margin-left: 4px;
 }

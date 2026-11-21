@@ -138,6 +138,16 @@ interface ControllerInitParams {
   history: UndoHistory;
 }
 
+/** Actions that only show or hide something: saved, but no undo step */
+const VIEW_ONLY_ACTIONS = new Set([
+  'zone_fold_seq',
+  'zone_fold_arp',
+  'zone_fold_thru',
+  'cc_toggle',
+  'iorouting_toggle',
+  'iorouting_input'
+]);
+
 function initController({
   saveData,
   data,
@@ -509,7 +519,11 @@ function actionHandler(ev: MouseEvent, overrideaction?: string): void {
     }
   }
   if (waitsForBoundary(ev, actionString!)) return;
-  undoHistory.beforeAction(JSON.stringify(zones), describeAction(actionString!, zones));
+  // showing and hiding (the cards' folds and panel headings, the In/Out popup) is saved but no
+  // undo step, as switching a controller page: ⌘Z undoes the last edit, not the last look
+  if (!VIEW_ONLY_ACTIONS.has(actionString!.split(':')[1])) {
+    undoHistory.beforeAction(JSON.stringify(zones), describeAction(actionString!, zones));
+  }
   const params = actionString!.split(':');
   const zoneindex = parseInt(params[0]);
   const action = params[1];
