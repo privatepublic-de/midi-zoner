@@ -544,9 +544,13 @@ function updateDock(zones: Zone[]): void {
     empty = `The ${zone.chords?.part === 'bass' ? 'bass' : 'chords'} of this zone are off.`;
     turnOn = 'Turn on';
   } else if (tab === 'notes' && !editedTake()) {
-    empty = zone.hasRecorded
-      ? 'Click a take or the loop in the lanes to edit its notes here.'
-      : `No loop and no takes yet. ${TAKE_HINT}.`;
+    empty = !zone.hasRecorded
+      ? `No loop and no takes yet. ${TAKE_HINT}.`
+      : zone.loop
+        ? 'Click a take or the loop in the lanes to edit its notes here.'
+        : timeline.running
+          ? 'The takes can be edited here once stopped (the lanes show what is being recorded).'
+          : 'Click a take in the lanes to edit its notes here.';
   }
   // nothing to show: the dock keeps its height and says so in its place
   dock.classList.toggle('empty', empty !== '');
@@ -679,7 +683,8 @@ function draw(): void {
   const zone = zones[selected];
   const kind = zone ? picked(zone) : null;
   const target = kind === 'take' ? editedTake() : null;
-  const name = kind === 'take' && target ? target.label.split('/')[0] : 'Loop';
+  // nothing picked (running on a zone without a loop): "Notes", not a "Loop" it doesn't have
+  const name = kind === 'take' && target ? target.label.split('/')[0] : kind === 'loop' ? 'Loop' : 'Notes';
   const notesTab = document.querySelector('#trackDock [data-tab=notes]');
   if (notesTab && notesTab.textContent !== name) notesTab.textContent = name;
 }

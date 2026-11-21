@@ -206,7 +206,9 @@ class TakeStore {
   }
 
   has(zoneId: string): boolean {
-    return this.of(zoneId).length > 0 || this.recording.has(zoneId);
+    // a run under way counts once something was played into the zone: an empty recording would
+    // give every track a take lane at Start and take it away at Stop (Nov 21)
+    return this.of(zoneId).length > 0 || this.isRecording(zoneId);
   }
 
   /** The id of a zone's take that must stay (the one playing along), set by the view */
