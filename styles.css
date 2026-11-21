@@ -1425,10 +1425,15 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
   color: var(--slate-dim);
   font-size: var(--fs-sm);
 }
-/* where the zone is: amber, as every selection */
+/* the zone's port and channel: the quiet "chosen" look (as the octave selector, the current
+   controller page), not amber */
 .ior-pick.picked {
-  border-color: var(--select);
-  box-shadow: inset 0 0 0 1px var(--select);
+  border-color: var(--slate-line);
+  background-color: var(--slate-line);
+  font-weight: 600;
+}
+.ior-chs .ior-pick.picked b {
+  color: var(--text-base-color);
 }
 .ior-pick.missing {
   color: var(--danger);
@@ -5954,10 +5959,10 @@ body.minimized .midi-led.on {
 .cc-page:hover {
   color: var(--brighter-3);
 }
-/* where you are: amber as the arrangements A–D, not the "on" fill */
+/* the current page: the quiet "chosen" look of the octave selector (Nov 21, the user's pick from
+   mocks: amber in every card blurred "where you are"; amber is for where you are in the app) */
 .cc-page.selected {
-  background-color: var(--slate-raise);
-  box-shadow: inset 0 0 0 1px var(--select);
+  background-color: var(--slate-line);
   color: var(--text-base-color);
   font-weight: 600;
 }
@@ -6295,7 +6300,8 @@ body.track-view:not(.minimized) {
     }
     .tc-new {
       margin: 0 3px;
-      color: var(--select);
+      color: var(--text-base-color);
+      font-weight: 600;
     }
     .lightButton[hidden] {
       display: none;
@@ -7087,7 +7093,9 @@ body.minimized .zone .mini-lane {
 .zone .card-takes .ct-new {
   display: none;
   margin-left: 4px;
-  color: var(--select);
+  /* the fresh take: bright, not amber (amber is where you are) */
+  color: var(--text-base-color);
+  font-weight: 600;
 }
 
 .zone .card-takes .ct-label.is-new .ct-new {
