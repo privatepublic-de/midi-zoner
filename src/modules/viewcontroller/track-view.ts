@@ -236,7 +236,9 @@ function updateLoopChips(): void {
       : zone.loopOn
         ? `Loop (${length}) on: it plays, also on a muted zone. Click: off, kept`
         : `Loop (${length}) off: kept, silent. Click: on`;
-    if (sw.title !== swTitle) sw.title = swTitle;
+    // what the cards' "Start plays" row used to note
+    const fresh = loop && zone.looper.lastRun ? ` · ${zone.looper.lastRun === 'dub' ? 'overdubbed' : 'recorded'} in this run` : '';
+    if (sw.title !== swTitle + fresh) sw.title = swTitle + fresh;
     updateTakeChip(zone);
   }
 }
@@ -368,27 +370,10 @@ function startPlays(zone: Zone): { items: string[]; note: string } {
   return { items, note: notes.join(', ') };
 }
 
-/** The card's "Start plays" row (the loop's bars and Clear are in the Tracks view) */
-function updateCardPlays(zone: Zone, el: HTMLElement): void {
-  const row = el.querySelector('.card-plays') as HTMLElement | null;
-  if (!row) return;
-  const { items, note } = startPlays(zone);
-  const what = row.querySelector('.cp-what') as HTMLElement;
-  const html = items.length
-    ? items.map((t) => `<span class="cp-item"><span class="cp-dot"></span>${escapeHTML(t)}</span>`).join('')
-    : '<span class="cp-item cp-none">nothing by itself, only what you play</span>';
-  if (what.innerHTML !== html) what.innerHTML = html;
-  // stopped: what the next Start plays; running: what plays now
-  const label = row.querySelector('.cp-label')!;
-  const word = timeline.running ? 'Plays' : 'Start plays';
-  if (label.textContent !== word) label.textContent = word;
-  const noteEl = row.querySelector('.cp-note')!;
-  if (noteEl.textContent !== note) noteEl.textContent = note;
-}
-
 /**
- * The card's takes (stopped): what Start plays, then ‹ Take n/m ›, a preview, Play along,
- * Delete (loops are made from takes in the Tracks view)
+ * The card's takes: ‹ Take n/m ›, a preview, Play along, Delete (loops are made from takes in the
+ * Tracks view). No "Start plays" row any more (Nov 21, the user's pick from mocks): the LED
+ * switches and Play along say what plays, its notes are in their tooltips
  */
 function updateCardTakes(zone: Zone, el: HTMLElement): void {
   const takes = takeStore.of(zone.id);
@@ -396,10 +381,7 @@ function updateCardTakes(zone: Zone, el: HTMLElement): void {
   // the rows stay while running (no jump at Start, no hole while playing); a take recorded in
   // this run joins them at Stop
   const showTakes = takes.length > 0;
-  const showPlays = showTakes || (zone.loop !== null && zone.looper.lastRun !== null);
-  if (el.classList.contains('has-card-plays') !== showPlays) el.classList.toggle('has-card-plays', showPlays);
   if (el.classList.contains('has-card-takes') !== showTakes) el.classList.toggle('has-card-takes', showTakes);
-  if (showPlays) updateCardPlays(zone, el);
   const take = showTakes ? takeStore.shownTake(zone.id) : null;
   const strip = el.querySelector('.card-takes') as HTMLElement | null;
   if (!take || !strip) return;
@@ -407,8 +389,10 @@ function updateCardTakes(zone: Zone, el: HTMLElement): void {
   // new: the newest take, made in the latest run
   const isNew = index === takes.length && takeStore.runAt > 0 && take.at === takeStore.runAt;
   const along = !zone.chords && zone.playingTake === take;
+  // the take playing along waits while the loop plays (the loop took over)
+  const waits = along && !!zone.loop && zone.loopOn;
   const preview = strip.querySelector('.ct-preview') as HTMLCanvasElement;
-  const key = [take.id, takeStore.version, index, takes.length, isNew, along, !!zone.chords, preview.clientWidth, zoneColours.get(el), running].join('|');
+  const key = [take.id, takeStore.version, index, takes.length, isNew, along, waits, !!zone.chords, preview.clientWidth, zoneColours.get(el), running].join('|');
   if (cardTakesKeys.get(el) === key) return;
   cardTakesKeys.set(el, key);
   strip.querySelector('.ct-name')!.textContent = `Take ${index}/${takes.length}`;
@@ -417,7 +401,9 @@ function updateCardTakes(zone: Zone, el: HTMLElement): void {
   alongBtn.style.display = zone.chords ? 'none' : '';
   alongBtn.textContent = along ? 'Plays along' : 'Play along';
   alongBtn.classList.toggle('active', along);
-  alongBtn.title = along
+  alongBtn.title = waits
+    ? `Take ${index} plays along, but waits while the loop plays (Loop off brings it back). Click: off`
+    : along
     ? `Take ${index} plays along from bar 1 of every run, as if played. Click: off`
     : `Play Take ${index} along from bar 1 of every run, as if played (chords follow it, Rec loops bars of it)`;
   strip.querySelector('[data-ct=prev]')!.classList.toggle('disabled', index <= 1);

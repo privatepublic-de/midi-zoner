@@ -6882,67 +6882,24 @@ body.minimized .zone .mini-lane {
   display: none !important;
 }
 
-/* Takes on the cards (stopped): a row saying what Start plays (with the loop of this run:
-   its bars and Clear), then the takes: ‹ Take n/m new ›, preview, Loop n bars, Play along, Delete */
-.zone .card-plays,
+/* Takes on the cards: ‹ Take n/m new ›, preview, Play along, Delete (no "Start plays" row since
+   Nov 21: the switches say what plays) */
 .zone .card-takes {
   display: none;
   align-items: center;
   gap: 6px;
   font-size: var(--fs-md);
   color: var(--slate-dim);
-}
-
-.zone .card-plays {
-  min-height: 22px;
-  margin: 4px 0 0;
-  gap: 8px;
-}
-
-.zone .card-takes {
   margin: 6px 0 2px;
   padding-top: 6px;
   border-top: 1px solid color-mix(in srgb, var(--slate-line) 60%, transparent);
 }
 
-.zone.has-card-plays .card-plays,
 .zone.has-card-takes .card-takes {
   display: flex;
 }
 
-.zone .card-plays .cp-label {
-  flex: none;
-}
-
-.zone .card-plays .cp-what {
-  display: flex;
-  gap: 10px;
-  color: var(--text-base-color);
-  white-space: nowrap;
-}
-
-.zone .card-plays .cp-dot {
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  margin-right: 5px;
-  border-radius: 50%;
-  background: var(--live);
-  vertical-align: 1px;
-}
-
-.zone .card-plays .cp-note {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  min-width: 0;
-}
-
-.zone .card-plays .cp-gap {
-  flex: 1;
-}
-
-.zone :is(.card-takes, .card-plays) .lightButton {
+.zone .card-takes .lightButton {
   min-width: 22px;
   height: 22px;
   padding: 0 8px;
@@ -7118,8 +7075,8 @@ body.minimized .zone .card-follow {
   display: none !important;
 }
 
-body.track-view .zone :is(.card-takes, .card-plays),
-body.minimized .zone :is(.card-takes, .card-plays) {
+body.track-view .zone .card-takes,
+body.minimized .zone .card-takes {
   display: none !important;
 }
 
@@ -7759,7 +7716,7 @@ body:not(.track-view):not(.minimized) #zones > .zone:not(.disabled) > .card-fold
 /* one spacing: every block of a card 10px apart, no margins of its own (hidden blocks leave none) */
 body:not(.track-view):not(.minimized) #zones > .zone {
   gap: 10px;
-  > :is(.channels, .mini-lane, .card-follow, .card-plays, .card-takes, .card-folds, .chords-sum) {
+  > :is(.channels, .mini-lane, .card-follow, .card-takes, .card-folds, .chords-sum) {
     margin-top: 0;
     margin-bottom: 0;
   }
@@ -7796,4 +7753,10 @@ body:not(.track-view):not(.minimized) #zones > .zone {
     padding-top: 10px;
     border-top: 1px solid var(--slate-line);
   }
+}
+
+/* Tracks header: no CC chip (it only opened the dock's Controllers tab, which is there anyway), so
+   the output has room to be read (Nov 21, the user's pick from mocks) */
+body.track-view:not(.minimized) #zones > .zone > .channels > .ch.showccs {
+  display: none;
 }
