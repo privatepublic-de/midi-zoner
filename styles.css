@@ -7748,11 +7748,6 @@ body:not(.track-view):not(.minimized) #zones > .zone:not(.disabled) > .card-fold
 .zone.show-cc .card-folds .cf-cc > .material-icons {
   transform: none;
 }
-.card-folds .cf-seq-extra {
-  margin-left: 5px;
-  color: var(--slate-dim);
-  font-size: var(--fs-sm, 12px);
-}
 /* a chords zone plays neither: only Controllers */
 .zone.chords-zone .card-folds :is(.cf-seq, .cf-arp) {
   display: none;
