@@ -743,20 +743,26 @@ export function updateFollowRows(): void {
     const dd = deciders.get(line.id);
     const ends = timeline.running && dd ? (dd.finished ? ' · finished' : dd.finishing ? (dd.finishing === 'open' ? ' · ending open' : ' · finishing') : '') : '';
     // on the mini lane: at the playhead the key heard (or what happens), bottom right "to", the
-    // followers as their numbers in their colours (the name boxes' look) and Clear
+    // followers as their numbers in their colours (the name boxes' look), Clear above it
     const status = ends
       ? escapeHTML(upFirst(ends.slice(3)))
       : key
         ? `<span class="cf-key">${escapeHTML(keyLabel(key))}</span>${escapeHTML(waits)}`
         : escapeHTML(upFirst(anew.get(line.id) ?? (timeline.running ? 'listening…' : '')));
     const colours = fs.map((z) => (z.elements?.zoneElement ? getComputedStyle(z.elements.zoneElement).getPropertyValue('--zone-color').trim() : ''));
+    // Clear only while there is something to clear: a key or chords heard, a chord loop playing
+    const clearable = !!(dd && (dd.key || dd.chord || dd.log.size)) || fs.some((z) => z.loop && z.loopOn);
     const html =
       (status
         ? `<span class="cf-plate cf-heard" title="${escapeHTML(key ? `The key heard from ${lineLabel(line)}` : `What ${followerNames(fs)} hear from ${lineLabel(line)}`)}">${status}</span>`
         : '') +
+      `<span class="cf-right">` +
+      (clearable
+        ? `<a class="cf-startover" title="${escapeHTML(`Clear the key and chords heard from ${lineLabel(line)} and listen anew: ${followerNames(fs)}; chord loops playing there are switched off (kept). Switching Play along here does this by itself`)}">Clear</a>`
+        : '') +
       `<span class="cf-plate cf-to" title="${escapeHTML(`Followed by ${followerNames(fs)}`)}">to` +
       fs.map((z, i) => `<span class="cf-num" style="background:${escapeHTML(colours[i])}" title="${escapeHTML(zoneNumberName(z))}">${hooks.zones().indexOf(z) + 1}</span>`).join('') +
-      `<a class="cf-startover" title="${escapeHTML(`Clear the key and chords heard from ${lineLabel(line)} and listen anew: ${followerNames(fs)}; chord loops playing there are switched off (kept). Switching Play along here does this by itself`)}">Clear</a></span>`;
+      `</span></span>`;
     if (row.dataset.html !== html) {
       row.dataset.html = html;
       row.innerHTML = html;

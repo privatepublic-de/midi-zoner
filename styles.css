@@ -7000,8 +7000,16 @@ body.minimized .zone .mini-lane {
   overflow: hidden;
   pointer-events: auto;
 }
+.zone .card-follow .cf-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  max-width: 60%;
+  /* the numbers as far from the lane's right edge as from its bottom */
+  margin: 0 -1.5px 0 auto;
+}
 .zone .card-follow .cf-to {
-  margin-left: auto;
+  max-width: 100%;
 }
 /* the key heard sits at the playhead (MINI_PLAYHEAD_AT in track-view.ts, 22 % of the lane) */
 .zone .card-follow .cf-heard {
@@ -7047,18 +7055,21 @@ body:not(.track-view):not(.minimized) .zone.chords-zone .mini-lane .lane-status 
   font-size: 11px;
 }
 .zone .card-follow .cf-startover {
-  margin-left: 2px;
-  padding: 0 5px;
+  /* lines up with the numbers, which sit inside the plate's 4px padding */
+  margin-right: 4px;
+  padding: 0 4px;
   border: 1px solid var(--slate-line);
   border-radius: var(--radius-sm);
   background: var(--slate-raise);
-  color: var(--text-base-color);
-  font-size: 11px;
-  line-height: 15px;
+  color: var(--slate-dim);
+  font-size: 10px;
+  line-height: 12px;
   cursor: pointer;
+  pointer-events: auto;
 }
 .zone .card-follow .cf-startover:hover {
   border-color: var(--slate-dim);
+  color: var(--text-base-color);
 }
 
 /* Finish / Open end / Play on in a chords or bass zone's row, while running */
