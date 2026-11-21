@@ -264,6 +264,11 @@ export function createZoneActions(
       updateValuesForZone(zoneindex);
       triggerSave();
     },
+    zone_fold_thru: () => {
+      zone.show_thru_panel = !zone.show_thru_panel;
+      updateValuesForZone(zoneindex);
+      triggerSave();
+    },
     // a track of a MIDI file as the zone's newest take (an undo step of its own once imported)
     zone_import_midi: () => {
       void importMidiFile(zoneindex);

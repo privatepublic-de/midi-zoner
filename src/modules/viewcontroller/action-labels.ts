@@ -106,6 +106,7 @@ const ACTION_LABEL_OVERRIDES: Record<string, string | OverrideFn> = {
   cc_toggle: 'Show/Hide Controllers',
   zone_fold_seq: 'Show/Hide Sequencer',
   zone_fold_arp: 'Show/Hide Arp',
+  zone_fold_thru: 'Show/Hide Thru, Velocity, Program',
 
   filters_at2mod: 'Aftertouch → Mod Filter',
   filters_cc: 'CC Filter',
@@ -120,12 +121,10 @@ const ACTION_LABEL_OVERRIDES: Record<string, string | OverrideFn> = {
   filters_programchange: 'Program Change Filter',
   filters_sustain: 'Sustain Filter',
   filters_sustain_on: 'Pedal',
-  filters_toggle: 'Message Filters',
   filters_velocity_scaling: 'Velocity Scaling',
 
   iorouting_toggle: 'I/O Routing',
   iorouting_input: 'I/O Routing',
-  program_toggle: 'Program Change',
   toggle_seq: 'Sequencer On/Off',
   zone_loop_on: 'Loop On/Off',
   zone_take_play: 'Play Along On/Off',

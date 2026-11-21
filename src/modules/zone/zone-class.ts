@@ -159,6 +159,8 @@ export class Zone {
   /** Cards: the Sequencer and Arp folds open (their panels shown, whether the feature is on or not) */
   show_seq_panel = false;
   show_arp_panel = false;
+  /** cards: the Thru, Velocity, Program panel is open */
+  show_thru_panel = false;
   devicePreset: { id: string; name: string } | null = null;
   /** The controller page shown (pages: PAGE entries in cc_controllers) */
   ccPage = 0;
@@ -348,6 +350,7 @@ export class Zone {
       show_cc: this.show_cc,
       show_seq_panel: this.show_seq_panel,
       show_arp_panel: this.show_arp_panel,
+      show_thru_panel: this.show_thru_panel,
       pgm_no: this.pgm_no,
       bank_msb: this.bank_msb,
       bank_lsb: this.bank_lsb,

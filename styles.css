@@ -1669,7 +1669,6 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
 }
 
 .zone.disabled .range,
-.zone.disabled .toggle_filters,
 .zone.disabled .iorouting-display {
   pointer-events: none;
 }
@@ -2053,20 +2052,6 @@ body:not(.track-view):not(.minimized) #zones > .zone > .channels {
   background-color: var(--red-highlight);
 }
 
-.action.toggle_filters::after {
-  content: '';
-  display: inline-block;
-  vertical-align: middle;
-  margin-left: 4px;
-  margin-bottom: 1px;
-  width: 5px;
-  height: 5px;
-  border-right: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
-  transform: rotate(45deg);
-  pointer-events: none;
-}
-
 .check {
   display: flex;
   align-items: center;
@@ -2404,11 +2389,6 @@ input[type='range'] {
   background-color: var(--darker-2);
 }
 
-/* cards: the keyboard strip and the settings row under it (Oct, Thru, Program, Pedal,
-   Swing) sit at the card's bottom, level across a row of cards; spare height goes above */
-body:not(.track-view):not(.minimized) #zones > .zone > .rangeholder {
-  margin-top: auto;
-}
 
 .disabled .rangeholder {
   background-color: var(--darker-3);
@@ -3733,30 +3713,15 @@ body:not(.track-view):not(.minimized) #zones > .zone > .rangeholder {
   border-top: 1px solid var(--slate-line);
 }
 
-.popupsettings,
-.programsettings {
-  position: absolute;
-  z-index: 1;
-  top: calc(100% + 5px);
-  left: 0;
-  right: 0;
+/* Thru, Velocity, Program (a panel of its own, Nov 21, the user's pick from mocks; was two popups under the
+   keyboard): a line each for what passes, for velocity and for the program, led by its label */
+.thru-panel {
   display: none;
-  flex-wrap: wrap;
-  row-gap: 4px;
-  column-gap: 16px;
-  cursor: default;
-}
-.programsettings {
-  align-items: center;
-  column-gap: 8px;
+  flex-direction: column;
+  gap: 8px;
 }
 .programsettings input::placeholder {
   color: var(--slate-dim);
-}
-/* Thru: a line each for what passes and for velocity, led by its label */
-.popupsettings {
-  flex-direction: column;
-  row-gap: 8px;
 }
 .thru-line {
   display: flex;
@@ -3766,12 +3731,13 @@ body:not(.track-view):not(.minimized) #zones > .zone > .rangeholder {
 }
 .thru-line > .label:first-child {
   flex: none;
-  width: 56px;
+  width: 60px;
 }
 .thru-gap {
   width: 10px;
 }
-/* a dot when Thru is set apart from a new zone, the program number when one is set */
+/* on the Thru, Velocity, Program fold: a dot when Thru is set apart from a new zone, the program number
+   when one is set */
 .thru-dot {
   display: none;
   width: 5px;
@@ -3781,13 +3747,26 @@ body:not(.track-view):not(.minimized) #zones > .zone > .rangeholder {
   background: currentColor;
   vertical-align: middle;
 }
-.toggle_filters.changed .thru-dot {
+.cf-thru.changed .thru-dot {
   display: inline-block;
 }
 .program-num:not(:empty) {
   margin-left: 4px;
   font-weight: 600;
 }
+/* the play row under the keyboard (Nov 21, the user's pick from mocks): what you press while
+   playing on the left (Oct, Pedal, Hold Arp while the arp is on), the feel on the right (Swing,
+   while Seq or Arp is on) */
+.settings > .play-hold {
+  display: none;
+}
+.arp-enabled > .settings > .play-hold {
+  display: flex;
+}
+.settings > .swing-in-settings {
+  margin-left: auto;
+}
+.action.play-hold.selected,
 .action.sustain_on.selected {
   background-color: var(--on);
   box-shadow: none;
@@ -6647,7 +6626,7 @@ body.track-view:not(.minimized) {
   &.converting #trackDock .td-empty {
     display: none !important;
   }
-  &.converting[data-dock] #zones > .zone.track-selected.track-selected > :is(.seq, .arp-settings-block, .chords-block, .ccpots, .settings, .rangeholder) {
+  &.converting[data-dock] #zones > .zone.track-selected.track-selected > :is(.seq, .arp-settings-block, .chords-block, .ccpots, .settings, .rangeholder, .thru-panel) {
     display: none !important;
   }
   /* in the dock's place while its tab has nothing for this track */
@@ -6748,8 +6727,19 @@ body.track-view:not(.minimized) {
   &[data-dock='cc']:not(.dock-closed) #zones > .zone.track-selected > .ccpots {
     display: block !important;
   }
-  &[data-dock='zone']:not(.dock-closed) #zones > .zone.track-selected > :is(.settings, .rangeholder) {
+  &[data-dock='zone']:not(.dock-closed) #zones > .zone.track-selected > :is(.settings, .rangeholder, .thru-panel) {
     display: flex !important;
+  }
+  /* beside the settings and keyboard: Thru, Velocity, Program */
+  #zones > .zone.track-selected > .thru-panel {
+    position: fixed;
+    z-index: 3;
+    top: calc(100vh - var(--dock-h) + var(--dock-bar-h) + 18px);
+    left: calc(var(--track-gap) + 1px + var(--track-settings-w));
+    right: calc(var(--track-gap) + 1px);
+    margin: 0;
+    padding: 0 12px 0 20px;
+    border-left: 1px solid var(--slate-line);
   }
   /* the Track tab: the zone's settings and key range on the left (--track-settings-w) */
   #zones > .zone.track-selected > .settings {
@@ -7874,12 +7864,14 @@ body:not(.track-view):not(.minimized) #zones > .zone:not(.disabled) > .card-fold
 }
 .zone.fold-seq .card-folds .cf-seq,
 .zone.fold-arp .card-folds .cf-arp,
-.zone.show-cc .card-folds .cf-cc {
+.zone.show-cc .card-folds .cf-cc,
+.zone.fold-thru .card-folds .cf-thru {
   color: var(--text-base-color);
 }
 .zone.fold-seq .card-folds .cf-seq > .material-icons,
 .zone.fold-arp .card-folds .cf-arp > .material-icons,
-.zone.show-cc .card-folds .cf-cc > .material-icons {
+.zone.show-cc .card-folds .cf-cc > .material-icons,
+.zone.fold-thru .card-folds .cf-thru > .material-icons {
   transform: none;
 }
 /* a chords zone plays neither: only Controllers */
@@ -7921,11 +7913,88 @@ body:not(.track-view):not(.minimized) #zones > .zone {
   &:not(.show-cc) > .ccpots {
     display: none;
   }
-  /* two open panels: a divider between them */
-  &.fold-seq.fold-arp:not(.chords-zone) > .arp-settings-block,
-  &.show-cc:is(.fold-seq, .fold-arp):not(.chords-zone) > .ccpots {
-    padding-top: 10px;
-    border-top: 1px solid var(--slate-line);
+  &.fold-thru:not(.disabled) > .thru-panel {
+    display: flex;
+  }
+}
+
+/* cards, top to bottom (Nov 21, the user's picks from mocks): the top bar (name, output), the
+   keyboard with Oct and Pedal (what you play into the zone, level across a row of cards), the
+   switches Seq · Arp · Loop over the lane that draws what they play, the takes row, then the folds
+   and the open panels, so opening one only grows the card downwards. The header's two rows are one
+   element (.channels, laid out by the Tracks header and the mini view too), so in cards it lets its
+   items into the card (display: contents) and the card wraps them in rows: their order (top bar
+   -3…2, switches 4…6) leaves 3 for the keyboard; every other block takes a row of its own */
+body:not(.track-view):not(.minimized) #zones > .zone {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  align-content: flex-start;
+  column-gap: 6px;
+  > .channels { display: contents; }
+  > .channels > .hdr-break { display: none; }
+  > :not(.channels, .zonenumber) { flex: 0 0 100%; min-width: 0; }
+  > .rangeholder { order: 3; }
+  /* the play row ends what you play into the zone; a line sets it apart from what plays by
+     itself (the switches and the lane), as the folds' line does from the panels */
+  > .settings {
+    order: 3;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--slate-line);
+  }
+  > .mini-lane { order: 10; }
+  > .card-takes { order: 11; }
+  > .chords-sum { order: 12; }
+  > .card-folds { order: 13; }
+  > .seq { order: 14; }
+  > .arp-settings-block { order: 15; }
+  > .ccpots { order: 16; }
+  > .thru-panel { order: 17; }
+  /* the zone number under an open panel's frame */
+  &:not(.disabled):is(.fold-seq, .fold-arp, .show-cc, .fold-thru) {
+    padding-bottom: 24px;
+  }
+  /* an open panel: a frame of its own, darker than the card, headed by its name (a click hides it) */
+  &.fold-seq > .seq,
+  &.fold-arp > .arp-settings-block,
+  &.show-cc > .ccpots,
+  &.fold-thru > .thru-panel {
+    position: relative;
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0;
+    padding: 32px 12px 12px;
+    background-color: color-mix(in srgb, var(--slate-bg) 55%, transparent);
+    border: 1px solid var(--slate-line);
+    border-radius: var(--radius-lg);
+  }
+  .panel-head {
+    display: flex;
+  }
+}
+.zone .panel-head {
+  display: none;
+  position: absolute;
+  top: 7px;
+  left: 10px;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--fs-sm);
+  color: var(--text-base-color);
+  cursor: pointer;
+  white-space: nowrap;
+  > .material-icons {
+    font-size: 16px;
+    color: var(--slate-dim);
+    transition: transform 150ms;
+  }
+  &:hover > .material-icons {
+    color: var(--brighter-4);
+  }
+  > .ph-extra {
+    margin-left: 8px;
+    color: var(--slate-dim);
+    font-size: var(--fs-sm);
   }
 }
 

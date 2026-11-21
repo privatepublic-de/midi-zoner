@@ -223,6 +223,7 @@ function createZone(midi: MIDIInstance, zoneData: any, freshId = false): Zone {
   // the cards' folds; scenes from before them open the panels of what is switched on
   zone.show_seq_panel = typeof zoneData.show_seq_panel === 'boolean' ? zoneData.show_seq_panel : zone.sequence.active;
   zone.show_arp_panel = typeof zoneData.show_arp_panel === 'boolean' ? zoneData.show_arp_panel : zone.arp_enabled;
+  zone.show_thru_panel = zoneData.show_thru_panel === true;
   return zone;
 }
 

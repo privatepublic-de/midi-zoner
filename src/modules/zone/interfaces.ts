@@ -309,6 +309,7 @@ export interface ZoneJSON {
   show_cc: boolean;
   show_seq_panel?: boolean;
   show_arp_panel?: boolean;
+  show_thru_panel?: boolean;
   pgm_no?: number | null;
   bank_msb?: number | null;
   bank_lsb?: number | null;

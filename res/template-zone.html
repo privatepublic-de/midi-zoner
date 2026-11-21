@@ -270,11 +270,15 @@
     <a class="cf-fold cf-seq" data-action="${index}:zone_fold_seq" title="Show or hide the sequencer's steps (Seq switches it on/off)"><i class="material-icons">expand_more</i>Sequencer</a>
     <a class="cf-fold cf-arp" data-action="${index}:zone_fold_arp" title="Show or hide the arp's settings (Arp switches it on/off)"><i class="material-icons">expand_more</i>Arp</a>
     <a class="cf-fold cf-cc" data-action="${index}:cc_toggle" title="Show or hide this zone's controllers"><i class="material-icons">expand_more</i>Controllers</a>
+    <a class="cf-fold cf-thru" data-action="${index}:zone_fold_thru" title="Show or hide what passes from your keyboard to the device, how hard notes play, and its program"><i class="material-icons">expand_more</i>Thru, Velocity, Program<span class="thru-dot" title="Thru differs from a new zone's settings"></span><span class="program-num" title="The program sent to the device"></span></a>
   </div>
   <div
     class="seq shadowed-zone-block"
     data-contextmenu="${index}:seq_copy,${index}:seq_paste,-,${index}:seq_clear_all"
   >
+    <a class="panel-head" data-action="${index}:zone_fold_seq" title="Hide the sequencer (Seq switches it on/off)"
+      ><i class="material-icons">expand_more</i>Sequencer<small class="ph-extra"></small></a
+    >
     <div class="grid">
       <div class="step-container">${sequencerGrid}</div>
       <div class="drum-step-container">${drumLanes}</div>
@@ -559,6 +563,9 @@
   </div>
   <div class="chords-block shadowed-zone-block"></div>
   <div class="arp-settings-block shadowed-zone-block">
+    <a class="panel-head" data-action="${index}:zone_fold_arp" title="Hide the arp's settings (Arp switches it on/off)"
+      ><i class="material-icons">expand_more</i>Arp<small class="ph-extra"></small></a
+    >
     <div class="arp-settings">
       <div class="label">Arp</div>
       <div class="drop-down">
@@ -748,6 +755,9 @@
   </div>
 
   <div class="ccpots shadowed-zone-block">
+    <a class="panel-head" data-action="${index}:cc_toggle" title="Hide this zone's controllers"
+      ><i class="material-icons">expand_more</i>Controllers</a
+    >
     <div class="cctools">
       <div class="cc-pages" role="tablist" aria-label="Controller pages"></div>
       <div style="flex-grow: 1"></div>
@@ -769,132 +779,91 @@
     </div>
     <div class="container"></div>
   </div>
-  <div class="rangeholder shadowed-zone-block">
-    <div
-      class="range"
-      data-hover="${index}:zone_range"
-      data-action="${index}:zone_range"
-      title="Lowest and highest key this zone plays (⇧: in octaves)"
+  <div class="thru-panel shadowed-zone-block">
+    <a class="panel-head" data-action="${index}:zone_fold_thru" title="Hide Thru, Velocity, Program"
+      ><i class="material-icons">expand_more</i>Thru, Velocity, Program</a
     >
-      <span class="join"></span>
-      <span class="current"></span>
-      <span class="marker low">C-1</span>
-      <span class="marker high">G9</span>
-      <canvas id="canvas${index}" width="100%" height="20"></canvas>
-    </div>
-  </div>
-  <div class="settings">
-    <div class="val label">Oct</div>
-    <div class="val octaves" title="Octave shift of what you play">
-      <a class="octselect" data-action="${index}:zone_octave:-3">−3</a>
-      <a class="octselect" data-action="${index}:zone_octave:-2">−2</a>
-      <a class="octselect" data-action="${index}:zone_octave:-1">−1</a>
-      <a
-        class="octselect octcenter selected"
-        data-action="${index}:zone_octave:0"
-      >0</a
+    <div class="thru-line">
+      <div class="label">Pass</div>
+      <div
+        class="check pitchbend"
+        data-action="${index}:filters_pitchbend"
+        title="Pass pitch bend"
       >
-      <a class="octselect" data-action="${index}:zone_octave:1">+1</a>
-      <a class="octselect" data-action="${index}:zone_octave:2">+2</a>
-      <a class="octselect" data-action="${index}:zone_octave:3">+3</a>
-    </div>
-    <div
-      class="action toggle_filters thru"
-      data-action="${index}:filters_toggle"
-      title="What passes from your keyboard to the synth, and velocity"
-    >
-      Thru<span class="thru-dot" title="Differs from a new zone's settings"></span>
-    </div>
-    <div class="popupsettings popup hideonleave">
-      <div class="thru-line">
-        <div class="label">Pass</div>
-        <div
-          class="check pitchbend"
-          data-action="${index}:filters_pitchbend"
-          title="Pass pitch bend"
-        >
-          ${checkboxIcons}Bend
-        </div>
-        <div
-          class="check mod"
-          data-action="${index}:filters_mod"
-          title="Pass the mod wheel (CC 1)"
-        >
-          ${checkboxIcons}Wheel
-        </div>
-        <div
-          class="check sustain"
-          data-action="${index}:filters_sustain"
-          title="Pass the sustain pedal (CC 64)"
-        >
-          ${checkboxIcons}Sustain
-        </div>
-        <div
-          class="check cc"
-          data-action="${index}:filters_cc"
-          title="Pass all other control changes"
-        >
-          ${checkboxIcons}CC
-        </div>
-        <div
-          class="check programchange"
-          data-action="${index}:filters_programchange"
-          title="Pass program changes"
-        >
-          ${checkboxIcons}Program
-        </div>
-        <div class="thru-gap"></div>
-        <div
-          class="check at2mod"
-          data-action="${index}:filters_at2mod"
-          title="Turn channel pressure (aftertouch) into the mod wheel (CC 1)"
-        >
-          ${checkboxIcons}AT→MW
-        </div>
+        ${checkboxIcons}Bend
       </div>
-      <div class="thru-line">
-        <div class="label">Velocity</div>
-        <div
-          class="check fixedvel"
-          data-action="${index}:filters_fixedvel"
-          title="Play every note at this velocity"
-        >
-          ${checkboxIcons}Fixed
-          <input
-            type="number"
-            class="fixedvel_value"
-            onclick="event.stopPropagation()"
-            data-change="${index}:filters_fixedvel_value"
-            value="127"
-            min="1"
-            max="127"
-            tabindex="-1"
-          />
-        </div>
-        <div class="thru-gap"></div>
-        <div class="label">Scale</div>
-        <div class="percent-holder" title="Scale how hard you play: 100% as played">
-          <input
-            type="range"
-            class="percent velocity_scaling"
-            data-change="${index}:filters_velocity_scaling"
-            id="velocity_scaling${index}"
-            min="0"
-            max="200"
-            tabindex="-1"
-          />
-          <output for="velocity_scaling${index}">---</output>
-        </div>
+      <div
+        class="check mod"
+        data-action="${index}:filters_mod"
+        title="Pass the mod wheel (CC 1)"
+      >
+        ${checkboxIcons}Wheel
+      </div>
+      <div
+        class="check sustain"
+        data-action="${index}:filters_sustain"
+        title="Pass the sustain pedal (CC 64)"
+      >
+        ${checkboxIcons}Sustain
+      </div>
+      <div
+        class="check cc"
+        data-action="${index}:filters_cc"
+        title="Pass all other control changes"
+      >
+        ${checkboxIcons}CC
+      </div>
+      <div
+        class="check programchange"
+        data-action="${index}:filters_programchange"
+        title="Pass program changes"
+      >
+        ${checkboxIcons}Program
+      </div>
+      <div class="thru-gap"></div>
+      <div
+        class="check at2mod"
+        data-action="${index}:filters_at2mod"
+        title="Turn channel pressure (aftertouch) into the mod wheel (CC 1)"
+      >
+        ${checkboxIcons}AT→MW
       </div>
     </div>
-    <div
-      class="action toggle_filters"
-      data-action="${index}:program_toggle"
-      title="Program and bank sent to the synth"
-    >
-      Program<span class="program-num"></span>
+    <div class="thru-line">
+      <div class="label">Velocity</div>
+      <div
+        class="check fixedvel"
+        data-action="${index}:filters_fixedvel"
+        title="Play every note at this velocity"
+      >
+        ${checkboxIcons}Fixed
+        <input
+          type="number"
+          class="fixedvel_value"
+          onclick="event.stopPropagation()"
+          data-change="${index}:filters_fixedvel_value"
+          value="127"
+          min="1"
+          max="127"
+          tabindex="-1"
+        />
+      </div>
+      <div class="thru-gap"></div>
+      <div class="label">Scale</div>
+      <div class="percent-holder" title="Scale how hard you play: 100% as played">
+        <input
+          type="range"
+          class="percent velocity_scaling"
+          data-change="${index}:filters_velocity_scaling"
+          id="velocity_scaling${index}"
+          min="0"
+          max="200"
+          tabindex="-1"
+        />
+        <output for="velocity_scaling${index}">---</output>
+      </div>
     </div>
-    <div class="programsettings popup hideonleave">
+    <div class="thru-line programsettings">
       <div class="label">Program</div>
       <input
         title="Program change (1–128), sent on Enter or when you leave the field; empty: none"
@@ -932,7 +901,7 @@
         data-change="${index}:filters_changebank_lsb"
         tabindex="-1"
       />
-      <div style="flex-grow: 1"></div>
+      <div class="thru-gap"></div>
       <div
         class="action program-send"
         data-action="${index}:filters_sendprogram"
@@ -941,12 +910,49 @@
         Send
       </div>
     </div>
+  </div>
+  <div class="rangeholder shadowed-zone-block">
+    <div
+      class="range"
+      data-hover="${index}:zone_range"
+      data-action="${index}:zone_range"
+      title="Lowest and highest key this zone plays (⇧: in octaves)"
+    >
+      <span class="join"></span>
+      <span class="current"></span>
+      <span class="marker low">C-1</span>
+      <span class="marker high">G9</span>
+      <canvas id="canvas${index}" width="100%" height="20"></canvas>
+    </div>
+  </div>
+  <div class="settings">
+    <div class="val label">Oct</div>
+    <div class="val octaves" title="Octave shift of what you play">
+      <a class="octselect" data-action="${index}:zone_octave:-3">−3</a>
+      <a class="octselect" data-action="${index}:zone_octave:-2">−2</a>
+      <a class="octselect" data-action="${index}:zone_octave:-1">−1</a>
+      <a
+        class="octselect octcenter selected"
+        data-action="${index}:zone_octave:0"
+      >0</a
+      >
+      <a class="octselect" data-action="${index}:zone_octave:1">+1</a>
+      <a class="octselect" data-action="${index}:zone_octave:2">+2</a>
+      <a class="octselect" data-action="${index}:zone_octave:3">+3</a>
+    </div>
     <div
       class="action sustain_on"
       data-action="${index}:filters_sustain_on"
       title="Hold the sustain pedal down on the synth (CC 64) until you press this again"
     >
       Pedal
+    </div>
+    <div
+      class="action play-hold"
+      data-action="${index}:zone_arp_hold"
+      title="Keep the arp playing after you let go of the keys"
+    >
+      Hold Arp
     </div>
     <div class="swing-in-settings">
       <div class="label">Swing</div>

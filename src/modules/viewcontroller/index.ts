@@ -1434,18 +1434,21 @@ function updateValuesForZone(index: number): void {
     // cards: the folds under the takes rows show the panels (switching Seq or Arp moves nothing)
     DOM.switchClass(zoneElement, zone.show_seq_panel, 'fold-seq');
     DOM.switchClass(zoneElement, zone.show_arp_panel, 'fold-arp');
+    DOM.switchClass(zoneElement, zone.show_thru_panel, 'fold-thru');
     // the cards' switches say a little about themselves: "Seq 16 steps" ("16 steps · 4 lanes" for
     // drums), "Arp Up"
-    const seqSw = zoneElement.querySelector('.channels > .showseq .sw-extra');
-    if (seqSw) {
-      const text = sequence.isDrumSequence ? `${sequence.length} steps · ${sequence.drumLanes} lanes` : `${sequence.length} steps`;
-      if (seqSw.textContent !== text) seqSw.textContent = text;
-    }
-    const arpSw = zoneElement.querySelector('.channels > .showarp .sw-extra');
+    // and the cards' panel headings the same, with "off" while the feature is off
+    const setText = (el: Element | null, text: string): void => {
+      if (el && el.textContent !== text) el.textContent = text;
+    };
+    const seqText = sequence.isDrumSequence ? `${sequence.length} steps · ${sequence.drumLanes} lanes` : `${sequence.length} steps`;
+    setText(zoneElement.querySelector('.channels > .showseq .sw-extra'), seqText);
+    setText(zoneElement.querySelector('.seq > .panel-head .ph-extra'), sequence.active ? seqText : seqText + ' · off');
     const dirs = zoneElement.querySelector<HTMLSelectElement>('select.arp_direction');
-    if (arpSw && dirs) {
-      const text = dirs.options[zone.arp_direction]?.text ?? '';
-      if (arpSw.textContent !== text) arpSw.textContent = text;
+    if (dirs) {
+      const arpText = dirs.options[zone.arp_direction]?.text ?? '';
+      setText(zoneElement.querySelector('.channels > .showarp .sw-extra'), arpText);
+      setText(zoneElement.querySelector('.arp-settings-block > .panel-head .ph-extra'), zone.arp_enabled ? arpText : arpText + ' · off');
     }
 
     // the panel is kept up to date while it's on (Tracks, cards) or its fold is open (cards)
@@ -1706,6 +1709,8 @@ function updateValuesForZone(index: number): void {
     ].forEach((p) => {
       zone.elements.addSelectedStyle('.' + p, (zone as any)[p]);
     });
+    // the arp's Hold again in the play row, beside Pedal ("Hold Arp", while the arp is on)
+    zone.elements.addSelectedStyle('.play-hold', zone.arp_hold);
     [
       'channel',
       'arp_direction',
