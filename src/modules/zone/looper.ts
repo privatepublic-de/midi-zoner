@@ -92,7 +92,8 @@ export function loopFromNotes(
   to: number,
   bar: number,
   empty = false,
-  gestures?: GesturesJSON
+  gestures?: GesturesJSON,
+  sources?: Map<TakeNoteJSON, SongNote>
 ): Take | null {
   const len = to - from;
   if (len <= 0) return null;
@@ -100,7 +101,9 @@ export function loopFromNotes(
   const notes: TakeNoteJSON[] = [];
   for (const p of played) {
     if (p.s < from - EARLY || p.s >= to - EARLY) continue;
-    notes.push(takeNote(p, Math.max(0, p.s - from), Math.min(p.d, len)));
+    const note = takeNote(p, Math.max(0, p.s - from), Math.min(p.d, len));
+    notes.push(note);
+    sources?.set(note, p);
     used.add(p);
   }
   const before = played.filter((p) => p.s >= from - bar && p.s < from - EARLY).sort((a, b) => a.s - b.s);
@@ -110,7 +113,9 @@ export function loopFromNotes(
     const t = p.s - from + len;
     if (t < 0) continue;
     if (notes.some((n) => n.n === p.n && Math.abs(n.t - t) <= MIRROR)) continue;
-    notes.push(takeNote(p, t, Math.max(0.25, Math.min(p.d, len)), true));
+    const note = takeNote(p, t, Math.max(0.25, Math.min(p.d, len)), true);
+    notes.push(note);
+    sources?.set(note, p);
     used.add(p);
   }
   if ((notes.length === 0 && !empty) || notes.length > Take.MAX_NOTES) return null;
@@ -188,6 +193,7 @@ export function recutLoop(loop: Take, a: number, b: number, bar: number): Take |
   next.id = loop.id;
   next.sections = loop.sections.map((s) => ({ t: s.t, meter: s.meter }));
   next.origin = loop.origin ? { at: loop.origin.at, run: loop.origin.run + a } : null;
+  next.link = loop.link ? JSON.parse(JSON.stringify(loop.link)) : null;
   next.sort();
   return next;
 }
@@ -457,6 +463,8 @@ export class Looper {
     let count = 0;
     for (const n of added) {
       if (loop.notes.length >= Take.MAX_NOTES) break;
+      // the loop's own: kept where it is when the loop is cut anew from its take
+      n.o = 1;
       loop.notes.push(n);
       count++;
     }

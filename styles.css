@@ -7085,6 +7085,11 @@ body.loop-edge-dragging,
 body.loop-edge-dragging * {
   cursor: ew-resize !important;
 }
+/* sliding a loop's window over its take */
+body.loop-window-sliding,
+body.loop-window-sliding * {
+  cursor: grabbing !important;
+}
 
 
 /* =============================================================

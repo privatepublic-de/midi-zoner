@@ -24,7 +24,7 @@ import {
 import { closeCCEditor, initCCEditor, isCCEditorOpen, refreshCCEditor } from './cc-editor';
 import { initPianoRoll } from './piano-roll';
 import { initChords, chordsTick, chordsTransport, chordsPause, chordsPanic, chordsLineLoopChanged, chordsMenu, renderChordBlock, keepChords, alignToLine, updateChordChips, updateFollowRows, playChords, refreshChordsSheet } from './chords';
-import { initTrackView, isTrackView, setTrackView, followTrack, updateLoopChips, invalidateTrackView } from './track-view';
+import { initTrackView, isTrackView, setTrackView, followTrack, updateLoopChips, invalidateTrackView, beginTakeLoops } from './track-view';
 import { takeStore } from '../take-store';
 import { initMidiImport } from './midi-import';
 import { renderStepLocks } from './step-locks';
@@ -184,10 +184,26 @@ function initController({
       // takes aren't scene data: an edit is an undo step that patches the take back
       commit: (zoneindex, take, label, change) => {
         const before = take.toJSON();
+        // loops cut from the take follow it: cut anew, in the same undo step
+        const loopsAfter = beginTakeLoops(take);
         change();
         const after = take.toJSON();
         if (JSON.stringify(before) === JSON.stringify(after)) return;
         takeStore.touched();
+        const loops = loopsAfter();
+        const arrangement = zones.arrangementIndex;
+        const setLoops = (which: 'before' | 'after'): void => {
+          if (!loops.length || zones.arrangementIndex !== arrangement) return;
+          for (const c of loops) {
+            const zone = zones.list.find((z) => z.id === c.zoneId);
+            if (!zone) continue;
+            zone.loop = c[which].copy();
+            zone.loopPlayer.release(true);
+          }
+          originalSave();
+          window.dispatchEvent(new CustomEvent(ZONES_CHANGED_EVENT));
+        };
+        setLoops('after');
         const refresh = (): void => {
           takeStore.touched();
           invalidateTrackView();
@@ -195,10 +211,12 @@ function initController({
         undoHistory.pushPatch(labelForZone(zones.list[zoneindex], zoneindex, label), {
           undo: () => {
             take.restore(before);
+            setLoops('before');
             refresh();
           },
           redo: () => {
             take.restore(after);
+            setLoops('after');
             refresh();
           }
         });

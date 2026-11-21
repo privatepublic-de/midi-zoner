@@ -6,10 +6,11 @@ import { CurveCursor } from '../zone/note-curve';
 import { timeline, sessionNow, songNow, nowTick, timelineMeter, countInNow, NoteHistory } from '../timeline';
 import { Meter, DEFAULT_METER, barTicks, beatLines, snapToBeat, positionLabel, meterLabel, sameMeter } from '../meter';
 import { Take } from '../zone/take';
-import { shiftGestures, pedalSpans, SUSTAIN } from '../zone/gestures';
+import { pedalSpans, SUSTAIN } from '../zone/gestures';
 import type { GesturesJSON } from '../zone/gestures';
-import { loopFromNotes, pickupStart, recutLoop, EARLY, MAX_LOOP_BARS } from '../zone/looper';
+import { pickupStart, recutLoop, EARLY, MAX_LOOP_BARS } from '../zone/looper';
 import { takeStore, MAX_TAKES } from '../take-store';
+import { cutWindow, follows, recutWindow, quantizeWindow, beginEdit, beginTakeEdit, takeBar } from '../zone/loop-window';
 import { escapeHTML, setRangeValue } from '../domutils';
 import { DIV_TICKS, PPQ } from '../zone/seq-layer';
 import { analyse, quantize, quantizeStarts, applyToSequence, swingFor, stepPos, DIV_NAMES, PlayedNote, Quantized } from '../zone/take-quantize';
@@ -111,6 +112,25 @@ let loopChip: HTMLElement;
 const loopBlocks = new WeakMap<Zone, { x0: number; x1: number; top: number; barPx: number }>();
 // an edge of the loop being dragged, by whole bars (applied on release)
 let loopDrag: { zone: Zone; edge: 'start' | 'end'; bars: number } | null = null;
+/** A loop cut from a take is a window on it (zone/loop-window.ts): the take and the loop's bars in it (song positions) */
+interface LoopWindow {
+  take: Take;
+  from: number;
+  to: number;
+}
+// each loop's window as last worked out (again when the loop or the takes change)
+const windows = new WeakMap<Take, { key: string; take: Take; win: LoopWindow | null }>();
+// the window over the take being dragged (an edge, or slid whole): the loop as it would be, shown while dragging
+let winDrag: {
+  zone: Zone;
+  how: 'start' | 'end' | 'slide';
+  was: LoopWindow;
+  from: number;
+  to: number;
+  preview: Take | null;
+} | null = null;
+// an edge of the picked bars being dragged (their length shows)
+let captureDragging = false;
 // "where you are" (styles.css --select): the picked take or loop
 let amber = '';
 /** Loop n bars hovered: the zone whose take lane outlines the bars it loops */
@@ -659,7 +679,16 @@ function draw(): void {
   view.scrollPx = scrollPx;
   document.querySelector('#trackRuler .tr-follow')?.classList.toggle('active', follow);
   drawRuler(songHead, ppt, scrollPx);
-  zones.forEach((z, i) => drawLane(z, i === selected, songHead, runToSong, ppt, scrollPx));
+  zones.forEach((z, i) => {
+    // the loop's window dragged over its take: the loop below shows as it would be
+    const real = z.loop;
+    if (winDrag?.zone === z && winDrag.preview) z.loop = winDrag.preview;
+    try {
+      drawLane(z, i === selected, songHead, runToSong, ppt, scrollPx);
+    } finally {
+      z.loop = real;
+    }
+  });
   if (tab === 'notes' && dockOpen && !conv) drawTakeEditor();
   if (!zones[selected]) {
     takeChip.remove();
@@ -709,8 +738,12 @@ function pick(zone: Zone, kind: 'loop' | 'take'): void {
   clearCapture();
   const take = takeStore.shownTake(zone.id);
   if (kind === 'take' && take) editing = { zoneId: zone.id, kind: 'take', take };
-  else if (kind === 'loop' && zone.loop) editing = { zoneId: zone.id, kind: 'loop' };
-  else return;
+  else if (kind === 'loop' && zone.loop) {
+    editing = { zoneId: zone.id, kind: 'loop' };
+    // the take it was cut from shows above it, with the loop's bars as a window on it
+    const from = zone.loop.origin ? takeStore.of(zone.id).find((t) => t.at === zone.loop!.origin!.at) : undefined;
+    if (from && from !== take) takeStore.show(zone.id, from);
+  } else return;
   select(getZones().indexOf(zone));
   refitTakeEditor();
   if (dockOpen && !conv) setTab('notes');
@@ -1232,25 +1265,31 @@ function drawLane(
     if (range) {
       outlineLoopBars(g, x(toSong(range.from)), x(toSong(range.to)), Math.max(0, x(toSong(latest.start))), Math.min(w, x(toSong(latest.start + latest.length))), takeY + 1, TAKE_LANE_H - 2, keepLabel(latest));
     }
-    // the bars the loop was cut from, when it came from this take's run
-    const origin = zone.loop?.origin;
-    const from = origin && origin.at === latest.at ? origin.run - latest.runOffset : NaN;
-    if (zone.loop && from >= 0 && from < latest.length) {
-      const bx0 = Math.round(x(toSong(latest.start + from)));
-      const bx1 = Math.round(x(toSong(latest.start + Math.min(latest.length, from + zone.loop.length))));
-      if (bx1 > 0 && bx0 < w) {
-        g.globalAlpha = 1;
-        g.fillStyle = colour;
-        g.fillRect(bx0, takeY + 2, bx1 - bx0, 2);
-        g.fillRect(bx0, takeY + 2, 2, 7);
-        g.fillRect(bx1 - 2, takeY + 2, 2, 7);
-        g.font = '600 9px "Barlow Semi Condensed", sans-serif';
-        const label = 'Loop';
-        const lw = g.measureText(label).width + 6;
-        if (bx1 - bx0 > lw + 6) {
-          g.fillRect(bx0 + 4, takeY + 4, lw, 11);
-          g.fillStyle = '#15171a';
-          g.fillText(label, bx0 + 7, takeY + 12.5);
+    // the loop's window on this take (it was cut from it and still follows it): drag an edge or
+    // slide it; else, for a loop cut from this run, a bracket over the bars it came from
+    const win = shownWindow(zone);
+    if (win && win.take === latest) {
+      drawLoopWindow(g, zone, win, (s) => x(toSong(s)), takeY, TAKE_LANE_H, colour, isSelected && picked(zone) === 'loop', w, (n) => takeRows.y(rowOf(n)), takeRows.h);
+    } else {
+      const origin = zone.loop?.origin;
+      const from = origin && origin.at === latest.at ? origin.run - latest.runOffset : NaN;
+      if (zone.loop && from >= 0 && from < latest.length) {
+        const bx0 = Math.round(x(toSong(latest.start + from)));
+        const bx1 = Math.round(x(toSong(latest.start + Math.min(latest.length, from + zone.loop.length))));
+        if (bx1 > 0 && bx0 < w) {
+          g.globalAlpha = 1;
+          g.fillStyle = colour;
+          g.fillRect(bx0, takeY + 2, bx1 - bx0, 2);
+          g.fillRect(bx0, takeY + 2, 2, 7);
+          g.fillRect(bx1 - 2, takeY + 2, 2, 7);
+          g.font = '600 9px "Barlow Semi Condensed", sans-serif';
+          const label = 'Loop';
+          const lw = g.measureText(label).width + 6;
+          if (bx1 - bx0 > lw + 6) {
+            g.fillRect(bx0 + 4, takeY + 4, lw, 11);
+            g.fillStyle = '#15171a';
+            g.fillText(label, bx0 + 7, takeY + 12.5);
+          }
         }
       }
     }
@@ -1460,7 +1499,10 @@ function drawLane(
   if (conv?.zone === zone && takeLane) {
     drawConversion(g, (t) => x(toSong(t)), rowOf, takeRows, w, takeY, TAKE_LANE_H);
   }
-  if (capture?.zone === zone) drawCapture(g, el, x(toSong(capture.from)), x(toSong(capture.to)), w, takeY, TAKE_LANE_H);
+  if (capture?.zone === zone) {
+    const bounds = latest ? [x(toSong(latest.start)), x(toSong(latest.end))] : [0, w];
+    drawCapture(g, el, x(toSong(capture.from)), x(toSong(capture.to)), w, takeY, TAKE_LANE_H, bounds[0], bounds[1]);
+  }
   if (isSelected) {
     // one chip in the strip: picked bars, else the shown take
     const stretch = capture?.zone === zone;
@@ -1750,6 +1792,124 @@ function placeLoopChip(zoneEl: HTMLElement, zone: Zone, loopX: number | null, w:
 }
 
 /** The bars picked, and what can be done with them at their end */
+/** Grips on the edges of what can be dragged (amber: picked), as on the loop's block */
+function drawHandles(g: CanvasRenderingContext2D, xs: number[], top: number, h: number): void {
+  for (const hx of xs) {
+    const hy = top + h / 2 - 11;
+    g.fillStyle = amber;
+    g.fillRect(hx - 3, hy, 6, 22);
+    g.fillStyle = '#15171a';
+    g.fillRect(hx - 1, hy + 6, 1, 10);
+    g.fillRect(hx + 1, hy + 6, 1, 10);
+  }
+}
+
+/** A tag beside a dragged edge: what it gives */
+function edgeTag(g: CanvasRenderingContext2D, tip: string, at: number, top: number, h: number, w: number): void {
+  g.font = '600 10px "Barlow Semi Condensed", sans-serif';
+  const tw = g.measureText(tip).width + 10;
+  const tx = Math.max(2, Math.min(w - tw - 2, at + 6));
+  g.fillStyle = amber;
+  g.fillRect(tx, top + h - 18, tw, 14);
+  g.fillStyle = '#15171a';
+  g.fillText(tip, tx + 5, top + h - 7.5);
+}
+
+/**
+ * The loop's window over the take it was cut from: a frame with its name (amber with grips
+ * when picked or dragged), the loop's own notes (overdubbed or added in it) in white, as
+ * they ride along with it. Dragged: an edge shows the bars it takes in (dashed) or leaves
+ * (hatched) and the length, a slide where it was and which bars of the take it loops.
+ */
+function drawLoopWindow(
+  g: CanvasRenderingContext2D,
+  zone: Zone,
+  win: LoopWindow,
+  xOf: (s: number) => number,
+  top: number,
+  h: number,
+  colour: string,
+  isPicked: boolean,
+  w: number,
+  yOf: (pitch: number) => number,
+  noteH: number
+): void {
+  if (!amber) amber = getComputedStyle(document.body).getPropertyValue('--select').trim() || '#f0b429';
+  const x0 = xOf(win.from);
+  const x1 = xOf(win.to);
+  if (x1 < 0 || x0 > w) return;
+  const drag = winDrag?.zone === zone ? winDrag : null;
+  const meter = win.take.sectionAt(win.from - win.take.start + win.take.offset).meter;
+  g.globalAlpha = 1;
+  let tag = '';
+  if (drag && drag.how === 'slide') {
+    const wx0 = xOf(drag.was.from);
+    const wx1 = xOf(drag.was.to);
+    g.strokeStyle = amber;
+    g.globalAlpha = 0.5;
+    g.setLineDash([3, 3]);
+    g.strokeRect(wx0 + 0.5, top + 2.5, wx1 - wx0 - 1, h - 5);
+    g.setLineDash([]);
+    g.globalAlpha = 1;
+    const bar = barTicks(meter);
+    const first = Math.round((win.from - win.take.start) / bar) + 1;
+    const last = Math.round((win.to - win.take.start) / bar);
+    tag = last > first ? `bars ${first}–${last}` : `bar ${first}`;
+  } else if (drag) {
+    const [a, b] = drag.how === 'end' ? [xOf(drag.was.to), x1] : [x0, xOf(drag.was.from)];
+    const taking = drag.how === 'end' ? b > a : a < b;
+    const [l, r] = a < b ? [a, b] : [b, a];
+    if (r - l > 0.5) {
+      if (taking) {
+        g.fillStyle = colour;
+        g.globalAlpha = 0.08;
+        g.fillRect(l, top + 2, r - l, h - 4);
+        g.globalAlpha = 1;
+        g.strokeStyle = amber;
+        g.setLineDash([3, 3]);
+        g.strokeRect(l + 0.5, top + 2.5, r - l - 1, h - 5);
+        g.setLineDash([]);
+      } else hatch(g, l, top + 2, r - l, h - 4);
+    }
+    tag = Take.lengthLabel(win.to - win.from, meter);
+  }
+  const picked = isPicked || !!drag;
+  g.fillStyle = colour;
+  g.globalAlpha = 0.09;
+  g.fillRect(x0, top + 2, x1 - x0, h - 4);
+  g.globalAlpha = 1;
+  g.strokeStyle = picked ? amber : colour;
+  g.lineWidth = picked ? 1.5 : 1;
+  g.strokeRect(x0 + 0.75, top + 1.75, x1 - x0 - 1.5, h - 3.5);
+  g.lineWidth = 1;
+  // the loop's own notes ride along with it
+  const loop = zone.loop;
+  if (loop) {
+    g.fillStyle = '#e7eaee';
+    for (const n of loop.notes) {
+      if (!n.o) continue;
+      const nx = xOf(win.from + n.t);
+      g.fillRect(nx, yOf(n.n), Math.max(2, xOf(win.from + n.t + n.d) - nx), noteH);
+    }
+  }
+  const label = `Loop · ${Take.lengthLabel(win.to - win.from, meter)}`;
+  g.font = '600 10px "Barlow Semi Condensed", sans-serif';
+  const lw = Math.min(x1 - x0 - 2, g.measureText(label).width + 10);
+  if (lw > 20) {
+    g.fillStyle = colour;
+    g.fillRect(x0 + 1, top + 2, lw, 14);
+    g.fillStyle = '#15171a';
+    g.save();
+    g.beginPath();
+    g.rect(x0 + 1, top + 2, lw, 14);
+    g.clip();
+    g.fillText(label, x0 + 6, top + 13);
+    g.restore();
+  }
+  if (picked) drawHandles(g, [x0, x1], top, h);
+  if (tag) edgeTag(g, tag, drag?.how === 'start' ? x0 : x1, top, h, w);
+}
+
 function drawCapture(
   g: CanvasRenderingContext2D,
   zoneEl: HTMLElement,
@@ -1757,19 +1917,30 @@ function drawCapture(
   x1: number,
   w: number,
   top: number,
-  h: number
+  h: number,
+  takeX0: number,
+  takeX1: number
 ): void {
   const strip = zoneEl.querySelector('.track-strip')!;
   if (x1 < 0 || x0 > w) {
     captureButton.remove(); // scrolled out of view; still picked
     return;
   }
+  if (!amber) amber = getComputedStyle(document.body).getPropertyValue('--select').trim() || '#f0b429';
   g.globalAlpha = 1;
-  g.fillStyle = '#e7eaee1a';
-  g.fillRect(x0, top, x1 - x0, h);
-  g.fillStyle = '#e7eaeeb3';
-  g.fillRect(Math.round(x0), top, 1, h);
-  g.fillRect(Math.round(x1) - 1, top, 1, h);
+  // the rest of the take dims; the picked bars get a frame and handles to drag
+  g.fillStyle = '#0a0b0d8c';
+  if (x0 > takeX0) g.fillRect(takeX0, top + 1, x0 - takeX0, h - 2);
+  if (takeX1 > x1) g.fillRect(x1, top + 1, takeX1 - x1, h - 2);
+  g.strokeStyle = amber;
+  g.lineWidth = 1.5;
+  g.strokeRect(x0 + 0.75, top + 1.75, x1 - x0 - 1.5, h - 3.5);
+  g.lineWidth = 1;
+  drawHandles(g, [x0, x1], top, h);
+  if (captureDragging) {
+    const take = shownTake(capture!.zone)?.take;
+    edgeTag(g, Take.lengthLabel(capture!.to - capture!.from, take ? take.sectionAt(capture!.from).meter : timeline.meter), x1, top, h, w);
+  }
   if (captureButton.parentElement !== strip) {
     strip.appendChild(captureButton);
     invalidate(); // placed by its width, known from the next frame
@@ -1808,13 +1979,200 @@ function setLoopBars(zone: Zone, a: number, b: number, label: string): void {
   }
   const bar = barLen();
   if (b - a < bar || b - a > MAX_LOOP_BARS * bar) return;
-  const next = recutLoop(loop, a, b, bar);
+  // a loop that follows its take is cut from it anew, else from what it kept around it
+  const win = loopWindow(zone);
+  const next = win ? recutWindow(loop, win.take, win.from + a, win.from + b, 'edge') : recutLoop(loop, a, b, bar);
   if (!next) return;
   commit(index, label, () => {
     zone.loop = next;
     zone.loopPlayer.release(true);
   });
   invalidate();
+}
+
+/**
+ * The zone's loop as a window on the take it was cut from: null when that take is gone or the
+ * loop no longer follows it (then its bars move only by what it kept around it)
+ */
+function loopWindow(zone: Zone): LoopWindow | null {
+  // (a loop from before windows has no link yet: follows() takes it on when it still follows)
+  const loop = zone.loop;
+  const origin = loop?.origin;
+  if (!loop || !origin) return null;
+  const take = takeStore.of(zone.id).find((t) => t.at === origin.at);
+  if (!take) return null;
+  const key = `${takeStore.version}|${loop.notes.length}|${loop.spare.length}|${loop.length}|${origin.run}`;
+  const cached = windows.get(loop);
+  if (cached && cached.key === key && cached.take === take) return cached.win;
+  const found = follows(loop, take);
+  const win = found ? { take, from: found.from, to: found.to } : null;
+  windows.set(loop, { key, take, win });
+  return win;
+}
+
+/** An edit of a loop that follows its take: notes what it changed in the loop's link (see beginEdit) */
+function loopEdit(zone: Zone): (() => void) | null {
+  const loop = zone.loop;
+  const win = loop ? loopWindow(zone) : null;
+  if (!loop || !win) return null;
+  const done = beginEdit(loop, win.take);
+  return done
+    ? () => {
+        done();
+        windows.delete(loop);
+      }
+    : null;
+}
+
+/** Quantize a loop that follows its take as a setting of it (one undo step); false: it doesn't follow */
+function quantizeLoop(zone: Zone, grid: number, strength: number): boolean {
+  const index = getZones().indexOf(zone);
+  const loop = zone.loop;
+  const win = loop ? loopWindow(zone) : null;
+  if (index < 0 || !loop || !win) return false;
+  if (zone.looper.mode !== 'idle') {
+    toast('The loop is being recorded or overdubbed: finish that first');
+    return true;
+  }
+  const next = quantizeWindow(loop, win.take, grid, strength);
+  if (!next) return false;
+  commit(index, 'Quantize Loop', () => {
+    zone.loop = next;
+    zone.loopPlayer.release(true);
+  });
+  invalidate();
+  return true;
+}
+
+/** The window's bars where they'd be (dragged: there), else as they are */
+function shownWindow(zone: Zone): LoopWindow | null {
+  if (winDrag?.zone === zone) return { take: winDrag.was.take, from: winDrag.from, to: winDrag.to };
+  return loopWindow(zone);
+}
+
+/** Which part of the loop's window over the take is under a mouse x: an edge, its middle, or none */
+function windowPartAt(zone: Zone, lane: Element, clientX: number): 'start' | 'end' | 'slide' | null {
+  const win = loopWindow(zone);
+  if (!win || takeStore.shownTake(zone.id) !== win.take || timeline.running) return null;
+  const at = laneTick(lane, clientX);
+  const near = 6 / view.ppt;
+  if (Math.abs(at - win.from) <= near) return 'start';
+  if (Math.abs(at - win.to) <= near) return 'end';
+  return at > win.from && at < win.to ? 'slide' : null;
+}
+
+/**
+ * Drag the loop's window over its take: an edge (the take's bars, ⌥ beats) or the whole
+ * window (by bars). The loop below follows while dragging; applied on release (one undo
+ * step). A click without moving picks the loop.
+ */
+function startWindowDrag(ev: MouseEvent, lane: Element, zone: Zone, how: 'start' | 'end' | 'slide'): void {
+  const loop = zone.loop;
+  const was = loopWindow(zone);
+  if (!loop || !was) return;
+  const take = was.take;
+  const startX = ev.clientX;
+  const grab = laneTick(lane, startX);
+  const len = was.to - was.from;
+  winDrag = { zone, how, was, from: was.from, to: was.to, preview: null };
+  const dragClass = how === 'slide' ? 'loop-window-sliding' : 'loop-edge-dragging';
+  document.body.classList.add(dragClass);
+  let moved = false;
+  const move = (e: MouseEvent): void => {
+    if (!moved && Math.abs(e.clientX - startX) < 4) return;
+    moved = true;
+    if (!winDrag) return;
+    const at = laneTick(lane, e.clientX);
+    const bar = takeBar(take, was.from);
+    let from = was.from;
+    let to = was.to;
+    if (how === 'slide') {
+      // by whole bars of the take, kept on it
+      from = take.barLine(was.from + at - grab, 'round');
+      from = Math.max(take.barLine(take.floor, 'floor'), Math.min(take.barLine(take.end, 'ceil') - len, from));
+      to = from + len;
+    } else if (how === 'start') {
+      from = Math.max(take.barLine(take.floor, 'floor'), Math.min(was.to - bar, snapInTake(take, at, e)));
+      from = Math.max(from, was.to - MAX_LOOP_BARS * bar);
+    } else {
+      to = Math.min(take.barLine(take.end, 'ceil'), Math.max(was.from + bar, snapInTake(take, at, e)));
+      to = Math.min(to, was.from + MAX_LOOP_BARS * bar);
+    }
+    if (from === winDrag.from && to === winDrag.to) return;
+    winDrag.from = from;
+    winDrag.to = to;
+    const same = from === was.from && to === was.to;
+    winDrag.preview = same ? null : recutWindow(loop, take, from, to, how === 'slide' ? 'slide' : 'edge');
+    invalidate();
+  };
+  const up = (): void => {
+    window.removeEventListener('mousemove', move);
+    window.removeEventListener('mouseup', up);
+    document.body.classList.remove(dragClass);
+    const d = winDrag;
+    winDrag = null;
+    if (!moved) {
+      pick(zone, 'loop');
+      return;
+    }
+    invalidate();
+    if (!d?.preview || zone.loop !== loop) return;
+    const index = getZones().indexOf(zone);
+    if (index < 0) return;
+    if (zone.looper.mode !== 'idle') {
+      toast('The loop is being recorded or overdubbed: finish that first');
+      return;
+    }
+    const next = d.preview;
+    const label = how === 'slide' ? 'Move Loop' : how === 'start' ? 'Loop Start' : 'Loop Length';
+    commit(index, label, () => {
+      zone.loop = next;
+      zone.loopPlayer.release(true);
+    });
+    editing = { zoneId: zone.id, kind: 'loop' };
+    refitTakeEditor();
+  };
+  window.addEventListener('mousemove', move);
+  window.addEventListener('mouseup', up);
+}
+
+/** Which edge of the picked bars is under a mouse x (null: none) */
+function captureEdgeAt(zone: Zone, lane: Element, clientX: number): 'start' | 'end' | null {
+  if (capture?.zone !== zone) return null;
+  const at = laneTick(lane, clientX);
+  const near = 6 / view.ppt;
+  if (Math.abs(at - capture.from) <= near) return 'start';
+  if (Math.abs(at - capture.to) <= near) return 'end';
+  return null;
+}
+
+/** Drag an edge of the picked bars: the take's bars (⌥ beats), at least one */
+function startCaptureEdgeDrag(lane: Element, zone: Zone, edge: 'start' | 'end'): void {
+  const take = shownTake(zone)?.take;
+  if (!take || !capture) return;
+  captureDragging = true;
+  document.body.classList.add('loop-edge-dragging');
+  const move = (e: MouseEvent): void => {
+    if (!capture) return;
+    const at = laneTick(lane, e.clientX);
+    if (edge === 'start') {
+      const from = Math.max(take.barLine(take.floor, 'floor'), snapInTake(take, at, e));
+      if (from < capture.to) capture.from = from;
+    } else {
+      const to = Math.min(take.barLine(take.end, 'ceil'), snapInTake(take, at, e));
+      if (to > capture.from) capture.to = to;
+    }
+    invalidate();
+  };
+  const up = (): void => {
+    window.removeEventListener('mousemove', move);
+    window.removeEventListener('mouseup', up);
+    document.body.classList.remove('loop-edge-dragging');
+    captureDragging = false;
+    invalidate();
+  };
+  window.addEventListener('mousemove', move);
+  window.addEventListener('mouseup', up);
 }
 
 function clearLoop(zone: Zone): void {
@@ -1930,7 +2288,7 @@ function openTakeMenu(zone: Zone, anchor: HTMLElement): void {
 }
 
 /** After Stop, drag over the shown take: bars of it to loop (or turn into steps) */
-function startCaptureDrag(ev: MouseEvent, lane: Element, zone: Zone): void {
+function startCaptureDrag(ev: MouseEvent, lane: Element, zone: Zone, onClick: 'take' | 'loop' = 'take'): void {
   const startX = ev.clientX;
   const start = laneTick(lane, startX);
   let dragging = false;
@@ -1946,15 +2304,19 @@ function startCaptureDrag(ev: MouseEvent, lane: Element, zone: Zone): void {
     if (to <= from) to = Math.min(take.end, snapInTake(take, from + 1, e, 'ceil'));
     if (to <= from) return;
     capture = { zone, from, to };
+    captureDragging = true;
     invalidate();
   };
   const up = (): void => {
     window.removeEventListener('mousemove', move);
     window.removeEventListener('mouseup', up);
+    captureDragging = false;
+    invalidate();
     if (dragging) return;
     // a click on the shown take picks it; elsewhere in the lane it just lets go of picked bars
     const take = shownTake(zone)?.take;
-    if (take && start >= take.start && start < take.end) pick(zone, 'take');
+    if (onClick === 'loop') pick(zone, 'loop');
+    else if (take && start >= take.start && start < take.end) pick(zone, 'take');
     else clearCapture();
   };
   window.addEventListener('mousemove', move);
@@ -2225,10 +2587,9 @@ function loopFromTake(zone: Zone, take: Take, from: number, to: number, label = 
     toast('The loop is being recorded or overdubbed: finish that first');
     return false;
   }
-  const bar = barTicks(take.sectionAt(from).meter);
-  // the take's gestures at song positions, as its visible notes
-  const loop = loopFromNotes(take.visibleNotes(), from, to, bar, false, shiftGestures(take.g, take.start - take.offset));
-  if (!loop) {
+  // a window on the take: its bars can be moved over it again
+  const loop = cutWindow(take, from, to, {})?.loop ?? null;
+  if (!loop || loop.notes.length === 0) {
     toast('Nothing was played there');
     return false;
   }
@@ -2243,6 +2604,9 @@ function loopFromTake(zone: Zone, take: Take, from: number, to: number, label = 
     zone.looper.anchor = timeline.running ? Math.ceil(elapsed / zoneBar) * zoneBar : 0;
   });
   clearCapture();
+  // where you are now: the loop, its window on the take ready to adjust
+  editing = { zoneId: zone.id, kind: 'loop' };
+  refitTakeEditor();
   toast(`${zone.label || `Zone ${index + 1}`}: looping ${Take.lengthLabel(loop.length, takeMeter(take))}`);
   return true;
 }
@@ -2500,7 +2864,18 @@ function initTrackView(
     (document.activeElement as HTMLElement | null)?.blur();
     // the take lane: bars of the shown take (a click picks it)
     if (inTakeLane(zone, lane, ev.clientY)) {
-      if (!timeline.running) startCaptureDrag(ev, lane, zone);
+      if (timeline.running) return;
+      // the picked bars' edges, then the loop's window (edges, or slid whole), else pick bars
+      const capEdge = captureEdgeAt(zone, lane, ev.clientX);
+      if (capEdge) {
+        startCaptureEdgeDrag(lane, zone, capEdge);
+        return;
+      }
+      // the window drags while the loop is picked; else a click on it picks the loop and a
+      // drag over it picks bars, as anywhere on the take
+      const part = capture?.zone === zone ? null : windowPartAt(zone, lane, ev.clientX);
+      if (part && picked(zone) === 'loop') startWindowDrag(ev, lane, zone, part);
+      else startCaptureDrag(ev, lane, zone, part ? 'loop' : 'take');
       return;
     }
     // the loop's block: its edges drag by bars, a click picks it
@@ -2519,13 +2894,23 @@ function initTrackView(
   });
   // over the loop's edges the pointer says they drag
   zonesEl.addEventListener('mousemove', (ev) => {
-    if (!isActive() || loopDrag) return;
+    if (!isActive() || loopDrag || winDrag || captureDragging) return;
     const lane = (ev.target as Element).closest('.track-lane');
     const canvas = lane?.querySelector('canvas');
     const zone = getZones()[zoneIndexOf(lane)];
     if (!lane || !canvas || !zone) return;
-    const resize = !(ev.target as Element).closest('.track-strip') && loopEdgeAt(zone, lane, ev.clientX, ev.clientY) !== null;
-    canvas.style.cursor = resize ? 'ew-resize' : '';
+    if ((ev.target as Element).closest('.track-strip')) {
+      canvas.style.cursor = '';
+      return;
+    }
+    if (inTakeLane(zone, lane, ev.clientY)) {
+      const part =
+        captureEdgeAt(zone, lane, ev.clientX) ??
+        (capture?.zone === zone || picked(zone) !== 'loop' ? null : windowPartAt(zone, lane, ev.clientX));
+      canvas.style.cursor = part === 'slide' ? 'grab' : part ? 'ew-resize' : '';
+      return;
+    }
+    canvas.style.cursor = loopEdgeAt(zone, lane, ev.clientX, ev.clientY) !== null ? 'ew-resize' : '';
   });
   document.addEventListener('keydown', (ev) => {
     if (capture && ev.key === 'Escape') clearCapture();
@@ -2634,6 +3019,8 @@ function initTrackView(
     commit: (index, label, change) => commit(index, label, change),
     commitTake: (index, take, label, change) => commitTake(index, take, label, change),
     loopFrom: loopFromTake,
+    loopEdit,
+    quantizeLoop,
     show: (kind) => {
       const zone = getZones()[selected];
       if (!zone) return;
@@ -2652,4 +3039,19 @@ function initTrackView(
   applyBodyState();
 }
 
-export { initTrackView, isTrackView, setTrackView, followTrack, invalidate as invalidateTrackView, updateLoopChips, keepTake };
+/**
+ * A take is about to be edited (Notes tab, quantize): what to do afterwards for the loops cut
+ * from it that follow it (in this arrangement): each is cut anew, so it keeps following.
+ * Returns the zones whose loop changed, with their loops before and after.
+ */
+function beginTakeLoops(take: Take): () => { zoneId: string; before: Take; after: Take }[] {
+  const zones = getZones().filter((z) => z.loop && z.loop.origin?.at === take.at && take.at && z.looper.mode === 'idle');
+  const loops = zones.map((z) => z.loop!);
+  const finish = beginTakeEdit(take, loops);
+  return () =>
+    finish()
+      .map((after, i) => (after ? { zoneId: zones[i].id, before: loops[i], after } : null))
+      .filter((c): c is { zoneId: string; before: Take; after: Take } => c !== null);
+}
+
+export { beginTakeLoops, initTrackView, isTrackView, setTrackView, followTrack, invalidate as invalidateTrackView, updateLoopChips, keepTake };

@@ -154,8 +154,34 @@ export interface TakeNoteJSON {
   v: number;
   /** a loop's pick-up: played before its first 1, at its end so it leads into every repeat */
   p?: 1;
+  /** a loop's own note: overdubbed or added there, not cut from its take (kept when it's cut anew) */
+  o?: 1;
   /** the note's MPE expression as played (zone/note-curve.ts) */
   x?: NoteCurveJSON;
+}
+
+/** A take note changed in a loop cut from it: by its key (the take note's tick and pitch as recorded) */
+export interface LoopFixJSON {
+  k: [number, number];
+  /** moved this far from where the take note lands (after the loop's quantize) */
+  dt: number;
+  d: number;
+  n: number;
+  v: number;
+  x?: NoteCurveJSON;
+}
+
+/**
+ * A loop cut from a take (zone/loop-window.ts): how it's cut, so its bars can be moved over
+ * the take again. Quantize applied to the take's notes, take notes deleted in the loop and
+ * take notes changed there (keys: the take note's tick and pitch as recorded)
+ */
+export interface LoopLinkJSON {
+  q?: { g: number; s: number };
+  /** its MPE expression was cleared: cut anew, it stays plain */
+  plain?: 1;
+  hide?: [number, number][];
+  fix?: LoopFixJSON[];
 }
 
 /** Flat [dt, value, …], dt in 1/8 ticks since the previous point (see zone/note-curve.ts) */
@@ -190,6 +216,8 @@ export interface TakeJSON {
   runOffset?: number;
   /** a loop: the run it was cut from (its start time, as a take's `at`) and where its first bar was (run ticks) */
   origin?: { at: number; run: number };
+  /** a loop cut from a take: how (zone/loop-window.ts) */
+  link?: LoopLinkJSON;
 }
 
 export interface SequenceJSON {

@@ -1,4 +1,4 @@
-import { TakeJSON, TakeNoteJSON, NoteCurveJSON } from './interfaces';
+import { TakeJSON, TakeNoteJSON, NoteCurveJSON, LoopLinkJSON } from './interfaces';
 import { PPQ } from './seq-layer';
 import { Meter, DEFAULT_METER, barTicks, unitTicks, parseMeter } from '../meter';
 import { sanitizeCurve, trimCurve, countPoints, fitCurves } from './note-curve';
@@ -10,10 +10,12 @@ export interface SongNote {
   d: number;
   n: number;
   v: number;
+  /** a loop's own note (see TakeNoteJSON) */
+  o?: 1;
   x?: NoteCurveJSON;
 }
 
-type NoteBody = { d: number; n: number; v: number; x?: NoteCurveJSON };
+type NoteBody = { d: number; n: number; v: number; o?: 1; x?: NoteCurveJSON };
 
 /**
  * A take note at `t`, `d` long, from any note: its pitch, velocity and expression come
@@ -22,13 +24,21 @@ type NoteBody = { d: number; n: number; v: number; x?: NoteCurveJSON };
  */
 export function takeNote(from: NoteBody, t: number, d = from.d, pickup = false): TakeNoteJSON {
   const x = d < from.d ? trimCurve(from.x, d) : from.x;
-  return { t, d, n: from.n, v: from.v, ...(pickup ? { p: 1 as const } : {}), ...(x ? { x } : {}) };
+  return {
+    t,
+    d,
+    n: from.n,
+    v: from.v,
+    ...(pickup ? { p: 1 as const } : {}),
+    ...(from.o ? { o: 1 as const } : {}),
+    ...(x ? { x } : {})
+  };
 }
 
 /** A note at song position `s`, `d` long, from any note (see takeNote) */
 export function songNote(from: NoteBody, s: number, d = from.d): SongNote {
   const x = d < from.d ? trimCurve(from.x, d) : from.x;
-  return { s, d, n: from.n, v: from.v, ...(x ? { x } : {}) };
+  return { s, d, n: from.n, v: from.v, ...(from.o ? { o: 1 as const } : {}), ...(x ? { x } : {}) };
 }
 
 /** A note's length changed in place: its curve follows */
@@ -83,6 +93,8 @@ export class Take {
   runOffset = 0;
   /** A loop: the run it was cut from (as a take's `at`) and where its first bar was in it (run ticks) */
   origin: { at: number; run: number } | null = null;
+  /** A loop cut from a take: how, so its bars can be moved over the take again (zone/loop-window.ts) */
+  link: LoopLinkJSON | null = null;
   /** Counts recordings (the last seq handed out) */
   static counter = 0;
 
@@ -128,6 +140,7 @@ export class Take {
   /** Its notes without their MPE expression (in place; a loop keeps playing them plain) */
   clearExpression(): void {
     for (const n of [...this.notes, ...this.spare]) delete n.x;
+    if (this.link) this.link.plain = 1;
   }
 
   /** Song position of a note of the recording */
@@ -245,6 +258,7 @@ export class Take {
       n: n.n,
       v: n.v,
       ...(n.p ? { p: 1 as const } : {}),
+      ...(n.o ? { o: 1 as const } : {}),
       ...(n.x ? { x: n.x } : {})
     });
     return {
@@ -261,7 +275,8 @@ export class Take {
       ...(this.spare.length
         ? { spare: this.spare.map(note) }
         : {}),
-      ...(this.g ? { g: this.g } : {})
+      ...(this.g ? { g: this.g } : {}),
+      ...(this.link ? { link: linkJSON(this.link) } : {})
     };
   }
 
@@ -308,7 +323,7 @@ export class Take {
       let x = trimCurve(sanitizeCurve(r.x), d);
       if (countPoints(x) > points) x = undefined;
       points -= countPoints(x);
-      return { t, d, n, v, ...(r.p === 1 ? { p: 1 as const } : {}), ...(x ? { x } : {}) };
+      return { t, d, n, v, ...(r.p === 1 ? { p: 1 as const } : {}), ...(r.o === 1 ? { o: 1 as const } : {}), ...(x ? { x } : {}) };
     };
     if (Array.isArray(d.notes)) {
       for (const raw of d.notes.slice(0, Take.MAX_NOTES)) {
@@ -329,6 +344,7 @@ export class Take {
       take.spare.sort((a, b) => a.t - b.t);
     }
     take.g = sanitizeGestures(d.g, -Take.MAX_LENGTH, 2 * Take.MAX_LENGTH);
+    take.link = linkFrom(d.link);
     if (points < 3 * Take.MAX_FILE_CURVE_POINTS) fitCurves([...take.notes, ...take.spare], Take.MAX_FILE_CURVE_POINTS);
     take.sort();
     return take;
@@ -344,6 +360,7 @@ export class Take {
     this.notes = from.notes;
     this.spare = from.spare;
     this.g = from.g;
+    this.link = from.link;
   }
 
   copy(): Take {
@@ -355,4 +372,67 @@ export class Take {
     if (!Array.isArray(data)) return [];
     return data.map((t) => Take.from(t)).filter((t): t is Take => t !== null);
   }
+}
+
+const round3 = (v: number): number => Math.round(v * 1000) / 1000;
+
+/** A copy of a loop's link, times rounded as notes are */
+function linkJSON(link: LoopLinkJSON): LoopLinkJSON {
+  return {
+    ...(link.q ? { q: { g: link.q.g, s: link.q.s } } : {}),
+    ...(link.plain ? { plain: 1 as const } : {}),
+    ...(link.hide?.length ? { hide: link.hide.map(([t, n]) => [round3(t), n] as [number, number]) } : {}),
+    ...(link.fix?.length
+      ? {
+          fix: link.fix.map((f) => ({
+            k: [round3(f.k[0]), f.k[1]] as [number, number],
+            dt: round3(f.dt),
+            d: round3(f.d),
+            n: f.n,
+            v: f.v,
+            ...(f.x ? { x: f.x } : {})
+          }))
+        }
+      : {})
+  };
+}
+
+/** A loop's link from a scene file or undo snapshot: untrusted, every field checked */
+function linkFrom(raw: unknown): LoopLinkJSON | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const r = raw as Partial<LoopLinkJSON>;
+  const link: LoopLinkJSON = {};
+  const g = Math.round(Number(r.q?.g));
+  const s = Number(r.q?.s);
+  if (g >= 0 && g < 64 && s > 0 && s <= 1) link.q = { g, s };
+  if (r.plain === 1) link.plain = 1;
+  const key = (k: unknown): [number, number] | null => {
+    if (!Array.isArray(k)) return null;
+    const t = Number(k[0]);
+    const n = Math.round(Number(k[1]));
+    return isFinite(t) && t >= 0 && t <= Take.MAX_LENGTH && n >= 0 && n <= 127 ? [t, n] : null;
+  };
+  if (Array.isArray(r.hide)) {
+    const hide = r.hide.slice(0, Take.MAX_NOTES).map(key).filter((k): k is [number, number] => k !== null);
+    if (hide.length) link.hide = hide;
+  }
+  if (Array.isArray(r.fix)) {
+    const fix: NonNullable<LoopLinkJSON['fix']> = [];
+    let points = Take.MAX_FILE_CURVE_POINTS;
+    for (const f of r.fix.slice(0, Take.MAX_NOTES)) {
+      const k = key(f?.k);
+      const dt = Number(f?.dt);
+      const d = Number(f?.d);
+      const n = Math.round(Number(f?.n));
+      const v = Math.round(Number(f?.v));
+      if (!k || !isFinite(dt) || Math.abs(dt) > Take.MAX_LENGTH || !(d > 0) || !(n >= 0 && n <= 127) || !(v >= 1 && v <= 127)) continue;
+      const len = Math.min(d, Take.MAX_LENGTH);
+      let x = trimCurve(sanitizeCurve(f.x), len);
+      if (countPoints(x) > points) x = undefined;
+      points -= countPoints(x);
+      fix.push({ k, dt, d: len, n, v, ...(x ? { x } : {}) });
+    }
+    if (fix.length) link.fix = fix;
+  }
+  return link;
 }

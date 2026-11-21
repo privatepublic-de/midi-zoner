@@ -2524,6 +2524,7 @@ export class Zone {
       const loop = this.looper.closeRecording(to, bar, now);
       if (!loop) return { kind: 'empty' };
       this.loopPlayer.release(true);
+      // (no link yet: once its run's take is there, the window takes it on if it follows it)
       loop.origin = { at: takeStore.runAt, run: this.looper.anchor + timeline.sectionStart };
       this.loop = loop;
       this.loopOn = true;

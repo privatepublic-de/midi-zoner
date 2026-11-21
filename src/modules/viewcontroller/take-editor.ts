@@ -41,6 +41,13 @@ export interface TakeEditorHooks {
   loopFrom(zone: Zone, take: Take, from: number, to: number): void;
   /** Show the zone's loop or its shown take */
   show(kind: 'loop' | 'take'): void;
+  /**
+   * An edit of the zone's loop begins (inside its undo step): for a loop cut from a take, what
+   * to do once it's done (it notes which take notes were changed or deleted, which added)
+   */
+  loopEdit(zone: Zone): (() => void) | null;
+  /** Quantize a loop cut from a take as a setting of it (applies to its take's notes from then on); false: it isn't */
+  quantizeLoop(zone: Zone, grid: number, strength: number): boolean;
   invalidate(): void;
 }
 
@@ -186,7 +193,13 @@ function apply(label: string, change: (take: Take, mine: (n: TakeNoteJSON) => Ta
   if (index < 0) return;
   const take = target.take;
   const mine = (n: TakeNoteJSON): TakeNoteJSON => n;
-  if (target.kind === 'loop') hooks.commit(index, label, () => change(take, mine));
+  if (target.kind === 'loop') {
+    hooks.commit(index, label, () => {
+      const done = hooks.loopEdit(target.zone);
+      change(take, mine);
+      done?.();
+    });
+  }
   else hooks.commitTake(index, take, label, () => change(take, mine));
   selTake = take;
   selNotes = take.notes;
@@ -291,6 +304,8 @@ function quantizeSelection(): void {
     return;
   }
   const take = target.take;
+  // a loop cut from a take: quantized as a setting, from the take's notes as played
+  if (sel.size === 0 && target.kind === 'loop' && hooks.quantizeLoop(target.zone, grid, strength)) return;
   const notes = sel.size > 0 ? selectedOrdered(take) : take.notes.filter((n) => inWindow(take, n));
   if (notes.length === 0) return;
   const starts = quantizeStarts(
