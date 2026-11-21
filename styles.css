@@ -685,6 +685,14 @@ body.setup-open #setupDrawer {
 .drawer-row.drawer-end {
   margin-top: 4px;
 }
+/* about the app: apart from the columns, at the drawer's end */
+.drawer-foot {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 10px;
+  border-top: 1px solid var(--slate-line);
+}
 
 .drawer-label,
 .drawer-hint {

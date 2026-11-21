@@ -101,9 +101,6 @@ export function createCCActions(
       zone.show_cc = !zone.show_cc;
       updateValuesForZone(zoneindex);
       triggerSave();
-      if (zone.show_cc) {
-        toast('Double-click a controller to edit it');
-      }
     },
     cc_send_all: () => {
       zone.sendAllCC();

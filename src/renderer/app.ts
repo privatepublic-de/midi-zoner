@@ -406,7 +406,8 @@ function showToggleQuant(): void {
   if (!chip) return;
   chip.classList.toggle('active', zones.toggleQuantOn);
   view.setToggleBoundary(zones.toggleQuantIndex);
-  chip.textContent = `Quant ${QUANT_NAMES[zones.toggleQuantIndex]}`;
+  // the Setup drawer's words: "Zone switches at next bar"
+  chip.textContent = `At next ${QUANT_NAMES[zones.toggleQuantIndex]}`;
   (DOM.get('#togglequant') as HTMLSelectElement).value = String(zones.toggleQuantIndex);
 }
 
