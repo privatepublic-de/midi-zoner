@@ -89,17 +89,16 @@
           <button id="redoBtn" class="lightButton" title="Redo (⇧⌘Z)" disabled><i class="material-icons">redo</i></button>
         </div>
         <div class="zoom" role="group" aria-label="Zoom">
-          <a id="zoomOut" class="lightButton" title="Zoom out (⌘−)"><i class="material-icons">zoom_out</i></a>
-          <a id="zoomReset" class="lightButton" title="Actual size (⌘0)">1:1</a>
-          <a id="zoomIn" class="lightButton" title="Zoom in (⌘+)"><i class="material-icons">zoom_in</i></a>
+          <span class="zoom-label">Zoom</span>
+          <a id="zoomOut" class="lightButton zoom-step" title="Zoom out (⌘−)">−</a>
+          <a id="zoomReset" class="lightButton" title="The zoom; click for actual size (⌘0)">100 %</a>
+          <a id="zoomIn" class="lightButton zoom-step" title="Zoom in (⌘+)">+</a>
         </div>
         <div class="viewmode" role="group" aria-label="View">
           <a id="viewCards" class="lightButton" title="Zones as cards (⌘⇧T)">Cards</a>
           <a id="viewTracks" class="lightButton" title="Zones as tracks on a timeline (⌘⇧T)">Tracks</a>
         </div>
-        <a id="miniViewBtn" class="lightButton" title="Mini view (⌘⇧M)"
-          ><i class="material-icons">close_fullscreen</i></a
-        >
+        <a id="miniViewBtn" class="lightButton" title="Mini view (⌘⇧M)">Mini</a>
         <a
           id="midiPanic"
           class="lightButton"

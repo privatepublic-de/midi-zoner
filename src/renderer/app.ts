@@ -498,7 +498,14 @@ function applyZoom(factor: number): void {
   currentZoomFactor = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, Math.round(factor * 10) / 10));
   webFrame.setZoomFactor(currentZoomFactor);
   localStorage.setItem(ZOOM_STORAGE_KEY, String(currentZoomFactor));
+  showZoom(currentZoomFactor);
   ipcRenderer.invoke('set-min-width', Math.ceil(PAGE_FLOOR_CSS_PX * currentZoomFactor));
+}
+
+/** The top bar's zoom: the current factor as a percentage ("Zoom − 100 % +") */
+function showZoom(factor: number): void {
+  const el = document.getElementById('zoomReset');
+  if (el) el.textContent = `${Math.round(factor * 100)} %`;
 }
 
 /** Finer steps than applyZoom: a dragged window width maps to any factor in range. */
@@ -506,6 +513,7 @@ function applyMiniZoom(factor: number): void {
   miniZoomFactor = Math.max(MINI_ZOOM_MIN, Math.min(MINI_ZOOM_MAX, Math.round(factor * 100) / 100));
   localStorage.setItem(MINI_ZOOM_STORAGE_KEY, String(miniZoomFactor));
   if (!miniView) return;
+  showZoom(miniZoomFactor);
   webFrame.setZoomFactor(miniZoomFactor);
   lastMiniSize = '';
   applyMiniSize();
@@ -541,6 +549,7 @@ function applyMiniSize(): void {
 }
 
 function setMiniView(on: boolean, refresh = true): void {
+  showZoom(on ? miniZoomFactor : currentZoomFactor);
   miniView = on;
   lastMiniSize = '';
   localStorage.setItem(MINI_STORAGE_KEY, on ? '1' : '0');
@@ -548,7 +557,8 @@ function setMiniView(on: boolean, refresh = true): void {
   DOM.get('#miniViewBtn')!.classList.toggle('active', on);
   const miniBtn = DOM.get('#miniViewBtn') as HTMLElement;
   miniBtn.title = `${on ? 'Back to the full view' : 'Mini view'} (⌘⇧M)`;
-  miniBtn.querySelector('i')!.textContent = on ? 'open_in_full' : 'close_fullscreen';
+  // a word, not an icon: "Mini" goes to the mini view, "Full" back
+  miniBtn.textContent = on ? 'Full' : 'Mini';
   if (refresh) view.updateValuesForAllZones();
   // each view keeps its own zoom
   webFrame.setZoomFactor(on ? miniZoomFactor : currentZoomFactor);
