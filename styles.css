@@ -2531,6 +2531,15 @@ input[type='range'] {
   border-radius: var(--radius-sm);
   cursor: ns-resize;
 }
+/* Transpose (with its amount) and Hold: part of the Arp's first row, except in cards, where they
+   sit at the end of the panel's heading */
+.arp-head-tools {
+  display: contents;
+}
+/* a heading button's word: shown in the cards' panel headings only (the dock shows the icon) */
+.head-word {
+  display: none;
+}
 .arp_transpose:not(.selected) + .arp_transpose_value {
   display: none;
 }
@@ -7963,7 +7972,9 @@ body:not(.track-view):not(.minimized) #zones > .zone {
     box-sizing: border-box;
     width: 100%;
     margin: 0;
-    padding: 32px 12px 12px;
+    /* 10px at the sides: the controllers need 518px for two 4-knob sections side by side (as
+       the factory presets lay them out), which a card leaves only with this padding */
+    padding: 32px 10px 12px;
     background-color: color-mix(in srgb, var(--slate-bg) 55%, transparent);
     border: 1px solid var(--slate-line);
     border-radius: var(--radius-lg);
@@ -7972,11 +7983,115 @@ body:not(.track-view):not(.minimized) #zones > .zone {
     display: flex;
   }
 }
+
+/* inside the open panels (Nov 21, the user's pick from mocks): one left edge (the panel's padding,
+   no inner paddings), one label column for Arp and Thru so their first controls line up, the
+   same gap under every heading, and each panel's main tools right in its heading row (the Tracks
+   dock keeps them in its toolbars) */
+body:not(.track-view):not(.minimized) #zones > .zone {
+  &.fold-seq > .seq,
+  &.fold-arp > .arp-settings-block,
+  &.show-cc > .ccpots,
+  &.fold-thru > .thru-panel {
+    padding-top: 38px;
+  }
+  > .seq .seqtools { padding: 0 0 6px; }
+  > .seq .grid { padding: 0; }
+  > .arp-settings-block .arp-settings { padding: 4px 0; }
+  > .arp-settings-block .arp-settings:first-of-type { padding-top: 0; }
+  > .arp-settings-block .arp-settings > .label:first-child,
+  > .thru-panel .thru-line > .label:first-child {
+    flex: none;
+    width: 64px;
+    margin: 0;
+  }
+  /* Sequencer: Rec and Piano roll */
+  > .seq .seqtools > :is(.seq_record_live, .seq-pianoroll) {
+    position: absolute;
+    top: 8px;
+    box-sizing: border-box;
+    width: 26px;
+    display: flex;
+    justify-content: center;
+    padding: 0;
+  }
+  > .seq .seqtools > .seq-pianoroll { right: 10px; }
+  > .seq .seqtools > .seq_record_live { right: 41px; }
+  /* Arp: Transpose (and its amount while on), then Hold; the row lets them out (not positioned) */
+  > .arp-settings-block .arp-settings:has(> .arp-head-tools) { position: static; }
+  > .arp-settings-block .arp-head-tools {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  /* Controllers: Edit and Send all at the end of the heading (also when the toolbar sits in a
+     section's ruler, as it does in the Tracks dock without pages); the page tabs, when there are
+     any, a row of their own under the heading, wrapping as far as a big preset needs */
+  > .ccpots .container,
+  > .ccpots.tools-on-ruler .container { padding: 0; }
+  > .ccpots .cctools {
+    margin: 0;
+    padding: 0;
+    border: none;
+    font-size: var(--fs-sm);
+  }
+  > .ccpots .cctools:has(.cc-page) {
+    margin-bottom: 10px;
+  }
+  > .ccpots .cctools > .action {
+    position: absolute;
+    top: 7px;
+    white-space: nowrap;
+  }
+  > .ccpots .cctools > .action[data-action$=":cc_send_all"] { right: 10px; width: 72px; }
+  > .ccpots .cctools > .action[data-action$=":cc_edit"] { right: 87px; width: 44px; }
+  /* one look for every button in a heading row: 22px high, the controls' corners, 13px text,
+     16px icons, the same raised material; switches (Transpose, Hold) keep dim text while off and
+     light up when on, as every switch does */
+  > .seq .seqtools > :is(.seq_record_live, .seq-pianoroll),
+  > .arp-settings-block .arp-head-tools > :is(.check, .arp_transpose_value),
+  > .ccpots .cctools > .action,
+  > .ccpots .cctools .cc-page {
+    box-sizing: border-box;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 0 8px;
+    border-radius: var(--radius);
+    font-size: 13px;
+  }
+  > .seq .seqtools > :is(.seq_record_live, .seq-pianoroll) {
+    top: 7px;
+    padding: 0;
+  }
+  > .seq .seqtools > .seq-pianoroll { width: 72px; }
+  > .seq .seqtools > .seq_record_live { width: 44px; right: 87px; }
+  > .arp-settings-block .arp-head-tools > .arp_transpose:not(.selected) + .arp_transpose_value { display: none; }
+  /* words, not icons, in the headings (Nov 21, the user's pick from mocks; the Tracks dock keeps
+     its icons): Rec, Piano roll, Edit, Send all, as Transpose and Hold */
+  > .seq .seqtools > :is(.seq_record_live, .seq-pianoroll) > .material-icons,
+  > .ccpots .cctools > .action > .material-icons {
+    display: none;
+  }
+  .head-word {
+    display: inline;
+  }
+  > .arp-settings-block .arp-head-tools {
+    top: 7px;
+    height: 22px;
+  }
+}
 .zone .panel-head {
   display: none;
   position: absolute;
-  top: 7px;
+  top: 6px;
   left: 10px;
+  height: 24px;
   align-items: center;
   gap: 2px;
   font-size: var(--fs-sm);

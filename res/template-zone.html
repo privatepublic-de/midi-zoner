@@ -365,14 +365,14 @@
         title="Record notes you play into the running sequence"
         data-action="${index}:seq_record_live"
       >
-        <i class="material-icons">fiber_manual_record</i>
+        <i class="material-icons">fiber_manual_record</i><span class="head-word">Rec</span>
       </div>
       <div
-        class="action dismiss-for-drumsequence"
+        class="action seq-pianoroll dismiss-for-drumsequence"
         title="Edit in the piano roll"
         data-action="${index}:seq_open_piano_roll"
       >
-        <i class="material-icons">piano</i>
+        <i class="material-icons">piano</i><span class="head-word">Piano roll</span>
       </div>
       <div style="flex-grow: 1"></div>
     </div>
@@ -616,24 +616,26 @@
       >
         ${checkboxIcons}Repeat
       </div>
-      <div
-        class="check arp_hold"
-        data-action="${index}:zone_arp_hold"
-        title="Keep playing after you let go of the keys"
-      >
-        ${checkboxIcons}Hold
+      <div class="arp-head-tools">
+        <div
+          class="check arp_transpose"
+          data-action="${index}:zone_arp_transpose"
+          title="While holding, the next key you play transposes the arp"
+        >
+          ${checkboxIcons}Transpose
+        </div>
+        <div
+          class="arp_transpose_value"
+          title="Transposition of the held arp in semitones: drag up/down or scroll, double-click for 0. Playing a key also sets it."
+        ></div>
+        <div
+          class="check arp_hold"
+          data-action="${index}:zone_arp_hold"
+          title="Keep playing after you let go of the keys"
+        >
+          ${checkboxIcons}Hold
+        </div>
       </div>
-      <div
-        class="check arp_transpose"
-        data-action="${index}:zone_arp_transpose"
-        title="While holding, the next key you play transposes the arp"
-      >
-        ${checkboxIcons}Transpose
-      </div>
-      <div
-        class="arp_transpose_value"
-        title="Transposition of the held arp in semitones: drag up/down or scroll, double-click for 0. Playing a key also sets it."
-      ></div>
     </div>
     <div class="arp-settings">
       <div class="label">Gate</div>
@@ -767,7 +769,7 @@
         title="Edit controllers and device presets (or double-click a controller)"
         aria-label="Edit controllers"
       >
-        <i class="material-icons">edit</i>
+        <i class="material-icons">edit</i><span class="head-word">Edit</span>
       </div>
       <div
         class="action"
