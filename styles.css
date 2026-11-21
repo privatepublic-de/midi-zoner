@@ -8006,7 +8006,7 @@ body:not(.track-view):not(.minimized) #zones > .zone {
   > .seq .seqtools { padding: 0 0 6px; }
   > .seq .grid { padding: 0; }
   > .arp-settings-block .arp-settings { padding: 4px 0; }
-  > .arp-settings-block .arp-settings:first-of-type { padding-top: 0; }
+
   > .arp-settings-block .arp-settings > .label:first-child,
   > .thru-panel .thru-line > .label:first-child {
     flex: none;
@@ -8051,8 +8051,15 @@ body:not(.track-view):not(.minimized) #zones > .zone {
     justify-self: end;
   }
   /* Ratchet after the Chance value: a little air, its slider a little shorter so 2× still fits */
-  > .arp-settings-block .label.ratchet-holder { margin-left: 8px; }
-  > .arp-settings-block .percent-holder.ratchet-holder { width: 86px; }
+  > .arp-settings-block .label:is(.ratchet-holder, .strum-taper-holder) { margin-left: 8px; }
+  > .arp-settings-block .percent-holder:is(.ratchet-holder, .strum-taper-holder) { width: 86px; }
+  /* every row as tall as a menu, so a strum (Taper instead of Ratchet and 2×) moves nothing */
+  &.fold-arp:not(.disabled):not(.chords-zone) > .arp-settings-block .arp-settings {
+    grid-template-rows: minmax(20px, auto);
+  }
+  /* the rows' own 4px above the first: the panel starts 4px higher, so its first row sits where
+     the other panels' do */
+  &.fold-arp > .arp-settings-block { padding-top: 34px; }
   > .thru-panel .programsettings > .program-send { margin-left: 10px; }
   /* Sequencer: Rec and Piano roll */
   > .seq .seqtools > :is(.seq_record_live, .seq-pianoroll) {
