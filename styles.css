@@ -7520,7 +7520,7 @@ body:not(.track-view) #zones > .zone > .chords-block {
 body:not(.track-view):not(.minimized) .zone.chords-zone > .chords-sum {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
   min-width: 0;
   padding: 4px 2px 2px;
   color: var(--text-base-color);
@@ -7536,6 +7536,22 @@ body:not(.track-view):not(.minimized) .zone.chords-zone > .chords-sum {
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
+}
+/* the followed zone's number in its colour, as the "to [3]" boxes on its lane */
+.chords-sum .cs-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 15px;
+  height: 15px;
+  margin-right: 4px;
+  padding: 0 3px;
+  box-sizing: border-box;
+  border-radius: var(--radius-sm);
+  color: var(--on-text);
+  font-weight: 600;
+  font-size: 11px;
+  vertical-align: 1px;
 }
 .chords-sum .cs-gap {
   flex: 1;

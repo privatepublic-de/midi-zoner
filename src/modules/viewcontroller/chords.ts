@@ -1200,12 +1200,15 @@ function renderSummary(zone: Zone): void {
   const st = styleById(s.style);
   const style = st ? `${st.name}${differsFromStyle(s, part) ? ' •' : ''}` : '';
   const rhythm = part === 'chords' ? RHYTHMS[s.rhythm] : '';
-  const key = [part, line ? lineLabel(line) : zone.chords.follows ? '!' : '', style, rhythm].join('|');
+  // the line zone as its number in a box of its colour (as the followed zone's lane shows "to [3]"), then its name
+  const colour = line?.elements?.zoneElement ? getComputedStyle(line.elements.zoneElement).getPropertyValue('--zone-color').trim() : '';
+  const key = [part, line ? lineLabel(line) : zone.chords.follows ? '!' : '', colour, style, rhythm].join('|');
   if (el.dataset.key !== key) {
     el.dataset.key = key;
     const what = part === 'bass' ? 'Bass' : 'Chords';
     const follows = line
-      ? `<span class="label">from</span><span class="cs-line">${escapeHTML(lineLabel(line))}</span>`
+      ? `<span class="label">from</span><span class="cs-line" title="${escapeHTML(lineLabel(line))}">` +
+        `<span class="cs-num" style="background:${escapeHTML(colour)}">${hooks.zones().indexOf(line) + 1}</span>${escapeHTML(line.label || 'Zone')}</span>`
       : `<span class="cs-none">${zone.chords.follows ? '⚠ the zone it follows is missing' : 'follows no zone yet'}</span>`;
     const parts = [style, rhythm].filter((x) => x).map((x) => `<span class="cs-sep">·</span><span>${escapeHTML(x)}</span>`).join('');
     el.innerHTML =
