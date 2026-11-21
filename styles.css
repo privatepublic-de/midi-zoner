@@ -1044,61 +1044,59 @@ body.minimized #meterChip {
   background: none;
   color: var(--brighter-3);
   padding: 0;
-  /* where the next zone goes: dim text only, the dashed slot shows on hover; the whole row clickable */
-  a {
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    width: 100%;
-    height: 36px;
-    padding-left: 12px;
-    border: 1px dashed transparent;
-    border-radius: var(--radius-lg);
-    background-color: transparent;
-    box-shadow: none;
-    color: color-mix(in srgb, var(--slate-dim) 70%, transparent);
-  }
-  a:hover {
-    border-color: var(--slate-line);
-    color: var(--text-base-color);
-  }
 }
 
 .addzone-hint {
   display: none;
 }
-/* under "+ Add zone": a chords or bass zone, as two words in a sentence */
-.zone.addnewzone {
-  flex-wrap: wrap;
-  align-content: flex-start;
+
+/* "+ Add  Zone | Chords zone | Bass zone": one segmented control (Nov 22, the user's pick from
+   mocks; was "+ Add zone" with a sentence under it); chords and bass once a zone can be followed */
+.zone.addnewzone .addzone {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0 0 4px;
+  font-size: var(--fs-md);
 }
-.zone.addnewzone .addzone-chords {
-  flex-basis: 100%;
-  padding: 0 0 0 13px;
-  font-size: 12px;
-  color: color-mix(in srgb, var(--slate-dim) 70%, transparent);
+.zone.addnewzone .addzone-lbl {
+  color: var(--slate-dim);
+}
+.zone.addnewzone .addzone-seg {
+  display: flex;
   a {
-    display: inline;
-    width: auto;
-    height: auto;
-    padding: 0;
-    border: 0;
-    color: var(--slate-dim);
-    text-decoration: underline;
-    text-decoration-color: var(--slate-line);
-    text-underline-offset: 3px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    height: 28px;
+    padding: 0 12px;
+    background-color: var(--slate-raise);
+    border: 1px solid var(--slate-line);
+    color: var(--text-base-color);
+    white-space: nowrap;
     cursor: pointer;
   }
+  a + a {
+    border-left: none;
+  }
+  a:first-child {
+    border-radius: var(--radius) 0 0 var(--radius);
+  }
+  a:last-child {
+    border-radius: 0 var(--radius) var(--radius) 0;
+  }
+  a:only-child {
+    border-radius: var(--radius);
+  }
   a:hover {
-    color: var(--text-base-color);
-    text-decoration-color: currentColor;
+    background-color: var(--darker-2);
   }
 }
 
 /* Empty scene: the link becomes the one thing to do, with a line on what a zone is */
 #zones:not(:has(> .zone:not(.addnewzone, .placeholder))) .zone.addnewzone {
   flex-direction: column;
+
   gap: 10px;
   padding: 48px 0 0 8px;
   a {
@@ -6091,17 +6089,6 @@ body.track-view:not(.minimized) {
     border: none;
     box-shadow: none;
     background: none;
-    a {
-      width: calc(var(--track-hdr-w) - 16px);
-      height: 32px;
-      justify-content: center;
-      padding-left: 0;
-      border-color: var(--slate-line);
-      color: var(--slate-dim);
-    }
-    a:hover {
-      border-color: var(--slate-dim);
-    }
   }
 
   /* header, two rows laid out each on its own (a break after the name row):
@@ -7963,8 +7950,9 @@ body:not(.track-view):not(.minimized) #zones > .zone {
    and the open panels, so opening one only grows the card downwards. The header's two rows are one
    element (.channels, laid out by the Tracks header and the mini view too), so in cards it lets its
    items into the card (display: contents) and the card wraps them in rows: their order (top bar
-   -3…2, switches 4…6) leaves 3 for the keyboard; every other block takes a row of its own */
-body:not(.track-view):not(.minimized) #zones > .zone {
+   -3…2, switches 4…6) leaves 3 for the keyboard; every other block takes a row of its own
+   (cards only: not the "+ Add" slot or the placeholder) */
+body:not(.track-view):not(.minimized) #zones > .zone:not(.addnewzone, .placeholder) {
   flex-direction: row;
   flex-wrap: wrap;
   align-items: center;

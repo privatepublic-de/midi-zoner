@@ -1014,12 +1014,18 @@ function addPlaceholder(): void {
   DOM.addHTML(
     '#zones',
     'beforeend',
-    '<div class="zone addnewzone"><a class="action" title="Add a zone">+ Add zone</a>' +
-      // once there is a zone to follow: a zone that plays chords or a bass line to it
-      (zones.list.some((z) => !z.chords)
-        ? '<div class="addzone-chords">or a <a class="action" data-part="chords" title="Add a zone that plays chords to what another zone plays">chords zone</a>' +
-          ' or <a class="action" data-part="bass" title="Add a zone that plays a bass line to what another zone plays">bass zone</a> that plays along with another zone</div>'
-        : '') +
+    '<div class="zone addnewzone">' +
+      (zones.list.length
+        ? // one segmented control; chords and bass once there is a zone to follow
+          '<div class="addzone"><span class="addzone-lbl">+ Add</span><div class="addzone-seg">' +
+          '<a class="action" title="Add a zone">Zone</a>' +
+          (zones.list.some((z) => !z.chords)
+            ? '<a class="action" data-part="chords" title="Add a zone that plays chords to what another zone plays">Chords zone</a>' +
+              '<a class="action" data-part="bass" title="Add a zone that plays a bass line to what another zone plays">Bass zone</a>'
+            : '') +
+          '</div></div>'
+        : // an empty scene: the one thing to do, with a line on what a zone is
+          '<a class="action" title="Add a zone">+ Add zone</a>') +
       '<p class="addzone-hint">A zone sends one key range of your keyboard to one MIDI output, with its own arpeggiator, sequencer and controls.</p></div>'
   );
   DOM.all('#zones .zone.placeholder', (e) => e.remove());
