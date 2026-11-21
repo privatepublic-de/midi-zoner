@@ -7129,7 +7129,9 @@ body:not(.track-view):not(.minimized) .zone.chords-zone .channels > .chordnow {
 .zone:not(.disabled).chords-on .channels .ch.showchords {
   color: var(--ink);
 }
-.zone.disabled.chords-on .channels .ch.showchords {
+.zone.disabled.chords-on .channels .ch.showchords,
+/* a finished line (mini view, Tracks header): on, but silent until Play on, as the cards' switch */
+.zone.chords-on.chords-finished .channels .ch.showchords {
   background-color: color-mix(in srgb, var(--on) 35%, var(--slate-panel));
   border-color: transparent;
   color: var(--brighter-4);
