@@ -1806,8 +1806,11 @@ body:not(.track-view):not(.minimized) #zones > .zone > .channels {
   > :is(.ch.showseq, .ch.showarp, .ch.showchords) { order: 4; margin-left: 0; }
   /* a chords zone: "Chords Am" in one switch (the chord sounding after its part) */
   > .ch.showchords > .chc-part { display: inline; }
-  > .ch.showchords > .chc-now { display: inline; font-weight: 600; font-size: 15px; color: var(--text-base-color); }
-  > .ch.showchords.no-chord > .chc-now { display: none; }
+  /* the chord in a slot as wide as the widest name ("F#sus4"), a dim "–" while none sounds, so the
+     switch keeps its width and Loop beside it doesn't move as chords change (Nov 21) */
+  > .ch.showchords > .chc-now { display: inline-block; min-width: 46px; font-weight: 600; font-size: 15px; color: var(--text-base-color); }
+  > .ch.showchords.no-chord > .chc-now { font-size: 0; }
+  > .ch.showchords.no-chord > .chc-now::before { content: '–'; font-size: 15px; font-weight: 400; color: var(--slate-dim); }
   > .chordnow { display: none !important; }
   > .loopgroup { order: 5; margin-left: 2px; }
   > .ch.showccs { order: 6; margin-left: auto; width: var(--hdr-col3); }
