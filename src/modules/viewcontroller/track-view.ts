@@ -223,14 +223,16 @@ function updateLoopChips(): void {
     }
     sw.classList.toggle('loop-none', !loop);
     sw.classList.toggle('loop-on', !!loop && zone.loopOn);
+    // cards have no Rec: loops are made in the Tracks view
+    const where = document.body.classList.contains('track-view') ? '' : ' in the Tracks view';
     const swTitle = zone.chords
       ? !loop
-        ? 'No chord loop yet: keep one with Rec'
+        ? `No chord loop yet: keep one with Rec${where}`
         : zone.loopOn
           ? `Chord loop (${length}) on: it plays instead of following live. Click: follow live, kept`
           : `Chord loop (${length}) off: following live. Click: play the loop`
       : !loop
-      ? 'No loop yet: record one with Rec'
+      ? `No loop yet: record one with Rec${where}`
       : zone.loopOn
         ? `Loop (${length}) on: it plays, also on a muted zone. Click: off, kept`
         : `Loop (${length}) off: kept, silent. Click: on`;

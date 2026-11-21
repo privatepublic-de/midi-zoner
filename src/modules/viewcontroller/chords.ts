@@ -646,12 +646,17 @@ function showStatus(zone: Zone): void {
   if (!els.length) return;
   const st = statusOf(zone);
   const key = `${st.dot}|${st.tag}|${st.main}|${st.more.join('|')}`;
+  // the card's plate leaves out the key heard live ("live", not "live · C major"): the followed
+  // zone's lane names it at its playhead (Nov 21); the sheet and the dock keep it
+  const laneTag = st.tag.replace(/^(live|waits for you) · .*$/, '$1');
   for (const el of els) {
-    if (el.dataset.key === key) continue;
-    el.dataset.key = key;
+    const tag = el === lane ? laneTag : st.tag;
+    const k = `${key}|${tag}`;
+    if (el.dataset.key === k) continue;
+    el.dataset.key = k;
     // the tag: a dot and a few words; the whole sentence in its tooltip
     el.title = [st.main, ...st.more].join(' · ');
-    el.innerHTML = `<span class="cb-dot-state ${st.dot}"></span>${escapeHTML(st.tag)}`;
+    el.innerHTML = `<span class="cb-dot-state ${st.dot}"></span>${escapeHTML(tag)}`;
   }
 }
 
