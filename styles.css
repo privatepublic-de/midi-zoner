@@ -6888,72 +6888,112 @@ body.minimized .zone .mini-lane {
 }
 
 /* A followed zone (cards, also while running): who follows it, what they heard, Start over */
+/* a followed zone's mini lane (Nov 21, the user's pick from mocks): bottom left the key heard with
+   Clear, bottom right "to [3][4]", the followers as their numbers in boxes of their colours like the
+   zones' name boxes; plates so they read over the notes, the lane between them stays seen */
+.zone .mini-lane {
+  position: relative;
+}
 .zone .card-follow {
   display: none;
-  align-items: center;
-  gap: 8px;
-  min-height: 22px;
-  margin: 4px 0 0;
-  font-size: var(--fs-md);
-  color: var(--slate-dim);
+  position: absolute;
+  inset: auto 3px 3px 3px;
+  justify-content: space-between;
+  align-items: flex-end;
+  pointer-events: none;
 }
-
 .zone.has-card-follow .card-follow {
   display: flex;
 }
-
-/* "to [3][4]": the followers as their numbers, boxes in their colours like the zones' name boxes */
-.zone .card-follow .cf-nums {
+.zone .card-follow .cf-plate {
   display: flex;
-  flex: none;
+  align-items: center;
   gap: 4px;
-  margin-right: 6px;
+  max-width: 60%;
+  padding: 1px 4px 1px 6px;
+  border-radius: var(--radius-sm);
+  background: rgba(16, 18, 21, 0.82);
+  font-size: var(--fs-sm);
+  line-height: 18px;
+  color: var(--slate-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  pointer-events: auto;
+}
+.zone .card-follow .cf-to {
+  margin-left: auto;
+}
+/* the key heard sits at the playhead (MINI_PLAYHEAD_AT in track-view.ts, 22 % of the lane) */
+.zone .card-follow .cf-heard {
+  position: absolute;
+  bottom: 0;
+  left: calc((100% + 6px) * 0.22 - 2px);
+  max-width: 45%;
+}
+/* a chords or bass zone's status (stopped, listening…, waiting, live · key), bottom right of its lane */
+.zone .mini-lane .lane-status {
+  display: none;
+}
+body:not(.track-view):not(.minimized) .zone.chords-zone .mini-lane .lane-status {
+  display: flex;
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  margin: 0;
+  max-width: 60%;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: rgba(16, 18, 21, 0.82);
+  font-size: var(--fs-sm);
+  line-height: 18px;
+  overflow: hidden;
+}
+.zone .card-follow .cf-key {
+  color: var(--text-base-color);
+  font-size: var(--fs-md);
+  font-weight: 600;
 }
 .zone .card-follow .cf-num {
-  min-width: 18px;
-  height: 18px;
-  padding: 0 4px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
   box-sizing: border-box;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-sm);
   color: var(--on-text);
   font-weight: 600;
-  font-size: 12px;
+  font-size: 11px;
 }
-
-/* short of room, the status gives way; "to", the numbers and the buttons keep their size */
-.zone .card-follow .cf-label {
-  flex: none;
-}
-
-.zone .card-follow .cf-status {
-  flex-shrink: 100;
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-/* the key heard: the row's value */
-.zone .card-follow .cf-key {
+.zone .card-follow .cf-startover {
+  margin-left: 2px;
+  padding: 0 5px;
+  border: 1px solid var(--slate-line);
+  border-radius: var(--radius-sm);
+  background: var(--slate-raise);
   color: var(--text-base-color);
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 11px;
+  line-height: 15px;
+  cursor: pointer;
+}
+.zone .card-follow .cf-startover:hover {
+  border-color: var(--slate-dim);
 }
 
-.zone .card-follow .cf-gap {
-  flex: 1;
+/* Finish / Open end / Play on in a chords or bass zone's row, while running */
+.zone .chords-sum .cs-ends {
+  display: flex;
+  gap: 6px;
+  margin-left: 8px;
 }
-
-.zone .card-follow .lightButton {
-  flex: none;
-  white-space: nowrap;
+.zone .chords-sum .cs-ends .lightButton {
   height: 22px;
-  min-width: 22px;
   padding: 0 8px;
-  justify-content: center;
+  white-space: nowrap;
+}
+.zone .chords-sum .cs-ends .lightButton[hidden] {
+  display: none;
 }
 
 body.track-view .zone .card-follow,
@@ -7121,7 +7161,8 @@ body.track-view:not(.minimized) .chords-block > .cb-top {
 }
 /* what the zone does now, as a tag at the end of the Follows row: a dot for live (the live green),
    its loop (the zone colour) or waiting, and a few words; the whole sentence in its tooltip */
-:is(.chords-block, .chords-sum) .cb-status {
+:is(.chords-block, .chords-sum) .cb-status,
+.lane-status.cb-status {
   margin-left: auto;
   display: flex;
   align-items: center;
@@ -7142,7 +7183,7 @@ body.track-view:not(.minimized) .chords-block > .cb-top {
   color: var(--text-base-color);
   text-decoration-color: currentColor;
 }
-:is(.chords-block, .chords-sum) .cb-dot-state {
+:is(.chords-block, .chords-sum, .lane-status) .cb-dot-state {
   flex: none;
   align-self: center;
   width: 7px;
@@ -7150,11 +7191,11 @@ body.track-view:not(.minimized) .chords-block > .cb-top {
   border-radius: 50%;
   background: var(--slate-line);
 }
-:is(.chords-block, .chords-sum) .cb-dot-state.live {
+:is(.chords-block, .chords-sum, .lane-status) .cb-dot-state.live {
   background: var(--live);
   box-shadow: 0 0 6px var(--live);
 }
-:is(.chords-block, .chords-sum) .cb-dot-state.loop {
+:is(.chords-block, .chords-sum, .lane-status) .cb-dot-state.loop {
   background: var(--zone-color);
 }
 :is(.chords-block, .chords-sum) .cb-what {
@@ -7405,16 +7446,30 @@ body:not(.track-view):not(.minimized) .zone.chords-zone > .chords-sum {
   text-overflow: ellipsis;
   min-width: 0;
 }
-.chords-sum .cb-status {
-  margin-left: auto;
+.chords-sum .cs-gap {
+  flex: 1;
 }
 .chords-sum .cb-text {
   font-size: 12px;
+}
+/* short of room (Finish / Open end while running): the style and rhythm give way, the
+   buttons keep their size */
+.chords-sum > :is(.cb-what, .cs-ends, .cs-edit, .label, .cs-sep) {
+  flex: none;
+}
+.chords-sum > span:not([class]) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .chords-sum .cs-edit {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  /* as tall as Finish / Open end, so the row doesn't grow when they show at Start */
+  height: 22px;
+  padding: 0 8px;
+  box-sizing: border-box;
   .material-icons {
     font-size: 15px;
   }

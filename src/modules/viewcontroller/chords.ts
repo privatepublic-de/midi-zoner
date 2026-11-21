@@ -639,8 +639,10 @@ function zoneNumberName(z: Zone): string {
 
 /** The status line, written only when it changed */
 function showStatus(zone: Zone): void {
-  for (const b of blocksOf(zone)) if (b) showEnds(b, lineZoneOf(zone));
-  const els = [...blocksOf(zone), summaryOf(zone)].map((b) => b?.querySelector<HTMLElement>('.cb-status')).filter((e): e is HTMLElement => !!e);
+  for (const b of [...blocksOf(zone), summaryOf(zone)]) if (b) showEnds(b, lineZoneOf(zone));
+  // the block's status (sheet, dock) and, on the card, a plate at the bottom right of the mini lane
+  const lane = zone.elements?.zoneElement?.querySelector<HTMLElement>('.mini-lane .lane-status') ?? null;
+  const els = [...blocksOf(zone).map((b) => b?.querySelector<HTMLElement>('.cb-status') ?? null), lane].filter((e): e is HTMLElement => !!e);
   if (!els.length) return;
   const st = statusOf(zone);
   const key = `${st.dot}|${st.tag}|${st.main}|${st.more.join('|')}`;
@@ -654,7 +656,7 @@ function showStatus(zone: Zone): void {
 }
 
 /**
- * Listen anew: the line's chords and bass zones forget what they heard (key, chords, notes so far)
+ * Clear: the line's chords and bass zones forget what they heard (key, chords, notes so far)
  * and listen anew from now; chord loops playing on the line are switched off, kept (one undo step)
  */
 function startOver(zone: Zone): void {
@@ -674,7 +676,7 @@ function startOverLine(line: Zone): void {
     const zs = hooks.zones();
     hooks.commit(
       looping.map((z) => zs.indexOf(z)),
-      'Listen Anew',
+      'Clear Key',
       () => looping.forEach((z) => z.setLoopOn(false))
     );
   }
@@ -717,7 +719,7 @@ export function chordsTakeAlongChanged(line: Zone): void {
 }
 
 /**
- * A followed zone's card: "Followed by ● 3 Chords ● 4 Bass · heard D minor  [Listen anew]"
+ * A followed zone's mini lane: "D minor [Clear]" bottom left, "to [3][4]" bottom right
  * (rebuilt only when what it says changes)
  */
 /** Sentence case for a status leading a row */
@@ -740,25 +742,21 @@ export function updateFollowRows(): void {
     const waits = timeline.running && deciders.get(line.id)?.waiting ? ' · waiting for you' : '';
     const dd = deciders.get(line.id);
     const ends = timeline.running && dd ? (dd.finished ? ' · finished' : dd.finishing ? (dd.finishing === 'open' ? ' · ending open' : ' · finishing') : '') : '';
-    // "heard" quiet, the key as the value
+    // on the mini lane: at the playhead the key heard (or what happens), bottom right "to", the
+    // followers as their numbers in their colours (the name boxes' look) and Clear
     const status = ends
       ? escapeHTML(upFirst(ends.slice(3)))
       : key
-        ? `Heard <span class="cf-key">${escapeHTML(keyLabel(key))}</span>${escapeHTML(waits)}`
+        ? `<span class="cf-key">${escapeHTML(keyLabel(key))}</span>${escapeHTML(waits)}`
         : escapeHTML(upFirst(anew.get(line.id) ?? (timeline.running ? 'listening…' : '')));
-    const shown = endsShown(line);
     const colours = fs.map((z) => (z.elements?.zoneElement ? getComputedStyle(z.elements.zoneElement).getPropertyValue('--zone-color').trim() : ''));
-    // the followers as their numbers in their colours (the name boxes' look), named in the tooltip
-    // what was heard leads (the row's value); the followers sit with the buttons acting on them
     const html =
-      (status ? `<span class="cf-status">${status}</span>` : '') +
-      '<span class="cf-gap"></span>' +
-      `<span class="cf-label" title="${escapeHTML(`Followed by ${followerNames(fs)}`)}">to</span>` +
-      '<span class="cf-nums">' +
+      (status
+        ? `<span class="cf-plate cf-heard" title="${escapeHTML(key ? `The key heard from ${lineLabel(line)}` : `What ${followerNames(fs)} hear from ${lineLabel(line)}`)}">${status}</span>`
+        : '') +
+      `<span class="cf-plate cf-to" title="${escapeHTML(`Followed by ${followerNames(fs)}`)}">to` +
       fs.map((z, i) => `<span class="cf-num" style="background:${escapeHTML(colours[i])}" title="${escapeHTML(zoneNumberName(z))}">${hooks.zones().indexOf(z) + 1}</span>`).join('') +
-      '</span>' +
-      `<a class="lightButton cf-startover" title="${escapeHTML(`Forget what was heard from ${lineLabel(line)} (key and chords) and listen anew: ${followerNames(fs)}; chord loops playing there are switched off (kept). Switching Play along here does this by itself`)}">Listen anew</a>` +
-      (shown ? endsHtml('lightButton', shown) : '');
+      `<a class="cf-startover" title="${escapeHTML(`Clear the key and chords heard from ${lineLabel(line)} and listen anew: ${followerNames(fs)}; chord loops playing there are switched off (kept). Switching Play along here does this by itself`)}">Clear</a></span>`;
     if (row.dataset.html !== html) {
       row.dataset.html = html;
       row.innerHTML = html;
@@ -1061,7 +1059,7 @@ function blockHTML(zone: Zone): string {
   const chordsGroup =
     slider(row('changes')) + slider(row('harmony')) + slider(row('tensions')) + (part === 'chords' ? bluesRow : pedalRow) + slider(row('unfold')) + slider(row('register'));
   const actions = `<span class="cb-actions">
-        ${line ? '<a class="cb-text cb-startover" title="Forget what was heard (key and chords) and listen anew, for every chords and bass zone following the same zone; chord loops playing there are switched off (kept)">Listen anew</a>' : ''}
+        ${line ? '<a class="cb-text cb-startover" title="Clear the key and chords heard and listen anew, for every chords and bass zone following the same zone; chord loops playing there are switched off (kept)">Clear</a>' : ''}
         ${line ? `<span class="cb-ends">${endsHtml('lightButton')}</span>` : ''}
         ${leads ? '<a class="cb-text cb-best" title="Back to the chords that fit best" hidden>Back to best</a><a class="lightButton cb-another" title="Other chords that also fit">Other chords</a>' : ''}
       </span>`;
@@ -1069,7 +1067,7 @@ function blockHTML(zone: Zone): string {
   // in a footer in the sheet
   return `
     <div class="cb-top">
-      <span class="cb-what">${what}</span><span class="label">follows</span>
+      <span class="cb-what">${what}</span><span class="label">from</span>
       <select class="cb-follows" tabindex="-1" title="The zone whose line it plays to">${options}</select>
       <span class="label cb-gap">Style</span>
       <select class="cb-style" tabindex="-1" title="Sets this zone and the other chords and bass zones on the same line together (• : changed since)">
@@ -1184,7 +1182,7 @@ function summaryOf(zone: Zone): HTMLElement | null {
   return zone.elements?.zoneElement?.querySelector<HTMLElement>('.chords-sum') ?? null;
 }
 
-/** The card's one row: what it follows, its style and rhythm, the status tag, Listen anew, Edit */
+/** The card's one row: what it follows, its style and rhythm, the status tag, Finish / Open end while running, Edit */
 function renderSummary(zone: Zone): void {
   const el = summaryOf(zone);
   if (!el || !zone.chords) return;
@@ -1199,13 +1197,16 @@ function renderSummary(zone: Zone): void {
     el.dataset.key = key;
     const what = part === 'bass' ? 'Bass' : 'Chords';
     const follows = line
-      ? `<span class="label">follows</span><span class="cs-line">${escapeHTML(lineLabel(line))}</span>`
+      ? `<span class="label">from</span><span class="cs-line">${escapeHTML(lineLabel(line))}</span>`
       : `<span class="cs-none">${zone.chords.follows ? '⚠ the zone it follows is missing' : 'follows no zone yet'}</span>`;
     const parts = [style, rhythm].filter((x) => x).map((x) => `<span class="cs-sep">·</span><span>${escapeHTML(x)}</span>`).join('');
     el.innerHTML =
-      `<span class="cb-what">${what}</span>${follows}${parts}<span class="cb-status"></span>` +
+      `<span class="cb-what">${what}</span>${follows}${parts}<span class="cs-gap"></span>` +
+      // Finish / Open end / Play on while running (showEnds() shows them): they end the whole line
+      (line ? `<span class="cs-ends">${endsHtml('lightButton')}</span>` : '') +
       `<a class="lightButton cs-edit" title="Set up the ${part === 'bass' ? 'bass' : 'chords'}: who it follows, style, rhythm, pads and more (double-click the row)"><i class="material-icons">edit</i>Edit</a>`;
   }
+  showEnds(el, line);
   el.title = `${part === 'bass' ? 'Bass' : 'Chords'} of this zone (double-click: edit)`;
 }
 
@@ -1382,23 +1383,23 @@ function initBlockEvents(): void {
       setSettings(zone, { [k]: MIDDLE[k] ?? 0.5 } as Partial<ChordSettings>);
     }
   });
-  // the card's summary row: Listen anew, Edit, a double-click edits
+  // the card's summary row: Finish / Open end / Play on, Edit, a double-click edits
   document.addEventListener('click', (ev) => {
     const t = ev.target as HTMLElement;
     if (!t.closest?.('.chords-sum')) return;
     const zone = zoneOfEl(t);
     if (!zone?.chords) return;
-    if (t.closest('.cs-edit')) openChordsSheet(zone);
-  });
-  // a followed zone's card: Listen anew for all its chords and bass zones
-  document.addEventListener('click', (ev) => {
-    const t = ev.target as HTMLElement;
-    const fin = t.closest?.<HTMLElement>('.card-follow .cb-finish');
+    const fin = t.closest<HTMLElement>('.cb-finish');
     if (fin) {
-      const line = hooks.zones().find((z) => z.elements?.zoneElement?.contains(t));
+      const line = lineZoneOf(zone);
       if (line) finishLine(line, fin.dataset.end as 'closed' | 'open' | 'on');
       return;
     }
+    if (t.closest('.cs-edit')) openChordsSheet(zone);
+  });
+  // a followed zone's mini lane: Clear for all its chords and bass zones
+  document.addEventListener('click', (ev) => {
+    const t = ev.target as HTMLElement;
     if (!t.closest?.('.card-follow .cf-startover')) return;
     const line = hooks.zones().find((z) => z.elements?.zoneElement?.contains(t));
     if (line) startOverLine(line);
