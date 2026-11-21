@@ -41,6 +41,9 @@ import {
 import {
   updateOutputPortsForAllZones as updateOutputPortsForAllZonesInternal,
   updateOutputPortsForZone as updateOutputPortsForZoneInternal,
+  renderOutGrid,
+  initOutGrid,
+  syncOutportSelect,
   initOutputPortsForZone as initOutputPortsForZoneInternal,
   listUsedPorts as listUsedPortsInternal,
   getCachedOutputPorts,
@@ -1091,6 +1094,7 @@ function appendZone(zone: ZoneType, index: number): void {
   DOM.all(`#zone${index} *[data-change]`).forEach((e) => {
     e.addEventListener('input', actionHandler as EventListener);
   });
+  initOutGrid(index);
   // Program and bank go out once a value is committed (Enter, leaving the field,
   // an arrow step), not per keystroke: typing 112 would send 1 and 11 first
   DOM.all(`#zone${index} .programsettings input`).forEach((e) => {
@@ -1784,16 +1788,16 @@ function updateValuesForZone(index: number): void {
     (zone._$('input.fixedvel_value') as HTMLInputElement).value = String(
       zone.fixedvel_value
     );
+    syncOutportSelect(zones, index);
     const nameField = zone._$('.output-config-name') as HTMLInputElement;
-    // the port as the selector shows it (long names shortened in the middle); the
-    // rename field offers the full name
+    // the port as the selector shows it (long names shortened in the middle)
     const outOption = (zone._$('select.outport') as HTMLSelectElement).selectedOptions[0];
     const shortPortName = outOption?.textContent ?? '';
     if (zones.outputConfigNames[zones.list[index].configId]) {
       nameField.value = zones.outputConfigNames[zones.list[index].configId];
     } else {
       nameField.value = '';
-      nameField.placeholder = outOption?.dataset.fullName ?? shortPortName;
+      nameField.placeholder = `Name the device on channel ${zone.channel + 1}…`;
     }
     // no port chosen (and no named output config): the zone sends nowhere
     const noOutput = !nameField.value && (!zone.outputPortId || zone.outputPortId === MIDI.INTERNAL_PORT_ID);
@@ -1810,10 +1814,10 @@ function updateValuesForZone(index: number): void {
           ? portName
           : labelField.dataset.defaultPlaceholder;
     }
-    zone.elements.addSelectedStyle(
-      '.sendClock',
-      midiController.clockOutputPorts[zone.outputPortId] === true
-    );
+    // Send clock: the switch in the In/Out popup and the clock in the card's header
+    const sendsClock = midiController.clockOutputPorts[zone.outputPortId] === true;
+    zone.elements.addSelectedStyle('.sendClock', sendsClock);
+    zone.elements.addSelectedStyle('.hdr-clock', sendsClock);
     const inportSelect = zone._$('select.inport') as HTMLSelectElement;
     if (inportSelect) {
       inportSelect.value = zone.inputPortId || '';
@@ -1841,6 +1845,19 @@ function updateValuesForZone(index: number): void {
         if (document.activeElement !== field) field.value = String(zone[p]);
       });
     });
+    renderOutGrid(zones, index);
+    // the folded input line: what the zone takes in (its own input, MPE) at a glance
+    const inVal = zone._$('.ior-in-val') as HTMLElement | null;
+    if (inVal) {
+      const inPort = zone.inputPortId ? getCachedInputPorts().find((p) => p.id === zone.inputPortId) : undefined;
+      inVal.textContent = !zone.inputPortId
+        ? 'Global'
+        : (inPort?.name ?? '?') + (zone.inputChannel !== null ? ` ch ${zone.inputChannel + 1}` : '');
+    }
+    const mpeVal = zone._$('.ior-mpe-val') as HTMLElement | null;
+    if (mpeVal) {
+      mpeVal.textContent = zone.mpe === MpeMode.PASS ? 'Pass through' : zone.mpe === MpeMode.COLLAPSE ? 'To one channel' : 'Off';
+    }
     const polySelect = zone._$('select.mpe_poly_at') as HTMLSelectElement;
     if (polySelect) polySelect.value = zone.mpe_poly_at ? '1' : '0';
     const routingText = zone._$('.iorouting-text') as HTMLElement;

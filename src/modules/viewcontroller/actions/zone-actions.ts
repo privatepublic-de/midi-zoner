@@ -212,8 +212,14 @@ export function createZoneActions(
     iorouting_toggle: () => {
       const popup = zone._$('.iorouting-popup') as HTMLElement;
       if (popup) {
-        popup.style.display = popup.style.display === 'block' ? 'none' : 'block';
+        const open = popup.style.display !== 'block';
+        popup.style.display = open ? 'block' : 'none';
+        // input and MPE are folded away unless the zone uses them
+        if (open) popup.classList.toggle('in-open', !!zone.inputPortId || zone.mpe !== MpeMode.OFF);
       }
+    },
+    iorouting_input: () => {
+      (zone._$('.iorouting-popup') as HTMLElement | null)?.classList.toggle('in-open');
     },
     zone_range: () => {
       const touchedNote = findTouchedNote(ev, element, zone);

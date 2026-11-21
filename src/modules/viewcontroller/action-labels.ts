@@ -124,6 +124,7 @@ const ACTION_LABEL_OVERRIDES: Record<string, string | OverrideFn> = {
   filters_velocity_scaling: 'Velocity Scaling',
 
   iorouting_toggle: 'I/O Routing',
+  iorouting_input: 'I/O Routing',
   program_toggle: 'Program Change',
   toggle_seq: 'Sequencer On/Off',
   zone_loop_on: 'Loop On/Off',

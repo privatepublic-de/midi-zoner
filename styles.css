@@ -1265,10 +1265,7 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
 }
 
 
-/* In/Out popup, under the output: send MIDI clock there (a switch chip) */
-.iorouting-popup .ior-clock {
-  margin-top: 8px;
-}
+/* In/Out popup, beside the device's name: send MIDI clock there (a switch chip) */
 .iorouting-popup .sendClock {
   display: flex;
   align-items: center;
@@ -1282,6 +1279,14 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
   border: 1px solid var(--slate-line);
   border-radius: var(--radius);
   cursor: pointer;
+}
+.iorouting-popup .sendClock {
+  gap: 5px;
+  padding-left: 7px;
+}
+/* the same clock as the card header's chip */
+.iorouting-popup .sendClock .material-icons {
+  font-size: var(--icon-sm);
 }
 .iorouting-popup .sendClock.selected {
   background-color: var(--on);
@@ -1362,8 +1367,136 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
   right: 0;
   z-index: var(--z-zone-popup);
   display: none;
-  min-width: 300px;
+  width: 452px;
   margin-top: 2px;
+}
+
+/* Out first (Nov 21, the user's pick from mocks: setting port and channel is what the popup is
+   mostly for): the ports as buttons, alphabetical down two columns, then the 16 channels named
+   after the devices on that port; the selects behind them stay hidden (output-port-manager.ts) */
+.iorouting-popup .ior-data {
+  display: none;
+}
+.ior-head {
+  margin: 0 0 5px;
+  font-size: var(--fs-sm);
+  color: var(--slate-dim);
+}
+.ior-chhead {
+  margin-top: 10px;
+}
+.ior-ports {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: repeat(var(--port-rows, 1), auto);
+  gap: 3px 4px;
+}
+.ior-chs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 3px;
+}
+.ior-pick {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  height: 22px;
+  padding: 0 7px;
+  box-sizing: border-box;
+  background-color: var(--slate-raise);
+  border: 1px solid var(--slate-line);
+  border-radius: var(--radius);
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.ior-pick:hover {
+  background-color: var(--darker-2);
+}
+.ior-pick > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ior-pick small {
+  flex-shrink: 0;
+  margin-left: auto;
+  color: var(--slate-dim);
+  font-size: var(--fs-sm);
+}
+/* where the zone is: amber, as every selection */
+.ior-pick.picked {
+  border-color: var(--select);
+  box-shadow: inset 0 0 0 1px var(--select);
+}
+.ior-pick.missing {
+  color: var(--danger);
+}
+.ior-chs .ior-pick {
+  height: 28px;
+}
+.ior-chs .ior-pick b {
+  flex-shrink: 0;
+  width: 15px;
+  font-weight: 400;
+  text-align: right;
+  color: var(--brighter-4);
+}
+.ior-chs .ior-pick.named b {
+  color: var(--slate-dim);
+}
+.ior-none {
+  grid-column: 1 / -1;
+  font-size: var(--fs-sm);
+  color: var(--slate-dim);
+}
+.ior-namerow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* the input and MPE, folded into one line under Out unless the zone uses them (opening the popup
+   unfolds them then) */
+.ior-insum {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid var(--slate-line);
+  font-size: var(--fs-sm);
+  color: var(--slate-dim);
+  cursor: pointer;
+}
+.ior-insum > span {
+  color: var(--text-base-color);
+  margin-right: 4px;
+}
+.ior-insum::before {
+  content: 'expand_more';
+  font-family: 'Material Icons';
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  font-size: 16px;
+  margin-left: -2px;
+  transform: rotate(-90deg);
+  transition: transform 150ms;
+}
+.iorouting-popup.in-open .ior-insum::before {
+  transform: none;
+}
+.ior-insum:hover::before {
+  color: var(--brighter-4);
+}
+.ior-in {
+  display: none;
+  margin-top: 8px;
+}
+.iorouting-popup.in-open .ior-in {
+  display: block;
 }
 
 /* In → MPE → Out: the signal runs down a line from In to Out, with the MPE
@@ -1376,6 +1509,7 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
 }
 
 .ior-link::after {
+  display: none;
   content: '';
   position: absolute;
   left: -5px;
@@ -1611,10 +1745,11 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
 }
 
 .iorouting-popup input.output-config-name {
-  /* under Out, which it names: aligned with the port select */
-  width: calc(100% - 32px);
+  /* the device on this port and channel, beside Send clock */
+  flex: 1;
+  min-width: 0;
   height: 22px;
-  margin: 2px 0 0 32px;
+  margin: 0;
   background-color: transparent;
   color: var(--text-base-color);
   font-size: var(--fs-sm);
@@ -1779,6 +1914,35 @@ body:not(.track-view):not(.minimized) #zones > .zone.chords-zone > .channels > .
   display: none;
 }
 
+/* Send clock to the zone's output, beside it in the cards' header (Nov 21, the user's ask: the
+   two-row header has room again); lit in --on while it sends. Not in the Tracks header or the
+   mini view (no room), the In/Out popup has the switch too */
+.channels > .hdr-clock {
+  display: none;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 20px;
+  box-sizing: border-box;
+  color: var(--slate-dim);
+  background-color: var(--slate-raise);
+  border: 1px solid var(--slate-line);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.channels > .hdr-clock .material-icons {
+  font-size: var(--icon-sm);
+}
+.channels > .hdr-clock:hover {
+  color: var(--text-base-color);
+}
+.channels > .hdr-clock.selected {
+  color: var(--on-text);
+  background-color: var(--on);
+  border-color: var(--on);
+}
+
 /* cards: two rows on three shared columns, so the eye reads down from the zone to its switches
    and from the output to what feeds it:
      [M S name]      [output ………………]  [⋯ ≡]
@@ -1801,6 +1965,9 @@ body:not(.track-view):not(.minimized) #zones > .zone > .channels {
     box-sizing: border-box;
   }
   > .iorouting { order: 1; flex: 1 1 0; margin-left: 6px; }
+  > .hdr-clock { order: 1; display: flex; }
+  /* the In/Out popup ends where the clock beside the output ends */
+  > .iorouting > .iorouting-popup { right: -30px; }
   > .zonetools { order: 2; width: var(--hdr-col3); justify-content: flex-end; }
   > .hdr-break { display: block; order: 3; flex-basis: 100%; height: 0; }
   > :is(.ch.showseq, .ch.showarp, .ch.showchords) { order: 4; margin-left: 0; }
