@@ -857,6 +857,24 @@ function drawRuler(songHead: number, ppt: number, scrollPx: number): void {
   g.fill();
 }
 
+/**
+ * Where a card's mini lane has plates over it (the key heard, "to [3][4]", a chords zone's status):
+ * rectangles in the canvas's own pixels. Text the lane draws keeps out of them, as the plates are
+ * see-through for the notes, not for text under their own words
+ */
+function platesOver(canvas: HTMLCanvasElement): { l: number; t: number; r: number; b: number }[] {
+  const lane = canvas.closest('.mini-lane');
+  if (!lane) return [];
+  const c = canvas.getBoundingClientRect();
+  const out: { l: number; t: number; r: number; b: number }[] = [];
+  for (const el of lane.querySelectorAll<HTMLElement>('.card-follow .cf-plate, .card-follow .cf-startover, .card-follow .cf-ends, .lane-status')) {
+    if (!el.offsetParent) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width && r.height) out.push({ l: r.left - c.left - 2, t: r.top - c.top - 1, r: r.right - c.left + 2, b: r.bottom - c.top + 1 });
+  }
+  return out;
+}
+
 function drawLane(
   zone: Zone,
   isSelected: boolean,
@@ -1230,7 +1248,16 @@ function drawLane(
     if (block) loopBlocks.set(zone, { x0: block.x0, x1: block.x1, top: songY, barPx: barLen() * ppt });
     else loopBlocks.delete(zone);
   }
-  if (block && loopTake) drawLoopBlock(g, zone, loopTake, block.x0, block.x1, songY, h, colour, loopOff, isSelected && picked(zone) === 'loop', w);
+  if (block && loopTake) {
+    // the song lane's name box (drawn later, over everything) ends here
+    let nameRight = 0;
+    if (takeLane) {
+      g.font = '600 10px "Barlow Semi Condensed", sans-serif';
+      const name = songLaneName(zone);
+      if (name) nameRight = 3 + g.measureText(name).width + 8;
+    }
+    drawLoopBlock(g, zone, loopTake, block.x0, block.x1, songY, h, colour, loopOff, isSelected && picked(zone) === 'loop', w, nameRight);
+  }
   feedsArp = false;
   // recording or overdubbing: a red wash from its first 1 to the playhead; waiting for
   // its 1 or its end, a mark there
@@ -1407,11 +1434,7 @@ function drawLane(
   if (headX >= 0 && headX <= w) g.fillRect(headX, 0, 1, fullH);
   // the lanes' names: what you played above, what repeats below
   if (takeLane) {
-    // the song lane: what plays by itself, in the cards' "Start plays" words
-    // (the loop's length is on its block)
-    const plays = startPlays(zone).items.map((t) => (t.startsWith('Loop') ? 'Loop' : t));
-    if (zone.loop && !plays.includes('Loop')) plays.unshift('Loop off');
-    const songName = plays.join(' · ');
+    const songName = songLaneName(zone);
     // the take lane: while your playing is being kept, the take it will be (red, as on the cards)
     const keeping = running && takeStore.isRecording(zone.id);
     const takesName = keeping ? `Take ${Math.min(takeStore.of(zone.id).length + 1, MAX_TAKES)}` : 'Takes';
@@ -1428,14 +1451,19 @@ function drawLane(
     }
   }
 
+  // a card's plates: text keeps out of them
+  const plates = mini ? platesOver(mini) : [];
+  const underPlate = (l: number, t: number, r: number, b: number): boolean => plates.some((p) => l < p.r && r > p.l && t < p.b && b > p.t);
   // waiting toggles: a light line where they land, tagged with what they'll do
   g.font = '9px "Barlow Semi Condensed", sans-serif';
   for (const t of lineTags) {
     if (t.x < headX || t.x > w) continue;
     const tw = Math.ceil(g.measureText(t.text).width) + 6;
-    const ty = songY + h - 13 - t.row * 12;
     // right of its line, or left of it where it would run off the lane
     const tx = t.x + 1 + tw > w - 2 ? t.x - tw - 1 : t.x + 1;
+    // a row up while a plate is in the way
+    let ty = songY + h - 13 - t.row * 12;
+    while (underPlate(tx, ty, tx + tw, ty + 11) && ty - 12 >= songY) ty -= 12;
     g.globalAlpha = 0.85;
     g.fillStyle = '#15171a';
     g.fillRect(tx, ty, tw, 11);
@@ -1453,7 +1481,7 @@ function drawLane(
       const end = i + 1 < cm.length ? Math.round(x(cm[i + 1].s)) : w;
       if (end < 0 || cx > w) return;
       const tw = Math.min(end - cx - 2, Math.ceil(g.measureText(m.name).width) + 7);
-      if (tw < 8) return;
+      if (tw < 8 || underPlate(cx, ty, cx + tw, ty + 11)) return;
       g.globalAlpha = 0.9;
       g.fillStyle = '#15171a';
       g.fillRect(cx, ty, tw, 11);
@@ -1611,6 +1639,14 @@ function drawConversion(
 
 /** On the selected track: browse its takes (‹ ›), and what can be done with the one shown */
 /** The loop's block: framed and named; picked: amber, with handles on its edges; an edge being dragged */
+/** The song lane's name in the track view: what plays by itself, in the cards' "Start plays" words */
+function songLaneName(zone: Zone): string {
+  // the loop's length is on its block
+  const plays = startPlays(zone).items.map((t) => (t.startsWith('Loop') ? 'Loop' : t));
+  if (zone.loop && !plays.includes('Loop')) plays.unshift('Loop off');
+  return plays.join(' · ');
+}
+
 function drawLoopBlock(
   g: CanvasRenderingContext2D,
   zone: Zone,
@@ -1622,7 +1658,9 @@ function drawLoopBlock(
   colour: string,
   silent: boolean,
   isPicked: boolean,
-  w: number
+  w: number,
+  // where the lane's name box ends: the block's label stays right of it
+  nameRight = 0
 ): void {
   if (!amber) amber = getComputedStyle(document.body).getPropertyValue('--select').trim() || '#f0b429';
   const drag = loopDrag?.zone === zone ? loopDrag : null;
@@ -1670,16 +1708,18 @@ function drawLoopBlock(
   g.lineWidth = 1;
   const label = `Loop · ${Take.lengthLabel(loop.length, currentMeter())}`;
   g.font = '600 10px "Barlow Semi Condensed", sans-serif';
-  const lw = Math.min(x1 - x0 - 2, g.measureText(label).width + 10);
+  // at the block's start, or (the block running in from the left) right of the lane's name, so it stays read
+  const lx = Math.max(x0 + 1, nameRight + 4);
+  const lw = Math.min(x1 - lx - 1, g.measureText(label).width + 10);
   if (lw > 20) {
     g.fillStyle = colour;
-    g.fillRect(x0 + 1, top + 2, lw, 14);
+    g.fillRect(lx, top + 2, lw, 14);
     g.fillStyle = '#15171a';
     g.save();
     g.beginPath();
-    g.rect(x0 + 1, top + 2, lw, 14);
+    g.rect(lx, top + 2, lw, 14);
     g.clip();
-    g.fillText(label, x0 + 6, top + 13);
+    g.fillText(label, lx + 5, top + 13);
     g.restore();
   }
   if (isPicked) {

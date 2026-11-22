@@ -5230,6 +5230,8 @@ body.minimized #midisettings {
   position: static;
   height: auto;
   justify-content: space-between;
+  /* the window is 420px (MINI_WIDTH): A–D, the transport and Full only fit with small gaps */
+  gap: 4px;
 }
 
 
@@ -5334,13 +5336,54 @@ body.minimized .midi-led.on {
   border-color: var(--brighter-2);
 }
 
+/* Nothing in the top bar wraps its words or squeezes ("100 %" broke onto two lines): short of
+   room, the Setup chip's summary of the inputs gives way first ("Setup" stays) */
+#midisettings > *,
+#midisettings .strip-end > *,
+#midisettings .transport > * {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+#midisettings > #setupToggle {
+  flex-shrink: 1;
+  min-width: 0;
+}
+#setupToggle > :not(#setupSummary) {
+  flex-shrink: 0;
+}
+#setupToggle #setupSummary {
+  min-width: 0;
+}
+
+/* Down to the two columns of cards (1150px) the bar stays one row: tighter spacing, and the
+   Setup chip without its summary of the inputs (a stub of it would say nothing; the drawer lists
+   them, and the two-row bar below has room for it again) */
+@media (max-width: 1299px) {
+  body:not(.minimized) #setupToggle #setupSummary {
+    display: none;
+  }
+  body:not(.minimized) #midisettings {
+    gap: 6px;
+  }
+  body:not(.minimized) #midisettings .strip-end {
+    gap: 6px;
+  }
+  body:not(.minimized) #arrangementSelector .selectSeq {
+    width: 30px;
+  }
+}
+
 /* =============================================================
    NARROW WINDOWS: TOP BAR IN TWO ROWS
    Row 1: setup chip (takes the free space), mini view, Panic.
    Row 2: resets, A-D, start/BPM. Panic is always reachable.
    ============================================================= */
 
-@media (max-width: 1040px) {
+@media (max-width: 1099px) {
+  body:not(.minimized) #setupToggle #setupSummary {
+    display: inline;
+  }
+
   body:not(.minimized) #midisettings {
     height: auto;
     flex-wrap: wrap;
