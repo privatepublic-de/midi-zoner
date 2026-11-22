@@ -59,7 +59,7 @@ The complete user manual is on the wiki: [midi-zoner User Manual](https://github
 
 ## Download
 
-Pre-built releases for macOS, Windows, and Linux (64-bit) are available under [releases](https://github.com/privatepublic-de/midi-zoner/releases). Until 2.0.0 is released there, the latest one (1.2.0) is from 2020 and lacks most of the features above; build from source for the current version.
+There are no pre-built downloads. Build midi-zoner from source as shown under [Quick Start](#quick-start). To make an app you can start without a terminal, use one of the commands under [Building](#building).
 
 ## License
 
