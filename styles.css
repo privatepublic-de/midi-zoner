@@ -4669,10 +4669,16 @@ body.running .drumSequencer .lane-expand-toggle {
   z-index: var(--z-overlay-top);
   display: none;
   flex-direction: column;
-  background-color: var(--bg-topbar);
-  border: 1px solid var(--zone-color);
-  /* the second shadow dims the app: a click there closes the panel like Done */
-  box-shadow: 0 4px 24px var(--shadow-overlay), 0 0 0 100vmax rgba(0, 0, 0, 0.55);
+  /* the zone's card opened big: its surface and slate frame (a coloured frame
+     outweighs everything on dark slate), the setup drawer's shadow */
+  background-color: var(--zone-surface);
+  border: 1px solid var(--slate-edge);
+  border-top-color: var(--slate-edge-top);
+  /* the last shadow dims the app: a click there closes the panel like Done */
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.6),
+    0 2px 6px rgba(0, 0, 0, 0.4),
+    0 0 0 100vmax rgba(0, 0, 0, 0.55);
   border-radius: var(--radius-lg);
   overflow: hidden;
   color: var(--text-base-color);
@@ -4687,9 +4693,10 @@ body.running .drumSequencer .lane-expand-toggle {
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
-  padding: 6px 8px 6px 14px;
-  background-color: var(--zone-surface);
-  border-bottom: 1px solid var(--darker-3);
+  padding: 7px 8px 7px 12px;
+  /* the card's band of the zone colour behind its header */
+  background-color: color-mix(in srgb, var(--zone-color) 20%, var(--slate-panel));
+  border-bottom: 1px solid var(--slate-line);
 }
 .es-title {
   font-weight: 600;
@@ -4702,26 +4709,21 @@ body.running .drumSequencer .lane-expand-toggle {
   height: 22px;
   min-width: 0;
   max-width: 20rem;
-  padding: 0 10px 0 8px;
+  padding: 0 8px;
   border-radius: var(--radius);
-  background-color: var(--darker-2);
+  /* the zone's name as on its card: a solid box in its colour */
+  background-color: var(--zone-color);
+  color: var(--on-text);
+  font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-.es-zone::before {
-  content: '';
-  flex-shrink: 0;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: var(--zone-color);
 }
 .es-sep {
   width: 1px;
   align-self: stretch;
   margin: 4px 4px;
-  background-color: var(--brighter-1);
+  background-color: var(--slate-line);
 }
 .es-grow {
   flex: 1;
@@ -4732,19 +4734,26 @@ body.running .drumSequencer .lane-expand-toggle {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  height: 26px;
+  height: 24px;
   margin: 0;
   padding: 0 8px;
   border: none;
   border-radius: var(--radius);
-  background-color: transparent;
+  /* one raised material, as every button in the zones */
+  background-color: var(--slate-raise);
+  box-shadow: inset 0 0 0 1px var(--slate-line);
   color: var(--text-base-color);
   font: inherit;
   white-space: nowrap;
   cursor: pointer;
 }
 :is(#ccEditor, #pianoRollOverlay, #chordsSheet) .es-bar :is(button, .es-button):hover:not(:disabled) {
-  background-color: var(--darker-1);
+  background-image: linear-gradient(var(--hover-tint), var(--hover-tint));
+}
+/* undo / redo name the step: text, not buttons to look at */
+:is(#ccEditor, #pianoRollOverlay, #chordsSheet) .es-bar :is(.es-undo, .es-redo) {
+  background-color: transparent;
+  box-shadow: none;
 }
 :is(#ccEditor, #pianoRollOverlay, #chordsSheet) .es-bar button:disabled {
   opacity: 0.35;
@@ -4766,9 +4775,6 @@ body.running .drumSequencer .lane-expand-toggle {
 }
 
 /* Play / stop mirrors the toolbar's Start button; hidden while an external clock leads */
-:is(#ccEditor, #pianoRollOverlay, #chordsSheet) .es-bar .es-play {
-  background-color: var(--darker-1);
-}
 .es-play::before {
   content: 'play_arrow';
   font-family: 'Material Icons';
@@ -4785,7 +4791,7 @@ body.running .es-play::after {
   content: 'Stop';
 }
 body.running :is(#ccEditor, #pianoRollOverlay, #chordsSheet) .es-bar .es-play {
-  background-color: color-mix(in srgb, var(--live) 30%, var(--darker-1));
+  background-color: color-mix(in srgb, var(--live) 30%, var(--slate-raise));
 }
 body:has(.clocksettings.isExternal) .es-play,
 body:has(.clocksettings.isExternal) .es-play + .es-sep {
@@ -4794,7 +4800,7 @@ body:has(.clocksettings.isExternal) .es-play + .es-sep {
 
 /* Done is the one outlined control: the way back, edits are already applied */
 :is(#ccEditor, #pianoRollOverlay, #chordsSheet) .es-bar .es-done {
-  height: 26px; /* the bar's button size; the outline sets it apart */
+  height: 24px; /* the bar's button size; the outline sets it apart */
   margin-left: 2px;
   padding: 0 12px;
   border-radius: var(--radius);
@@ -4808,6 +4814,7 @@ body:has(.clocksettings.isExternal) .es-play + .es-sep {
    tint, since the bar's zone tint is as dark as raised slate */
 :is(#ccEditor, #pianoRollOverlay, #chordsSheet) .es-bar .es-done:hover:not(:disabled) {
   background-color: var(--hover-tint);
+  background-image: none;
 }
 :is(#ccEditor, #pianoRollOverlay, #chordsSheet) .es-bar .es-done:active:not(:disabled) {
   background-color: var(--brighter-1);
@@ -4886,7 +4893,8 @@ body:has(.clocksettings.isExternal) .es-play + .es-sep {
      C line: 168px tiles (12 rows) offset so a tile ends at the bottom of C9
      (row 8 from the top, 8 * 14px = 112px). */
   background-image:
-    linear-gradient(to bottom, transparent calc(12 * 14px - 1px), var(--brighter-2) 0),
+    /* as bright as the beat lines: the C lines used to outshine them */
+    linear-gradient(to bottom, transparent calc(12 * 14px - 1px), var(--brighter-1) 0),
     /* beat lines on the steps that start a beat (piano-roll.ts), every 4 steps until it sets them */
     var(--pr-beat-lines, repeating-linear-gradient(
       to right,
@@ -5122,10 +5130,12 @@ body:has(.clocksettings.isExternal) .es-play + .es-sep {
   height: 100%;
 }
 
+/* a level with a bright top, not a solid block: full bars outshone the notes */
 .pr-vbar {
   position: absolute;
   bottom: 0;
-  background-color: var(--zone-color);
+  background-color: color-mix(in srgb, var(--zone-color) 30%, transparent);
+  box-shadow: inset 0 2px 0 var(--zone-color);
   border-radius: 1px 1px 0 0;
   cursor: ns-resize;
 }
@@ -5409,9 +5419,10 @@ body.minimized .midi-led.on {
   height: 24px;
   margin: 0;
   padding: 0 6px;
-  border: 1px solid var(--darker-3);
+  /* raised like the zone's fields: black wells look punched out of the zone colour */
+  border: 1px solid var(--slate-line);
   border-radius: var(--radius);
-  background-color: var(--darker-2);
+  background-color: var(--slate-raise);
   color: var(--text-base-color);
   font: inherit;
   user-select: text;
@@ -5421,7 +5432,7 @@ body.minimized .midi-led.on {
 }
 #ccEditor input:focus,
 #ccEditor select:focus {
-  outline: 1px solid var(--cce-accent);
+  outline: 1px solid var(--slate-dim);
   outline-offset: -1px;
 }
 #ccEditor input[type='number'] {
@@ -5437,13 +5448,15 @@ body.minimized .midi-led.on {
   padding: 0 8px;
   border: none;
   border-radius: var(--radius);
-  background-color: var(--darker-1);
+  /* one raised material, as every button in the zones */
+  background-color: var(--slate-raise);
+  box-shadow: inset 0 0 0 1px var(--slate-line);
   color: var(--text-base-color);
   font: inherit;
   cursor: pointer;
 }
 #ccEditor button:hover:not(:disabled) {
-  background-color: var(--brighter-0);
+  background-image: linear-gradient(var(--hover-tint), var(--hover-tint));
 }
 #ccEditor button:focus-visible,
 #ccEditor .cce-row:focus-visible {
@@ -5515,9 +5528,10 @@ body.minimized .midi-led.on {
 .cce-rows .cce-row:hover {
   background-color: var(--brighter-0);
 }
+/* where you are: amber, as the selected track */
 .cce-rows .cce-row.selected {
-  background-color: var(--zone-surface);
-  box-shadow: inset 3px 0 0 var(--cce-accent);
+  background-color: color-mix(in srgb, var(--select) 8%, transparent);
+  box-shadow: inset 2px 0 0 var(--select);
 }
 .cce-row.spacer .cce-row-name {
   color: var(--brighter-2);
@@ -5734,6 +5748,7 @@ body.minimized .midi-led.on {
 }
 #ccEditor .cce-check {
   background-color: transparent;
+  box-shadow: none;
   padding: 0 4px;
 }
 #ccEditor .cce-learn.armed {
@@ -5796,6 +5811,7 @@ body.minimized .midi-led.on {
   padding: 0;
   justify-content: center;
   background-color: transparent;
+  box-shadow: none;
 }
 .cce-buttons-edit {
   display: grid;
@@ -5964,6 +5980,7 @@ body.minimized .midi-led.on {
 #ccEditor .cce-sel-step {
   padding: 0 4px;
   background-color: transparent;
+  box-shadow: none;
 }
 
 /* controller pages: tabs in the zone's CC toolbar, separate chips like the arrangements A–D */
@@ -7768,9 +7785,6 @@ body:not(.track-view):not(.minimized) .zone.chords-zone > .chords-sum {
   height: min(340px, calc(100vh - 84px));
   max-height: calc(100vh - 84px);
   outline: none;
-}
-#chordsSheet .es-bar {
-  background-color: color-mix(in srgb, var(--zone-surface) 55%, #000);
 }
 #chordsSheet .chs-body.zone {
   flex: 1;
