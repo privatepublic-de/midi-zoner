@@ -594,12 +594,14 @@ export class LiveChords {
    * sounding within the last WAIT_AFTER bars, its loop and sequence too), growing after that much rest.
    * Notes known to come (a take read ahead) within the bar end the wait
    */
-  private waitOf(seg: Segment, played: HeardNote[], coming: HeardNote[] | null, meter: Meter): number {
+  private waitOf(seg: Segment, played: HeardNote[], coming: HeardNote[] | null, meter: Meter, o: HarmonyOptions): number {
     const bar = barTicks(meter);
     for (const h of played) {
       const end = h.held ? seg.t : h.s + h.d;
       if (this.lastSound === null || end > this.lastSound) this.lastSound = end;
     }
+    // When you rest: Play on (lastSound is kept, so switching Wait on mid-rest waits at once)
+    if (o.wait === false) return 0;
     const grow = (bars: number, after: number) => (bars < after ? 0 : Math.min(1, 0.65 + (0.35 * (bars - after)) / WAIT_GROW));
     const repeat = this.repeatBars(seg, played, coming, bar);
     const waitRepeat = grow(repeat, REPEAT_AFTER);
@@ -656,7 +658,7 @@ export class LiveChords {
     if (!this.key && coming) this.updateKey({ ...seg, t: seg.t + barTicks(meter) }, heard, o, meter);
     if (!this.key) return false;
     const waited = this.waiting;
-    this.waiting = this.waitOf(seg, played, coming, meter);
+    this.waiting = this.waitOf(seg, played, coming, meter, o);
     if (this.waiting && !waited) this.waitSalt = (o.seed * 7919 + Math.round(this.lastSound ?? 0)) | 0;
     // the line is back: what plays now goes on as it did before the wait
     const back = waited > 0 && !this.waiting;

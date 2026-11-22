@@ -110,6 +110,8 @@ export interface HarmonyOptions {
   subs?: boolean;
   /** bass: a pedal point, the key's tonic held under the chords (pedalHolds()) */
   pedal?: boolean;
+  /** live: false = the combo doesn't wait while the line rests (no vamp loosened and thinned) */
+  wait?: boolean;
   /** live: chords kept, per segment (null: free to choose) */
   frozen?: (Chord | null)[];
   /** live: the key found earlier (hysteresis), else analysed */

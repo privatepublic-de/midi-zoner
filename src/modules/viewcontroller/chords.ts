@@ -979,6 +979,7 @@ function drawBlock(zone: Zone, el: HTMLElement): void {
   el.querySelectorAll<HTMLElement>('.cb-strum a').forEach((a) => a.classList.toggle('on', Number(a.dataset.strum) === s.strum));
   el.querySelectorAll<HTMLElement>('.cb-flags a').forEach((a) => a.classList.toggle('on', s[a.dataset.flag as 'blues' | 'subs'] === 1));
   el.querySelectorAll<HTMLElement>('.cb-pedal a').forEach((a) => a.classList.toggle('on', Number(a.dataset.pedal) === s.pedal));
+  el.querySelectorAll<HTMLElement>('.cb-wait a').forEach((a) => a.classList.toggle('on', Number(a.dataset.wait) === s.wait));
   const sw = el.querySelector<HTMLInputElement>('input[data-swing]');
   if (sw) setSlider(sw, zone.swingAmount);
   el.querySelectorAll<HTMLInputElement>('.cb-more input[type=range][data-k]').forEach((inp) => {
@@ -1078,6 +1079,11 @@ function blockHTML(zone: Zone): string {
       <div class="cb-segs cb-pedal"><a data-pedal="0">Off</a><a data-pedal="1">On</a></div></div>`;
   const strumRow = `<div class="cb-sl" title="Notes of a chord one after another, quickly, as on a guitar: Down plays the low notes first, Up the high ones first (lighter), Down &amp; up downstrokes on the beats and upstrokes between"><span class="label">Strum</span>
       <div class="cb-segs cb-strum">${STRUMS.map((name, i) => `<a data-strum="${i}">${escapeHTML(name)}</a>`).join('')}</div></div>`;
+  // When you rest: the zone choosing the chords decides for the whole line (LiveChords waits once per line)
+  const waitRow = leads
+    ? `<div class="cb-sl" title="When the zone you play rests for two bars or plays one note over and over: Wait = the chords and bass go on with their last chords, looser and thinner, until you play again; Play on = they keep playing as before. For every chords and bass zone following the same zone"><span class="label">When you rest</span>
+      <div class="cb-segs cb-wait"><a data-wait="1">Wait</a><a data-wait="0">Play on</a></div></div>`
+    : '';
   // More in two groups: how it plays (feel), then which chords (harmony)
   const row = (k: keyof ChordSettings) => sliders.find((m) => m.k === k);
   const slider = (m: SliderSpec | undefined) =>
@@ -1085,7 +1091,7 @@ function blockHTML(zone: Zone): string {
       ? `<label class="cb-sl" title="${escapeHTML(m.title)}"><span class="label">${m.label}</span><small>${m.left}</small>
       <input type="range" data-k="${m.k}" min="${m.min ?? 0}" max="${m.max ?? 1}" step="${m.step ?? 0.05}" tabindex="-1"><small>${m.right}</small></label>`
       : '';
-  const feel = (part === 'chords' ? strumRow : '') + swingRow + slider(row('accents')) + slider(row('vary'));
+  const feel = (part === 'chords' ? strumRow : '') + swingRow + slider(row('accents')) + slider(row('vary')) + waitRow;
   const chordsGroup =
     slider(row('changes')) + slider(row('harmony')) + slider(row('tensions')) + (part === 'chords' ? bluesRow : pedalRow) + slider(row('unfold')) + slider(row('register'));
   const actions = `<span class="cb-actions">
@@ -1133,7 +1139,9 @@ function setSettings(zone: Zone, change: Partial<ChordSettings>, label = 'Chords
   }
   // the bass's pedal decides whether the chords leave out their roots: their loops are played anew too
   const chordsToo = line && 'pedal' in change && change.pedal !== zone.chordSet.pedal ? followersOf(line).filter((z) => z !== zone && z.chords!.part === 'chords' && planOf(z)) : [];
-  const redo: [Zone, ChordPlan | null][] = [[zone, plan], ...chordsToo.map((z): [Zone, ChordPlan | null] => [z, planOf(z)])];
+  // When you rest is live only: loops made of chords stay as they are
+  const liveOnly = Object.keys(change).every((k) => k === 'wait');
+  const redo: [Zone, ChordPlan | null][] = liveOnly ? [] : [[zone, plan], ...chordsToo.map((z): [Zone, ChordPlan | null] => [z, planOf(z)])];
   hooks.commit([index, ...chordsToo.map((z) => zs.indexOf(z))], label, () => {
     Object.assign(zone.chordSet, change);
     const src = line ? lineOf(line) : null;
@@ -1452,6 +1460,12 @@ function initBlockEvents(): void {
     if (pd) {
       const i = Number(pd.dataset.pedal);
       if (i !== zone.chordSet.pedal) setSettings(zone, { pedal: i }, 'Bass: Pedal');
+      return;
+    }
+    const wt = t.closest<HTMLElement>('.cb-wait a');
+    if (wt) {
+      const i = Number(wt.dataset.wait);
+      if (i !== zone.chordSet.wait) setSettings(zone, { wait: i }, `${zone.chords.part === 'bass' ? 'Bass' : 'Chords'}: ${i ? 'Wait' : 'Play on'} when you rest`);
       return;
     }
     const st = t.closest<HTMLElement>('.cb-strum a');

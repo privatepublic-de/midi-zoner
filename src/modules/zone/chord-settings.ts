@@ -34,6 +34,7 @@ export interface ChordSettings {
   blues: number; // 1: the key's I, IV and V are dominant sevenths
   subs: number; // chords, 1: jazz substitutes (tritone substitutes, related ii chords)
   pedal: number; // bass, 1: the key's tonic held under the chords (a pedal point)
+  wait: number; // 1: while the line rests the chords and bass wait for it (play on looser); 0: play on as before
   seed: number; // 0 = the best ("Other chords" counts up)
   /** the style it was set from (chord-styles.ts; '' none) */
   style: string;
@@ -57,6 +58,7 @@ export const DEFAULT_CHORD_SETTINGS: ChordSettings = {
   blues: 0,
   subs: 0,
   pedal: 0,
+  wait: 1,
   seed: 0,
   style: ''
 };
@@ -96,6 +98,7 @@ export function chordSettingsFrom(x: unknown): ChordSettings {
     blues: o.blues === 1 ? 1 : 0,
     subs: o.subs === 1 ? 1 : 0,
     pedal: o.pedal === 1 ? 1 : 0,
+    wait: o.wait === 0 ? 0 : 1,
     seed,
     style: typeof o.style === 'string' && /^[a-z]{1,16}$/.test(o.style) ? o.style : ''
   };
@@ -175,6 +178,7 @@ export function harmonyOptions(s: ChordSettings): HarmonyOptions {
     blues: s.blues === 1,
     subs: s.subs === 1,
     pedal: s.pedal === 1,
+    wait: s.wait !== 0,
     seed: s.seed
   };
 }

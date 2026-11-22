@@ -23,7 +23,7 @@ export const CHORD_STYLES: ChordStyle[] = [
     id: 'strings',
     group: 'Calm',
     name: 'String pad',
-    chords: { harmony: 0.25, colour: 0.45, rhythm: 0, length: 0.9, changes: 0.25, unfold: 0.7, register: 3, tensions: 0.4, vary: 0.1 },
+    chords: { harmony: 0.25, colour: 0.45, rhythm: 0, length: 0.9, changes: 0.25, unfold: 0.7, register: 3, tensions: 0.4, vary: 0.1, wait: 0 },
     bass: { bass: 0.05, length: 0.9, vary: 0.05 }
   },
   {
@@ -137,7 +137,7 @@ export const CHORD_STYLES: ChordStyle[] = [
     id: 'ambient',
     group: 'Calm',
     name: 'Ambient',
-    chords: { harmony: 0.75, colour: 0.6, rhythm: 0, length: 1, changes: 0.1, unfold: 0.9, register: 4, tensions: 0.4, vary: 0.1 },
+    chords: { harmony: 0.75, colour: 0.6, rhythm: 0, length: 1, changes: 0.1, unfold: 0.9, register: 4, tensions: 0.4, vary: 0.1, wait: 0 },
     bass: { bass: 0, length: 1, pedal: 1 }
   },
   {
@@ -173,6 +173,7 @@ export function styleSettings(style: ChordStyle, part: ChordPart): ChordSettings
     harmony: chords.harmony,
     changes: chords.changes,
     rhythm: chords.rhythm,
+    wait: chords.wait,
     ...style.bass,
     seed: 0,
     style: style.id
