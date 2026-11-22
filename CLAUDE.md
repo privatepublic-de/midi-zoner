@@ -439,6 +439,8 @@ The application has no automated tests. The chords engine has a check: `npm run 
 
 Loops as windows on their takes have a check too: `npm run check:loops` (`scripts/loop-window-check.cjs`, pure, no app).
 
+In the app: `npm run check:app` (`scripts/app-check.mjs`, ~40 s) runs the real app in a throwaway profile with only virtual MIDI ports (`navigator.requestMIDIAccess` replaced before the app loads, so no device hears it; a second instance beside the user's is fine, its profile has its own lock) and checks loop playback and timing beside a 3000-note loop, an overdub (live, its layer, merged, saved), the loop's pedal lifting when switched off, a run rolling over into two takes with a held key tied over, takes.json after Stop and closing, and an old loop taken on and saved without an undo step. Zone ids in its scene must match `/^[a-z0-9]{1,16}$/` or the app gives them new ones.
+
 Manual testing should cover:
 - Zone creation, deletion, reordering
 - Note routing with various ranges and octave transposition

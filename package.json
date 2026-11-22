@@ -10,6 +10,7 @@
     "build:ts": "tsc",
     "check:chords": "tsc && node scripts/chords-check.mjs --against scripts/chords-baseline.json",
     "check:loops": "tsc && node scripts/loop-window-check.cjs",
+    "check:app": "tsc && node scripts/app-check.mjs",
     "icon": "node build/icon-gen.mjs && electron build/make-icon.cjs",
     "clean": "rimraf dist",
     "typecheck": "tsc --noEmit",
