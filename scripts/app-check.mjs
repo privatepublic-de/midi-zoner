@@ -9,131 +9,30 @@
 // takes-file race isn't hit on purpose, and the timing then was 20 ms worst instead of 9 (both
 // pass). Those stay as guards; the exact cases are in check:loops and the review's notes.
 
-import { spawn } from 'node:child_process';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { fileURLToPath } from 'node:url';
+import { ROOT, wait, createApp, fakeMidiSource, withFakeMidi as reloadWithFakeMidi } from './app-harness.mjs';
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
-const PORT = 9300 + Math.floor(Math.random() * 600);
-const PROFILE = fs.mkdtempSync(path.join(os.tmpdir(), 'zoner-check-'));
+const zoner = createApp();
+const PROFILE = zoner.profile;
 const KEEP = process.argv.includes('--keep');
 const PROBE = process.argv.includes('--probe');
 
-const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 let fails = 0;
 const ok = (c, m) => {
   console.log((c ? '  ok  ' : '  FAIL ') + m);
   if (!c) fails++;
 };
 
-// ---------- the app ----------
-
-let app = null;
-
-async function launch() {
-  const env = { ...process.env };
-  delete env.ELECTRON_RUN_AS_NODE;
-  app = spawn(path.join(ROOT, 'node_modules/.bin/electron'), ['.', `--user-data-dir=${PROFILE}`, `--remote-debugging-port=${PORT}`], {
-    cwd: ROOT,
-    env,
-    stdio: ['ignore', 'ignore', 'pipe']
-  });
-  app.stderr.on('data', () => undefined);
-  for (let i = 0; i < 100; i++) {
-    await wait(200);
-    try {
-      const list = await (await fetch(`http://127.0.0.1:${PORT}/json`)).json();
-      const page = list.find((t) => t.type === 'page' && t.url.includes('index.html'));
-      if (page) return connect(page.webSocketDebuggerUrl);
-    } catch {
-      // not up yet
-    }
-  }
-  throw new Error('the app did not start');
-}
-
-async function quit(cdp) {
-  // a window closed gracefully flushes localStorage (and runs the takes' save on unload)
-  await cdp.eval('window.close()').catch(() => undefined);
-  cdp.close();
-  for (let i = 0; i < 25 && app.exitCode === null; i++) await wait(200);
-  if (app.exitCode === null) app.kill();
-  for (let i = 0; i < 25 && app.exitCode === null; i++) await wait(200);
-  app = null;
-}
-
-function connect(url) {
-  return new Promise((resolve, reject) => {
-    const ws = new WebSocket(url);
-    let id = 0;
-    const pending = new Map();
-    ws.onmessage = (ev) => {
-      const msg = JSON.parse(ev.data);
-      const p = pending.get(msg.id);
-      if (!p) return;
-      pending.delete(msg.id);
-      if (msg.error) p.reject(new Error(msg.error.message));
-      else p.resolve(msg.result);
-    };
-    ws.onerror = reject;
-    const send = (method, params = {}) =>
-      new Promise((res, rej) => {
-        pending.set(++id, { resolve: res, reject: rej });
-        ws.send(JSON.stringify({ id, method, params }));
-      });
-    const cdp = {
-      send,
-      close: () => ws.close(),
-      /** Evaluates an expression (awaited) in the page; returns its value */
-      async eval(expr) {
-        const r = await send('Runtime.evaluate', { expression: expr, awaitPromise: true, returnByValue: true });
-        if (r.exceptionDetails) throw new Error(r.exceptionDetails.exception?.description ?? r.exceptionDetails.text);
-        return r.result.value;
-      },
-      /** Polls an expression until it's truthy */
-      async until(expr, ms = 5000, what = expr) {
-        for (let t = 0; t < ms; t += 100) {
-          const v = await cdp.eval(expr).catch(() => null);
-          if (v) return v;
-          await wait(100);
-        }
-        throw new Error('timed out waiting for ' + what);
-      }
-    };
-    ws.onopen = () => resolve(cdp);
-  });
-}
+const launch = () => zoner.launch();
+const quit = (cdp) => zoner.quit(cdp);
 
 // Virtual MIDI: one input (notes are put in with __check.play) and one output (records
 // what's sent). Only these exist for the app: real devices are never opened.
-const FAKE_MIDI = `(() => {
-  const check = (window.__check = { sent: [], t0: 0 });
-  const port = (id, name, type) => ({
-    id, name, type, manufacturer: 'check', version: '1', state: 'connected', connection: 'open',
-    onmidimessage: null, onstatechange: null,
-    open: async function () { return this; }, close: async function () { return this; },
-    addEventListener() {}, removeEventListener() {}, clear() {}
-  });
-  const out = port('chk-out', 'Check Out', 'output');
-  out.send = (d, ts) => check.sent.push({ t: ts && ts > 0 ? ts : performance.now(), d: Array.from(d) });
-  const inp = port('chk-in', 'Check In', 'input');
-  check.play = (d) => inp.onmidimessage && inp.onmidimessage({ data: Uint8Array.from(d), target: inp, timeStamp: performance.now() });
-  const access = { inputs: new Map([[inp.id, inp]]), outputs: new Map([[out.id, out]]), sysexEnabled: true, onstatechange: null,
-    addEventListener() {}, removeEventListener() {} };
-  navigator.requestMIDIAccess = async () => access;
-})();`;
-
-async function withFakeMidi(cdp) {
-  await cdp.send('Page.enable');
-  await cdp.send('Page.addScriptToEvaluateOnNewDocument', { source: FAKE_MIDI });
-  await cdp.send('Page.reload');
-  await wait(500);
-  await cdp.until('window.__check && document.querySelector("#zones")', 10000, 'the app with fake MIDI');
-}
+const FAKE_MIDI = fakeMidiSource([{ id: 'chk-in', name: 'Check In' }], [{ id: 'chk-out', name: 'Check Out' }]);
+const withFakeMidi = (cdp) => reloadWithFakeMidi(cdp, FAKE_MIDI);
 
 // ---------- the scene ----------
 
@@ -295,7 +194,8 @@ async function main() {
     ok(stored.includes(90) && stored.includes(91), 'the overdubbed loop is saved with both notes');
 
     // -- the loop switched off: its pedal lifts --
-    const offAt = await cdp.eval(`(() => { [...document.querySelectorAll('#zones .showloopsw')][0].click(); return performance.now(); })()`);
+    // the time before the click: the lift goes out while the click is handled
+    const offAt = await cdp.eval(`(() => { const t = performance.now(); [...document.querySelectorAll('#zones .showloopsw')][0].click(); return t; })()`);
     await wait(1200);
     sent = await cdp.eval('__check.sent');
     ok(sent.some((m) => m.t >= offAt - 5 && m.d[0] === 0xb0 && m.d[1] === 64 && m.d[2] === 0), "loop off: zA's pedal lifted");
@@ -331,19 +231,7 @@ async function main() {
       ok(fs.readdirSync(PROFILE).every((f) => !f.endsWith('.tmp')), 'no temp files left');
     }
   } finally {
-    if (app) {
-      app.kill();
-      await wait(1000);
-    }
-    if (!KEEP) for (let i = 0; i < 5; i++) {
-      try {
-        fs.rmSync(PROFILE, { recursive: true, force: true });
-        break;
-      } catch {
-        await wait(500);
-      }
-    }
-    else console.log('profile kept at', PROFILE);
+    await zoner.cleanup(KEEP);
   }
 }
 

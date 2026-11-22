@@ -22,6 +22,7 @@ npm run build:linux      # Build Linux AppImage
 npm run build:all        # Build all platforms + macOS app
 npm run pack:osx         # Build macOS .app without DMG (x64)
 npm run pack:osx:arm     # Build macOS .app without DMG (arm64)
+npm run screenshots      # the manual's stills and GIFs into ../midi-zoner.wiki/images/scr (scripts/screenshots.mjs)
 npm run icon             # build/icon-gen.mjs → build/icon.svg → res/zoner.png, assets/zoner.png, assets/zoner.icns
 ```
 The app icon (Nov 22, the user's pick from mocks) is a MIDI socket in the slate look of the sibling apps multisampler and A-112 Waves: a metal rim, its five pins lit in the five zone colours. Edit `build/icon-gen.mjs`, not the SVG.
@@ -438,6 +439,8 @@ Shared with the sibling app xr18-console: slate surfaces (`--slate-bg`, `--slate
 ## Testing Notes
 
 The application has no automated tests. The chords engine has a check: `npm run check:chords` (`scripts/chords-check.mjs`, lines in `scripts/chord-tunes.mjs`: public domain traditionals written from memory, exercises, the user's Greensleeves take as played) runs the loop path, live and live with a take read ahead in three styles and reports what makes chords implausible (key found, ✓ / ~ another fitting mode on the tonic / ✗; clash = melody a half step over a chord tone; changes per bar), compared with `scripts/chords-baseline.json` (▲ worse, ▼ better); keep a good change's results with `--save scripts/chords-baseline.json`. The chords are a helper giving first steps, so it scores plausibility, not a chart.
+
+The manual's pictures: `npm run screenshots` (`scripts/screenshots.mjs`, ~2 min, the window must stay visible: lanes draw in rAF) runs the app in a throwaway profile with virtual ports named after no real gear, builds a demo scene (Lead with MPE takes and its loop, Keys/Bass following it, Drums, Pluck with the minilogue xd preset and locks, Arp), and writes each shot under the wiki's file names at 2× in a 1150 × 900 window (two columns of cards; `--width` for another), plus GIFs (`anim-*`, screencasts with a drawn pointer, ffmpeg; the wiki plays GIFs inline, a video would be a link). `--only a,b`, `--list`, `--no-anim`, `--out`. It and `check:app` share `scripts/app-harness.mjs` (launch, CDP with events, fake Web MIDI). Shots that change the scene undo it, so their order matters; the loop recording is driven by the Rec chip's own text ("Rec 2"), not by guessed clock times.
 
 Loops as windows on their takes have a check too: `npm run check:loops` (`scripts/loop-window-check.cjs`, pure, no app).
 
