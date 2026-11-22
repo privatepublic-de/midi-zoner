@@ -22,7 +22,9 @@ npm run build:linux      # Build Linux AppImage
 npm run build:all        # Build all platforms + macOS app
 npm run pack:osx         # Build macOS .app without DMG (x64)
 npm run pack:osx:arm     # Build macOS .app without DMG (arm64)
+npm run icon             # build/icon-gen.mjs → build/icon.svg → res/zoner.png, assets/zoner.png, assets/zoner.icns
 ```
+The app icon (Nov 22, the user's pick from mocks) is a MIDI socket in the slate look of the sibling apps multisampler and A-112 Waves: a metal rim, its five pins lit in the five zone colours. Edit `build/icon-gen.mjs`, not the SVG.
 
 ## Architecture
 
