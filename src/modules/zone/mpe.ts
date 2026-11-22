@@ -1,4 +1,5 @@
 import MIDI from '../midi';
+import { TAIL_MS } from './note-curve';
 
 /**
  * MPE input (MIDI Polyphonic Expression, e.g. a ROLI Seaboard): every key plays on a
@@ -28,11 +29,16 @@ const MASTER_BEND_RANGE = 2;
  * After that the channel's next key, which may land in another zone of a key split,
  * can't move this zone's fading note: its expression arrives before its note-on.
  */
-const RELEASE_KEEP_MS = 500;
+const RELEASE_KEEP_MS = TAIL_MS;
 /** How long a released key's dot fades on the zone's keyboard strip, in ms */
 const DOT_FADE_MS = 300;
 /** Member channels of a full MPE zone, as a Seaboard uses them */
 const MEMBER_CHANNELS = 15;
+/**
+ * Voices for the zone's loop notes that carry expression (zone/note-curve.ts), after the 16
+ * input channels: they join the merge like keys, live keys first
+ */
+export const LOOP_VOICES = 16;
 /** How long pressure glides when another key takes over, in ms */
 const PRESSURE_GLIDE_MS = 150;
 /** CC number of the slide dimension (MPE "timbre") */
@@ -54,11 +60,28 @@ interface Voice {
   outNote: number;
   /** Poly aftertouch sent last for that note, -1 = none yet */
   sentPoly: number;
+  /**
+   * Pass through, the member channel the voice's note goes out on: a loop voice's own (-1:
+   * none); a key's when it can't keep its own (-1: its own, see routeLive)
+   */
+  outCh: number;
+  /** A live key took a loop voice's channel (none was free): the loop voice sends nothing more there */
+  yielded: boolean;
+  /** Pass through: bend, slide and pressure sent last on that channel (-1: none yet) */
+  sent: { bend: number; slide: number; press: number };
 }
 
 /** Pressure from the threshold up, stretched back to 0–127 */
 function scalePressure(pressure: number, from: number): number {
   return Math.round((Math.max(0, pressure - from) * 127) / (127 - from));
+}
+
+/** A loop note's expression at a moment (a curve's values, see zone/note-curve.ts) */
+export interface LoopExpression {
+  /** Hundredths of a semitone of the keyboard */
+  bend: number;
+  slide: number | null;
+  press: number;
 }
 
 /** A key the zone plays, as the keyboard strip draws it */
@@ -100,13 +123,15 @@ export class MpeInput {
   private sent = { bend: -1, slide: -1 };
   /** The held key pressure came from last time, -1 = none */
   private pressureKey = -1;
+  /** Pass through: when each output channel was last let go by a loop voice (performance.now()) */
+  private channelFreedAt: number[] = [];
 
   constructor() {
     this.reset();
   }
 
   reset(): void {
-    this.voices = Array.from({ length: 16 }, () => ({
+    this.voices = Array.from({ length: 16 + LOOP_VOICES }, () => ({
       note: -1,
       owned: false,
       releasedAt: -1,
@@ -114,8 +139,12 @@ export class MpeInput {
       slide: null,
       pressure: 0,
       outNote: -1,
-      sentPoly: -1
+      sentPoly: -1,
+      outCh: -1,
+      yielded: false,
+      sent: { bend: -1, slide: -1, press: -1 }
     }));
+    this.channelFreedAt = new Array(16).fill(-Infinity);
     this.held = [];
     this.source = -1;
     this.masterBend = 8192;
@@ -155,6 +184,48 @@ export class MpeInput {
     const v = this.voices[ch];
     v.note = note;
     v.owned = false;
+    v.outCh = -1;
+  }
+
+  /** Pass through: the member channel a key's note and expression go out on */
+  liveOut(ch: number): number {
+    const out = this.voices[ch].outCh;
+    return out >= 0 ? out : ch;
+  }
+
+  /**
+   * Pass through: the output channels taken by notes the zone plays (held or in their
+   * release tail), but not `except`'s; a loop voice keeps its channel until it ends
+   */
+  private busyChannels(except = -1): Set<number> {
+    const busy = new Set<number>();
+    this.voices.forEach((v, i) => {
+      if (i === except) return;
+      if (i < 16) {
+        if (this.owns(i)) busy.add(this.liveOut(i));
+      } else if (v.owned && v.outCh >= 0) busy.add(v.outCh);
+    });
+    return busy;
+  }
+
+  /** Of `members`, the channel free of `busy` that was let go longest ago, -1 when none */
+  private freeChannel(members: number[], busy: Set<number>): number {
+    const freedAt = (ch: number): number => Math.max(this.channelFreedAt[ch], this.voices[ch].releasedAt);
+    let out = -1;
+    for (const ch of members) if (!busy.has(ch) && (out < 0 || freedAt(ch) < freedAt(out))) out = ch;
+    return out;
+  }
+
+  /**
+   * Pass through, before a key's note-on: it keeps its channel unless a loop note (or
+   * another key moved there) plays on it; then it goes out on a free member channel, so
+   * neither bends the other's note. None free: it shares the channel (the loop note yields)
+   */
+  routeLive(ch: number, members: number[]): number {
+    const busy = this.busyChannels(ch);
+    const v = this.voices[ch];
+    v.outCh = busy.has(ch) ? this.freeChannel(members, busy) : -1;
+    return this.liveOut(ch);
   }
 
   /** The zone plays the channel's note, sent as outNote */
@@ -165,7 +236,81 @@ export class MpeInput {
     v.outNote = outNote;
     v.sentPoly = -1;
     this.held.push(ch);
-    this.source = ch;
+    this.source = this.pickSource();
+    // a live key on a channel a loop note plays on: the channel's expression is the key's now
+    if (ch < 16) {
+      const out = this.liveOut(ch);
+      for (let i = 16; i < this.voices.length; i++) if (this.voices[i].outCh === out) this.voices[i].yielded = true;
+    }
+  }
+
+  /**
+   * The voice bend, slide and pressure follow: the last held live key, else the last held
+   * loop note (what you play wins over the loop; it takes over again when you let go)
+   */
+  private pickSource(): number {
+    for (let i = this.held.length - 1; i >= 0; i--) if (this.held[i] < 16) return this.held[i];
+    return this.held.length > 0 ? this.held[this.held.length - 1] : this.source;
+  }
+
+  /**
+   * A loop note with expression starts, sent as outNote: it takes a loop voice (the one
+   * free longest), -1 when none is free (it plays without expression)
+   */
+  startLoop(outNote: number, at: LoopExpression, bendIn: number, members?: number[]): number {
+    // Pass through: a member channel of its own, not one a live key or another loop note
+    // is on (nor in its release tail), the one let go longest ago
+    let outCh = -1;
+    if (members) {
+      outCh = this.freeChannel(members, this.busyChannels());
+      if (outCh < 0) return -1;
+    }
+    let slot = -1;
+    for (let i = 16; i < this.voices.length; i++) {
+      const v = this.voices[i];
+      if (v.owned) continue;
+      if (slot < 0 || v.releasedAt < this.voices[slot].releasedAt) slot = i;
+    }
+    if (slot < 0) return -1;
+    const v = this.voices[slot];
+    v.note = outNote;
+    v.outCh = outCh;
+    v.yielded = false;
+    v.sent = { bend: -1, slide: -1, press: -1 };
+    this.setLoop(slot, at, bendIn);
+    this.claim(slot, outNote);
+    return slot;
+  }
+
+  /** A loop voice's voice (Pass through: its channel, what it sent there) */
+  loopVoice(slot: number): Voice {
+    return this.voices[slot];
+  }
+
+  /** A loop voice's expression now */
+  setLoop(slot: number, at: LoopExpression, bendIn: number): void {
+    const v = this.voices[slot];
+    v.bend = Math.max(0, Math.min(16383, Math.round(8192 + (at.bend / 100 / Math.max(1, bendIn)) * 8192)));
+    v.slide = at.slide;
+    v.pressure = at.press;
+  }
+
+  /** A loop note ended (its expression may go on: the release tail) */
+  releaseLoop(slot: number): void {
+    this.release(slot);
+  }
+
+  /** A loop voice is done: at rest and free again */
+  endLoop(slot: number): void {
+    this.release(slot);
+    const v = this.voices[slot];
+    v.owned = false;
+    v.bend = 8192;
+    v.slide = null;
+    v.pressure = 0;
+    v.outNote = -1;
+    if (v.outCh >= 0) this.channelFreedAt[v.outCh] = performance.now();
+    v.outCh = -1;
   }
 
   /**
@@ -216,8 +361,11 @@ export class MpeInput {
     const i = this.held.indexOf(ch);
     if (i === -1) return false;
     this.held.splice(i, 1);
-    this.voices[ch].releasedAt = performance.now();
-    if (this.held.length > 0) this.source = this.held[this.held.length - 1];
+    const now = performance.now();
+    this.voices[ch].releasedAt = now;
+    // a key moved to another channel lets that one go (a loop voice's: endLoop)
+    if (ch < 16 && this.voices[ch].outCh >= 0) this.channelFreedAt[this.voices[ch].outCh] = now;
+    if (this.held.length > 0) this.source = this.pickSource();
     return true;
   }
 
@@ -305,6 +453,12 @@ export function sanitizePressureFrom(value: unknown, fallback: number): number {
   return Number.isFinite(n) && n >= 0 && n <= 120 ? n : fallback;
 }
 
+/** The member channels of an MPE zone with this master channel: Ch 16 an upper zone (Ch 1–15), any other a lower one (Ch 2–16) */
+export function memberChannels(master: number): number[] {
+  const first = master === 15 ? 0 : 1;
+  return Array.from({ length: MEMBER_CHANNELS }, (_, i) => first + i);
+}
+
 /**
  * A 14-bit bend from a keyboard bending inRange semitones to a synth bending outRange:
  * the same pitch, clamped at the synth's limit (unchanged when the ranges match)
@@ -331,7 +485,7 @@ export function mpeSetupMessages(master: number, memberBend: number): number[][]
   const upper = master === 15;
   const masterCh = upper ? 15 : 0;
   const messages = [...rpn(masterCh, 6, MEMBER_CHANNELS), ...rpn(masterCh, 0, MASTER_BEND_RANGE)];
-  for (let i = 0; i < MEMBER_CHANNELS; i++) messages.push(...rpn(upper ? i : i + 1, 0, memberBend));
+  for (const ch of memberChannels(master)) messages.push(...rpn(ch, 0, memberBend));
   return messages;
 }
 

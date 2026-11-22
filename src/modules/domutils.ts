@@ -9,6 +9,23 @@ interface ClientOffsets {
 }
 
 /**
+ * Range inputs have no native "filled" part in Chromium: the track gradient reads the value as
+ * `--fill`. Input events update it (viewcontroller/index.ts); code that sets a value must call this.
+ */
+export function syncRangeFill(el: HTMLInputElement): void {
+  const min = parseFloat(el.min || '0');
+  const max = parseFloat(el.max || '100');
+  const pct = max > min ? ((parseFloat(el.value) - min) / (max - min)) * 100 : 0;
+  el.style.setProperty('--fill', `${Math.max(0, Math.min(100, pct))}%`);
+}
+
+/** Set a range input's value and its filled part */
+export function setRangeValue(el: HTMLInputElement, value: number | string): void {
+  el.value = String(value);
+  syncRangeFill(el);
+}
+
+/**
  * Escape text for use in HTML content or quoted attribute values. Use for every
  * string that can come from a scene file or a MIDI device (labels, port names).
  */

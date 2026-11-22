@@ -1,44 +1,53 @@
 import MIDI from '../midi';
 import type { Zone } from '../zone/zone-class';
-import { Take } from '../zone/take';
+import { Take, songNote, setNoteLength } from '../zone/take';
+import type { SongNote } from '../zone/take';
 import type { TakeNoteJSON } from '../zone/interfaces';
 import { DIV_TICKS } from '../zone/seq-layer';
+import { CurveCursor } from '../zone/note-curve';
+import { SUSTAIN, MOD, BEND, PRESSURE, isStepped, pedalSpans, valueAt } from '../zone/gestures';
 import { DIV_NAMES, quantizeStarts } from '../zone/take-quantize';
-import { timeline, songNow } from '../timeline';
-import { barTicks, beatLines, unitTicks } from '../meter';
+import { timeline } from '../timeline';
+import { Meter, barTicks, beatLines, unitTicks } from '../meter';
 import { toast } from './toast';
 
 /**
- * The dock's Notes tab: a piano roll for the chosen take (the selected kept take, else
- * the last run's shown take). It shows the whole recording, the parts trimmed away
- * shaded; the take's edges drag in the ruler. Note times stay free: moves snap by whole
- * grid steps (a note keeps its distance to the grid), new notes and lengths snap to it.
- * Every gesture is one undo step; the first edit of an unkept take keeps it.
+ * The dock's Notes tab: a piano roll for the zone's loop or one of its takes. Note
+ * times stay free: moves snap by whole grid steps (a note keeps its distance to the
+ * grid), new notes and lengths snap to it; the length stays (notes stay inside). Every
+ * gesture is one undo step (a loop's with the scene, a take's as a take patch).
  */
 
 export interface TakeTarget {
   zone: Zone;
   take: Take;
-  kept: boolean;
+  kind: 'loop' | 'take';
   label: string;
-}
-
-interface SnapKeys {
-  shiftKey: boolean;
-  altKey: boolean;
+  /** Its bars and beats */
+  meter: Meter;
+  /** Where it's playing now (positions in it), null: not playing */
+  playhead(): number | null;
 }
 
 export interface TakeEditorHooks {
   zones(): Zone[];
   /** The take the tab shows, null: none */
   target(): TakeTarget | null;
+  /** A change to the loop: an undo step of the scene */
   commit(zoneIndex: number, label: string, change: () => void): void;
-  /** An unkept take was kept by an edit: select the kept one in the lanes */
-  keptAs(zone: Zone, take: Take): void;
-  loop(from: number, to: number): void;
-  /** Take edges snap as in the lanes: beats, Shift bars, ⌥ free */
-  snap(t: number, e: SnapKeys): number;
-  snapMin(e: SnapKeys): number;
+  /** A change to a take: an undo step of its own (takes aren't scene data) */
+  commitTake(zoneIndex: number, take: Take, label: string, change: () => void): void;
+  /** The bars from…to of a take become the zone's loop */
+  loopFrom(zone: Zone, take: Take, from: number, to: number): void;
+  /** Show the zone's loop or its shown take */
+  show(kind: 'loop' | 'take'): void;
+  /**
+   * An edit of the zone's loop begins (inside its undo step): for a loop cut from a take, what
+   * to do once it's done (it notes which take notes were changed or deleted, which added)
+   */
+  loopEdit(zone: Zone): (() => void) | null;
+  /** Quantize a loop cut from a take as a setting of it (applies to its take's notes from then on); false: it isn't */
+  quantizeLoop(zone: Zone, grid: number, strength: number): boolean;
   invalidate(): void;
 }
 
@@ -46,6 +55,8 @@ const KEYS_W = 40;
 const RULER_H = 18;
 const VEL_H = 48;
 const VEL_GAP = 6;
+/** The MPE lane over Velocity, for a loop or take played with MPE: pressure filled, slide a dashed line */
+const MPE_H = 44;
 const EDGE_PX = 5;
 const DRAG_PX = 3;
 const GRID_KEY = 'takeEditorGrid';
@@ -103,6 +114,8 @@ const view = { left: 0, ppt: 1, top: 72, rowH: 10 };
 let fittedId = '';
 let sel = new Set<TakeNoteJSON>();
 let selTake: Take | null = null;
+// the notes array the selection was made in (undo replaces it)
+let selNotes: TakeNoteJSON[] | null = null;
 let drag: Drag | null = null;
 let focused = false;
 let grid = Number(localStorage.getItem(GRID_KEY) ?? 14);
@@ -110,7 +123,7 @@ if (grid !== -1 && !GRIDS.includes(grid)) grid = 14;
 let strength = 1;
 let lastVelo = 100;
 let clipboard: {
-  notes: { s: number; d: number; n: number; v: number }[];
+  notes: SongNote[];
   span: number;
 } | null = null;
 let nextPaste: number | null = null;
@@ -124,7 +137,11 @@ const sx = (s: number): number => KEYS_W + (s - view.left) * view.ppt;
 const tickAt = (x: number): number => view.left + (x - KEYS_W) / view.ppt;
 const py = (n: number): number => RULER_H + (view.top - n) * view.rowH;
 const pitchAt = (y: number): number => view.top - Math.floor((y - RULER_H) / view.rowH);
-const gridBottom = (): number => size.h - VEL_H - VEL_GAP;
+// whether the loop or take being edited has MPE (its notes' curves): it gets the MPE lane
+let mpeLane = false;
+// the gestures' lane (pedal, wheels) over Velocity, its height (0: none)
+let gestH = 0;
+const gridBottom = (): number => size.h - VEL_H - VEL_GAP - (mpeLane ? MPE_H + VEL_GAP : 0) - (gestH ? gestH + VEL_GAP : 0);
 const rows = (): number => Math.max(1, Math.floor((gridBottom() - RULER_H) / view.rowH));
 
 function inWindow(take: Take, note: TakeNoteJSON): boolean {
@@ -163,33 +180,29 @@ function preview(zone: Zone, n: number, v: number): void {
 // ---------------------------------------------------------------------------
 // Edits
 
-/**
- * One undo step on the shown take. An unkept take is kept first and the change made
- * on the kept copy (`mine` maps a note of the shown take to the copy's).
- */
+/** The meter of what's shown */
+function meter(): Meter {
+  return hooks.target()?.meter ?? timeline.meter;
+}
+
+/** One undo step on what's shown (`mine` maps a note to itself: kept for the callers) */
 function apply(label: string, change: (take: Take, mine: (n: TakeNoteJSON) => TakeNoteJSON) => void): void {
   const target = hooks.target();
   if (!target) return;
   const index = hooks.zones().indexOf(target.zone);
   if (index < 0) return;
-  let take = target.take;
-  hooks.commit(index, label, () => {
-    let mine = (n: TakeNoteJSON): TakeNoteJSON => n;
-    if (!target.kept) {
-      const original = take;
-      target.zone.keepTake(original);
-      const copy = target.zone.takes.find((t) => t.id === original.id) ?? original;
-      mine = (n) => copy.notes[original.notes.indexOf(n)];
-      sel = new Set([...sel].map(mine).filter(Boolean));
-      take = copy;
-    }
-    change(take, mine);
-  });
-  if (!target.kept) {
-    hooks.keptAs(target.zone, take);
-    toast('Take kept: edits change the song from now on');
+  const take = target.take;
+  const mine = (n: TakeNoteJSON): TakeNoteJSON => n;
+  if (target.kind === 'loop') {
+    hooks.commit(index, label, () => {
+      const done = hooks.loopEdit(target.zone);
+      change(take, mine);
+      done?.();
+    });
   }
+  else hooks.commitTake(index, take, label, () => change(take, mine));
   selTake = take;
+  selNotes = take.notes;
   hooks.invalidate();
 }
 
@@ -236,7 +249,7 @@ function deleteSelected(label = 'Delete Notes'): void {
 function addNote(s: number, n: number): void {
   const target = hooks.target();
   if (!target) return;
-  const g = gridTicks() || unitTicks(timeline.meter) / 4;
+  const g = gridTicks() || unitTicks(meter()) / 4;
   const at = gridTicks() ? Math.floor(s / g) * g : s;
   if (at < target.take.floor || at >= target.take.end) return;
   if (target.take.notes.length >= Take.MAX_NOTES) {
@@ -258,21 +271,16 @@ function copySelection(): boolean {
   const notes = selectedOrdered(take);
   const base = take.songOf(notes[0]);
   const end = Math.max(...notes.map((n) => take.songOf(n) + n.d));
-  const step = gridTicks() || unitTicks(timeline.meter);
+  const step = gridTicks() || unitTicks(meter());
   clipboard = {
-    notes: notes.map((n) => ({
-      s: take.songOf(n) - base,
-      d: n.d,
-      n: n.n,
-      v: n.v
-    })),
+    notes: notes.map((n) => songNote(n, take.songOf(n) - base)),
     span: Math.max(step, Math.ceil((end - base) / step - 0.001) * step)
   };
   nextPaste = base + clipboard.span;
   return true;
 }
 
-/** Paste the clipboard at a song position; the take grows to hold it */
+/** Paste the clipboard at a position (notes past the end are left out: the length stays) */
 function paste(at: number, label: string): void {
   const target = hooks.target();
   if (!target || !clipboard) return;
@@ -280,12 +288,12 @@ function paste(at: number, label: string): void {
   at = Math.max(target.take.floor, at);
   let added: TakeNoteJSON[] = [];
   apply(label, (take) => {
-    const end = at + Math.max(...clip.notes.map((n) => n.s + n.d));
-    if (end > take.end) take.length = Math.min(Take.MAX_LENGTH, Math.ceil(end - take.start));
-    added = take.addNotes(clip.notes.map((n) => ({ ...n, s: at + n.s })).filter((n) => n.s < take.end));
+    added = take.addNotes(
+      clip.notes.map((n) => ({ ...n, s: at + n.s, d: Math.min(n.d, take.end - at - n.s) })).filter((n) => n.s < take.end)
+    );
   });
   sel = new Set(added);
-  if (added.length < clip.notes.length) toast('This take is full');
+  if (added.length < clip.notes.length) toast(`${clip.notes.length - added.length} notes didn’t fit before the end`);
 }
 
 function quantizeSelection(): void {
@@ -296,6 +304,8 @@ function quantizeSelection(): void {
     return;
   }
   const take = target.take;
+  // a loop cut from a take: quantized as a setting, from the take's notes as played
+  if (sel.size === 0 && target.kind === 'loop' && hooks.quantizeLoop(target.zone, grid, strength)) return;
   const notes = sel.size > 0 ? selectedOrdered(take) : take.notes.filter((n) => inWindow(take, n));
   if (notes.length === 0) return;
   const starts = quantizeStarts(
@@ -313,6 +323,22 @@ function quantizeSelection(): void {
     });
     t.sort();
   });
+}
+
+/** The bars around the selected notes of a take become the zone's loop */
+function loopSelection(): void {
+  const target = hooks.target();
+  if (!target || target.kind !== 'take') return;
+  const take = target.take;
+  const notes = selectedOrdered(take);
+  if (notes.length === 0) {
+    toast('Select the notes to loop first (⌘A: all)');
+    return;
+  }
+  const from = take.barLine(Math.min(...notes.map((n) => take.songOf(n))), 'floor');
+  let to = take.barLine(Math.max(...notes.map((n) => take.songOf(n) + Math.min(n.d, 1))), 'ceil');
+  if (to <= from) to = from + barTicks(take.sectionAt(from).meter);
+  hooks.loopFrom(target.zone, take, from, to);
 }
 
 function selectAll(): void {
@@ -333,7 +359,8 @@ function fit(take: Take): void {
   const notes = take.visibleNotes();
   const lo = notes.length ? Math.min(...notes.map((n) => n.n)) : 60;
   const hi = notes.length ? Math.max(...notes.map((n) => n.n)) : 60;
-  view.rowH = Math.max(6, Math.min(14, Math.floor(h / (hi - lo + 5))));
+  // every note in view, even in a low dock (thin rows then), with a little room around them
+  view.rowH = Math.max(3, Math.min(14, Math.floor(h / (hi - lo + 3))));
   view.top = Math.round((hi + lo) / 2 + rows() / 2);
   clampView();
 }
@@ -366,15 +393,17 @@ function sizeCanvas(): CanvasRenderingContext2D | null {
 
 /** Keep the note selection on the take across undo (same id: notes by index) */
 function followTake(take: Take | null): void {
-  if (take === selTake) return;
-  if (take && selTake && take.id === selTake.id && take.notes.length === selTake.notes.length) {
-    const old = selTake;
-    sel = new Set([...sel].map((n) => take.notes[old.notes.indexOf(n)]).filter(Boolean));
+  // the same take with its notes replaced (undo of a take edit restores them) counts as another
+  if (take === selTake && take?.notes === selNotes) return;
+  const oldNotes = selNotes;
+  if (take && selTake && take.id === selTake.id && oldNotes && take.notes.length === oldNotes.length) {
+    sel = new Set([...sel].map((n) => take.notes[oldNotes.indexOf(n)]).filter(Boolean));
   } else {
     sel.clear();
     nextPaste = null;
   }
   selTake = take;
+  selNotes = take?.notes ?? null;
 }
 
 function updateTools(target: TakeTarget | null): void {
@@ -389,19 +418,190 @@ function updateTools(target: TakeTarget | null): void {
   const count = take.visibleNotes().length;
   title.textContent = target.label;
   what.textContent = [
-    `from bar ${Math.floor(take.start / barTicks(timeline.meter)) + 1}`,
-    Take.lengthLabel(take.length, timeline.meter),
+    Take.lengthLabel(take.length, target.meter),
     `${count} note${count === 1 ? '' : 's'}`,
-    sel.size ? `${sel.size} selected` : '',
-    target.kept ? '' : 'not kept: an edit keeps it'
+    sel.size ? `${sel.size} selected` : ''
   ]
     .filter(Boolean)
     .join(' · ');
   root.querySelector('.tdn-delete')!.classList.toggle('disabled', sel.size === 0);
-  root.querySelector('.tdn-quantize')!.textContent = sel.size ? 'Quantize selection' : 'Quantize take';
+  root.querySelector('.tdn-quantize')!.textContent = sel.size ? 'Quantize selection' : `Quantize ${target.kind}`;
+  // a take's bars can become the loop; the loop is already one
+  const loop = root.querySelector('.tdn-loop') as HTMLElement;
+  loop.style.display = target.kind === 'take' ? '' : 'none';
+  loop.classList.toggle('disabled', sel.size === 0);
+  root.querySelectorAll('[data-tdn-show]').forEach((b) => {
+    const kind = (b as HTMLElement).dataset['tdnShow'];
+    b.classList.toggle('on', kind === target.kind);
+  });
 }
 
 /** Called by the track view's draw loop while the Notes tab is open */
+/**
+ * The MPE lane over Velocity: each note's pressure filled (from the zone's threshold up, as
+ * it hears it) and its slide as a dashed line, both from the lane's bottom (0) to its top (127)
+ */
+function drawMpeLane(g: CanvasRenderingContext2D, take: Take, zone: Zone, colour: string): void {
+  const { w } = size;
+  const top = gridBottom() + VEL_GAP;
+  const base = top + MPE_H - 2;
+  const span = MPE_H - 6;
+  g.fillStyle = '#1c1f23';
+  g.fillRect(0, top, w, MPE_H);
+  g.fillStyle = '#8b95a3';
+  g.font = '10px "Barlow Semi Condensed", sans-serif';
+  g.fillText('MPE', 6, top + 14);
+  g.save();
+  g.beginPath();
+  g.rect(KEYS_W, top, w - KEYS_W, MPE_H);
+  g.clip();
+  const from = zone.mpe_at_from;
+  const d = drag;
+  // overlapping notes pile up: with notes picked that have MPE, only theirs
+  const only = [...sel].some((n) => n.x);
+  for (const note of take.notes) {
+    if (!note.x || !inWindow(take, note) || (only && !sel.has(note))) continue;
+    const s = take.songOf(note) + (sel.has(note) && d?.kind === 'move' && d.moved ? d.dt : 0);
+    const x0 = sx(s);
+    const x1 = sx(s + note.d);
+    if (x1 < KEYS_W || x0 > w) continue;
+    const left = Math.max(x0, KEYS_W);
+    const right = Math.min(x1, w);
+    const at = (x: number): number => (x - x0) / view.ppt;
+    if (note.x.press) {
+      const cursor = new CurveCursor({ press: note.x.press });
+      g.globalAlpha = only ? 0.55 : 0.35;
+      g.fillStyle = colour;
+      g.beginPath();
+      g.moveTo(left, base);
+      for (let x = left; x <= right; x += 2) {
+        const p = Math.max(0, cursor.at(at(x)).press - from) / Math.max(1, 127 - from);
+        g.lineTo(x, base - p * span);
+      }
+      g.lineTo(right, base);
+      g.fill();
+    }
+    if (note.x.slide) {
+      const cursor = new CurveCursor({ slide: note.x.slide });
+      g.globalAlpha = 0.9;
+      g.strokeStyle = '#8b95a3';
+      g.lineWidth = 1;
+      g.setLineDash([3, 2]);
+      g.beginPath();
+      for (let x = left; x <= right; x += 2) {
+        const y = base - ((cursor.at(at(x)).slide ?? 0) / 127) * span;
+        if (x === left) g.moveTo(x, y);
+        else g.lineTo(x, y);
+      }
+      g.stroke();
+      g.setLineDash([]);
+    }
+  }
+  g.restore();
+  g.globalAlpha = 1;
+}
+
+/** The gestures' lane: a row per control played (pedals as bars, wheels filled from rest) */
+const GEST_ROW_H = 16;
+const GEST_ROWS: [string, string][] = [
+  [SUSTAIN, 'Pedal'],
+  [MOD, 'Mod'],
+  [BEND, 'Bend'],
+  [PRESSURE, 'AT']
+];
+/** The controls a take or loop has gestures of, with their names: the usual ones first, then CCs by number */
+function gestureRows(take: Take): [string, string][] {
+  const g = take.g ?? {};
+  const known = GEST_ROWS.filter(([k]) => g[k]);
+  const other = Object.keys(g)
+    .filter((k) => !GEST_ROWS.some(([r]) => r === k))
+    .sort((a, b) => Number(a.slice(1)) - Number(b.slice(1)))
+    .map((k): [string, string] => [k, 'CC ' + k.slice(1)]);
+  return [...known, ...other];
+}
+/** The gestures' lane height (0: none) */
+function gestureHeight(take: Take): number {
+  if (!take.g) return 0;
+  return gestureRows(take).length * GEST_ROW_H + 4;
+}
+/**
+ * The gestures' lane between the MPE lane (or the notes) and Velocity, view only: a row per
+ * control, pedals as bars where down, wheels and aftertouch filled up from 0, bend from the centre
+ */
+function drawGestureLane(g: CanvasRenderingContext2D, take: Take, colour: string): void {
+  const { w } = size;
+  const top = gridBottom() + VEL_GAP + (mpeLane ? MPE_H + VEL_GAP : 0);
+  const gs = take.g!;
+  const X = (t: number): number => sx(take.start + t - take.offset);
+  const from = take.offset;
+  const to = take.offset + take.length;
+  g.fillStyle = '#1c1f23';
+  g.fillRect(0, top, w, gestH);
+  g.font = '10px "Barlow Semi Condensed", sans-serif';
+  // values along the take, filled down to `fill` (a wheel's rest)
+  const line = (key: string, stroke: string, y: (v: number) => number, fill?: number): void => {
+    const series = gs[key];
+    if (!series) return;
+    const x0 = Math.max(KEYS_W, X(from));
+    const x1 = Math.min(w, X(to));
+    if (x1 <= x0) return;
+    g.beginPath();
+    let first = true;
+    for (let x = x0; x <= x1; x += 2) {
+      const v = valueAt(key, series, from + (x - X(from)) / view.ppt);
+      if (v === undefined) continue;
+      if (first) g.moveTo(x, y(v));
+      else g.lineTo(x, y(v));
+      first = false;
+    }
+    if (fill !== undefined && !first) {
+      g.lineTo(x1, fill);
+      g.lineTo(x0, fill);
+      g.closePath();
+      g.globalAlpha = 0.3;
+      g.fillStyle = stroke;
+      g.fill();
+      g.globalAlpha = 0.9;
+    }
+    g.strokeStyle = stroke;
+    g.lineWidth = 1;
+    g.stroke();
+  };
+  const pedal = (key: string, y: number, ph: number): void => {
+    g.fillStyle = colour;
+    g.globalAlpha = 0.75;
+    for (const [s0, s1] of pedalSpans(key, gs[key], from, to)) {
+      const x0 = Math.max(KEYS_W, X(s0));
+      const x1 = Math.min(w, X(s1));
+      if (x1 > x0) g.fillRect(x0, y, Math.max(1, x1 - x0 - 1), ph);
+    }
+    g.globalAlpha = 1;
+  };
+  g.save();
+  gestureRows(take).forEach(([key, name], i) => {
+    const ry = top + 2 + i * GEST_ROW_H;
+    g.globalAlpha = 1;
+    g.fillStyle = '#8b95a3';
+    g.fillText(name, 6, ry + 11);
+    g.fillStyle = '#ffffff0a';
+    g.fillRect(KEYS_W, ry + GEST_ROW_H - 1, w - KEYS_W, 1);
+    g.save();
+    g.beginPath();
+    g.rect(KEYS_W, ry, w - KEYS_W, GEST_ROW_H);
+    g.clip();
+    g.globalAlpha = 0.9;
+    if (isStepped(key)) pedal(key, ry + 3, 10);
+    else if (key === BEND) {
+      g.fillStyle = '#ffffff14';
+      g.fillRect(KEYS_W, ry + 7, w - KEYS_W, 1);
+      line(key, colour, (v) => ry + 7.5 - ((v - 8192) / 8192) * 6.5, ry + 7.5);
+    } else line(key, colour, (v) => ry + 14 - (v / 127) * 12, ry + 14);
+    g.restore();
+  });
+  g.restore();
+  g.globalAlpha = 1;
+}
+
 function drawTakeEditor(): void {
   const target = hooks.target();
   followTake(target?.take ?? null);
@@ -411,6 +611,8 @@ function drawTakeEditor(): void {
   if (!g || !target) return;
   const { w, h } = size;
   const take = target.take;
+  mpeLane = take.hasExpression;
+  gestH = gestureHeight(take);
   if (take.id !== fittedId) {
     fittedId = take.id;
     fit(take);
@@ -446,12 +648,14 @@ function drawTakeEditor(): void {
     for (let t = Math.ceil(from / gt) * gt; t <= to; t += gt)
       g.fillRect(Math.round(sx(t)), RULER_H, 1, bottom - RULER_H);
   }
-  for (const { t, bar } of beatLines(timeline.meter, Math.max(0, from), to)) {
+  for (const { t, bar } of beatLines(meter(), Math.max(0, from), to)) {
     g.fillStyle = bar ? '#ffffff26' : '#ffffff12';
     g.fillRect(Math.round(sx(t)), RULER_H, 1, bottom - RULER_H);
   }
   // notes: the recording's, those trimmed away dim; a move or resize shows where they go
   const d = drag;
+  // a loop's pick-up (the notes before its first 1, at its end): tagged above the first of them
+  const pickups: { x: number; y: number }[] = [];
   for (const note of take.notes) {
     let s = take.songOf(note);
     let len = note.d;
@@ -469,19 +673,48 @@ function drawTakeEditor(): void {
     const inside = inWindow(take, note);
     g.globalAlpha = inside ? 0.5 + (0.5 * note.v) / 127 : 0.25;
     g.fillStyle = colour;
-    g.fillRect(x0, py(n) + 1, x1 - x0 - 1, view.rowH - 2);
+    g.fillRect(x0, py(n) + (view.rowH > 4 ? 1 : 0), x1 - x0 - 1, Math.max(2, view.rowH - 2));
     if (chosen) {
       g.globalAlpha = 1;
       g.strokeStyle = '#ffffff';
       g.lineWidth = 1.5;
-      g.strokeRect(x0 + 0.75, py(n) + 1.75, x1 - x0 - 2.5, view.rowH - 3.5);
+      g.strokeRect(x0 + 0.75, py(n) + 0.75, x1 - x0 - 2.5, Math.max(2, view.rowH - 1.5));
     }
+    // its MPE bend: a line through it at the pitch sounding (the keyboard's, in rows)
+    if (note.x?.bend && view.rowH >= 4) {
+      const cursor = new CurveCursor(note.x);
+      const mid = py(n) + view.rowH / 2;
+      g.globalAlpha = inside ? 0.9 : 0.4;
+      g.strokeStyle = '#ffffff';
+      g.lineWidth = 1.25;
+      g.beginPath();
+      for (let x = Math.max(x0, KEYS_W); x <= Math.min(x1, w); x += 2) {
+        const y = mid - (cursor.at((x - x0) / view.ppt).bend / 100) * view.rowH;
+        if (x === Math.max(x0, KEYS_W)) g.moveTo(x, y);
+        else g.lineTo(x, y);
+      }
+      g.stroke();
+    }
+    if (target.kind === 'loop' && note.p) pickups.push({ x: x0, y: py(n) });
   }
   g.globalAlpha = 1;
-  // outside the take's window: shaded
-  const edge = d?.kind === 'edge' ? d : null;
-  const winStart = edge ? edge.start : take.start;
-  const winEnd = edge ? edge.start + edge.length : take.end;
+  if (pickups.length) {
+    const pickup = { x: Math.min(...pickups.map((p) => p.x)), y: Math.min(...pickups.map((p) => p.y)) };
+    g.font = '600 9px "Barlow Semi Condensed", sans-serif';
+    const label = 'pick-up';
+    const lw = g.measureText(label).width + 6;
+    const tx = Math.min(w - lw - 2, pickup.x);
+    const ty = Math.max(RULER_H + 1, pickup.y - 13);
+    g.fillStyle = '#e7eaee';
+    g.globalAlpha = 0.85;
+    g.fillRect(tx, ty, lw, 11);
+    g.globalAlpha = 1;
+    g.fillStyle = '#15171a';
+    g.fillText(label, tx + 3, ty + 8.5);
+  }
+  // past its end: shaded
+  const winStart = take.start;
+  const winEnd = take.end;
   g.fillStyle = '#000000a0';
   g.fillRect(KEYS_W, RULER_H, Math.max(0, sx(winStart) - KEYS_W), bottom - RULER_H);
   g.fillRect(sx(winEnd), RULER_H, Math.max(0, w - sx(winEnd)), bottom - RULER_H);
@@ -515,14 +748,14 @@ function drawTakeEditor(): void {
     }
   }
 
-  // ruler: bars, the take's edges as handles
+  // ruler: bars, its start and end marked
   g.fillStyle = '#1c1f23';
   g.fillRect(0, 0, w, RULER_H);
   g.font = '11px "Barlow Semi Condensed", sans-serif';
   g.textBaseline = 'alphabetic';
-  const barLen = barTicks(timeline.meter);
+  const barLen = barTicks(meter());
   const every = Math.max(1, Math.ceil(50 / (barLen * view.ppt)));
-  beatLines(timeline.meter, Math.max(0, from), to).forEach((l) => {
+  beatLines(meter(), Math.max(0, from), to).forEach((l) => {
     if (!l.bar) return;
     const x = Math.round(sx(l.t));
     if (x < KEYS_W) return;
@@ -547,6 +780,9 @@ function drawTakeEditor(): void {
     4
   );
   g.globalAlpha = 1;
+
+  if (mpeLane) drawMpeLane(g, take, target.zone, colour);
+  if (gestH) drawGestureLane(g, take, colour);
 
   // velocity lane
   const vy = h - VEL_H;
@@ -575,8 +811,9 @@ function drawTakeEditor(): void {
   g.globalAlpha = 1;
 
   // playhead
-  if (timeline.running) {
-    const x = sx(songNow());
+  const head = target.playhead();
+  if (head !== null) {
+    const x = sx(head);
     if (x >= KEYS_W && x <= w) {
       g.fillStyle = '#e7eaee';
       g.fillRect(Math.round(x), RULER_H, 1, h - RULER_H);
@@ -619,10 +856,8 @@ function velocityNoteAt(take: Take, x: number): TakeNoteJSON | null {
   return best;
 }
 
-function edgeAt(take: Take, x: number, y: number): 'start' | 'end' | null {
-  if (y >= RULER_H) return null;
-  if (Math.abs(x - sx(take.start)) <= EDGE_PX + 1) return 'start';
-  if (Math.abs(x - sx(take.end)) <= EDGE_PX + 1) return 'end';
+/** (Edges don't drag: a loop's or take's length stays) */
+function edgeAt(_take: Take, _x: number, _y: number): 'start' | 'end' | null {
   return null;
 }
 
@@ -735,18 +970,6 @@ function onMouseMove(ev: MouseEvent): void {
     if (!drag.moved && Math.abs(y - drag.y0) < 1) return;
     drag.moved = true;
     drag.dv = Math.round((-(y - drag.y0) / (VEL_H - 6)) * 127);
-  } else if (drag.kind === 'edge') {
-    drag.moved = true;
-    const s = hooks.snap(tickAt(x), ev);
-    const min = hooks.snapMin(ev);
-    if (drag.edge === 'start') {
-      const start = Math.max(0, Math.min(take.end - min, s));
-      drag.start = start;
-      drag.offset = take.offset + (start - take.start);
-      drag.length = take.end - start;
-    } else {
-      drag.length = Math.max(min, Math.min(Take.MAX_LENGTH, s - take.start));
-    }
   }
   hooks.invalidate();
 }
@@ -768,7 +991,7 @@ function onMouseUp(): void {
     const notes = selectedOrdered(take);
     const dd = d.dd;
     apply('Change Note Length', (_t, mine) => {
-      for (const n of notes.map(mine)) n.d = Math.max(0.5, n.d + dd);
+      for (const n of notes.map(mine)) setNoteLength(n, Math.max(0.5, n.d + dd));
     });
   } else if (d.kind === 'box' && !d.moved && !d.additive) {
     addNote(tickAt(d.x0), pitchAt(d.y0));
@@ -778,12 +1001,6 @@ function onMouseUp(): void {
       for (const n of d.notes.map(mine)) n.v = Math.max(1, Math.min(127, n.v + dv));
     });
     lastVelo = Math.max(1, Math.min(127, d.notes[0].v + dv));
-  } else if (d.kind === 'edge' && d.moved && (d.start !== take.start || d.length !== take.length)) {
-    apply('Trim Take', (t) => {
-      t.start = d.start;
-      t.length = d.length;
-      t.offset = d.offset;
-    });
   }
   hooks.invalidate();
 }
@@ -818,8 +1035,8 @@ function onKeyDown(ev: KeyboardEvent): void {
   if (ev.code === 'Space') return; // play / stop
   const target = hooks.target();
   if (!target) return;
-  const step = gridTicks() || unitTicks(timeline.meter) / 4;
-  const beat = unitTicks(timeline.meter);
+  const step = gridTicks() || unitTicks(meter()) / 4;
+  const beat = unitTicks(meter());
   const arrows: Record<string, [number, number]> = {
     ArrowLeft: [-(ev.shiftKey ? beat : step), 0],
     ArrowRight: [ev.shiftKey ? beat : step, 0],
@@ -881,10 +1098,13 @@ function initTakeEditor(h: TakeEditorHooks): void {
   });
   root.querySelector('.tdn-quantize')!.addEventListener('click', quantizeSelection);
   root.querySelector('.tdn-delete')!.addEventListener('click', () => deleteSelected());
-  root.querySelector('.tdn-loop')!.addEventListener('click', () => {
-    const target = hooks.target();
-    if (target) hooks.loop(target.take.start, target.take.end);
-  });
+  root.querySelector('.tdn-loop')!.addEventListener('click', loopSelection);
+  root.querySelectorAll('[data-tdn-show]').forEach((b) =>
+    b.addEventListener('click', () => {
+      hooks.show((b as HTMLElement).dataset['tdnShow'] as 'loop' | 'take');
+      fittedId = '';
+    })
+  );
   root.querySelector('.tdn-fit')!.addEventListener('click', () => {
     const target = hooks.target();
     if (target) fit(target.take);

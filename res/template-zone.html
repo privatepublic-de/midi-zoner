@@ -3,59 +3,76 @@
     <div
       class="ch state enabled"
       data-action="${index}:zone_enabled"
-      title="Mute zone ${zoneMuteKeyboardHint}"
+      title="Mute this zone ${zoneMuteKeyboardHint}"
     >
       M
     </div>
     <div
       class="ch solo"
       data-action="${index}:zone_solo"
-      title="Solo Zone\n(Double click for this zone only)"
+      title="Solo this zone (double-click: only this zone)"
     >
       S
     </div>
     <div
       class="ch showseq"
       data-action="${index}:toggle_seq"
-      title="Enable step sequencer"
-    >
-      Seq
-    </div>
+      title="Step sequencer on/off"
+    ><span class="sw-name">Seq</span><small class="sw-extra"></small></div>
+    <div
+      class="ch showchords"
+      data-action="${index}:zone_chords_on"
+      title="Chords on/off"
+    ><span class="chc-part">Chords</span><span class="chc-now">–</span></div>
+    <div class="chordnow" title="The chord playing now">–</div>
     <div
       class="ch showarp arp_enabled"
       data-action="${index}:zone_arp_enabled"
-      title="Enable arpeggiator"
-    >
-      Arp
-    </div>
-    <div
-      class="ch showtakes takes_on"
-      data-action="${index}:zone_takes"
-      title="Play the kept takes (what you play is recorded either way)"
-    >
-      Trk
+      title="Arpeggiator on/off"
+    ><span class="sw-name">Arp</span><small class="sw-extra"></small></div>
+    <div class="loopgroup">
+      <div
+        class="ch showtake"
+        data-action="${index}:zone_take_play"
+        title="Play the shown take along from bar 1 of every run, as if played on/off"
+      >
+        Take
+      </div>
+      <div
+        class="ch showloopsw"
+        data-action="${index}:zone_loop_on"
+        title="No loop yet: record one with Rec"
+      >
+        Loop
+      </div>
+      <div
+        class="ch showloop"
+        data-action="${index}:zone_loop"
+        title="Rec: press on a 1 to record a loop, on a later 1 to close it; it plays at once. A little late is fine: the bar before counts as its pick-up"
+      >
+        Rec
+      </div>
     </div>
     <div
       class="ch showccs"
       data-action="${index}:cc_toggle"
-      title="Show CC controllers"
-    >
-      CC
-    </div>
+      title="Show this zone's controllers"
+    ><span class="cc-long">Controllers</span><span class="cc-short">CC</span></div>
     <input
       type="text"
       class="zone-label"
+      title="Name this zone"
       placeholder="Zone ${zoneNumber}"
       onKeyUp="event.stopPropagation();"
       data-change="${index}:zone_label"
       tabindex="-1"
     />
-    <div class="midi-led" title="Sending MIDI"></div>
+    <div class="midi-led" title="Lights while this zone sends MIDI"></div>
     <div class="iorouting">
       <div
         class="iorouting-display"
         data-action="${index}:iorouting_toggle"
-        title="Configure input/output routing"
+        title="This zone's input, MPE and output"
       >
         <span class="iorouting-text"
           ><span class="iorouting-portname"></span
@@ -63,152 +80,171 @@
         ></span>
       </div>
       <div class="iorouting-popup popup hideonleave">
-        <div class="ior-row">
-          <span class="ior-label">In</span>
+        <div class="ior-out">
+          <div class="ior-head">Port</div>
+          <div class="ior-ports"></div>
+          <div class="ior-head ior-chhead">Channel</div>
+          <div class="ior-chs"></div>
           <select
-            class="inport"
-            data-change="${index}:zone_input_port"
-            tabindex="-1"
-          >
-            <option value="">Global</option>
-          </select>
-          <select
-            class="inchannel"
-            data-change="${index}:zone_input_channel"
-            title="The channel this zone takes from its own input (the MPE master channel with MPE on)"
-            tabindex="-1"
-          >
-            <option value="-1">All ch</option>
-            ${channelOptions}
-          </select>
-        </div>
-        <div class="ior-link">
-          <div class="ior-row">
-            <span class="ior-label">MPE</span>
-            <select
-              class="mpe"
-              data-change="${index}:zone_mpe"
-              title="MPE keyboard input (e.g. Seaboard, master on the In channel): pass each key's channel on to an MPE synth, or merge them into the zone channel for a synth without MPE"
-              tabindex="-1"
-            >
-              <option value="0">Off</option>
-              <option value="1">Pass through</option>
-              <option value="2">To one channel</option>
-            </select>
-          </div>
-          <div
-            class="ior-row ior-row-pass"
-            title="Bend range of the MPE keyboard → the MPE bend range set on the synth, in semitones: each key's bend is converted, so pitch follows the finger (glides beyond the synth's range stop at its limit)"
-          >
-            <span class="ior-unit">Bend: keys ±</span>
-            <input
-              type="number"
-              class="mpe_bend_in"
-              min="1"
-              max="96"
-              data-change="${index}:zone_mpe_bend_in"
-              tabindex="-1"
-            />
-            <span class="ior-unit">→ synth ±</span>
-            <input
-              type="number"
-              class="mpe_pass_bend_out"
-              min="1"
-              max="96"
-              data-change="${index}:zone_mpe_pass_bend_out"
-              tabindex="-1"
-            />
-          </div>
-          <div
-            class="ior-row ior-row-pass"
-            title="MPE Configuration Message (15 member channels) and the synth's bend ranges. Also sent on startup, when the port connects and on switching to Pass through. Not every synth reacts to it (a Hydrasynth or Iridium needs MPE switched on in its settings)"
-          >
-            <div class="action" data-action="${index}:zone_mpe_setup">Send MPE setup</div>
-          </div>
-          <div
-            class="ior-row ior-row-collapse"
-            title="Bend range of the MPE keyboard → bend range set on the synth, in semitones. Pitch, slide and pressure follow the last key held"
-          >
-            <span class="ior-unit">Bend: keys ±</span>
-            <input
-              type="number"
-              class="mpe_bend_in"
-              min="1"
-              max="96"
-              data-change="${index}:zone_mpe_bend_in"
-              tabindex="-1"
-            />
-            <span class="ior-unit">→ synth ±</span>
-            <input
-              type="number"
-              class="mpe_bend_out"
-              min="1"
-              max="96"
-              data-change="${index}:zone_mpe_bend_out"
-              tabindex="-1"
-            />
-          </div>
-          <div
-            class="ior-row ior-row-collapse"
-            title="Channel AT: the last key held decides, as for pitch. Poly AT: each key sends its own pressure on its note, for synths that take polyphonic aftertouch. Pressure below the threshold counts as none, like the dead zone of an aftertouch keyboard (just playing a Seaboard key reads 50–100)"
-          >
-            <span class="ior-unit">Pressure</span>
-            <select class="mpe_poly_at" data-change="${index}:zone_mpe_poly_at" tabindex="-1">
-              <option value="0">Channel AT</option>
-              <option value="1">Poly AT</option>
-            </select>
-            <span class="ior-unit">from</span>
-            <input
-              type="number"
-              class="mpe_at_from"
-              min="0"
-              max="120"
-              data-change="${index}:zone_mpe_at_from"
-              tabindex="-1"
-            />
-          </div>
-          <div
-            class="ior-row ior-row-collapse"
-            title="Slide (moving up and down the key, following the last key held) plays the zone's controllers like a knob on CC 74: Learn it in the controller editor by sliding on a key. Without one it isn't sent"
-          >
-            <span class="ior-unit">Slide → controllers on CC 74</span>
-          </div>
-        </div>
-        <div class="ior-row">
-          <span class="ior-label">Out</span>
-          <select
-            class="outport"
+            class="outport ior-data"
+            title="The device this zone plays: an output port, or a named output config"
             data-change="${index}:zone_outport"
             tabindex="-1"
           >
             <option value="*"></option>
           </select>
           <select
-            class="channel"
+            class="channel ior-data"
+            title="MIDI channel of the output"
             data-change="${index}:zone_channel"
             tabindex="-1"
           >
             ${channelOptions}
           </select>
+          <div class="ior-namerow">
+            <input
+              type="text"
+              class="output-config-name"
+              title="Name the device on this port and channel: it shows on its channel, and on the zone"
+              placeholder="Name this device…"
+              onKeyUp="event.stopPropagation();"
+              data-change="${index}:zone_output_config_name"
+              tabindex="-1"
+            />
+            <div
+              class="sendClock"
+              data-action="${index}:zone_send_clock"
+              title="Send MIDI clock to this output on/off"
+            ><i class="material-icons">schedule</i>Send clock</div>
+          </div>
         </div>
-        <input
-          type="text"
-          class="output-config-name"
-          placeholder="Name this output config…"
-          onKeyUp="event.stopPropagation();"
-          data-change="${index}:zone_output_config_name"
-          tabindex="-1"
-        />
+        <div
+          class="ior-insum"
+          data-action="${index}:iorouting_input"
+          title="This zone's input and MPE"
+        >Input <span class="ior-in-val">Global</span> · MPE <span class="ior-mpe-val">Off</span></div>
+        <div class="ior-in">
+          <div class="ior-row">
+            <span class="ior-label">In</span>
+            <select
+              class="inport"
+              title="Where this zone takes its notes from: the global inputs (Setup), or an input of its own"
+              data-change="${index}:zone_input_port"
+              tabindex="-1"
+            >
+              <option value="">Global</option>
+            </select>
+            <select
+              class="inchannel"
+              data-change="${index}:zone_input_channel"
+              title="The channel this zone takes from its own input (the MPE master channel with MPE on)"
+              tabindex="-1"
+            >
+              <option value="-1">All ch</option>
+              ${channelOptions}
+            </select>
+          </div>
+          <div class="ior-link">
+            <div class="ior-row">
+              <span class="ior-label">MPE</span>
+              <select
+                class="mpe"
+                data-change="${index}:zone_mpe"
+                title="MPE keyboard input (e.g. Seaboard, master on the In channel): pass each key's channel on to an MPE synth, or merge them into the zone channel for a synth without MPE"
+                tabindex="-1"
+              >
+                <option value="0">Off</option>
+                <option value="1">Pass through</option>
+                <option value="2">To one channel</option>
+              </select>
+            </div>
+            <div
+              class="ior-row ior-row-pass"
+              title="Bend range of the MPE keyboard → the MPE bend range set on the synth, in semitones: each key's bend is converted, so pitch follows the finger (glides beyond the synth's range stop at its limit)"
+            >
+              <span class="ior-unit">Bend: keys ±</span>
+              <input
+                type="number"
+                class="mpe_bend_in"
+                min="1"
+                max="96"
+                data-change="${index}:zone_mpe_bend_in"
+                tabindex="-1"
+              />
+              <span class="ior-unit">→ synth ±</span>
+              <input
+                type="number"
+                class="mpe_pass_bend_out"
+                min="1"
+                max="96"
+                data-change="${index}:zone_mpe_pass_bend_out"
+                tabindex="-1"
+              />
+            </div>
+            <div
+              class="ior-row ior-row-pass"
+              title="MPE Configuration Message (15 member channels) and the synth's bend ranges. Also sent on startup, when the port connects and on switching to Pass through. Not every synth reacts to it (a Hydrasynth or Iridium needs MPE switched on in its settings)"
+            >
+              <div class="action" data-action="${index}:zone_mpe_setup">Send MPE setup</div>
+            </div>
+            <div
+              class="ior-row ior-row-collapse"
+              title="Bend range of the MPE keyboard → bend range set on the synth, in semitones. Pitch, slide and pressure follow the last key held"
+            >
+              <span class="ior-unit">Bend: keys ±</span>
+              <input
+                type="number"
+                class="mpe_bend_in"
+                min="1"
+                max="96"
+                data-change="${index}:zone_mpe_bend_in"
+                tabindex="-1"
+              />
+              <span class="ior-unit">→ synth ±</span>
+              <input
+                type="number"
+                class="mpe_bend_out"
+                min="1"
+                max="96"
+                data-change="${index}:zone_mpe_bend_out"
+                tabindex="-1"
+              />
+            </div>
+            <div
+              class="ior-row ior-row-collapse"
+              title="Channel AT: the last key held decides, as for pitch. Poly AT: each key sends its own pressure on its note, for synths that take polyphonic aftertouch. Pressure below the threshold counts as none, like the dead zone of an aftertouch keyboard (just playing a Seaboard key reads 50–100)"
+            >
+              <span class="ior-unit">Pressure</span>
+              <select class="mpe_poly_at" data-change="${index}:zone_mpe_poly_at" tabindex="-1">
+                <option value="0">Channel AT</option>
+                <option value="1">Poly AT</option>
+              </select>
+              <span class="ior-unit">from</span>
+              <input
+                type="number"
+                class="mpe_at_from"
+                min="0"
+                max="120"
+                data-change="${index}:zone_mpe_at_from"
+                tabindex="-1"
+              />
+            </div>
+            <div
+              class="ior-row ior-row-collapse"
+              title="Slide (moving up and down the key, following the last key held) plays the zone's controllers like a knob on CC 74: Learn it in the controller editor by sliding on a key. Without one it isn't sent"
+            >
+              <span class="ior-unit">Slide → controllers on CC 74</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <div
-      class="sendClock"
+      class="hdr-clock"
       data-action="${index}:zone_send_clock"
-      title="Transmit clock to this device"
-    >
-      <i class="material-icons sel">watch_later</i
-      ><i class="material-icons unsel">query_builder</i>
-    </div>
+      title="Send MIDI clock to this zone's output on/off"
+    ><i class="material-icons">schedule</i></div>
+    <div class="hdr-break"></div>
     <div class="zonetools">
       <div
         class="zonemenu rtool"
@@ -217,16 +253,32 @@
       >
         <i class="material-icons">more_horiz</i>
       </div>
-      <div class="dragzone rtool" title="Drag zone">
-        <i class="material-icons">drag_indicator</i>
+      <div class="dragzone rtool" title="Drag to move this zone">
+        <i class="material-icons">drag_handle</i>
       </div>
     </div>
   </div>
-  <div class="mini-lane" title="What this zone plays: behind the playhead what it sent, ahead what comes (dashed: won't sound, e.g. Seq off or a step skipped by its condition). A waiting switch shows where it lands"><canvas></canvas></div>
+  <div class="mini-lane" title="What this zone plays: behind the playhead what it sent, ahead what comes (dashed: won't sound, e.g. Seq off or a step skipped by its condition). A waiting switch shows where it lands"><canvas></canvas><div class="card-follow"></div><div class="lane-status cb-status"></div></div>
+  <div class="card-takes" title="Takes: what you played, one per Start → Stop">
+    <a class="lightButton" data-ct="prev" title="An earlier take">‹</a><span class="ct-label"><span class="ct-name"></span><span class="ct-new">new</span></span><a class="lightButton" data-ct="next" title="A later take">›</a>
+    <canvas class="ct-preview"></canvas>
+    <a class="lightButton" data-ct="along"></a>
+    <a class="lightButton" data-ct="delete" title="Delete this take (⌘Z brings it back)">Delete</a>
+  </div>
+  <div class="chords-sum"></div>
+  <div class="card-folds">
+    <a class="cf-fold cf-seq" data-action="${index}:zone_fold_seq" title="Show or hide the sequencer's steps (Seq switches it on/off)"><i class="material-icons">expand_more</i>Sequencer</a>
+    <a class="cf-fold cf-arp" data-action="${index}:zone_fold_arp" title="Show or hide the arp's settings (Arp switches it on/off)"><i class="material-icons">expand_more</i>Arp</a>
+    <a class="cf-fold cf-cc" data-action="${index}:cc_toggle" title="Show or hide this zone's controllers"><i class="material-icons">expand_more</i>Controllers</a>
+    <a class="cf-fold cf-thru" data-action="${index}:zone_fold_thru" title="Show or hide what passes from your keyboard to the device, how hard notes play, and its program"><i class="material-icons">expand_more</i>Thru, Velocity, Program<span class="thru-dot" title="Thru differs from a new zone's settings"></span><span class="program-num" title="The program sent to the device"></span></a>
+  </div>
   <div
     class="seq shadowed-zone-block"
     data-contextmenu="${index}:seq_copy,${index}:seq_paste,-,${index}:seq_clear_all"
   >
+    <a class="panel-head" data-action="${index}:zone_fold_seq" title="Hide the sequencer (Seq switches it on/off)"
+      ><i class="material-icons">expand_more</i>Sequencer<small class="ph-extra"></small></a
+    >
     <div class="grid">
       <div class="step-container">${sequencerGrid}</div>
       <div class="drum-step-container">${drumLanes}</div>
@@ -239,7 +291,7 @@
       <div class="label dismiss-for-drumsequence">Steps</div>
       <div class="val dismiss-for-drumsequence">
         <input
-          title="Number of steps in sequence"
+          title="Steps in the sequence"
           class="seq_steps"
           type="number"
           min="1"
@@ -252,7 +304,7 @@
       <div class="label only-for-drumsequence">Lanes</div>
       <div class="val only-for-drumsequence">
         <input
-          title="Number of lanes in sequence"
+          title="Drum lanes"
           class="seq_lanes"
           type="number"
           min="1"
@@ -262,7 +314,7 @@
           tabindex="-1"
         />
       </div>
-      <div class="drop-down" title="Step resolution">
+      <div class="drop-down" title="Length of a step">
         <select
           class="seq_division"
           data-change="${index}:seq_division"
@@ -273,14 +325,14 @@
       </div>
       <div
         class="action"
-        title="Move whole sequence 1 step left"
+        title="Move the whole sequence a step to the left"
         data-action="${index}:seq_move:-1"
       >
         <i class="material-icons">chevron_left</i>
       </div>
       <div
         class="action"
-        title="Move whole sequence 1 step right"
+        title="Move the whole sequence a step to the right"
         data-action="${index}:seq_move:1"
       >
         <i class="material-icons">chevron_right</i>
@@ -295,7 +347,7 @@
       </div>
       <div
         class="action menu-button"
-        title="Change the whole sequence"
+        title="Change the whole sequence: double, halve, velocities…"
         data-contextclick
         data-contextmenu="${adjustMenu}"
       >
@@ -303,7 +355,7 @@
       </div>
       <div
         class="action"
-        title="Clear complete sequence"
+        title="Clear the whole sequence"
         data-action="${index}:seq_clear_all"
       >
         <i class="material-icons">playlist_remove</i>
@@ -313,14 +365,14 @@
         title="Record notes you play into the running sequence"
         data-action="${index}:seq_record_live"
       >
-        <i class="material-icons">fiber_manual_record</i>
+        <i class="material-icons">fiber_manual_record</i><span class="head-word">Rec</span>
       </div>
       <div
-        class="action dismiss-for-drumsequence"
-        title="Open piano roll editor"
+        class="action seq-pianoroll dismiss-for-drumsequence"
+        title="Edit in the piano roll"
         data-action="${index}:seq_open_piano_roll"
       >
-        <i class="material-icons">piano</i>
+        <i class="material-icons">piano</i><span class="head-word">Piano roll</span>
       </div>
       <div style="flex-grow: 1"></div>
     </div>
@@ -337,7 +389,7 @@
             max="100"
             data-change="${index}:seq_step_velocity"
             id="seq_step_velocity${index}"
-            title="Velocity"
+            title="Velocity of the step's notes"
             tabindex="-1"
           />
           <output for="seq_step_velocity${index}">(unset)</output>
@@ -347,6 +399,7 @@
         <div class="label">Length</div>
         <input
           class="seq_step_length"
+          title="How many steps the notes last"
           type="number"
           min="1"
           max="${seqMaxSteps}"
@@ -363,7 +416,7 @@
             max="100"
             data-change="${index}:seq_gatelength"
             id="seq_gatelength${index}"
-            title="Step gate length"
+            title="How long the step's notes sound"
             tabindex="-1"
           />
           <output for="seq_gatelength${index}">(unset)</output>
@@ -377,23 +430,23 @@
             max="100"
             data-change="${index}:seq_step_probability"
             id="seq_step_probability${index}"
-            title="Chance step is triggered"
+            title="Chance the step plays"
             tabindex="-1"
           />
           <output for="seq_step_probability${index}">(unset)</output>
         </div>
         <div class="label">Condition</div>
-        <div class="drop-down" title="Select step play condition">
+        <div class="drop-down" title="When the step plays">
           <select
             class="seq_step_condition"
             data-change="${index}:seq_step_condition"
             tabindex="-1"
           >
             <option>always</option>
-            <option title="Previous was played">Prev.</option>
-            <option title="Previous was not played">Not prev.</option>
-            <option title="Only in first cycle">1st</option>
-            <option title="Not in first cycle">Not 1st</option>
+            <option title="If the step before played">Prev.</option>
+            <option title="If the step before didn't play">Not prev.</option>
+            <option title="Only in the first cycle">1st</option>
+            <option title="In every cycle but the first">Not 1st</option>
             ${cycleConditions}
           </select>
         </div>
@@ -403,7 +456,7 @@
         <select
           class="seq_step_ratchet_count"
           data-change="${index}:seq_step_ratchet_count"
-          title="Number of note repeats"
+          title="Ratchet: how often the step repeats"
           tabindex="-1"
         >
           <option value="1">—</option>
@@ -420,7 +473,7 @@
           <select
             class="seq_step_ratchet_res"
             data-change="${index}:seq_step_ratchet_res"
-            title="Time between repeats"
+            title="Time between the repeats"
             tabindex="-1"
           >
             <option value="7">1/8</option>
@@ -443,7 +496,7 @@
             value="0"
             data-change="${index}:seq_step_ratchet_delta"
             id="seq_step_ratchet_delta${index}"
-            title="Velocity change per repeat"
+            title="Velocity change on each repeat"
             tabindex="-1"
           />
           <output for="seq_step_ratchet_delta${index}">0%</output>
@@ -463,21 +516,21 @@
       <div class="step-controls">
         <div
           class="action"
-          title="Move step left (if free space)"
+          title="Move this step to the left (if there's room)"
           data-action="${index}:seq_step_move:-1"
         >
           <i class="material-icons">arrow_back</i>
         </div>
         <div
           class="action"
-          title="Move step right (if free space)"
+          title="Move this step to the right (if there's room)"
           data-action="${index}:seq_step_move:1"
         >
           <i class="material-icons">arrow_forward</i>
         </div>
         <div
           class="action warn"
-          title="Clear step"
+          title="Clear this step"
           data-action="${index}:seq_clear_selected_step"
         >
           <i class="material-icons">clear</i>
@@ -485,7 +538,7 @@
         <div style="flex-grow: 1"></div>
         <div
           class="action menu-button"
-          title="Copy a property of this step to all active steps"
+          title="Copy one of this step's settings to every step with notes"
           data-contextclick
           data-contextmenu="label:Apply to all steps:,-,${index}:step_copy_length,${index}:step_copy_gate,${index}:step_copy_condition,${index}:step_copy_chance"
         >
@@ -494,28 +547,32 @@
         <div
           class="check seq-step-add-notes hide-for-drumsequence"
           data-action="${index}:seq_step_add_notes"
-          title="New notes are added (no overwrite)"
+          title="Notes you play are added to the step instead of replacing its notes"
         >
           ${checkboxIcons}Add new notes
         </div>
         <div
           class="check seq-step-advance hide-for-drumsequence"
           data-action="${index}:seq_step_advance"
-          title="Advance step after note input"
+          title="Go on to the next step after a note is played in"
         >
           ${checkboxIcons}Advance
         </div>
       </div>
     </div>
   </div>
+  <div class="chords-block shadowed-zone-block"></div>
   <div class="arp-settings-block shadowed-zone-block">
+    <a class="panel-head" data-action="${index}:zone_fold_arp" title="Hide the arp's settings (Arp switches it on/off)"
+      ><i class="material-icons">expand_more</i>Arp<small class="ph-extra"></small></a
+    >
     <div class="arp-settings">
-      <div class="label">Arp</div>
+      <div class="label">Direction</div>
       <div class="drop-down">
         <select
           class="arp_direction"
           data-change="${index}:zone_arp_direction"
-          title="Arp play direction"
+          title="The order the arp plays the notes in"
           tabindex="-1"
         >
           <option>Up</option>
@@ -532,7 +589,7 @@
       <div class="drop-down">
         <select
           class="arp_division"
-          title="Arp step length"
+          title="Length of an arp step"
           data-change="${index}:zone_arp_division"
           tabindex="-1"
         >
@@ -540,7 +597,7 @@
         </select>
       </div>
       <div class="label">Octaves</div>
-      <div class="drop-down">
+      <div class="drop-down" title="How many octaves the arp spans">
         <select
           class="arp_octaves"
           data-change="${index}:zone_arp_octaves"
@@ -559,28 +616,30 @@
       >
         ${checkboxIcons}Repeat
       </div>
-      <div
-        class="check arp_hold"
-        data-action="${index}:zone_arp_hold"
-        title="Hold notes after key release"
-      >
-        ${checkboxIcons}Hold
+      <div class="arp-head-tools">
+        <div
+          class="check arp_transpose"
+          data-action="${index}:zone_arp_transpose"
+          title="While holding, the next key you play transposes the arp"
+        >
+          ${checkboxIcons}Transpose
+        </div>
+        <div
+          class="arp_transpose_value"
+          title="Transposition of the held arp in semitones: drag up/down or scroll, double-click for 0. Playing a key also sets it."
+        ></div>
+        <div
+          class="check arp_hold"
+          data-action="${index}:zone_arp_hold"
+          title="Keep playing after you let go of the keys"
+        >
+          ${checkboxIcons}Hold
+        </div>
       </div>
-      <div
-        class="check arp_transpose"
-        data-action="${index}:zone_arp_transpose"
-        title="While holding, the next key you play transposes the arp"
-      >
-        ${checkboxIcons}Transpose
-      </div>
-      <div
-        class="arp_transpose_value"
-        title="Transposition of the held arp in semitones: drag up/down or scroll, double-click for 0. Playing a key also sets it."
-      ></div>
     </div>
     <div class="arp-settings">
       <div class="label">Gate</div>
-      <div class="percent-holder">
+      <div class="percent-holder" title="How long each arp note sounds">
         <input
           type="range"
           class="percent arp_gatelength"
@@ -595,7 +654,7 @@
       <div class="label">Chance</div>
       <div
         class="percent-holder"
-        title="Chance arpeggiator notes are triggered"
+        title="Chance an arp note plays"
       >
         <input
           type="range"
@@ -609,7 +668,7 @@
         <output for="arp_probability${index}">---</output>
       </div>
       <div class="strum-taper-holder label">Taper</div>
-      <div class="strum-taper-holder percent-holder">
+      <div class="strum-taper-holder percent-holder" title="Strum: how much quieter each note of the sweep gets">
         <input
           type="range"
           class="percent arp_strum_taper"
@@ -624,7 +683,7 @@
       <div class="ratchet-holder label">Ratchet</div>
       <div
         class="ratchet-holder percent-holder"
-        title="Probability a step is ratcheted"
+        title="Chance an arp step repeats (ratchet)"
       >
         <input
           type="range"
@@ -641,7 +700,7 @@
         <select
           class="arp_ratchet_count"
           data-change="${index}:zone_arp_ratchet_count"
-          title="Ratchet repeat count"
+          title="How often a ratcheted step repeats"
           tabindex="-1"
         >
           <option>2×</option>
@@ -652,7 +711,7 @@
     </div>
     <div class="arp-settings arp-pattern-row">
       <div class="label">Pattern</div>
-      <div class="euclid" title="Spread hits evenly over the pattern length">
+      <div class="euclid" title="Euclidean: spread the hits evenly over the pattern">
         <input
           class="euchits"
           type="number"
@@ -660,7 +719,7 @@
           max="32"
           value="5"
           data-change="${index}:zone_arp_euclid"
-          title="Hits"
+          title="Hits in the pattern"
           tabindex="-1"
         />
         <div class="label">in</div>
@@ -677,7 +736,7 @@
       </div>
       <div
         class="action"
-        title="Shift pattern left"
+        title="Shift the pattern to the left"
         data-action="${index}:zone_arp_pattern_shift:-1"
       >
         <i class="material-icons">chevron_left</i>
@@ -685,11 +744,11 @@
       <div
         class="pattern"
         data-dblclickaction="${index}:zone_arp_pattern"
-        title="Click or drag over steps to switch them on or off. Double-click to reset."
+        title="Click or drag over steps to switch them on or off (double-click: reset)"
       ></div>
       <div
         class="action"
-        title="Shift pattern right"
+        title="Shift the pattern to the right"
         data-action="${index}:zone_arp_pattern_shift:1"
       >
         <i class="material-icons">chevron_right</i>
@@ -698,6 +757,9 @@
   </div>
 
   <div class="ccpots shadowed-zone-block">
+    <a class="panel-head" data-action="${index}:cc_toggle" title="Hide this zone's controllers"
+      ><i class="material-icons">expand_more</i>Controllers</a
+    >
     <div class="cctools">
       <div class="cc-pages" role="tablist" aria-label="Controller pages"></div>
       <div style="flex-grow: 1"></div>
@@ -707,7 +769,7 @@
         title="Edit controllers and device presets (or double-click a controller)"
         aria-label="Edit controllers"
       >
-        <i class="material-icons">edit</i>
+        <i class="material-icons">edit</i><span class="head-word">Edit</span>
       </div>
       <div
         class="action"
@@ -719,13 +781,144 @@
     </div>
     <div class="container"></div>
   </div>
+  <div class="thru-panel shadowed-zone-block">
+    <a class="panel-head" data-action="${index}:zone_fold_thru" title="Hide Thru, Velocity, Program"
+      ><i class="material-icons">expand_more</i>Thru, Velocity, Program</a
+    >
+    <div class="thru-line">
+      <div class="label">Pass</div>
+      <div
+        class="check pitchbend"
+        data-action="${index}:filters_pitchbend"
+        title="Pass pitch bend"
+      >
+        ${checkboxIcons}Bend
+      </div>
+      <div
+        class="check mod"
+        data-action="${index}:filters_mod"
+        title="Pass the mod wheel (CC 1)"
+      >
+        ${checkboxIcons}Wheel
+      </div>
+      <div
+        class="check sustain"
+        data-action="${index}:filters_sustain"
+        title="Pass the sustain pedal (CC 64)"
+      >
+        ${checkboxIcons}Sustain
+      </div>
+      <div
+        class="check cc"
+        data-action="${index}:filters_cc"
+        title="Pass all other control changes"
+      >
+        ${checkboxIcons}CC
+      </div>
+      <div
+        class="check programchange"
+        data-action="${index}:filters_programchange"
+        title="Pass program changes"
+      >
+        ${checkboxIcons}Program
+      </div>
+      <div class="thru-gap"></div>
+      <div
+        class="check at2mod"
+        data-action="${index}:filters_at2mod"
+        title="Turn channel pressure (aftertouch) into the mod wheel (CC 1)"
+      >
+        ${checkboxIcons}AT→MW
+      </div>
+    </div>
+    <div class="thru-line">
+      <div class="label">Velocity</div>
+      <div
+        class="check fixedvel"
+        data-action="${index}:filters_fixedvel"
+        title="Play every note at this velocity"
+      >
+        ${checkboxIcons}Fixed
+        <input
+          type="number"
+          class="fixedvel_value"
+          onclick="event.stopPropagation()"
+          data-change="${index}:filters_fixedvel_value"
+          value="127"
+          min="1"
+          max="127"
+          tabindex="-1"
+        />
+      </div>
+      <div class="thru-gap"></div>
+      <div class="label">Scale</div>
+      <div class="percent-holder" title="Scale how hard you play: 100% as played">
+        <input
+          type="range"
+          class="percent velocity_scaling"
+          data-change="${index}:filters_velocity_scaling"
+          id="velocity_scaling${index}"
+          min="0"
+          max="200"
+          tabindex="-1"
+        />
+        <output for="velocity_scaling${index}">---</output>
+      </div>
+    </div>
+    <div class="thru-line programsettings">
+      <div class="label">Send program</div>
+      <input
+        title="Program change (1–128), sent on Enter or when you leave the field; empty: none"
+        class="programnumber"
+        type="number"
+        value=""
+        placeholder="off"
+        min="1"
+        max="128"
+        data-change="${index}:filters_changeprogram"
+        tabindex="-1"
+      />
+      <div class="thru-gap"></div>
+      <div class="label">Bank MSB</div>
+      <input
+        title="Bank MSB, CC 0 (0–127), sent before the program; empty: none"
+        class="banknumber bank_msb"
+        type="number"
+        value=""
+        placeholder="off"
+        min="0"
+        max="127"
+        data-change="${index}:filters_changebank_msb"
+        tabindex="-1"
+      />
+      <div class="label">LSB</div>
+      <input
+        title="Bank LSB, CC 32 (0–127), sent before the program; empty: none"
+        class="banknumber bank_lsb"
+        type="number"
+        value=""
+        placeholder="off"
+        min="0"
+        max="127"
+        data-change="${index}:filters_changebank_lsb"
+        tabindex="-1"
+      />
+      <div class="thru-gap"></div>
+      <div
+        class="action program-send"
+        data-action="${index}:filters_sendprogram"
+        title="Send program and bank again, e.g. after changing the sound on the synth"
+      >
+        Send
+      </div>
+    </div>
+  </div>
   <div class="rangeholder shadowed-zone-block">
     <div
       class="range"
       data-hover="${index}:zone_range"
       data-action="${index}:zone_range"
-      title="Select start and end note
-(hold 'shift' for octave note stepping)"
+      title="Lowest and highest key this zone plays (⇧: in octaves)"
     >
       <span class="join"></span>
       <span class="current"></span>
@@ -736,7 +929,7 @@
   </div>
   <div class="settings">
     <div class="val label">Oct</div>
-    <div class="val octaves" title="Transpose octave">
+    <div class="val octaves" title="Octave shift of what you play">
       <a class="octselect" data-action="${index}:zone_octave:-3">−3</a>
       <a class="octselect" data-action="${index}:zone_octave:-2">−2</a>
       <a class="octselect" data-action="${index}:zone_octave:-1">−1</a>
@@ -750,158 +943,22 @@
       <a class="octselect" data-action="${index}:zone_octave:3">+3</a>
     </div>
     <div
-      class="action toggle_filters thru"
-      data-action="${index}:filters_toggle"
-      title="What passes from your keyboard to the synth, and velocity"
-    >
-      Thru<span class="thru-dot" title="Set apart from a new zone"></span>
-    </div>
-    <div class="popupsettings popup hideonleave">
-      <div class="thru-line">
-        <div class="label">Pass</div>
-        <div
-          class="check pitchbend"
-          data-action="${index}:filters_pitchbend"
-          title="Pass pitch bend"
-        >
-          ${checkboxIcons}Bend
-        </div>
-        <div
-          class="check mod"
-          data-action="${index}:filters_mod"
-          title="Pass the mod wheel (CC 1)"
-        >
-          ${checkboxIcons}Wheel
-        </div>
-        <div
-          class="check sustain"
-          data-action="${index}:filters_sustain"
-          title="Pass the sustain pedal (CC 64)"
-        >
-          ${checkboxIcons}Sustain
-        </div>
-        <div
-          class="check cc"
-          data-action="${index}:filters_cc"
-          title="Pass all other control changes"
-        >
-          ${checkboxIcons}CC
-        </div>
-        <div
-          class="check programchange"
-          data-action="${index}:filters_programchange"
-          title="Pass program changes"
-        >
-          ${checkboxIcons}Program
-        </div>
-        <div class="thru-gap"></div>
-        <div
-          class="check at2mod"
-          data-action="${index}:filters_at2mod"
-          title="Turn channel pressure (aftertouch) into the mod wheel (CC 1)"
-        >
-          ${checkboxIcons}AT→MW
-        </div>
-      </div>
-      <div class="thru-line">
-        <div class="label">Velocity</div>
-        <div
-          class="check fixedvel"
-          data-action="${index}:filters_fixedvel"
-          title="Play every note at this velocity"
-        >
-          ${checkboxIcons}Fixed
-          <input
-            type="number"
-            class="fixedvel_value"
-            onclick="event.stopPropagation()"
-            data-change="${index}:filters_fixedvel_value"
-            value="127"
-            min="1"
-            max="127"
-            tabindex="-1"
-          />
-        </div>
-        <div class="thru-gap"></div>
-        <div class="label">Scale</div>
-        <div class="percent-holder">
-          <input
-            type="range"
-            class="percent velocity_scaling"
-            data-change="${index}:filters_velocity_scaling"
-            id="velocity_scaling${index}"
-            min="0"
-            max="200"
-            tabindex="-1"
-          />
-          <output for="velocity_scaling${index}">---</output>
-        </div>
-      </div>
-    </div>
-    <div
-      class="action toggle_filters"
-      data-action="${index}:program_toggle"
-      title="Program and bank sent to the synth"
-    >
-      Program<span class="program-num"></span>
-    </div>
-    <div class="programsettings popup hideonleave">
-      <div class="label">Program</div>
-      <input
-        title="Program change (1–128), sent on Enter or when you leave the field. Clear to send none."
-        class="programnumber"
-        type="number"
-        value=""
-        placeholder="off"
-        min="1"
-        max="128"
-        data-change="${index}:filters_changeprogram"
-        tabindex="-1"
-      />
-      <div class="thru-gap"></div>
-      <div class="label">Bank MSB</div>
-      <input
-        title="Bank MSB, CC 0 (0–127), sent before the program. Clear to send none."
-        class="banknumber bank_msb"
-        type="number"
-        value=""
-        placeholder="off"
-        min="0"
-        max="127"
-        data-change="${index}:filters_changebank_msb"
-        tabindex="-1"
-      />
-      <div class="label">LSB</div>
-      <input
-        title="Bank LSB, CC 32 (0–127), sent before the program. Clear to send none."
-        class="banknumber bank_lsb"
-        type="number"
-        value=""
-        placeholder="off"
-        min="0"
-        max="127"
-        data-change="${index}:filters_changebank_lsb"
-        tabindex="-1"
-      />
-      <div style="flex-grow: 1"></div>
-      <div
-        class="action program-send"
-        data-action="${index}:filters_sendprogram"
-        title="Send program and bank again, e.g. after changing the sound on the synth"
-      >
-        Send
-      </div>
-    </div>
-    <div
       class="action sustain_on"
       data-action="${index}:filters_sustain_on"
-      title="Hold the sustain pedal down on the synth (CC 64) until pressed again"
+      title="Hold the sustain pedal down on the synth (CC 64) until you press this again"
     >
       Pedal
     </div>
+    <div
+      class="action play-hold"
+      data-action="${index}:zone_arp_hold"
+      title="Keep the arp playing after you let go of the keys"
+    >
+      Hold Arp
+    </div>
     <div class="swing-in-settings">
       <div class="label">Swing</div>
-      <div class="percent-holder">
+      <div class="percent-holder" title="Swing: every other step of the sequence and the arp comes later">
         <input
           type="range"
           class="percent swing-amount"
@@ -917,5 +974,5 @@
     </div>
   </div>
   <div class="zonenumber">${zoneNumber}</div>
-  <div class="track-lane" title="Takes: what you play is recorded while the clock runs and shows in the upper lane. After Stop, drag over it there to keep a stretch (snaps to beats, Shift: bars, Option: free); kept takes, below, move by dragging, trim at their edges. Scroll sideways to move through the song. Double-click: piano roll"><div class="track-strip"><span class="track-hint"></span></div><canvas></canvas></div>
+  <div class="track-lane" title="Above: takes, what you played. Below: the loop and the sequence. Click a take or the loop to pick it and edit its notes in the panel; drag over bars of a take to loop just those (⌥: beats); drag the loop's edges to change its length. Scroll sideways to move through the song"><div class="track-strip"><span class="track-hint"></span></div><canvas></canvas></div>
 </div>

@@ -15,15 +15,15 @@
         class="setup-toggle"
         aria-expanded="false"
         aria-controls="setupDrawer"
-        title="Show setup: input, clock, files and view"
+        title="Setup: MIDI inputs and clock, metronome, switching, view and scene files"
       >
         <i class="material-icons chevron">expand_more</i>
         <span class="setup-name">Setup</span>
         <span id="setupSummary"></span>
       </button>
       <div class="global-resets">
-        <a id="allMuteOff" class="lightButton" title="Clear mute on all zones">M</a>
-        <a id="allSoloOff" class="lightButton" title="Clear solo on all zones">S</a>
+        <a id="allMuteOff" class="lightButton" title="Unmute all zones">M</a>
+        <a id="allSoloOff" class="lightButton" title="Unsolo all zones">S</a>
         <a id="allHoldOff" class="lightButton" title="Turn Hold off on all arpeggiators"
           >H</a
         >
@@ -38,29 +38,29 @@
         <div
           id="startClockButton"
           class="toggle internal"
-          title="Start arpeggiators and sequencers"
+          title="Start or stop the clock: sequences, arps and loops play, every zone you play records a take (Space)"
         ></div>
         <a
           id="metroClick"
           class="lightButton"
-          title="Metronome: a click on every beat while running (the light shows the beats either way; sound under Setup → Metronome)"
+          title="Metronome: a click on every beat while the clock runs (the light shows the beats either way; sound: Setup → Metronome)"
           ><span class="beat-led"></span>Click</a
         >
         <a
           id="metroCountIn"
           class="lightButton internal"
-          title="Count in before Start: the clock runs a bar (or two) with clicks, then starts (Setup → Metronome)"
+          title="Count in before Start: a bar (or two) of clicks, then the clock starts (Setup → Metronome)"
           >Count-in</a
         >
         <a
           id="toggleQuantChip"
           class="lightButton active"
-          title="Quantize zone switches: while the clock runs, M, S, Seq, Arp and Trk wait for the next bar (or beat, 16th: Setup → Switching → Zone switches) and blink until then; click again to cancel. Shift-click does the opposite. Key switches and Mackie buttons wait too"
-          >Quant bar</a
+          title="Zone switches wait for the bar: while the clock runs, M, S, Seq and Arp blink until the next bar (or beat, 16th: Setup → Switching) and switch there; press a blinking chip again to cancel it. ⇧-click does the opposite. Key switches and Mackie buttons wait too"
+          >At next bar</a
         >
         <div
           class="ext-badge"
-          title="Following the external clock: tempo and start/stop come from this input. Click to change the clock source"
+          title="Following an external clock: tempo, Start and Stop come from this input. Click to choose the clock source"
         >
           External clock
         </div>
@@ -73,30 +73,36 @@
             max="240"
             id="bpm"
             tabindex="-1"
+            title="Tempo of the internal clock (beats per minute)"
           />
         </div>
+        <a
+          id="meterChip"
+          data-contextclick
+          data-contextmenu="meters:0"
+          title="Meter of the arrangement playing: bars and beats for the looper, takes, metronome and ruler (also in A–D's right-click menu)"
+        ></a>
       </div>
       <div class="strip-end">
         <div class="history" role="group" aria-label="Undo and redo">
-          <button id="undoBtn" class="lightButton" title="Undo" disabled><i class="material-icons">undo</i></button>
-          <button id="redoBtn" class="lightButton" title="Redo" disabled><i class="material-icons">redo</i></button>
+          <button id="undoBtn" class="lightButton" title="Undo (⌘Z)" disabled><i class="material-icons">undo</i></button>
+          <button id="redoBtn" class="lightButton" title="Redo (⇧⌘Z)" disabled><i class="material-icons">redo</i></button>
         </div>
         <div class="zoom" role="group" aria-label="Zoom">
-          <a id="zoomOut" class="lightButton" title="Zoom out"><i class="material-icons">zoom_out</i></a>
-          <a id="zoomReset" class="lightButton" title="Reset zoom">1:1</a>
-          <a id="zoomIn" class="lightButton" title="Zoom in"><i class="material-icons">zoom_in</i></a>
+          <span class="zoom-label">Zoom</span>
+          <a id="zoomOut" class="lightButton zoom-step" title="Zoom out (⌘−)">−</a>
+          <a id="zoomReset" class="lightButton" title="The zoom; click for actual size (⌘0)">100 %</a>
+          <a id="zoomIn" class="lightButton zoom-step" title="Zoom in (⌘+)">+</a>
         </div>
         <div class="viewmode" role="group" aria-label="View">
-          <a id="viewCards" class="lightButton" title="Zones as cards (Cmd/Ctrl+Shift+T switches)">Cards</a>
-          <a id="viewTracks" class="lightButton" title="Zones as tracks on a timeline (Cmd/Ctrl+Shift+T switches)">Tracks</a>
+          <a id="viewCards" class="lightButton" title="Zones as cards (⌘⇧T)">Cards</a>
+          <a id="viewTracks" class="lightButton" title="Zones as tracks on a timeline (⌘⇧T)">Tracks</a>
         </div>
-        <a id="miniViewBtn" class="lightButton" title="Switch to mini view (Cmd/Ctrl+Shift+M)"
-          ><i class="material-icons">close_fullscreen</i></a
-        >
+        <a id="miniViewBtn" class="lightButton" title="Mini view (⌘⇧M)">Mini</a>
         <a
           id="midiPanic"
           class="lightButton"
-          title="Send 'All notes off' to all outputs"
+          title="Send All notes off on every output"
         >
           Panic
         </a>
@@ -112,17 +118,17 @@
           <div class="drawer-row">
             <span class="drawer-label">Key switches</span>
             <div class="drawer-val">
-              <label class="tb-label check" title="When enabled, notes 0–15 (C-1 to D#0) act as zone-mute and sequencer-toggle key switches, and notes 16–19 (E0 to G0) select arrangements A–D, instead of being routed to zones">
+              <label class="tb-label check" title="Key switches: notes 0–15 (C-1 to D#0) mute zones and switch their sequencers, notes 16–19 (E0 to G0) choose arrangements A–D; these notes don't reach the zones">
                 <input type="checkbox" id="keySwitchEnabled" checked tabindex="-1" />
                 <span class="material-icons sel">check_box</span><span class="material-icons unsel">check_box_outline_blank</span> Notes C-1 – G0
               </label>
-              <button id="keySwitchHelp" class="ks-help-btn" tabindex="-1" title="Key switch reference">?</button>
+              <button id="keySwitchHelp" class="ks-help-btn" tabindex="-1" title="Which note does what">?</button>
             </div>
           </div>
           <div class="drawer-row">
             <span class="drawer-label">Clock from</span>
             <div class="drawer-val">
-              <select id="midiClockInDeviceId" tabindex="-1" title="Clock source">
+              <select id="midiClockInDeviceId" tabindex="-1" title="Where the clock comes from: internal, or a MIDI input">
                 <option>(No devices)</option>
               </select>
             </div>
@@ -130,13 +136,13 @@
           <div class="drawer-row">
             <span class="drawer-label">Clock to</span>
             <div class="drawer-val">
-              <div title="The outputs that get the clock" id="clockSendButton"><span id="clockOutPortsCount">None</span></div>
+              <div title="Outputs that get MIDI clock" id="clockSendButton"><span id="clockOutPortsCount">None</span></div>
             </div>
           </div>
         </div>
         <div class="drawer-col" id="metroSettings">
           <div class="drawer-title">Metronome</div>
-          <div class="drawer-row" id="metroBarsField" title="How long Count-in counts before Start">
+          <div class="drawer-row" id="metroBarsField" title="How many bars Count-in counts before Start">
             <span class="drawer-label">Count-in</span>
             <div class="drawer-val">
               <select id="metroBars" tabindex="-1">
@@ -186,7 +192,7 @@
         </div>
         <div class="drawer-col">
           <div class="drawer-title">Switching</div>
-          <div class="drawer-row" title="While the clock runs, choosing A–D waits for the next bar, beat or 16th of the playing arrangement (in its meter). With the clock stopped, it switches immediately.">
+          <div class="drawer-row" title="While the clock runs, choosing A–D waits for the next bar, beat or 16th of the playing arrangement (in its meter); stopped, it switches at once">
             <span class="drawer-label">A–D</span>
             <div class="drawer-val">
               <span class="drawer-hint">at next</span>
@@ -197,7 +203,7 @@
               </select>
             </div>
           </div>
-          <div class="drawer-row" title="With Q lit in the transport, the zones' M, S, Seq, Arp and Trk wait for the next bar, beat or 16th while the clock runs">
+          <div class="drawer-row" title="With At next lit in the transport, a zone's M, S, Seq and Arp wait for the next bar, beat or 16th while the clock runs">
             <span class="drawer-label">Zone switches</span>
             <div class="drawer-val">
               <span class="drawer-hint">at next</span>
@@ -250,14 +256,12 @@
               >
             </div>
           </div>
-          <div class="drawer-row drawer-end">
-            <span class="drawer-label"></span>
-            <div class="drawer-val">
-              <a id="aboutBtn" class="lightButton" title="About midi-zoner"
-                ><i class="material-icons">info_outline</i> About</a
-              >
-            </div>
-          </div>
+        </div>
+        <!-- about the app, not the scene: a footer across the drawer -->
+        <div class="drawer-foot">
+          <a id="aboutBtn" class="lightButton" title="About midi-zoner"
+            ><i class="material-icons">info_outline</i> About</a
+          >
         </div>
       </div>
     </section>
@@ -265,11 +269,10 @@
       <div id="trackRuler">
         <div class="tr-head">
           <span class="tr-pos"></span>
-          <a class="tr-loop lightButton" title="Loop: repeat the range set by dragging on the ruler (this arrangement)">Loop</a>
-          <a class="tr-follow lightButton" title="Follow the playhead (scroll the lanes sideways to look back)">Follow</a>
+          <a class="tr-follow lightButton" title="Follow the playhead (scroll the lanes sideways to look elsewhere)">Follow</a>
           <span class="tr-zoom" role="group" aria-label="Timeline zoom">
-            <a class="lightButton" data-zoom="-1" title="Zoom out the timeline"><i class="material-icons">remove</i></a>
-            <a class="lightButton" data-zoom="1" title="Zoom in the timeline"><i class="material-icons">add</i></a>
+            <a class="lightButton" data-zoom="-1" title="Zoom the timeline out"><i class="material-icons">remove</i></a>
+            <a class="lightButton" data-zoom="1" title="Zoom the timeline in"><i class="material-icons">add</i></a>
           </span>
         </div>
         <canvas></canvas>
@@ -279,32 +282,29 @@
       </section>
     </div>
     <div id="trackDock">
-      <div class="td-resize" title="Drag to resize, double-click for the default height"></div>
+      <div class="td-resize" title="Drag to resize (double-click: default height)"></div>
       <div class="td-bar">
         <span class="td-name"></span>
-        <a class="td-tab" data-tab="seq">Sequencer</a>
-        <a class="td-tab" data-tab="arp">Arp</a>
-        <a class="td-tab" data-tab="cc">Controllers</a>
-        <a class="td-tab" data-tab="zone">Track</a>
-        <a class="td-tab" data-tab="notes" title="Edit the notes of the chosen take (double-click a take)">Notes</a>
-        <a class="td-collapse lightButton" title="Hide the panel (or double-click the bar)"><i class="material-icons">expand_more</i></a>
+        <a class="td-tab" data-tab="zone" title="The zone's settings: octave, thru, program, pedal, key range">Zone</a>
+        <a class="td-tab" data-tab="seq" title="The zone's step sequencer">Sequencer</a>
+        <a class="td-tab" data-tab="chords" title="The chords (or bass line) this zone plays to another zone's line" hidden>Chords</a>
+        <a class="td-tab" data-tab="arp" title="The zone's arpeggiator">Arp</a>
+        <a class="td-tab" data-tab="cc" title="The zone's knobs and buttons for the synth">Controllers</a>
+        <a class="td-tab" data-tab="notes" title="Edit the notes of what is picked in the lanes: the loop or a take">Notes</a>
+        <a class="td-collapse lightButton" title="Hide the panel (or double-click its bar)"><i class="material-icons">expand_more</i></a>
       </div>
-      <!-- the Track tab: the zone's settings and range (placed on the left) and its takes -->
+      <!-- the Zone tab: the zone's settings and range (placed on the left) -->
       <div class="td-track">
         <div class="tdt-settings"></div>
-        <div class="tdt-takes">
-          <div class="tdt-head"><b class="tdt-title"></b><span class="tdt-summary"></span></div>
-          <div class="tdt-list"></div>
-        </div>
       </div>
-      <!-- the Notes tab: a piano roll for the chosen take (take-editor.ts) -->
+      <!-- the Notes tab: a piano roll for the loop or a take (take-editor.ts) -->
       <div class="td-notes">
         <div class="tdn-tools">
           <b class="tdn-title"></b><span class="tdn-what"></span>
           <span class="tdn-gap"></span>
           <span class="label">Grid</span>
           <select class="tdn-grid" tabindex="-1" title="Grid: new notes and lengths snap to it, moves go by whole steps (⌥: free)"></select>
-          <a class="lightButton tdn-quantize" title="Move note starts onto the grid (the selection, else the whole take)">Quantize take</a>
+          <a class="lightButton tdn-quantize" title="Move note starts towards the grid (the selected notes, else all)">Quantize take</a>
           <select class="tdn-strength" tabindex="-1" title="How far notes move towards the grid">
             <option value="100">100 %</option>
             <option value="75">75 %</option>
@@ -312,11 +312,12 @@
             <option value="25">25 %</option>
           </select>
           <a class="lightButton tdn-delete" title="Delete the selected notes (⌫)">Delete</a>
-          <a class="lightButton tdn-loop" title="Set the loop range to this take and switch it on">Loop take</a>
+          <a class="lightButton tdn-loop" title="The bars around the selected notes become the zone's loop, with the pick-up before them">Loop these bars</a>
           <span class="tdn-zoom" role="group" aria-label="Zoom">
-            <a class="lightButton" data-tdn-zoom="-1" title="Zoom out (⌘ + wheel)"><i class="material-icons">remove</i></a>
-            <a class="lightButton" data-tdn-zoom="1" title="Zoom in (⌘ + wheel)"><i class="material-icons">add</i></a>
-            <a class="lightButton tdn-fit" title="Fit the take">Fit</a>
+            <span class="label">Zoom</span>
+            <a class="lightButton" data-tdn-zoom="-1" title="Zoom out: more bars in view (⌘ + wheel)"><i class="material-icons">remove</i></a>
+            <a class="lightButton" data-tdn-zoom="1" title="Zoom in: fewer bars, more detail (⌘ + wheel)"><i class="material-icons">add</i></a>
+            <a class="lightButton tdn-fit" title="All bars and every note in view">Show all</a>
           </span>
         </div>
         <canvas></canvas>
@@ -329,31 +330,31 @@
         <div class="tdc-head"><b class="tdc-title">Take to steps</b><span class="tdc-what"></span></div>
         <div class="tdc-row">
           <span class="label">Into</span>
-          <span class="tdc-target tdc-segments"><span data-target="steps">Steps</span><span data-target="take">The take</span></span>
+          <span class="tdc-target tdc-segments"><span data-target="steps" title="Make the zone's sequence from these notes">Steps</span><span data-target="take" title="Move the take's notes onto the grid">The take</span></span>
         </div>
         <div class="tdc-row">
           <span class="label">Grid</span>
-          <select class="tdc-grid" tabindex="-1"></select>
+          <select class="tdc-grid" tabindex="-1" title="The grid the notes go to (suggested: the coarsest they fit)"></select>
           <span class="tdc-fit"></span>
         </div>
         <div class="tdc-row tdc-for-take">
           <span class="label">Strength</span>
-          <input type="range" class="tdc-strength" min="10" max="100" step="5" value="100" tabindex="-1" />
+          <input type="range" class="tdc-strength" min="10" max="100" step="5" value="100" tabindex="-1" title="How far notes move towards the grid" />
           <output class="tdc-strength-value">100 %</output>
         </div>
         <div class="tdc-row tdc-for-steps">
           <span class="label">Mode</span>
-          <span class="tdc-mode tdc-segments"><span data-mode="notes">Notes</span><span data-mode="drums">Drums</span></span>
+          <span class="tdc-mode tdc-segments"><span data-mode="notes" title="A melodic sequence">Notes</span><span data-mode="drums" title="Drum lanes: one per pitch">Drums</span></span>
         </div>
         <div class="tdc-row tdc-swing">
           <span class="label">Swing</span>
-          <label class="tdc-swing-chip"><input type="checkbox" tabindex="-1" /><span class="tdc-swing-text"></span></label>
+          <label class="tdc-swing-chip" title="Quantize to a swung grid (it also sets the zone's Swing)"><input type="checkbox" tabindex="-1" /><span class="tdc-swing-text"></span></label>
           <span class="tdc-swing-note"></span>
         </div>
         <div class="tdc-result"></div>
         <div class="tdc-actions">
-          <a class="lightButton tdc-convert">Convert</a>
-          <a class="lightButton tdc-cancel">Cancel</a>
+          <a class="lightButton tdc-convert" title="Apply (one undo step)">Convert</a>
+          <a class="lightButton tdc-cancel" title="Leave it as it was (Esc)">Cancel</a>
         </div>
       </div>
     </div>
@@ -380,7 +381,7 @@
           </select>
         </p>
         <p>
-          <label class="tb-label check" title="When enabled, drawing a highlight outline around the zone selected via Mackie Control's Select button">
+          <label class="tb-label check" title="Outline the zone picked with a Mackie strip's Select button">
             <input type="checkbox" id="mackieOutlineEnabled" checked tabindex="-1" />
             <span class="material-icons sel">check_box</span><span class="material-icons unsel">check_box_outline_blank</span> Show zone selection outline
           </label>
@@ -419,7 +420,7 @@
     <div id="keySwitchHelpOverlay" role="dialog" aria-modal="true" aria-label="Key switch reference">
       <div class="kshelp-header">
         <span class="kshelp-title">Key switches</span>
-        <button class="kshelp-close" id="keySwitchHelpClose"><i class="material-icons">close</i></button>
+        <button class="kshelp-close" id="keySwitchHelpClose" title="Close (Esc)"><i class="material-icons">close</i></button>
       </div>
       <div class="kshelp-grid">
         <div class="kshelp-col">
@@ -492,6 +493,23 @@
         <div class="seq"></div>
       </div>
     </div>
+    <div id="chordsSheet" class="editor-sheet" role="dialog" aria-modal="true" aria-label="Chords" tabindex="-1">
+      <div class="es-bar">
+        <span class="es-title">Chords</span>
+        <!-- the chords and bass zones on the line, the shown one picked (chords.ts renderSheetBar()) -->
+        <span class="chs-zones"></span>
+        <span class="es-sep"></span>
+        <button class="es-play" title="Play / stop (Space)"></button>
+        <span class="es-grow"></span>
+        <button class="es-undo"><i class="material-icons">undo</i><span class="es-step"></span></button>
+        <button class="es-redo"><i class="material-icons">redo</i></button>
+        <span class="es-sep"></span>
+        <button class="es-done" title="Done (Esc)">Done</button>
+      </div>
+      <div class="chs-body zone">
+        <div class="chords-block"></div>
+      </div>
+    </div>
     <div id="ccEditor" class="editor-sheet" role="dialog" aria-modal="true" aria-label="Controller editor" tabindex="-1">
       <div class="es-bar">
         <span class="es-title">Controllers</span>
@@ -501,7 +519,7 @@
         <span class="es-sep"></span>
         <div
           class="action menu-button es-button cce-preset-button"
-          title="Device presets: apply one (⇧-click appends), save these controllers as a preset, manage presets"
+          title="Device presets: use one (⇧-click: add it), save these controllers as a preset, manage presets"
           data-contextclick
         >
           <i class="material-icons">tune</i><span class="cc-preset-name">Presets</span><i class="material-icons">expand_more</i>
@@ -548,7 +566,7 @@
               <i class="material-icons">delete</i>Delete
             </button>
             <button class="cce-tool warn" data-cce-action="cc_remove_all" data-needs-controllers title="Delete all controllers and start anew">
-              <i class="material-icons">delete_sweep</i>
+              <i class="material-icons">delete_sweep</i>Delete all
             </button>
           </div>
           <div class="cce-layout" title="How the controllers are laid out in the zone"></div>
@@ -676,7 +694,7 @@
                 <button class="cce-learn" data-cce-action="cc_learn" title="Then move a control on your keyboard or controller">
                   <i class="material-icons">sensors</i><span>Learn</span>
                 </button>
-                <button class="cce-tool cce-clear-in" data-cce-action="cc_clear_input" title="Remove the hardware mapping">Clear</button>
+                <button class="cce-tool cce-clear-in" data-cce-action="cc_clear_input" title="Clear: no hardware control plays it any more">Clear</button>
               </div>
             </section>
 
@@ -734,7 +752,7 @@
     <dialog id="presetManageDialog" aria-label="Device presets" onkeydown="event.stopPropagation();" onkeyup="event.stopPropagation();">
       <div class="kshelp-header">
         <span class="kshelp-title">Device presets</span>
-        <button class="kshelp-close preset-close" tabindex="-1"><i class="material-icons">close</i></button>
+        <button class="kshelp-close preset-close" tabindex="-1" title="Close (Esc)"><i class="material-icons">close</i></button>
       </div>
       <div class="preset-manager-list"></div>
       <div class="preset-dialog-buttons">
@@ -748,7 +766,7 @@
     <div id="mackieHelpOverlay" role="dialog" aria-modal="true" aria-label="Mackie Control mapping reference">
       <div class="kshelp-header">
         <span class="kshelp-title">Mackie Control</span>
-        <button class="kshelp-close" id="mackieHelpClose"><i class="material-icons">close</i></button>
+        <button class="kshelp-close" id="mackieHelpClose" title="Close (Esc)"><i class="material-icons">close</i></button>
       </div>
       <div class="mckhelp-body">
         <div class="mckhelp-section">
@@ -756,13 +774,14 @@
           <div class="mckhelp-row"><span class="mckhelp-ctrl">Play</span><span class="mckhelp-action">Start internal clock</span></div>
           <div class="mckhelp-row"><span class="mckhelp-ctrl">Stop</span><span class="mckhelp-action">Stop internal clock</span></div>
           <div class="mckhelp-row"><span class="mckhelp-ctrl">Jog</span><span class="mckhelp-action">BPM ±1 / ±2 / ±5 — internal clock only</span></div>
+          <div class="mckhelp-row"><span class="mckhelp-ctrl">Rec</span><span class="mckhelp-action">Rec / Dub on the zone picked with Select (its light: recording; flashing: waiting for the 1)</span></div>
         </div>
         <div class="mckhelp-section">
           <div class="mckhelp-heading">Zone controls (per channel strip)</div>
-          <div class="mckhelp-row"><span class="mckhelp-ctrl">Rec arm</span><span class="mckhelp-action">Toggle sequencer on / off</span></div>
+          <div class="mckhelp-row"><span class="mckhelp-ctrl">Rec arm</span><span class="mckhelp-action">Toggle sequencer on / off (a chords zone: its chords)</span></div>
           <div class="mckhelp-row"><span class="mckhelp-ctrl">Solo</span><span class="mckhelp-action">Toggle zone solo</span></div>
           <div class="mckhelp-row"><span class="mckhelp-ctrl">Mute</span><span class="mckhelp-action">Toggle zone mute</span></div>
-          <div class="mckhelp-row"><span class="mckhelp-ctrl">Select</span><span class="mckhelp-action">Highlight zone (visual only)</span></div>
+          <div class="mckhelp-row"><span class="mckhelp-ctrl">Select</span><span class="mckhelp-action">Pick the zone for Rec</span></div>
         </div>
         <div class="mckhelp-section">
           <div class="mckhelp-heading">Arrangements</div>

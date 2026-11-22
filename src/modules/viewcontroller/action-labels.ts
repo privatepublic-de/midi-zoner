@@ -103,7 +103,6 @@ const ACTION_LABEL_OVERRIDES: Record<string, string | OverrideFn> = {
   cc_nrpn_msb: 'NRPN Number (MSB)',
   cc_nrpn_lsb: 'NRPN Number (LSB)',
   cc_nrpn_data_lsb: 'NRPN Data Format',
-  cc_toggle: 'Toggle CC',
 
   filters_at2mod: 'Aftertouch → Mod Filter',
   filters_cc: 'CC Filter',
@@ -118,12 +117,16 @@ const ACTION_LABEL_OVERRIDES: Record<string, string | OverrideFn> = {
   filters_programchange: 'Program Change Filter',
   filters_sustain: 'Sustain Filter',
   filters_sustain_on: 'Pedal',
-  filters_toggle: 'Message Filters',
   filters_velocity_scaling: 'Velocity Scaling',
 
-  iorouting_toggle: 'I/O Routing',
-  program_toggle: 'Program Change',
-  toggle_seq: 'Sequencer On/Off'
+  toggle_seq: 'Sequencer On/Off',
+  zone_loop_on: 'Loop On/Off',
+  zone_take_play: 'Play Along On/Off',
+  zone_loop_mpe_clear: 'Clear Loop MPE',
+  zone_chords_on: 'Chords On/Off',
+  zone_chords_play: (part: string) => (part === 'bass' ? 'Play Bass' : 'Play Chords'),
+  zone_chords_stop: 'Stop Playing Chords / Bass',
+  zone_chords_clear: 'Clear Chord Loop'
 };
 
 // The property/action description, without any zone prefix.

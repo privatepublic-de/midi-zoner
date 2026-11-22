@@ -13,12 +13,12 @@ const NEW_ZONE_THRU = {
   velocity_scaling: 1,
 } as const;
 
-/** The Thru chip's dot (set apart from a new zone) and the program number on the Program chip */
+/** The Thru, Velocity, Program fold's dot (Thru set apart from a new zone) and the program number on it */
 export function showThruAndProgram(zone: Zone): void {
   const changed = (Object.keys(NEW_ZONE_THRU) as (keyof typeof NEW_ZONE_THRU)[]).some(
     (k) => zone[k] !== NEW_ZONE_THRU[k]
   );
-  zone._$('.toggle_filters.thru')?.classList.toggle('changed', changed);
+  zone._$('.cf-thru')?.classList.toggle('changed', changed);
   const num = zone._$('.program-num') as HTMLElement | null;
   if (num) num.textContent = zone.pgm_no ? String(zone.pgm_no) : '';
 }
@@ -31,24 +31,6 @@ export function createFilterActions(
   const { applyParamToggle, applyPercentage } = helpers;
 
   return {
-    filters_toggle: () => {
-      const settings = zone._$('.popupsettings') as HTMLElement;
-      if (settings.style.display == 'flex') {
-        settings.style.display = 'none';
-      } else {
-        (zone._$('.programsettings') as HTMLElement).style.display = 'none';
-        settings.style.display = 'flex';
-      }
-    },
-    program_toggle: () => {
-      const settings = zone._$('.programsettings') as HTMLElement;
-      if (settings.style.display == 'flex') {
-        settings.style.display = 'none';
-      } else {
-        (zone._$('.popupsettings') as HTMLElement).style.display = 'none';
-        settings.style.display = 'flex';
-      }
-    },
     filters_fixedvel_value: () => {
       zone.fixedvel_value = parseInt((zone._$('input.fixedvel_value') as HTMLInputElement).value);
     },

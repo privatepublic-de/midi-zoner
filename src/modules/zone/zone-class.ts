@@ -6,10 +6,16 @@ import { Sequence } from './sequence';
 import { SeqStep } from './seq-step';
 import { DrumLane } from './drum-lane';
 import { Take } from './take';
-import { barTicks } from '../meter';
+import { BEND, PRESSURE, SUSTAIN, GestureMix, gestureOf, springsBackTo } from './gestures';
+import { CurveBuilder, updateCurves } from './note-curve';
+import type { CurveName } from './note-curve';
+import { barTicks, startsBeat } from '../meter';
 import { TakePlayer } from './take-player';
-import { MpeInput, MpeMode, MPE_SLIDE_CC, PressureGlide, DEFAULT_PRESSURE_FROM, mpeSetupMessages, rescaleBend } from './mpe';
-import type { MpeDot } from './mpe';
+import { Looper, PressResult, EARLY } from './looper';
+import { HEARD_TICKS } from './live-chords';
+import { takeStore } from '../take-store';
+import { MpeInput, MpeMode, MPE_SLIDE_CC, PressureGlide, DEFAULT_PRESSURE_FROM, mpeSetupMessages, rescaleBend, memberChannels } from './mpe';
+import type { MpeDot, LoopExpression } from './mpe';
 import {
   CCController,
   ArpState,
@@ -25,8 +31,8 @@ import {
   CC_LOCK_VALUES_EVENT
 } from './interfaces';
 import { NoteDisplay } from './note-display';
-import { NoteHistory, timeline, songNow, songEnd, passAt, nowTick } from '../timeline';
-import { TakeNoteJSON } from './interfaces';
+import { NoteHistory, timeline, nowTick } from '../timeline';
+import { ChordRole, ChordSettings, ChordPlan, DEFAULT_CHORD_SETTINGS, chordSettingsFrom, chordPlanFrom } from './chord-settings';
 import { DIV_TICKS, DivTick, PPQ, swingOffsetMs } from './seq-layer';
 import {
   ParamLocks,
@@ -108,6 +114,8 @@ export class Zone {
   mpeMaster = 0;
   private mpeIn = new MpeInput();
   private mpePressure = new PressureGlide((value) => this.sendPressure(value));
+  /** MPE keys' expression being recorded into takes and the looper, by input channel */
+  private curves = new Map<number, CurveBuilder>();
   label = '';
   enabled = true;
   _solo = false;
@@ -148,6 +156,11 @@ export class Zone {
     }
   ];
   show_cc = false;
+  /** Cards: the Sequencer and Arp folds open (their panels shown, whether the feature is on or not) */
+  show_seq_panel = false;
+  show_arp_panel = false;
+  /** cards: the Thru, Velocity, Program panel is open */
+  show_thru_panel = false;
   devicePreset: { id: string; name: string } | null = null;
   /** The controller page shown (pages: PAGE entries in cc_controllers) */
   ccPage = 0;
@@ -255,28 +268,53 @@ export class Zone {
   readonly paramLocks = new ParamLocks(this);
   /** What this zone sent during the current run, for the track view */
   noteHistory = new NoteHistory();
-  /** Set while the take player feeds a note in, so the note history knows where it came from */
-  playingTake = false;
+  /** What is played into this zone (after the octave shift), also while muted: chords zones hear it (only as far back as they listen) */
+  inputHistory = new NoteHistory(HEARD_TICKS);
+  /** input key → the pitch it went into inputHistory as (the note-off finds it after an octave change) */
+  private inputPitch = new Map<number, number>();
+  /** Plays chords or a bass line to another zone's line (zone-global; null: a normal zone) */
+  chords: ChordRole | null = null;
+  /** Per arrangement: the chords switch, the settings and the chords the loop was made of */
+  chordsOn = true;
+  chordSet: ChordSettings = { ...DEFAULT_CHORD_SETTINGS };
+  chordPlan: ChordPlan | null = null;
   /** The notes its arp played from during the current run, for the track view */
   heldHistory = new NoteHistory();
-  /** Kept takes of the current arrangement: its song for this zone (saved with it) */
-  takes: Take[] = [];
-  /** Whether the kept takes play (per arrangement); recording goes on either way */
-  takes_on = false;
-  /** Takes recorded this session and not kept, newest last, with their arrangement */
-  takeList: { arrangement: number; take: Take }[] = [];
-  /** Which of them the track view shows: 0 the latest, 1 the one before… */
-  shownTake = 0;
-  /** The take being recorded: what is played into the zone while the clock runs */
-  private recording: { arrangement: number; pass: number; notes: (TakeNoteJSON & { open: boolean })[] } | null = null;
-  readonly takePlayer = new TakePlayer(this);
-  static MAX_TAKES = 64;
+  /** Stable across undo, reorder and save: the take store keeps the zone's takes under it */
+  id = Zone.newId();
+  /** The loop of the current arrangement (saved with it), played by the looper's own player */
+  loop: Take | null = null;
+  /** The loop's switch (per arrangement): off keeps it silent. Mute doesn't silence it (like the sequencer) */
+  loopOn = true;
+  /** The loop plays its notes' recorded MPE expression (per arrangement; off: plain notes) */
+  loopMpe = true;
+  /** Recording and overdubbing the loop: a live gesture, handed on across undo */
+  looper = new Looper();
+  readonly loopPlayer = new TakePlayer(this);
+  /**
+   * A take playing along (its id; zone-global, saved as `play_take`): from bar 1 of every
+   * run, over and over, into the zone as if played (sound, chords zones following, the
+   * looper's input; not into takes). Quiet while the zone's loop plays; mute silences it
+   */
+  playTake: string | null = null;
+  /** Where it plays from (run ticks): 0, or the bar line after it was switched on while running */
+  takeAnchor = 0;
+  readonly takePlayer = new TakePlayer(this, true);
+  /** Pitches the playing take sounds through the zone (their note-offs follow, also into a mute) */
+  private takeSounding = new Set<number>();
+  /** A note of the playing take is on its way through handleMessage (any key range, sent as live) */
+  private takeLive = false;
+  private takeRestTimer: ReturnType<typeof setTimeout> | null = null;
   arrangements: ZoneArrangementJSON[] = [];
   currentArrangementIndex = 0;
   lastTouchedRangePoint = 0;
   readonly _renderNotesBound = this.renderNotes.bind(this);
   readonly _renderPatternBound = this.renderPattern.bind(this);
   readonly _renderSequenceBound = this.renderSequence.bind(this);
+
+  static newId(): string {
+    return Math.random().toString(36).slice(2, 10);
+  }
 
   constructor(midi: MIDI, colorIndex?: number) {
     this.midi = midi;
@@ -294,6 +332,7 @@ export class Zone {
   toJSON(): ZoneJSON {
     this.arrangements[this.currentArrangementIndex] = this.captureArrangement();
     return {
+      id: this.id,
       channel: this.channel,
       preferredOutputPortId: this.preferredOutputPortId,
       inputPortId: this.inputPortId,
@@ -309,12 +348,17 @@ export class Zone {
       low: this.low,
       high: this.high,
       show_cc: this.show_cc,
+      show_seq_panel: this.show_seq_panel,
+      show_arp_panel: this.show_arp_panel,
+      show_thru_panel: this.show_thru_panel,
       pgm_no: this.pgm_no,
       bank_msb: this.bank_msb,
       bank_lsb: this.bank_lsb,
       cc_controllers: this.cc_controllers,
       devicePreset: this.devicePreset,
       cc_page: this.ccPage,
+      ...(this.chords ? { chords: this.chords } : {}),
+      ...(this.playTake ? { play_take: this.playTake } : {}),
       arrangements: this.arrangements
     };
   }
@@ -353,8 +397,15 @@ export class Zone {
       euclid_length: this.euclid_length,
       sequence: this.sequence.toJSON(),
       swingAmount: this.swingAmount,
-      takes: this.takes.map((t) => t.toJSON()),
-      takes_on: this.takes_on
+      ...(this.chords ? { chord_set: { ...this.chordSet }, ...(this.chordsOn ? {} : { chords_on: false }) } : {}),
+      ...(this.loop
+        ? {
+          loop: this.loop.toJSON(),
+          ...(this.loopOn ? {} : { loop_on: false }),
+          ...(this.loopMpe ? {} : { loop_mpe: false }),
+          ...(this.chordPlan ? { chord_plan: this.chordPlan } : {})
+        }
+        : {})
     };
   }
 
@@ -372,7 +423,7 @@ export class Zone {
     this.at2mod = data.at2mod ?? false;
     this.pitchbend = data.pitchbend ?? true;
     this.programchange = data.programchange ?? false;
-    this.arp_enabled = data.arp_enabled ?? false;
+    this.arp_enabled = !this.chords && (data.arp_enabled ?? false);
     this.arp_hold = data.arp_hold ?? false;
     this.arp_direction = data.arp_direction ?? 0;
     this.arp_octaves = data.arp_octaves ?? 0;
@@ -406,9 +457,13 @@ export class Zone {
       this.euclid_length = this.arp_pattern.length;
     }
     this.swingAmount = data.swingAmount ?? 0;
-    this.takes = Take.listFrom(data.takes);
-    // arrangements from before the switch: their kept takes played
-    this.takes_on = data.takes_on ?? this.takes.length > 0;
+    this.loop = data.loop ? Take.from(data.loop) : null;
+    if (this.loop) this.loop.start = 0;
+    this.loopOn = data.loop_on !== false;
+    this.loopMpe = data.loop_mpe !== false;
+    this.chordsOn = data.chords_on !== false;
+    this.chordSet = chordSettingsFrom(data.chord_set);
+    this.chordPlan = this.loop ? chordPlanFrom(data.chord_plan) : null;
 
     const seq = new Sequence(this);
     const sd = data.sequence || {};
@@ -419,7 +474,8 @@ export class Zone {
     seq._length = (sd as any).length ?? 16;
     seq.isDrumSequence = (sd as any).isDrumSequence ?? false;
     seq.drumLanes = (sd as any).drumLanes ?? 4;
-    seq.active = (sd as any).active ?? false;
+    // a chords zone's sequencer stays off (its switch comes back with the role's end)
+    seq.active = !this.chords && ((sd as any).active ?? false);
     // map() keeps the holes of the sparse lane array
     seq.drum_lanes = ((sd as any).drum_lanes || []).map((lane: any) =>
       lane ? DrumLane.from(lane, seq._length) : lane
@@ -497,6 +553,44 @@ export class Zone {
       this._lockRedrawPending = false;
       window.dispatchEvent(new CustomEvent(CC_LOCK_VALUES_EVENT, { detail: this }));
     });
+  }
+
+  /**
+   * Becomes a chords or bass zone (`role`), or a normal zone again (null). Its Seq and Arp go
+   * off in every arrangement while it plays chords; their switches come back when it stops
+   */
+  setChordRole(role: ChordRole | null): void {
+    const c = this.currentArrangementIndex;
+    this.arrangements[c] = this.captureArrangement();
+    if (role && !this.chords) {
+      role.stash = {
+        seq: this.arrangements.map((a) => !!a.sequence?.active),
+        arp: this.arrangements.map((a) => !!a.arp_enabled)
+      };
+      this.arrangements.forEach((a, i) => {
+        if (i === c) return;
+        if (a.sequence) a.sequence.active = false;
+        a.arp_enabled = false;
+      });
+      this.sequence.active = false;
+      this.arp_enabled = false;
+      this.chordsOn = true;
+    } else if (role && this.chords) {
+      role.stash = this.chords.stash;
+    } else if (!role && this.chords) {
+      const st = this.chords.stash;
+      if (st) {
+        this.arrangements.forEach((a, i) => {
+          if (i === c) return;
+          if (a.sequence) a.sequence.active = st.seq[i];
+          a.arp_enabled = st.arp[i];
+        });
+        this.sequence.active = st.seq[c];
+        this.arp_enabled = st.arp[c];
+      }
+    }
+    this.chords = role;
+    this.arrangements[c] = this.captureArrangement();
   }
 
   saveArrangement(index: number): void {
@@ -610,7 +704,8 @@ export class Zone {
       }
     }
     this.midi.send(msg, portId, timestamp);
-    if (noteOn) this.noteHistory.noteOn(msg[1], msg[2], live, this.playingTake);
+    // a playing take's notes count as played (chords zones hear them from inputHistory)
+    if (noteOn) this.noteHistory.noteOn(msg[1], msg[2], live || this.takeLive, this.takeLive);
     else if (status === MIDI.MESSAGE.NOTE_ON || status === MIDI.MESSAGE.NOTE_OFF) this.noteHistory.noteOff(msg[1]);
     if (!noteOn || this.ledTimer !== null) return;
     const body = document.body.classList;
@@ -630,15 +725,9 @@ export class Zone {
 
   set sustain_on(v: boolean) {
     this._sustain_on = v;
-    this.sustain_state = v;
-    this.sendOut(
-      Uint8Array.from([
-        MIDI.MESSAGE.CONTROLLER + this.channel,
-        64,
-        v ? 127 : 0
-      ]),
-      this.outputPortId
-    );
+    // down as far as the Pedal button, your pedal or the loop's hold it (zone/gestures.ts)
+    this.gestureMix.pedal = v;
+    this.gestureMix.update(SUSTAIN, true);
   }
 
   addNote(note: Note): void {
@@ -681,9 +770,10 @@ export class Zone {
     message: number,
     data: Uint8Array,
     fromSequencer?: boolean,
-    timestamp?: number
+    timestamp?: number,
+    loopChannel = -1
   ): string | void {
-    const result = this.handleMessage(message, data, fromSequencer, timestamp);
+    const result = this.handleMessage(message, data, fromSequencer, timestamp, loopChannel);
     // Merged MPE slide may have played the zone's controllers on the way
     const slid = this.slideResult;
     this.slideResult = undefined;
@@ -693,11 +783,13 @@ export class Zone {
   /** What playing the controllers from MPE slide needs the view to do (see handleMidi) */
   private slideResult: string | undefined;
 
+  /** `loopChannel`: a loop note in Pass through plays on that member channel (see loopVoiceStart) */
   private handleMessage(
     message: number,
     data: Uint8Array,
     fromSequencer?: boolean,
-    timestamp?: number
+    timestamp?: number,
+    loopChannel = -1
   ): string | void {
     // MPE: the input channel of a message from the keyboard (-1: not MPE)
     const mpeCh = this.mpe !== MpeMode.OFF && !fromSequencer ? data[0] & 0x0f : -1;
@@ -705,12 +797,18 @@ export class Zone {
     if (mpeMember) {
       // Expression is kept even while muted, so a note after unmuting starts from it
       this.mpeIn.store(mpeCh, message, data);
+      this.recordExpression(mpeCh, message, data);
       this.requestRender(); // the keyboard strip's dots follow
       // A channel's new note is not this zone's until it plays it (see the note-on below)
       if (message === MIDI.MESSAGE.NOTE_ON) this.mpeIn.noteStarted(mpeCh, data[1]);
       else if (message === MIDI.MESSAGE.NOTE_OFF && this.mpeIn.noteEnded(mpeCh, data[1])) {
         if (this.mpe === MpeMode.COLLAPSE) this.sendCollapsed(); // follows the previous key
       }
+    }
+    // What is played into the zone, also while it's muted or silenced by a solo: chords zones
+    // following it hear it (they play to the line, not to what this zone sends)
+    if (!fromSequencer && loopChannel < 0 && (message === MIDI.MESSAGE.NOTE_ON || message === MIDI.MESSAGE.NOTE_OFF)) {
+      this.recordInput(message === MIDI.MESSAGE.NOTE_ON && data[2] > 0, data[1], data[2]);
     }
     // Pass note-off through for actively sounding keyboard notes even when zone is disabled,
     // so held notes are not stuck when the arrangement switches and disables this zone.
@@ -727,6 +825,8 @@ export class Zone {
         outevent[1] = srcNote.number;
         this.passedThrough.delete(srcNote);
         this.sendOut(outevent, srcNote.portId);
+        // a key held into a mute ends in the take and the looper's input where it went up
+        this.recordNoteOff(srcNote.number);
         this.notesChanged();
       }
       return;
@@ -757,7 +857,9 @@ export class Zone {
           // Vel% and Fixed Vel shape the strike; a note-off's (release) velocity, e.g. a
           // Seaboard's lift, passes as it came
           let velo = message === MIDI.MESSAGE.NOTE_ON ? this.scaledVelocity(data[2]) : data[2];
-          if (key >= this.low && key <= this.high) {
+          // a chords zone's chords and loop play whatever the key range (that's for what you play)
+          // nor a playing take's notes (played into the zone already, at their pitch)
+          if ((key >= this.low && key <= this.high) || (fromSequencer && (this.chords || this.takeLive))) {
             if (isArpActive && this.arp_hold && this.arp_transpose) {
               this.arp_transpose_amount = ((key + 12) % 24) - 12;
               requestAnimationFrame(this._renderNotesBound);
@@ -776,10 +878,14 @@ export class Zone {
                 const heldByLiveInput =
                   fromSequencer && this.midiActiveNotes[srcKey] != null;
                 const passThrough = !isArpActive && !heldByLiveInput;
-                // MPE pass-through keeps the key's channel; notes the arp plays don't
-                // own it, so the arp drops their expression
+                // MPE pass-through keeps the key's channel unless a loop note plays on it
+                // (routeLive); notes the arp plays don't own it, so the arp drops their expression
                 const outChannel =
-                  mpeMember && this.mpe === MpeMode.PASS && passThrough ? mpeCh : this.channel;
+                  loopChannel >= 0
+                    ? loopChannel
+                    : mpeMember && this.mpe === MpeMode.PASS && passThrough
+                      ? this.mpeIn.routeLive(mpeCh, memberChannels(this.mpeMasterChannel))
+                      : this.channel;
                 if (mpeMember && (passThrough || this.mpe === MpeMode.COLLAPSE)) {
                   this.mpeIn.claim(mpeCh, key);
                   // The expression sent before the note-on goes out ahead of it
@@ -810,12 +916,23 @@ export class Zone {
                 // orphaned in activeNotes and drawn forever as a stuck ghost note.
                 const previousNote = activeNoteSlots[srcKey];
                 if (previousNote) {
+                  // Sounding on another channel (MPE Pass through: two loop notes of one
+                  // pitch on member channels of their own), it ends here: the slot's later
+                  // note-off only reaches the new note's channel
+                  const previousChannel = this.passedThrough.get(previousNote);
+                  if (passThrough && previousChannel !== undefined && previousChannel !== outChannel) {
+                    this.passedThrough.delete(previousNote);
+                    this.sendOut(
+                      new Uint8Array([MIDI.MESSAGE.NOTE_OFF + previousChannel, previousNote.number, 0]),
+                      this.outputPortId
+                    );
+                  }
                   this.removeNote(previousNote);
                 }
                 activeNoteSlots[srcKey] = playNote;
                 this.addNote(playNote);
                 if (fromMidiInput) {
-                  if (velo > 0) this.recordTakeNote(key, velo);
+                  if (velo > 0) this.recordTakeNote(key, velo, mpeMember ? mpeCh : -1);
                   let filteredActiveNotes = [...this.activeNotes];
                   this.sequence.activeNotes().forEach((seqNote) => {
                     filteredActiveNotes = filteredActiveNotes.filter(
@@ -854,7 +971,7 @@ export class Zone {
                   this.removeNote(key);
                 }
                 if (!fromSequencer) {
-                  this.recordTakeNoteOff(srcNote ? srcNote.number : key);
+                  this.recordNoteOff(srcNote ? srcNote.number : key);
                   this.sequence.noteReleased(
                     srcNote ? srcNote.number : key,
                     this.activeNotes.length
@@ -875,6 +992,12 @@ export class Zone {
             requestAnimationFrame(this._renderNotesBound);
           }
           if (!this.cc && data[1] != 0x40 && data[1] != 0x01) return;
+          // played: mixed with the loop's (gestureMix) and recorded
+          const key = fromMidiInput ? gestureOf(message, data[1]) : null;
+          if (key) {
+            this.playedGesture(key, data[2]);
+            break;
+          }
           const ccOutevent = new Uint8Array(data);
           ccOutevent[0] = message + this.channel;
           this.sendOut(ccOutevent, this.outputPortId);
@@ -882,6 +1005,10 @@ export class Zone {
         }
         case MIDI.MESSAGE.PITCH_BEND:
           if (this.pitchbend) {
+            if (fromMidiInput) {
+              this.playedGesture(BEND, data[1] | (data[2] << 7));
+              break;
+            }
             const pbOutevent = new Uint8Array(data);
             pbOutevent[0] = message + this.channel;
             this.sendOut(pbOutevent, this.outputPortId);
@@ -895,7 +1022,8 @@ export class Zone {
           }
           break;
         case MIDI.MESSAGE.CHANNEL_PRESSURE:
-          this.sendPressure(data[1]);
+          if (fromMidiInput) this.playedGesture(PRESSURE, data[1]);
+          else this.sendPressure(data[1]);
           break;
         default: {
           const defaultOutevent = new Uint8Array(data);
@@ -917,6 +1045,9 @@ export class Zone {
   }
 
   setMpe(mode: MpeMode): void {
+    this.finishCurves(true);
+    // the loop's expression comes to rest the way it was sent (channels or the merge)
+    this.loopPlayer.endVoices();
     this.mpe = mode;
     this.mpeIn.reset();
     this.mpePressure.reset();
@@ -932,6 +1063,11 @@ export class Zone {
     if (!member) {
       // Master channel: normal path, except that a merged bend adds the master's
       if (this.mpe !== MpeMode.COLLAPSE || message !== MIDI.MESSAGE.PITCH_BEND) return false;
+      if (this.pitchbend) {
+        // into the merge (gestureMix → emitGesture), mixed with the loop's
+        this.playedGesture(BEND, data[1] | (data[2] << 7));
+        return true;
+      }
       this.mpeIn.setMasterBend(data);
       this.sendCollapsed();
       return true;
@@ -946,12 +1082,14 @@ export class Zone {
       return true;
     }
     if (!owned) return true;
+    // on the channel its note went out on (moved off a loop note's, see routeLive)
+    const outCh = this.mpeIn.liveOut(ch);
     if (message === MIDI.MESSAGE.PITCH_BEND) {
-      if (this.pitchbend) this.sendPassBend(ch, this.mpeIn.voice(ch).bend);
+      if (this.pitchbend) this.sendPassBend(outCh, this.mpeIn.voice(ch).bend);
       return true;
     }
     const out = new Uint8Array(data);
-    out[0] = message + ch;
+    out[0] = message + outCh;
     this.sendOut(out, this.outputPortId);
     return true;
   }
@@ -961,8 +1099,8 @@ export class Zone {
    * the controllers learned to its number, or is learned by the armed one. Returns what
    * the view must do (see handleMidi), undefined when no controller took it.
    */
-  private playControllers(number: number, value: number): string | undefined {
-    if (this.midiLearnCC && this.cc_controllers[this.selectedCCIndex]) {
+  private playControllers(number: number, value: number, fromLoop = false): string | undefined {
+    if (!fromLoop && this.midiLearnCC && this.cc_controllers[this.selectedCCIndex]) {
       this.cc_controllers[this.selectedCCIndex].number_in = number;
       this.midiLearnCC = false;
       return `midiLearn:${this.selectedCCIndex}`;
@@ -973,8 +1111,8 @@ export class Zone {
     for (let i = 0; i < this.cc_controllers.length; i++) {
       const ctrl = this.cc_controllers[i];
       if (ctrl.number_in == number && !isLayoutEntry(ctrl.type)) {
-        // With sequencer steps selected the knob sets their lock instead
-        const edit = this.beginControllerEdit(i);
+        // With sequencer steps selected the knob sets their lock instead (not the loop's slide)
+        const edit = fromLoop ? { ctrl, commit: () => this.sendCC(i) } : this.beginControllerEdit(i);
         if (edit.ctrl !== ctrl) lockEdited = true;
         if (isHiResCC(ctrl.type)) {
           edit.ctrl.val = Math.round((value * 16383) / 127);
@@ -1004,15 +1142,11 @@ export class Zone {
   /** Pass-through: a channel's bend, slide and pressure, sent ahead of its note-on */
   private sendMpeVoice(ch: number): void {
     const v = this.mpeIn.voice(ch);
-    if (this.pitchbend) this.sendPassBend(ch, v.bend);
-    if (v.slide !== null) {
-      this.sendOut(new Uint8Array([MIDI.MESSAGE.CONTROLLER + ch, MPE_SLIDE_CC, v.slide]), this.outputPortId);
-    }
-    this.sendOut(new Uint8Array([MIDI.MESSAGE.CHANNEL_PRESSURE + ch, v.pressure]), this.outputPortId);
+    this.sendPassVoice(this.mpeIn.liveOut(ch), { bend: -1, slide: -1, press: -1 }, { bend: v.bend, slide: v.slide, press: v.pressure });
   }
 
-  /** Collapse: the merged bend, slide and pressure on the zone channel, where they changed */
-  private sendCollapsed(): void {
+  /** Collapse: the merged bend, slide and pressure on the zone channel, where they changed (`fromLoop`: a loop note's) */
+  private sendCollapsed(fromLoop = false): void {
     const out = this.mpeIn.collapsed({
       bendIn: this.mpe_bend_in,
       bendOut: this.mpe_bend_out,
@@ -1026,8 +1160,102 @@ export class Zone {
       );
     }
     // Slide plays the controllers learned to CC 74, like a hardware knob; nothing else
-    if (out.slide !== undefined) this.slideResult = this.playControllers(MPE_SLIDE_CC, out.slide) || this.slideResult;
+    if (out.slide !== undefined) {
+      if (fromLoop) {
+        // not from incoming MIDI: the knobs are redrawn by themselves, once per frame
+        if (this.playControllers(MPE_SLIDE_CC, out.slide, true)) this.lockValuesChanged();
+      } else {
+        this.slideResult = this.playControllers(MPE_SLIDE_CC, out.slide) || this.slideResult;
+      }
+    }
     if (!this.mpe_poly_at) this.mpePressure.to(out.pressure, out.handover);
+  }
+
+  /**
+   * Whether the loop's notes play their recorded expression: To one channel they join the
+   * merge like keys you hold (yours first); in Pass through each gets a member channel of
+   * its own. Not when they only feed the arp.
+   */
+  get loopExpression(): boolean {
+    return this.loopMpe && this.mpe !== MpeMode.OFF && !this.arp_enabled;
+  }
+
+  /**
+   * A loop note with expression starts (before its note-on): its voice, -1 when none is
+   * free (Pass through: no member channel free of your keys and other loop notes; it plays
+   * without expression on the zone channel)
+   */
+  loopVoiceStart(outNote: number, at: LoopExpression): number {
+    const members = this.mpe === MpeMode.PASS ? memberChannels(this.mpeMasterChannel) : undefined;
+    const slot = this.mpeIn.startLoop(outNote, at, this.mpe_bend_in, members);
+    if (slot >= 0) this.sendLoopExpression(slot);
+    return slot;
+  }
+
+  /** Pass through: the member channel a loop voice's note goes out on (-1: the zone channel) */
+  loopVoiceChannel(slot: number): number {
+    return slot >= 0 && this.mpe === MpeMode.PASS ? this.mpeIn.loopVoice(slot).outCh : -1;
+  }
+
+  /** The MPE master channel: the zone's input channel with an input of its own, else the global port's */
+  private get mpeMasterChannel(): number {
+    return this.inputPortId !== null ? this.inputChannel ?? 0 : this.mpeMaster;
+  }
+
+  /** A loop note's expression moves on */
+  loopVoiceAt(slot: number, at: LoopExpression): void {
+    this.mpeIn.setLoop(slot, at, this.mpe_bend_in);
+    this.sendLoopExpression(slot);
+  }
+
+  /** A loop note ended; its release tail may go on */
+  loopVoiceReleased(slot: number): void {
+    this.mpeIn.releaseLoop(slot);
+    this.sendLoopExpression(slot);
+  }
+
+  /** A loop note's expression is over: its voice is at rest and free */
+  loopVoiceEnd(slot: number): void {
+    if (this.mpe === MpeMode.PASS) {
+      // its channel comes to rest, unless a live key has it now
+      const v = this.mpeIn.loopVoice(slot);
+      if (v.outCh >= 0 && !v.yielded) this.sendPassVoice(v.outCh, v.sent, { bend: 8192, slide: null, press: 0 });
+    }
+    this.mpeIn.endLoop(slot);
+    this.sendLoopExpression(slot);
+  }
+
+  /** Pass through: bend, slide and pressure on a member channel, where they changed since `sent` */
+  private sendPassVoice(
+    ch: number,
+    sent: { bend: number; slide: number; press: number },
+    at: { bend: number; slide: number | null; press: number }
+  ): void {
+    if (this.pitchbend && at.bend !== sent.bend) {
+      sent.bend = at.bend;
+      this.sendPassBend(ch, at.bend);
+    }
+    if (at.slide !== null && at.slide !== sent.slide) {
+      sent.slide = at.slide;
+      this.sendOut(new Uint8Array([MIDI.MESSAGE.CONTROLLER + ch, MPE_SLIDE_CC, at.slide]), this.outputPortId);
+    }
+    if (at.press !== sent.press) {
+      sent.press = at.press;
+      this.sendOut(new Uint8Array([MIDI.MESSAGE.CHANNEL_PRESSURE + ch, at.press]), this.outputPortId);
+    }
+  }
+
+  private sendLoopExpression(slot: number): void {
+    if (this.mpe === MpeMode.PASS) {
+      const v = this.mpeIn.loopVoice(slot);
+      if (v.outCh >= 0 && v.owned && !v.yielded) this.sendPassVoice(v.outCh, v.sent, { bend: v.bend, slide: v.slide, press: v.pressure });
+      this.requestRender();
+      return;
+    }
+    if (this.mpe !== MpeMode.COLLAPSE) return;
+    if (this.mpe_poly_at) this.sendPolyPressure(slot);
+    this.sendCollapsed(true);
+    this.requestRender(); // the keyboard strip's dots follow
   }
 
   /** Collapse with poly aftertouch: a held key's pressure on its own note */
@@ -1047,8 +1275,7 @@ export class Zone {
    */
   sendMpeSetup(): boolean {
     if (this.mpe !== MpeMode.PASS || this.outputPortId === MIDI.INTERNAL_PORT_ID) return false;
-    const master = this.inputPortId !== null ? this.inputChannel ?? 0 : this.mpeMaster;
-    mpeSetupMessages(master, this.mpe_pass_bend_out).forEach((m) => this.sendOut(Uint8Array.from(m), this.outputPortId));
+    mpeSetupMessages(this.mpeMasterChannel, this.mpe_pass_bend_out).forEach((m) => this.sendOut(Uint8Array.from(m), this.outputPortId));
     return true;
   }
 
@@ -1353,6 +1580,8 @@ export class Zone {
       const cell = el.children[i];
       cell.classList.toggle('on', !!this.arp_pattern[i]);
       cell.classList.toggle('playhead', i === this.arp.patternPos);
+      // a tick under the cells that start a beat (at the arp's rate, in the arrangement's meter)
+      cell.classList.toggle('beat', startsBeat(i, this.arp_ticks, timeline.meter));
     }
   }
 
@@ -1445,13 +1674,28 @@ export class Zone {
   clock(pos: number, tickIntervalMs: number): void {
     this._lastPos = pos;
     this._lastTickAt = performance.now();
+    if (this.curves.size > 0) this.finishCurves();
     // Slides first: one ending on this tick reaches its value before a new step starts
     this.paramLocks.tick(pos);
     this.sequence.clock(pos, tickIntervalMs);
     const elapsed = pos - timeline.sectionStart;
-    // the loop jumped back: the pass just played is a take
-    if (this.recording && passAt(elapsed) !== this.recording.pass) this.endTake(true);
-    this.takePlayer.clock(elapsed, tickIntervalMs, this.takes);
+    const bar = barTicks(timeline.meter);
+    this.looper.prune(elapsed, bar);
+    if (this.loop) {
+      const layer = this.looper.dubLayer(this.loop, elapsed, bar);
+      // its own switch silences it, not mute (that's for what you play), as with the sequencer
+      // a chords zone's switch silences its chord loop too
+      const silent = !this.loopOn || (this.chords !== null && !this.chordsOn);
+      this.loopPlayer.clockLoop(elapsed, tickIntervalMs, this.loop, layer, this.looper.anchor, silent);
+    }
+    // the take playing along: quiet while the loop plays (it took over: a loop from the take)
+    const take = this.playingTake;
+    if (take) {
+      const loopPlays = this.loop !== null && this.loopOn && elapsed >= this.looper.anchor;
+      this.takePlayer.clockTake(pos, tickIntervalMs, take, this.takeAnchor, loopPlays);
+    } else if (this.takePlayer.busy) {
+      this.takePlayer.release(true);
+    }
     if (tickIntervalMs > 0) this._lastTickIntervalMs = tickIntervalMs;
 
     const tickn = pos % this.arp_ticks;
@@ -1841,13 +2085,15 @@ export class Zone {
    * Schedule a note-off `ticks` clock ticks after the last processed tick, timed with
    * the last measured tick interval (the clock itself is no longer running).
    */
+  /** How long `ticks` from the last tick still last, in ms (at the last tick interval, at most MAX_RING_OUT_MS) */
+  ringOutMs(ticks: number): number {
+    const elapsedMs = performance.now() - this._lastTickAt;
+    return Math.min(ticks * this._lastTickIntervalMs - elapsedMs, Zone.MAX_RING_OUT_MS);
+  }
+
   ringOutAfterTicks(noteNumber: number, ticks: number, release: () => void): void {
     this.fireRingOut(noteNumber);
-    const elapsedMs = performance.now() - this._lastTickAt;
-    const delayMs = Math.min(
-      ticks * this._lastTickIntervalMs - elapsedMs,
-      Zone.MAX_RING_OUT_MS
-    );
+    const delayMs = this.ringOutMs(ticks);
     if (delayMs <= 0) {
       release();
       return;
@@ -1881,6 +2127,7 @@ export class Zone {
    * and play the arp legato).
    */
   started(): void {
+    this.holdGestures();
     // A Continue after a clock dropout keeps the playhead and the locks it holds
     if (this.sequence.active && this.sequence.currentStepNumber < 0) {
       this.paramLocks.start(this.sequence.lockedAddresses());
@@ -1917,9 +2164,14 @@ export class Zone {
     }
     this.arp.repeatnote = null;
     this.sequence.stopped(ringOut);
-    this.takePlayer.release(ringOut);
-    // a stop or an arrangement switch ends the section, and so the take
-    this.endTake();
+    this.loopPlayer.release(ringOut);
+    // the take playing along starts over at the next Start (an arrangement switch: it goes on)
+    if (ringOut) {
+      this.takePlayer.release(true);
+      this.takeAnchor = 0;
+    }
+    // the loop starts over at bar 1 (a recording was finished before, see finishLoop())
+    this.looper.reset();
     // Controllers go back to their own values once ringing notes have ended (a little
     // after the last note-off, whose timer is due at the same moment)
     const ringingMs = ringOut && this.ringOuts.size > 0 ? Math.max(0, this._ringOutUntil - performance.now()) + 20 : 0;
@@ -1944,6 +2196,7 @@ export class Zone {
     this.cancelUnsoundedArpNotes();
     this.ringOutArpNote();
     this.sequence.paused();
+    this.loopPlayer.release(true);
     this.takePlayer.release(true);
     if (this._strumGraceTimer !== null) {
       clearTimeout(this._strumGraceTimer);
@@ -1970,102 +2223,401 @@ export class Zone {
     });
   }
 
-  private recordTakeNote(pitch: number, velo: number): void {
+  /**
+   * A key pressed while running: into the take being recorded and the looper's input;
+   * an MPE key (`mpeCh`, its member channel) brings its expression along
+   */
+  private recordTakeNote(pitch: number, velo: number, mpeCh = -1): void {
     if (!timeline.running) return;
-    // a pass of the loop is a take of its own
-    const pass = passAt(nowTick() - timeline.sectionStart);
-    if (this.recording && this.recording.pass !== pass) this.endTake(true);
-    if (!this.recording) this.recording = { arrangement: this.currentArrangementIndex, pass, notes: [] };
-    if (this.recording.notes.length >= Take.MAX_NOTES) return;
-    this.recordTakeNoteOff(pitch);
-    this.recording.notes.push({ t: songNow(), d: 0, n: pitch, v: velo, open: true });
-  }
-
-  private recordTakeNoteOff(pitch: number): void {
-    const notes = this.recording?.notes;
-    if (!notes) return;
-    for (let i = notes.length - 1; i >= 0; i--) {
-      if (notes[i].open && notes[i].n === pitch) {
-        notes[i].open = false;
-        notes[i].d = Math.max(0.25, (timeline.running ? songNow() : songEnd()) - notes[i].t);
-        return;
-      }
+    const now = nowTick();
+    const owners = [this.looper.noteOn(now - timeline.sectionStart, pitch, velo), takeStore.noteOn(this.id, now, pitch, velo)];
+    if (mpeCh < 0) return;
+    // what the channel held before the note-on is where its curve starts
+    const v = this.mpeIn.voice(mpeCh);
+    const builder = new CurveBuilder(now, v.note, { bend: this.bendCents(v.bend), slide: v.slide, press: v.pressure });
+    for (const owner of owners) {
+      if (!owner) continue;
+      owner.cb = builder;
+      builder.owners.push(owner);
     }
-  }
-
-  /** Whether something was recorded into this arrangement this session (kept or not), or is being now */
-  get hasRecorded(): boolean {
-    return (
-      (this.recording?.notes.length ?? 0) > 0 ||
-      this.takeList.some((e) => e.arrangement === this.currentArrangementIndex)
-    );
-  }
-
-  /** The notes being recorded, at song positions, still open ones up to now (for drawing) */
-  get recordingNotes(): TakeNoteJSON[] {
-    const now = songNow();
-    return (this.recording?.notes ?? []).map((n) => (n.open ? { ...n, d: Math.max(0.25, now - n.t) } : n));
+    this.curves.set(mpeCh, builder);
   }
 
   /**
-   * The section ended (Stop or an arrangement switch) or a pass of the loop did
-   * (`atLoopEnd`): what was played becomes the latest take, from the bar of its first
-   * note to the bar the section ended in; within the loop, the loop's range.
+   * The zone channel's controls: what you play (`live`, also where a take's or loop's
+   * gestures begin at Start), what the loop plays, and what goes out (zone/gestures.ts)
    */
-  endTake(atLoopEnd = false): void {
-    const rec = this.recording;
-    this.recording = null;
-    if (!rec || rec.notes.length === 0) return;
-    const loop = timeline.loop;
-    const end = atLoopEnd && loop ? loop.to : Math.max(songEnd(), ...rec.notes.map((n) => (n.open ? 0 : n.t + n.d)));
-    const take = new Take();
-    if (loop && rec.notes.every((n) => n.t >= loop.from && n.t < loop.to)) {
-      take.start = loop.from;
-      take.length = loop.to - loop.from;
-    } else {
-      // whole bars of the arrangement's meter
-      const bar = barTicks(timeline.meter);
-      take.start = Math.max(0, Math.floor(rec.notes[0].t / bar) * bar);
-      take.length = Math.min(Take.MAX_LENGTH, Math.max(bar, Math.ceil(end / bar) * bar - take.start));
+  gestureMix = new GestureMix((key, value) => this.emitGesture(key, value));
+  private gestureRestTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /** A control's value on the zone channel (bend into the merge To one channel; aftertouch maybe as mod wheel) */
+  private emitGesture(key: string, value: number): void {
+    if (key === BEND) {
+      const data = Uint8Array.from([MIDI.MESSAGE.PITCH_BEND + this.channel, value & 0x7f, value >> 7]);
+      if (this.mpe === MpeMode.COLLAPSE) {
+        this.mpeIn.setMasterBend(data);
+        this.sendCollapsed();
+      } else {
+        this.sendOut(data, this.outputPortId);
+      }
+      return;
     }
-    take.notes = rec.notes.map((n) => ({
-      t: n.t - take.start,
-      d: n.open ? Math.max(0.25, end - n.t) : n.d,
-      n: n.n,
-      v: n.v
-    }));
-    take.sort();
-    this.takeList.push({ arrangement: rec.arrangement, take });
-    if (this.takeList.length > Zone.MAX_TAKES) this.takeList.shift();
-    this.shownTake = 0;
-    window.dispatchEvent(new CustomEvent(UPDATE_ZONE_VIEW_EVENT, { detail: this }));
+    if (key === PRESSURE) {
+      this.sendPressure(value);
+      return;
+    }
+    const cc = Number(key.slice(1));
+    if (cc === 64) {
+      this.sustain_state = value > 0;
+      requestAnimationFrame(this._renderNotesBound);
+    }
+    this.sendOut(Uint8Array.from([MIDI.MESSAGE.CONTROLLER + this.channel, cc, value]), this.outputPortId);
   }
 
-  /** The session's unkept takes of the current arrangement, newest last (kept ones hidden, so undoing a Keep shows them again) */
-  get arrangementTakes(): Take[] {
-    const kept = new Set(this.takes.map((t) => t.id));
-    return this.takeList
-      .filter((e) => e.arrangement === this.currentArrangementIndex && !kept.has(e.take.id))
-      .map((e) => e.take);
+  /** The loop plays a control's value */
+  loopGesture(key: string, value: number): void {
+    if (this.gestureRestTimer !== null) {
+      clearTimeout(this.gestureRestTimer);
+      this.gestureRestTimer = null;
+    }
+    this.gestureMix.fromLoop(key, value);
   }
 
-  /** Keep a take (or a stretch of it, a take of its own): a copy joins this arrangement's song */
-  keepTake(take: Take, part?: Take): void {
-    const kept = part ?? take.copy();
-    // over other kept takes it's a layer: they all play (an overdub)
-    this.takes.push(kept);
-    this.shownTake = 0;
-    // keeping something means wanting to hear it
-    this.takes_on = true;
+  /** The loop no longer plays these controls (it changed): yours go out again, or they rest */
+  loopGesturesGone(keys: string[]): void {
+    this.gestureMix.loopEnded(keys);
+  }
+
+  /**
+   * The loop stops (Stop, switched off, cleared, an arrangement switch): its pedal lifts and
+   * its wheels rest, after ringing notes have ended when `ringOut` (a lift would cut them)
+   */
+  loopGesturesEnd(ringOut: boolean): void {
+    if (this.gestureRestTimer !== null) clearTimeout(this.gestureRestTimer);
+    this.gestureRestTimer = null;
+    if (!this.gestureMix.loopPlaying) return;
+    const now = performance.now();
+    if (!ringOut || this._ringOutUntil <= now) {
+      this.gestureMix.loopEnded();
+      return;
+    }
+    this.gestureRestTimer = setTimeout(() => {
+      this.gestureRestTimer = null;
+      this.gestureMix.loopEnded();
+    }, this._ringOutUntil - now + 20);
+  }
+
+  /** A channel gesture passed on from the input: out (mixed with the loop's), into the take being recorded and the looper's input */
+  private playedGesture(key: string, value: number): void {
+    this.gestureMix.played(key, value);
+    if (!timeline.running) return;
+    const now = nowTick();
+    this.looper.gesture(now - timeline.sectionStart, key, value);
+    takeStore.gesture(this.id, now, key, value);
+  }
+
+  /** Start: a pedal held down (or a wheel off rest) then is where the run's gestures begin */
+  private holdGestures(): void {
+    const now = nowTick();
+    this.looper.restartGestures(now - timeline.sectionStart, this.gestureMix.live);
+    takeStore.holdGestures(this.id, now, this.gestureMix.live);
+  }
+
+  /** A key released: its note ends in the take and in the looper's input */
+  private recordNoteOff(pitch: number): void {
+    if (!timeline.running) return;
+    const now = nowTick();
+    this.looper.noteOff(now - timeline.sectionStart, pitch);
+    takeStore.noteOff(this.id, now, pitch);
+  }
+
+  /** The take playing along, while it's there (a chords zone plays none) */
+  get playingTake(): Take | null {
+    if (!this.playTake || this.chords) return null;
+    return takeStore.of(this.id).find((t) => t.id === this.playTake) ?? null;
+  }
+
+  /** The take playing along (null: none); switched on while running, it comes in from its bar 1 at the next bar line */
+  setPlayTake(id: string | null): void {
+    this.takePlayer.release(true);
+    this.playTake = id;
+    this.takeAnchor = 0;
+    if (id && timeline.running) {
+      const bar = barTicks(timeline.meter);
+      const inSection = nowTick() - timeline.sectionStart;
+      this.takeAnchor = timeline.sectionStart + Math.ceil(inSection / bar - 1e-6) * bar;
+    }
+  }
+
+  /**
+   * A note of the playing take, as if played at its pitch: chords zones following hear it
+   * and the looper takes it in (a take is made only of your keys); it sounds unless muted
+   */
+  playTakeNote(on: boolean, pitch: number, velo: number): void {
+    if (on) this.inputHistory.noteOn(pitch, velo, true);
+    else this.inputHistory.noteOff(pitch);
+    if (timeline.running) {
+      const at = nowTick() - timeline.sectionStart;
+      if (on) this.looper.noteOn(at, pitch, velo);
+      else this.looper.noteOff(at, pitch);
+    }
+    if (on) {
+      if (!this.audible) return;
+      this.takeSounding.add(pitch);
+    } else if (!this.takeSounding.delete(pitch)) {
+      return;
+    }
+    const status = on ? MIDI.MESSAGE.NOTE_ON : MIDI.MESSAGE.NOTE_OFF;
+    this.takeLive = true;
+    try {
+      this.handleMidi(status, Uint8Array.from([status + this.channel, pitch, on ? velo : 0]), true);
+    } finally {
+      this.takeLive = false;
+    }
+  }
+
+  /** A control of the playing take (sustain, wheels…), as if played: out unless muted, into the looper's input */
+  takeGesture(key: string, value: number): void {
+    if (this.takeRestTimer !== null) {
+      clearTimeout(this.takeRestTimer);
+      this.takeRestTimer = null;
+    }
+    if (timeline.running) this.looper.gesture(nowTick() - timeline.sectionStart, key, value);
+    if (this.audible) this.gestureMix.played(key, value);
+  }
+
+  /** The take stops playing these controls: pedals lift and wheels rest, after ringing notes */
+  takeGesturesEnd(keys: string[]): void {
+    if (keys.length === 0) return;
+    const rest = (): void => {
+      for (const key of keys) {
+        const v = springsBackTo(key);
+        if (v !== undefined) this.gestureMix.played(key, v);
+      }
+    };
+    if (this.takeRestTimer !== null) clearTimeout(this.takeRestTimer);
+    this.takeRestTimer = null;
+    const wait = this._ringOutUntil - performance.now();
+    if (wait <= 0) rest();
+    else
+      this.takeRestTimer = setTimeout(() => {
+        this.takeRestTimer = null;
+        rest();
+      }, wait + 20);
+  }
+
+  /** A 14-bit bend from the keyboard in hundredths of a semitone of its range */
+  private bendCents(bend: number): number {
+    return Math.round(((bend - 8192) / 8192) * this.mpe_bend_in * 100);
+  }
+
+  /**
+   * A member channel's message (MPE input): its bend, slide or pressure goes into the curve
+   * of the key being recorded there, held or in its release tail (from its note-off, even
+   * while the zone is muted); a new note there ends it
+   */
+  private recordExpression(ch: number, message: number, data: Uint8Array): void {
+    const builder = this.curves.get(ch);
+    if (!builder) return;
+    const off = message === MIDI.MESSAGE.NOTE_OFF || (message === MIDI.MESSAGE.NOTE_ON && data[2] === 0);
+    if (off) {
+      if (data[1] === builder.key && builder.releasedAt < 0) builder.releasedAt = performance.now();
+      return;
+    }
+    const ms = performance.now();
+    if (message === MIDI.MESSAGE.NOTE_ON || !timeline.running || builder.expired(ms)) {
+      this.finishCurve(ch, message === MIDI.MESSAGE.NOTE_ON ? ms : undefined);
+      return;
+    }
+    let name: CurveName;
+    let value: number;
+    if (message === MIDI.MESSAGE.PITCH_BEND) [name, value] = ['bend', this.bendCents(data[1] | (data[2] << 7))];
+    else if (message === MIDI.MESSAGE.CONTROLLER && data[1] === MPE_SLIDE_CC) [name, value] = ['slide', data[2]];
+    else if (message === MIDI.MESSAGE.CHANNEL_PRESSURE) [name, value] = ['press', data[1]];
+    else return;
+    builder.add(name, nowTick(), value, ms);
+  }
+
+  /**
+   * The loop's switch. Off: its sounding notes ring out. On while running: it starts over
+   * from its bar 1 at the coming 1 (at once when switched on a bar line, as a waiting
+   * switch lands), silent until then
+   */
+  setLoopOn(on: boolean): void {
+    this.loopOn = on;
+    if (!on) {
+      this.loopPlayer.release(true);
+    } else if (timeline.running) {
+      const bar = barTicks(timeline.meter);
+      this.looper.anchor = Math.ceil((this.loopNow() - EARLY) / bar) * bar;
+    }
+  }
+
+  /** A chords zone's switch: off silences its chords (live and its loop; the loop stays in step with the line) */
+  setChordsOn(on: boolean): void {
+    this.chordsOn = on;
+    if (!on) this.loopPlayer.release(true);
+  }
+
+  /** Called when a loop's notes got the rest of their expression (the scene is saved) */
+  static loopCurvesChanged: (() => void) | null = null;
+
+  /** Start/Stop: expression still coming in is finished, so the takes and loops get all of it */
+  finishExpression(): void {
+    this.finishCurves(true);
+  }
+
+  /** Expression that is over: release tails past, or the transport stopped */
+  private finishCurves(all = false): void {
+    const ms = performance.now();
+    this.curves.forEach((builder, ch) => {
+      if (all || !timeline.running || builder.expired(ms)) this.finishCurve(ch);
+    });
+  }
+
+  /**
+   * A key's expression is complete: its notes in the recording and the looper's input get
+   * it, and so do copies made while it was still coming in (the loop, the newest take)
+   */
+  private finishCurve(ch: number, nextKeyMs?: number): void {
+    const builder = this.curves.get(ch);
+    if (!builder) return;
+    this.curves.delete(ch);
+    const curve = builder.finish(nextKeyMs);
+    this.looper.touch();
+    if (!curve) return;
+    if (this.loop && updateCurves([...this.loop.notes, ...this.loop.spare], builder, curve) > 0) Zone.loopCurvesChanged?.();
+    takeStore.updateCurves(this.id, builder, curve);
+  }
+
+  /** Whether takes were recorded into this zone, or one is being now */
+  get hasRecorded(): boolean {
+    return takeStore.has(this.id);
+  }
+
+  /** Whether what the zone plays by itself is heard: not muted, not silenced by a solo */
+  get audible(): boolean {
+    return this.enabled && (Zone.solocount === 0 || this.solo);
+  }
+
+  /** The looper's position: ticks since the section began (-1 while stopped: a press waits for bar 1) */
+  private loopNow(): number {
+    return timeline.running ? nowTick() - timeline.sectionStart : -1;
+  }
+
+  /** The loop button (chip, Mackie Rec) at `ms` (performance.now(), for the double press) */
+  loopPress(ms: number): PressResult {
+    const result = this.looper.press(this.loopNow(), barTicks(timeline.meter), this.loop, ms, (to) =>
+      this.closeLoop(to, this.loopNow())
+    );
+    if (result.kind === 'cleared') {
+      this.loop = null;
+      this.loopPlayer.release(true);
+    }
+    return result;
+  }
+
+  /** Where a recording or overdub ends on the tick at `elapsed` (null: none ends) */
+  loopDueAt(elapsed: number): number | null {
+    return this.looper.dueAt(elapsed, barTicks(timeline.meter));
+  }
+
+  /** A recording or overdub ends at `to` (elapsed ticks, now or passed) */
+  closeLoop(to: number, now: number): PressResult {
+    const bar = barTicks(timeline.meter);
+    if (this.looper.mode === 'rec') {
+      const loop = this.looper.closeRecording(to, bar, now);
+      if (!loop) return { kind: 'empty' };
+      this.loopPlayer.release(true);
+      // (no link yet: once its run's take is there, the window takes it on if it follows it)
+      loop.origin = { at: takeStore.runAt, run: this.looper.anchor + timeline.sectionStart };
+      this.loop = loop;
+      this.loopOn = true;
+      this.loopMpe = true;
+      this.looper.lastRun = 'rec';
+      return { kind: 'recorded', loop };
+    }
+    if (this.looper.mode === 'dub' && this.loop) {
+      const added = this.looper.closeDub(this.loop, to, bar, now);
+      if (added > 0 && this.looper.lastRun !== 'rec') this.looper.lastRun = 'dub';
+      return { kind: 'dubbed', added };
+    }
+    this.looper.mode = 'idle';
+    return { kind: 'none' };
+  }
+
+  /** Stop or an arrangement switch: a recording or overdub under way ends at its nearest 1 */
+  finishLoop(): PressResult | null {
+    const now = this.loopNow();
+    const to = this.looper.finishAt(now, barTicks(timeline.meter));
+    return to === null ? null : this.closeLoop(to, now);
+  }
+
+  /** While recording: how long the loop gets when the press comes now (ticks) */
+  loopPressLength(): number {
+    const bar = barTicks(timeline.meter);
+    return Math.max(bar, Looper.nearestOne(this.loopNow(), bar) - this.looper.from);
+  }
+
+  /** The loop chip: what it says and how it looks */
+  get loopChip(): { label: string; state: 'off' | 'wait' | 'rec' | 'closing' } {
+    const bar = barTicks(timeline.meter);
+    const lp = this.looper;
+    const now = this.loopNow();
+    const bars = (ticks: number): string => `${Math.round((ticks / bar) * 10) / 10}`;
+    const word = lp.mode === 'dub' ? 'Dub' : 'Rec';
+    if (lp.mode !== 'idle') {
+      if (lp.from > now) return { label: word, state: 'wait' };
+      if (lp.to !== null) return { label: `${word} ${bars(lp.mode === 'dub' && this.loop ? this.loop.length : lp.to - lp.from)}`, state: 'closing' };
+      // recording: the length a press now makes (it counts for the nearest 1, at least a bar)
+      const length = lp.mode === 'dub' && this.loop ? this.loop.length : this.loopPressLength();
+      return { label: `${word} ${bars(length)}`, state: 'rec' };
+    }
+    // the recorder says what a press does: record a loop, or overdub the one there is
+    return { label: this.loop ? 'Dub' : 'Rec', state: 'off' };
+  }
+
+  /** A key played into the zone, in its range: into inputHistory with the octave shift */
+  private recordInput(on: boolean, key: number, velo: number): void {
+    if (!on) {
+      const pitch = this.inputPitch.get(key);
+      if (pitch === undefined) return;
+      this.inputPitch.delete(key);
+      this.inputHistory.noteOff(pitch);
+      return;
+    }
+    if (key < this.low || key > this.high) return;
+    const pitch = key + (this.arp_enabled && this.midi.isClockRunning ? 0 : this.octave * 12);
+    if (pitch < 0 || pitch > 127) return;
+    const before = this.inputPitch.get(key);
+    if (before !== undefined) this.inputHistory.noteOff(before);
+    this.inputPitch.set(key, pitch);
+    this.inputHistory.noteOn(pitch, velo, true);
   }
 
   /** Undo replaces the zone objects: the replacement keeps showing what was played */
   adoptHistory(previous: Zone): void {
     this.noteHistory = previous.noteHistory;
+    this.inputHistory = previous.inputHistory;
+    this.inputPitch = previous.inputPitch;
     this.heldHistory = previous.heldHistory;
-    this.takeList = previous.takeList;
-    this.shownTake = previous.shownTake;
-    this.recording = previous.recording;
+    this.looper = previous.looper;
+    // what you hold (a pedal, a wheel) and what the loop holds goes on, without a lift and
+    // press that would cut sustained notes (the old zone sends nothing more); on another
+    // output or channel the old one lets go
+    if (previous.outputPortId === this.outputPortId && previous.channel === this.channel) {
+      previous.gestureMix.handOver(this.gestureMix);
+    }
+    // keys still held or in their release tail go on into the curves they started
+    this.curves = previous.curves;
+    // the old player isn't clocked any more: what it still sounds rings out on timers; its
+    // expression stops where it is (this zone's notes send their own values first, and a
+    // rest from the old zone could overwrite what this one sent)
+    previous.loopPlayer.endVoices(true);
+    previous.loopPlayer.release(true);
+    // the take playing along goes on in its place (from the next note); the old one lets go
+    previous.takePlayer.release(true);
+    this.takeAnchor = previous.takeAnchor;
     // A held Pedal is a live gesture, not scene data: it stays down across undo,
     // without an up/down blip that would cut sustained notes. On another
     // output or channel the old one lets go (releasePedal() after the carry-over).
@@ -2096,23 +2648,32 @@ export class Zone {
     // A swung arp hit still waiting would send a note-on after the zone is gone
     this.arpSwingPending.forEach((p) => clearTimeout(p.timer));
     this.arpSwingPending.length = 0;
+    // a playing take's notes due later would sound after the zone is gone
+    this.takePlayer.release(false);
+    if (this.takeRestTimer !== null) clearTimeout(this.takeRestTimer);
     this.flushRingOuts();
     this.arpNoteOff();
     const outevent = new Uint8Array([0, 0, 0]);
     this.activeNotes.forEach((n) => {
-      outevent[0] = MIDI.MESSAGE.NOTE_OFF + n.channel;
+      // on the channel its note-on went out on (MPE Pass through: a member channel)
+      outevent[0] = MIDI.MESSAGE.NOTE_OFF + (this.passedThrough.get(n) ?? n.channel);
       outevent[1] = n.number;
       this.sendOut(outevent, this.outputPortId);
     });
     this.passedThrough.clear();
     this.sequence.stopped();
     this.paramLocks.stop(this.sequence.lockedAddresses());
+    // the loop's pedal and wheels rest (a moment later: undo hands them to the new zone first)
+    if (this.gestureRestTimer !== null) clearTimeout(this.gestureRestTimer);
+    this.gestureRestTimer = setTimeout(() => this.gestureMix.loopEnded(), 0);
   }
 
   panic(): void {
     // Global all-notes-off follows; just drop pending ring-outs
     this.paramLocks.cancelPending();
     this.noteHistory.closeAll();
+    this.inputHistory.closeAll();
+    this.inputPitch.clear();
     this.ringOuts.forEach((p) => clearTimeout(p.timer));
     this.ringOuts.clear();
     this.activeNotes = [];
@@ -2120,11 +2681,17 @@ export class Zone {
     this.seqActiveNotes = [];
     this.passedThrough.clear();
     this.holdList = [];
+    this.finishCurves(true);
+    this.takeSounding.clear();
+    // reset controllers has put the synth's bend and pressure at rest already
+    this.loopPlayer.endVoices(true);
     this.mpeIn.reset();
     this.mpePressure.reset();
     // CC 121 (reset controllers) has already let go of the pedal
     this._sustain_on = false;
     this.sustain_state = false;
+    this.gestureMix.pedal = false;
+    this.gestureMix.forget();
     this.notesChanged();
   }
 

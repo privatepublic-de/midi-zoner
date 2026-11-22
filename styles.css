@@ -85,8 +85,9 @@
   --shadow-overlay: rgba(0, 0, 0, 0.7); /* floating windows and overlays */
 
   /* Page-level stacking; values 1-10 elsewhere are local to a component */
-  --z-topbar: 2;
-  --z-window: 2; /* port windows */
+  --z-topbar: 40; /* above the zones and the track view's panel: Setup floats over them */
+  --z-window: 50; /* port windows: above everything in the page (zones, the track view's
+                     panel and its blocks, up to 10), below the zone popups */
   --z-zone-popup: 100; /* output/input routing popup */
   --z-overlay: 200; /* key switch and Mackie help */
   --z-overlay-top: 210; /* piano roll, controller editor */
@@ -129,27 +130,37 @@
 }
 
 .zone[data-colorindex='0'],
-#ccEditor[data-colorindex='0'] {
+#ccEditor[data-colorindex='0'],
+#chordsSheet[data-colorindex='0'],
+.chs-zchip[data-colorindex='0'] {
   --zone-color: var(--zone-0);
   --zone-surface: var(--zone-surface-0);
 }
 .zone[data-colorindex='1'],
-#ccEditor[data-colorindex='1'] {
+#ccEditor[data-colorindex='1'],
+#chordsSheet[data-colorindex='1'],
+.chs-zchip[data-colorindex='1'] {
   --zone-color: var(--zone-1);
   --zone-surface: var(--zone-surface-1);
 }
 .zone[data-colorindex='2'],
-#ccEditor[data-colorindex='2'] {
+#ccEditor[data-colorindex='2'],
+#chordsSheet[data-colorindex='2'],
+.chs-zchip[data-colorindex='2'] {
   --zone-color: var(--zone-2);
   --zone-surface: var(--zone-surface-2);
 }
 .zone[data-colorindex='3'],
-#ccEditor[data-colorindex='3'] {
+#ccEditor[data-colorindex='3'],
+#chordsSheet[data-colorindex='3'],
+.chs-zchip[data-colorindex='3'] {
   --zone-color: var(--zone-3);
   --zone-surface: var(--zone-surface-3);
 }
 .zone[data-colorindex='4'],
-#ccEditor[data-colorindex='4'] {
+#ccEditor[data-colorindex='4'],
+#chordsSheet[data-colorindex='4'],
+.chs-zchip[data-colorindex='4'] {
   --zone-color: var(--zone-4);
   --zone-surface: var(--zone-surface-4);
 }
@@ -205,6 +216,42 @@
   text-rendering: optimizeLegibility;
   font-feature-settings: 'liga';
   vertical-align: middle;
+}
+
+/* Folds: every chevron that shows or hides something (Setup, the track view's panel, the
+   drum lanes' settings, pages and sections in the controller editor, Manage MIDI ports)
+   is the same chevron in the same size and tone, and turns to show the new state. Lists
+   point right when closed and down when open; panels point the way they will move */
+.setup-toggle .chevron,
+#trackDock .td-collapse .material-icons,
+.lane-expand-chevron .material-icons,
+#ccEditor .cce-fold,
+.card-folds .cf-fold > .material-icons,
+.panel-section > summary::before {
+  width: var(--icon-md);
+  height: var(--icon-md);
+  font-size: var(--icon-md);
+  line-height: 1;
+  color: var(--slate-dim);
+  transition: transform 150ms ease;
+}
+.setup-toggle:hover .chevron,
+#trackDock .td-collapse:hover .material-icons,
+.card-folds .cf-fold:hover > .material-icons,
+.drum-step-container:has(.lane-expand-toggle:hover) .lane-expand-chevron .material-icons,
+#ccEditor .cce-fold:hover,
+.panel-section > summary:hover::before {
+  color: var(--text-base-color);
+}
+@media (prefers-reduced-motion: reduce) {
+  .setup-toggle .chevron,
+  #trackDock .td-collapse .material-icons,
+  .lane-expand-chevron .material-icons,
+  #ccEditor .cce-fold,
+  .card-folds .cf-fold > .material-icons,
+  .panel-section > summary::before {
+    transition: none;
+  }
 }
 
 /* =============================================================
@@ -537,10 +584,6 @@ option {
   text-overflow: ellipsis;
 }
 
-.setup-toggle .chevron {
-  transition: transform 150ms ease;
-}
-
 body.setup-open .setup-toggle .chevron {
   transform: rotate(180deg);
 }
@@ -563,26 +606,46 @@ body.setup-open .setup-toggle .chevron {
   align-items: center;
   gap: 4px;
 }
+/* "Zoom − 100 % +" (Nov 22, the user's pick from mocks: words, not magnifiers; the percentage is
+   the zoom now, a click on it resets) */
+.strip-end .zoom-label {
+  margin: 0 2px 0 4px;
+  color: var(--slate-dim);
+  font-size: var(--fs-md);
+}
+.strip-end .zoom-step {
+  min-width: 26px;
+  justify-content: center;
+  font-size: 18px;
+}
 
 .strip-end {
   margin-left: auto;
   gap: 12px;
 }
 
+/* Setup floats over the zones as a framed panel (nothing below it moves) */
 #setupDrawer {
   display: none;
   position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
+  top: calc(100% + 4px);
+  left: 8px;
+  right: 8px;
+  max-height: calc(100vh - var(--topbar-h, 44px) - 24px);
+  overflow: auto;
+  box-sizing: border-box;
   /* a column per topic; narrow windows wrap whole columns */
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   align-items: start;
   gap: 14px 32px;
   padding: 12px 16px 14px;
-  background-color: var(--bg-topbar);
-  border-bottom: 1px solid var(--border-topbar);
-  box-shadow: 0 6px 10px var(--shadow-topbar);
+  background-color: var(--slate-panel);
+  border: 1px solid var(--slate-edge);
+  border-top-color: var(--slate-edge-top);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.6),
+    0 2px 6px rgba(0, 0, 0, 0.4);
 }
 
 body.setup-open #setupDrawer {
@@ -621,6 +684,14 @@ body.setup-open #setupDrawer {
 
 .drawer-row.drawer-end {
   margin-top: 4px;
+}
+/* about the app: apart from the columns, at the drawer's end */
+.drawer-foot {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 10px;
+  border-top: 1px solid var(--slate-line);
 }
 
 .drawer-label,
@@ -808,6 +879,38 @@ body:not(.minimized) #midisettings > .transport > .bpm-field {
   border-left: 1px solid var(--slate-line);
 }
 
+/* the meter chip after the tempo: a value like it (framed), its menu below it */
+#meterChip {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 22px;
+  margin-left: 6px;
+  padding: 0 4px 0 8px;
+  border: 1px solid var(--slate-line);
+  border-radius: var(--radius);
+  background-color: var(--slate-inset);
+  color: var(--text-base-color);
+  white-space: nowrap;
+  cursor: pointer;
+  .dim {
+    color: var(--slate-dim);
+  }
+  .material-icons {
+    font-size: 16px;
+    color: var(--slate-dim);
+  }
+}
+
+#meterChip:hover {
+  border-color: var(--slate-dim);
+}
+
+body.minimized #meterChip {
+  display: none;
+}
+
 /* the beat light in the Click chip: flashes on every beat (the bar's first in live green) */
 .beat-led {
   width: 6px;
@@ -941,34 +1044,63 @@ body:not(.minimized) #midisettings > .transport > .bpm-field {
   background: none;
   color: var(--brighter-3);
   padding: 0;
-  /* where the next zone goes: dim text only, the dashed slot shows on hover; the whole row clickable */
-  a {
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    width: 100%;
-    height: 36px;
-    padding-left: 12px;
-    border: 1px dashed transparent;
-    border-radius: var(--radius-lg);
-    background-color: transparent;
-    box-shadow: none;
-    color: color-mix(in srgb, var(--slate-dim) 70%, transparent);
-  }
-  a:hover {
-    border-color: var(--slate-line);
-    color: var(--text-base-color);
-  }
 }
 
 .addzone-hint {
   display: none;
 }
 
+/* "+ Add  Zone | Chords zone | Bass zone": one segmented control (Nov 22, the user's pick from
+   mocks; was "+ Add zone" with a sentence under it); chords and bass once a zone can be followed */
+.zone.addnewzone .addzone {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0 0 4px;
+  font-size: var(--fs-md);
+}
+.zone.addnewzone .addzone-lbl {
+  color: var(--slate-dim);
+}
+.zone.addnewzone .addzone-seg {
+  display: flex;
+  a {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    /* a ghost (Nov 22, the user's pick from mocks: raised, it caught the eye while working
+       on the zones): no fill, dim text, a faint frame; raised on hover */
+    height: 24px;
+    padding: 0 10px;
+    background-color: transparent;
+    border: 1px solid color-mix(in srgb, var(--slate-line) 70%, transparent);
+    box-shadow: none; /* .action's inset line doubled the frame */
+    color: var(--slate-dim);
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  a + a {
+    border-left: none;
+  }
+  a:first-child {
+    border-radius: var(--radius) 0 0 var(--radius);
+  }
+  a:last-child {
+    border-radius: 0 var(--radius) var(--radius) 0;
+  }
+  a:only-child {
+    border-radius: var(--radius);
+  }
+  a:hover {
+    background-color: var(--slate-raise);
+    color: var(--text-base-color);
+  }
+}
+
 /* Empty scene: the link becomes the one thing to do, with a line on what a zone is */
 #zones:not(:has(> .zone:not(.addnewzone, .placeholder))) .zone.addnewzone {
   flex-direction: column;
+
   gap: 10px;
   padding: 48px 0 0 8px;
   a {
@@ -1155,18 +1287,33 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
 }
 
 
-.sendClock {
+/* In/Out popup, beside the device's name: send MIDI clock there (a switch chip) */
+.iorouting-popup .sendClock {
   display: flex;
-  justify-content: center;
   align-items: center;
-  height: 20px;
-  font-size: var(--icon-md);
+  flex-shrink: 0;
+  height: 22px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  font-size: var(--fs-sm);
   color: var(--brighter-4);
+  background-color: var(--slate-raise);
+  border: 1px solid var(--slate-line);
+  border-radius: var(--radius);
   cursor: pointer;
 }
-
-.sendClock.selected {
-  color: var(--text-base-color);
+.iorouting-popup .sendClock {
+  gap: 5px;
+  padding-left: 7px;
+}
+/* the same clock as the card header's chip */
+.iorouting-popup .sendClock .material-icons {
+  font-size: var(--icon-sm);
+}
+.iorouting-popup .sendClock.selected {
+  background-color: var(--on);
+  border-color: var(--on);
+  color: var(--on-text);
 }
 
 .iorouting {
@@ -1242,8 +1389,141 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
   right: 0;
   z-index: var(--z-zone-popup);
   display: none;
-  min-width: 300px;
+  width: 452px;
   margin-top: 2px;
+}
+
+/* Out first (Nov 21, the user's pick from mocks: setting port and channel is what the popup is
+   mostly for): the ports as buttons, alphabetical down two columns, then the 16 channels named
+   after the devices on that port; the selects behind them stay hidden (output-port-manager.ts) */
+.iorouting-popup .ior-data {
+  display: none;
+}
+.ior-head {
+  margin: 0 0 5px;
+  font-size: var(--fs-sm);
+  color: var(--slate-dim);
+}
+.ior-chhead {
+  margin-top: 10px;
+}
+.ior-ports {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: repeat(var(--port-rows, 1), auto);
+  gap: 3px 4px;
+}
+.ior-chs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 3px;
+}
+.ior-pick {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  height: 22px;
+  padding: 0 7px;
+  box-sizing: border-box;
+  background-color: var(--slate-raise);
+  border: 1px solid var(--slate-line);
+  border-radius: var(--radius);
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.ior-pick:hover {
+  background-color: var(--darker-2);
+}
+.ior-pick > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ior-pick small {
+  flex-shrink: 0;
+  margin-left: auto;
+  color: var(--slate-dim);
+  font-size: var(--fs-sm);
+}
+/* the zone's port and channel: the quiet "chosen" look (as the octave selector, the current
+   controller page), not amber */
+.ior-pick.picked {
+  border-color: var(--slate-line);
+  background-color: var(--slate-line);
+  font-weight: 600;
+}
+.ior-chs .ior-pick.picked b {
+  color: var(--text-base-color);
+}
+.ior-pick.missing {
+  color: var(--danger);
+}
+.ior-chs .ior-pick {
+  height: 28px;
+}
+.ior-chs .ior-pick b {
+  flex-shrink: 0;
+  width: 15px;
+  font-weight: 400;
+  text-align: right;
+  color: var(--brighter-4);
+}
+.ior-chs .ior-pick.named b {
+  color: var(--slate-dim);
+}
+.ior-none {
+  grid-column: 1 / -1;
+  font-size: var(--fs-sm);
+  color: var(--slate-dim);
+}
+.ior-namerow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* the input and MPE, folded into one line under Out unless the zone uses them (opening the popup
+   unfolds them then) */
+.ior-insum {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid var(--slate-line);
+  font-size: var(--fs-sm);
+  color: var(--slate-dim);
+  cursor: pointer;
+}
+.ior-insum > span {
+  color: var(--text-base-color);
+  margin-right: 4px;
+}
+.ior-insum::before {
+  content: 'expand_more';
+  font-family: 'Material Icons';
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  font-size: 16px;
+  margin-left: -2px;
+  transform: rotate(-90deg);
+  transition: transform 150ms;
+}
+.iorouting-popup.in-open .ior-insum::before {
+  transform: none;
+}
+.ior-insum:hover::before {
+  color: var(--brighter-4);
+}
+.ior-in {
+  display: none;
+  margin-top: 8px;
+}
+.iorouting-popup.in-open .ior-in {
+  display: block;
 }
 
 /* In → MPE → Out: the signal runs down a line from In to Out, with the MPE
@@ -1256,6 +1536,7 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
 }
 
 .ior-link::after {
+  display: none;
   content: '';
   position: absolute;
   left: -5px;
@@ -1362,10 +1643,6 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
   flex-shrink: 0;
 }
 
-.iorouting-popup .sendClock {
-  font-size: var(--icon-sm);
-  flex-shrink: 0;
-}
 .ch.selected {
   border-color: var(--on);
   background-color: var(--on);
@@ -1419,7 +1696,6 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
 }
 
 .zone.disabled .range,
-.zone.disabled .toggle_filters,
 .zone.disabled .iorouting-display {
   pointer-events: none;
 }
@@ -1495,10 +1771,11 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
 }
 
 .iorouting-popup input.output-config-name {
-  /* under Out, which it names: aligned with the port select */
-  width: calc(100% - 32px);
+  /* the device on this port and channel, beside Send clock */
+  flex: 1;
+  min-width: 0;
   height: 22px;
-  margin: 2px 0 0 32px;
+  margin: 0;
   background-color: transparent;
   color: var(--text-base-color);
   font-size: var(--fs-sm);
@@ -1527,8 +1804,7 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
 }
 
 /* header icons: at least 20px wide to click */
-.zonetools .rtool,
-.channels > .sendClock {
+.zonetools .rtool {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -1539,9 +1815,30 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
   color: var(--light-red-highlight);
 }
 
+/* the menu is a button like the chips beside it; the drag handle a dim grip without a
+   frame (lines, not dots, so the two don't look alike) */
+.zonetools .zonemenu {
+  width: 24px;
+  height: 20px;
+  box-sizing: border-box;
+  color: var(--brighter-4);
+  background-color: var(--slate-raise);
+  border: 1px solid var(--slate-line);
+}
+.zonetools .zonemenu .material-icons {
+  font-size: var(--icon-md);
+}
 .dragzone {
   padding: 0 4px;
+  color: var(--slate-dim);
   cursor: grab;
+}
+.zonetools .dragzone.rtool:hover:not(:disabled) {
+  background-image: none;
+  color: var(--text-base-color);
+}
+.dragzone .material-icons {
+  font-size: 18px;
 }
 
 .dragged .dragzone {
@@ -1560,11 +1857,18 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
 }
 
 .channels .ch.showseq,
+.channels .loopgroup,
 .channels .ch.showccs {
   margin-left: 8px;
 }
 
+.channels .loopgroup {
+  position: relative;
+  display: flex;
+}
+
 .channels .ch.showseq::before,
+.channels .loopgroup::before,
 .channels .ch.showccs::before {
   content: '';
   position: absolute;
@@ -1575,14 +1879,187 @@ body:not(.minimized) #zones > .zone:not(.disabled, .soloed-out, .addnewzone, .pl
   background: var(--slate-line);
 }
 
-/* cards: the name sits between [M S] and [Seq Arp Trk | CC], set apart from both by the
-   same group gap as the divider before CC (6px + 8px), so it needs no divider of its own */
-body:not(.track-view):not(.minimized) .zone .channels {
-  > .ch.state { order: -3; }
-  > .ch.solo { order: -2; }
-  > .zone-label { order: -1; margin-left: 8px; margin-right: 8px; }
-  > .ch.showseq { margin-left: 0; }
-  > .ch.showseq::before { display: none; }
+/* cards: an LED switch while on (Seq on, Arp on, the loop playing, the chords on) */
+body:not(.track-view):not(.minimized) #zones > .zone {
+  &.show-seq > .channels > .ch.showseq,
+  & > .channels > .ch.showarp.selected,
+  & > .channels > .loopgroup > .ch.showloopsw.loop-on,
+  &.chords-on > .channels > .ch.showchords {
+    color: var(--text-base-color);
+    background: color-mix(in srgb, var(--zone-color) 14%, transparent);
+    border-color: color-mix(in srgb, var(--zone-color) 55%, var(--slate-line));
+    &::before {
+      background: var(--live);
+      box-shadow: 0 0 6px var(--live);
+    }
+    .sw-extra { color: color-mix(in srgb, var(--text-base-color) 70%, transparent); }
+  }
+  /* a muted zone: the light dims */
+  &.disabled.show-seq > .channels > .ch.showseq,
+  &.disabled > .channels > .ch.showarp.selected,
+  &.disabled > .channels > .loopgroup > .ch.showloopsw.loop-on,
+  &.disabled.chords-on > .channels > .ch.showchords,
+  /* a finished line: on, but silent until Play on */
+  &.chords-on.chords-finished > .channels > .ch.showchords {
+    background: color-mix(in srgb, var(--zone-color) 6%, transparent);
+    &::before {
+      background: color-mix(in srgb, var(--live) 40%, #3b4047);
+      box-shadow: none;
+    }
+  }
+  /* finished: the frame and text dim too, so it reads as silent at a glance */
+  &.chords-on.chords-finished > .channels > .ch.showchords {
+    color: var(--slate-dim);
+    border-color: var(--slate-line);
+  }
+}
+
+/* only a chords or bass zone has the chords switch */
+body:not(.track-view):not(.minimized) #zones > .zone:not(.chords-zone) > .channels > .ch.showchords {
+  display: none;
+}
+
+/* the switches' small words are for the cards; the Tracks header shows "Loop 4", the mini view none */
+.channels .ch:is(.showseq, .showarp) > .sw-extra,
+body.minimized .channels .ch.showloopsw > .sw-extra,
+body.track-view .channels .ch.showloopsw .sw-unit {
+  display: none;
+}
+body:not(.track-view):not(.minimized) #zones > .zone > .channels > .ch:is(.showseq, .showarp) > .sw-extra {
+  display: inline;
+}
+
+/* cards: a chords zone has no Take chip (it plays chords, not a take) */
+body:not(.track-view):not(.minimized) #zones > .zone.chords-zone > .channels > .loopgroup > .ch.showtake {
+  display: none;
+}
+
+/* the Controllers chip says CC where there is little room (Tracks header) */
+.channels .ch.showccs > .cc-long,
+.channels > .hdr-break {
+  display: none;
+}
+
+/* Send clock to the zone's output, beside it in the cards' header (Nov 21, the user's ask: the
+   two-row header has room again); lit in --on while it sends. Not in the Tracks header or the
+   mini view (no room), the In/Out popup has the switch too */
+.channels > .hdr-clock {
+  display: none;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 20px;
+  box-sizing: border-box;
+  color: var(--slate-dim);
+  background-color: var(--slate-raise);
+  border: 1px solid var(--slate-line);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.channels > .hdr-clock .material-icons {
+  font-size: var(--icon-sm);
+}
+.channels > .hdr-clock:hover {
+  color: var(--text-base-color);
+}
+.channels > .hdr-clock.selected {
+  color: var(--on-text);
+  background-color: var(--on);
+  border-color: var(--on);
+}
+
+/* cards: two rows on three shared columns, so the eye reads down from the zone to its switches
+   and from the output to what feeds it:
+     [M S name]      [output ………………]  [⋯ ≡]
+     [Seq] [Arp]     [Take] [Loop|Rec]  [Controllers]
+   (a chords zone: its chord chip fills the first column) */
+body:not(.track-view):not(.minimized) #zones > .zone > .channels {
+  --hdr-col1: 210px;
+  --hdr-col3: 80px;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 6px;
+  row-gap: 8px;
+  > .ch.state { order: -3; width: 26px; }
+  > .ch.solo { order: -2; width: 26px; }
+  > .zone-label {
+    order: -1;
+    flex: none;
+    width: calc(var(--hdr-col1) - 64px);
+    margin: 0;
+    box-sizing: border-box;
+  }
+  > .iorouting { order: 1; flex: 1 1 0; margin-left: 6px; }
+  > .hdr-clock { order: 1; display: flex; }
+  /* the In/Out popup ends where the clock beside the output ends */
+  > .iorouting > .iorouting-popup { right: -30px; }
+  > .zonetools { order: 2; width: var(--hdr-col3); justify-content: flex-end; }
+  > .hdr-break { display: block; order: 3; flex-basis: 100%; height: 0; }
+  > :is(.ch.showseq, .ch.showarp, .ch.showchords) { order: 4; margin-left: 0; }
+  /* a chords zone: "Chords Am" in one switch (the chord sounding after its part) */
+  > .ch.showchords > .chc-part { display: inline; }
+  /* the chord in a slot as wide as the widest name ("F#sus4"), a dim "–" while none sounds, so the
+     switch keeps its width and Loop beside it doesn't move as chords change (Nov 21) */
+  > .ch.showchords > .chc-now { display: inline-block; min-width: 46px; font-weight: 600; font-size: 15px; color: var(--text-base-color); }
+  > .ch.showchords.no-chord > .chc-now { font-size: 0; }
+  > .ch.showchords.no-chord > .chc-now::before { content: '–'; font-size: 15px; font-weight: 400; color: var(--slate-dim); }
+  > .chordnow { display: none !important; }
+  > .loopgroup { order: 5; margin-left: 2px; }
+  > .ch.showccs { order: 6; margin-left: auto; width: var(--hdr-col3); }
+  > .ch.showccs,
+  > .loopgroup > .ch {
+    height: 26px;
+    padding: 0 8px;
+    box-sizing: border-box;
+    font-size: 14px;
+  }
+  > :is(.ch.showseq, .loopgroup, .ch.showccs)::before { display: none; }
+  > .ch.showccs > .cc-long { display: inline; }
+  > .ch.showccs > .cc-short { display: none; }
+  /* the second row only switches what plays (Nov 21, the user's pick from mocks): Seq, Arp, Loop,
+     as wide as each other; takes along, recording loops and making them are in the Tracks view,
+     the panels open from the folds below the takes rows (.card-folds) */
+  > .loopgroup > :is(.ch.showtake, .ch.showloop),
+  > .ch.showccs { display: none; }
+  /* LED switches (Nov 21, the user's pick from mocks: the filled slabs looked bureaucratic): as wide
+     as what they say, a light that glows while on, the zone colour as a soft wash; a little about
+     each in small type ("Seq 16 steps", "Arp Up", "Loop 4 bars", "Chords Am") */
+  > :is(.ch.showseq, .ch.showarp, .ch.showchords),
+  > .loopgroup > .ch.showloopsw {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    width: auto;
+    min-width: 0;
+    height: 28px;
+    padding: 0 12px 0 10px;
+    box-sizing: border-box;
+    border: 1px solid var(--slate-line);
+    border-radius: var(--radius-lg);
+    background: transparent;
+    color: var(--slate-dim);
+    font-size: 14px;
+    letter-spacing: 0;
+    white-space: nowrap;
+  }
+  > :is(.ch.showseq, .ch.showarp, .ch.showchords),
+  > .loopgroup > .ch.showloopsw {
+    &::before {
+      content: '';
+      display: block;
+      position: static;
+      flex: none;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #3b4047;
+      box-shadow: inset 0 0 0 1px #4a5058;
+    }
+    &:hover { border-color: var(--slate-dim); color: var(--text-base-color); }
+    .sw-extra { font-size: 12px; color: var(--slate-dim); }
+  }
+  > .loopgroup > .ch.showloopsw.loop-none { opacity: 0.45; }
 }
 
 /* =============================================================
@@ -1600,20 +2077,6 @@ body:not(.track-view):not(.minimized) .zone .channels {
 
 .action.warn {
   background-color: var(--red-highlight);
-}
-
-.action.toggle_filters::after {
-  content: '';
-  display: inline-block;
-  vertical-align: middle;
-  margin-left: 4px;
-  margin-bottom: 1px;
-  width: 5px;
-  height: 5px;
-  border-right: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
-  transform: rotate(45deg);
-  pointer-events: none;
 }
 
 .check {
@@ -1953,6 +2416,7 @@ input[type='range'] {
   background-color: var(--darker-2);
 }
 
+
 .disabled .rangeholder {
   background-color: var(--darker-3);
 }
@@ -2037,9 +2501,9 @@ input[type='range'] {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--zone-color) 18%, var(--slate-line));
 }
 
-/* groups of 4 steps: a short tick under each group's first step, in the
-   playhead's strip, so the cells keep one even rhythm */
-.pattern > i:nth-child(4n + 1)::before {
+/* a short tick under the cells that start a beat (at the arp's rate, in the arrangement's meter),
+   in the playhead's strip, so the cells keep one even rhythm */
+.pattern > i.beat::before {
   content: '';
   position: absolute;
   left: 0;
@@ -2093,6 +2557,15 @@ input[type='range'] {
   box-shadow: inset 0 0 0 1px var(--slate-line);
   border-radius: var(--radius-sm);
   cursor: ns-resize;
+}
+/* Transpose (with its amount) and Hold: part of the Arp's first row, except in cards, where they
+   sit at the end of the panel's heading */
+.arp-head-tools {
+  display: contents;
+}
+/* a heading button's word: shown in the cards' panel headings only (the dock shows the icon) */
+.head-word {
+  display: none;
 }
 .arp_transpose:not(.selected) + .arp_transpose_value {
   display: none;
@@ -2653,7 +3126,8 @@ input[type='range'] {
 
 .showseq,
 .showarp,
-.showtakes {
+.showloopsw,
+.showloop {
   letter-spacing: -0.5px;
 }
 
@@ -2667,7 +3141,6 @@ input[type='range'] {
 /* muted zone: a switched-on feature stays lit, dimmed; a coloured outline would
    read as a selection */
 .zone.disabled.arp-enabled .showarp,
-.zone.disabled.takes-on .showtakes,
 .zone.disabled.show-seq .showseq {
   background-color: color-mix(in srgb, var(--on) 35%, var(--slate-panel));
   border-color: transparent;
@@ -2856,17 +3329,23 @@ input[type='range'] {
   color: var(--brighter-2);
 }
 
-.seq .grid .step-container .step:nth-child(4n + 1) {
+/* the steps that start a beat (in the arrangement's meter at the step's length, markBeats() in
+   viewcontroller/index.ts): a line under them and their number; the other steps' numbers hide */
+.seq .grid .step-container .step.beat {
   border-bottom: 2px solid var(--darker-4);
   height: calc(var(--step-size) + 1px);
 }
 
-.seq .grid .drum-step-container .step:nth-child(4n + 3) {
+.seq .grid .drum-step-container .step.beat {
   border-bottom: 1px solid var(--darker-4);
 }
 
-.disabled .seq .grid .step-container .step:nth-child(4n + 1),
-.disabled .seq .grid .drum-step-container .step:nth-child(4n + 3) {
+.seq .grid .step:not(.beat) > .beat-num {
+  display: none;
+}
+
+.disabled .seq .grid .step-container .step.beat,
+.disabled .seq .grid .drum-step-container .step.beat {
   border-bottom: none;
   height: var(--step-size-disabled);
 }
@@ -3030,6 +3509,28 @@ input[type='range'] {
   margin-top: 10px;
   padding-top: 8px;
   border-top: 1px solid var(--brighter-1);
+}
+/* the app's fold chevron instead of the browser's triangle */
+.panel-section > summary {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  list-style: none;
+  cursor: pointer;
+}
+.panel-section > summary::-webkit-details-marker {
+  display: none;
+}
+.panel-section > summary::before {
+  content: 'expand_more';
+  font-family: 'Material Icons';
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  margin-left: -2px;
+  transform: rotate(-90deg);
+}
+.panel-section[open] > summary::before {
+  transform: none;
 }
 
 #clockOutPortWindow input {
@@ -3254,30 +3755,15 @@ input[type='range'] {
   border-top: 1px solid var(--slate-line);
 }
 
-.popupsettings,
-.programsettings {
-  position: absolute;
-  z-index: 1;
-  top: calc(100% + 5px);
-  left: 0;
-  right: 0;
+/* Thru, Velocity, Program (a panel of its own, Nov 21, the user's pick from mocks; was two popups under the
+   keyboard): a line each for what passes, for velocity and for the program, led by its label */
+.thru-panel {
   display: none;
-  flex-wrap: wrap;
-  row-gap: 4px;
-  column-gap: 16px;
-  cursor: default;
-}
-.programsettings {
-  align-items: center;
-  column-gap: 8px;
+  flex-direction: column;
+  gap: 8px;
 }
 .programsettings input::placeholder {
   color: var(--slate-dim);
-}
-/* Thru: a line each for what passes and for velocity, led by its label */
-.popupsettings {
-  flex-direction: column;
-  row-gap: 8px;
 }
 .thru-line {
   display: flex;
@@ -3287,12 +3773,15 @@ input[type='range'] {
 }
 .thru-line > .label:first-child {
   flex: none;
-  width: 56px;
+  /* "Send program" on one line (the Tracks dock; the cards' grid has the same width) */
+  width: 72px;
+  white-space: nowrap;
 }
 .thru-gap {
   width: 10px;
 }
-/* a dot when Thru is set apart from a new zone, the program number when one is set */
+/* on the Thru, Velocity, Program fold: a dot when Thru is set apart from a new zone, the program number
+   when one is set */
 .thru-dot {
   display: none;
   width: 5px;
@@ -3302,13 +3791,26 @@ input[type='range'] {
   background: currentColor;
   vertical-align: middle;
 }
-.toggle_filters.changed .thru-dot {
+.cf-thru.changed .thru-dot {
   display: inline-block;
 }
 .program-num:not(:empty) {
   margin-left: 4px;
   font-weight: 600;
 }
+/* the play row under the keyboard (Nov 21, the user's pick from mocks): what you press while
+   playing on the left (Oct, Pedal, Hold Arp while the arp is on), the feel on the right (Swing,
+   while Seq or Arp is on) */
+.settings > .play-hold {
+  display: none;
+}
+.arp-enabled > .settings > .play-hold {
+  display: flex;
+}
+.settings > .swing-in-settings {
+  margin-left: auto;
+}
+.action.play-hold.selected,
 .action.sustain_on.selected {
   background-color: var(--on);
   box-shadow: none;
@@ -3978,7 +4480,6 @@ input[type='range'] {
     top: 0;
     width: 10px;
     height: calc(var(--drum-lanes, 12) * 100%);
-    font-size: var(--icon-lg);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -3998,8 +4499,10 @@ input[type='range'] {
     border-right: 1px solid var(--darker-1);
   }
   &.lanes-expanded .lane-expand-chevron {
-    transform: rotate(180deg);
     margin-left: 2px;
+  }
+  &.lanes-expanded .lane-expand-chevron .material-icons {
+    transform: rotate(180deg);
   }
 
   .lane-label {
@@ -4170,10 +4673,16 @@ body.running .drumSequencer .lane-expand-toggle {
   z-index: var(--z-overlay-top);
   display: none;
   flex-direction: column;
-  background-color: var(--bg-topbar);
-  border: 1px solid var(--zone-color);
-  /* the second shadow dims the app: a click there closes the panel like Done */
-  box-shadow: 0 4px 24px var(--shadow-overlay), 0 0 0 100vmax rgba(0, 0, 0, 0.55);
+  /* the zone's card opened big: its surface and slate frame (a coloured frame
+     outweighs everything on dark slate), the setup drawer's shadow */
+  background-color: var(--zone-surface);
+  border: 1px solid var(--slate-edge);
+  border-top-color: var(--slate-edge-top);
+  /* the last shadow dims the app: a click there closes the panel like Done */
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.6),
+    0 2px 6px rgba(0, 0, 0, 0.4),
+    0 0 0 100vmax rgba(0, 0, 0, 0.55);
   border-radius: var(--radius-lg);
   overflow: hidden;
   color: var(--text-base-color);
@@ -4188,9 +4697,10 @@ body.running .drumSequencer .lane-expand-toggle {
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
-  padding: 6px 8px 6px 14px;
-  background-color: var(--zone-surface);
-  border-bottom: 1px solid var(--darker-3);
+  padding: 7px 8px 7px 12px;
+  /* the card's band of the zone colour behind its header */
+  background-color: color-mix(in srgb, var(--zone-color) 20%, var(--slate-panel));
+  border-bottom: 1px solid var(--slate-line);
 }
 .es-title {
   font-weight: 600;
@@ -4203,55 +4713,57 @@ body.running .drumSequencer .lane-expand-toggle {
   height: 22px;
   min-width: 0;
   max-width: 20rem;
-  padding: 0 10px 0 8px;
+  padding: 0 8px;
   border-radius: var(--radius);
-  background-color: var(--darker-2);
+  /* the zone's name as on its card: a solid box in its colour */
+  background-color: var(--zone-color);
+  color: var(--on-text);
+  font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-.es-zone::before {
-  content: '';
-  flex-shrink: 0;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: var(--zone-color);
 }
 .es-sep {
   width: 1px;
   align-self: stretch;
   margin: 4px 4px;
-  background-color: var(--brighter-1);
+  background-color: var(--slate-line);
 }
 .es-grow {
   flex: 1;
 }
 
 /* :is() with the ids, so these beat the panels' own `#ccEditor button` rules */
-:is(#ccEditor, #pianoRollOverlay) .es-bar :is(button, .es-button) {
+:is(#ccEditor, #pianoRollOverlay, #chordsSheet) .es-bar :is(button, .es-button) {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  height: 26px;
+  height: 24px;
   margin: 0;
   padding: 0 8px;
   border: none;
   border-radius: var(--radius);
-  background-color: transparent;
+  /* one raised material, as every button in the zones */
+  background-color: var(--slate-raise);
+  box-shadow: inset 0 0 0 1px var(--slate-line);
   color: var(--text-base-color);
   font: inherit;
   white-space: nowrap;
   cursor: pointer;
 }
-:is(#ccEditor, #pianoRollOverlay) .es-bar :is(button, .es-button):hover:not(:disabled) {
-  background-color: var(--darker-1);
+:is(#ccEditor, #pianoRollOverlay, #chordsSheet) .es-bar :is(button, .es-button):hover:not(:disabled) {
+  background-image: linear-gradient(var(--hover-tint), var(--hover-tint));
 }
-:is(#ccEditor, #pianoRollOverlay) .es-bar button:disabled {
+/* undo / redo name the step: text, not buttons to look at */
+:is(#ccEditor, #pianoRollOverlay, #chordsSheet) .es-bar :is(.es-undo, .es-redo) {
+  background-color: transparent;
+  box-shadow: none;
+}
+:is(#ccEditor, #pianoRollOverlay, #chordsSheet) .es-bar button:disabled {
   opacity: 0.35;
   cursor: default;
 }
-:is(#ccEditor, #pianoRollOverlay) .es-bar .material-icons {
+:is(#ccEditor, #pianoRollOverlay, #chordsSheet) .es-bar .material-icons {
   font-size: var(--icon-md);
 }
 .es-bar .cc-preset-name {
@@ -4267,9 +4779,6 @@ body.running .drumSequencer .lane-expand-toggle {
 }
 
 /* Play / stop mirrors the toolbar's Start button; hidden while an external clock leads */
-:is(#ccEditor, #pianoRollOverlay) .es-bar .es-play {
-  background-color: var(--darker-1);
-}
 .es-play::before {
   content: 'play_arrow';
   font-family: 'Material Icons';
@@ -4285,8 +4794,8 @@ body.running .es-play::before {
 body.running .es-play::after {
   content: 'Stop';
 }
-body.running :is(#ccEditor, #pianoRollOverlay) .es-bar .es-play {
-  background-color: color-mix(in srgb, var(--live) 30%, var(--darker-1));
+body.running :is(#ccEditor, #pianoRollOverlay, #chordsSheet) .es-bar .es-play {
+  background-color: color-mix(in srgb, var(--live) 30%, var(--slate-raise));
 }
 body:has(.clocksettings.isExternal) .es-play,
 body:has(.clocksettings.isExternal) .es-play + .es-sep {
@@ -4294,8 +4803,8 @@ body:has(.clocksettings.isExternal) .es-play + .es-sep {
 }
 
 /* Done is the one outlined control: the way back, edits are already applied */
-:is(#ccEditor, #pianoRollOverlay) .es-bar .es-done {
-  height: 26px; /* the bar's button size; the outline sets it apart */
+:is(#ccEditor, #pianoRollOverlay, #chordsSheet) .es-bar .es-done {
+  height: 24px; /* the bar's button size; the outline sets it apart */
   margin-left: 2px;
   padding: 0 12px;
   border-radius: var(--radius);
@@ -4307,13 +4816,14 @@ body:has(.clocksettings.isExternal) .es-play + .es-sep {
 }
 /* as specific as the bar's shared hover, which would otherwise win; a light
    tint, since the bar's zone tint is as dark as raised slate */
-:is(#ccEditor, #pianoRollOverlay) .es-bar .es-done:hover:not(:disabled) {
+:is(#ccEditor, #pianoRollOverlay, #chordsSheet) .es-bar .es-done:hover:not(:disabled) {
   background-color: var(--hover-tint);
+  background-image: none;
 }
-:is(#ccEditor, #pianoRollOverlay) .es-bar .es-done:active:not(:disabled) {
+:is(#ccEditor, #pianoRollOverlay, #chordsSheet) .es-bar .es-done:active:not(:disabled) {
   background-color: var(--brighter-1);
 }
-:is(#ccEditor, #pianoRollOverlay) .es-bar button:focus-visible {
+:is(#ccEditor, #pianoRollOverlay, #chordsSheet) .es-bar button:focus-visible {
   outline: 1px solid var(--brighter-4);
 }
 
@@ -4387,12 +4897,14 @@ body:has(.clocksettings.isExternal) .es-play + .es-sep {
      C line: 168px tiles (12 rows) offset so a tile ends at the bottom of C9
      (row 8 from the top, 8 * 14px = 112px). */
   background-image:
-    linear-gradient(to bottom, transparent calc(12 * 14px - 1px), var(--brighter-2) 0),
-    repeating-linear-gradient(
+    /* as bright as the beat lines: the C lines used to outshine them */
+    linear-gradient(to bottom, transparent calc(12 * 14px - 1px), var(--brighter-1) 0),
+    /* beat lines on the steps that start a beat (piano-roll.ts), every 4 steps until it sets them */
+    var(--pr-beat-lines, repeating-linear-gradient(
       to right,
       var(--brighter-1) 0 1px,
       transparent 1px calc(4 * var(--pr-cell-w, 24px))
-    ),
+    )),
     repeating-linear-gradient(
       to right,
       var(--darker-1) 0 1px,
@@ -4622,10 +5134,12 @@ body:has(.clocksettings.isExternal) .es-play + .es-sep {
   height: 100%;
 }
 
+/* a level with a bright top, not a solid block: full bars outshone the notes */
 .pr-vbar {
   position: absolute;
   bottom: 0;
-  background-color: var(--zone-color);
+  background-color: color-mix(in srgb, var(--zone-color) 30%, transparent);
+  box-shadow: inset 0 2px 0 var(--zone-color);
   border-radius: 1px 1px 0 0;
   cursor: ns-resize;
 }
@@ -4705,7 +5219,7 @@ body.minimized #midisettings > :is(#setupToggle, .global-resets, #setupDrawer),
 body.minimized #midisettings .strip-end > :is(#midiPanic, .history, .zoom, .viewmode),
 body.minimized #midisettings .transport > :is(#metroClick, #metroCountIn),
 body.minimized .zone > :not(.channels),
-body.minimized .zone .channels > :not(.state):not(.solo):not(.showseq):not(.showarp):not(.zone-label):not(.midi-led),
+body.minimized .zone .channels > :not(.state):not(.solo):not(.showseq):not(.showarp):not(.showchords):not(.zone-label):not(.midi-led),
 body.minimized .zone.placeholder,
 body.minimized .zone.addnewzone {
   /* !important: mini view hides these over any zone state rule (e.g. .zone.disabled.show-seq .seq) */
@@ -4716,6 +5230,8 @@ body.minimized #midisettings {
   position: static;
   height: auto;
   justify-content: space-between;
+  /* the window is 420px (MINI_WIDTH): A–D, the transport and Full only fit with small gaps */
+  gap: 4px;
 }
 
 
@@ -4820,13 +5336,54 @@ body.minimized .midi-led.on {
   border-color: var(--brighter-2);
 }
 
+/* Nothing in the top bar wraps its words or squeezes ("100 %" broke onto two lines): short of
+   room, the Setup chip's summary of the inputs gives way first ("Setup" stays) */
+#midisettings > *,
+#midisettings .strip-end > *,
+#midisettings .transport > * {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+#midisettings > #setupToggle {
+  flex-shrink: 1;
+  min-width: 0;
+}
+#setupToggle > :not(#setupSummary) {
+  flex-shrink: 0;
+}
+#setupToggle #setupSummary {
+  min-width: 0;
+}
+
+/* Down to the two columns of cards (1150px) the bar stays one row: tighter spacing, and the
+   Setup chip without its summary of the inputs (a stub of it would say nothing; the drawer lists
+   them, and the two-row bar below has room for it again) */
+@media (max-width: 1299px) {
+  body:not(.minimized) #setupToggle #setupSummary {
+    display: none;
+  }
+  body:not(.minimized) #midisettings {
+    gap: 6px;
+  }
+  body:not(.minimized) #midisettings .strip-end {
+    gap: 6px;
+  }
+  body:not(.minimized) #arrangementSelector .selectSeq {
+    width: 30px;
+  }
+}
+
 /* =============================================================
    NARROW WINDOWS: TOP BAR IN TWO ROWS
    Row 1: setup chip (takes the free space), mini view, Panic.
    Row 2: resets, A-D, start/BPM. Panic is always reachable.
    ============================================================= */
 
-@media (max-width: 1040px) {
+@media (max-width: 1099px) {
+  body:not(.minimized) #setupToggle #setupSummary {
+    display: inline;
+  }
+
   body:not(.minimized) #midisettings {
     height: auto;
     flex-wrap: wrap;
@@ -4909,9 +5466,10 @@ body.minimized .midi-led.on {
   height: 24px;
   margin: 0;
   padding: 0 6px;
-  border: 1px solid var(--darker-3);
+  /* raised like the zone's fields: black wells look punched out of the zone colour */
+  border: 1px solid var(--slate-line);
   border-radius: var(--radius);
-  background-color: var(--darker-2);
+  background-color: var(--slate-raise);
   color: var(--text-base-color);
   font: inherit;
   user-select: text;
@@ -4921,7 +5479,7 @@ body.minimized .midi-led.on {
 }
 #ccEditor input:focus,
 #ccEditor select:focus {
-  outline: 1px solid var(--cce-accent);
+  outline: 1px solid var(--slate-dim);
   outline-offset: -1px;
 }
 #ccEditor input[type='number'] {
@@ -4937,13 +5495,15 @@ body.minimized .midi-led.on {
   padding: 0 8px;
   border: none;
   border-radius: var(--radius);
-  background-color: var(--darker-1);
+  /* one raised material, as every button in the zones */
+  background-color: var(--slate-raise);
+  box-shadow: inset 0 0 0 1px var(--slate-line);
   color: var(--text-base-color);
   font: inherit;
   cursor: pointer;
 }
 #ccEditor button:hover:not(:disabled) {
-  background-color: var(--brighter-0);
+  background-image: linear-gradient(var(--hover-tint), var(--hover-tint));
 }
 #ccEditor button:focus-visible,
 #ccEditor .cce-row:focus-visible {
@@ -5015,9 +5575,10 @@ body.minimized .midi-led.on {
 .cce-rows .cce-row:hover {
   background-color: var(--brighter-0);
 }
+/* where you are: amber, as the selected track */
 .cce-rows .cce-row.selected {
-  background-color: var(--zone-surface);
-  box-shadow: inset 3px 0 0 var(--cce-accent);
+  background-color: color-mix(in srgb, var(--select) 8%, transparent);
+  box-shadow: inset 2px 0 0 var(--select);
 }
 .cce-row.spacer .cce-row-name {
   color: var(--brighter-2);
@@ -5234,6 +5795,7 @@ body.minimized .midi-led.on {
 }
 #ccEditor .cce-check {
   background-color: transparent;
+  box-shadow: none;
   padding: 0 4px;
 }
 #ccEditor .cce-learn.armed {
@@ -5296,6 +5858,7 @@ body.minimized .midi-led.on {
   padding: 0;
   justify-content: center;
   background-color: transparent;
+  box-shadow: none;
 }
 .cce-buttons-edit {
   display: grid;
@@ -5363,16 +5926,11 @@ body.minimized .midi-led.on {
 }
 /* collapsing pages and sections */
 #ccEditor .cce-fold {
-  width: 16px;
   margin: 0 2px 0 -2px;
   vertical-align: -3px;
-  font-size: 16px;
-  color: var(--brighter-2);
   border-radius: var(--radius);
-  transition: transform 0.12s;
 }
 #ccEditor .cce-fold:hover {
-  color: var(--text-base-color);
   background-color: var(--brighter-1);
 }
 .cce-row.collapsed .cce-fold {
@@ -5469,6 +6027,7 @@ body.minimized .midi-led.on {
 #ccEditor .cce-sel-step {
   padding: 0 4px;
   background-color: transparent;
+  box-shadow: none;
 }
 
 /* controller pages: tabs in the zone's CC toolbar, separate chips like the arrangements A–D */
@@ -5491,10 +6050,10 @@ body.minimized .midi-led.on {
 .cc-page:hover {
   color: var(--brighter-3);
 }
-/* where you are: amber as the arrangements A–D, not the "on" fill */
+/* the current page: the quiet "chosen" look of the octave selector (Nov 21, the user's pick from
+   mocks: amber in every card blurred "where you are"; amber is for where you are in the app) */
 .cc-page.selected {
-  background-color: var(--slate-raise);
-  box-shadow: inset 0 0 0 1px var(--select);
+  background-color: var(--slate-line);
   color: var(--text-base-color);
   font-weight: 600;
 }
@@ -5542,11 +6101,12 @@ body.minimized .midi-led.on {
 }
 
 body.track-view:not(.minimized) {
-  --track-hdr-w: 272px;
+  --track-hdr-w: 312px;
   /* --dock-open-h: the height dragged at the top edge (track-view.ts) */
   --dock-h: min(var(--dock-open-h, 290px), calc(100vh - var(--topbar-h, 44px) - 120px));
   --dock-bar-h: 32px;
-  --strip-h: 28px; /* STRIP_H in track-view.ts */
+  /* STRIP_H in track-view.ts; not --strip-h, which is the top bar's height */
+  --track-strip-h: 28px;
   --track-settings-w: 540px;
   /* as xr18: tracks are cards on the dark ground, lanes and the ruler inset wells */
   --track-gap: 10px; /* round the tracks and the dock */
@@ -5600,31 +6160,21 @@ body.track-view:not(.minimized) {
     border: none;
     box-shadow: none;
     background: none;
-    a {
-      width: calc(var(--track-hdr-w) - 16px);
-      height: 32px;
-      justify-content: center;
-      padding-left: 0;
-      border-color: var(--slate-line);
-      color: var(--slate-dim);
-    }
-    a:hover {
-      border-color: var(--slate-dim);
-    }
   }
 
   /* header, two rows laid out each on its own (a break after the name row):
-     [M S] name ⋯ ⠿ over [Seq Arp Trk] | [CC output] activity */
+     [M S] name ⋯ ⠿ over [Seq Arp Loop] | [CC output] activity */
   #zones > .zone > .channels {
     grid-column: 1;
     grid-row: 1;
     display: flex;
     flex-wrap: wrap;
-    align-content: center;
+    /* at the top of the row, level with the top of its lanes */
+    align-content: flex-start;
     align-items: center;
     gap: 6px 4px;
     margin: 0;
-    padding: 0 8px 0 12px;
+    padding: calc(var(--lane-pad) + 4px) 8px 0 12px;
     background: none;
   }
   #zones > .zone > .channels::after {
@@ -5662,7 +6212,24 @@ body.track-view:not(.minimized) {
   }
   .channels > .ch.showseq { order: 11; }
   .channels > .ch.showarp { order: 12; }
-  .channels > .ch.showtakes { order: 13; }
+  /* the looper in a group of its own: its switch and its recorder */
+  #zones > .zone > .channels > .loopgroup {
+    order: 13;
+    margin-left: 13px;
+  }
+  #zones > .zone > .channels > .loopgroup::before {
+    left: -7.5px;
+  }
+  /* tight here, but never squeezed: the output gives way (it shortens with …) */
+  #zones > .zone > .channels > .loopgroup {
+    flex: none;
+  }
+  #zones > .zone > .channels > .loopgroup .ch {
+    flex: none;
+    width: auto;
+    min-width: 0;
+    padding: 0 6px;
+  }
   /* the features, then what is sent: CC and the output after a line */
   #zones > .zone > .channels > .ch.showccs {
     order: 14;
@@ -5700,9 +6267,6 @@ body.track-view:not(.minimized) {
   .channels > .midi-led.on {
     background-color: var(--live);
     box-shadow: 0 0 5px 1px var(--live);
-  }
-  .channels > .sendClock {
-    display: none;
   }
   /* drag: the row takes the target's place, the others shift */
   #zones > .zone.dragged {
@@ -5748,15 +6312,15 @@ body.track-view:not(.minimized) {
     }
   }
   /* the selected track's strip over its notes: one chip at a time, at the take it is for
-     (a picked stretch: Keep · 2 bars; a selected kept take: Quantize, To steps; else the
-     last run's takes: ‹ Take 3/5 › Keep), or a hint */
+     (picked bars: Loop · 2 bars, Quantize, To steps; else the shown take: ‹ Take 3/5 ›
+     Edit, Quantize, To steps), or a hint */
   .track-lane .track-strip {
     display: none;
   }
   #zones > .zone.track-selected > .track-lane {
     canvas {
-      top: var(--strip-h);
-      height: calc(100% - var(--strip-h));
+      top: var(--track-strip-h);
+      height: calc(100% - var(--track-strip-h));
     }
     .track-strip {
       display: flex;
@@ -5765,7 +6329,7 @@ body.track-view:not(.minimized) {
       left: 0;
       right: 0;
       top: 0;
-      height: var(--strip-h);
+      height: var(--track-strip-h);
       box-sizing: border-box;
       background-color: var(--slate-panel);
       border-bottom: 1px solid var(--slate-line);
@@ -5787,7 +6351,7 @@ body.track-view:not(.minimized) {
     gap: 3px;
     white-space: nowrap;
     font-size: var(--fs-md);
-    .tc-label {
+    .lc-label {
       padding: 0 6px;
       color: var(--text-base-color);
     }
@@ -5809,7 +6373,29 @@ body.track-view:not(.minimized) {
       opacity: 0.3;
       pointer-events: none;
     }
-    .lightButton:not(.tc-prev, .tc-next):hover {
+    .lightButton.active {
+      background-color: var(--on);
+      border-color: var(--on);
+      color: var(--on-text);
+    }
+    .tc-new {
+      margin: 0 3px;
+      color: var(--text-base-color);
+      font-weight: 600;
+    }
+    .lightButton[hidden] {
+      display: none;
+    }
+    /* a switch that is on (the loop's MPE) */
+    .lightButton.lit {
+      background-color: var(--on);
+      color: var(--on-text);
+    }
+    /* a switch's hover is an outline: the fill says it's on */
+    .lc-mpe:hover {
+      border-color: var(--on);
+    }
+    .lightButton:not(.tc-prev, .tc-next, .lc-mpe):hover {
       background-color: var(--on);
       color: var(--on-text);
     }
@@ -5824,6 +6410,9 @@ body.track-view:not(.minimized) {
     /* tracks scroll under it: above the selected card's edge and the strip's chips (1);
        the port windows (also 2, later in the page) still open over it */
     z-index: 2;
+    /* its canvas (26px) inside its padding: a ruler that spills over would cover the first
+       track's top edge (the amber of a selected track) */
+    box-sizing: content-box;
     height: 26px;
     margin: 0 calc(-1 * var(--track-gap));
     padding: 6px calc(var(--track-gap) + var(--lane-pad) + 1px) 6px var(--track-gap);
@@ -5845,19 +6434,14 @@ body.track-view:not(.minimized) {
     font-variant-numeric: tabular-nums;
     color: var(--slate-dim);
   }
-  #trackRuler :is(.tr-loop, .tr-follow) {
+  #trackRuler .tr-follow {
     height: 20px;
     padding: 0 6px;
     font-size: var(--fs-sm);
+    margin: 0 6px 0 auto;
   }
-  #trackRuler .tr-loop {
-    margin-left: auto;
-  }
-  #trackRuler .tr-follow {
-    margin: 0 6px 0 2px;
-  }
-  /* Follow lit while the lanes follow the playhead, Loop while the range repeats */
-  #trackRuler :is(.tr-loop, .tr-follow).active {
+  /* Follow lit while the lanes follow the playhead */
+  #trackRuler .tr-follow.active {
     background-color: var(--on);
     border-color: var(--on);
     color: var(--on-text);
@@ -5888,6 +6472,10 @@ body.track-view:not(.minimized) {
     bottom: var(--track-gap);
     z-index: 2;
     height: calc(var(--dock-h) - var(--track-gap));
+    /* tracks scroll under it: the page's background behind the tab bar, its gaps and its
+       margin, so nothing shows through around the tabs */
+    background-color: var(--slate-bg);
+    box-shadow: 0 0 0 var(--track-gap) var(--slate-bg);
   }
   #trackDock::before {
     content: '';
@@ -5906,18 +6494,39 @@ body.track-view:not(.minimized) {
   &.no-tracks #trackDock {
     display: none;
   }
+  /* the divider between the tracks and the dock: a hairline across the gap with a grip
+     in its middle, so it reads as something to drag; both light up on hover */
   #trackDock .td-resize {
+    --divider: var(--slate-line);
     position: absolute;
-    top: -8px;
+    top: -9px;
     left: 0;
     right: 0;
-    height: 8px;
+    height: 10px;
     z-index: 4;
     cursor: ns-resize;
+    background: linear-gradient(transparent 4px, var(--divider) 4px, var(--divider) 5px, transparent 5px);
+  }
+  #trackDock .td-resize::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 50%;
+    width: 40px;
+    height: 5px;
+    margin-left: -20px;
+    box-sizing: border-box;
+    border: 1px solid var(--divider);
+    border-radius: var(--radius-sm);
+    background-color: var(--slate-raise);
   }
   #trackDock .td-resize:hover,
   &.dock-resizing #trackDock .td-resize {
-    background: linear-gradient(transparent 3px, var(--slate-dim) 3px, var(--slate-dim) 5px, transparent 5px);
+    --divider: var(--slate-dim);
+  }
+  #trackDock .td-resize:hover::after,
+  &.dock-resizing #trackDock .td-resize::after {
+    background-color: var(--slate-dim);
   }
   &.dock-resizing {
     cursor: ns-resize;
@@ -5968,10 +6577,20 @@ body.track-view:not(.minimized) {
     color: var(--text-base-color);
     font-weight: 600;
   }
+  /* as tall as the tabs and level with them, the chevron in its middle */
   #trackDock .td-collapse {
     position: absolute;
-    top: 4px;
+    top: calc((var(--dock-bar-h) - 22px) / 2);
     right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 28px;
+    min-width: 0;
+    height: 22px;
+    margin: 0;
+    padding: 0;
   }
   &.dock-closed #trackDock .td-collapse .material-icons {
     transform: rotate(180deg);
@@ -6102,7 +6721,7 @@ body.track-view:not(.minimized) {
   &.converting #trackDock .td-empty {
     display: none !important;
   }
-  &.converting[data-dock] #zones > .zone.track-selected.track-selected > :is(.seq, .arp-settings-block, .ccpots, .settings, .rangeholder) {
+  &.converting[data-dock] #zones > .zone.track-selected.track-selected > :is(.seq, .arp-settings-block, .chords-block, .ccpots, .settings, .rangeholder, .thru-panel) {
     display: none !important;
   }
   /* in the dock's place while its tab has nothing for this track */
@@ -6137,14 +6756,14 @@ body.track-view:not(.minimized) {
   }
 
   /* the selected track's block, placed in the dock */
-  #zones > .zone.track-selected > :is(.seq, .arp-settings-block, .ccpots, .settings, .rangeholder) {
+  #zones > .zone.track-selected > :is(.seq, .arp-settings-block, .chords-block, .ccpots, .settings, .rangeholder) {
     position: fixed;
     left: calc(var(--track-gap) + 1px);
     right: calc(var(--track-gap) + 1px);
     z-index: 3;
     margin: 0;
   }
-  #zones > .zone.track-selected > :is(.seq, .arp-settings-block, .ccpots) {
+  #zones > .zone.track-selected > :is(.seq, .arp-settings-block, .chords-block, .ccpots) {
     bottom: calc(var(--track-gap) + 1px);
     height: calc(var(--dock-h) - var(--track-gap) - var(--dock-bar-h) - 6px - 2px);
     box-sizing: border-box;
@@ -6168,17 +6787,56 @@ body.track-view:not(.minimized) {
       margin-top: 0;
     }
   }
+  /* no step selected: the step editor's place as a quiet dashed frame with a hint, so
+     the editor doesn't appear out of empty space */
+  &[data-dock='seq']:not(.dock-closed) #zones > .zone.track-selected.show-seq:not(.disabled) > .seq:not(.has-selection) > .step-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    align-self: start;
+    box-sizing: border-box;
+    min-height: 150px;
+    padding: 12px;
+    border: 1px dashed var(--slate-line);
+    border-radius: var(--radius);
+    background: none;
+    box-shadow: none;
+    > * {
+      display: none;
+    }
+    &::before {
+      content: 'Select a step to edit it here';
+      color: var(--slate-dim);
+      text-align: center;
+    }
+  }
+  &[data-dock='seq']:not(.dock-closed) #zones > .zone.drumSequencer.track-selected.show-seq > .seq:not(.has-selection) > .step-info::before {
+    content: 'Select a step to edit it here (⌥-click: without adding a hit)';
+  }
   &[data-dock='arp']:not(.dock-closed) #zones > .zone.track-selected.arp-enabled > .arp-settings-block {
     display: block !important;
+  }
+  &[data-dock='chords']:not(.dock-closed) #zones > .zone.track-selected.chords-on > .chords-block {
+    display: grid !important;
   }
   &[data-dock='cc']:not(.dock-closed) #zones > .zone.track-selected > .ccpots {
     display: block !important;
   }
-  &[data-dock='zone']:not(.dock-closed) #zones > .zone.track-selected > :is(.settings, .rangeholder) {
+  &[data-dock='zone']:not(.dock-closed) #zones > .zone.track-selected > :is(.settings, .rangeholder, .thru-panel) {
     display: flex !important;
   }
-  /* the Track tab: the zone's settings and key range on the left (--track-settings-w),
-     its takes in the rest */
+  /* beside the settings and keyboard: Thru, Velocity, Program */
+  #zones > .zone.track-selected > .thru-panel {
+    position: fixed;
+    z-index: 3;
+    top: calc(100vh - var(--dock-h) + var(--dock-bar-h) + 18px);
+    left: calc(var(--track-gap) + 1px + var(--track-settings-w));
+    right: calc(var(--track-gap) + 1px);
+    margin: 0;
+    padding: 0 12px 0 20px;
+    border-left: 1px solid var(--slate-line);
+  }
+  /* the Track tab: the zone's settings and key range on the left (--track-settings-w) */
   #zones > .zone.track-selected > .settings {
     top: calc(100vh - var(--dock-h) + var(--dock-bar-h) + 18px);
     right: auto;
@@ -6200,100 +6858,6 @@ body.track-view:not(.minimized) {
   }
   &[data-dock='zone']:not(.dock-closed, .converting) #trackDock .td-track {
     display: grid;
-  }
-  #trackDock .tdt-takes {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    min-height: 0;
-    border-left: 1px solid var(--slate-line);
-    font-size: var(--fs-md);
-  }
-  #trackDock .tdt-head {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-    padding: 9px 14px 4px;
-    b {
-      font-weight: 600;
-    }
-  }
-  #trackDock .tdt-summary,
-  #trackDock .tdt-none {
-    color: var(--slate-dim);
-  }
-  #trackDock .tdt-none {
-    margin: 6px 14px;
-  }
-  #trackDock .tdt-list {
-    overflow: auto;
-    padding: 0 8px 10px;
-  }
-  #trackDock .tdt-group {
-    padding: 8px 6px 3px;
-    color: var(--slate-dim);
-    font-size: var(--fs-sm);
-  }
-  #trackDock .tdt-row {
-    display: grid;
-    grid-template-columns: 56px 52px minmax(120px, 1fr) 96px 70px 300px;
-    align-items: center;
-    gap: 10px;
-    height: 30px;
-    padding: 0 6px;
-    border-radius: var(--radius);
-    cursor: pointer;
-  }
-  #trackDock .tdt-row:hover {
-    background-color: var(--brighter-1);
-  }
-  /* the take selected in the lane: "where you are" */
-  #trackDock .tdt-row.selected {
-    background-color: var(--slate-raise);
-    box-shadow: inset 0 0 0 1px var(--select);
-  }
-  #trackDock .tdt-row.kept .tdt-name {
-    font-weight: 600;
-  }
-  #trackDock :is(.tdt-where, .tdt-len, .tdt-count) {
-    color: var(--slate-dim);
-    white-space: nowrap;
-    font-variant-numeric: tabular-nums;
-  }
-  #trackDock .tdt-preview {
-    width: 100%;
-    height: 20px;
-  }
-  #trackDock .tdt-acts {
-    display: flex;
-    gap: 4px;
-    a {
-      box-sizing: border-box;
-      display: flex;
-      align-items: center;
-      height: 22px;
-      padding: 0 9px;
-      background-color: var(--slate-raise);
-      border: 1px solid var(--slate-line);
-      border-radius: var(--radius);
-      color: var(--text-base-color);
-      white-space: nowrap;
-      cursor: pointer;
-    }
-    a:has(.material-icons) {
-      padding: 0 4px;
-    }
-    .material-icons {
-      font-size: 15px;
-    }
-    a.disabled {
-      opacity: 0.4;
-      pointer-events: none;
-    }
-  }
-  /* Keep always shows; the rest on the row under the mouse and the selected one */
-  #trackDock .tdt-row:not(:hover, .selected) .tdt-acts a:not([data-take-act='keep']) {
-    visibility: hidden;
   }
   /* the Notes tab: a piano roll for the chosen take */
   #trackDock .td-notes {
@@ -6343,6 +6907,35 @@ body.track-view:not(.minimized) {
     select {
       height: 22px;
     }
+    /* Loop | Take: what the tab edits, as the convert panel's segments */
+    .tdn-show {
+      display: inline-flex;
+      margin-right: 4px;
+      span {
+        box-sizing: border-box;
+        display: inline-flex;
+        align-items: center;
+        height: 22px;
+        padding: 0 10px;
+        background-color: var(--slate-raise);
+        border: 1px solid var(--slate-line);
+        border-right: none;
+        color: var(--slate-dim);
+        cursor: pointer;
+      }
+      span:first-child {
+        border-radius: var(--radius) 0 0 var(--radius);
+      }
+      span:last-child {
+        border-right: 1px solid var(--slate-line);
+        border-radius: 0 var(--radius) var(--radius) 0;
+      }
+      span.on {
+        background-color: var(--on);
+        border-color: var(--on);
+        color: var(--on-text);
+      }
+    }
   }
   #trackDock .tdn-what {
     overflow: hidden;
@@ -6354,8 +6947,13 @@ body.track-view:not(.minimized) {
   }
   #trackDock .tdn-zoom {
     display: flex;
+    align-items: center;
     gap: 2px;
     margin-left: 8px;
+    .label {
+      margin-right: 4px;
+      color: var(--slate-dim);
+    }
   }
   #trackDock .td-notes canvas {
     display: block;
@@ -6377,7 +6975,7 @@ body.track-view:not(.minimized) {
 
 /* =============================================================
    WAITING TOGGLES
-   With Q on, M, S, Seq, Arp and Trk wait for the next boundary while the clock runs
+   With Q on, M, S, Seq and Arp wait for the next boundary while the clock runs
    (pending-toggles.ts); every other blink phase (`data-flip`) the chip shows the look
    it will have.
    ============================================================= */
@@ -6405,6 +7003,105 @@ body.track-view:not(.minimized) {
   border-color: var(--slate-line);
   box-shadow: none;
   color: var(--brighter-4);
+}
+
+/* cards' LED switches: the blink goes between the lit and the unlit look */
+body:not(.track-view):not(.minimized) #zones > .zone > .channels .ch:is(.showseq, .showarp, .showchords, .showloopsw).pending {
+  &[data-flip='on'] {
+    color: var(--text-base-color);
+    background: color-mix(in srgb, var(--zone-color) 14%, transparent);
+    border-color: color-mix(in srgb, var(--zone-color) 55%, var(--slate-line));
+    &::before { background: var(--live); box-shadow: 0 0 6px var(--live); }
+  }
+  &[data-flip='off'] {
+    color: var(--slate-dim);
+    background: transparent;
+    border-color: var(--slate-line);
+    &::before { background: #3b4047; box-shadow: inset 0 0 0 1px #4a5058; }
+  }
+}
+
+/* =============================================================
+   LOOP CHIPS
+   The zone's looper, a group of its own (track-view.ts updateLoopChips()): two joined
+   halves. The switch "Loop 4" is lit while the loop plays, like Seq and Arp (also on a
+   muted zone: mute is for what you play), unlit when it's off, dim with no loop. The
+   recorder says what a press does: "Rec" (no loop) or "Dub" (overdub it); red "Rec 2" /
+   "Dub 4" while it runs; blinking while it waits for its 1 (off ↔ red) or its end
+   (red ↔ off).
+   ============================================================= */
+
+.zone .channels .loopgroup .ch {
+  justify-content: center;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.zone .channels .ch.showloopsw {
+  min-width: 50px;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.zone .channels .ch.showloop {
+  min-width: 40px;
+  margin-left: -1px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.zone .channels .ch.showloopsw.loop-on {
+  background-color: var(--on);
+  border-color: var(--on);
+  color: var(--on-text);
+}
+
+.zone .channels .ch.showloopsw.loop-none {
+  color: var(--slate-dim);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* the Take chip: only on zones with takes; lit while one plays along, dimmed while the loop plays instead */
+.zone .channels .ch.showtake {
+  display: none;
+  min-width: 46px;
+  margin-right: 6px;
+}
+.zone.has-takes .channels .ch.showtake {
+  display: flex;
+}
+.zone .channels .ch.showtake.take-on {
+  background-color: var(--on);
+  border-color: var(--on);
+  color: var(--on-text);
+}
+.zone .channels .ch.showtake.take-on.take-quiet {
+  opacity: 0.5;
+}
+
+.zone .channels .ch.showloop.loop-rec {
+  background-color: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+
+.zone .channels .ch.showloop.loop-wait {
+  animation: loop-wait 0.5s steps(1) infinite;
+}
+
+.zone .channels .ch.showloop.loop-closing {
+  animation: loop-closing 0.5s steps(1) infinite;
+}
+
+@keyframes loop-wait {
+  0% { background-color: var(--danger); border-color: var(--danger); color: #fff; }
+  50% { background-color: var(--slate-raise); border-color: var(--danger); color: var(--brighter-4); }
+}
+
+@keyframes loop-closing {
+  0% { background-color: var(--danger); border-color: var(--danger); color: #fff; }
+  50% { background-color: var(--slate-raise); border-color: var(--slate-line); color: var(--text-base-color); }
 }
 
 /* =============================================================
@@ -6435,4 +7132,1174 @@ body.track-view:not(.minimized) {
 body.track-view .zone .mini-lane,
 body.minimized .zone .mini-lane {
   display: none !important;
+}
+
+/* Takes on the cards: ‹ Take n/m new ›, preview, Play along, Delete (no "Start plays" row since
+   Nov 21: the switches say what plays) */
+.zone .card-takes {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-md);
+  color: var(--slate-dim);
+  margin: 6px 0 2px;
+  padding-top: 6px;
+  border-top: 1px solid color-mix(in srgb, var(--slate-line) 60%, transparent);
+}
+
+.zone.has-card-takes .card-takes {
+  display: flex;
+}
+
+.zone .card-takes .lightButton {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 8px;
+  justify-content: center;
+}
+/* ‹ › at the ends, Delete while running */
+.zone .card-takes .lightButton.disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.zone .card-takes .ct-label {
+  color: var(--text-base-color);
+  min-width: 64px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.zone .card-takes .ct-new {
+  display: none;
+  margin-left: 4px;
+  /* the fresh take: bright, not amber (amber is where you are) */
+  color: var(--text-base-color);
+  font-weight: 600;
+}
+
+.zone .card-takes .ct-label.is-new .ct-new {
+  display: inline;
+}
+
+.zone .card-takes .ct-preview {
+  flex: 1;
+  min-width: 40px;
+  height: 18px;
+}
+
+/* A followed zone (cards, also while running): who follows it, what they heard, Start over */
+/* a followed zone's mini lane (Nov 21, the user's pick from mocks): bottom left the key heard with
+   Clear, bottom right "to [3][4]", the followers as their numbers in boxes of their colours like the
+   zones' name boxes; plates so they read over the notes, the lane between them stays seen */
+.zone .mini-lane {
+  position: relative;
+}
+.zone .card-follow {
+  display: none;
+  position: absolute;
+  inset: auto 3px 3px 3px;
+  justify-content: space-between;
+  align-items: flex-end;
+  pointer-events: none;
+}
+.zone.has-card-follow .card-follow {
+  display: flex;
+}
+.zone .card-follow .cf-plate {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 60%;
+  padding: 1px 4px 1px 6px;
+  border-radius: var(--radius-sm);
+  background: rgba(16, 18, 21, 0.82);
+  font-size: var(--fs-sm);
+  line-height: 18px;
+  color: var(--slate-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  pointer-events: auto;
+}
+.zone .card-follow .cf-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  max-width: 60%;
+  /* the numbers as far from the lane's right edge as from its bottom */
+  margin: 0 -1.5px 0 auto;
+}
+.zone .card-follow .cf-to {
+  max-width: 100%;
+}
+/* the key heard sits at the playhead (MINI_PLAYHEAD_AT in track-view.ts, 22 % of the lane) */
+.zone .card-follow .cf-heard {
+  position: absolute;
+  bottom: 0;
+  left: calc((100% + 6px) * 0.22 - 2px);
+  max-width: 45%;
+}
+/* a chords or bass zone's status (stopped, listening…, waiting, live · key), bottom right of its lane */
+.zone .mini-lane .lane-status {
+  display: none;
+}
+body:not(.track-view):not(.minimized) .zone.chords-zone .mini-lane .lane-status {
+  display: flex;
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  margin: 0;
+  max-width: 60%;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: rgba(16, 18, 21, 0.82);
+  font-size: var(--fs-sm);
+  line-height: 18px;
+  overflow: hidden;
+}
+.zone .card-follow .cf-key {
+  color: var(--text-base-color);
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+.zone .card-follow .cf-num {
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  color: var(--on-text);
+  font-weight: 600;
+  font-size: 11px;
+}
+.zone .card-follow .cf-startover {
+  /* lines up with the numbers, which sit inside the plate's 4px padding */
+  margin-right: 4px;
+  padding: 0 4px;
+  border: 1px solid var(--slate-line);
+  border-radius: var(--radius-sm);
+  background: var(--slate-raise);
+  color: var(--slate-dim);
+  font-size: 10px;
+  line-height: 12px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.zone .card-follow .cf-startover:hover {
+  border-color: var(--slate-dim);
+  color: var(--text-base-color);
+}
+
+/* Finish / Open end (Play on while ending) on the followed zone's lane, before "to [3][4]", while
+   running: one place for the whole line (Nov 21, the user's pick from mocks) */
+.zone .card-follow .cf-ends {
+  display: inline-flex;
+  gap: 3px;
+  margin-right: 2px;
+  padding-right: 6px;
+  border-right: 1px solid var(--slate-line);
+}
+.zone .card-follow .cf-end {
+  display: inline-flex;
+  align-items: center;
+  height: 15px;
+  padding: 0 5px;
+  box-sizing: border-box;
+  border: 1px solid var(--slate-line);
+  border-radius: var(--radius-sm);
+  background: var(--slate-raise);
+  color: var(--text-base-color);
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.zone .card-follow .cf-end:hover {
+  border-color: var(--slate-dim);
+}
+.zone .card-follow .cf-right:has(.cf-ends) {
+  max-width: 80%;
+}
+
+body.track-view .zone .card-follow,
+body.minimized .zone .card-follow {
+  display: none !important;
+}
+
+body.track-view .zone .card-takes,
+body.minimized .zone .card-takes {
+  display: none !important;
+}
+
+/* dragging an edge of a loop's block (track view) */
+body.loop-edge-dragging,
+body.loop-edge-dragging * {
+  cursor: ew-resize !important;
+}
+/* sliding a loop's window over its take */
+body.loop-window-sliding,
+body.loop-window-sliding * {
+  cursor: grabbing !important;
+}
+
+
+/* =============================================================
+   CHORDS ZONES  (viewcontroller/chords.ts)
+   A zone playing chords or a bass line to another zone's line: the chord chip takes Seq's
+   place (Seq and Arp go; in cards it is the switch and the chord sounding is read out in Arp's
+   place), its block holds Follows, Rhythm, two pads, More, Another
+   ============================================================= */
+.zone .channels .ch.showchords {
+  display: none;
+  /* fixed: the header doesn't move when the chord changes; long names are set smaller */
+  width: 40px;
+  padding: 0 4px;
+  box-sizing: border-box;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.zone.chords-zone .channels .ch.showchords {
+  display: flex;
+}
+/* the chip shows the chord (Tracks header, mini view); cards make it the switch, with the
+   chord beside it (.chordnow) */
+.zone .channels .ch.showchords > .chc-part,
+.zone .channels > .chordnow {
+  display: none;
+}
+body:not(.track-view):not(.minimized) .zone.chords-zone .channels > .chordnow {
+  display: flex;
+}
+.zone .channels .ch.showchords.long {
+  font-size: 11px;
+  letter-spacing: -0.04em;
+}
+.zone.chords-zone .channels > :is(.ch.showseq, .ch.showarp) {
+  display: none !important;
+}
+.zone.chords-on .channels .ch.showchords {
+  background-color: var(--on);
+  border-color: var(--on);
+}
+.zone:not(.disabled).chords-on .channels .ch.showchords {
+  color: var(--ink);
+}
+.zone.disabled.chords-on .channels .ch.showchords,
+/* a finished line (mini view, Tracks header): on, but silent until Play on, as the cards' switch */
+.zone.chords-on.chords-finished .channels .ch.showchords {
+  background-color: color-mix(in srgb, var(--on) 35%, var(--slate-panel));
+  border-color: transparent;
+  color: var(--brighter-4);
+}
+body.track-view:not(.minimized) .channels > .ch.showchords {
+  order: 11;
+}
+
+.chords-block {
+  display: none;
+}
+.zone.chords-on .chords-block {
+  display: grid;
+}
+/* the block (Chords sheet and the track view's dock): one row on top, the pads beside More (two
+   groups on one grid, so every slider lines up), the actions in a footer (in the dock: in the top
+   row, it is low) */
+.chords-block {
+  --cb-pad-w: 230px;
+  --cb-pad-h: 150px;
+  grid-template-columns: auto auto;
+  grid-template-areas: 'top top' 'pads more' 'foot foot';
+  justify-content: start;
+  align-content: start;
+  gap: 0;
+}
+.chords-block > .cb-top {
+  grid-area: top;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--darker-3);
+  white-space: nowrap;
+  .label {
+    min-width: 0;
+  }
+  .cb-gap {
+    margin-left: 14px;
+  }
+  .cb-actions {
+    margin-left: auto;
+    padding-left: 24px;
+  }
+  .cb-status {
+    margin-left: auto;
+    padding-left: 24px;
+  }
+  .cb-actions:not(:empty) + .cb-status {
+    margin-left: 0;
+  }
+}
+.chords-block > .cb-pads.cb-pads {
+  grid-area: pads;
+  flex-wrap: nowrap;
+  gap: 20px;
+  padding: 14px 24px 16px 16px;
+}
+.chords-block > .cb-more {
+  grid-area: more;
+  grid-template-columns: auto auto;
+  column-gap: 32px;
+  align-items: start;
+  padding: 14px 16px 16px 24px;
+  border-left: 1px solid var(--darker-3);
+}
+.chords-block > .cb-foot {
+  grid-area: foot;
+  display: flex;
+  padding: 10px 16px 12px;
+  border-top: 1px solid var(--darker-3);
+  .cb-actions {
+    width: 100%;
+  }
+  .cb-ends {
+    margin-right: auto;
+  }
+}
+/* the dock: the block scrolls sideways when narrower than pads and More; its top row stays within
+   the visible width (and in view when scrolled) and wraps, so the actions at its end never run past
+   the dock's edge */
+body.track-view:not(.minimized) .chords-block {
+  container-type: inline-size;
+}
+body.track-view:not(.minimized) .chords-block > .cb-top {
+  position: sticky;
+  left: 0;
+  box-sizing: border-box;
+  max-width: 100cqw;
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+/* Finish / Open end / Play on: buttons (they act on what plays now), set apart from Listen anew by a
+   divider while shown */
+.chords-block .cb-ends {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.chords-block .cb-ends:has(> .cb-finish:not([hidden])) {
+  padding-left: 14px;
+  border-left: 1px solid var(--slate-line);
+}
+/* what the zone does now, as a tag at the end of the Follows row: a dot for live (the live green),
+   its loop (the zone colour) or waiting, and a few words; the whole sentence in its tooltip */
+:is(.chords-block, .chords-sum) .cb-status,
+.lane-status.cb-status {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-base-color);
+  white-space: nowrap;
+}
+/* quiet text actions in the footer (Start over, Back to best) */
+:is(.chords-block, .chords-sum) .cb-text {
+  color: var(--slate-dim);
+  text-decoration: underline;
+  text-decoration-color: var(--slate-line);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+:is(.chords-block, .chords-sum) .cb-text:hover {
+  color: var(--text-base-color);
+  text-decoration-color: currentColor;
+}
+:is(.chords-block, .chords-sum, .lane-status) .cb-dot-state {
+  flex: none;
+  align-self: center;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--slate-line);
+}
+:is(.chords-block, .chords-sum, .lane-status) .cb-dot-state.live {
+  background: var(--live);
+  box-shadow: 0 0 6px var(--live);
+}
+:is(.chords-block, .chords-sum, .lane-status) .cb-dot-state.loop {
+  background: var(--zone-color);
+}
+.chords-block .cb-what {
+  font-weight: 600;
+  color: var(--text-base-color);
+}
+.chords-block select.cb-style,
+.chords-block select.cb-rhythm-sel,
+.chords-block select.cb-follows {
+  height: auto;
+  line-height: 1.25;
+  text-align: left;
+  background: var(--slate-raise);
+  color: var(--text-base-color);
+  border: 1px solid var(--slate-line);
+  border-radius: var(--radius);
+  padding: 2px 6px;
+  font: inherit;
+}
+.chords-block .cb-segs {
+  display: inline-flex;
+  border: 1px solid var(--slate-line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.chords-block .cb-segs a {
+  padding: 2px 8px;
+  background: var(--slate-raise);
+  color: var(--slate-dim);
+  border-left: 1px solid var(--slate-line);
+  cursor: pointer;
+}
+.chords-block .cb-segs a:first-child {
+  border-left: 0;
+}
+.chords-block .cb-segs a:hover {
+  color: var(--text-base-color);
+}
+.chords-block .cb-segs a.on {
+  background: var(--on);
+  color: var(--ink);
+}
+.chords-block .cb-pads {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.chords-block .cb-padbox {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 3px;
+}
+/* the pad's name; while it's dragged what it is set to in its place */
+.chords-block .cb-pt {
+  color: var(--text-base-color);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.chords-block .cb-ro {
+  display: none;
+}
+.chords-block .cb-padbox.drag .cb-pt-name {
+  display: none;
+}
+.chords-block .cb-padbox.drag .cb-ro {
+  display: inline;
+}
+.chords-block .cb-padbox.drag .cb-pad {
+  border-color: color-mix(in srgb, var(--zone-color) 60%, var(--slate-line));
+}
+/* the four ends, centred on the pad's edges inside it: where the dot goes towards each; over the
+   dot and its lines (the words stay readable, the dot shows round the letters), no plate, a thin dark outline */
+.chords-block .cb-lbl {
+  position: absolute;
+  z-index: 2;
+  font-size: 10px;
+  line-height: 1;
+  color: var(--text-base-color);
+  opacity: 0.75;
+  text-shadow: 0 0 2px var(--slate-inset), 0 0 2px var(--slate-inset), 0 0 1px #000;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.chords-block .cb-lbl.top,
+.chords-block .cb-lbl.bottom {
+  left: 50%;
+  transform: translateX(-50%);
+}
+.chords-block .cb-lbl.top {
+  top: 4px;
+}
+.chords-block .cb-lbl.bottom {
+  bottom: 4px;
+}
+/* on a chords zone following another one's chords: Classic ↔ Modal is that zone's */
+.chords-block .cb-lbl.off {
+  opacity: 0.3;
+  text-decoration: line-through;
+}
+.chords-block .cb-lbl.left,
+.chords-block .cb-lbl.right {
+  top: 50%;
+  transform: translateY(-50%);
+}
+.chords-block .cb-lbl.left {
+  left: 5px;
+}
+.chords-block .cb-lbl.right {
+  right: 5px;
+}
+.chords-block .cb-pad {
+  position: relative;
+  width: var(--cb-pad-w);
+  height: var(--cb-pad-h);
+  background-color: var(--slate-inset);
+  /* only the middle cross: the neutral setting, where the lines from the dot end (no grid: the pads are continuous) */
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--slate-dim) 45%, transparent), color-mix(in srgb, var(--slate-dim) 45%, transparent)),
+    linear-gradient(color-mix(in srgb, var(--slate-dim) 45%, transparent), color-mix(in srgb, var(--slate-dim) 45%, transparent));
+  background-size: 100% 1px, 1px 100%;
+  background-position: 0 50%, 50% 0;
+  background-repeat: no-repeat, no-repeat;
+  border: 1px solid var(--slate-line);
+  border-radius: var(--radius);
+  cursor: crosshair;
+  touch-action: none;
+}
+.chords-block .cb-dot {
+  position: absolute;
+  z-index: 1;
+  width: 14px;
+  height: 14px;
+  margin: -7px;
+  border-radius: 50%;
+  background: var(--zone-color);
+  box-shadow: 0 0 0 2px #0008, 0 0 10px var(--zone-color);
+  pointer-events: none;
+}
+.chords-block .cb-pad.dragging .cb-dot {
+  width: 16px;
+  height: 16px;
+  margin: -8px;
+}
+/* lines from the dot to the pad's middle lines (placeDot()): how far from the middle, each way */
+.chords-block .cb-x,
+.chords-block .cb-y {
+  position: absolute;
+  background: color-mix(in srgb, var(--zone-color) 70%, transparent);
+  pointer-events: none;
+}
+.chords-block .cb-x {
+  width: 2px;
+  margin-left: -1px;
+}
+.chords-block .cb-y {
+  height: 2px;
+  margin-top: -1px;
+}
+.chords-block .cb-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.chords-block .cb-actions a {
+  flex: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.chords-block .cb-actions a[hidden] {
+  display: none;
+}
+.chords-block .cb-more {
+  display: grid;
+}
+/* a group: label, left word, slider, right word; buttons span the last three */
+.chords-block .cb-group {
+  display: grid;
+  grid-template-columns: max-content max-content 150px max-content;
+  column-gap: 8px;
+  row-gap: 10px;
+  align-items: center;
+}
+.chords-block .cb-head {
+  grid-column: 1 / -1;
+  margin-bottom: -2px;
+  color: var(--slate-dim);
+  font-size: 12px;
+}
+.chords-block .cb-sl {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: center;
+}
+.chords-block .cb-sl .label {
+  min-width: 0;
+  padding-right: 8px;
+}
+.chords-block .cb-sl small {
+  color: var(--slate-dim);
+  font-size: 11px;
+  text-align: right;
+}
+.chords-block .cb-sl small:last-child {
+  text-align: left;
+}
+.chords-block .cb-sl input {
+  width: 100%;
+  margin: 0;
+}
+.chords-block .cb-sl .cb-segs {
+  grid-column: 2 / -1;
+  display: flex;
+  a {
+    flex: 1;
+    text-align: center;
+    white-space: nowrap;
+  }
+}
+body.minimized .chords-block {
+  display: none !important;
+}
+/* the cards: one summary row instead of the block, Edit opens the Chords sheet */
+body:not(.track-view) #zones > .zone > .chords-block {
+  display: none !important;
+}
+.chords-sum {
+  display: none;
+}
+body:not(.track-view):not(.minimized) .zone.chords-zone > .chords-sum {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  padding: 4px 2px 2px;
+  color: var(--text-base-color);
+  white-space: nowrap;
+  cursor: default;
+}
+.chords-sum > .label,
+.chords-sum .cs-sep,
+.chords-sum .cs-none {
+  color: var(--slate-dim);
+}
+.chords-sum .cs-line {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+/* the followed zone's number in its colour, as the "to [3]" boxes on its lane */
+.chords-sum .cs-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 15px;
+  height: 15px;
+  margin-right: 4px;
+  padding: 0 3px;
+  box-sizing: border-box;
+  border-radius: var(--radius-sm);
+  color: var(--on-text);
+  font-weight: 600;
+  font-size: 11px;
+  vertical-align: 1px;
+}
+.chords-sum .cs-gap {
+  flex: 1;
+}
+.chords-sum .cb-text {
+  font-size: 12px;
+}
+/* short of room: the style and rhythm give way, the rest keeps its size */
+.chords-sum > :is(.cs-edit, .label, .cs-sep) {
+  flex: none;
+}
+.chords-sum > span:not([class]) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chords-sum .cs-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  box-sizing: border-box;
+  .material-icons {
+    font-size: 15px;
+  }
+}
+/* the Chords sheet: a panel over the cards, one size for every zone and setting (the largest
+   layout, a chords zone choosing the chords), so it never jumps */
+#chordsSheet {
+  inset: 60px auto auto 50%;
+  transform: translateX(-50%);
+  width: min(1240px, calc(100vw - 48px));
+  height: min(340px, calc(100vh - 84px));
+  max-height: calc(100vh - 84px);
+  outline: none;
+}
+#chordsSheet .chs-body.zone {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: auto;
+}
+#chordsSheet .chords-block {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto 1fr auto;
+  min-height: 100%;
+  > .cb-top .cb-actions {
+    display: none;
+  }
+  > .cb-top .cb-status {
+    margin-left: auto;
+  }
+}
+/* the line's chords and bass zones: a chip each, the shown one picked in amber */
+.chs-zones {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+}
+#chordsSheet .es-bar button.chs-zchip {
+  height: 22px;
+  gap: 6px;
+  padding: 0 10px 0 8px;
+  background-color: var(--slate-raise);
+  box-shadow: inset 0 0 0 1px var(--slate-line);
+  color: var(--slate-dim);
+  &::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    background-color: var(--zone-color);
+  }
+  small {
+    color: var(--slate-dim);
+    font-size: 11px;
+  }
+  &:hover {
+    color: var(--text-base-color);
+  }
+  &.sel {
+    color: var(--text-base-color);
+    box-shadow: inset 0 0 0 1px var(--select);
+  }
+}
+/* narrow windows: More under the pads */
+@media (max-width: 1300px) {
+  #chordsSheet {
+    width: min(720px, calc(100vw - 48px));
+    height: min(560px, calc(100vh - 84px));
+  }
+  #chordsSheet .chords-block {
+    grid-template-columns: auto;
+    grid-template-rows: auto auto 1fr auto;
+    grid-template-areas: 'top' 'pads' 'more' 'foot';
+    > .cb-more {
+      border-left: none;
+      border-top: 1px solid var(--darker-3);
+      padding-left: 16px;
+    }
+  }
+}
+/* the dock: the actions in the top row, no footer */
+body.track-view:not(.minimized) #zones > .zone.track-selected > .chords-block {
+  grid-template-columns: auto 1fr;
+  padding: 0;
+  overflow: auto;
+  > .cb-foot {
+    display: none;
+  }
+}
+#trackDock .td-tab[hidden] {
+  display: none !important;
+}
+
+/* Loop n bars (Tracks): hovered, it outlines the bars it loops in amber in the take lane, so
+   the button takes the same edge */
+.tc-keep:hover {
+  box-shadow: inset 0 0 0 1px var(--select);
+}
+
+/* =============================================================
+   CARD FOLDS  (.card-folds in the zone template, cards only)
+   Sequencer / Arp / Controllers: each shows or hides its panel right below, whether the
+   feature is on or not (Seq and Arp in the header only switch, so they never move a card).
+   Open panels follow in this order, a divider between two (Nov 21, the user's pick from mocks)
+   ============================================================= */
+.zone .card-folds {
+  display: none;
+}
+body:not(.track-view):not(.minimized) #zones > .zone:not(.disabled) > .card-folds {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding-top: 8px;
+  border-top: 1px solid var(--slate-line);
+  font-size: var(--fs-md);
+}
+.card-folds .cf-fold {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--slate-dim);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.card-folds .cf-fold:hover {
+  color: var(--text-base-color);
+}
+/* lists point right when closed, down when open */
+.card-folds .cf-fold > .material-icons {
+  transform: rotate(-90deg);
+}
+.zone.fold-seq .card-folds .cf-seq,
+.zone.fold-arp .card-folds .cf-arp,
+.zone.show-cc .card-folds .cf-cc,
+.zone.fold-thru .card-folds .cf-thru {
+  color: var(--text-base-color);
+}
+.zone.fold-seq .card-folds .cf-seq > .material-icons,
+.zone.fold-arp .card-folds .cf-arp > .material-icons,
+.zone.show-cc .card-folds .cf-cc > .material-icons,
+.zone.fold-thru .card-folds .cf-thru > .material-icons {
+  transform: none;
+}
+/* a chords zone plays neither: only Controllers */
+.zone.chords-zone .card-folds :is(.cf-seq, .cf-arp) {
+  display: none;
+}
+
+/* one spacing: every block of a card 10px apart, no margins of its own (hidden blocks leave none) */
+body:not(.track-view):not(.minimized) #zones > .zone {
+  gap: 10px;
+  > :is(.channels, .mini-lane, .card-follow, .card-takes, .card-folds, .chords-sum) {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+  /* the keyboard and its settings row belong together */
+  > .settings {
+    margin-top: -4px;
+  }
+}
+
+/* the panels follow their folds, not the switches */
+body:not(.track-view):not(.minimized) #zones > .zone {
+  > .seq,
+  > .arp-settings-block {
+    display: none;
+  }
+  &.fold-seq:not(.disabled):not(.chords-zone) > .seq {
+    display: flex;
+    align-items: flex-start;
+    flex-direction: column-reverse;
+  }
+  &.fold-arp:not(.disabled):not(.chords-zone) > .arp-settings-block {
+    display: block;
+  }
+  &.fold-arp:not(.disabled):not(.chords-zone) > .arp-settings-block .arp-settings {
+    display: flex;
+    align-items: center;
+  }
+  &:not(.show-cc) > .ccpots {
+    display: none;
+  }
+  &.fold-thru:not(.disabled) > .thru-panel {
+    display: flex;
+  }
+}
+
+/* cards, top to bottom (Nov 21, the user's picks from mocks): the top bar (name, output), the
+   keyboard with Oct and Pedal (what you play into the zone, level across a row of cards), the
+   switches Seq · Arp · Loop over the lane that draws what they play, the takes row, then the folds
+   and the open panels, so opening one only grows the card downwards. The header's two rows are one
+   element (.channels, laid out by the Tracks header and the mini view too), so in cards it lets its
+   items into the card (display: contents) and the card wraps them in rows: their order (top bar
+   -3…2, switches 4…6) leaves 3 for the keyboard; every other block takes a row of its own
+   (cards only: not the "+ Add" slot or the placeholder) */
+body:not(.track-view):not(.minimized) #zones > .zone:not(.addnewzone, .placeholder) {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  align-content: flex-start;
+  column-gap: 6px;
+  > .channels { display: contents; }
+  > .channels > .hdr-break { display: none; }
+  > :not(.channels, .zonenumber) { flex: 0 0 100%; min-width: 0; }
+  > .rangeholder { order: 3; }
+  /* the play row ends what you play into the zone; a line sets it apart from what plays by
+     itself (the switches and the lane), as the folds' line does from the panels */
+  > .settings {
+    order: 3;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--slate-line);
+  }
+  > .mini-lane { order: 10; }
+  > .card-takes { order: 11; }
+  > .chords-sum { order: 12; }
+  > .card-folds { order: 13; }
+  > .seq { order: 14; }
+  > .arp-settings-block { order: 15; }
+  > .ccpots { order: 16; }
+  > .thru-panel { order: 17; }
+  /* the zone number under an open panel's frame */
+  &:not(.disabled):is(.fold-seq, .fold-arp, .show-cc, .fold-thru) {
+    padding-bottom: 24px;
+  }
+  /* an open panel: a frame of its own, darker than the card, headed by its name (a click hides it) */
+  &.fold-seq > .seq,
+  &.fold-arp > .arp-settings-block,
+  &.show-cc > .ccpots,
+  &.fold-thru > .thru-panel {
+    position: relative;
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0;
+    /* 10px at the sides: the controllers need 518px for two 4-knob sections side by side (as
+       the factory presets lay them out), which a card leaves only with this padding */
+    padding: 32px 10px 12px;
+    background-color: color-mix(in srgb, var(--slate-bg) 55%, transparent);
+    border: 1px solid var(--slate-line);
+    border-radius: var(--radius-lg);
+  }
+  .panel-head {
+    display: flex;
+  }
+}
+
+/* inside the open panels (Nov 21, the user's pick from mocks): one left edge (the panel's padding,
+   no inner paddings), one label column for Arp and Thru so their first controls line up, the
+   same gap under every heading, and each panel's main tools right in its heading row (the Tracks
+   dock keeps them in its toolbars) */
+body:not(.track-view):not(.minimized) #zones > .zone {
+  &.fold-seq > .seq,
+  &.fold-arp > .arp-settings-block,
+  &.show-cc > .ccpots,
+  &.fold-thru > .thru-panel {
+    padding-top: 38px;
+  }
+  > .seq .seqtools { padding: 0 0 6px; }
+  > .seq .grid { padding: 0; }
+  > .arp-settings-block .arp-settings { padding: 4px 0; }
+
+  > .arp-settings-block .arp-settings > .label:first-child,
+  > .thru-panel .thru-line > .label:first-child {
+    flex: none;
+    width: 72px;
+    margin: 0;
+  }
+  /* two columns across Arp and Thru (Nov 21, the user's ask): the label (72px: "Send program"),
+     then the first control in a 100px cell (each is about that wide: the Up menu, the Gate slider, 8 in 8, Fixed 127,
+     the program number), so Rate, Chance, the pattern editor, Scale and Bank MSB start on one
+     line; the rest of a row follows as it fits. The Pass line stays a flow of chips */
+  &.fold-arp:not(.disabled):not(.chords-zone) > .arp-settings-block .arp-settings,
+  > .thru-panel .thru-line:not(:first-of-type) {
+    display: grid;
+    grid-template-columns: 72px 100px 52px;
+    grid-auto-flow: column;
+    grid-auto-columns: max-content;
+    justify-content: start;
+    align-items: center;
+    column-gap: 5px;
+  }
+  > .arp-settings-block .arp-settings > *,
+  > .thru-panel .thru-line:not(:first-of-type) > * {
+    justify-self: start;
+  }
+  /* the second label ends right before its value (the values start on one line), so it reads
+     with its value, not with the control before it */
+  &.fold-arp > .arp-settings-block .arp-settings > .label:nth-child(3 of :not(.thru-gap)),
+  > .thru-panel .thru-line:not(:first-of-type) > .label:nth-child(3 of :not(.thru-gap)) {
+    justify-self: end;
+  }
+  > .thru-panel .thru-line:not(:first-of-type) > .thru-gap { display: none; }
+  /* a slider in a grid cell keeps the 96px it has in a flex row; no extra space before the label
+     after it (the column does that) */
+  > :is(.arp-settings-block, .thru-panel) .percent-holder {
+    width: 96px;
+    input[type='range'] { flex: 1 1 0; min-width: 0; width: 0; }
+  }
+  > :is(.arp-settings-block, .thru-panel) .percent-holder + :is(.label, .drop-down) { margin-left: 0; }
+  /* the pattern row: ‹ in the second label's cell, ending where the labels end, so the pattern
+     starts on the values' line */
+  &.fold-arp > .arp-settings-block .arp-pattern-row > .action:nth-child(3) {
+    justify-self: end;
+  }
+  /* Ratchet after the Chance value: a little air, its slider a little shorter so 2× still fits */
+  > .arp-settings-block .label:is(.ratchet-holder, .strum-taper-holder) { margin-left: 8px; }
+  > .arp-settings-block .percent-holder:is(.ratchet-holder, .strum-taper-holder) { width: 86px; }
+  /* every row as tall as a menu, so a strum (Taper instead of Ratchet and 2×) moves nothing */
+  &.fold-arp:not(.disabled):not(.chords-zone) > .arp-settings-block .arp-settings {
+    grid-template-rows: minmax(20px, auto);
+  }
+  /* the rows' own 4px above the first: the panel starts 4px higher, so its first row sits where
+     the other panels' do */
+  &.fold-arp > .arp-settings-block { padding-top: 34px; }
+  > .thru-panel .programsettings > .program-send { margin-left: 10px; }
+  /* Sequencer: Rec and Piano roll */
+  > .seq .seqtools > :is(.seq_record_live, .seq-pianoroll) {
+    position: absolute;
+    top: 8px;
+    box-sizing: border-box;
+    width: 26px;
+    display: flex;
+    justify-content: center;
+    padding: 0;
+  }
+  > .seq .seqtools > .seq-pianoroll { right: 10px; }
+  > .seq .seqtools > .seq_record_live { right: 41px; }
+  /* Arp: Transpose (and its amount while on), then Hold; the row lets them out (not positioned) */
+  > .arp-settings-block .arp-settings:has(> .arp-head-tools) { position: static; }
+  > .arp-settings-block .arp-head-tools {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  /* Controllers: Edit and Send all at the end of the heading (also when the toolbar sits in a
+     section's ruler, as it does in the Tracks dock without pages); the page tabs, when there are
+     any, a row of their own under the heading, wrapping as far as a big preset needs */
+  > .ccpots .container,
+  > .ccpots.tools-on-ruler .container { padding: 0; }
+  > .ccpots .cctools {
+    margin: 0;
+    padding: 0;
+    border: none;
+    font-size: var(--fs-sm);
+  }
+  > .ccpots .cctools:has(.cc-page) {
+    margin-bottom: 10px;
+  }
+  > .ccpots .cctools > .action {
+    position: absolute;
+    top: 7px;
+    white-space: nowrap;
+  }
+  > .ccpots .cctools > .action[data-action$=":cc_send_all"] { right: 10px; width: 72px; }
+  > .ccpots .cctools > .action[data-action$=":cc_edit"] { right: 87px; width: 44px; }
+  /* one look for every button in a heading row: 22px high, the controls' corners, 13px text,
+     16px icons, the same raised material; switches (Transpose, Hold) keep dim text while off and
+     light up when on, as every switch does */
+  > .seq .seqtools > :is(.seq_record_live, .seq-pianoroll),
+  > .arp-settings-block .arp-head-tools > :is(.check, .arp_transpose_value),
+  > .ccpots .cctools > .action,
+  > .ccpots .cctools .cc-page {
+    box-sizing: border-box;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 0 8px;
+    border-radius: var(--radius);
+    font-size: 13px;
+  }
+  > .seq .seqtools > :is(.seq_record_live, .seq-pianoroll) {
+    top: 7px;
+    padding: 0;
+  }
+  > .seq .seqtools > .seq-pianoroll { width: 72px; }
+  > .seq .seqtools > .seq_record_live { width: 44px; right: 87px; }
+  > .arp-settings-block .arp-head-tools > .arp_transpose:not(.selected) + .arp_transpose_value { display: none; }
+  /* words, not icons, in the headings (Nov 21, the user's pick from mocks; the Tracks dock keeps
+     its icons): Rec, Piano roll, Edit, Send all, as Transpose and Hold */
+  > .seq .seqtools > :is(.seq_record_live, .seq-pianoroll) > .material-icons,
+  > .ccpots .cctools > .action > .material-icons {
+    display: none;
+  }
+  .head-word {
+    display: inline;
+  }
+  > .arp-settings-block .arp-head-tools {
+    top: 7px;
+    height: 22px;
+  }
+}
+.zone .panel-head {
+  display: none;
+  position: absolute;
+  top: 6px;
+  left: 10px;
+  height: 24px;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--fs-sm);
+  color: var(--text-base-color);
+  cursor: pointer;
+  white-space: nowrap;
+  > .material-icons {
+    font-size: 16px;
+    color: var(--slate-dim);
+    transition: transform 150ms;
+  }
+  &:hover > .material-icons {
+    color: var(--brighter-4);
+  }
+  > .ph-extra {
+    margin-left: 8px;
+    color: var(--slate-dim);
+    font-size: var(--fs-sm);
+  }
+}
+
+/* Tracks header: no CC chip (it only opened the dock's Controllers tab, which is there anyway), so
+   the output has room to be read (Nov 21, the user's pick from mocks) */
+body.track-view:not(.minimized) #zones > .zone > .channels > .ch.showccs {
+  display: none;
+}
+/* Tracks header: the cards' LED switches, compact (Nov 22, the user's pick from mocks: one switch
+   look in both views; the off ones step back). Dub and Rec stay buttons */
+body.track-view:not(.minimized) #zones > .zone {
+  &:not(.chords-zone) > .channels > :is(.ch.showseq, .ch.showarp),
+  &.chords-zone > .channels > .ch.showchords,
+  & > .channels > .loopgroup > .ch.showloopsw {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: auto;
+    height: 22px;
+    padding: 0 7px 0 6px;
+    box-sizing: border-box;
+    border: 1px solid var(--slate-line);
+    border-radius: var(--radius-lg);
+    background: transparent;
+    color: var(--slate-dim);
+    box-shadow: none;
+    &::before {
+      content: '';
+      display: block;
+      position: static;
+      flex: none;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #3b4047;
+      box-shadow: inset 0 0 0 1px #4a5058;
+    }
+    &:hover { border-color: var(--slate-dim); color: var(--text-base-color); }
+  }
+  & > .channels > .loopgroup { gap: 4px; }
+  &.show-seq:not(.chords-zone) > .channels > .ch.showseq,
+  &:not(.chords-zone) > .channels > .ch.showarp.selected,
+  & > .channels > .loopgroup > .ch.showloopsw.loop-on,
+  &.chords-on.chords-zone > .channels > .ch.showchords {
+    color: var(--text-base-color);
+    background: color-mix(in srgb, var(--zone-color) 14%, transparent);
+    border-color: color-mix(in srgb, var(--zone-color) 55%, var(--slate-line));
+    &::before { background: var(--live); box-shadow: 0 0 6px var(--live); }
+  }
+  /* a muted zone or a finished line: the light dims, as in the cards */
+  &.disabled.show-seq:not(.chords-zone) > .channels > .ch.showseq,
+  &.disabled:not(.chords-zone) > .channels > .ch.showarp.selected,
+  &.disabled > .channels > .loopgroup > .ch.showloopsw.loop-on,
+  &.disabled.chords-on.chords-zone > .channels > .ch.showchords,
+  &.chords-on.chords-finished.chords-zone > .channels > .ch.showchords {
+    background: color-mix(in srgb, var(--zone-color) 6%, transparent);
+    &::before { background: color-mix(in srgb, var(--live) 40%, #3b4047); box-shadow: none; }
+  }
 }

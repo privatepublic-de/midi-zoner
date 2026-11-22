@@ -3,7 +3,7 @@
  * the beat light), its sound in the setup drawer (Metronome group). Settings are per
  * machine (metronome.ts), not part of scenes.
  */
-import DOM, { escapeHTML as esc } from '../domutils';
+import DOM, { escapeHTML as esc, setRangeValue } from '../domutils';
 import { PortDescriptor } from '../midi';
 import { metronomeSettings, updateMetronome, previewMetronome, outputDevices } from '../metronome';
 
@@ -40,8 +40,7 @@ function initMetronomeControls(): void {
   const volume = DOM.get('#metroVolume') as HTMLInputElement;
   const volumeValue = DOM.get('#metroVolumeValue') as HTMLOutputElement;
   const showVolume = (): void => {
-    volume.value = String(Math.round(metronomeSettings.volume * 100));
-    volume.style.setProperty('--fill', `${volume.value}%`);
+    setRangeValue(volume, Math.round(metronomeSettings.volume * 100));
     volumeValue.textContent = volume.value === '0' ? 'Off' : `${volume.value}%`;
   };
   showVolume();

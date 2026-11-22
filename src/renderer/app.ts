@@ -1,3 +1,4 @@
+import { chordRoleFrom } from '../modules/zone/chord-settings';
 import DOM, { escapeHTML as esc } from '../modules/domutils';
 import { Zone } from '../modules/zone/zone-class';
 import { migrateSpacers } from '../modules/zone/cc-layout';
@@ -8,12 +9,15 @@ import MIDI, { PortDescriptor, MIDIMessage, InputPortDef } from '../modules/midi
 import * as view from '../modules/viewcontroller';
 import { ZonesData } from '../modules/viewcontroller/types';
 import { ipcRenderer, webFrame } from 'electron';
-import { ZoneArrangementJSON, isLayoutEntry } from '../modules/zone/interfaces';
+import { ZoneArrangementJSON, isLayoutEntry, TEMPO_CHANGED_EVENT } from '../modules/zone/interfaces';
 import { UndoHistory } from '../modules/undo-history';
 import { labelForZone } from '../modules/viewcontroller/action-labels';
 import { updateSheetHistory } from '../modules/viewcontroller/editor-sheet';
 import { loadDevicePresets } from '../modules/device-presets';
-import { timeline, timelineClock, timelineTransport, timelineSection, timelineLoop, timelineCountIn, timelineMeter, songAt, LoopRange } from '../modules/timeline';
+import { timeline, timelineClock, timelineTransport, timelineSection, timelineCountIn, timelineMeter } from '../modules/timeline';
+import { takeStore } from '../modules/take-store';
+import { initTakeFiles, loadSavedTakes, takesNeedSaving } from '../modules/take-files';
+import { Take } from '../modules/zone/take';
 import { Meter, DEFAULT_METER, barTicks, beatIndexAt, beatNumberAt, parseMeter } from '../modules/meter';
 import { metronomeSettings, metronomeTick, resetMetronome, initMetronome, updateMetronome, Beat } from '../modules/metronome';
 import { initMetronomeControls, updateMetronomePorts, setMetronomeClockExternal, flashBeat } from '../modules/viewcontroller/metronome-controls';
@@ -57,6 +61,8 @@ const debounce = function <T extends (...args: any[]) => void>(
 const saveZones = debounce(() => {
   localStorage.setItem('zones', JSON.stringify(zones));
 }, 500);
+// a loop closed over a held MPE key gets the rest of its expression afterwards
+Zone.loopCurvesChanged = saveZones;
 
 const undoHistory = new UndoHistory();
 let hardwareLockTimer: ReturnType<typeof setTimeout> | null = null;
@@ -138,8 +144,38 @@ function migrateFromLegacyZone(zoneData: any): ZoneArrangementJSON[] {
   });
 }
 
-function createZone(midi: MIDIInstance, zoneData: any): Zone {
+/**
+ * Kept takes from before Nov 2026 (each arrangement's song): they go to the zone's takes;
+ * where an arrangement has no loop and its kept takes played (Trk on), its first take of
+ * up to 16 bars becomes its loop
+ */
+function migrateKeptTakes(zone: Zone): Take[] {
+  const archived: Take[] = [];
+  zone.arrangements.forEach((arr, a) => {
+    if (!arr || !Array.isArray(arr.takes)) return;
+    const meter = zones.meters?.[a] ?? DEFAULT_METER;
+    const kept = Take.listFrom(arr.takes).sort((x, y) => x.start - y.start);
+    const played = arr.takes_on ?? kept.length > 0;
+    for (const k of kept) {
+      // the window it showed, from its own start
+      const part = k.slice(k.start, k.end);
+      part.start = 0;
+      if (played && !arr.loop && k.length <= 16 * barTicks(meter)) arr.loop = part.toJSON();
+      part.seq = ++Take.counter;
+      part.sections = [{ t: 0, meter }];
+      archived.push(part);
+    }
+    delete arr.takes;
+    delete arr.takes_on;
+  });
+  return archived;
+}
+
+/** A zone from stored data; `freshId`: a zone file's zone (it may already be in the scene) */
+function createZone(midi: MIDIInstance, zoneData: any, freshId = false): Zone {
   const zone = new Zone(midi);
+  const id = typeof zoneData.id === 'string' && /^[a-z0-9]{1,16}$/.test(zoneData.id) ? zoneData.id : null;
+  if (id && !freshId && !zones.list.some((z) => z.id === id)) zone.id = id;
 
   zone.channel = zoneData.channel ?? 0;
   // String(): output presets used to store the port id as a number
@@ -162,10 +198,13 @@ function createZone(midi: MIDIInstance, zoneData: any): Zone {
   zone.bank_lsb = zoneData.bank_lsb ?? null;
   if (zoneData.cc_controllers) zone.cc_controllers = migrateSpacers(zoneData.cc_controllers);
   if (typeof zoneData.cc_page == 'number') zone.ccPage = Math.max(0, Math.floor(zoneData.cc_page));
+  if (typeof zoneData.play_take == 'string' && /^[a-z0-9]{1,16}$/.test(zoneData.play_take)) zone.playTake = zoneData.play_take;
   if (typeof zoneData.devicePreset?.id == 'string' && typeof zoneData.devicePreset?.name == 'string') {
     zone.devicePreset = { id: zoneData.devicePreset.id, name: zoneData.devicePreset.name };
   }
   if (zoneData.colorIndex != null) zone.colorIndex = zoneData.colorIndex;
+  // before the arrangement loads: a chords zone's Seq and Arp stay off
+  zone.chords = chordRoleFrom(zoneData.chords);
 
   if (Array.isArray(zoneData.arrangements) && zoneData.arrangements.length > 0) {
     zone.arrangements = [...zoneData.arrangements];
@@ -176,7 +215,15 @@ function createZone(midi: MIDIInstance, zoneData: any): Zone {
     zone.arrangements = migrateFromLegacyZone(zoneData);
   }
 
+  const migrated = migrateKeptTakes(zone);
+  // takes come with scene and zone files (never with localStorage or undo snapshots)
+  const fromFile = Take.listFrom(zoneData.takes);
+  if (fromFile.length || migrated.length) takeStore.merge(zone.id, [...migrated, ...fromFile]);
   zone.loadArrangement(zones.arrangementIndex || 0);
+  // the cards' folds; scenes from before them open the panels of what is switched on
+  zone.show_seq_panel = typeof zoneData.show_seq_panel === 'boolean' ? zoneData.show_seq_panel : zone.sequence.active;
+  zone.show_arp_panel = typeof zoneData.show_arp_panel === 'boolean' ? zoneData.show_arp_panel : zone.arp_enabled;
+  zone.show_thru_panel = zoneData.show_thru_panel === true;
   return zone;
 }
 
@@ -188,8 +235,16 @@ function applyStoredZones(
   if (storedZones) {
     if (append) {
       // add storedZones to existing zones, but don't overwrite any settings
+      const added: { from: unknown; zone: Zone }[] = [];
       for (let i = 0; i < (storedZones.list?.length ?? 0); i++) {
-        zones.list.push(createZone(midi, storedZones.list![i]));
+        const zone = createZone(midi, storedZones.list![i], true);
+        added.push({ from: (storedZones.list![i] as any)?.id, zone });
+        zones.list.push(zone);
+      }
+      // the file's zones got fresh ids: a chords zone following a zone of the same file follows its copy
+      for (const { zone } of added) {
+        const line = zone.chords && added.find((a) => a.from === zone.chords!.follows);
+        if (line) zone.chords!.follows = line.zone.id;
       }
     } else {
       // overwrite existing zones with stored zones
@@ -204,7 +259,8 @@ function applyStoredZones(
           }
         }
       }
-      zones.loops = sanitizeLoops(storedZones.loops);
+      // before Nov 2026: loop ranges on the ruler (the looper replaced them)
+      delete (zones as any).loops;
       zones.meters = sanitizeMeters(storedZones.meters);
       // "3/4 bar" became "bar" (of the arrangement's meter)
       if (zones.arrangementQuantIndex === 3) zones.arrangementQuantIndex = 2;
@@ -215,6 +271,7 @@ function applyStoredZones(
       for (let i = 0; i < (storedZones.list?.length ?? 0); i++) {
         zones.list.push(createZone(midi, storedZones.list![i]));
       }
+      takesNeedSaving();
     }
     midi.clockOutputPorts = zones.clockOutputPorts;
     midi.suppressTransportPorts = zones.clockSuppressTransportPorts ?? {};
@@ -247,16 +304,14 @@ function carryOverNoteHistory(previous: Zone[], current: Zone[]): void {
   });
 }
 
-/** Loop ranges per arrangement from a scene file (untrusted): whole ticks, at most 1024 bars */
-function sanitizeLoops(data: unknown): ZonesData['loops'] {
-  if (!Array.isArray(data)) return [];
-  return data.slice(0, 4).map((l) => {
-    if (!l || typeof l !== 'object') return null;
-    const from = Math.round(Number((l as any).from));
-    const to = Math.round(Number((l as any).to));
-    if (!(from >= 0 && to > from && to <= 96 * 1024)) return null;
-    return { on: (l as any).on === true, from, to };
+/** The scene for a file: with each zone's takes (they aren't part of the scene data) */
+function sceneWithTakes(): string {
+  const data = JSON.parse(JSON.stringify(zones));
+  data.list.forEach((z: { id: string; takes?: unknown[] }) => {
+    const takes = takeStore.toJSON(z.id);
+    if (takes.length) z.takes = takes;
   });
+  return JSON.stringify(data);
 }
 
 /** A file with nothing but zones: from ⋯ → Save zone to file… (added, not replacing the scene) */
@@ -310,7 +365,6 @@ function sceneFromFile(data: Record<string, any>): Partial<ZonesData> & { list: 
     keySwitchEnabled: bool(data.keySwitchEnabled, true),
     mackieOutlineEnabled: bool(data.mackieOutlineEnabled, true),
     knownPortNames: { ...zones.knownPortNames, ...record(data.knownPortNames, isString) },
-    loops: data.loops,
     meters: data.meters
   };
 }
@@ -323,12 +377,6 @@ function sanitizeMeters(data: unknown): ZonesData['meters'] {
 
 function activeMeter(index = zones.arrangementIndex): Meter {
   return zones.meters?.[index] ?? DEFAULT_METER;
-}
-
-/** The current arrangement's loop range while it's on */
-function activeLoop(index = zones.arrangementIndex): LoopRange | null {
-  const loop = zones.loops?.[index];
-  return loop && loop.on ? { from: loop.from, to: loop.to } : null;
 }
 
 function beatOfSong(meter: Meter, song: number): Beat {
@@ -344,7 +392,7 @@ const SIXTEENTH = 6;
  * (Setup → Switching → A–D), in its meter.
  */
 function isSwitchPoint(p: number, quant = zones.arrangementQuantIndex): boolean {
-  const song = songAt(p - timeline.sectionStart);
+  const song = p - timeline.sectionStart;
   if (quant === 14) return song % SIXTEENTH === 0;
   const beat = beatIndexAt(timeline.meter, song);
   return quant === 8 ? beat >= 0 : beat === 0;
@@ -358,7 +406,8 @@ function showToggleQuant(): void {
   if (!chip) return;
   chip.classList.toggle('active', zones.toggleQuantOn);
   view.setToggleBoundary(zones.toggleQuantIndex);
-  chip.textContent = `Quant ${QUANT_NAMES[zones.toggleQuantIndex]}`;
+  // the Setup drawer's words: "Zone switches at next bar"
+  chip.textContent = `At next ${QUANT_NAMES[zones.toggleQuantIndex]}`;
   (DOM.get('#togglequant') as HTMLSelectElement).value = String(zones.toggleQuantIndex);
 }
 
@@ -376,7 +425,7 @@ function metronomeBeatAt(p: number, now: number, running: boolean): Beat {
       return beatOfSong(activeMeter(next), p - at);
     }
   }
-  return beatOfSong(timeline.meter, songAt(p - timeline.sectionStart));
+  return beatOfSong(timeline.meter, p - timeline.sectionStart);
 }
 
 interface Dismissable {
@@ -450,7 +499,14 @@ function applyZoom(factor: number): void {
   currentZoomFactor = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, Math.round(factor * 10) / 10));
   webFrame.setZoomFactor(currentZoomFactor);
   localStorage.setItem(ZOOM_STORAGE_KEY, String(currentZoomFactor));
+  showZoom(currentZoomFactor);
   ipcRenderer.invoke('set-min-width', Math.ceil(PAGE_FLOOR_CSS_PX * currentZoomFactor));
+}
+
+/** The top bar's zoom: the current factor as a percentage ("Zoom − 100 % +") */
+function showZoom(factor: number): void {
+  const el = document.getElementById('zoomReset');
+  if (el) el.textContent = `${Math.round(factor * 100)} %`;
 }
 
 /** Finer steps than applyZoom: a dragged window width maps to any factor in range. */
@@ -458,6 +514,7 @@ function applyMiniZoom(factor: number): void {
   miniZoomFactor = Math.max(MINI_ZOOM_MIN, Math.min(MINI_ZOOM_MAX, Math.round(factor * 100) / 100));
   localStorage.setItem(MINI_ZOOM_STORAGE_KEY, String(miniZoomFactor));
   if (!miniView) return;
+  showZoom(miniZoomFactor);
   webFrame.setZoomFactor(miniZoomFactor);
   lastMiniSize = '';
   applyMiniSize();
@@ -493,14 +550,16 @@ function applyMiniSize(): void {
 }
 
 function setMiniView(on: boolean, refresh = true): void {
+  showZoom(on ? miniZoomFactor : currentZoomFactor);
   miniView = on;
   lastMiniSize = '';
   localStorage.setItem(MINI_STORAGE_KEY, on ? '1' : '0');
   document.body.classList.toggle('minimized', on);
   DOM.get('#miniViewBtn')!.classList.toggle('active', on);
   const miniBtn = DOM.get('#miniViewBtn') as HTMLElement;
-  miniBtn.title = `${on ? 'Back to full view' : 'Switch to mini view'} (Cmd/Ctrl+Shift+M)`;
-  miniBtn.querySelector('i')!.textContent = on ? 'open_in_full' : 'close_fullscreen';
+  miniBtn.title = `${on ? 'Back to the full view' : 'Mini view'} (⌘⇧M)`;
+  // a word, not an icon: "Mini" goes to the mini view, "Full" back
+  miniBtn.textContent = on ? 'Full' : 'Mini';
   if (refresh) view.updateValuesForAllZones();
   // each view keeps its own zoom
   webFrame.setZoomFactor(on ? miniZoomFactor : currentZoomFactor);
@@ -939,7 +998,7 @@ document.addEventListener('DOMContentLoaded', function () {
           container,
           'beforeend',
           `<div class="clockOutOption portVis${hidden ? ' hiddenPort' : ''}${locked ? ' locked' : ''}" data-portid="${esc(port.id)}" data-dir="${dir}"
-            title="${locked ? 'In use – cannot be hidden' : hidden ? 'Show this port' : 'Hide this port'}">
+            title="${locked ? 'In use: can’t be hidden' : hidden ? 'Show this port' : 'Hide this port'}">
             <span>${esc(port.fullName)}</span>
             <span class="material-icons">${hidden ? 'visibility_off' : 'visibility'}</span>
           </div>`
@@ -1055,6 +1114,13 @@ document.addEventListener('DOMContentLoaded', function () {
   let initialized = false;
   let mackieSelectedZone: number | null = null;
   let sendMackieLeds: () => void = () => {};
+  /** Mackie Rec's LED: lit while the selected zone records or overdubs its loop, flashing while it waits for a 1 */
+  const recLed = (): number => {
+    const zone = mackieSelectedZone !== null ? zones.list[mackieSelectedZone] : undefined;
+    const state = zone?.loopChip.state;
+    return state === 'rec' ? 127 : state === 'wait' || state === 'closing' ? 1 : 0;
+  };
+  let lastRecLed = 0;
   const midi = new MIDI({
     eventHandler: (event: MIDIMessage) => {
       const data = event.data;
@@ -1141,6 +1207,10 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
               mackieSelectedZone = zoneIndex;
             }
+          }
+          // Rec → the loop button of the selected strip's zone
+          if (note === 95 && mackieSelectedZone !== null) {
+            view.loopZone(mackieSelectedZone);
           }
           // F1–F4 → arrangements A–D
           if (note >= 54 && note <= 57) {
@@ -1245,18 +1315,19 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     },
     clockHandler: (pos: number, tickIntervalMs: number, atMs: number) => {
-      timelineLoop(activeLoop());
       timelineMeter(activeMeter());
       timelineClock(pos, tickIntervalMs);
       if (zones.nextArrangementIndex !== zones.arrangementIndex) {
         if (isSwitchPoint(pos)) {
           const newIndex = zones.nextArrangementIndex;
+          // a loop being recorded ends here, in the outgoing arrangement (an undo step of its own)
+          view.finishLoops();
           view.switchZonesToArrangement(newIndex);
-          // after the outgoing section's takes ended (in stopped(), in its meter), before
-          // this tick plays; the new arrangement's song starts at bar 1 or its loop's start
-          timelineLoop(activeLoop());
+          // before this tick plays: the new arrangement's song starts at bar 1, and the
+          // take being recorded gets a section in its meter
           timelineMeter(activeMeter());
           timelineSection(pos);
+          takeStore.section(pos, activeMeter());
           view.selectArrangement(newIndex);
           sendMackieLeds();
           saveZones();
@@ -1267,14 +1338,34 @@ document.addEventListener('DOMContentLoaded', function () {
         view.applyPendingToggles();
         sendMackieLeds();
       }
+      // loop recordings and overdubs ending here: the loop plays from this tick
+      view.landLoops(pos - timeline.sectionStart);
+      // chords zones following a line live
+      view.chordsTick(pos, tickIntervalMs);
       for (let i = 0; i < zones.list.length; i++) {
         zones.list[i].clock(pos, tickIntervalMs);
       }
       metronomeTick(pos, atMs, tickIntervalMs, (p) => metronomeBeatAt(p, pos, true), () => metronomeSettings.click);
+      // Rec's LED follows the loop (a recording starts on its 1 by itself)
+      if (recLed() !== lastRecLed) {
+        lastRecLed = recLed();
+        sendMackieLeds();
+      }
     },
     transportHandler: (started: boolean) => {
+      // MPE expression still coming in goes into the takes and loops first (zone/note-curve.ts)
+      zones.list.forEach((z) => z.finishExpression());
+      // loops being recorded end at their nearest 1 (while the run's position is still known)
+      if (!started) view.finishLoops();
+      view.chordsTransport();
       timelineMeter(activeMeter());
       timelineTransport(started);
+      // a run is a take: from Start to Stop (stopPos is where it stopped)
+      if (started) {
+        takeStore.startRun(activeMeter());
+        // the cards offer a loop's bars after the run it was recorded in
+        for (const z of zones.list) z.looper.lastRun = null;
+      } else takeStore.endRun(timeline.stopPos);
       // after a count-in the first beats are already scheduled
       if (!countingIn) resetMetronome();
       showCountIn(null);
@@ -1304,9 +1395,12 @@ document.addEventListener('DOMContentLoaded', function () {
     },
     clockPausedHandler: () => {
       zones.list.forEach((z) => z.paused());
+      // live chords let go (they start again with the ticks)
+      view.chordsPause();
     },
     panicHandler: () => {
       zones.list.forEach((z) => z.panic());
+      view.chordsPanic();
       view.updateValuesForAllZones(); // held Pedal buttons go dark
       console.log('app: distributed panic to all zones');
       setTimeout(() => {
@@ -1324,6 +1418,12 @@ document.addEventListener('DOMContentLoaded', function () {
             midi.panic();
           });
           loadZones(midi);
+          loadSavedTakes(zones.list.map((z) => z.id));
+          initTakeFiles(() => zones.list.map((z) => z.id));
+          // ids given and kept takes migrated on this load are saved with the scene, and
+          // the takes with them (the scene no longer holds kept takes once saved)
+          takesNeedSaving();
+          saveZones();
           view.renderZones();
         function updateUndoRedoButtons(): void {
           const undoBtn = DOM.get('#undoBtn') as HTMLButtonElement | null;
@@ -1362,7 +1462,6 @@ document.addEventListener('DOMContentLoaded', function () {
           updateClockOutputCount();
           refreshPortLists();
           timelineMeter(activeMeter());
-          timelineLoop(activeLoop());
           saveZones();
           sendMackieLeds();
         }
@@ -1398,8 +1497,9 @@ document.addEventListener('DOMContentLoaded', function () {
         undoHistory.onChange = updateUndoRedoButtons;
         updateUndoRedoButtons();
 
-        function createNewZone(): void {
-          undoHistory.push(JSON.stringify(zones), 'Add Zone');
+        /** `part`: a chords or bass zone, following the zone with a line (named after what it plays) */
+        function createNewZone(part?: 'chords' | 'bass'): void {
+          undoHistory.push(JSON.stringify(zones), part === 'bass' ? 'Add Bass Zone' : part ? 'Add Chords Zone' : 'Add Zone');
           let colorIndex = 0;
           if (zones.list.length > 0) {
             colorIndex = zones.list[zones.list.length - 1].colorIndex + 1;
@@ -1410,8 +1510,14 @@ document.addEventListener('DOMContentLoaded', function () {
               zones.list[zones.list.length - 1].outputPortId;
           }
           zones.list.push(newZone);
+          if (part) {
+            newZone.label = part === 'bass' ? 'Bass' : 'Chords';
+            view.playChords(newZone, part);
+          }
           saveZones();
           view.renderLastZone();
+          // the other chords zones' Follows lists
+          if (part) view.updateValuesForAllZones();
           DOM.get(`#zone${zones.list.length - 1}`)!.scrollIntoView();
         }
         window.addEventListener('resize', () => {
@@ -1419,7 +1525,8 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         // The "+ Add zone" link is re-rendered with the zones, so listen on the list
         DOM.get('#zones')!.addEventListener('click', (ev) => {
-          if ((ev.target as HTMLElement).closest('.addnewzone a')) createNewZone();
+          const link = (ev.target as HTMLElement).closest<HTMLElement>('.addnewzone a');
+          if (link) createNewZone(link.dataset.part === 'bass' ? 'bass' : link.dataset.part === 'chords' ? 'chords' : undefined);
         });
         DOM.get('#deleteallzones')!.addEventListener('click', async () => {
           await ipcRenderer
@@ -1478,6 +1585,8 @@ document.addEventListener('DOMContentLoaded', function () {
           commitBpmGesture();
         });
         updateBpmInput();
+        // a MIDI file's tempo (Import MIDI file as take…, and its undo)
+        window.addEventListener(TEMPO_CHANGED_EVENT, () => updateBpmInput());
         midi.bpmDetectedHandler = (bpm: number | null) => {
           if (midi.deviceIdInClock !== MIDI.INTERNAL_PORT_ID) {
             bpmInput.value = bpm !== null ? bpm.toFixed(1) : '';
@@ -1530,7 +1639,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         DOM.get('#save')!.addEventListener('click', async (e) => {
           await ipcRenderer
-            .invoke('open-save', JSON.stringify(zones))
+            .invoke('open-save', sceneWithTakes())
             .then(
               (result: {
                 canceled: boolean;
@@ -1604,6 +1713,8 @@ document.addEventListener('DOMContentLoaded', function () {
           for (let a = 0; a < 4; a++) {
             midi.sendMackie(54 + a, zones.arrangementIndex === a ? 127 : 0);
           }
+          lastRecLed = recLed();
+          midi.sendMackie(95, lastRecLed);
           midi.sendMackie(94, midi.isClockRunning ? 127 : 0);
           midi.sendMackie(93, midi.isClockRunning ? 0 : 127);
         };
@@ -1727,6 +1838,10 @@ document.addEventListener('DOMContentLoaded', function () {
   DOM.on('*[data-select-arrangement][data-contextmenu]', 'contextmenu', (ev) => {
     view.showContextMenuFor(ev as MouseEvent);
   });
+  // the meter chip after the tempo: the active arrangement's meter menu
+  DOM.on('#meterChip', 'click', (ev) => {
+    view.showContextMenuFor(ev as MouseEvent);
+  });
   DOM.on('#seqquant', 'change', (ev) => {
     const quantDiv = parseInt((ev.target as HTMLSelectElement).value);
     zones.arrangementQuantIndex = quantDiv;
@@ -1743,31 +1858,50 @@ document.addEventListener('DOMContentLoaded', function () {
     saveZones();
   });
   DOM.on('#aboutBtn', 'click', () => ipcRenderer.invoke('open-about'));
-  const SETUP_OPEN_KEY = 'setupDrawerOpen';
+  // Setup floats over the zones (an overlay since Nov 2026: it grew too big to push them
+  // down). It starts closed; the Setup button, Esc or a press outside it close it.
+  localStorage.removeItem('setupDrawerOpen'); // where it used to be kept open across starts
   function setSetupOpen(open: boolean): void {
     document.body.classList.toggle('setup-open', open);
     DOM.get('#setupToggle')!.setAttribute('aria-expanded', String(open));
-    localStorage.setItem(SETUP_OPEN_KEY, open ? '1' : '0');
   }
-  setSetupOpen(localStorage.getItem(SETUP_OPEN_KEY) === '1');
   DOM.get('#setupToggle')!.addEventListener('click', () =>
     setSetupOpen(!document.body.classList.contains('setup-open'))
   );
   // The external clock name in the transport leads to where the clock source is chosen
   DOM.on('.transport .ext-badge', 'click', () => setSetupOpen(true));
-  // Keep the zones below the top bar, including the drawer when it is open (and when it wraps to two rows).
+  // A press outside closes it and still does what it was aimed at. The top bar (transport,
+  // undo, view) and what Setup opens (port windows, help, menus, dialogs) don't count.
+  const SETUP_KEEPS_OPEN =
+    '#midisettings, #inputPortWindow, #clockOutPortWindow, #keySwitchHelpOverlay, #mackieHelpOverlay, #contextmenu, #toast, dialog';
+  document.addEventListener(
+    'pointerdown',
+    (ev) => {
+      if (!document.body.classList.contains('setup-open')) return;
+      if ((ev.target as Element).closest?.(SETUP_KEEPS_OPEN)) return;
+      setSetupOpen(false);
+    },
+    true
+  );
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Escape' || !document.body.classList.contains('setup-open')) return;
+    // the editor panels and an open menu take Esc first
+    if (document.querySelector('#pianoRollOverlay.open, #ccEditor.open')) return;
+    if ((DOM.get('#contextmenu') as HTMLElement).style.display === 'block') return;
+    // a port window opened from Setup closes before Setup
+    const portWindows = ['#inputPortWindow', '#clockOutPortWindow'].map((s) => DOM.get(s) as HTMLElement);
+    const openWindow = portWindows.find((w) => w.style.display === 'block');
+    if (openWindow) openWindow.style.display = 'none';
+    else setSetupOpen(false);
+    const focused = document.activeElement as HTMLElement | null;
+    if (focused?.closest('#setupDrawer')) focused.blur();
+  });
+  // Keep the zones below the top bar (two rows when the window is narrow); Setup floats over them
   const topBar = DOM.get('#midisettings') as HTMLElement;
-  const setupDrawer = DOM.get('#setupDrawer') as HTMLElement;
   const syncTopBarHeight = (): void => {
-    const drawerOpen = document.body.classList.contains('setup-open');
-    const bottom = Math.max(
-      topBar.getBoundingClientRect().bottom,
-      drawerOpen ? setupDrawer.getBoundingClientRect().bottom : 0
-    );
-    document.documentElement.style.setProperty('--topbar-h', `${Math.ceil(bottom)}px`);
+    document.documentElement.style.setProperty('--topbar-h', `${Math.ceil(topBar.getBoundingClientRect().bottom)}px`);
   };
   new ResizeObserver(syncTopBarHeight).observe(topBar);
-  new ResizeObserver(syncTopBarHeight).observe(setupDrawer);
   syncTopBarHeight();
   DOM.on('#keySwitchEnabled', 'change', (ev) => {
     zones.keySwitchEnabled = (ev.target as HTMLInputElement).checked;

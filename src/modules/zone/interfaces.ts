@@ -6,6 +6,8 @@ export const UPDATE_ZONE_VIEW_EVENT = 'update-zone-view';
 export const ZONES_CHANGED_EVENT = 'zones-changed';
 /** A zone's knobs show other values: parameter locks were sent or reverted (detail: the zone) */
 export const CC_LOCK_VALUES_EVENT = 'cc-lock-values';
+/** zones.tempo changed outside the BPM field (a MIDI file's tempo): the field shows it */
+export const TEMPO_CHANGED_EVENT = 'tempo-changed';
 
 export enum CCControllerType {
   UNIPOLAR_ROTARY = 0,
@@ -150,6 +152,46 @@ export interface TakeNoteJSON {
   d: number;
   n: number;
   v: number;
+  /** a loop's pick-up: played before its first 1, at its end so it leads into every repeat */
+  p?: 1;
+  /** a loop's own note: overdubbed or added there, not cut from its take (kept when it's cut anew) */
+  o?: 1;
+  /** the note's MPE expression as played (zone/note-curve.ts) */
+  x?: NoteCurveJSON;
+}
+
+/** A take note changed in a loop cut from it: by its key (the take note's tick and pitch as recorded) */
+export interface LoopFixJSON {
+  k: [number, number];
+  /** moved this far from where the take note lands (after the loop's quantize) */
+  dt: number;
+  d: number;
+  n: number;
+  v: number;
+  x?: NoteCurveJSON;
+}
+
+/**
+ * A loop cut from a take (zone/loop-window.ts): how it's cut, so its bars can be moved over
+ * the take again. Quantize applied to the take's notes, take notes deleted in the loop and
+ * take notes changed there (keys: the take note's tick and pitch as recorded)
+ */
+export interface LoopLinkJSON {
+  q?: { g: number; s: number };
+  /** its MPE expression was cleared: cut anew, it stays plain */
+  plain?: 1;
+  hide?: [number, number][];
+  fix?: LoopFixJSON[];
+}
+
+/** Flat [dt, value, …], dt in 1/8 ticks since the previous point (see zone/note-curve.ts) */
+export type CurveSeries = number[];
+
+/** A note's MPE expression: bend (1/100 semitone of the keyboard), slide (CC 74), pressure (before the threshold) */
+export interface NoteCurveJSON {
+  bend?: CurveSeries;
+  slide?: CurveSeries;
+  press?: CurveSeries;
 }
 
 /** A kept take: its place in the arrangement's song (ticks from bar 1), length, notes */
@@ -160,6 +202,22 @@ export interface TakeJSON {
   /** where in the recording the take's start lies (trimming moves it) */
   offset?: number;
   notes: TakeNoteJSON[];
+  /** when it was recorded (ms since 1970) */
+  at?: number;
+  /** recording order across the session (undo tells takes recorded after a snapshot by it) */
+  seq?: number;
+  /** where each arrangement's section of the run began (take ticks) and its meter: its bars */
+  sections?: { t: number; meter: unknown }[];
+  /** a loop's notes outside its bars (ticks from its start, before it negative), for dragging its edges out again */
+  spare?: TakeNoteJSON[];
+  /** channel gestures (sustain, wheels, aftertouch, passed CCs), per control `[t, value, …]` (zone/gestures.ts) */
+  g?: Record<string, number[]>;
+  /** a take: where it starts in its run (run ticks; its lead before the first bar was cut) */
+  runOffset?: number;
+  /** a loop: the run it was cut from (its start time, as a take's `at`) and where its first bar was (run ticks) */
+  origin?: { at: number; run: number };
+  /** a loop cut from a take: how (zone/loop-window.ts) */
+  link?: LoopLinkJSON;
 }
 
 export interface SequenceJSON {
@@ -206,13 +264,29 @@ export interface ZoneArrangementJSON {
   euclid_length: number;
   sequence: SequenceJSON;
   swingAmount?: number;
-  /** Kept takes: this arrangement's song for the zone */
+  /** Before Nov 2026: kept takes, this arrangement's song for the zone (migrated on load) */
   takes?: TakeJSON[];
-  /** Whether they play */
+  /** Before Nov 2026: whether they played */
   takes_on?: boolean;
+  /** The zone's loop in this arrangement (the looper's, played from bar 1) */
+  loop?: TakeJSON;
+  /** false: the loop is switched off (kept, silent); missing: on */
+  loop_on?: boolean;
+  /** the loop plays its notes' recorded MPE expression (missing = yes) */
+  loop_mpe?: boolean;
+  /** Chords zones: false = the chords are switched off (missing: on) */
+  chords_on?: boolean;
+  /** Chords zones: the settings (chord-settings.ts, sanitized on load) */
+  chord_set?: unknown;
+  /** Chords zones: the chords the loop was made of (for its chord names and redoing it) */
+  chord_plan?: unknown;
 }
 
 export interface ZoneJSON {
+  /** Stable id (the take store keys the zone's takes by it) */
+  id?: string;
+  /** Its takes, in scene and zone files only (not in undo snapshots or localStorage) */
+  takes?: TakeJSON[];
   channel: number;
   preferredOutputPortId: string;
   inputPortId?: string | null;
@@ -233,6 +307,9 @@ export interface ZoneJSON {
   low: number;
   high: number;
   show_cc: boolean;
+  show_seq_panel?: boolean;
+  show_arp_panel?: boolean;
+  show_thru_panel?: boolean;
   pgm_no?: number | null;
   bank_msb?: number | null;
   bank_lsb?: number | null;
@@ -241,5 +318,9 @@ export interface ZoneJSON {
   devicePreset?: { id: string; name: string } | null;
   // Index of the controller page the zone shows
   cc_page?: number;
+  /** Plays chords or a bass line to another zone's line (chord-settings.ts ChordRole) */
+  chords?: unknown;
+  /** The id of the zone's take that plays along (Zone.playTake) */
+  play_take?: string;
   arrangements: ZoneArrangementJSON[];
 }

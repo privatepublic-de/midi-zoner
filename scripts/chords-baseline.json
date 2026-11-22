@@ -1,0 +1,1112 @@
+{
+ "piano": {
+  "Amazing Grace": {
+   "loop": {
+    "key": "G Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 0.9375
+   },
+   "live": {
+    "key": "G Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 0
+   },
+   "ahead": {
+    "key": "G Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 0.9375
+   }
+  },
+  "Clementine (approx.)": {
+   "loop": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 2.247191011235948,
+    "changes": 1
+   },
+   "live": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 0.5
+   },
+   "ahead": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 0.875
+   }
+  },
+  "Silent Night": {
+   "loop": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.1666666666666667
+   },
+   "live": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 2.330293819655515,
+    "changes": 0.9583333333333334
+   },
+   "ahead": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.0833333333333333
+   }
+  },
+  "Scarborough Fair (approx.)": {
+   "loop": {
+    "key": "D Dorian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 1.1111111111111103,
+    "changes": 1
+   },
+   "live": {
+    "key": "D Aeolian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 1.3188073394495403,
+    "changes": 0.75
+   },
+   "ahead": {
+    "key": "D Aeolian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 1.2221041445270977,
+    "changes": 1.25
+   }
+  },
+  "Drunken Sailor": {
+   "loop": {
+    "key": "D Dorian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.4166666666666667
+   },
+   "live": {
+    "key": "D Dorian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 1.3888888888888915,
+    "changes": 1.1666666666666667
+   },
+   "ahead": {
+    "key": "D Dorian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.75
+   }
+  },
+  "Old Joe Clark (approx.)": {
+   "loop": {
+    "key": "A Mixolydian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.5
+   },
+   "live": {
+    "key": "E Dorian",
+    "keyOk": false,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.5
+   },
+   "ahead": {
+    "key": "E Dorian",
+    "keyOk": false,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.625
+   }
+  },
+  "God Rest Ye Merry Gentlemen": {
+   "loop": {
+    "key": "E Aeolian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.8333333333333333
+   },
+   "live": {
+    "key": "E Aeolian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 1.5873015873015888,
+    "changes": 2.0555555555555554
+   },
+   "ahead": {
+    "key": "E Aeolian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 1.4925373134328392,
+    "changes": 2.5555555555555554
+   }
+  },
+  "Joshua Fit the Battle (approx.)": {
+   "loop": {
+    "key": "D Aeolian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 1.5625000000000022,
+    "changes": 1.375
+   },
+   "live": {
+    "key": "D Aeolian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.125
+   },
+   "ahead": {
+    "key": "D Aeolian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.75
+   }
+  },
+  "Frère Jacques": {
+   "loop": {
+    "key": "F Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.75
+   },
+   "live": {
+    "key": "F Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 3.5714285714285663,
+    "changes": 1
+   },
+   "ahead": {
+    "key": "F Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 2
+   }
+  },
+  "When the Saints": {
+   "loop": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.5625
+   },
+   "live": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.1875
+   },
+   "ahead": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.625
+   }
+  },
+  "Auld Lang Syne": {
+   "loop": {
+    "key": "F Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 2.6647966339410947,
+    "changes": 1.5
+   },
+   "live": {
+    "key": "F Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 1.8518518518518454,
+    "changes": 1.125
+   },
+   "ahead": {
+    "key": "F Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.625
+   }
+  },
+  "Twinkle Twinkle": {
+   "loop": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.5833333333333333
+   },
+   "live": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.6666666666666667
+   },
+   "ahead": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.75
+   }
+  },
+  "12-bar blues riff": {
+   "loop": {
+    "key": "C Mixolydian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 10.416666666666659,
+    "changes": 1.75
+   },
+   "live": {
+    "key": "C Mixolydian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 4.44444444444444,
+    "changes": 1.0833333333333333
+   },
+   "ahead": {
+    "key": "C Mixolydian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 3.124999999999998,
+    "changes": 2.1666666666666665
+   }
+  },
+  "Exercise: chromatic neighbours": {
+   "loop": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 3.1250000000000036,
+    "changes": 1.375
+   },
+   "live": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 3.4482758620689693,
+    "changes": 1.125
+   },
+   "ahead": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 6.2500000000000036,
+    "changes": 1.25
+   }
+  },
+  "Exercise: neighbour tones in A minor": {
+   "loop": {
+    "key": "A Aeolian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 1.5625000000000009,
+    "changes": 1.625
+   },
+   "live": {
+    "key": "A Aeolian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 0.875
+   },
+   "ahead": {
+    "key": "A Aeolian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 1.5625000000000009,
+    "changes": 1.5
+   }
+  },
+  "Greensleeves (take, as played)": {
+   "loop": {
+    "key": "E Dorian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 2.176678445229682,
+    "changes": 1.1818181818181819
+   },
+   "live": {
+    "key": "E Aeolian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0.9966290488055107,
+    "changes": 0.8484848484848485
+   },
+   "ahead": {
+    "key": "E Aeolian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0.5834637825530098,
+    "changes": 0.9393939393939394
+   }
+  }
+ },
+ "pop": {
+  "Amazing Grace": {
+   "loop": {
+    "key": "G Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 0.9375
+   },
+   "live": {
+    "key": "G Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 0
+   },
+   "ahead": {
+    "key": "G Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 0.9375
+   }
+  },
+  "Clementine (approx.)": {
+   "loop": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 0.875
+   },
+   "live": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 0.5
+   },
+   "ahead": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 0.875
+   }
+  },
+  "Silent Night": {
+   "loop": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.1666666666666667
+   },
+   "live": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 6.9908814589665615,
+    "changes": 1
+   },
+   "ahead": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.0833333333333333
+   }
+  },
+  "Scarborough Fair (approx.)": {
+   "loop": {
+    "key": "D Dorian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 1.1111111111111103,
+    "changes": 1
+   },
+   "live": {
+    "key": "D Dorian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 1.3188073394495403,
+    "changes": 0.75
+   },
+   "ahead": {
+    "key": "D Dorian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 1.2221041445270977,
+    "changes": 1.125
+   }
+  },
+  "Drunken Sailor": {
+   "loop": {
+    "key": "D Dorian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.4166666666666667
+   },
+   "live": {
+    "key": "D Dorian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 1.3888888888888915,
+    "changes": 1
+   },
+   "ahead": {
+    "key": "D Dorian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.8333333333333333
+   }
+  },
+  "Old Joe Clark (approx.)": {
+   "loop": {
+    "key": "A Mixolydian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.125
+   },
+   "live": {
+    "key": "E Dorian",
+    "keyOk": false,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.125
+   },
+   "ahead": {
+    "key": "E Dorian",
+    "keyOk": false,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.75
+   }
+  },
+  "God Rest Ye Merry Gentlemen": {
+   "loop": {
+    "key": "E Aeolian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.7777777777777777
+   },
+   "live": {
+    "key": "E Aeolian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 1.5873015873015888,
+    "changes": 2.1666666666666665
+   },
+   "ahead": {
+    "key": "E Aeolian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 1.4925373134328392,
+    "changes": 2.5555555555555554
+   }
+  },
+  "Joshua Fit the Battle (approx.)": {
+   "loop": {
+    "key": "D Dorian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 1.562499999999998,
+    "changes": 1.375
+   },
+   "live": {
+    "key": "D Dorian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.125
+   },
+   "ahead": {
+    "key": "D Dorian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 2.375
+   }
+  },
+  "Frère Jacques": {
+   "loop": {
+    "key": "F Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.75
+   },
+   "live": {
+    "key": "F Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 3.5714285714285663,
+    "changes": 1
+   },
+   "ahead": {
+    "key": "F Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 2
+   }
+  },
+  "When the Saints": {
+   "loop": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.4375
+   },
+   "live": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.1875
+   },
+   "ahead": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.625
+   }
+  },
+  "Auld Lang Syne": {
+   "loop": {
+    "key": "F Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 2.6647966339410947,
+    "changes": 1.5
+   },
+   "live": {
+    "key": "F Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 1.8518518518518454,
+    "changes": 1.125
+   },
+   "ahead": {
+    "key": "F Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.625
+   }
+  },
+  "Twinkle Twinkle": {
+   "loop": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.5833333333333333
+   },
+   "live": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.75
+   },
+   "ahead": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.75
+   }
+  },
+  "12-bar blues riff": {
+   "loop": {
+    "key": "C Mixolydian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 10.416666666666659,
+    "changes": 1.75
+   },
+   "live": {
+    "key": "C Mixolydian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 4.44444444444444,
+    "changes": 1.0833333333333333
+   },
+   "ahead": {
+    "key": "C Mixolydian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 3.124999999999998,
+    "changes": 2.1666666666666665
+   }
+  },
+  "Exercise: chromatic neighbours": {
+   "loop": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 3.1250000000000036,
+    "changes": 1.375
+   },
+   "live": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 3.4482758620689693,
+    "changes": 1.125
+   },
+   "ahead": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 6.2500000000000036,
+    "changes": 1.25
+   }
+  },
+  "Exercise: neighbour tones in A minor": {
+   "loop": {
+    "key": "A Dorian",
+    "keyOk": false,
+    "keyMode": false,
+    "clash": 1.5625000000000009,
+    "changes": 1.625
+   },
+   "live": {
+    "key": "A Dorian",
+    "keyOk": false,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 0.875
+   },
+   "ahead": {
+    "key": "A Dorian",
+    "keyOk": false,
+    "keyMode": false,
+    "clash": 1.5625000000000009,
+    "changes": 1.5
+   }
+  },
+  "Greensleeves (take, as played)": {
+   "loop": {
+    "key": "E Dorian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 1.7809187279151943,
+    "changes": 1.2424242424242424
+   },
+   "live": {
+    "key": "E Dorian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0.9966290488055107,
+    "changes": 1
+   },
+   "ahead": {
+    "key": "E Dorian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 1.0103885014942364,
+    "changes": 1.121212121212121
+   }
+  }
+ },
+ "ambient": {
+  "Amazing Grace": {
+   "loop": {
+    "key": "G Mixolydian",
+    "keyOk": false,
+    "keyMode": true,
+    "clash": 0,
+    "changes": 0.6875
+   },
+   "live": {
+    "key": "G Mixolydian",
+    "keyOk": false,
+    "keyMode": true,
+    "clash": 0,
+    "changes": 0
+   },
+   "ahead": {
+    "key": "G Mixolydian",
+    "keyOk": false,
+    "keyMode": true,
+    "clash": 0,
+    "changes": 0.75
+   }
+  },
+  "Clementine (approx.)": {
+   "loop": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 0.625
+   },
+   "live": {
+    "key": "C Mixolydian",
+    "keyOk": false,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 0.375
+   },
+   "ahead": {
+    "key": "C Mixolydian",
+    "keyOk": false,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 0.25
+   }
+  },
+  "Silent Night": {
+   "loop": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 0.8333333333333334
+   },
+   "live": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 6.9908814589665615,
+    "changes": 0.7916666666666666
+   },
+   "ahead": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 4.444444444444447,
+    "changes": 0.8333333333333334
+   }
+  },
+  "Scarborough Fair (approx.)": {
+   "loop": {
+    "key": "D Dorian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 1.1111111111111103,
+    "changes": 0.875
+   },
+   "live": {
+    "key": "D Dorian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 1.3188073394495403,
+    "changes": 0.5625
+   },
+   "ahead": {
+    "key": "D Dorian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 0.875
+   }
+  },
+  "Drunken Sailor": {
+   "loop": {
+    "key": "D Dorian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 0.9166666666666666
+   },
+   "live": {
+    "key": "D Dorian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 1.3888888888888915,
+    "changes": 0.6666666666666666
+   },
+   "ahead": {
+    "key": "D Dorian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.4166666666666667
+   }
+  },
+  "Old Joe Clark (approx.)": {
+   "loop": {
+    "key": "A Mixolydian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1
+   },
+   "live": {
+    "key": "E Dorian",
+    "keyOk": false,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1
+   },
+   "ahead": {
+    "key": "E Dorian",
+    "keyOk": false,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1.125
+   }
+  },
+  "God Rest Ye Merry Gentlemen": {
+   "loop": {
+    "key": "E Aeolian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 1.4705882352941209,
+    "changes": 1.0555555555555556
+   },
+   "live": {
+    "key": "A Dorian",
+    "keyOk": false,
+    "keyMode": false,
+    "clash": 3.1746031746031815,
+    "changes": 1.1666666666666667
+   },
+   "ahead": {
+    "key": "A Dorian",
+    "keyOk": false,
+    "keyMode": false,
+    "clash": 2.9850746268656785,
+    "changes": 2
+   }
+  },
+  "Joshua Fit the Battle (approx.)": {
+   "loop": {
+    "key": "D Dorian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 0.5
+   },
+   "live": {
+    "key": "D Dorian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 3.448275862068971,
+    "changes": 0.375
+   },
+   "ahead": {
+    "key": "D Dorian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 1
+   }
+  },
+  "Frère Jacques": {
+   "loop": {
+    "key": "F Mixolydian",
+    "keyOk": false,
+    "keyMode": true,
+    "clash": 3.124999999999996,
+    "changes": 0.5
+   },
+   "live": {
+    "key": "F Mixolydian",
+    "keyOk": false,
+    "keyMode": true,
+    "clash": 3.5714285714285663,
+    "changes": 0.5
+   },
+   "ahead": {
+    "key": "F Mixolydian",
+    "keyOk": false,
+    "keyMode": true,
+    "clash": 0,
+    "changes": 1.375
+   }
+  },
+  "When the Saints": {
+   "loop": {
+    "key": "C Mixolydian",
+    "keyOk": false,
+    "keyMode": true,
+    "clash": 0,
+    "changes": 0.875
+   },
+   "live": {
+    "key": "C Mixolydian",
+    "keyOk": false,
+    "keyMode": true,
+    "clash": 0,
+    "changes": 0.5
+   },
+   "ahead": {
+    "key": "C Mixolydian",
+    "keyOk": false,
+    "keyMode": true,
+    "clash": 0,
+    "changes": 1.25
+   }
+  },
+  "Auld Lang Syne": {
+   "loop": {
+    "key": "F Mixolydian",
+    "keyOk": false,
+    "keyMode": true,
+    "clash": 0,
+    "changes": 0.75
+   },
+   "live": {
+    "key": "F Mixolydian",
+    "keyOk": false,
+    "keyMode": true,
+    "clash": 0,
+    "changes": 0.75
+   },
+   "ahead": {
+    "key": "F Mixolydian",
+    "keyOk": false,
+    "keyMode": true,
+    "clash": 0,
+    "changes": 1.25
+   }
+  },
+  "Twinkle Twinkle": {
+   "loop": {
+    "key": "C Mixolydian",
+    "keyOk": false,
+    "keyMode": true,
+    "clash": 0,
+    "changes": 1.6666666666666667
+   },
+   "live": {
+    "key": "C Mixolydian",
+    "keyOk": false,
+    "keyMode": true,
+    "clash": 0,
+    "changes": 0.75
+   },
+   "ahead": {
+    "key": "C Mixolydian",
+    "keyOk": false,
+    "keyMode": true,
+    "clash": 0,
+    "changes": 1.6666666666666667
+   }
+  },
+  "12-bar blues riff": {
+   "loop": {
+    "key": "C Mixolydian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 5.208333333333329,
+    "changes": 0.9166666666666666
+   },
+   "live": {
+    "key": "C Mixolydian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 3.3333333333333255,
+    "changes": 0.4166666666666667
+   },
+   "ahead": {
+    "key": "C Mixolydian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 3.124999999999998,
+    "changes": 1.8333333333333333
+   }
+  },
+  "Exercise: chromatic neighbours": {
+   "loop": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 3.1250000000000036,
+    "changes": 0.5
+   },
+   "live": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 5.172413793103455,
+    "changes": 0.625
+   },
+   "ahead": {
+    "key": "C Ionian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 10.937500000000002,
+    "changes": 0.875
+   }
+  },
+  "Exercise: neighbour tones in A minor": {
+   "loop": {
+    "key": "A Dorian",
+    "keyOk": false,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 0.5
+   },
+   "live": {
+    "key": "A Dorian",
+    "keyOk": false,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 0.25
+   },
+   "ahead": {
+    "key": "A Dorian",
+    "keyOk": false,
+    "keyMode": false,
+    "clash": 0,
+    "changes": 0.75
+   }
+  },
+  "Greensleeves (take, as played)": {
+   "loop": {
+    "key": "E Dorian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 1.1024734982332156,
+    "changes": 1
+   },
+   "live": {
+    "key": "E Dorian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 3.2537007181591675,
+    "changes": 0.696969696969697
+   },
+   "ahead": {
+    "key": "E Dorian",
+    "keyOk": true,
+    "keyMode": false,
+    "clash": 3.2303970399886155,
+    "changes": 0.9696969696969697
+   }
+  }
+ }
+}

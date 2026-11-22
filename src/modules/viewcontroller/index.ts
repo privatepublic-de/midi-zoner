@@ -1,4 +1,4 @@
-import DOM, { escapeHTML } from '../domutils';
+import DOM, { escapeHTML, syncRangeFill, setRangeValue } from '../domutils';
 import MIDI from '../midi';
 import { differsFromPreset, findDevicePreset, matchesPort, presetsByMaker, PresetDevice } from '../device-presets';
 
@@ -9,7 +9,7 @@ import { Zone } from '../zone/zone-class';
 import { showThruAndProgram } from './actions/filter-actions';
 import { MpeMode } from '../zone/mpe';
 import { Sequence } from '../zone/sequence';
-import { ZONES_CHANGED_EVENT } from '../zone/interfaces';
+import { ZONES_CHANGED_EVENT, UPDATE_ZONE_VIEW_EVENT, TEMPO_CHANGED_EVENT } from '../zone/interfaces';
 import { Note } from '../zone/note';
 import { showStepProperties } from './step-marks';
 
@@ -23,11 +23,17 @@ import {
 } from './actions';
 import { closeCCEditor, initCCEditor, isCCEditorOpen, refreshCCEditor } from './cc-editor';
 import { initPianoRoll } from './piano-roll';
-import { initTrackView, isTrackView, setTrackView, followTrack } from './track-view';
+import { initChords, chordsTick, chordsTransport, chordsPause, chordsPanic, chordsLineLoopChanged, chordsMenu, renderChordBlock, keepChords, alignToLine, updateChordChips, updateFollowRows, playChords, refreshChordsSheet } from './chords';
+import { initTrackView, isTrackView, setTrackView, followTrack, updateLoopChips, invalidateTrackView, beginTakeLoops } from './track-view';
+import { takeStore } from '../take-store';
+import { initMidiImport } from './midi-import';
 import { renderStepLocks } from './step-locks';
 import { isQuantizable, requestToggle, isPending, hasPendingToggles, takePendingToggles, markPending, setToggleBoundary } from './pending-toggles';
 import { describeAction, labelForZone, zonePrefix, ARRANGEMENT_LETTERS } from './action-labels';
-import { Meter, DEFAULT_METER, METER_CHOICES, meterLabel, sameMeter, parseMeter } from '../meter';
+import { Meter, DEFAULT_METER, METER_CHOICES, meterLabel, sameMeter, parseMeter, startsBeat } from '../meter';
+import { timeline, timelineMeter } from '../timeline';
+import { DIV_TICKS } from '../zone/seq-layer';
+import type { PressResult } from '../zone/looper';
 import {
   updateControllerValues,
   setMenuHandler,
@@ -37,6 +43,9 @@ import {
 import {
   updateOutputPortsForAllZones as updateOutputPortsForAllZonesInternal,
   updateOutputPortsForZone as updateOutputPortsForZoneInternal,
+  renderOutGrid,
+  initOutGrid,
+  syncOutportSelect,
   initOutputPortsForZone as initOutputPortsForZoneInternal,
   listUsedPorts as listUsedPortsInternal,
   getCachedOutputPorts,
@@ -89,6 +98,8 @@ const contextMenuActionLabel: Record<string, string> = {
   seq_clear_lane: '<i class="material-icons">clear</i> Clear lane',
   zone_change_color: '<i class="material-icons">palette</i> Change colour',
   zone_export: '<i class="material-icons">save_alt</i> Save zone to file…',
+  zone_import_midi: '<i class="material-icons">library_music</i> Import MIDI file as take…',
+  zone_loop_mpe_clear: '<i class="material-icons">clear</i> Clear the loop’s MPE',
   zone_delete: '<i class="material-icons">delete_outline</i> Delete zone…',
   cc_preset_save: '<i class="material-icons">save</i> Save as new preset…',
   cc_presets_manage: '<i class="material-icons">library_books</i> Manage presets…',
@@ -128,6 +139,16 @@ interface ControllerInitParams {
   midi: MIDIInstance;
   history: UndoHistory;
 }
+
+/** Actions that only show or hide something: saved, but no undo step */
+const VIEW_ONLY_ACTIONS = new Set([
+  'zone_fold_seq',
+  'zone_fold_arp',
+  'zone_fold_thru',
+  'cc_toggle',
+  'iorouting_toggle',
+  'iorouting_input'
+]);
 
 function initController({
   saveData,
@@ -175,17 +196,99 @@ function initController({
       triggerSave();
     },
     {
-      get: () => zones.loops?.[zones.arrangementIndex] ?? null,
-      set: (loop, label) => {
-        undoHistory.beforeAction(JSON.stringify(zones), label);
-        const loops = (zones.loops ??= []);
-        while (loops.length < 4) loops.push(null);
-        loops[zones.arrangementIndex] = loop;
-        triggerSave();
+      // takes aren't scene data: an edit is an undo step that patches the take back
+      commit: (zoneindex, take, label, change) => {
+        const before = take.toJSON();
+        // loops cut from the take follow it: cut anew, in the same undo step
+        const loopsAfter = beginTakeLoops(take);
+        change();
+        const after = take.toJSON();
+        if (JSON.stringify(before) === JSON.stringify(after)) return;
+        takeStore.touched();
+        const loops = loopsAfter();
+        const arrangement = zones.arrangementIndex;
+        const setLoops = (which: 'before' | 'after'): void => {
+          if (!loops.length || zones.arrangementIndex !== arrangement) return;
+          for (const c of loops) {
+            const zone = zones.list.find((z) => z.id === c.zoneId);
+            if (!zone) continue;
+            zone.loop = c[which].copy();
+            zone.loopPlayer.release(true);
+          }
+          originalSave();
+          window.dispatchEvent(new CustomEvent(ZONES_CHANGED_EVENT));
+        };
+        setLoops('after');
+        const refresh = (): void => {
+          takeStore.touched();
+          invalidateTrackView();
+        };
+        undoHistory.pushPatch(labelForZone(zones.list[zoneindex], zoneindex, label), {
+          undo: () => {
+            take.restore(before);
+            setLoops('before');
+            refresh();
+          },
+          redo: () => {
+            take.restore(after);
+            setLoops('after');
+            refresh();
+          }
+        });
+        invalidateTrackView();
+      },
+      save: () => originalSave(),
+      remove: (zoneindex, take) => {
+        const zoneId = zones.list[zoneindex].id;
+        const at = takeStore.remove(zoneId, take);
+        if (at < 0) return;
+        undoHistory.pushPatch(labelForZone(zones.list[zoneindex], zoneindex, 'Delete Take'), {
+          undo: () => {
+            takeStore.add(zoneId, take, at);
+            invalidateTrackView();
+          },
+          redo: () => {
+            takeStore.remove(zoneId, take);
+            invalidateTrackView();
+          }
+        });
+        invalidateTrackView();
       }
     },
     () => meterOf(zones.arrangementIndex)
   );
+  // the take playing along is never pushed out by newer takes
+  takeStore.keeps = (zoneId) => zones.list.find((z) => z.id === zoneId)?.playTake ?? null;
+  // a zone's ⋯ → Import MIDI file as take…: the take, the file's meter and tempo in one undo step
+  initMidiImport({
+    zones: () => zones.list,
+    label: (zoneindex, label) => labelForZone(zones.list[zoneindex], zoneindex, label),
+    pushPatch: (label, patch) => undoHistory.pushPatch(label, patch),
+    arrangement: () => zones.arrangementIndex,
+    meterOf: (arr) => meterOf(arr),
+    setMeter: (arr, meter) => setArrangementMeter(arr, meter, true),
+    tempo: () => (midiController.deviceIdInClock === MIDI.INTERNAL_PORT_ID ? zones.tempo : null),
+    setTempo: (bpm) => {
+      if (zones.tempo === bpm) return;
+      zones.tempo = bpm;
+      midiController.setInternalBPM(bpm);
+      triggerSave();
+      window.dispatchEvent(new CustomEvent(TEMPO_CHANGED_EVENT));
+    },
+    refresh: () => invalidateTrackView()
+  });
+  // chords zones: chords or a bass line to another zone's line
+  initChords({
+    zones: () => zones.list,
+    commit: (indices, label, change) => {
+      undoHistory.beforeAction(JSON.stringify(zones), labelForZone(zones.list[indices[0]], indices[0], label));
+      change();
+      indices.forEach((i) => updateValuesForZone(i));
+      triggerSave();
+      invalidateTrackView();
+    },
+    meter: () => meterOf(zones.arrangementIndex)
+  });
   setMenuHandler(contextHandler);
   initCCEditor({
     zone: (index) => zones.list[index],
@@ -324,6 +427,68 @@ function applyPendingToggles(): void {
   }
 }
 
+/**
+ * The loop button (the zone's Loop chip, Mackie Rec): records a loop, closes it, overdubs
+ * it, at the nearest 1 (see zone/looper.ts); two quick presses clear it
+ */
+function loopZone(index: number): void {
+  const zone = zones.list[index];
+  if (!zone) return;
+  // a chords zone's Rec keeps the chords heard as its loop (again: replacing it), from its chip or Mackie
+  if (zone.chords) {
+    keepChords(zone);
+    return;
+  }
+  // the undo snapshot is taken before, but only handed over when the loop changed
+  const before = JSON.stringify(zones);
+  afterLoop(index, before, zone.loopPress(performance.now()));
+}
+
+/** Recordings and overdubs that end on this tick (`elapsed`: ticks since the section began) */
+function landLoops(elapsed: number): boolean {
+  let landed = false;
+  zones.list.forEach((zone, index) => {
+    const to = zone.loopDueAt(elapsed);
+    if (to === null) return;
+    const before = JSON.stringify(zones);
+    afterLoop(index, before, zone.closeLoop(to, elapsed));
+    landed = true;
+  });
+  return landed;
+}
+
+/** Stop or an arrangement switch: recordings and overdubs under way end at their nearest 1 */
+function finishLoops(): void {
+  zones.list.forEach((zone, index) => {
+    if (zone.looper.mode === 'idle') return;
+    const before = JSON.stringify(zones);
+    const result = zone.finishLoop();
+    if (result) afterLoop(index, before, result);
+  });
+}
+
+/** One undo step when the loop changed */
+function afterLoop(index: number, before: string, result: PressResult): void {
+  const zone = zones.list[index];
+  const name = zone.label || `Zone ${index + 1}`;
+  let label = '';
+  if (result.kind === 'recorded') label = 'Record Loop';
+  else if (result.kind === 'dubbed' && result.added > 0) label = 'Overdub Loop';
+  else if (result.kind === 'cleared') label = 'Clear Loop';
+  else if (result.kind === 'empty') toast(`${name}: nothing played, no loop`);
+  if (label) {
+    undoHistory.beforeAction(before, labelForZone(zone, index, label));
+    updateValuesForZone(index);
+    triggerSave();
+    window.dispatchEvent(new CustomEvent(UPDATE_ZONE_VIEW_EVENT, { detail: zone }));
+    if (result.kind === 'cleared') toast(`${name}: loop cleared`);
+  }
+  // the chords zones following this zone's line: their chords become loops too
+  if (label && (result.kind === 'recorded' || result.kind === 'dubbed')) chordsLineLoopChanged(zone);
+  updateLoopChips();
+  onStateChange?.();
+}
+
 /** A zone toggle from a key switch or a Mackie button: like a click on its chip */
 function zoneToggle(index: number, action: string): void {
   if (!zones.list[index]) return;
@@ -345,8 +510,25 @@ function actionHandler(ev: MouseEvent, overrideaction?: string): void {
     actionString = element.getAttribute('data-focus-change');
     actionString += ':' + (ev.type == 'focus' ? 1 : 0);
   }
+  if (actionString!.endsWith(':zone_loop')) {
+    loopZone(parseInt(actionString!));
+    return;
+  }
+  {
+    // a chords zone: its Seq chip's place is the chords switch (key switches, Mackie), Arp is off
+    const [zi, act] = actionString!.split(':');
+    const cz = zones.list[parseInt(zi)];
+    if (cz?.chords) {
+      if (act === 'toggle_seq') actionString = `${zi}:zone_chords_on`;
+      else if (act === 'zone_arp_enabled') return;
+    }
+  }
   if (waitsForBoundary(ev, actionString!)) return;
-  undoHistory.beforeAction(JSON.stringify(zones), describeAction(actionString!, zones));
+  // showing and hiding (the cards' folds and panel headings, the In/Out popup) is saved but no
+  // undo step, as switching a controller page: ⌘Z undoes the last edit, not the last look
+  if (!VIEW_ONLY_ACTIONS.has(actionString!.split(':')[1])) {
+    undoHistory.beforeAction(JSON.stringify(zones), describeAction(actionString!, zones));
+  }
   const params = actionString!.split(':');
   const zoneindex = parseInt(params[0]);
   const action = params[1];
@@ -395,7 +577,9 @@ function actionHandler(ev: MouseEvent, overrideaction?: string): void {
     if (output) {
       output.value = inputElement.value + '%';
     }
-    element.title = inputElement.value + '%';
+    // its description (from the labelled block around it) with the value
+    const tip = element.parentElement?.closest('[title]:not(input)')?.getAttribute('title');
+    element.title = tip ? `${tip}: ${inputElement.value}%` : inputElement.value + '%';
     return parseInt(inputElement.value) / 100;
   };
   const applyPercentage = (): void => {
@@ -505,24 +689,60 @@ function meterOf(arrIndex: number): Meter {
 }
 
 /** An arrangement's meter (an undo step of its own when it comes from the menu's field) */
-function setArrangementMeter(arrIndex: number, meter: Meter): void {
+function setArrangementMeter(arrIndex: number, meter: Meter, quiet = false): void {
   if (!(arrIndex >= 0 && arrIndex < 4)) return;
   const meters = (zones.meters ??= []);
   while (meters.length < 4) meters.push(null);
   meters[arrIndex] = sameMeter(meter, DEFAULT_METER) ? null : meter;
-  updateArrangementMeters();
+  updateValuesForAllZones(); // the meters on A–D, the beat marks
   triggerSave();
-  toast(`Arrangement ${ARRANGEMENT_LETTERS[arrIndex]} is in ${meterLabel(meter)}`);
+  if (!quiet) toast(`Arrangement ${ARRANGEMENT_LETTERS[arrIndex]} is in ${meterLabel(meter)}`);
+}
+
+/**
+ * The steps and arp cells that start a beat get a mark (and the steps their number), in the
+ * arrangement's meter at the step's length; redone when either changes
+ */
+function markBeats(zone: ZoneType, zoneElement: HTMLElement): void {
+  const meter = timeline.meter;
+  const stepTicks = DIV_TICKS[zone.sequence.division];
+  const key = `${stepTicks}|${meterLabel(meter)}`;
+  if (zoneElement.dataset.beatKey !== key) {
+    zoneElement.dataset.beatKey = key;
+    zoneElement.querySelectorAll('.step-container > .step').forEach((el, i) => {
+      el.classList.toggle('beat', startsBeat(i, stepTicks, meter));
+    });
+    zoneElement.querySelectorAll('.drum-step-container > .drum-lane').forEach((lane) => {
+      lane.querySelectorAll(':scope > .step').forEach((el, i) => {
+        el.classList.toggle('beat', startsBeat(i, stepTicks, meter));
+      });
+    });
+  }
+  zone.renderPattern();
 }
 
 /** A–D show their meter when it isn't 4/4 */
 function updateArrangementMeters(): void {
+  // the active arrangement's meter: the steps' and arp cells' beat marks follow it
+  timelineMeter(meterOf(zones.arrangementIndex));
   (DOM.all("*[data-select-arrangement]") as HTMLElement[]).forEach((el, i) => {
     const meter = meterOf(i);
     if (sameMeter(meter, DEFAULT_METER)) el.removeAttribute('data-meter');
     else el.setAttribute('data-meter', meterLabel(meter).split(' ')[0]);
     el.title = `Arrangement ${ARRANGEMENT_LETTERS[i]} · ${meterLabel(meter)} (right-click: meter, copy)`;
   });
+  // the transport's meter chip: the active arrangement's, its menu for that one
+  const chip = DOM.get('#meterChip') as HTMLElement | null;
+  if (chip) {
+    const [meter, grouping] = meterLabel(meterOf(zones.arrangementIndex)).split(' ');
+    chip.innerHTML = `${meter}${grouping ? ` <span class="dim">${grouping}</span>` : ''} <i class="material-icons">expand_more</i>`;
+    chip.setAttribute('data-contextmenu', `meters:${zones.arrangementIndex}`);
+  }
+}
+
+/** The zone menu's entry for its loop's MPE expression, when it has some */
+function loopMpeMenu(zoneindex: number): string[] {
+  return zones.list[zoneindex]?.loop?.hasExpression ? [`${zoneindex}:zone_loop_mpe_clear`] : [];
 }
 
 /** The meter entries of an arrangement's menu ("meters:<arrangement>") */
@@ -550,8 +770,17 @@ function contextHandler(ev: MouseEvent): void {
           ? selectorMenu(act)
           : act.startsWith('meters:')
             ? meterMenu(act)
-            : [act]
+            : act.startsWith('loopmpe:')
+              ? loopMpeMenu(parseInt(act.slice(8)))
+              : act.startsWith('chords:')
+                ? chordsMenu(parseInt(act.slice(7)))
+                : [act]
     );
+  // (a menu doesn't start with a divider: the meter chip has only the meter entries)
+  while (menuActions[0] === '-') menuActions.shift();
+  // nor two dividers in a row (a group may be empty), nor ends with one
+  for (let i = menuActions.length - 1; i > 0; i--) if (menuActions[i] === '-' && menuActions[i - 1] === '-') menuActions.splice(i, 1);
+  while (menuActions[menuActions.length - 1] === '-') menuActions.pop();
   const contextMenuElement = DOM.get('#contextmenu') as HTMLElement;
 
   DOM.empty(contextMenuElement);
@@ -604,6 +833,17 @@ function contextHandler(ev: MouseEvent): void {
     }
     const zoneindex = parseInt(parts[0]);
     const zone: ZoneType = zones.list[zoneindex];
+    if (parts[1] === 'zone_chords_play') {
+      return parts[2] === 'bass'
+        ? '<i class="material-icons">graphic_eq</i> Play bass'
+        : '<i class="material-icons">piano</i> Play chords';
+    }
+    if (parts[1] === 'zone_chords_clear') {
+      return '<i class="material-icons">delete_sweep</i> Clear chord loop';
+    }
+    if (parts[1] === 'zone_chords_stop') {
+      return `<i class="material-icons">piano_off</i> Stop playing ${zone?.chords?.part === 'bass' ? 'bass' : 'chords'}`;
+    }
     if (parts[1] === 'seq_transpose') {
       const n = parseInt(parts[2]);
       const interval = Math.abs(n) === 12 ? ' (octave)' : Math.abs(n) === 7 ? ' (fifth)' : '';
@@ -794,6 +1034,7 @@ function renderZones(): void {
   addPlaceholder();
   updateZoneHeaderContextMenus(zones.arrangementIndex);
   refreshCCEditor();
+  refreshChordsSheet();
   markPending();
 }
 
@@ -802,7 +1043,18 @@ function addPlaceholder(): void {
   DOM.addHTML(
     '#zones',
     'beforeend',
-    '<div class="zone addnewzone"><a class="action" title="Add new zone">+ Add zone</a>' +
+    '<div class="zone addnewzone">' +
+      (zones.list.length
+        ? // one segmented control; chords and bass once there is a zone to follow
+          '<div class="addzone"><span class="addzone-lbl">+ Add</span><div class="addzone-seg">' +
+          '<a class="action" title="Add a zone">Zone</a>' +
+          (zones.list.some((z) => !z.chords)
+            ? '<a class="action" data-part="chords" title="Add a zone that plays chords to what another zone plays">Chords zone</a>' +
+              '<a class="action" data-part="bass" title="Add a zone that plays a bass line to what another zone plays">Bass zone</a>'
+            : '') +
+          '</div></div>'
+        : // an empty scene: the one thing to do, with a line on what a zone is
+          '<a class="action" title="Add a zone">+ Add zone</a>') +
       '<p class="addzone-hint">A zone sends one key range of your keyboard to one MIDI output, with its own arpeggiator, sequencer and controls.</p></div>'
   );
   DOM.all('#zones .zone.placeholder', (e) => e.remove());
@@ -891,6 +1143,7 @@ function appendZone(zone: ZoneType, index: number): void {
   DOM.all(`#zone${index} *[data-change]`).forEach((e) => {
     e.addEventListener('input', actionHandler as EventListener);
   });
+  initOutGrid(index);
   // Program and bank go out once a value is committed (Enter, leaving the field,
   // an arrow step), not per keystroke: typing 112 would send 1 and 11 first
   DOM.all(`#zone${index} .programsettings input`).forEach((e) => {
@@ -1174,10 +1427,11 @@ function renderMarkersForZone(
 }
 
 function updateValuesForAllZones(): void {
+  // first: it sets the current meter, which the zones' beat marks follow
+  updateArrangementMeters();
   for (let i = 0; i < zones.list.length; i++) {
     updateValuesForZone(i);
   }
-  updateArrangementMeters();
   onStateChange?.();
 }
 
@@ -1191,14 +1445,6 @@ function updateGeneralButtons(): void {
   DOM.switchClass(elAllMuteOff, muted > 0, 'active');
   DOM.switchClass(elAllSoloOff, Zone.solocount > 0, 'active');
   DOM.switchClass(elAllHoldOff, held > 0, 'active');
-}
-
-/** Range inputs have no native "filled" part in Chromium: expose the value as a percentage for the track gradient. */
-function syncRangeFill(el: HTMLInputElement): void {
-  const min = parseFloat(el.min || '0');
-  const max = parseFloat(el.max || '100');
-  const pct = max > min ? ((parseFloat(el.value) - min) / (max - min)) * 100 : 0;
-  el.style.setProperty('--fill', `${Math.max(0, Math.min(100, pct))}%`);
 }
 
 function syncRangeFills(root: ParentNode): void {
@@ -1235,9 +1481,30 @@ function updateValuesForZone(index: number): void {
     const zoneIsEnabled = zone.enabled && (!foldSoloedOut || Zone.solocount === 0 || zone.solo);
     DOM.switchClass(zoneElement, !zoneIsEnabled, 'disabled');
     DOM.switchClass(zoneElement, zone.show_cc, 'show-cc');
+    // cards: the folds under the takes rows show the panels (switching Seq or Arp moves nothing)
+    DOM.switchClass(zoneElement, zone.show_seq_panel, 'fold-seq');
+    DOM.switchClass(zoneElement, zone.show_arp_panel, 'fold-arp');
+    DOM.switchClass(zoneElement, zone.show_thru_panel, 'fold-thru');
+    markBeats(zone, zoneElement as HTMLElement);
+    // the cards' switches say a little about themselves: "Seq 16 steps" ("16 steps · 4 lanes" for
+    // drums), "Arp Up"
+    // and the cards' panel headings the same, with "off" while the feature is off
+    const setText = (el: Element | null, text: string): void => {
+      if (el && el.textContent !== text) el.textContent = text;
+    };
+    const seqText = sequence.isDrumSequence ? `${sequence.length} steps · ${sequence.drumLanes} lanes` : `${sequence.length} steps`;
+    setText(zoneElement.querySelector('.channels > .showseq .sw-extra'), seqText);
+    setText(zoneElement.querySelector('.seq > .panel-head .ph-extra'), sequence.active ? seqText : seqText + ' · off');
+    const dirs = zoneElement.querySelector<HTMLSelectElement>('select.arp_direction');
+    if (dirs) {
+      const arpText = dirs.options[zone.arp_direction]?.text ?? '';
+      setText(zoneElement.querySelector('.channels > .showarp .sw-extra'), arpText);
+      setText(zoneElement.querySelector('.arp-settings-block > .panel-head .ph-extra'), zone.arp_enabled ? arpText : arpText + ' · off');
+    }
 
-    if (sequence.active) {
-      DOM.addClass(zoneElement, 'show-seq');
+    // the panel is kept up to date while it's on (Tracks, cards) or its fold is open (cards)
+    DOM.switchClass(zoneElement, sequence.active, 'show-seq');
+    if (sequence.active || zone.show_seq_panel) {
       DOM.switchClass(zoneElement, sequence.isDrumSequence, 'drumSequencer');
       if (sequence.isDrumSequence) {
         DOM.removeClass(
@@ -1288,7 +1555,7 @@ function updateValuesForZone(index: number): void {
             `input[data-change="${index}:seq_drumlane_note:${laneIndex}"]`
           ) as HTMLInputElement;
           numberElement.value = String(lane.note);
-          numberElement.title = 'Trigger note: ' + Note.display(lane.note);
+          numberElement.title = 'The lane plays ' + Note.display(lane.note);
           const laneStepsEl = zone.elements.get(
             `input[data-change="${index}:seq_drum_lane_steps:${laneIndex}"]`
           ) as HTMLInputElement | null;
@@ -1411,7 +1678,7 @@ function updateValuesForZone(index: number): void {
           ) as HTMLInputElement | null;
           if (ratchetDeltaEl) {
             const pct = velocityDeltaToPercent(step.ratchetVelocityDelta ?? 0);
-            ratchetDeltaEl.value = String(pct);
+            setRangeValue(ratchetDeltaEl, pct);
             const deltaOut = ratchetDeltaEl.parentElement?.querySelector(
               `output[for="${ratchetDeltaEl.id}"]`
             ) as HTMLOutputElement | null;
@@ -1474,8 +1741,6 @@ function updateValuesForZone(index: number): void {
         );
       }
       zone.elements.setSelectedIndex('.seq_division', sequence.division);
-    } else {
-      DOM.removeClass(zoneElement, 'show-seq');
     }
     [
       'cc',
@@ -1488,7 +1753,6 @@ function updateValuesForZone(index: number): void {
       'solo',
       'programchange',
       'arp_enabled',
-      'takes_on',
       'arp_hold',
       'arp_transpose',
       'sustain_on',
@@ -1496,6 +1760,8 @@ function updateValuesForZone(index: number): void {
     ].forEach((p) => {
       zone.elements.addSelectedStyle('.' + p, (zone as any)[p]);
     });
+    // the arp's Hold again in the play row, beside Pedal ("Hold Arp", while the arp is on)
+    zone.elements.addSelectedStyle('.play-hold', zone.arp_hold);
     [
       'channel',
       'arp_direction',
@@ -1518,8 +1784,22 @@ function updateValuesForZone(index: number): void {
       );
     });
     DOM.switchClass(zoneElement, zone.arp_enabled, 'arp-enabled');
-    DOM.switchClass(zoneElement, zone.takes_on, 'takes-on');
     DOM.switchClass(zoneElement, zone.arp_direction >= 5, 'strum-mode');
+    // chords zones: the chord chip in Seq's place, their block
+    DOM.switchClass(zoneElement, !!zone.chords, 'chords-zone');
+    DOM.switchClass(zoneElement, !!zone.chords && zone.chordsOn, 'chords-on');
+    DOM.switchClass(zoneElement, zone.chords?.part === 'bass', 'chords-bass');
+    if (zone.chords) {
+      renderChordBlock(zone);
+      updateChordChips();
+    } else {
+      // a line zone renamed: the Follows lists say its name
+      zones.list.forEach((z) => z.chords && renderChordBlock(z));
+      // who follows it (its card's row)
+      updateFollowRows();
+      // the zone the Chords sheet showed stopped playing chords: it closes
+      refreshChordsSheet();
+    }
     zone.renderTransposeAmount();
 
     const swingSliders = zone.elements.get(
@@ -1564,16 +1844,16 @@ function updateValuesForZone(index: number): void {
     (zone._$('input.fixedvel_value') as HTMLInputElement).value = String(
       zone.fixedvel_value
     );
+    syncOutportSelect(zones, index);
     const nameField = zone._$('.output-config-name') as HTMLInputElement;
-    // the port as the selector shows it (long names shortened in the middle); the
-    // rename field offers the full name
+    // the port as the selector shows it (long names shortened in the middle)
     const outOption = (zone._$('select.outport') as HTMLSelectElement).selectedOptions[0];
     const shortPortName = outOption?.textContent ?? '';
     if (zones.outputConfigNames[zones.list[index].configId]) {
       nameField.value = zones.outputConfigNames[zones.list[index].configId];
     } else {
       nameField.value = '';
-      nameField.placeholder = outOption?.dataset.fullName ?? shortPortName;
+      nameField.placeholder = `Name the device on channel ${zone.channel + 1}…`;
     }
     // no port chosen (and no named output config): the zone sends nowhere
     const noOutput = !nameField.value && (!zone.outputPortId || zone.outputPortId === MIDI.INTERNAL_PORT_ID);
@@ -1590,10 +1870,10 @@ function updateValuesForZone(index: number): void {
           ? portName
           : labelField.dataset.defaultPlaceholder;
     }
-    zone.elements.addSelectedStyle(
-      '.sendClock',
-      midiController.clockOutputPorts[zone.outputPortId] === true
-    );
+    // Send clock: the switch in the In/Out popup and the clock in the card's header
+    const sendsClock = midiController.clockOutputPorts[zone.outputPortId] === true;
+    zone.elements.addSelectedStyle('.sendClock', sendsClock);
+    zone.elements.addSelectedStyle('.hdr-clock', sendsClock);
     const inportSelect = zone._$('select.inport') as HTMLSelectElement;
     if (inportSelect) {
       inportSelect.value = zone.inputPortId || '';
@@ -1621,6 +1901,19 @@ function updateValuesForZone(index: number): void {
         if (document.activeElement !== field) field.value = String(zone[p]);
       });
     });
+    renderOutGrid(zones, index);
+    // the folded input line: what the zone takes in (its own input, MPE) at a glance
+    const inVal = zone._$('.ior-in-val') as HTMLElement | null;
+    if (inVal) {
+      const inPort = zone.inputPortId ? getCachedInputPorts().find((p) => p.id === zone.inputPortId) : undefined;
+      inVal.textContent = !zone.inputPortId
+        ? 'Global'
+        : (inPort?.name ?? '?') + (zone.inputChannel !== null ? ` ch ${zone.inputChannel + 1}` : '');
+    }
+    const mpeVal = zone._$('.ior-mpe-val') as HTMLElement | null;
+    if (mpeVal) {
+      mpeVal.textContent = zone.mpe === MpeMode.PASS ? 'Pass through' : zone.mpe === MpeMode.COLLAPSE ? 'To one channel' : 'Off';
+    }
     const polySelect = zone._$('select.mpe_poly_at') as HTMLSelectElement;
     if (polySelect) polySelect.value = zone.mpe_poly_at ? '1' : '0';
     const routingText = zone._$('.iorouting-text') as HTMLElement;
@@ -1700,7 +1993,7 @@ function updateZoneHeaderContextMenus(currentArrIndex: number): void {
     const copyItems = others.map(t => `${i}:zone_arr_copy_to:${t}`).join(',');
     // the header's right-click menu and its ⋯ button show the same entries
     z.elements.zoneElement?.querySelectorAll<HTMLElement>('.channels, .zonemenu').forEach((el) => {
-      el.dataset.contextmenu = `${i}:zone_change_color,${i}:zone_export,-,${copyItems},-,${i}:zone_delete`;
+      el.dataset.contextmenu = `${i}:zone_change_color,${i}:zone_export,${i}:zone_import_midi,loopmpe:${i},-,chords:${i},-,${copyItems},-,${i}:zone_delete`;
     });
   });
 }
@@ -1755,6 +2048,8 @@ function initStepDeselection(): void {
  * Live recording ends with the switch, so say so when it was on.
  */
 function switchZonesToArrangement(arrIndex: number): void {
+  // live chords let go: the new arrangement has its own switches and settings
+  chordsTransport();
   const recordingZones: string[] = [];
   zones.list.forEach((z, i) => {
     // the toast renders HTML; zone labels come from scene files
@@ -1840,6 +2135,14 @@ export {
   toggleZoneSolo,
   applyPendingToggles,
   hasPendingToggles,
+  loopZone,
+  landLoops,
+  finishLoops,
+  chordsTick,
+  chordsTransport,
+  chordsPause,
+  chordsPanic,
+  playChords,
   setToggleBoundary,
   selectArrangement,
   switchZonesToArrangement,

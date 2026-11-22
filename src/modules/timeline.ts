@@ -22,26 +22,16 @@ const timeline = {
   // Run position where the current arrangement's song began: 0 at Start, the switch
   // position when an arrangement is entered while running (its song starts at bar 1)
   sectionStart: 0,
-  // Song position at sectionStart: bar 1 (the song runs into a loop); set elsewhere when a loop changes while running
-  songStart: 0,
-  // The current arrangement's loop range while it's on (song positions, whole ticks)
-  loop: null as LoopRange | null,
   // Counting in before Start: the last count-in tick (negative, -1 just before Start), else null
   countIn: null as number | null,
   // The current arrangement's meter (its song's bars and beats)
   meter: DEFAULT_METER as Meter
 };
 
-export interface LoopRange {
-  from: number;
-  to: number;
-}
-
 function timelineClock(pos: number, tickIntervalMs: number): void {
   if (pos === 0) {
     timeline.run++;
     timeline.sectionStart = 0;
-    timeline.songStart = 0;
     timeline.runStart = timeline.nextRunStart;
     timeline.runStarts.push(timeline.runStart);
   }
@@ -95,52 +85,16 @@ function sessionNow(): number {
 /** An arrangement was entered at this run position: its song starts there at bar 1 */
 function timelineSection(pos: number): void {
   timeline.sectionStart = pos;
-  timeline.songStart = 0;
-}
-
-/**
- * The current arrangement's loop range (null: off). Changed while running, the song
- * goes on from where it is (from the next tick); past the new loop's end it jumps
- * to its start.
- */
-function timelineLoop(loop: LoopRange | null): void {
-  const valid = loop && loop.to > loop.from ? loop : null;
-  const same = valid === timeline.loop || (!!valid && !!timeline.loop && valid.from === timeline.loop.from && valid.to === timeline.loop.to);
-  if (same) return;
-  if (timeline.running) {
-    const next = timeline.pos + 1;
-    let song = Math.round(songAt(next - timeline.sectionStart));
-    if (valid && song >= valid.to) song = valid.from;
-    timeline.sectionStart = next;
-    timeline.songStart = song;
-  }
-  timeline.loop = valid ? { from: valid.from, to: valid.to } : null;
-}
-
-/** Song position after `elapsed` ticks of the section: on from songStart, wrapping in the loop */
-function songAt(elapsed: number): number {
-  const linear = timeline.songStart + elapsed;
-  const loop = timeline.loop;
-  if (!loop || timeline.songStart >= loop.to || linear < loop.to) return linear;
-  return loop.from + ((linear - loop.from) % (loop.to - loop.from));
-}
-
-/** Which pass of the loop `elapsed` falls in (0 before the first jump) */
-function passAt(elapsed: number): number {
-  const linear = timeline.songStart + elapsed;
-  const loop = timeline.loop;
-  if (!loop || timeline.songStart >= loop.to || linear < loop.to) return 0;
-  return 1 + Math.floor((linear - loop.to) / (loop.to - loop.from));
 }
 
 /** Position in the current arrangement's song (ticks from its bar 1); stopped: where Start begins (bar 1) */
 function songNow(): number {
-  return timeline.running ? songAt(nowTick() - timeline.sectionStart) : 0;
+  return timeline.running ? nowTick() - timeline.sectionStart : 0;
 }
 
 /** Song position where the last section ended or is now (stopped: where it stopped) */
 function songEnd(): number {
-  return songAt((timeline.running ? nowTick() : timeline.stopPos) - timeline.sectionStart);
+  return (timeline.running ? nowTick() : timeline.stopPos) - timeline.sectionStart;
 }
 
 /** Where notes released now end: stopped, where the last run ended (ring-outs) */
@@ -154,7 +108,7 @@ interface HistoryNote {
   start: number;
   end: number | null; // null while sounding
   live?: boolean; // played through from the input (it also shows in the take being recorded)
-  take?: boolean; // played by a kept take (layered takes show it in their band)
+  take?: boolean; // live, from the take playing along (not in the take being recorded)
 }
 
 /**
@@ -163,18 +117,24 @@ interface HistoryNote {
  */
 class NoteHistory {
   static MAX = 50000;
+  static TRIM = 2000;
   // A note that started this long before a range is still looked at by between()
   static LOOKBACK = 96 * 64;
   notes: HistoryNote[] = [];
+  /** The notes still sounding, by pitch (one each: a note-on ends the pitch's earlier note) */
+  private open = new Map<number, HistoryNote>();
   low = 128;
   high = -1;
 
-  /** The notes starting from LOOKBACK before `from` up to `to` (binary search on start) */
-  between(from: number, to: number): HistoryNote[] {
+  /** `keep`: notes that started longer ago than this (ticks) are let go, else up to MAX notes are kept */
+  constructor(private readonly keep = Infinity) {}
+
+  /** The notes starting from `lookback` before `from` up to `to` (binary search on start) */
+  between(from: number, to: number, lookback = NoteHistory.LOOKBACK): HistoryNote[] {
     const notes = this.notes;
     let lo = 0;
     let hi = notes.length;
-    const after = from - NoteHistory.LOOKBACK;
+    const after = from - lookback;
     while (lo < hi) {
       const mid = (lo + hi) >> 1;
       if (notes[mid].start < after) lo = mid + 1;
@@ -188,26 +148,41 @@ class NoteHistory {
   noteOn(pitch: number, velo: number, live = false, take = false): void {
     if (!timeline.running) return;
     this.noteOff(pitch);
-    this.notes.push({ pitch, velo, start: sessionNow(), end: null, live, take });
+    const note: HistoryNote = { pitch, velo, start: sessionNow(), end: null, live, ...(take ? { take } : {}) };
+    this.notes.push(note);
+    this.open.set(pitch, note);
     if (pitch < this.low) this.low = pitch;
     if (pitch > this.high) this.high = pitch;
-    if (this.notes.length > NoteHistory.MAX) this.notes.splice(0, this.notes.length - NoteHistory.MAX);
-  }
-
-  noteOff(pitch: number): void {
-    for (let i = this.notes.length - 1; i >= 0; i--) {
-      const n = this.notes[i];
-      if (n.pitch === pitch && n.end === null) {
-        n.end = Math.max(n.start, releaseAt());
-        return;
-      }
+    // beyond MAX: the oldest go in batches, not one on every note
+    if (this.notes.length > NoteHistory.MAX + NoteHistory.TRIM) this.notes.splice(0, this.notes.length - NoteHistory.MAX);
+    // past `keep`: let go in batches (when the oldest is twice as old), not on every note
+    const now = this.notes[this.notes.length - 1].start;
+    if (this.notes[0].start < now - 2 * this.keep) {
+      const from = now - this.keep;
+      let i = 0;
+      while (i < this.notes.length && this.notes[i].start < from) i++;
+      this.notes.splice(0, i);
     }
   }
 
+  noteOff(pitch: number): void {
+    const n = this.open.get(pitch);
+    if (!n) return;
+    this.open.delete(pitch);
+    n.end = Math.max(n.start, releaseAt());
+  }
+
   closeAll(): void {
+    if (this.open.size === 0) return;
     const t = releaseAt();
-    for (const n of this.notes) if (n.end === null) n.end = Math.max(n.start, t);
+    this.open.forEach((n) => (n.end = Math.max(n.start, t)));
+    this.open.clear();
+  }
+
+  /** The pitches still sounding */
+  sounding(): number[] {
+    return [...this.open.keys()];
   }
 }
 
-export { timeline, timelineClock, timelineTransport, timelineSection, timelineLoop, timelineCountIn, timelineMeter, countInNow, nowTick, sessionNow, songNow, songEnd, songAt, passAt, NoteHistory, HistoryNote };
+export { timeline, timelineClock, timelineTransport, timelineSection, timelineCountIn, timelineMeter, countInNow, nowTick, sessionNow, songNow, songEnd, NoteHistory, HistoryNote };

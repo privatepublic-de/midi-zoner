@@ -1,8 +1,11 @@
 import MIDI from '../../midi';
+import { takeStore } from '../../take-store';
 import { ActionContext, ActionHelpers, ActionMap } from '../types';
 import { ipcRenderer } from 'electron';
 import { MpeMode, sanitizeBendRange, sanitizePressureFrom, zoneInputClaims } from '../../zone/mpe';
 import { ARRANGEMENT_LETTERS, labelForZone } from '../action-labels';
+import { playChords, stopChords, toggleChords, alignToLine, chordsTakeAlongChanged } from '../chords';
+import { importMidiFile } from '../midi-import';
 
 export function createZoneActions(
   ctx: ActionContext,
@@ -28,6 +31,46 @@ export function createZoneActions(
   };
 
   return {
+    // the loop's switch: off keeps it, silent
+    zone_loop_on: () => {
+      if (!zone.loop) return;
+      zone.setLoopOn(!zone.loopOn);
+      // a chord loop stays in step with the line's loop
+      if (zone.chords && zone.loopOn) alignToLine(zone);
+      updateValuesForZone(zoneindex);
+    },
+    // ⋯ menu: this zone plays chords (or a bass line) to another zone's line
+    zone_chords_play: () => {
+      playChords(zone, actionParam1 === 'bass' ? 'bass' : 'chords');
+      // the other chords zones' Follows lists change too
+      updateValuesForAllZones();
+    },
+    // ⋯ menu of a chords zone: its chord loop goes (it follows live again)
+    zone_chords_clear: () => {
+      if (!zone.chords || !zone.loop || zone.looper.mode !== 'idle') return;
+      zone.loop = null;
+      zone.chordPlan = null;
+      zone.loopPlayer.release(true);
+      updateValuesForZone(zoneindex);
+    },
+    zone_chords_stop: () => {
+      if (!zone.chords) return;
+      stopChords(zone);
+      updateValuesForAllZones();
+    },
+    // the chord chip (in Seq's place): the chords on/off
+    zone_chords_on: () => {
+      if (!zone.chords) return;
+      toggleChords(zone);
+      updateValuesForZone(zoneindex);
+    },
+    // the loop's recorded MPE expression cleared (its notes stay; the switch is on its chip)
+    zone_loop_mpe_clear: () => {
+      if (!zone.loop) return;
+      zone.loop.clearExpression();
+      zone.loopPlayer.endVoices();
+      updateValuesForZone(zoneindex);
+    },
     zone_enabled: () => {
       zone.enabled = !zone.enabled;
       if (zone.solo && !zone.enabled) {
@@ -41,12 +84,6 @@ export function createZoneActions(
         sequence.isLiveRecording = false;
         updateValuesForZone(zoneindex);
       }
-    },
-    zone_takes: () => {
-      zone.takes_on = !zone.takes_on;
-      // switched off while playing: what sounds now ends
-      if (!zone.takes_on) zone.takePlayer.release(false);
-      updateValuesForZone(zoneindex);
     },
     zone_solo: () => {
       zone.solo = !zone.solo;
@@ -175,8 +212,14 @@ export function createZoneActions(
     iorouting_toggle: () => {
       const popup = zone._$('.iorouting-popup') as HTMLElement;
       if (popup) {
-        popup.style.display = popup.style.display === 'block' ? 'none' : 'block';
+        const open = popup.style.display !== 'block';
+        popup.style.display = open ? 'block' : 'none';
+        // input and MPE are folded away unless the zone uses them
+        if (open) popup.classList.toggle('in-open', !!zone.inputPortId || zone.mpe !== MpeMode.OFF);
       }
+    },
+    iorouting_input: () => {
+      (zone._$('.iorouting-popup') as HTMLElement | null)?.classList.toggle('in-open');
     },
     zone_range: () => {
       const touchedNote = findTouchedNote(ev, element, zone);
@@ -192,7 +235,9 @@ export function createZoneActions(
       updateValuesForZone(zoneindex);
     },
     zone_export: async () => {
-      const payload = JSON.stringify({ list: [zone.toJSON()] });
+      // with its takes (they aren't part of the scene data)
+      const takes = takeStore.toJSON(zone.id);
+      const payload = JSON.stringify({ list: [{ ...zone.toJSON(), ...(takes.length ? { takes } : {}) }] });
       await ipcRenderer
         .invoke('open-save', payload)
         .then((result: { canceled: boolean; message: string; warning?: boolean }) => {
@@ -200,6 +245,33 @@ export function createZoneActions(
             toast(result.message, { warning: result.warning });
           }
         });
+    },
+    // the shown take plays along (as if played, from bar 1 of every run), or none
+    zone_take_play: () => {
+      if (zone.chords) return;
+      zone.setPlayTake(zone.playingTake ? null : takeStore.shownTake(zone.id)?.id ?? null);
+      chordsTakeAlongChanged(zone);
+      updateValuesForZone(zoneindex);
+    },
+    // the cards' folds: show or hide a panel, the feature stays as it is
+    zone_fold_seq: () => {
+      zone.show_seq_panel = !zone.show_seq_panel;
+      updateValuesForZone(zoneindex);
+      triggerSave();
+    },
+    zone_fold_arp: () => {
+      zone.show_arp_panel = !zone.show_arp_panel;
+      updateValuesForZone(zoneindex);
+      triggerSave();
+    },
+    zone_fold_thru: () => {
+      zone.show_thru_panel = !zone.show_thru_panel;
+      updateValuesForZone(zoneindex);
+      triggerSave();
+    },
+    // a track of a MIDI file as the zone's newest take (an undo step of its own once imported)
+    zone_import_midi: () => {
+      void importMidiFile(zoneindex);
     },
     zone_arr_copy_to: () => {
       const targetIndex = parseInt(actionParam1);

@@ -74,7 +74,7 @@ export function renderStepLocks(zone: ZoneType, zoneindex: number, actionHandler
     const remove = document.createElement('i');
     remove.className = 'material-icons';
     remove.textContent = 'close';
-    remove.title = 'Remove this lock';
+    remove.title = 'Delete this lock';
     // Colons separate action parameters
     const action = `${zoneindex}:seq_lock_remove:${address.replace(/:/g, '.')}`;
     remove.addEventListener('click', (ev) => actionHandler(ev, action));
