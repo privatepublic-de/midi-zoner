@@ -406,7 +406,11 @@ export class Looper {
   dubLayer(loop: Take, now: number, bar: number): TakeNoteJSON[] {
     if (this.mode !== 'dub' || this.from > now) return [];
     const key = `${this.version}|${this.from}|${loop.length}|${loop.notes.length}`;
-    if (this.layerCache?.key !== key) this.layerCache = { key, notes: this.dubNotes(loop, Infinity, bar, now, true) };
+    if (this.layerCache?.key !== key) {
+      // sorted by start: the loop player looks notes up by binary search
+      const notes = this.dubNotes(loop, Infinity, bar, now, true).sort((a, b) => a.t - b.t);
+      this.layerCache = { key, notes };
+    }
     return this.layerCache.notes;
   }
 

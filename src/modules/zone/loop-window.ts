@@ -147,13 +147,35 @@ function pairUp(loop: Take, fresh: Take): { pairs: Map<TakeNoteJSON, TakeNoteJSO
 }
 
 /**
+ * The take a loop was cut from, among a zone's takes: of its run (`at`) and holding its first
+ * bar (a very long run rolls over into several takes, all of one run); else the run's first
+ */
+export function takeOfLoop(takes: readonly Take[], loop: Take | null): Take | undefined {
+  const origin = loop?.origin;
+  if (!origin || !origin.at) return undefined;
+  let first: Take | undefined;
+  for (const t of takes) {
+    if (t.at !== origin.at) continue;
+    if (origin.run >= t.runOffset && origin.run < t.runOffset + t.length) return t;
+    first ??= t;
+  }
+  return first;
+}
+
+/**
  * Whether a loop still follows its take (its bars cut anew give its notes), and where each
  * of its notes came from. A loop without a link yet (from before windows, or recorded with
  * Rec) is taken on when most of it matches: notes the take doesn't give become its own, take
  * notes it lacks are hidden, so it plays just as before. Null: it doesn't follow (cut from
  * another take, its take changed under it, or changed beyond recognition): no window.
+ * Taking on changes the loop (its link, its own notes), so it happens only with `takeOn`;
+ * without, the loop is left as it is and `takesOn` says it would be changed.
  */
-export function follows(loop: Take, take: Take): { from: number; to: number; sources: Map<TakeNoteJSON, NoteSource> } | null {
+export function follows(
+  loop: Take,
+  take: Take,
+  takeOn = false
+): { from: number; to: number; sources: Map<TakeNoteJSON, NoteSource>; takesOn: boolean } | null {
   if (!loop.origin || loop.origin.at !== take.at || !take.at) return null;
   const from = windowFrom(loop, take);
   const to = from + loop.length;
@@ -167,7 +189,8 @@ export function follows(loop: Take, take: Take): { from: number; to: number; sou
   if (loop.link && (loose.length || missing.length)) return null;
   if (cut.loop.notes.length === 0 || pairs.size < 0.8 * cut.loop.notes.length || pairs.size < 0.5 * theirs) return null;
   // taken on: what's left over is the loop's own, what's missing stays out
-  if (loose.length || missing.length || !loop.link) {
+  const takesOn = loose.length > 0 || missing.length > 0 || !loop.link;
+  if (takesOn && takeOn) {
     loop.link = loop.link ?? {};
     for (const n of loose) n.o = 1;
     const hide = loop.link.hide ?? [];
@@ -182,7 +205,7 @@ export function follows(loop: Take, take: Take): { from: number; to: number; sou
     const s = cut.sources.get(f);
     if (s) sources.set(n, s);
   });
-  return { from, to, sources };
+  return { from, to, sources, takesOn: takesOn && !takeOn };
 }
 
 /**
@@ -231,7 +254,7 @@ type Values = { t: number; d: number; n: number; v: number };
  * (the loop's own).
  */
 export function beginEdit(loop: Take, take: Take): (() => void) | null {
-  const found = follows(loop, take);
+  const found = follows(loop, take, true);
   if (!found) return null;
   const before = new Map<TakeNoteJSON, Values>();
   for (const n of loop.notes) before.set(n, { t: n.t, d: n.d, n: n.n, v: n.v });
@@ -265,7 +288,7 @@ export function beginEdit(loop: Take, take: Take): (() => void) | null {
  * each is cut anew (null: it doesn't follow; the loop stays as it is)
  */
 export function beginTakeEdit(take: Take, loops: Take[]): () => (Take | null)[] {
-  const following = loops.map((loop) => (follows(loop, take) ? loop : null));
+  const following = loops.map((loop) => (follows(loop, take, true) ? loop : null));
   const keys = new Map<TakeNoteJSON, string>(take.notes.map((n) => [n, keyText([n.t, n.n])]));
   return () => {
     const moved = new Map<string, NoteKey | null>();

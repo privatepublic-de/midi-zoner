@@ -1,6 +1,6 @@
 import MIDI from '../midi';
 import { Note } from './note';
-import { Take } from './take';
+import { Take, firstNoteAtOrAfter } from './take';
 import type { TakeNoteJSON } from './interfaces';
 import type { Zone } from './zone-class';
 import { CurveCursor, curveEnd, TAIL_MS } from './note-curve';
@@ -81,14 +81,7 @@ export class TakePlayer {
     const from = take.offset + local;
     const end = take.offset + len;
     // sorted by t: from the first at or after this tick
-    let lo = 0;
-    let hi = notes.length;
-    while (lo < hi) {
-      const mid = (lo + hi) >> 1;
-      if (notes[mid].t < from) lo = mid + 1;
-      else hi = mid;
-    }
-    for (let i = lo; i < notes.length && notes[i].t < from + 1 && notes[i].t < end; i++) {
+    for (let i = firstNoteAtOrAfter(notes, from); i < notes.length && notes[i].t < from + 1 && notes[i].t < end; i++) {
       const tn = notes[i];
       this.schedule(tn, tn.t - from, Math.min(tn.d, end - tn.t), later);
     }
@@ -102,7 +95,8 @@ export class TakePlayer {
   clockLoop(elapsed: number, tickIntervalMs: number, loop: Take, layer: TakeNoteJSON[], anchor: number, silent: boolean): void {
     const later = this.advance(elapsed, tickIntervalMs);
     if (silent) {
-      if (this.queue.length > 0) this.release(true);
+      // busy: a pedal or wheel of the loop held without a note sounding lets go too
+      if (this.busy) this.release(true);
       return;
     }
     // it comes in at its first 1 (switched on, or a loop from a take, while running)
@@ -111,9 +105,11 @@ export class TakePlayer {
     // whole ticks: a tick never spans the loop's end
     const local = (((elapsed - anchor) % len) + len) % len;
     this.playGestures(loop, local, later);
+    // both sorted by t (the layer sorted where it's cached): from the first at or after this tick
     for (const notes of [loop.notes, layer]) {
-      for (const tn of notes) {
-        if (tn.t >= local && tn.t < local + 1) this.schedule(tn, tn.t - local, tn.d, later);
+      for (let i = firstNoteAtOrAfter(notes, local); i < notes.length && notes[i].t < local + 1; i++) {
+        const tn = notes[i];
+        this.schedule(tn, tn.t - local, tn.d, later);
       }
     }
   }

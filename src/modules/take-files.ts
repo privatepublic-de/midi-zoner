@@ -31,8 +31,22 @@ function contents(): string {
   return JSON.stringify({ format: 'midi-zoner-takes', version: 1, zones });
 }
 
+/** Temp files a write left behind (the app quit or crashed while writing) */
+function removeLeftoverTemps(): void {
+  try {
+    const dir = path.dirname(takesFile());
+    const base = path.basename(takesFile());
+    for (const name of fs.readdirSync(dir)) {
+      if (name.startsWith(`${base}.`) && name.endsWith('.tmp')) fs.rmSync(path.join(dir, name), { force: true });
+    }
+  } catch {
+    // nothing to tidy
+  }
+}
+
 /** Reads the saved takes for the zones in the scene (an untrusted file: every take is checked) */
 function loadSavedTakes(ids: string[]): void {
+  removeLeftoverTemps();
   let data: any;
   try {
     data = JSON.parse(fs.readFileSync(takesFile(), 'utf8'));
@@ -47,6 +61,9 @@ function loadSavedTakes(ids: string[]): void {
   savedVersion = takeStore.version;
 }
 
+// every write numbered: each has a temp file of its own, and an older one never replaces a newer
+let writes = 0;
+
 function saveNow(sync: boolean): void {
   if (timer) {
     clearTimeout(timer);
@@ -56,22 +73,33 @@ function saveNow(sync: boolean): void {
   savedVersion = takeStore.version;
   const json = contents();
   const target = takesFile();
-  const temp = `${target}.tmp`;
+  const n = ++writes;
+  const temp = `${target}.${process.pid}.${n}.tmp`;
   if (sync) {
     try {
       fs.writeFileSync(temp, json);
       fs.renameSync(temp, target);
     } catch (e) {
       console.error('takes: not saved', e);
+      fs.rmSync(temp, { force: true });
     }
     return;
   }
   fs.promises
     .writeFile(temp, json)
-    .then(() => fs.promises.rename(temp, target))
+    .then(() => {
+      // a newer write started meanwhile (it has all of this): this one is let go
+      if (n !== writes) return fs.promises.rm(temp, { force: true });
+      return fs.promises.rename(temp, target);
+    })
     .catch((e) => {
       console.error('takes: not saved', e);
-      savedVersion = -1;
+      fs.promises.rm(temp, { force: true }).catch(() => undefined);
+      // tried again a while later (unless a newer write is under way)
+      if (n === writes) {
+        savedVersion = -1;
+        takeStore.onChange?.();
+      }
     });
 }
 

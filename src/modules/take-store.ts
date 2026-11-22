@@ -18,9 +18,13 @@ import { GestureRecorder, cutGestures } from './zone/gestures';
 
 export const MAX_TAKES = 16;
 
+type RecNote = TakeNoteJSON & { open: boolean; cb?: CurveBuilder };
+
 interface Recording {
   /** cb: the key's expression while it's still coming in (MPE) */
-  notes: (TakeNoteJSON & { open: boolean; cb?: CurveBuilder })[];
+  notes: RecNote[];
+  /** The keys still held, by pitch (a note-on closes the pitch's earlier note first, so one each) */
+  open: Map<number, RecNote>;
   /** The zone channel's gestures (sustain, wheels; zone/gestures.ts), run ticks */
   g: GestureRecorder;
 }
@@ -71,20 +75,28 @@ class TakeStore {
     const rec = this.recordingFor(zoneId);
     // a very long run: what was played so far becomes a take, recording goes on in a new one
     if (rec.notes.length > 0 && (rec.notes.length >= ROLL_NOTES || t - rec.notes[0].t >= ROLL_LENGTH)) {
+      const held = [...rec.open.values()];
       this.finish(zoneId, rec, t);
       rec.g.prune(t);
+      // keys still held go on in the new take from here (tied over; their expression stays with the first part)
+      for (const h of held) {
+        const tied: RecNote = { t, d: 0, n: h.n, v: h.v, open: true };
+        rec.notes.push(tied);
+        rec.open.set(h.n, tied);
+      }
       this.changed();
     }
     this.noteOff(zoneId, t, n);
-    const note: Recording['notes'][number] = { t, d: 0, n, v, open: true };
+    const note: RecNote = { t, d: 0, n, v, open: true };
     rec.notes.push(note);
+    rec.open.set(n, note);
     return note;
   }
 
   private recordingFor(zoneId: string): Recording {
     let rec = this.recording.get(zoneId);
     if (!rec) {
-      rec = { notes: [], g: new GestureRecorder() };
+      rec = { notes: [], open: new Map(), g: new GestureRecorder() };
       this.recording.set(zoneId, rec);
     }
     return rec;
@@ -111,15 +123,12 @@ class TakeStore {
 
   noteOff(zoneId: string, t: number, n: number): void {
     this.lastAt = Math.max(this.lastAt, t);
-    const notes = this.recording.get(zoneId)?.notes;
-    if (!notes) return;
-    for (let i = notes.length - 1; i >= 0; i--) {
-      if (notes[i].open && notes[i].n === n) {
-        notes[i].open = false;
-        notes[i].d = Math.max(0.25, t - notes[i].t);
-        return;
-      }
-    }
+    const rec = this.recording.get(zoneId);
+    const note = rec?.open.get(n);
+    if (!rec || !note) return;
+    rec.open.delete(n);
+    note.open = false;
+    note.d = Math.max(0.25, t - note.t);
   }
 
   /** Stop at run tick `end`: each zone's recording becomes its newest take */
@@ -165,6 +174,7 @@ class TakeStore {
     this.add(zoneId, take);
     this.shown.set(zoneId, 0);
     rec.notes = [];
+    rec.open.clear();
   }
 
   /**
@@ -176,13 +186,23 @@ class TakeStore {
     if (!rec || rec.notes.length === 0) return null;
     const out: TakeNoteJSON[] = [];
     // newest first, back to a while before `from` (notes are in order of their start)
-    for (let i = rec.notes.length - 1; i >= 0; i--) {
+    let i = rec.notes.length - 1;
+    for (; i >= 0; i--) {
       const n = rec.notes[i];
       if (n.t < from - 16 * 96) break;
       const d = n.open ? Math.max(0.25, now - n.t) : n.d;
       if (n.t + d >= from) out.push(takeNote(n, n.t, d));
     }
-    return out.reverse();
+    out.reverse();
+    // keys held since before that still sound (a drone): they'd be missed by stopping early
+    if (i >= 0) {
+      const older: TakeNoteJSON[] = [];
+      rec.open.forEach((n) => {
+        if (n.t < from - 16 * 96) older.push(takeNote(n, n.t, Math.max(0.25, now - n.t)));
+      });
+      if (older.length) return [...older.sort((a, b) => a.t - b.t), ...out];
+    }
+    return out;
   }
 
   /** Whether the run under way has notes for the zone yet (they'll be its newest take at Stop) */

@@ -55,6 +55,18 @@ export function setNoteLength(note: TakeNoteJSON, d: number): void {
  * bar 1). Note times count from the recording's start; trimming only moves the window
  * (`offset`, `length`) the take shows of them, so a trimmed take can grow back.
  */
+/** Index of the first note starting at or after tick t, in notes sorted by start (binary search) */
+export function firstNoteAtOrAfter(notes: readonly { t: number }[], t: number): number {
+  let lo = 0;
+  let hi = notes.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (notes[mid].t < t) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
+}
+
 export class Take {
   static MAX_BARS = 1024; // of 4/4
   static MAX_LENGTH = Take.MAX_BARS * PPQ * 4;
@@ -177,14 +189,7 @@ export class Take {
 
   /** Index of the first note starting at or after tick t (take-relative) */
   firstAtOrAfter(t: number): number {
-    let lo = 0;
-    let hi = this.notes.length;
-    while (lo < hi) {
-      const mid = (lo + hi) >> 1;
-      if (this.notes[mid].t < t) lo = mid + 1;
-      else hi = mid;
-    }
-    return lo;
+    return firstNoteAtOrAfter(this.notes, t);
   }
 
   sort(): void {

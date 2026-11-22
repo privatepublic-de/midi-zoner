@@ -10,7 +10,7 @@ import { pedalSpans, SUSTAIN } from '../zone/gestures';
 import type { GesturesJSON } from '../zone/gestures';
 import { pickupStart, recutLoop, EARLY, MAX_LOOP_BARS } from '../zone/looper';
 import { takeStore, MAX_TAKES } from '../take-store';
-import { cutWindow, follows, recutWindow, quantizeWindow, beginEdit, beginTakeEdit, takeBar } from '../zone/loop-window';
+import { cutWindow, follows, recutWindow, quantizeWindow, beginEdit, beginTakeEdit, takeBar, takeOfLoop } from '../zone/loop-window';
 import { escapeHTML, setRangeValue } from '../domutils';
 import { DIV_TICKS, PPQ } from '../zone/seq-layer';
 import { analyse, quantize, quantizeStarts, applyToSequence, swingFor, stepPos, DIV_NAMES, PlayedNote, Quantized } from '../zone/take-quantize';
@@ -94,6 +94,7 @@ function snapInTake(take: Take, t: number, e: { altKey: boolean }, how: 'round' 
 // Changes to a zone that are undo steps (set by the controller)
 let commit: (zoneIndex: number, label: string, change: () => void) => void = (_i, _l, change) => change();
 // Changes to a take (not scene data): undo steps of their own
+let saveScene: () => void = () => undefined;
 let commitTake: (zoneIndex: number, take: Take, label: string, change: () => void) => void = (_i, _t, _l, change) => change();
 // Deleting a take (undo puts it back)
 let deleteTake: (zoneIndex: number, take: Take) => void = () => {};
@@ -624,7 +625,7 @@ function syncHeld(zone: Zone): NoteHistory {
   }
   const source = zone.arp_hold ? zone.arp_holdlist : zone.arp.orderlist;
   const pitches = new Set(source.map((n) => n.number));
-  const sounding = new Set(held.notes.filter((n) => n.end === null).map((n) => n.pitch));
+  const sounding = new Set(held.sounding());
   sounding.forEach((p) => {
     if (!pitches.has(p)) held.noteOff(p);
   });
@@ -741,7 +742,7 @@ function pick(zone: Zone, kind: 'loop' | 'take'): void {
   else if (kind === 'loop' && zone.loop) {
     editing = { zoneId: zone.id, kind: 'loop' };
     // the take it was cut from shows above it, with the loop's bars as a window on it
-    const from = zone.loop.origin ? takeStore.of(zone.id).find((t) => t.at === zone.loop!.origin!.at) : undefined;
+    const from = takeOfLoop(takeStore.of(zone.id), zone.loop);
     if (from && from !== take) takeStore.show(zone.id, from);
   } else return;
   select(getZones().indexOf(zone));
@@ -1272,7 +1273,7 @@ function drawLane(
       drawLoopWindow(g, zone, win, (s) => x(toSong(s)), takeY, TAKE_LANE_H, colour, isSelected && picked(zone) === 'loop', w, (n) => takeRows.y(rowOf(n)), takeRows.h);
     } else {
       const origin = zone.loop?.origin;
-      const from = origin && origin.at === latest.at ? origin.run - latest.runOffset : NaN;
+      const from = origin && takeOfLoop(takeStore.of(zone.id), zone.loop) === latest ? origin.run - latest.runOffset : NaN;
       if (zone.loop && from >= 0 && from < latest.length) {
         const bx0 = Math.round(x(toSong(latest.start + from)));
         const bx1 = Math.round(x(toSong(latest.start + Math.min(latest.length, from + zone.loop.length))));
@@ -1999,12 +2000,18 @@ function loopWindow(zone: Zone): LoopWindow | null {
   const loop = zone.loop;
   const origin = loop?.origin;
   if (!loop || !origin) return null;
-  const take = takeStore.of(zone.id).find((t) => t.at === origin.at);
+  const take = takeOfLoop(takeStore.of(zone.id), loop);
   if (!take) return null;
   const key = `${takeStore.version}|${loop.notes.length}|${loop.spare.length}|${loop.length}|${origin.run}`;
   const cached = windows.get(loop);
   if (cached && cached.key === key && cached.take === take) return cached.win;
-  const found = follows(loop, take);
+  let found = follows(loop, take);
+  if (found?.takesOn) {
+    // a loop from before windows (or recorded with Rec) is taken on now: a change to the scene
+    // made once, saved (no undo step: undo brings back the loop, which is taken on again alike)
+    found = follows(loop, take, true);
+    saveScene();
+  }
   const win = found ? { take, from: found.from, to: found.to } : null;
   windows.set(loop, { key, take, win });
   return win;
@@ -2692,6 +2699,8 @@ function initTrackView(
   takeHooks: {
     commit: (zoneIndex: number, take: Take, label: string, change: () => void) => void;
     remove: (zoneIndex: number, take: Take) => void;
+    /** Saves the scene without an undo step */
+    save: () => void;
   },
   meter: () => Meter
 ): void {
@@ -2699,6 +2708,7 @@ function initTrackView(
   commit = commitChange;
   commitTake = takeHooks.commit;
   deleteTake = takeHooks.remove;
+  saveScene = takeHooks.save;
   currentMeter = meter;
   const zonesEl = document.getElementById('zones')!;
   captureButton = document.createElement('div');
@@ -3045,7 +3055,7 @@ function initTrackView(
  * Returns the zones whose loop changed, with their loops before and after.
  */
 function beginTakeLoops(take: Take): () => { zoneId: string; before: Take; after: Take }[] {
-  const zones = getZones().filter((z) => z.loop && z.loop.origin?.at === take.at && take.at && z.looper.mode === 'idle');
+  const zones = getZones().filter((z) => z.loop && take.at && takeOfLoop(takeStore.of(z.id), z.loop) === take && z.looper.mode === 'idle');
   const loops = zones.map((z) => z.loop!);
   const finish = beginTakeEdit(take, loops);
   return () =>

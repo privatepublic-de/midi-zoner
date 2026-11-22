@@ -237,6 +237,7 @@ function initController({
         });
         invalidateTrackView();
       },
+      save: () => originalSave(),
       remove: (zoneindex, take) => {
         const zoneId = zones.list[zoneindex].id;
         const at = takeStore.remove(zoneId, take);

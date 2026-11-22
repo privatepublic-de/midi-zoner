@@ -117,9 +117,12 @@ interface HistoryNote {
  */
 class NoteHistory {
   static MAX = 50000;
+  static TRIM = 2000;
   // A note that started this long before a range is still looked at by between()
   static LOOKBACK = 96 * 64;
   notes: HistoryNote[] = [];
+  /** The notes still sounding, by pitch (one each: a note-on ends the pitch's earlier note) */
+  private open = new Map<number, HistoryNote>();
   low = 128;
   high = -1;
 
@@ -145,10 +148,13 @@ class NoteHistory {
   noteOn(pitch: number, velo: number, live = false, take = false): void {
     if (!timeline.running) return;
     this.noteOff(pitch);
-    this.notes.push({ pitch, velo, start: sessionNow(), end: null, live, ...(take ? { take } : {}) });
+    const note: HistoryNote = { pitch, velo, start: sessionNow(), end: null, live, ...(take ? { take } : {}) };
+    this.notes.push(note);
+    this.open.set(pitch, note);
     if (pitch < this.low) this.low = pitch;
     if (pitch > this.high) this.high = pitch;
-    if (this.notes.length > NoteHistory.MAX) this.notes.splice(0, this.notes.length - NoteHistory.MAX);
+    // beyond MAX: the oldest go in batches, not one on every note
+    if (this.notes.length > NoteHistory.MAX + NoteHistory.TRIM) this.notes.splice(0, this.notes.length - NoteHistory.MAX);
     // past `keep`: let go in batches (when the oldest is twice as old), not on every note
     const now = this.notes[this.notes.length - 1].start;
     if (this.notes[0].start < now - 2 * this.keep) {
@@ -160,18 +166,22 @@ class NoteHistory {
   }
 
   noteOff(pitch: number): void {
-    for (let i = this.notes.length - 1; i >= 0; i--) {
-      const n = this.notes[i];
-      if (n.pitch === pitch && n.end === null) {
-        n.end = Math.max(n.start, releaseAt());
-        return;
-      }
-    }
+    const n = this.open.get(pitch);
+    if (!n) return;
+    this.open.delete(pitch);
+    n.end = Math.max(n.start, releaseAt());
   }
 
   closeAll(): void {
+    if (this.open.size === 0) return;
     const t = releaseAt();
-    for (const n of this.notes) if (n.end === null) n.end = Math.max(n.start, t);
+    this.open.forEach((n) => (n.end = Math.max(n.start, t)));
+    this.open.clear();
+  }
+
+  /** The pitches still sounding */
+  sounding(): number[] {
+    return [...this.open.keys()];
   }
 }
 

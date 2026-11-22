@@ -203,11 +203,12 @@ function ahead(line: Zone, pos: number, meter: Meter): HeardNote[] | null {
   const out: HeardNote[] = [];
   // cycle by cycle from the one playing (run ticks), as the take player plays it
   for (let c = pos < anchor ? anchor : anchor + Math.floor((pos - anchor) / len) * len; c < until; c += len) {
-    for (const n of take.notes) {
-      if (n.t < take.offset) continue;
+    // sorted by t: from the first note at or after pos in this cycle
+    const notes = take.notes;
+    for (let i = take.firstAtOrAfter(take.offset + Math.max(0, pos - c)); i < notes.length; i++) {
+      const n = notes[i];
       if (n.t >= end) break;
       const at = c + n.t - take.offset;
-      if (at < pos) continue;
       if (at >= until) break;
       out.push({ s: at - timeline.sectionStart, d: Math.max(1, Math.min(n.d, end - n.t)), n: n.n, v: n.v, held: false });
     }

@@ -82,7 +82,11 @@ ok(W.follows(X, take) === null, 'a loop changed beyond recognition gets no windo
 // a legacy loop (no link, no flags) with a dub is taken on, playing as before
 const old = mk(3*96, 7*96); old.link = null; old.notes.push({ t: 50, d: 9, n: 99, v: 99 }); old.sort();
 const before = sig(old).replace(/,0,(\d)\]/g, ',X,$1]');
-ok(W.follows(old, take) !== null && old.notes.find(n => n.n === 99).o === 1, 'legacy loop taken on: its dub becomes its own');
+const oldJ = JSON.stringify(old.toJSON());
+const peek = W.follows(old, take);
+ok(peek !== null && peek.takesOn && JSON.stringify(old.toJSON()) === oldJ, 'legacy loop: follows() alone leaves it as it is (drawing, hover)');
+ok(W.follows(old, take, true) !== null && old.notes.find(n => n.n === 99).o === 1, 'legacy loop taken on: its dub becomes its own');
+ok(W.follows(old, take).takesOn === false, 'and once taken on, nothing more to take on');
 // gestures: a slide takes the take's, also after the loop's JSON round trip (undo)
 const g0 = W.cutWindow(take, 5*96, 9*96, {}).loop.g;
 ok(JSON.stringify(W.recutWindow(loop, take, 5*96, 9*96, 'slide').g) === JSON.stringify(g0), 'slide: gestures come from the take');
@@ -97,5 +101,13 @@ ok(W.follows(L4, T3) === null, 'a linked loop whose take changed under it gets n
 // cleared MPE stays cleared
 const M = loop.copy(); M.origin = loop.origin; M.notes[0].x = { p: [0, 100] }; M.clearExpression();
 ok(M.link.plain === 1 && !W.recutWindow(M, take, 3*96, 7*96, 'edge').hasExpression, 'cleared MPE stays cleared when cut anew');
+// a long run rolled over into two takes of one run (same at): a loop finds the part holding its first bar
+const partA = take.copy(); partA.at = 42; partA.runOffset = 0; partA.length = 12*96;
+const partB = take.copy(); partB.at = 42; partB.runOffset = 12*96; partB.length = 12*96;
+const inB = loop.copy(); inB.origin = { at: 42, run: 15*96 };
+const inA = loop.copy(); inA.origin = { at: 42, run: 3*96 };
+const elsewhere = loop.copy(); elsewhere.origin = { at: 42, run: 40*96 };
+ok(W.takeOfLoop([partA, partB], inB) === partB && W.takeOfLoop([partA, partB], inA) === partA, 'rolled-over run: a loop finds the part it was cut from');
+ok(W.takeOfLoop([partA, partB], elsewhere) === partA && W.takeOfLoop([partA], { origin: { at: 7, run: 0 } }) === undefined, 'outside every part: the run\'s first; another run: none');
 console.log(fails ? `${fails} FAILED` : 'all ok');
 if (fails) process.exitCode = 1;
