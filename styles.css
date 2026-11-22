@@ -1068,11 +1068,14 @@ body.minimized #meterChip {
     box-sizing: border-box;
     display: flex;
     align-items: center;
-    height: 28px;
-    padding: 0 12px;
-    background-color: var(--slate-raise);
-    border: 1px solid var(--slate-line);
-    color: var(--text-base-color);
+    /* a ghost (Nov 22, the user's pick from mocks: raised, it caught the eye while working
+       on the zones): no fill, dim text, a faint frame; raised on hover */
+    height: 24px;
+    padding: 0 10px;
+    background-color: transparent;
+    border: 1px solid color-mix(in srgb, var(--slate-line) 70%, transparent);
+    box-shadow: none; /* .action's inset line doubled the frame */
+    color: var(--slate-dim);
     white-space: nowrap;
     cursor: pointer;
   }
@@ -1089,7 +1092,8 @@ body.minimized #meterChip {
     border-radius: var(--radius);
   }
   a:hover {
-    background-color: var(--darker-2);
+    background-color: var(--slate-raise);
+    color: var(--text-base-color);
   }
 }
 
