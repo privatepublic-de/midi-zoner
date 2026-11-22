@@ -434,6 +434,11 @@ function applyPendingToggles(): void {
 function loopZone(index: number): void {
   const zone = zones.list[index];
   if (!zone) return;
+  // a chords zone's Rec keeps the chords heard as its loop (again: replacing it), from its chip or Mackie
+  if (zone.chords) {
+    keepChords(zone);
+    return;
+  }
   // the undo snapshot is taken before, but only handed over when the loop changed
   const before = JSON.stringify(zones);
   afterLoop(index, before, zone.loopPress(performance.now()));
@@ -506,10 +511,7 @@ function actionHandler(ev: MouseEvent, overrideaction?: string): void {
     actionString += ':' + (ev.type == 'focus' ? 1 : 0);
   }
   if (actionString!.endsWith(':zone_loop')) {
-    // a chords zone's Rec keeps the chords heard as its loop (again: replacing it)
-    const rz = zones.list[parseInt(actionString!)];
-    if (rz?.chords) keepChords(rz);
-    else loopZone(parseInt(actionString!));
+    loopZone(parseInt(actionString!));
     return;
   }
   {
